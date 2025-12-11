@@ -158,7 +158,7 @@ export function StudyPlannerLIA() {
     dayName: string;
     startTime: string;
     endTime: string;
-    lessons: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }>;
+    lessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }>;
   };
   const [savedLessonDistribution, setSavedLessonDistribution] = useState<StoredLessonDistribution[]>([]);
   const [savedTargetDate, setSavedTargetDate] = useState<string | null>(null);
@@ -2057,7 +2057,7 @@ export function StudyPlannerLIA() {
             // Obtener títulos de lecciones para los objetivos de aprendizaje
             const lessonTitles = publishedLessons
               .slice(0, 10)
-              .map((lesson: any) => lesson.lesson_title)
+              .map((lesson: any) => lesson.lessonTitle)
               .filter(Boolean);
 
             // Si no tenemos lecciones, usar información del curso disponible
@@ -3501,7 +3501,7 @@ export function StudyPlannerLIA() {
           calendarMessage += recommendationIntro.join(' ');
           
           // Obtener lecciones de los cursos seleccionados para distribuir por horarios
-          let allLessonsByCourse: Map<string, Array<{ lesson_id: string; lesson_title: string; lesson_order_index: number; duration_seconds: number }>> = new Map();
+          let allLessonsByCourse: Map<string, Array<{ lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number }>> = new Map();
           let completedLessonIdsByCourse: Map<string, string[]> = new Map();
           
           console.log(`📚 Obteniendo lecciones para distribución:`);
@@ -3543,11 +3543,11 @@ export function StudyPlannerLIA() {
                                 return null;
                               }
                               return {
-                                lesson_id: lesson.lessonId,
-                                lesson_title: lesson.lessonTitle.trim(),
-                                lesson_order_index: lesson.lessonOrderIndex || 0,
-                                module_order_index: module.moduleOrderIndex || 0, // ✅ CRÍTICO: Para ordenar correctamente
-                                duration_seconds: lesson.durationSeconds || 0
+                                lessonId: lesson.lessonId,
+                                lessonTitle: lesson.lessonTitle.trim(),
+                                lessonOrderIndex: lesson.lessonOrderIndex || 0,
+                                moduleOrderIndex: module.moduleOrderIndex || 0, // ✅ CRÍTICO: Para ordenar correctamente
+                                durationSeconds: lesson.durationSeconds || 0
                               };
                             }).filter((lesson: any) => lesson !== null); // Filtrar nulos
                           });
@@ -3556,12 +3556,12 @@ export function StudyPlannerLIA() {
                             // IMPORTANTE: Ordenar primero por módulo, luego por lección dentro del módulo
                             const publishedLessons = allLessons
                               .filter((lesson: any) => {
-                                const isValid = lesson && 
-                                  lesson.lesson_id && 
-                                  lesson.lesson_title && 
-                                  typeof lesson.lesson_title === 'string' &&
-                                  lesson.lesson_title.trim() !== '' &&
-                                  lesson.lesson_order_index >= 0;
+                                const isValid = lesson &&
+                                  lesson.lessonId &&
+                                  lesson.lessonTitle &&
+                                  typeof lesson.lessonTitle === 'string' &&
+                                  lesson.lessonTitle.trim() !== '' &&
+                                  lesson.lessonOrderIndex >= 0;
                                 if (!isValid) {
                                   console.warn(`   ⚠️ Lección filtrada por datos inválidos:`, lesson);
                                 }
@@ -3569,19 +3569,19 @@ export function StudyPlannerLIA() {
                               })
                               .sort((a: any, b: any) => {
                                 // Primero por módulo
-                                if (a.module_order_index !== b.module_order_index) {
-                                  return (a.module_order_index || 0) - (b.module_order_index || 0);
+                                if (a.moduleOrderIndex !== b.moduleOrderIndex) {
+                                  return (a.moduleOrderIndex || 0) - (b.moduleOrderIndex || 0);
                                 }
                                 // Luego por lección dentro del módulo
-                                return (a.lesson_order_index || 0) - (b.lesson_order_index || 0);
+                                return (a.lessonOrderIndex || 0) - (b.lessonOrderIndex || 0);
                               });
                             
                             console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones válidas obtenidas`);
                             if (publishedLessons.length > 0) {
                               console.log(`   Primeras 5 lecciones:`, publishedLessons.slice(0, 5).map((l: any) => ({
-                                index: l.lesson_order_index,
-                                id: l.lesson_id,
-                                title: l.lesson_title
+                                index: l.lessonOrderIndex,
+                                id: l.lessonId,
+                                title: l.lessonTitle
                               })));
                             } else {
                               console.warn(`   ⚠️ NO se encontraron lecciones válidas para el curso ${courseId}`);
@@ -3638,7 +3638,7 @@ export function StudyPlannerLIA() {
           }
           
           // Crear lista plana de todas las lecciones pendientes de todos los cursos, ordenadas
-          const allPendingLessons: Array<{ courseId: string; courseTitle: string; lesson_id: string; lesson_title: string; lesson_order_index: number; duration_seconds: number }> = [];
+          const allPendingLessons: Array<{ courseId: string; courseTitle: string; lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number }> = [];
           
           selectedCourseIds.forEach(courseId => {
             const courseFromList = availableCourses.find(c => c.id === courseId);
@@ -3657,26 +3657,26 @@ export function StudyPlannerLIA() {
             let skippedCount = 0;
             lessons.forEach(lesson => {
               // Validar que la lección tenga título válido antes de agregarla
-              if (!lesson.lesson_title || lesson.lesson_title.trim() === '') {
-                console.warn(`   ⚠️ Lección ${lesson.lesson_order_index} (${lesson.lesson_id}) sin título válido - omitida`);
+              if (!lesson.lessonTitle || lesson.lessonTitle.trim() === '') {
+                console.warn(`   ⚠️ Lección ${lesson.lessonOrderIndex} (${lesson.lessonId}) sin título válido - omitida`);
                 skippedCount++;
                 return;
               }
-              
-              if (!completedIds.includes(lesson.lesson_id)) {
+
+              if (!completedIds.includes(lesson.lessonId)) {
                 allPendingLessons.push({
                   courseId,
                   courseTitle,
-                  lesson_id: lesson.lesson_id,
-                  lesson_title: lesson.lesson_title.trim(), // Asegurar que no tenga espacios extra
-                  lesson_order_index: lesson.lesson_order_index || 0,
-                  module_order_index: (lesson as any).module_order_index || 0, // ✅ AGREGADO
-                  duration_seconds: lesson.duration_seconds || 0
+                  lessonId: lesson.lessonId,
+                  lessonTitle: lesson.lessonTitle.trim(), // Asegurar que no tenga espacios extra
+                  lessonOrderIndex: lesson.lessonOrderIndex || 0,
+                  moduleOrderIndex: (lesson as any).moduleOrderIndex || 0, // ✅ AGREGADO
+                  durationSeconds: lesson.durationSeconds || 0
                 });
                 pendingCount++;
               } else {
                 skippedCount++;
-                console.log(`   ✓ Lección ${lesson.lesson_order_index} "${lesson.lesson_title}" (${lesson.lesson_id}) ya completada - omitida`);
+                console.log(`   ✓ Lección ${lesson.lessonOrderIndex} "${lesson.lessonTitle}" (${lesson.lessonId}) ya completada - omitida`);
               }
             });
             console.log(`   Lecciones pendientes agregadas: ${pendingCount}, omitidas: ${skippedCount}`);
@@ -3689,33 +3689,33 @@ export function StudyPlannerLIA() {
               return selectedCourseIds.indexOf(a.courseId) - selectedCourseIds.indexOf(b.courseId);
             }
             // Luego por módulo dentro del curso
-            if ((a as any).module_order_index !== (b as any).module_order_index) {
-              return ((a as any).module_order_index || 0) - ((b as any).module_order_index || 0);
+            if ((a as any).moduleOrderIndex !== (b as any).moduleOrderIndex) {
+              return ((a as any).moduleOrderIndex || 0) - ((b as any).moduleOrderIndex || 0);
             }
             // Finalmente por lección dentro del módulo
-            return a.lesson_order_index - b.lesson_order_index;
+            return a.lessonOrderIndex - b.lessonOrderIndex;
           });
-          
+
           console.log(`📚 Lecciones pendientes totales: ${allPendingLessons.length}`);
           if (allPendingLessons.length > 0) {
             console.log(`   Primeras 5 lecciones pendientes:`, allPendingLessons.slice(0, 5).map(l => ({
-              index: l.lesson_order_index,
-              title: l.lesson_title,
-              id: l.lesson_id,
+              index: l.lessonOrderIndex,
+              title: l.lessonTitle,
+              id: l.lessonId,
               course: l.courseTitle
             })));
           }
-          
+
           // Validar que las lecciones tengan datos correctos
-          const invalidLessons = allPendingLessons.filter(l => !l.lesson_title || l.lesson_title === '');
+          const invalidLessons = allPendingLessons.filter(l => !l.lessonTitle || l.lessonTitle === '');
           if (invalidLessons.length > 0) {
             console.warn(`⚠️ ${invalidLessons.length} lecciones sin título encontradas`);
           }
-          
+
           // Guardar distribución de lecciones para el resumen final (no mostrar en recomendaciones iniciales)
           type LessonDistribution = {
             slot: FreeSlotWithDay;
-            lessons: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }>;
+            lessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }>;
           };
           
           const lessonDistribution: LessonDistribution[] = [];
@@ -3824,7 +3824,7 @@ export function StudyPlannerLIA() {
             console.log(`   Slot ${slotIndex + 1}: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - Duración: ${slotDurationMinutes}min - Sesiones que caben: ${maxSessionsInSlot} - A asignar: ${sessionsToAssign}`);
 
             // Asignar lecciones a este slot (solo lecciones válidas)
-            const lessonsForSlot: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }> = [];
+            const lessonsForSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
 
             // Continuar asignando mientras haya lecciones pendientes y espacio en el slot
             let assignedInSlot = 0;
@@ -3832,7 +3832,7 @@ export function StudyPlannerLIA() {
               const lesson = allPendingLessons[currentLessonIndex];
 
               // Validar que la lección tenga datos válidos antes de asignarla
-              if (!lesson || !lesson.lesson_id || !lesson.lesson_title || typeof lesson.lesson_title !== 'string' || lesson.lesson_title.trim() === '') {
+              if (!lesson || !lesson.lessonId || !lesson.lessonTitle || typeof lesson.lessonTitle !== 'string' || lesson.lessonTitle.trim() === '') {
                 console.warn(`⚠️ Lección en índice ${currentLessonIndex} tiene datos inválidos, saltando:`, lesson);
                 currentLessonIndex++;
                 continue;
@@ -3840,13 +3840,13 @@ export function StudyPlannerLIA() {
 
               lessonsForSlot.push({
                 courseTitle: lesson.courseTitle || 'Curso',
-                lesson_title: lesson.lesson_title.trim(),
-                lesson_order_index: lesson.lesson_order_index || 0
+                lessonTitle: lesson.lessonTitle.trim(),
+                lessonOrderIndex: lesson.lessonOrderIndex || 0
               });
 
               // Log para las primeras asignaciones
               if (slotIndex < 3 && assignedInSlot < 2) {
-                console.log(`   Slot ${slotIndex}, Sesión ${assignedInSlot}: Lección ${lesson.lesson_order_index} - ${lesson.lesson_title}`);
+                console.log(`   Slot ${slotIndex}, Sesión ${assignedInSlot}: Lección ${lesson.lessonOrderIndex} - ${lesson.lessonTitle}`);
               }
 
               currentLessonIndex++;
@@ -3883,16 +3883,16 @@ export function StudyPlannerLIA() {
               if (currentLessonIndex >= allPendingLessons.length) break;
               
               const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / cycleDuration));
-              const lessonsForUnusedSlot: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }> = [];
+              const lessonsForUnusedSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
               
               for (let i = 0; i < slotCapacity && currentLessonIndex < allPendingLessons.length; i++) {
                 const lesson = allPendingLessons[currentLessonIndex];
-                
-                if (lesson && lesson.lesson_title && lesson.lesson_title.trim() !== '') {
+
+                if (lesson && lesson.lessonTitle && lesson.lessonTitle.trim() !== '') {
                   lessonsForUnusedSlot.push({
                     courseTitle: lesson.courseTitle || 'Curso',
-                    lesson_title: lesson.lesson_title.trim(),
-                    lesson_order_index: lesson.lesson_order_index || 0
+                    lessonTitle: lesson.lessonTitle.trim(),
+                    lessonOrderIndex: lesson.lessonOrderIndex || 0
                   });
                   currentLessonIndex++;
                 } else {
@@ -3938,11 +3938,11 @@ export function StudyPlannerLIA() {
                 for (let i = 0; i < availableSpace && currentLessonIndex < allPendingLessons.length; i++) {
                   const lesson = allPendingLessons[currentLessonIndex];
 
-                  if (lesson && lesson.lesson_title && lesson.lesson_title.trim() !== '') {
+                  if (lesson && lesson.lessonTitle && lesson.lessonTitle.trim() !== '') {
                     slotDist.lessons.push({
                       courseTitle: lesson.courseTitle || 'Curso',
-                      lesson_title: lesson.lesson_title.trim(),
-                      lesson_order_index: lesson.lesson_order_index || 0
+                      lessonTitle: lesson.lessonTitle.trim(),
+                      lessonOrderIndex: lesson.lessonOrderIndex || 0
                     });
                     currentLessonIndex++;
                   } else {
@@ -3968,19 +3968,19 @@ export function StudyPlannerLIA() {
             .map(item => {
               // Validar y filtrar lecciones inválidas
               const validLessons = item.lessons.filter(lesson => {
-                const isValid = lesson && 
-                  lesson.lesson_title && 
-                  typeof lesson.lesson_title === 'string' &&
-                  lesson.lesson_title.trim() !== '' &&
-                  lesson.lesson_order_index >= 0;
+                const isValid = lesson &&
+                  lesson.lessonTitle &&
+                  typeof lesson.lessonTitle === 'string' &&
+                  lesson.lessonTitle.trim() !== '' &&
+                  lesson.lessonOrderIndex >= 0;
                 if (!isValid) {
                   console.warn(`⚠️ Lección inválida filtrada de distribución:`, lesson);
                 }
                 return isValid;
               }).map(lesson => ({
                 courseTitle: lesson.courseTitle || 'Curso',
-                lesson_title: lesson.lesson_title.trim(), // Asegurar sin espacios extra
-                lesson_order_index: lesson.lesson_order_index || 0
+                lessonTitle: lesson.lessonTitle.trim(), // Asegurar sin espacios extra
+                lessonOrderIndex: lesson.lessonOrderIndex || 0
               }));
               
               // Solo incluir slots que tengan lecciones válidas
@@ -4017,7 +4017,7 @@ export function StudyPlannerLIA() {
             console.log(`📦 Primera distribución:`, JSON.stringify(distributionToSave[0], null, 2));
             const allSavedLessons = distributionToSave.flatMap(d => d.lessons);
             console.log(`📦 Total lecciones en distribución: ${allSavedLessons.length}`);
-            console.log(`📦 Primeras 5 lecciones:`, allSavedLessons.slice(0, 5).map(l => `${l.lesson_order_index}: ${l.lesson_title}`));
+            console.log(`📦 Primeras 5 lecciones:`, allSavedLessons.slice(0, 5).map(l => `${l.lessonOrderIndex}: ${l.lessonTitle}`));
           }
           
           // Mostrar todos los horarios hasta la fecha objetivo del usuario
@@ -4757,7 +4757,7 @@ Cuéntame:
       // Contar total de lecciones
       savedLessonDistribution.forEach((item) => {
         if (item?.lessons && Array.isArray(item.lessons)) {
-          totalLessonsAssigned += item.lessons.filter(l => l?.lesson_title?.trim()).length;
+          totalLessonsAssigned += item.lessons.filter(l => l?.lessonTitle?.trim()).length;
         }
       });
 
@@ -4774,16 +4774,16 @@ Cuéntame:
         }
 
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
-        const lessonCount = item.lessons?.filter(l => l?.lesson_title?.trim()).length || 0;
+        const lessonCount = item.lessons?.filter(l => l?.lessonTitle?.trim()).length || 0;
 
         distributionSummary += `\n**${formattedDate}** de ${item.startTime} a ${item.endTime}. Lecciones a estudiar:\n`;
 
         // Mostrar TODAS las lecciones asignadas a cada slot
         if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
           item.lessons.forEach((lesson, lessonIndex) => {
-            if (lesson?.lesson_title?.trim()) {
-              const lessonTitle = lesson.lesson_title.trim();
-              const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : lessonIndex + 1;
+            if (lesson?.lessonTitle?.trim()) {
+              const lessonTitle = lesson.lessonTitle.trim();
+              const lessonNum = lesson.lessonOrderIndex > 0 ? lesson.lessonOrderIndex : lessonIndex + 1;
               distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
 
               // Log para debugging de las primeras sesiones
@@ -4864,16 +4864,16 @@ Cuéntame:
         }
 
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
-        const lessonCount = item.lessons?.filter(l => l?.lesson_title?.trim()).length || 0;
+        const lessonCount = item.lessons?.filter(l => l?.lessonTitle?.trim()).length || 0;
         totalLessonsAssigned += lessonCount;
 
         addScheduleContext += `**${formattedDate}** de ${item.startTime} a ${item.endTime}:\n`;
-        
+
         if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
           item.lessons.forEach((lesson) => {
-            if (lesson?.lesson_title?.trim()) {
-              const lessonTitle = lesson.lesson_title.trim();
-              const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : 0;
+            if (lesson?.lessonTitle?.trim()) {
+              const lessonTitle = lesson.lessonTitle.trim();
+              const lessonNum = lesson.lessonOrderIndex > 0 ? lesson.lessonOrderIndex : 0;
               addScheduleContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
             }
           });
