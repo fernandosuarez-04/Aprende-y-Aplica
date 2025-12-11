@@ -2579,8 +2579,11 @@ export function StudyPlannerLIA() {
         : 30; // Solo usar 30 días como fallback si no hay fecha objetivo
       
       console.log(`📊 Inicializando análisis para ${daysToAnalyze} días`);
+      console.log(`   Fecha inicio: ${startDate.toLocaleDateString('es-ES')}`);
       if (targetDateObjForEvents) {
-        console.log(`   Fecha objetivo para análisis: ${targetDateObjForEvents.toLocaleDateString('es-ES')}`);
+        console.log(`   Fecha objetivo para eventos (targetDateObjForEvents): ${targetDateObjForEvents.toLocaleDateString('es-ES')}`);
+      } else {
+        console.warn(`   ⚠️ targetDateObjForEvents es NULL - usando 30 días por defecto`);
       }
 
       // Inicializar análisis para todos los días hasta la fecha objetivo
@@ -3056,6 +3059,12 @@ export function StudyPlannerLIA() {
       console.log(`   Total de slots seleccionados: ${uniqueDateSlots.length}`);
       console.log(`   Promedio de slots por día: ${(uniqueDateSlots.length / sortedDates.length).toFixed(2)}`);
 
+      if (uniqueDateSlots.length > 0) {
+        const sortedForLog = [...uniqueDateSlots].sort((a, b) => a.date.getTime() - b.date.getTime());
+        console.log(`   Primer slot generado: ${sortedForLog[0].dayName} ${sortedForLog[0].date.toLocaleDateString('es-ES')}`);
+        console.log(`   Último slot generado: ${sortedForLog[sortedForLog.length - 1].dayName} ${sortedForLog[sortedForLog.length - 1].date.toLocaleDateString('es-ES')}`);
+      }
+
       // Obtener país del usuario (default: México)
       // TODO: Obtener desde userContext cuando se agregue el campo 'country' a la BD
       const userCountry = 'MX'; // Default México
@@ -3392,10 +3401,92 @@ export function StudyPlannerLIA() {
 
       console.log(`   Slots después de dividir: ${dividedSlots.length}`);
 
-      // ✅ NO LIMITAR MÁS - Usar todos los slots divididos para distribuir las lecciones
-      // El usuario quiere que las lecciones se distribuyan a lo largo de todo el periodo
+      // ✅ LIMITAR A MÁXIMO 2 SLOTS POR DÍA (requisito del usuario)
+      // Agrupar slots por día y seleccionar los 2 mejores por día
+      const slotsByDay = new Map<string, FreeSlotWithDay[]>();
+      dividedSlots.forEach(slot => {
+        const dayKey = slot.date.toISOString().split('T')[0];
+        if (!slotsByDay.has(dayKey)) {
+          slotsByDay.set(dayKey, []);
+        }
+        slotsByDay.get(dayKey)!.push(slot);
+      });
+
+      console.log(`📅 Limitando a máximo 2 slots por día:`);
+      const limitedSlots: FreeSlotWithDay[] = [];
+
+      slotsByDay.forEach((daySlots, dayKey) => {
+        // Ordenar por calidad (horarios preferidos y duración)
+        daySlots.sort((a, b) => {
+          const hourA = a.start.getHours();
+          const hourB = b.start.getHours();
+
+          // Priorizar horarios convenientes (7-10 AM, 12-2 PM, 7-9 PM)
+          const isGoodTimeA = (hourA >= 7 && hourA < 10) || (hourA >= 12 && hourA < 14) || (hourA >= 19 && hourA < 21);
+          const isGoodTimeB = (hourB >= 7 && hourB < 10) || (hourB >= 12 && hourB < 14) || (hourB >= 19 && hourB < 21);
+
+          if (isGoodTimeA && !isGoodTimeB) return -1;
+          if (!isGoodTimeA && isGoodTimeB) return 1;
+
+          // Si ambos son buenos o malos, priorizar por duración
+          return b.durationMinutes - a.durationMinutes;
+        });
+
+        // Tomar máximo 2 slots por día
+        const selectedDaySlots = daySlots.slice(0, 2);
+        console.log(`   ${dayKey}: ${daySlots.length} slots → ${selectedDaySlots.length} seleccionados`);
+        limitedSlots.push(...selectedDaySlots);
+      });
+
+      console.log(`   Total slots después de limitar a 2 por día: ${limitedSlots.length}`);
+
+      // ✅ DISTRIBUIR EQUIDISTANTEMENTE A LO LARGO DE TODO EL PERÍODO
+      // No usar todos los slots consecutivamente - distribuir a lo largo del tiempo
+      // Ordenar por fecha
+      limitedSlots.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      // ✅ IMPORTANTE: Usar el número REAL de lecciones pendientes que se calculará después
+      // NO usar totalLessonsNeeded que se calcula al inicio (puede ser incorrecto)
+      // Por ahora, usar una estimación generosa para asegurar suficientes slots
+      const estimatedLessons = Math.max(totalLessonsNeeded, 30); // Mínimo 30 lecciones
+      const avgLessonsPerSlot = 2; // Estimación conservadora
+      const slotsNeeded = Math.ceil(estimatedLessons / avgLessonsPerSlot);
+
+      console.log(`📊 Distribución equidistante:`);
+      console.log(`   Lecciones estimadas inicialmente (totalLessonsNeeded): ${totalLessonsNeeded}`);
+      console.log(`   Lecciones usadas para cálculo (máximo de 30): ${estimatedLessons}`);
+      console.log(`   Promedio estimado por slot: ${avgLessonsPerSlot}`);
+      console.log(`   Slots disponibles (limitados a 2/día): ${limitedSlots.length}`);
+      console.log(`   Slots necesarios (estimado): ${slotsNeeded}`);
+
+      // Seleccionar slots distribuidos equidistantemente
+      const equidistantSlots: FreeSlotWithDay[] = [];
+      if (limitedSlots.length > 0) {
+        const totalAvailable = limitedSlots.length;
+        const slotsToUse = Math.min(slotsNeeded, totalAvailable);
+
+        if (slotsToUse >= totalAvailable) {
+          // Necesitamos todos los slots
+          equidistantSlots.push(...limitedSlots);
+        } else {
+          // Distribuir equidistantemente
+          const step = (totalAvailable - 1) / (slotsToUse - 1);
+          for (let i = 0; i < slotsToUse; i++) {
+            const index = Math.round(i * step);
+            equidistantSlots.push(limitedSlots[index]);
+          }
+        }
+      }
+
+      console.log(`   Slots distribuidos equidistantemente: ${equidistantSlots.length}`);
+      if (equidistantSlots.length > 0) {
+        console.log(`   Primer slot: ${equidistantSlots[0].dayName} ${equidistantSlots[0].date.toLocaleDateString('es-ES')}`);
+        console.log(`   Último slot: ${equidistantSlots[equidistantSlots.length - 1].dayName} ${equidistantSlots[equidistantSlots.length - 1].date.toLocaleDateString('es-ES')}`);
+      }
+
+      // Usar los slots distribuidos equidistantemente
       finalSlots.length = 0;
-      finalSlots.push(...dividedSlots);
+      finalSlots.push(...equidistantSlots);
 
       // Calcular tiempo disponible por semana basado en las sesiones seleccionadas
       let weeklyAvailableMinutes: number;
@@ -4034,11 +4125,18 @@ export function StudyPlannerLIA() {
             console.log(`📦 Primeras 5 lecciones:`, allSavedLessons.slice(0, 5).map(l => `${l.lessonOrderIndex}: ${l.lessonTitle}`));
           }
           
-          // Mostrar todos los horarios hasta la fecha objetivo del usuario
-          // Agrupar por fecha para mostrar todos los slots de cada día
+          // ✅ MOSTRAR SOLO LOS SLOTS QUE TIENEN LECCIONES ASIGNADAS
+          // No mostrar todos los slots disponibles, solo los que realmente se van a usar
+          const slotsWithLessons = lessonDistribution.map(dist => dist.slot);
+
+          console.log(`📅 Mostrando recomendaciones:`);
+          console.log(`   Slots disponibles (slotsUntilTarget): ${slotsUntilTarget.length}`);
+          console.log(`   Slots con lecciones asignadas: ${slotsWithLessons.length}`);
+
+          // Agrupar por fecha para mostrar los slots con lecciones
           const slotsByDay = new Map<string, FreeSlotWithDay[]>();
 
-          slotsUntilTarget.forEach(slot => {
+          slotsWithLessons.forEach(slot => {
             if (!slotsByDay.has(slot.dateStr)) {
               slotsByDay.set(slot.dateStr, []);
             }
@@ -4050,12 +4148,18 @@ export function StudyPlannerLIA() {
             return new Date(a).getTime() - new Date(b).getTime();
           });
 
-          // Mostrar todos los días con sus horarios
+          console.log(`   Días con sesiones: ${sortedDays.length}`);
+          console.log(`   Primer día: ${sortedDays[0]}`);
+          console.log(`   Último día: ${sortedDays[sortedDays.length - 1]}`);
+
+          // Mostrar todos los días con sus horarios (solo slots con lecciones asignadas)
           sortedDays.forEach(dateStr => {
             const slots = slotsByDay.get(dateStr)!;
 
             // Ordenar slots del día por hora de inicio
             slots.sort((a, b) => a.start.getTime() - b.start.getTime());
+
+            console.log(`   ${dateStr}: ${slots.length} slots`);
 
             // Mostrar cada slot del día
             slots.forEach(slot => {
