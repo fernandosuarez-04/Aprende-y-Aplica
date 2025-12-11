@@ -3695,24 +3695,32 @@ export function StudyPlannerLIA() {
                             // Esto asegura que usamos la misma lógica y obtenemos datos consistentes
                             try {
                               // Obtener el userId del usuario actual
-                              const userResponse = await fetch('/api/auth/user');
+                              const userResponse = await fetch('/api/auth/me');
                               if (userResponse.ok) {
                                 const userData = await userResponse.json();
-                                const userId = userData?.user?.id || userData?.id;
-                                
+                                const userId = userData?.user?.id;
+                                console.log(`   ✅ Usuario obtenido: ${userId}`);
+
                                 if (userId) {
                                   // Obtener lecciones completadas filtrando por enrollment_id si está disponible
                                   // Esto es crítico para obtener solo las lecciones del curso específico
+                                  console.log(`   🔍 Consultando progreso: /api/study-planner/course-progress?enrollmentId=${enrollmentId || ''}&courseId=${courseId}&userId=${userId}`);
                                   const progressResponse = await fetch(
                                     `/api/study-planner/course-progress?enrollmentId=${enrollmentId || ''}&courseId=${courseId}&userId=${userId}`
                                   );
                                   if (progressResponse.ok) {
                                     const progressData = await progressResponse.json();
+                                    console.log(`   📥 Respuesta del endpoint:`, progressData);
                                     const completedIds = progressData.completedLessonIds || [];
                                     console.log(`   Curso ${courseId}: ${completedIds.length} lecciones completadas (enrollmentId: ${enrollmentId || 'N/A'})`);
+                                    if (completedIds.length > 0) {
+                                      console.log(`   IDs de lecciones completadas:`, completedIds);
+                                    }
                                     completedLessonIdsByCourse.set(courseId, completedIds);
                                   } else {
                                     console.warn(`   ⚠️ Error obteniendo progreso para curso ${courseId}: ${progressResponse.status}`);
+                                    const errorData = await progressResponse.json();
+                                    console.warn(`   Error data:`, errorData);
                                   }
                                 } else {
                                   console.warn(`   ⚠️ No se pudo obtener userId para curso ${courseId}`);

@@ -405,21 +405,40 @@ export class LiaContextService {
 
       // Agregar módulos y lecciones si están disponibles
       if (course.modules && course.modules.length > 0) {
-        prompt += `  \n  MÓDULOS Y LECCIONES:\n`;
         let totalLessons = 0;
         let completedLessons = 0;
+        let pendingLessons = 0;
 
+        // Primero contar todas las lecciones para el resumen
         for (const module of course.modules) {
-          prompt += `    ${module.moduleOrderIndex}. ${module.moduleTitle}\n`;
           for (const lesson of module.lessons) {
-            const status = lesson.isCompleted ? '✓ Completada' : '○ Pendiente';
-            prompt += `       ${lesson.lessonOrderIndex}. ${lesson.lessonTitle} (${lesson.durationMinutes} min) [${status}]\n`;
             totalLessons++;
-            if (lesson.isCompleted) completedLessons++;
+            if (lesson.isCompleted) {
+              completedLessons++;
+            } else {
+              pendingLessons++;
+            }
           }
         }
 
-        prompt += `  \n  RESUMEN: ${completedLessons} de ${totalLessons} lecciones completadas\n`;
+        // IMPORTANTE: Solo mostrar lecciones PENDIENTES a LIA
+        // Las lecciones completadas no deben incluirse en el plan de estudios
+        if (pendingLessons > 0) {
+          prompt += `  \n  LECCIONES PENDIENTES (las que DEBES incluir en el plan):\n`;
+          for (const module of course.modules) {
+            // Solo mostrar módulos que tengan lecciones pendientes
+            const pendingInModule = module.lessons.filter(l => !l.isCompleted);
+            if (pendingInModule.length > 0) {
+              prompt += `    Módulo ${module.moduleOrderIndex}: ${module.moduleTitle}\n`;
+              for (const lesson of pendingInModule) {
+                prompt += `       ${lesson.lessonOrderIndex}. ${lesson.lessonTitle} (${lesson.durationMinutes} min) [PENDIENTE]\n`;
+              }
+            }
+          }
+        }
+
+        prompt += `  \n  RESUMEN: ${completedLessons} de ${totalLessons} lecciones ya completadas, ${pendingLessons} pendientes por planificar\n`;
+        prompt += `  \n  ⚠️ IMPORTANTE: El plan de estudios debe incluir SOLO las ${pendingLessons} lecciones pendientes, comenzando desde la primera lección no completada.\n`;
       }
     }
     
@@ -530,11 +549,18 @@ FASE 2: CURSOS ASIGNADOS (B2B)
 
 Los cursos ya están asignados por la organización. NO preguntes qué cursos quiere estudiar.
 
+⚠️ REGLA CRÍTICA SOBRE LECCIONES:
+- El usuario ya ha completado algunas lecciones de sus cursos
+- El plan debe incluir SOLO las lecciones pendientes (no completadas)
+- Comienza desde la primera lección no completada de cada curso
+- NO incluyas lecciones marcadas como completadas
+
 ACCIONES:
 1. Presenta los cursos asignados y sus plazos
-2. Destaca cualquier curso con plazo próximo (menos de 2 semanas)
-3. Sugiere priorizar los cursos con plazos más cercanos
-4. Pregunta si está de acuerdo con el orden propuesto
+2. Menciona cuántas lecciones tiene pendientes en cada curso
+3. Destaca cualquier curso con plazo próximo (menos de 2 semanas)
+4. Sugiere priorizar los cursos con plazos más cercanos
+5. Pregunta si está de acuerdo con el orden propuesto
 `;
         } else {
           instructions = `
@@ -542,12 +568,19 @@ FASE 2: SELECCIÓN DE CURSOS (B2C)
 
 El usuario puede elegir qué cursos incluir en su plan.
 
+⚠️ REGLA CRÍTICA SOBRE LECCIONES:
+- El usuario ya ha completado algunas lecciones de sus cursos
+- El plan debe incluir SOLO las lecciones pendientes (no completadas)
+- Comienza desde la primera lección no completada de cada curso
+- NO incluyas lecciones marcadas como completadas
+
 ACCIONES:
 1. Muestra los cursos que ya tiene adquiridos
-2. Pregunta cuáles quiere incluir en el plan
-3. OPCIONALMENTE puedes sugerir rutas de aprendizaje personalizadas
-4. Puedes mencionar que existen cursos adicionales que podrían complementar su aprendizaje
-5. Confirma la selección final de cursos
+2. Menciona el progreso actual (lecciones completadas vs pendientes)
+3. Pregunta cuáles quiere incluir en el plan
+4. OPCIONALMENTE puedes sugerir rutas de aprendizaje personalizadas
+5. Puedes mencionar que existen cursos adicionales que podrían complementar su aprendizaje
+6. Confirma la selección final de cursos
 `;
         }
         break;
@@ -650,8 +683,13 @@ FASE 7: RESUMEN Y CONFIRMACIÓN
 
 Presenta un resumen completo del plan.
 
+⚠️ RECORDATORIO CRÍTICO:
+- El plan debe incluir SOLO lecciones pendientes (no completadas)
+- Verifica que no estés incluyendo lecciones que el usuario ya completó
+- Comienza desde la primera lección no completada de cada curso
+
 EL RESUMEN DEBE INCLUIR:
-- Cursos incluidos
+- Cursos incluidos y cuántas lecciones pendientes tiene cada uno
 - Tiempo mínimo y máximo de sesiones
 - Tiempos de descanso
 - Días y horarios configurados
