@@ -204,6 +204,9 @@ export function StudyPlannerLIA() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
   
+  // ✅ Estado para tracking de analytics de LIA
+  const [liaConversationId, setLiaConversationId] = useState<string | null>(null);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
@@ -1042,6 +1045,7 @@ export function StudyPlannerLIA() {
           message: question,
           context: 'study-planner',
           conversationHistory: conversationHistory || [],
+          conversationId: liaConversationId || undefined, // ✅ Pasar conversationId para analytics
           userName: undefined,
           pageContext: {
             pathname: '/study-planner/create',
@@ -5654,6 +5658,7 @@ Cuéntame:
           context: 'study-planner',
           language: 'es', // FORZAR ESPAÑOL siempre
           conversationHistory: newHistory.slice(-10),
+          conversationId: liaConversationId || undefined, // ✅ Pasar conversationId para analytics
           pageContext: {
             pathname: '/study-planner/create',
             detectedArea: 'study-planner',
@@ -5701,6 +5706,12 @@ Cuéntame:
 
       const data = await response.json();
       let liaResponse = data.response;
+      
+      // ✅ Guardar conversationId para analytics (sendMessage)
+      if (data.conversationId && !liaConversationId) {
+        setLiaConversationId(data.conversationId);
+        console.log('[Study Planner LIA] Nueva conversación iniciada (sendMessage):', data.conversationId);
+      }
 
       // Filtro adicional de seguridad: eliminar cualquier rastro del prompt del sistema
       const systemPromptIndicators = [
