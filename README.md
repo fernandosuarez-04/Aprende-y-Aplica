@@ -81,11 +81,20 @@
 
 ### 📅 Planificador de Estudio con IA
 - **Modo Manual**: Configuración personalizada de planes
-- **Modo IA**: Generación automática con algoritmos inteligentes
-- **Sincronización de Calendarios**: Google Calendar, Microsoft Calendar, ICS
+- **Modo IA (LIA)**: Generación automática con asistente virtual LIA
+  - Conversación interactiva para crear planes personalizados
+  - Análisis de disponibilidad del calendario del usuario
+  - Generación inteligente de sesiones de estudio
+  - Confirmación y guardado automático de planes
+- **Sincronización de Calendarios**: 
+  - Google Calendar (OAuth 2.0)
+  - Microsoft Calendar (Azure AD OAuth)
+  - Exportación ICS para otros clientes de calendario
+  - Sincronización bidireccional de sesiones
 - **Sistema de Streaks**: Tracking de rachas de estudio
 - **Dashboard de Progreso**: Estadísticas visuales y heatmaps
 - **Técnicas de Aprendizaje**: Spaced Repetition, Interleaving, Load Balancing
+- **Guardado Automático**: Los planes generados se guardan automáticamente en la base de datos
 
 ### 📖 Directorio de IA
 - **Directorio de Prompts**: Catálogo de prompts profesionales generados con IA
@@ -837,9 +846,13 @@ DELETE /api/study-planner/plans/:id     # Eliminar plan
 POST   /api/study-planner/manual/preview  # Preview de plan manual
 POST   /api/study-planner/manual/create   # Crear plan manual
 
-# Modo IA
+# Modo IA (LIA)
 POST   /api/study-planner/ai/preview     # Preview de plan con IA
 POST   /api/study-planner/ai/create      # Crear plan con IA
+
+# Guardado de Planes (LIA)
+POST   /api/study-planner/save-plan      # Guardar plan generado por LIA
+                                      # Incluye guardado de sesiones y sincronización con calendario
 
 # Preferencias
 GET    /api/study-planner/preferences    # Obtener preferencias
@@ -849,6 +862,10 @@ PUT    /api/study-planner/preferences    # Actualizar preferencias
 GET    /api/study-planner/sessions       # Listar sesiones
 POST   /api/study-planner/sessions/:id/complete    # Completar sesión
 POST   /api/study-planner/sessions/:id/reschedule  # Reprogramar sesión
+
+# Sincronización de Calendario
+POST   /api/study-planner/calendar/sync-sessions   # Sincronizar sesiones con calendario externo
+GET    /api/study-planner/calendar/status          # Estado de conexión de calendario
 
 # Dashboard y Estadísticas
 GET    /api/study-planner/dashboard/stats  # Estadísticas del dashboard
@@ -1102,14 +1119,19 @@ community_leagues       # Ligas y competencias
 
 #### Planificador de Estudio
 ```sql
-study_preferences       # Preferencias de estudio
-study_plans             # Planes de estudio
+study_preferences       # Preferencias de estudio del usuario
+study_plans             # Planes de estudio (manuales y generados por IA)
 study_sessions          # Sesiones de estudio programadas
-user_streaks            # Rachas de estudio
+user_streaks            # Rachas de estudio diarias
 daily_progress          # Progreso diario (para heatmap)
-calendar_integrations   # Integraciones de calendarios
-calendar_subscription_tokens # Tokens para suscripciones ICS
+calendar_integrations   # Integraciones de calendarios (Google, Microsoft)
+calendar_subscription_tokens # Tokens únicos para suscripciones ICS públicas
 ```
+
+**Características de las Tablas:**
+- `study_plans`: Almacena planes con metadatos de generación IA, preferencias de sesión, y configuración de calendario
+- `study_sessions`: Sesiones con información de calendario externo, estado de sincronización, y métricas de completado
+- `calendar_integrations`: Tokens OAuth y configuración de proveedores de calendario
 
 #### Directorio de IA
 ```sql
@@ -2101,20 +2123,59 @@ El Panel Empresarial permite a las organizaciones gestionar equipos, capacitar e
 
 ### 8. Planificador de Estudio con IA
 
-- **Modo Manual**: Configuración personalizada paso a paso
-- **Modo IA**: Generación automática con algoritmos avanzados
-- **Técnicas de Aprendizaje**:
-  - Spaced Repetition (Repetición espaciada)
-  - Interleaving (Intercalado)
-  - Load Balancing (Equilibrio de carga)
-  - Difficulty Progression (Progresión de dificultad)
-- **Sincronización de Calendarios**:
-  - Google Calendar
-  - Microsoft Calendar
-  - ICS (iCalendar) para otros clientes
-- **Sistema de Streaks**: Tracking de rachas diarias
-- **Dashboard**: Estadísticas visuales y heatmaps
-- **Sesiones de Estudio**: Timer Pomodoro integrado
+El Planificador de Estudio es una funcionalidad avanzada que permite a los usuarios crear planes de estudio personalizados con la ayuda del asistente virtual LIA.
+
+#### Modo Manual
+- **Configuración Personalizada**: Creación paso a paso de planes de estudio
+- **Control Total**: El usuario define todos los parámetros manualmente
+- **Preview en Tiempo Real**: Vista previa del plan antes de guardarlo
+
+#### Modo IA (LIA)
+- **Conversación Interactiva**: El asistente LIA guía al usuario en la creación del plan
+- **Análisis Inteligente**: 
+  - Analiza la disponibilidad del calendario del usuario (si está conectado)
+  - Considera las preferencias de estudio del usuario
+  - Genera sesiones optimizadas según los cursos seleccionados
+- **Generación Automática**: 
+  - Distribuye lecciones de forma inteligente
+  - Respeta días preferidos y horarios disponibles
+  - Ajusta duración de sesiones según el enfoque de estudio (rápido, medio, largo)
+- **Confirmación y Guardado**: 
+  - Muestra resumen completo del plan generado
+  - Permite confirmación del usuario
+  - Guarda automáticamente el plan y las sesiones en la base de datos
+  - Sincroniza sesiones con calendarios conectados
+
+#### Técnicas de Aprendizaje Implementadas
+- **Spaced Repetition** (Repetición espaciada): Distribución óptima de repasos
+- **Interleaving** (Intercalado): Mezcla de diferentes temas para mejor retención
+- **Load Balancing** (Equilibrio de carga): Distribución uniforme de carga de estudio
+- **Difficulty Progression** (Progresión de dificultad): Aumento gradual de complejidad
+
+#### Sincronización de Calendarios
+- **Google Calendar**: 
+  - Integración OAuth 2.0 completa
+  - Creación automática de eventos
+  - Sincronización bidireccional
+- **Microsoft Calendar**: 
+  - Integración Azure AD OAuth
+  - Soporte para calendarios empresariales
+- **ICS (iCalendar)**: 
+  - Exportación para otros clientes de calendario
+  - Suscripciones públicas con tokens únicos
+  - Actualización automática de eventos
+
+#### Características Adicionales
+- **Sistema de Streaks**: Tracking de rachas diarias de estudio
+- **Dashboard de Progreso**: 
+  - Estadísticas visuales
+  - Heatmaps de actividad
+  - Métricas de rendimiento
+- **Sesiones de Estudio**: 
+  - Timer Pomodoro integrado
+  - Seguimiento de tiempo real
+  - Notas y autoevaluación
+- **Reprogramación**: Flexibilidad para ajustar sesiones según necesidad
 
 ### 9. Directorio de IA
 
@@ -2408,6 +2469,9 @@ Para soporte, abre un issue en el repositorio o contacta al equipo de desarrollo
 #### 🔄 Fase 2: Mejoras Core (EN PROGRESO)
 - 🔄 Sistema de evaluaciones automáticas
 - ✅ Integración de calendarios (Google, Microsoft, ICS)
+- ✅ Sincronización bidireccional de sesiones con calendarios
+- ✅ Planificador de Estudio con LIA (modo conversacional completo)
+- ✅ Guardado automático de planes generados por IA
 - 🔄 Sistema de certificaciones mejorado
 - ✅ Analytics y reportes avanzados
 - ✅ Optimización de rendimiento
@@ -2641,6 +2705,26 @@ Para soporte, abre un issue en el repositorio o contacta al equipo de desarrollo
 
 ---
 
-**Última actualización**: Enero 2025  
-**Versión**: 1.0.0  
+**Última actualización**: Diciembre 2024  
+**Versión**: 1.1.0  
 **Mantenedores**: Equipo Aprende y Aplica
+
+### 📝 Cambios Recientes (Diciembre 2024)
+
+#### Planificador de Estudio con LIA
+- ✅ **Modo Conversacional Completo**: Integración completa del asistente LIA para creación de planes de estudio mediante conversación interactiva
+- ✅ **Análisis de Calendario**: LIA analiza automáticamente la disponibilidad del calendario del usuario antes de generar sesiones
+- ✅ **Guardado Automático**: Los planes generados se guardan automáticamente en la base de datos al confirmar con el usuario
+- ✅ **Sincronización Automática**: Las sesiones se sincronizan automáticamente con calendarios conectados (Google/Microsoft) al guardar el plan
+- ✅ **Corrección de Calendario**: Solucionado problema de visualización de días de la semana en el selector de fechas
+- ✅ **Mejoras en UX**: Mensajes de procesamiento y confirmación mejorados durante la creación de planes
+
+#### Mejoras Técnicas
+- ✅ **Service Role Key**: Implementado uso de Supabase Service Role Key para operaciones administrativas que requieren bypass de RLS
+- ✅ **Validación de Datos**: Mejoras en validación de datos antes de guardar planes y sesiones
+- ✅ **Manejo de Errores**: Mejor manejo de errores en sincronización de calendarios con mensajes descriptivos
+- ✅ **Debug y Logging**: Agregados logs de debug para facilitar troubleshooting del calendario y sincronización
+- ✅ **Endpoints Nuevos**: 
+  - `POST /api/study-planner/save-plan` - Guardar plan generado por LIA
+  - `POST /api/study-planner/calendar/sync-sessions` - Sincronizar sesiones con calendario externo
+  - `GET /api/study-planner/calendar/status` - Verificar estado de conexión de calendario

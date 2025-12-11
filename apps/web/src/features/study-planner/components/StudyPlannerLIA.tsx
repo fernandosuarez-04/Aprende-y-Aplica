@@ -150,7 +150,17 @@ export function StudyPlannerLIA() {
   const [showApproachModal, setShowApproachModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  // Inicializar currentMonth con el día 1 del mes actual para evitar problemas
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  
+  // Función helper para normalizar currentMonth siempre al día 1
+  const setCurrentMonthNormalized = (date: Date) => {
+    const normalized = new Date(date.getFullYear(), date.getMonth(), 1);
+    setCurrentMonth(normalized);
+  };
   
   // Estado para guardar la distribución de lecciones para el resumen final
   type StoredLessonDistribution = {
@@ -163,6 +173,9 @@ export function StudyPlannerLIA() {
   const [savedLessonDistribution, setSavedLessonDistribution] = useState<StoredLessonDistribution[]>([]);
   const [savedTargetDate, setSavedTargetDate] = useState<string | null>(null);
   const [savedTotalLessons, setSavedTotalLessons] = useState<number>(0);
+  
+  // Estado para rastrear si ya se mostró el resumen final
+  const [hasShownFinalSummary, setHasShownFinalSummary] = useState<boolean>(false);
   
   // Estado para guardar los datos del calendario analizado (para validar conflictos)
   const [savedCalendarData, setSavedCalendarData] = useState<Record<string, {
@@ -496,6 +509,8 @@ export function StudyPlannerLIA() {
             setShowConversation(true);
             setIsVisible(false);
             hasAttemptedOpenRef.current = false;
+            setHasShownFinalSummary(false);
+            setSavedLessonDistribution([]);
           }
           
           if (userId) {
@@ -523,6 +538,17 @@ export function StudyPlannerLIA() {
 
     checkUserAndCalendarStatus();
   }, [currentUserId]);
+
+  // Normalizar currentMonth cuando se abre el modal de fecha
+  useEffect(() => {
+    if (showDateModal && currentMonth) {
+      // Asegurar que currentMonth siempre tenga día 1
+      const normalized = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      if (currentMonth.getTime() !== normalized.getTime()) {
+        setCurrentMonth(normalized);
+      }
+    }
+  }, [showDateModal]);
 
   // Inicializar mensaje de bienvenida cuando se carga la página (solo si no hay historial)
   useEffect(() => {
@@ -1331,7 +1357,9 @@ export function StudyPlannerLIA() {
     // Usar NEXT_PUBLIC_APP_URL si está disponible, sino usar window.location.origin
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const redirectUri = `${baseUrl}/api/study-planner/calendar/callback`;
-    const scope = 'https://www.googleapis.com/auth/calendar.readonly';
+    // Scope necesario para crear eventos en calendarios propios
+    // calendar.events.owned permite: consultar, crear, modificar y borrar eventos en calendarios propios
+    const scope = 'https://www.googleapis.com/auth/calendar.events.owned';
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
@@ -1571,7 +1599,9 @@ export function StudyPlannerLIA() {
     // Usar NEXT_PUBLIC_APP_URL si está disponible, sino usar window.location.origin
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const redirectUri = `${baseUrl}/api/study-planner/calendar/callback`;
-    const scope = 'offline_access Calendars.Read User.Read';
+    // Scope necesario para crear eventos en calendarios
+    // Calendars.ReadWrite permite: leer y escribir eventos en calendarios
+    const scope = 'offline_access Calendars.ReadWrite User.Read';
     
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?` +
       `client_id=${clientId}&` +
@@ -2245,7 +2275,13 @@ export function StudyPlannerLIA() {
         setShowDateModal(true);
         const suggestedDate = calculateSuggestedDate(studyApproach);
         setSelectedDate(suggestedDate);
-        setCurrentMonth(new Date(suggestedDate));
+        // Normalizar currentMonth para evitar problemas de zona horaria
+        const normalizedMonth = new Date(
+          suggestedDate.getFullYear(),
+          suggestedDate.getMonth(),
+          1
+        );
+        setCurrentMonthNormalized(normalizedMonth);
       }, 500);
       
       if (isAudioEnabled) {
@@ -2285,7 +2321,13 @@ export function StudyPlannerLIA() {
       // Calcular fecha inicial sugerida basada en el enfoque
       const suggestedDate = calculateSuggestedDate(approach);
       setSelectedDate(suggestedDate);
-      setCurrentMonth(new Date(suggestedDate));
+      // Normalizar currentMonth para evitar problemas de zona horaria
+      const normalizedMonth = new Date(
+        suggestedDate.getFullYear(),
+        suggestedDate.getMonth(),
+        1
+      );
+      setCurrentMonthNormalized(normalizedMonth);
     }, 500);
     
     if (isAudioEnabled) {
@@ -4562,6 +4604,328 @@ Cuéntame:
     return null;
   };
 
+  // Función para guardar el plan de estudios en la base de datos
+  const saveStudyPlan = async () => {
+    try {
+      // Obtener preferencias del usuario o usar valores por defecto
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      // Calcular horas objetivo por semana basado en las sesiones
+      const totalMinutes = savedLessonDistribution.reduce((acc, slot) => {
+        const startMatch = slot.startTime.match(/(\d{1,2}):(\d{2})/);
+        const endMatch = slot.endTime.match(/(\d{1,2}):(\d{2})/);
+        if (startMatch && endMatch) {
+          const startHour = parseInt(startMatch[1]);
+          const startMin = parseInt(startMatch[2]);
+          const endHour = parseInt(endMatch[1]);
+          const endMin = parseInt(endMatch[2]);
+          const startTotal = startHour * 60 + startMin;
+          const endTotal = endHour * 60 + endMin;
+          const duration = endTotal - startTotal;
+          return acc + (duration > 0 ? duration : 0);
+        }
+        return acc;
+      }, 0);
+      
+      // Calcular horas por semana: total de minutos / número de semanas que abarca el plan
+      let goalHoursPerWeek = 5; // Valor por defecto
+      if (savedLessonDistribution.length > 0 && totalMinutes > 0) {
+        // Calcular el rango de fechas
+        const dates = savedLessonDistribution.map(slot => {
+          const dateParts = slot.dateStr.split('-');
+          if (dateParts.length === 3) {
+            return new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+          }
+          return null;
+        }).filter(d => d !== null) as Date[];
+        
+        if (dates.length > 0) {
+          const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+          const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+          const daysDiff = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
+          const weeks = Math.max(1, daysDiff / 7);
+          goalHoursPerWeek = Math.round((totalMinutes / 60 / weeks) * 10) / 10;
+        }
+      }
+      
+      // Asegurar un valor mínimo razonable
+      if (goalHoursPerWeek < 1) {
+        goalHoursPerWeek = 5;
+      }
+      
+      // Extraer días preferidos de las sesiones
+      const preferredDaysSet = new Set<number>();
+      savedLessonDistribution.forEach(slot => {
+        const dateParts = slot.dateStr.split('-');
+        if (dateParts.length === 3) {
+          const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+          const dayOfWeek = date.getDay(); // 0 = domingo, 1 = lunes, etc.
+          preferredDaysSet.add(dayOfWeek);
+        }
+      });
+      const preferredDays = Array.from(preferredDaysSet).sort();
+      
+      // Si no hay días preferidos, usar valores por defecto
+      if (preferredDays.length === 0) {
+        preferredDays.push(1, 2, 3, 4, 5); // Lunes a Viernes por defecto
+      }
+      
+      // Extraer bloques de tiempo preferidos
+      const timeBlocksMap = new Map<string, { startHour: number; startMinute: number; endHour: number; endMinute: number }>();
+      savedLessonDistribution.forEach(slot => {
+        const startMatch = slot.startTime.match(/(\d{1,2}):(\d{2})/);
+        const endMatch = slot.endTime.match(/(\d{1,2}):(\d{2})/);
+        if (startMatch && endMatch) {
+          const startHour = parseInt(startMatch[1]);
+          const startMinute = parseInt(startMatch[2]);
+          const endHour = parseInt(endMatch[1]);
+          const endMinute = parseInt(endMatch[2]);
+          const key = `${startHour}:${startMinute}-${endHour}:${endMinute}`;
+          if (!timeBlocksMap.has(key)) {
+            timeBlocksMap.set(key, { startHour, startMinute, endHour, endMinute });
+          }
+        }
+      });
+      const preferredTimeBlocks = Array.from(timeBlocksMap.values());
+      
+      // Si no hay bloques de tiempo, usar valores por defecto
+      if (preferredTimeBlocks.length === 0) {
+        preferredTimeBlocks.push({ startHour: 9, startMinute: 0, endHour: 10, endMinute: 0 });
+      }
+      
+      // Determinar tipo de sesión basado en studyApproach
+      let preferredSessionType: 'short' | 'medium' | 'long' = 'medium';
+      let minSessionMinutes = 45;
+      let maxSessionMinutes = 60;
+      let breakDurationMinutes = 10;
+      
+      if (studyApproach === 'rapido') {
+        preferredSessionType = 'short';
+        minSessionMinutes = 20;
+        maxSessionMinutes = 35;
+        breakDurationMinutes = 5;
+      } else if (studyApproach === 'largo') {
+        preferredSessionType = 'long';
+        minSessionMinutes = 60;
+        maxSessionMinutes = 90;
+        breakDurationMinutes = 15;
+      }
+      
+      // Obtener fecha de inicio y fin
+      const startDate = savedLessonDistribution.length > 0 
+        ? new Date(savedLessonDistribution[0].dateStr).toISOString()
+        : new Date().toISOString();
+      
+      const endDate = savedTargetDate 
+        ? new Date(savedTargetDate).toISOString()
+        : savedLessonDistribution.length > 0
+          ? new Date(savedLessonDistribution[savedLessonDistribution.length - 1].dateStr).toISOString()
+          : null;
+      
+      // Transformar sesiones al formato esperado
+      const sessions = savedLessonDistribution.map(slot => {
+        const dateParts = slot.dateStr.split('-');
+        const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+        
+        const startMatch = slot.startTime.match(/(\d{1,2}):(\d{2})/);
+        const endMatch = slot.endTime.match(/(\d{1,2}):(\d{2})/);
+        
+        let startTime = new Date(date);
+        let endTime = new Date(date);
+        
+        if (startMatch && endMatch) {
+          startTime.setHours(parseInt(startMatch[1]), parseInt(startMatch[2]), 0, 0);
+          endTime.setHours(parseInt(endMatch[1]), parseInt(endMatch[2]), 0, 0);
+        }
+        
+        const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+        
+        // Obtener la primera lección del slot para el título y courseId
+        const firstLesson = slot.lessons && slot.lessons.length > 0 ? slot.lessons[0] : null;
+        const courseTitle = firstLesson?.courseTitle || 'Curso';
+        const lessonTitle = firstLesson?.lesson_title || 'Sesión de estudio';
+        
+        // Buscar el courseId del curso seleccionado
+        const course = availableCourses.find(c => c.title === courseTitle || selectedCourseIds.includes(c.id));
+        const courseId = course?.id || selectedCourseIds[0] || '';
+        
+        // Crear título de la sesión
+        let sessionTitle = 'Sesión de estudio';
+        if (slot.lessons && slot.lessons.length > 0) {
+          if (slot.lessons.length === 1) {
+            // Una sola lección: usar el título completo
+            sessionTitle = slot.lessons[0].lesson_title;
+          } else if (slot.lessons.length === 2) {
+            // Dos lecciones: mostrar ambas en el título (limitado a 100 caracteres)
+            const title1 = slot.lessons[0].lesson_title;
+            const title2 = slot.lessons[1].lesson_title;
+            const combinedTitle = `${title1} y ${title2}`;
+            sessionTitle = combinedTitle.length > 100 
+              ? `${title1.substring(0, 50)}... y ${title2.substring(0, 40)}...`
+              : combinedTitle;
+          } else {
+            // Más de dos lecciones: mostrar primera y cantidad restante
+            const firstTitle = slot.lessons[0].lesson_title;
+            sessionTitle = firstTitle.length > 60
+              ? `${firstTitle.substring(0, 60)}... y ${slot.lessons.length - 1} más`
+              : `${firstTitle} y ${slot.lessons.length - 1} más`;
+          }
+        }
+        
+        // Crear descripción con todas las lecciones (formato numerado)
+        const description = slot.lessons && slot.lessons.length > 0
+          ? slot.lessons.map((l, idx) => `${idx + 1}. ${l.lesson_title}`).join('\n')
+          : 'Sesión de estudio programada';
+        
+        return {
+          title: sessionTitle,
+          description,
+          courseId,
+          lessonId: undefined, // No tenemos el lessonId directamente, se puede buscar después si es necesario
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          durationMinutes,
+          isAiGenerated: true,
+          sessionType: preferredSessionType,
+        };
+      });
+      
+      // Crear configuración del plan
+      const planConfig = {
+        name: `Plan de Estudios - ${new Date().toLocaleDateString('es-ES')}`,
+        description: `Plan generado por LIA con ${sessions.length} sesiones${selectedCourseIds.length > 0 ? ` para ${selectedCourseIds.length} curso(s)` : ''}`,
+        userType: (userContext?.userType || 'b2c') as 'b2b' | 'b2c',
+        courseIds: selectedCourseIds,
+        goalHoursPerWeek,
+        startDate,
+        endDate: endDate || undefined,
+        timezone,
+        preferredDays,
+        preferredTimeBlocks,
+        minSessionMinutes,
+        maxSessionMinutes,
+        breakDurationMinutes,
+        preferredSessionType,
+        generationMode: 'ai_generated' as const,
+        calendarAnalyzed: connectedCalendar !== null,
+        calendarProvider: connectedCalendar || undefined,
+      };
+      
+      // Validar datos antes de enviar
+      if (!planConfig.name || planConfig.name.trim() === '') {
+        throw new Error('El nombre del plan es requerido');
+      }
+      
+      if (sessions.length === 0) {
+        throw new Error('No hay sesiones para guardar');
+      }
+      
+      if (preferredDays.length === 0) {
+        throw new Error('No se pudieron determinar los días preferidos');
+      }
+      
+      // Guardar el plan
+      console.log('📤 Enviando plan a guardar:', {
+        config: {
+          ...planConfig,
+          preferredDays,
+          preferredTimeBlocks,
+        },
+        sessionsCount: sessions.length,
+      });
+      
+      const saveResponse = await fetch('/api/study-planner/save-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config: planConfig,
+          sessions,
+        }),
+      });
+      
+      if (!saveResponse.ok) {
+        let errorMessage = 'Error al guardar el plan';
+        try {
+          const errorData = await saveResponse.json();
+          errorMessage = errorData.error || errorMessage;
+          console.error('❌ Error del servidor:', errorData);
+        } catch (e) {
+          const errorText = await saveResponse.text();
+          console.error('❌ Error del servidor (texto):', errorText);
+          errorMessage = `Error ${saveResponse.status}: ${saveResponse.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      const saveData = await saveResponse.json();
+      
+      if (!saveData.success) {
+        throw new Error(saveData.error || 'Error al guardar el plan');
+      }
+      
+      // Si hay calendario conectado, sincronizar las sesiones
+      if (connectedCalendar && saveData.data?.planId && saveData.data?.sessionIds && saveData.data.sessionIds.length > 0) {
+        try {
+          const syncResponse = await fetch('/api/study-planner/calendar/sync-sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionIds: saveData.data.sessionIds,
+            }),
+          });
+          
+          if (syncResponse.ok) {
+            const syncData = await syncResponse.json();
+            if (syncData.success && syncData.data) {
+              console.log(`✅ ${syncData.data.syncedCount} sesiones sincronizadas con el calendario`);
+            }
+          }
+        } catch (syncError) {
+          console.error('Error sincronizando con calendario:', syncError);
+          // No fallar el guardado si falla la sincronización
+        }
+      }
+      
+      // Mostrar mensaje de éxito
+      const successMessage = `¡Perfecto! He guardado tu plan de estudios con ${sessions.length} sesiones programadas.${connectedCalendar ? ' Las sesiones han sido sincronizadas con tu calendario.' : ''}\n\nPuedes ver tu plan en la sección de "Mis Planes" y comenzar a estudiar cuando lo desees. ¡Éxito en tu aprendizaje! 🎓`;
+      
+      setConversationHistory(prev => {
+        // Reemplazar el mensaje de procesamiento con el de éxito
+        const newHistory = [...prev];
+        const lastIndex = newHistory.length - 1;
+        if (newHistory[lastIndex]?.role === 'assistant' && newHistory[lastIndex]?.content.includes('Procesando')) {
+          newHistory[lastIndex] = { role: 'assistant', content: successMessage };
+        } else {
+          newHistory.push({ role: 'assistant', content: successMessage });
+        }
+        return newHistory;
+      });
+      
+      if (isAudioEnabled) {
+        await speakText('Perfecto. He guardado tu plan de estudios con todas las sesiones programadas. Puedes comenzar a estudiar cuando lo desees.');
+      }
+      
+      setIsProcessing(false);
+      
+    } catch (error: any) {
+      console.error('Error guardando plan:', error);
+      const errorMessage = `Lo siento, hubo un error al guardar tu plan de estudios: ${error.message || 'Error desconocido'}. Por favor, intenta de nuevo.`;
+      
+      setConversationHistory(prev => {
+        const newHistory = [...prev];
+        const lastIndex = newHistory.length - 1;
+        if (newHistory[lastIndex]?.role === 'assistant' && newHistory[lastIndex]?.content.includes('Procesando')) {
+          newHistory[lastIndex] = { role: 'assistant', content: errorMessage };
+        } else {
+          newHistory.push({ role: 'assistant', content: errorMessage });
+        }
+        return newHistory;
+      });
+      
+      setIsProcessing(false);
+    }
+  };
+
   // Función para enviar mensajes a LIA
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isProcessing) return;
@@ -4673,7 +5037,7 @@ Cuéntame:
       }
     }
     
-    // Detectar si el usuario está confirmando los horarios propuestos
+    // Detectar si el usuario está confirmando los horarios propuestos (primera confirmación)
     const isConfirmingSchedules = (
       lowerMessage.includes('sí') || 
       lowerMessage.includes('si') || 
@@ -4686,6 +5050,20 @@ Cuéntame:
       lowerMessage.includes('procede')
     ) && savedLessonDistribution.length > 0;
     
+    // Detectar si el usuario está confirmando el resumen final (segunda confirmación)
+    const isConfirmingFinalSummary = (
+      (lowerMessage.includes('sí') || 
+      lowerMessage.includes('si') || 
+      lowerMessage.includes('confirmo') || 
+      lowerMessage.includes('está bien') || 
+      lowerMessage.includes('perfecto') ||
+      lowerMessage.includes('de acuerdo') ||
+      lowerMessage.includes('adelante') ||
+      lowerMessage.includes('procede') ||
+      lowerMessage.includes('guardar') ||
+      lowerMessage.includes('crear plan'))
+    ) && hasShownFinalSummary && savedLessonDistribution.length > 0;
+    
     // Detectar si el usuario está cambiando la fecha límite
     const isChangingTargetDate = (
       lowerMessage.includes('cambiar') && (lowerMessage.includes('fecha') || lowerMessage.includes('límite') || lowerMessage.includes('limite')) ||
@@ -4696,9 +5074,42 @@ Cuéntame:
       lowerMessage.includes('actualiza') && (lowerMessage.includes('fecha') || lowerMessage.includes('límite') || lowerMessage.includes('limite'))
     ) && savedLessonDistribution.length > 0;
     
-    // Si está confirmando, agregar la distribución de lecciones al mensaje
+    // Si está confirmando el resumen final, guardar el plan
+    if (isConfirmingFinalSummary) {
+      // Agregar mensaje del usuario
+      const newHistory = [...conversationHistory, { role: 'user', content: message }];
+      setConversationHistory(newHistory);
+      setIsProcessing(true);
+      
+      // Mostrar mensaje de procesamiento
+      setConversationHistory(prev => [...prev, { 
+        role: 'assistant', 
+        content: '⏳ Procesando tu plan de estudios... Estoy guardando todas las sesiones y sincronizándolas con tu calendario.' 
+      }]);
+      
+      if (isAudioEnabled) {
+        await speakText('Procesando tu plan de estudios. Estoy guardando todas las sesiones y sincronizándolas con tu calendario.');
+      }
+      
+      // Guardar el plan
+      try {
+        await saveStudyPlan();
+        // Resetear el estado del resumen después de guardar
+        setHasShownFinalSummary(false);
+      } catch (error) {
+        console.error('Error guardando plan:', error);
+        setConversationHistory(prev => [...prev, { 
+          role: 'assistant', 
+          content: 'Lo siento, hubo un error al guardar tu plan de estudios. Por favor, intenta de nuevo.' 
+        }]);
+        setIsProcessing(false);
+      }
+      return;
+    }
+    
+    // Si está confirmando los horarios propuestos (primera confirmación), mostrar el resumen final
     let enrichedMessage = message;
-    if (isConfirmingSchedules) {
+    if (isConfirmingSchedules && !hasShownFinalSummary) {
       // Función para formatear la fecha de forma legible
       const formatDateForDisplay = (dateStr: string, dayName: string): string => {
         try {
@@ -4820,9 +5231,12 @@ Cuéntame:
       distributionSummary += `*Genera un resumen completo con TODOS los horarios, usando EXACTAMENTE las lecciones que están asignadas arriba en cada horario. NO inventes lecciones.*`;
       
       enrichedMessage = message + distributionSummary;
-      console.log('📋 Usuario confirmó horarios, enviando distribución detallada a LIA');
+      console.log('📋 Usuario confirmó horarios, enviando distribución detallada a LIA para generar resumen final');
       console.log(`   Total de horarios: ${savedLessonDistribution.length}`);
       console.log(`   Total de lecciones asignadas: ${totalLessonsAssigned}`);
+      
+      // Marcar que vamos a mostrar el resumen final después de que LIA responda
+      // Esto se marcará como true cuando LIA responda con el resumen
     } else if (isAddingSchedules) {
       // Función para formatear la fecha de forma legible
       const formatDateForDisplay = (dateStr: string, dayName: string): string => {
@@ -5123,6 +5537,20 @@ Cuéntame:
       }
 
       setConversationHistory(prev => [...prev, { role: 'assistant', content: liaResponse }]);
+      
+      // Si fue una confirmación de horarios y LIA está mostrando el resumen final, marcar que se mostró
+      if (isConfirmingSchedules && !hasShownFinalSummary && (
+        liaResponse.includes('RESUMEN') || 
+        liaResponse.includes('resumen') || 
+        liaResponse.includes('distribución') ||
+        liaResponse.includes('sesiones programadas') ||
+        liaResponse.includes('plan de estudios') ||
+        liaResponse.includes('sesiones generadas') ||
+        liaResponse.includes('DISTRIBUCIÓN')
+      )) {
+        setHasShownFinalSummary(true);
+        console.log('✅ Resumen final mostrado por LIA, esperando confirmación del usuario para guardar');
+      }
       
       // Si fue una solicitud de agregar horarios, la respuesta de LIA ya incluye todos los horarios (existentes + nuevos)
       // Cuando el usuario confirme, handleConfirmSchedules parseará la respuesta completa
@@ -6813,9 +7241,11 @@ Cuéntame:
                     <div className="flex items-center justify-between mb-4">
                       <motion.button
                         onClick={() => {
-                          const newMonth = new Date(currentMonth);
-                          newMonth.setMonth(newMonth.getMonth() - 1);
-                          setCurrentMonth(newMonth);
+                          // Normalizar fecha antes de cambiar mes - asegurar día 1
+                          const year = currentMonth.getFullYear();
+                          const month = currentMonth.getMonth();
+                          const newMonth = new Date(year, month - 1, 1);
+                          setCurrentMonthNormalized(newMonth);
                         }}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -6828,9 +7258,11 @@ Cuéntame:
                       </h4>
                       <motion.button
                         onClick={() => {
-                          const newMonth = new Date(currentMonth);
-                          newMonth.setMonth(newMonth.getMonth() + 1);
-                          setCurrentMonth(newMonth);
+                          // Normalizar fecha antes de cambiar mes - asegurar día 1
+                          const year = currentMonth.getFullYear();
+                          const month = currentMonth.getMonth();
+                          const newMonth = new Date(year, month + 1, 1);
+                          setCurrentMonthNormalized(newMonth);
                         }}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -6852,36 +7284,103 @@ Cuéntame:
                     {/* Días del mes */}
                     <div className="grid grid-cols-7 gap-1">
                       {(() => {
+                        // Obtener año y mes directamente de currentMonth
+                        // Asegurar que siempre trabajemos con valores limpios
                         const year = currentMonth.getFullYear();
                         const month = currentMonth.getMonth();
-                        const firstDay = new Date(year, month, 1);
-                        const lastDay = new Date(year, month + 1, 0);
-                        const daysInMonth = lastDay.getDate();
-                        const startingDayOfWeek = firstDay.getDay();
+                        
+                        // Crear fecha del primer día del mes de forma explícita y directa
+                        // IMPORTANTE: Usar solo año, mes y día sin especificar hora
+                        const firstDayOfMonth = new Date(year, month, 1);
+                        const lastDayOfMonth = new Date(year, month + 1, 0);
+                        const daysInMonth = lastDayOfMonth.getDate();
+                        
+                        // Obtener el día de la semana del primer día
+                        // getDay() retorna: 0 = domingo, 1 = lunes, ..., 6 = sábado
+                        const startingDayOfWeek = firstDayOfMonth.getDay();
+                        
+                        // Validación crítica: si startingDayOfWeek es siempre 0, hay un problema
+                        if (startingDayOfWeek < 0 || startingDayOfWeek > 6) {
+                          console.error('❌ ERROR: startingDayOfWeek fuera de rango:', startingDayOfWeek);
+                        }
+                        
+                        // Debug temporal para verificar
+                        const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+                        console.log(`📅 Calendario ${year}-${month + 1}:`, {
+                          primerDia: dayNames[startingDayOfWeek],
+                          startingDayOfWeek,
+                          totalDias: daysInMonth,
+                          firstDayOfMonthISO: firstDayOfMonth.toISOString(),
+                          firstDayOfMonthLocal: firstDayOfMonth.toLocaleDateString('es-ES'),
+                          currentMonthValue: currentMonth.toLocaleDateString('es-ES'),
+                          currentMonthISO: currentMonth.toISOString()
+                        });
+                        
+                        // Verificar cálculo para fechas específicas
+                        if (year === 2026 && month === 0) {
+                          const testDate1 = new Date(2026, 0, 1);
+                          const testDate24 = new Date(2026, 0, 24);
+                          console.log(`📅 Enero 2026 - Día 1: ${dayNames[testDate1.getDay()]} (debería ser jueves, getDay=${testDate1.getDay()})`);
+                          console.log(`📅 Enero 2026 - Día 24: ${dayNames[testDate24.getDay()]} (debería ser sábado)`);
+                        }
+                        if (year === 2025 && month === 11) {
+                          const testDate1 = new Date(2025, 11, 1);
+                          const testDate11 = new Date(2025, 11, 11);
+                          console.log(`📅 Diciembre 2025 - Día 1: ${dayNames[testDate1.getDay()]} (debería ser lunes, getDay=${testDate1.getDay()})`);
+                          console.log(`📅 Diciembre 2025 - Día 11: ${dayNames[testDate11.getDay()]} (debería ser jueves)`);
+                        }
                         
                         const today = new Date();
-                        today.setHours(0, 0, 0, 0);
+                        const todayYear = today.getFullYear();
+                        const todayMonth = today.getMonth();
+                        const todayDay = today.getDate();
                         
                         const days = [];
                         
-                        // Días vacíos al inicio
+                        // Debug: Verificar el valor de startingDayOfWeek antes de crear días vacíos
+                        console.log(`🔍 DEBUG Render: startingDayOfWeek=${startingDayOfWeek}, año=${year}, mes=${month + 1}`);
+                        
+                        // Días vacíos al inicio (domingo = 0, lunes = 1, etc.)
+                        // IMPORTANTE: Usar un div vacío en lugar de null para que React lo renderice correctamente
                         for (let i = 0; i < startingDayOfWeek; i++) {
-                          days.push(null);
+                          days.push(<div key={`empty-${i}`} className="p-2"></div>);
                         }
+                        
+                        // Debug: Verificar cuántos días vacíos se agregaron
+                        console.log(`🔍 DEBUG Render: Se agregaron ${startingDayOfWeek} días vacíos, total elementos antes de días del mes: ${days.length}`);
                         
                         // Días del mes
                         for (let day = 1; day <= daysInMonth; day++) {
-                          const date = new Date(year, month, day);
-                          const isPast = date < today;
-                          const isSelected = selectedDate && 
-                            date.getDate() === selectedDate.getDate() &&
-                            date.getMonth() === selectedDate.getMonth() &&
-                            date.getFullYear() === selectedDate.getFullYear();
+                          // Crear fecha para comparación y selección (usar mediodía para consistencia)
+                          const date = new Date(year, month, day, 12, 0, 0, 0);
+                          
+                          // Comparar fechas normalizadas (solo año, mes, día)
+                          const isPast = year < todayYear || 
+                                        (year === todayYear && month < todayMonth) ||
+                                        (year === todayYear && month === todayMonth && day < todayDay);
+                          
+                          // Comparar con selectedDate normalizado
+                          let isSelected = false;
+                          if (selectedDate) {
+                            const selectedNormalized = new Date(
+                              selectedDate.getFullYear(),
+                              selectedDate.getMonth(),
+                              selectedDate.getDate()
+                            );
+                            const dateNormalized = new Date(year, month, day);
+                            isSelected = selectedNormalized.getTime() === dateNormalized.getTime();
+                          }
                           
                           days.push(
                             <motion.button
                               key={day}
-                              onClick={() => !isPast && setSelectedDate(date)}
+                              onClick={() => {
+                                if (!isPast) {
+                                  // Crear nueva fecha limpia (sin hora)
+                                  const selectedDateClean = new Date(year, month, day);
+                                  setSelectedDate(selectedDateClean);
+                                }
+                              }}
                               disabled={isPast}
                               whileHover={!isPast ? { scale: 1.1 } : {}}
                               whileTap={!isPast ? { scale: 0.9 } : {}}
@@ -6897,6 +7396,13 @@ Cuéntame:
                             </motion.button>
                           );
                         }
+                        
+                        // Debug: Verificar el array final antes de renderizar
+                        console.log(`🔍 DEBUG Render: Total elementos en days array: ${days.length}, primeros 7 elementos:`, days.slice(0, 7).map((d, i) => {
+                          if (!d || !d.props) return `empty[${i}]`;
+                          if (d.props.children === undefined) return `empty-div[${i}]`;
+                          return `día ${d.props.children}[${i}]`;
+                        }));
                         
                         return days;
                       })()}
