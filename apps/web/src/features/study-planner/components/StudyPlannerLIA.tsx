@@ -168,7 +168,7 @@ export function StudyPlannerLIA() {
     dayName: string;
     startTime: string;
     endTime: string;
-    lessons: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }>;
+    lessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }>;
   };
   const [savedLessonDistribution, setSavedLessonDistribution] = useState<StoredLessonDistribution[]>([]);
   const [savedTargetDate, setSavedTargetDate] = useState<string | null>(null);
@@ -2087,7 +2087,7 @@ export function StudyPlannerLIA() {
             // Obtener títulos de lecciones para los objetivos de aprendizaje
             const lessonTitles = publishedLessons
               .slice(0, 10)
-              .map((lesson: any) => lesson.lesson_title)
+              .map((lesson: any) => lesson.lessonTitle)
               .filter(Boolean);
 
             // Si no tenemos lecciones, usar información del curso disponible
@@ -2621,8 +2621,11 @@ export function StudyPlannerLIA() {
         : 30; // Solo usar 30 días como fallback si no hay fecha objetivo
       
       console.log(`📊 Inicializando análisis para ${daysToAnalyze} días`);
+      console.log(`   Fecha inicio: ${startDate.toLocaleDateString('es-ES')}`);
       if (targetDateObjForEvents) {
-        console.log(`   Fecha objetivo para análisis: ${targetDateObjForEvents.toLocaleDateString('es-ES')}`);
+        console.log(`   Fecha objetivo para eventos (targetDateObjForEvents): ${targetDateObjForEvents.toLocaleDateString('es-ES')}`);
+      } else {
+        console.warn(`   ⚠️ targetDateObjForEvents es NULL - usando 30 días por defecto`);
       }
 
       // Inicializar análisis para todos los días hasta la fecha objetivo
@@ -2654,6 +2657,13 @@ export function StudyPlannerLIA() {
         };
       }
 
+      console.log(`📊 daySlots inicializados: ${Object.keys(daySlots).length} días`);
+      if (Object.keys(daySlots).length > 0) {
+        const sortedKeys = Object.keys(daySlots).sort();
+        console.log(`   Primer día en daySlots: ${sortedKeys[0]}`);
+        console.log(`   Último día en daySlots: ${sortedKeys[sortedKeys.length - 1]}`);
+      }
+
       // Procesar eventos con análisis contextual
       sortedEvents.forEach((event: any) => {
         const eventStart = new Date(event.start || event.startTime);
@@ -2681,8 +2691,12 @@ export function StudyPlannerLIA() {
       });
       
       // Marcar días que requieren descanso (día siguiente a eventos pesados)
+      // IMPORTANTE: Solo propagamos el descanso desde días que tienen eventos pesados PROPIOS
+      // (heavyEvents.length > 0), NO desde días que ya fueron marcados como "día después"
+      // para evitar propagación en cascada infinita
       Object.values(daySlots).forEach(dayData => {
-        if (dayData.requiresRestAfter) {
+        // Solo propagar si el día tiene eventos pesados propios (no si fue marcado por propagación)
+        if (dayData.requiresRestAfter && dayData.heavyEvents && dayData.heavyEvents.length > 0) {
           // Marcar el día siguiente también para evitar estudio
           const nextDay = new Date(dayData.date);
           nextDay.setDate(nextDay.getDate() + 1);
@@ -2694,6 +2708,15 @@ export function StudyPlannerLIA() {
           }
         }
       });
+
+      // 🔍 DEBUG: Verificar cuántos días requieren descanso después de marcar el día siguiente
+      const daysWithRestAfterMarking = Object.values(daySlots).filter(d => d.requiresRestAfter);
+      console.log(`📅 Días marcados para descanso después de eventos pesados: ${daysWithRestAfterMarking.length}`);
+      if (daysWithRestAfterMarking.length > 0 && daysWithRestAfterMarking.length <= 10) {
+        daysWithRestAfterMarking.forEach(d => {
+          console.log(`   - ${d.dateStr}: ${d.restReason}`);
+        });
+      }
 
       // Calcular slots ocupados sin solapamiento y encontrar huecos libres
       Object.values(daySlots).forEach(dayData => {
@@ -2862,6 +2885,19 @@ export function StudyPlannerLIA() {
         daysAnalysis.push(dayData);
       });
 
+      // 🔍 DEBUG: Resumen de daysAnalysis después de procesar todos los días
+      console.log(`📊 Resumen de daysAnalysis después de generar slots:`);
+      console.log(`   Total días analizados: ${daysAnalysis.length}`);
+      const daysWithFreeSlotsGenerated = daysAnalysis.filter(d => d.freeSlots.length > 0);
+      const daysWithoutFreeSlots = daysAnalysis.filter(d => d.freeSlots.length === 0);
+      const daysCompletelyFree = daysAnalysis.filter(d => d.busySlots.length === 0);
+      console.log(`   Días con slots libres generados: ${daysWithFreeSlotsGenerated.length}`);
+      console.log(`   Días SIN slots libres: ${daysWithoutFreeSlots.length}`);
+      console.log(`   Días completamente libres (sin eventos): ${daysCompletelyFree.length}`);
+      if (daysWithoutFreeSlots.length > 0 && daysWithoutFreeSlots.length <= 10) {
+        console.log(`   Días sin slots:`, daysWithoutFreeSlots.map(d => `${d.dateStr} (busy:${d.busySlots.length}, rest:${d.requiresRestAfter})`));
+      }
+
       // Guardar los datos del calendario para validar conflictos después
       const calendarDataToSave: Record<string, {
         busySlots: Array<{ start: Date; end: Date }>;
@@ -2930,62 +2966,99 @@ export function StudyPlannerLIA() {
       // Obtener la duración mínima recomendada según el enfoque
       const minSessionDuration = profileAvailability?.recommendedSessionLength || 30;
       
-      const bestFreeSlots: FreeSlotWithDay[] = daysAnalysis
-        .flatMap(day => 
-          day.freeSlots
-            .filter(slot => {
-              // Filtrar slots razonables: mínimo según enfoque (25 min para rápido, 30 min para normal, etc.), máximo 6 horas
-              // Y excluir días que requieren descanso después de eventos pesados
-              return slot.durationMinutes >= minSessionDuration && 
-                     slot.durationMinutes <= 360 &&
-                     !day.requiresRestAfter;
-            })
-            .map(slot => ({
-              ...slot,
-              dayName: day.dayName,
-              dateStr: day.dateStr,
-              date: day.date,
-              requiresRest: day.requiresRestAfter,
-              restReason: day.restReason,
-            }))
-        )
-        .sort((a, b) => {
-          // Priorizar slots de 1-3 horas (no demasiado largos ni cortos)
-          const durationA = a.durationMinutes;
-          const durationB = b.durationMinutes;
-          const isIdealDurationA = durationA >= 60 && durationA <= 180;
-          const isIdealDurationB = durationB >= 60 && durationB <= 180;
-          
-          if (isIdealDurationA && !isIdealDurationB) return -1;
-          if (!isIdealDurationA && isIdealDurationB) return 1;
-          
-          // Luego priorizar horarios convenientes
-          const hourA = a.start.getHours();
-          const hourB = b.start.getHours();
-          
-          // Preferir horarios en los rangos definidos: Mañana (7-12), Tarde (12-18), Noche (18-22)
-          const isGoodTimeA = (hourA >= 7 && hourA < 12) || (hourA >= 12 && hourA < 18) || (hourA >= 18 && hourA < 22);
-          const isGoodTimeB = (hourB >= 7 && hourB < 12) || (hourB >= 12 && hourB < 18) || (hourB >= 18 && hourB < 22);
-          
-          if (isGoodTimeA && !isGoodTimeB) return -1;
-          if (!isGoodTimeA && isGoodTimeB) return 1;
-          
-          // Finalmente priorizar duración moderada
-          return b.durationMinutes - a.durationMinutes;
-        });
-      
-      // Calcular límite dinámico basado en días hasta la fecha objetivo
-      // Si hay fecha objetivo, usar más slots para cubrir todo el período
-      let slotsLimit = 50; // Default
-      if (targetDateObjForEvents) {
-        const daysUntilTarget = Math.ceil((targetDateObjForEvents.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        // Permitir más slots si hay más días hasta la fecha objetivo
-        // Mínimo 50, máximo 300 slots (para cubrir períodos largos)
-        slotsLimit = Math.min(300, Math.max(50, daysUntilTarget * 4));
-        console.log(`📊 Límite de slots calculado: ${slotsLimit} (${daysUntilTarget} días hasta la fecha objetivo)`);
+      // 🔍 DEBUG: Verificar qué días están en daysAnalysis y su estado
+      console.log(`🔍 DEBUG - Total días en daysAnalysis: ${daysAnalysis.length}`);
+      const daysWithRest = daysAnalysis.filter(d => d.requiresRestAfter);
+      const daysWithoutRest = daysAnalysis.filter(d => !d.requiresRestAfter);
+      const daysWithSlots = daysAnalysis.filter(d => d.freeSlots.length > 0);
+      console.log(`   Días que requieren descanso: ${daysWithRest.length}`);
+      console.log(`   Días SIN descanso: ${daysWithoutRest.length}`);
+      console.log(`   Días con slots libres: ${daysWithSlots.length}`);
+      if (daysWithRest.length > 0) {
+        console.log(`   Días con descanso:`, daysWithRest.map(d => `${d.dateStr} (${d.restReason})`).slice(0, 5));
+      }
+      if (daysAnalysis.length > 0) {
+        console.log(`   Primer día: ${daysAnalysis[0].dateStr}`);
+        console.log(`   Último día: ${daysAnalysis[daysAnalysis.length - 1].dateStr}`);
       }
       
-      const limitedBestSlots = bestFreeSlots.slice(0, slotsLimit);
+      // Agrupar slots por día primero, para distribuir a lo largo del período completo
+      const slotsByDayInitial = new Map<string, FreeSlotWithDay[]>();
+      daysAnalysis.forEach(day => {
+        // Excluir días que requieren descanso después de eventos pesados
+        // IMPORTANTE: Solo excluir el día específico, NO afectar días posteriores
+        if (day.requiresRestAfter) {
+          console.log(`   ⏭️ Excluyendo día con descanso: ${day.dateStr} (${day.restReason})`);
+          return;
+        }
+
+        const validSlots = day.freeSlots
+          .filter(slot => {
+            // Filtrar slots razonables: mínimo según enfoque, máximo 6 horas
+            return slot.durationMinutes >= minSessionDuration &&
+                   slot.durationMinutes <= 360;
+          })
+          .map(slot => ({
+            ...slot,
+            dayName: day.dayName,
+            dateStr: day.dateStr,
+            date: day.date,
+            requiresRest: day.requiresRestAfter,
+            restReason: day.restReason,
+          }));
+
+        if (validSlots.length > 0) {
+          // Ordenar los slots del día por calidad
+          validSlots.sort((a, b) => {
+            // Priorizar slots de 1-3 horas (no demasiado largos ni cortos)
+            const durationA = a.durationMinutes;
+            const durationB = b.durationMinutes;
+            const isIdealDurationA = durationA >= 60 && durationA <= 180;
+            const isIdealDurationB = durationB >= 60 && durationB <= 180;
+
+            if (isIdealDurationA && !isIdealDurationB) return -1;
+            if (!isIdealDurationA && isIdealDurationB) return 1;
+
+            // Luego priorizar horarios convenientes
+            const hourA = a.start.getHours();
+            const hourB = b.start.getHours();
+
+            // Preferir horarios en los rangos definidos: Mañana (7-12), Tarde (12-18), Noche (18-22)
+            const isGoodTimeA = (hourA >= 7 && hourA < 12) || (hourA >= 12 && hourA < 18) || (hourA >= 18 && hourA < 22);
+            const isGoodTimeB = (hourB >= 7 && hourB < 12) || (hourB >= 12 && hourB < 18) || (hourB >= 18 && hourB < 22);
+
+            if (isGoodTimeA && !isGoodTimeB) return -1;
+            if (!isGoodTimeA && isGoodTimeB) return 1;
+
+            // Finalmente priorizar duración moderada
+            return b.durationMinutes - a.durationMinutes;
+          });
+
+          slotsByDayInitial.set(day.dateStr, validSlots);
+        }
+      });
+
+      console.log(`📊 Días con slots disponibles: ${slotsByDayInitial.size} días`);
+
+      // Tomar los mejores slots de cada día (máximo 3 por día) para distribuir a lo largo del período
+      const bestFreeSlots: FreeSlotWithDay[] = [];
+      Array.from(slotsByDayInitial.entries())
+        .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime()) // Ordenar por fecha
+        .forEach(([dateStr, slots]) => {
+          // Tomar hasta 3 mejores slots del día (ya están ordenados por calidad)
+          const slotsToTake = slots.slice(0, 3);
+          bestFreeSlots.push(...slotsToTake);
+        });
+
+      console.log(`📊 Total de slots seleccionados: ${bestFreeSlots.length}`);
+      if (bestFreeSlots.length > 0) {
+        const firstSlot = bestFreeSlots[0];
+        const lastSlot = bestFreeSlots[bestFreeSlots.length - 1];
+        console.log(`   Primer slot: ${firstSlot.dayName} ${firstSlot.date.toLocaleDateString('es-ES')}`);
+        console.log(`   Último slot: ${lastSlot.dayName} ${lastSlot.date.toLocaleDateString('es-ES')}`);
+      }
+
+      const limitedBestSlots = bestFreeSlots;
 
       // Filtrar slots que respeten los horarios mínimos y máximos (7 AM - 10 PM)
       const validTimeSlots = limitedBestSlots.filter(slot => {
@@ -3097,6 +3170,12 @@ export function StudyPlannerLIA() {
       console.log(`   Total de días analizados: ${sortedDates.length}`);
       console.log(`   Total de slots seleccionados: ${uniqueDateSlots.length}`);
       console.log(`   Promedio de slots por día: ${(uniqueDateSlots.length / sortedDates.length).toFixed(2)}`);
+
+      if (uniqueDateSlots.length > 0) {
+        const sortedForLog = [...uniqueDateSlots].sort((a, b) => a.date.getTime() - b.date.getTime());
+        console.log(`   Primer slot generado: ${sortedForLog[0].dayName} ${sortedForLog[0].date.toLocaleDateString('es-ES')}`);
+        console.log(`   Último slot generado: ${sortedForLog[sortedForLog.length - 1].dayName} ${sortedForLog[sortedForLog.length - 1].date.toLocaleDateString('es-ES')}`);
+      }
 
       // Obtener país del usuario (default: México)
       // TODO: Obtener desde userContext cuando se agregue el campo 'country' a la BD
@@ -3379,53 +3458,147 @@ export function StudyPlannerLIA() {
       console.log(`   Slots totales disponibles: ${uniqueDateSlots.length}`);
       console.log(`   Slots válidos hasta objetivo: ${validDateSlots.length}`);
 
-      // Seleccionar slots distribuidos uniformemente hasta la fecha objetivo
-      const finalSlots: FreeSlotWithDay[] = [];
-      const totalWeeks = Math.max(1, weeksUntilTarget);
-      const slotsPerWeek = Math.max(1, Math.ceil(sessionsPerWeekNeeded));
-      
-      // Distribuir slots uniformemente a lo largo de las semanas hasta la fecha objetivo
-      for (let week = 0; week < totalWeeks; week++) {
-        const weekStart = Math.floor((week * validDateSlots.length) / totalWeeks);
-        const weekEnd = Math.floor(((week + 1) * validDateSlots.length) / totalWeeks);
-        const weekSlots = validDateSlots.slice(weekStart, weekEnd);
-        
-        // Seleccionar los mejores slots de esta semana que cumplan con la duración recomendada
-        const bestWeekSlots = weekSlots
-          .filter(slot => {
-            // Asegurar que el slot tenga al menos la duración recomendada
-            // Para sesiones rápidas, aceptar slots de al menos 25 minutos
-            const minDuration = profileAvailability 
-              ? profileAvailability.recommendedSessionLength
-              : 30;
-            return slot.durationMinutes >= minDuration;
-          })
-          .sort((a, b) => {
-            // Priorizar duración ideal según el enfoque
-            const idealDuration = profileAvailability?.recommendedSessionLength || 30;
-            const diffA = Math.abs(a.durationMinutes - idealDuration);
-            const diffB = Math.abs(b.durationMinutes - idealDuration);
-            
-            if (diffA !== diffB) return diffA - diffB;
-            
-            // Luego priorizar horarios convenientes
-            const hourA = a.start.getHours();
-            const hourB = b.start.getHours();
-            const isGoodTimeA = (hourA >= 7 && hourA < 10) || (hourA >= 12 && hourA < 14) || (hourA >= 19 && hourA < 21);
-            const isGoodTimeB = (hourB >= 7 && hourB < 10) || (hourB >= 12 && hourB < 14) || (hourB >= 19 && hourB < 21);
-            
-            if (isGoodTimeA && !isGoodTimeB) return -1;
-            if (!isGoodTimeA && isGoodTimeB) return 1;
-            
-            return b.durationMinutes - a.durationMinutes;
-          })
-          .slice(0, slotsPerWeek);
-        
-        finalSlots.push(...bestWeekSlots);
+      // ✅ SIMPLIFICADO: Usar TODOS los slots disponibles hasta la fecha objetivo
+      // Filtrar solo por duración mínima (25 minutos para que quepa al menos 1 lección)
+      const MIN_SLOT_DURATION = 25; // Duración mínima de una lección
+      const finalSlots: FreeSlotWithDay[] = validDateSlots
+        .filter(slot => slot.durationMinutes >= MIN_SLOT_DURATION)
+        .sort((a, b) => a.date.getTime() - b.date.getTime()); // Ordenar cronológicamente
+
+      console.log(`   Slots con duración mínima (${MIN_SLOT_DURATION} min): ${finalSlots.length}`);
+
+      // ✅ SIMPLIFICADO: Dividir slots largos según el máximo de sesión del usuario
+      const dividedSlots: FreeSlotWithDay[] = [];
+      const sessionLength = profileAvailability?.recommendedSessionLength || 30;
+      const breakLength = profileAvailability?.recommendedBreak || 10;
+      const cycleLength = sessionLength + breakLength; // Ej: 30 + 10 = 40 min
+
+      // Determinar duración máxima por slot según enfoque de estudio
+      let maxSlotDuration: number;
+      if (studyApproach === 'rapido') {
+        maxSlotDuration = cycleLength * 2; // 2 ciclos máximo (ej: 80 min)
+      } else if (studyApproach === 'largo') {
+        maxSlotDuration = cycleLength * 3; // 3 ciclos máximo (ej: 120 min)
+      } else {
+        maxSlotDuration = cycleLength * 2; // 2 ciclos máximo (ej: 80 min) - normal
       }
 
-      // Ordenar por fecha para mostrar cronológicamente
-      finalSlots.sort((a, b) => a.date.getTime() - b.date.getTime());
+      console.log(`🔪 Dividiendo slots largos (duración máxima: ${maxSlotDuration} min):`);
+
+      finalSlots.forEach((slot, index) => {
+        if (slot.durationMinutes <= maxSlotDuration) {
+          // Slot ya es suficientemente corto, agregarlo tal cual
+          dividedSlots.push(slot);
+        } else {
+          // Slot es muy largo, dividirlo en múltiples slots más pequeños
+          const numDivisions = Math.ceil(slot.durationMinutes / maxSlotDuration);
+          const actualDivisionDuration = Math.floor(slot.durationMinutes / numDivisions);
+
+          for (let i = 0; i < numDivisions; i++) {
+            const divisionStart = new Date(slot.start.getTime() + (i * actualDivisionDuration * 60 * 1000));
+            const divisionEnd = new Date(divisionStart.getTime() + (actualDivisionDuration * 60 * 1000));
+
+            // Asegurar que no exceda el slot original
+            if (divisionEnd <= slot.end) {
+              dividedSlots.push({
+                ...slot,
+                start: divisionStart,
+                end: divisionEnd,
+                durationMinutes: actualDivisionDuration
+              });
+            }
+          }
+        }
+      });
+
+      console.log(`   Slots después de dividir: ${dividedSlots.length}`);
+
+      // ✅ LIMITAR A MÁXIMO 2 SLOTS POR DÍA (requisito del usuario)
+      // Agrupar slots por día y seleccionar los 2 mejores por día
+      const slotsByDay = new Map<string, FreeSlotWithDay[]>();
+      dividedSlots.forEach(slot => {
+        const dayKey = slot.date.toISOString().split('T')[0];
+        if (!slotsByDay.has(dayKey)) {
+          slotsByDay.set(dayKey, []);
+        }
+        slotsByDay.get(dayKey)!.push(slot);
+      });
+
+      console.log(`📅 Limitando a máximo 2 slots por día:`);
+      const limitedSlots: FreeSlotWithDay[] = [];
+
+      slotsByDay.forEach((daySlots, dayKey) => {
+        // Ordenar por calidad (horarios preferidos y duración)
+        daySlots.sort((a, b) => {
+          const hourA = a.start.getHours();
+          const hourB = b.start.getHours();
+
+          // Priorizar horarios convenientes (7-10 AM, 12-2 PM, 7-9 PM)
+          const isGoodTimeA = (hourA >= 7 && hourA < 10) || (hourA >= 12 && hourA < 14) || (hourA >= 19 && hourA < 21);
+          const isGoodTimeB = (hourB >= 7 && hourB < 10) || (hourB >= 12 && hourB < 14) || (hourB >= 19 && hourB < 21);
+
+          if (isGoodTimeA && !isGoodTimeB) return -1;
+          if (!isGoodTimeA && isGoodTimeB) return 1;
+
+          // Si ambos son buenos o malos, priorizar por duración
+          return b.durationMinutes - a.durationMinutes;
+        });
+
+        // Tomar máximo 2 slots por día
+        const selectedDaySlots = daySlots.slice(0, 2);
+        console.log(`   ${dayKey}: ${daySlots.length} slots → ${selectedDaySlots.length} seleccionados`);
+        limitedSlots.push(...selectedDaySlots);
+      });
+
+      console.log(`   Total slots después de limitar a 2 por día: ${limitedSlots.length}`);
+
+      // ✅ DISTRIBUIR EQUIDISTANTEMENTE A LO LARGO DE TODO EL PERÍODO
+      // No usar todos los slots consecutivamente - distribuir a lo largo del tiempo
+      // Ordenar por fecha
+      limitedSlots.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      // ✅ IMPORTANTE: Usar el número REAL de lecciones pendientes que se calculará después
+      // NO usar totalLessonsNeeded que se calcula al inicio (puede ser incorrecto)
+      // Por ahora, usar una estimación generosa para asegurar suficientes slots
+      const estimatedLessons = Math.max(totalLessonsNeeded, 30); // Mínimo 30 lecciones
+      const avgLessonsPerSlot = 2; // Estimación conservadora
+      const slotsNeeded = Math.ceil(estimatedLessons / avgLessonsPerSlot);
+
+      console.log(`📊 Distribución equidistante:`);
+      console.log(`   Lecciones estimadas inicialmente (totalLessonsNeeded): ${totalLessonsNeeded}`);
+      console.log(`   Lecciones usadas para cálculo (máximo de 30): ${estimatedLessons}`);
+      console.log(`   Promedio estimado por slot: ${avgLessonsPerSlot}`);
+      console.log(`   Slots disponibles (limitados a 2/día): ${limitedSlots.length}`);
+      console.log(`   Slots necesarios (estimado): ${slotsNeeded}`);
+
+      // Seleccionar slots distribuidos equidistantemente
+      const equidistantSlots: FreeSlotWithDay[] = [];
+      if (limitedSlots.length > 0) {
+        const totalAvailable = limitedSlots.length;
+        const slotsToUse = Math.min(slotsNeeded, totalAvailable);
+
+        if (slotsToUse >= totalAvailable) {
+          // Necesitamos todos los slots
+          equidistantSlots.push(...limitedSlots);
+        } else {
+          // Distribuir equidistantemente
+          const step = (totalAvailable - 1) / (slotsToUse - 1);
+          for (let i = 0; i < slotsToUse; i++) {
+            const index = Math.round(i * step);
+            equidistantSlots.push(limitedSlots[index]);
+          }
+        }
+      }
+
+      console.log(`   Slots distribuidos equidistantemente: ${equidistantSlots.length}`);
+      if (equidistantSlots.length > 0) {
+        console.log(`   Primer slot: ${equidistantSlots[0].dayName} ${equidistantSlots[0].date.toLocaleDateString('es-ES')}`);
+        console.log(`   Último slot: ${equidistantSlots[equidistantSlots.length - 1].dayName} ${equidistantSlots[equidistantSlots.length - 1].date.toLocaleDateString('es-ES')}`);
+      }
+
+      // Usar los slots distribuidos equidistantemente
+      finalSlots.length = 0;
+      finalSlots.push(...equidistantSlots);
 
       // Calcular tiempo disponible por semana basado en las sesiones seleccionadas
       let weeklyAvailableMinutes: number;
@@ -3543,7 +3716,7 @@ export function StudyPlannerLIA() {
           calendarMessage += recommendationIntro.join(' ');
           
           // Obtener lecciones de los cursos seleccionados para distribuir por horarios
-          let allLessonsByCourse: Map<string, Array<{ lesson_id: string; lesson_title: string; lesson_order_index: number; duration_seconds: number }>> = new Map();
+          let allLessonsByCourse: Map<string, Array<{ lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number }>> = new Map();
           let completedLessonIdsByCourse: Map<string, string[]> = new Map();
           
           console.log(`📚 Obteniendo lecciones para distribución:`);
@@ -3585,11 +3758,11 @@ export function StudyPlannerLIA() {
                                 return null;
                               }
                               return {
-                                lesson_id: lesson.lessonId,
-                                lesson_title: lesson.lessonTitle.trim(),
-                                lesson_order_index: lesson.lessonOrderIndex || 0,
-                                module_order_index: module.moduleOrderIndex || 0, // ✅ CRÍTICO: Para ordenar correctamente
-                                duration_seconds: lesson.durationSeconds || 0
+                                lessonId: lesson.lessonId,
+                                lessonTitle: lesson.lessonTitle.trim(),
+                                lessonOrderIndex: lesson.lessonOrderIndex || 0,
+                                moduleOrderIndex: module.moduleOrderIndex || 0, // ✅ CRÍTICO: Para ordenar correctamente
+                                durationSeconds: lesson.durationSeconds || 0
                               };
                             }).filter((lesson: any) => lesson !== null); // Filtrar nulos
                           });
@@ -3598,12 +3771,12 @@ export function StudyPlannerLIA() {
                             // IMPORTANTE: Ordenar primero por módulo, luego por lección dentro del módulo
                             const publishedLessons = allLessons
                               .filter((lesson: any) => {
-                                const isValid = lesson && 
-                                  lesson.lesson_id && 
-                                  lesson.lesson_title && 
-                                  typeof lesson.lesson_title === 'string' &&
-                                  lesson.lesson_title.trim() !== '' &&
-                                  lesson.lesson_order_index >= 0;
+                                const isValid = lesson &&
+                                  lesson.lessonId &&
+                                  lesson.lessonTitle &&
+                                  typeof lesson.lessonTitle === 'string' &&
+                                  lesson.lessonTitle.trim() !== '' &&
+                                  lesson.lessonOrderIndex >= 0;
                                 if (!isValid) {
                                   console.warn(`   ⚠️ Lección filtrada por datos inválidos:`, lesson);
                                 }
@@ -3611,19 +3784,19 @@ export function StudyPlannerLIA() {
                               })
                               .sort((a: any, b: any) => {
                                 // Primero por módulo
-                                if (a.module_order_index !== b.module_order_index) {
-                                  return (a.module_order_index || 0) - (b.module_order_index || 0);
+                                if (a.moduleOrderIndex !== b.moduleOrderIndex) {
+                                  return (a.moduleOrderIndex || 0) - (b.moduleOrderIndex || 0);
                                 }
                                 // Luego por lección dentro del módulo
-                                return (a.lesson_order_index || 0) - (b.lesson_order_index || 0);
+                                return (a.lessonOrderIndex || 0) - (b.lessonOrderIndex || 0);
                               });
                             
                             console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones válidas obtenidas`);
                             if (publishedLessons.length > 0) {
                               console.log(`   Primeras 5 lecciones:`, publishedLessons.slice(0, 5).map((l: any) => ({
-                                index: l.lesson_order_index,
-                                id: l.lesson_id,
-                                title: l.lesson_title
+                                index: l.lessonOrderIndex,
+                                id: l.lessonId,
+                                title: l.lessonTitle
                               })));
                             } else {
                               console.warn(`   ⚠️ NO se encontraron lecciones válidas para el curso ${courseId}`);
@@ -3634,24 +3807,32 @@ export function StudyPlannerLIA() {
                             // Esto asegura que usamos la misma lógica y obtenemos datos consistentes
                             try {
                               // Obtener el userId del usuario actual
-                              const userResponse = await fetch('/api/auth/user');
+                              const userResponse = await fetch('/api/auth/me');
                               if (userResponse.ok) {
                                 const userData = await userResponse.json();
-                                const userId = userData?.user?.id || userData?.id;
-                                
+                                const userId = userData?.user?.id;
+                                console.log(`   ✅ Usuario obtenido: ${userId}`);
+
                                 if (userId) {
                                   // Obtener lecciones completadas filtrando por enrollment_id si está disponible
                                   // Esto es crítico para obtener solo las lecciones del curso específico
+                                  console.log(`   🔍 Consultando progreso: /api/study-planner/course-progress?enrollmentId=${enrollmentId || ''}&courseId=${courseId}&userId=${userId}`);
                                   const progressResponse = await fetch(
                                     `/api/study-planner/course-progress?enrollmentId=${enrollmentId || ''}&courseId=${courseId}&userId=${userId}`
                                   );
                                   if (progressResponse.ok) {
                                     const progressData = await progressResponse.json();
+                                    console.log(`   📥 Respuesta del endpoint:`, progressData);
                                     const completedIds = progressData.completedLessonIds || [];
                                     console.log(`   Curso ${courseId}: ${completedIds.length} lecciones completadas (enrollmentId: ${enrollmentId || 'N/A'})`);
+                                    if (completedIds.length > 0) {
+                                      console.log(`   IDs de lecciones completadas:`, completedIds);
+                                    }
                                     completedLessonIdsByCourse.set(courseId, completedIds);
                                   } else {
                                     console.warn(`   ⚠️ Error obteniendo progreso para curso ${courseId}: ${progressResponse.status}`);
+                                    const errorData = await progressResponse.json();
+                                    console.warn(`   Error data:`, errorData);
                                   }
                                 } else {
                                   console.warn(`   ⚠️ No se pudo obtener userId para curso ${courseId}`);
@@ -3680,7 +3861,7 @@ export function StudyPlannerLIA() {
           }
           
           // Crear lista plana de todas las lecciones pendientes de todos los cursos, ordenadas
-          const allPendingLessons: Array<{ courseId: string; courseTitle: string; lesson_id: string; lesson_title: string; lesson_order_index: number; duration_seconds: number }> = [];
+          const allPendingLessons: Array<{ courseId: string; courseTitle: string; lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number }> = [];
           
           selectedCourseIds.forEach(courseId => {
             const courseFromList = availableCourses.find(c => c.id === courseId);
@@ -3699,26 +3880,26 @@ export function StudyPlannerLIA() {
             let skippedCount = 0;
             lessons.forEach(lesson => {
               // Validar que la lección tenga título válido antes de agregarla
-              if (!lesson.lesson_title || lesson.lesson_title.trim() === '') {
-                console.warn(`   ⚠️ Lección ${lesson.lesson_order_index} (${lesson.lesson_id}) sin título válido - omitida`);
+              if (!lesson.lessonTitle || lesson.lessonTitle.trim() === '') {
+                console.warn(`   ⚠️ Lección ${lesson.lessonOrderIndex} (${lesson.lessonId}) sin título válido - omitida`);
                 skippedCount++;
                 return;
               }
-              
-              if (!completedIds.includes(lesson.lesson_id)) {
+
+              if (!completedIds.includes(lesson.lessonId)) {
                 allPendingLessons.push({
                   courseId,
                   courseTitle,
-                  lesson_id: lesson.lesson_id,
-                  lesson_title: lesson.lesson_title.trim(), // Asegurar que no tenga espacios extra
-                  lesson_order_index: lesson.lesson_order_index || 0,
-                  module_order_index: (lesson as any).module_order_index || 0, // ✅ AGREGADO
-                  duration_seconds: lesson.duration_seconds || 0
+                  lessonId: lesson.lessonId,
+                  lessonTitle: lesson.lessonTitle.trim(), // Asegurar que no tenga espacios extra
+                  lessonOrderIndex: lesson.lessonOrderIndex || 0,
+                  moduleOrderIndex: (lesson as any).moduleOrderIndex || 0, // ✅ AGREGADO
+                  durationSeconds: lesson.durationSeconds || 0
                 });
                 pendingCount++;
               } else {
                 skippedCount++;
-                console.log(`   ✓ Lección ${lesson.lesson_order_index} "${lesson.lesson_title}" (${lesson.lesson_id}) ya completada - omitida`);
+                console.log(`   ✓ Lección ${lesson.lessonOrderIndex} "${lesson.lessonTitle}" (${lesson.lessonId}) ya completada - omitida`);
               }
             });
             console.log(`   Lecciones pendientes agregadas: ${pendingCount}, omitidas: ${skippedCount}`);
@@ -3731,33 +3912,33 @@ export function StudyPlannerLIA() {
               return selectedCourseIds.indexOf(a.courseId) - selectedCourseIds.indexOf(b.courseId);
             }
             // Luego por módulo dentro del curso
-            if ((a as any).module_order_index !== (b as any).module_order_index) {
-              return ((a as any).module_order_index || 0) - ((b as any).module_order_index || 0);
+            if ((a as any).moduleOrderIndex !== (b as any).moduleOrderIndex) {
+              return ((a as any).moduleOrderIndex || 0) - ((b as any).moduleOrderIndex || 0);
             }
             // Finalmente por lección dentro del módulo
-            return a.lesson_order_index - b.lesson_order_index;
+            return a.lessonOrderIndex - b.lessonOrderIndex;
           });
-          
+
           console.log(`📚 Lecciones pendientes totales: ${allPendingLessons.length}`);
           if (allPendingLessons.length > 0) {
             console.log(`   Primeras 5 lecciones pendientes:`, allPendingLessons.slice(0, 5).map(l => ({
-              index: l.lesson_order_index,
-              title: l.lesson_title,
-              id: l.lesson_id,
+              index: l.lessonOrderIndex,
+              title: l.lessonTitle,
+              id: l.lessonId,
               course: l.courseTitle
             })));
           }
-          
+
           // Validar que las lecciones tengan datos correctos
-          const invalidLessons = allPendingLessons.filter(l => !l.lesson_title || l.lesson_title === '');
+          const invalidLessons = allPendingLessons.filter(l => !l.lessonTitle || l.lessonTitle === '');
           if (invalidLessons.length > 0) {
             console.warn(`⚠️ ${invalidLessons.length} lecciones sin título encontradas`);
           }
-          
+
           // Guardar distribución de lecciones para el resumen final (no mostrar en recomendaciones iniciales)
           type LessonDistribution = {
             slot: FreeSlotWithDay;
-            lessons: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }>;
+            lessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }>;
           };
           
           const lessonDistribution: LessonDistribution[] = [];
@@ -3808,73 +3989,75 @@ export function StudyPlannerLIA() {
             console.log(`   Último slot: ${slotsUntilTarget[slotsUntilTarget.length - 1].dayName} ${slotsUntilTarget[slotsUntilTarget.length - 1].date.toLocaleDateString('es-ES')}`);
           }
           
-          // Calcular distribución de lecciones (guardar para resumen final)
+          // ✅ SIMPLIFICADO: Distribuir lecciones asumiendo 25 min por lección
           console.log(`📊 Distribuyendo ${allPendingLessons.length} lecciones pendientes en ${slotsUntilTarget.length} slots`);
+
+          const MINUTES_PER_LESSON = 25; // Asumir 25 minutos por lección como solicita el usuario
 
           // Calcular capacidad total disponible en todos los slots
           const totalSlotsAvailable = slotsUntilTarget.length;
           const totalLessons = allPendingLessons.length;
-          
-          // Calcular capacidad total de todos los slots (cuántas sesiones caben en total)
+
+          // Calcular capacidad total de todos los slots (cuántas lecciones caben en total)
           let totalCapacity = 0;
           slotsUntilTarget.forEach(slot => {
-            const maxSessionsInSlot = Math.max(1, Math.floor(slot.durationMinutes / cycleDuration));
-            totalCapacity += maxSessionsInSlot;
+            const maxLessonsInSlot = Math.max(1, Math.floor(slot.durationMinutes / MINUTES_PER_LESSON));
+            totalCapacity += maxLessonsInSlot;
           });
-          
-          // Si hay suficiente capacidad, distribuir todas las lecciones
-          // Si no hay suficiente capacidad, calcular cuántas lecciones por slot se necesitan
+
+          console.log(`   Total lecciones: ${totalLessons}`);
+          console.log(`   Total slots: ${totalSlotsAvailable}`);
+          console.log(`   Capacidad total: ${totalCapacity} lecciones`);
+          console.log(`   Minutos por lección: ${MINUTES_PER_LESSON}`);
+
+          // ✅ SIMPLIFICADO: Distribuir uniformemente a lo largo del periodo
           const hasEnoughCapacity = totalCapacity >= totalLessons;
-          const lessonsPerSlot = hasEnoughCapacity && totalSlotsAvailable > 0 
-            ? Math.ceil(totalLessons / totalSlotsAvailable) 
-            : (totalSlotsAvailable > 0 ? Math.ceil(totalLessons / totalSlotsAvailable) : 1);
 
           console.log(`📐 Estrategia de distribución:`);
-          console.log(`   Total lecciones pendientes: ${totalLessons}`);
-          console.log(`   Total slots disponibles: ${totalSlotsAvailable}`);
-          console.log(`   Capacidad total (sesiones): ${totalCapacity}`);
           console.log(`   ¿Hay suficiente capacidad? ${hasEnoughCapacity ? 'Sí' : 'No'}`);
-          console.log(`   Lecciones por slot objetivo: ${lessonsPerSlot}`);
 
           slotsUntilTarget.forEach((slot, slotIndex) => {
             const slotDurationMinutes = slot.durationMinutes;
 
-            // Calcular cuántas sesiones caben en el slot basado en la duración
-            // cycleDuration = sessionDuration + breakDuration (ej: 25 + 5 = 30 min)
-            const maxSessionsInSlot = Math.max(1, Math.floor(slotDurationMinutes / cycleDuration));
+            // Calcular cuántas lecciones caben en el slot basado en 25 min por lección
+            const maxLessonsInSlot = Math.max(1, Math.floor(slotDurationMinutes / MINUTES_PER_LESSON));
 
-            // Si hay suficiente capacidad total, intentar usar más slots o más lecciones por slot
-            // Si no hay suficiente capacidad, limitar a lo que realmente cabe
-            let sessionsToAssign: number;
-            if (hasEnoughCapacity) {
-              // Hay suficiente tiempo: usar el máximo entre lo necesario y lo que cabe (hasta el máximo del slot)
-              sessionsToAssign = Math.min(lessonsPerSlot, maxSessionsInSlot);
-              // Si aún quedan lecciones por asignar y este slot tiene más capacidad, usar más
-              if (currentLessonIndex < allPendingLessons.length && maxSessionsInSlot > sessionsToAssign) {
-                // Calcular cuántas lecciones faltan por asignar
-                const remainingAfterThis = allPendingLessons.length - currentLessonIndex - sessionsToAssign;
-                // Si faltan muchas, usar más capacidad de este slot
-                if (remainingAfterThis > 0 && maxSessionsInSlot > sessionsToAssign) {
-                  sessionsToAssign = Math.min(maxSessionsInSlot, sessionsToAssign + Math.min(remainingAfterThis, maxSessionsInSlot - sessionsToAssign));
-                }
-              }
+            // Calcular cuántas lecciones quedan por asignar
+            const remainingLessons = allPendingLessons.length - currentLessonIndex;
+            const remainingSlots = slotsUntilTarget.length - slotIndex;
+
+            // ✅ NUEVA LÓGICA SIMPLIFICADA: Distribuir uniformemente
+            let lessonsToAssign: number;
+
+            if (remainingLessons === 0) {
+              // No quedan lecciones, no asignar nada
+              lessonsToAssign = 0;
             } else {
-              // No hay suficiente capacidad: limitar a lo que realmente cabe
-              sessionsToAssign = Math.min(lessonsPerSlot, maxSessionsInSlot);
+              // Calcular el promedio de lecciones que deben ir en los slots restantes
+              const avgNeededPerRemainingSlot = remainingSlots > 0
+                ? remainingLessons / remainingSlots
+                : remainingLessons;
+
+              // Asignar el promedio redondeado hacia arriba, limitado solo por la capacidad física del slot
+              // NO limitar a 2 lecciones - llenar según capacidad para distribuir todas las lecciones
+              lessonsToAssign = Math.min(
+                Math.ceil(avgNeededPerRemainingSlot),
+                maxLessonsInSlot
+              );
             }
 
-            console.log(`   Slot ${slotIndex + 1}: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - Duración: ${slotDurationMinutes}min - Sesiones que caben: ${maxSessionsInSlot} - A asignar: ${sessionsToAssign}`);
+            console.log(`   Slot ${slotIndex + 1}: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - Duración: ${slotDurationMinutes}min - Lecciones que caben: ${maxLessonsInSlot} - Quedan ${remainingLessons} lecciones - A asignar: ${lessonsToAssign}`);
 
             // Asignar lecciones a este slot (solo lecciones válidas)
-            const lessonsForSlot: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }> = [];
+            const lessonsForSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
 
             // Continuar asignando mientras haya lecciones pendientes y espacio en el slot
             let assignedInSlot = 0;
-            while (assignedInSlot < sessionsToAssign && currentLessonIndex < allPendingLessons.length) {
+            while (assignedInSlot < lessonsToAssign && currentLessonIndex < allPendingLessons.length) {
               const lesson = allPendingLessons[currentLessonIndex];
 
               // Validar que la lección tenga datos válidos antes de asignarla
-              if (!lesson || !lesson.lesson_id || !lesson.lesson_title || typeof lesson.lesson_title !== 'string' || lesson.lesson_title.trim() === '') {
+              if (!lesson || !lesson.lessonId || !lesson.lessonTitle || typeof lesson.lessonTitle !== 'string' || lesson.lessonTitle.trim() === '') {
                 console.warn(`⚠️ Lección en índice ${currentLessonIndex} tiene datos inválidos, saltando:`, lesson);
                 currentLessonIndex++;
                 continue;
@@ -3882,13 +4065,13 @@ export function StudyPlannerLIA() {
 
               lessonsForSlot.push({
                 courseTitle: lesson.courseTitle || 'Curso',
-                lesson_title: lesson.lesson_title.trim(),
-                lesson_order_index: lesson.lesson_order_index || 0
+                lessonTitle: lesson.lessonTitle.trim(),
+                lessonOrderIndex: lesson.lessonOrderIndex || 0
               });
 
               // Log para las primeras asignaciones
               if (slotIndex < 3 && assignedInSlot < 2) {
-                console.log(`   Slot ${slotIndex}, Sesión ${assignedInSlot}: Lección ${lesson.lesson_order_index} - ${lesson.lesson_title}`);
+                console.log(`   Slot ${slotIndex}, Sesión ${assignedInSlot}: Lección ${lesson.lessonOrderIndex} - ${lesson.lessonTitle}`);
               }
 
               currentLessonIndex++;
@@ -3923,18 +4106,18 @@ export function StudyPlannerLIA() {
             // Agregar lecciones a slots no usados
             for (const unusedSlot of unusedSlots) {
               if (currentLessonIndex >= allPendingLessons.length) break;
-              
-              const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / cycleDuration));
-              const lessonsForUnusedSlot: Array<{ courseTitle: string; lesson_title: string; lesson_order_index: number }> = [];
+
+              const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / MINUTES_PER_LESSON));
+              const lessonsForUnusedSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
               
               for (let i = 0; i < slotCapacity && currentLessonIndex < allPendingLessons.length; i++) {
                 const lesson = allPendingLessons[currentLessonIndex];
-                
-                if (lesson && lesson.lesson_title && lesson.lesson_title.trim() !== '') {
+
+                if (lesson && lesson.lessonTitle && lesson.lessonTitle.trim() !== '') {
                   lessonsForUnusedSlot.push({
                     courseTitle: lesson.courseTitle || 'Curso',
-                    lesson_title: lesson.lesson_title.trim(),
-                    lesson_order_index: lesson.lesson_order_index || 0
+                    lessonTitle: lesson.lessonTitle.trim(),
+                    lessonOrderIndex: lesson.lessonOrderIndex || 0
                   });
                   currentLessonIndex++;
                 } else {
@@ -3957,12 +4140,12 @@ export function StudyPlannerLIA() {
               // Ordenar slots por espacio disponible (mayor primero)
               const slotsWithSpace = lessonDistribution
                 .filter(dist => {
-                  const slotCapacity = Math.floor(dist.slot.durationMinutes / cycleDuration);
+                  const slotCapacity = Math.floor(dist.slot.durationMinutes / MINUTES_PER_LESSON);
                   return dist.lessons.length < slotCapacity;
                 })
                 .sort((a, b) => {
-                  const spaceA = Math.floor(a.slot.durationMinutes / cycleDuration) - a.lessons.length;
-                  const spaceB = Math.floor(b.slot.durationMinutes / cycleDuration) - b.lessons.length;
+                  const spaceA = Math.floor(a.slot.durationMinutes / MINUTES_PER_LESSON) - a.lessons.length;
+                  const spaceB = Math.floor(b.slot.durationMinutes / MINUTES_PER_LESSON) - b.lessons.length;
                   return spaceB - spaceA;
                 });
 
@@ -3972,7 +4155,7 @@ export function StudyPlannerLIA() {
               for (const slotDist of slotsWithSpace) {
                 if (currentLessonIndex >= allPendingLessons.length) break;
 
-                const slotCapacity = Math.floor(slotDist.slot.durationMinutes / cycleDuration);
+                const slotCapacity = Math.floor(slotDist.slot.durationMinutes / MINUTES_PER_LESSON);
                 const currentLessons = slotDist.lessons.length;
                 const availableSpace = slotCapacity - currentLessons;
 
@@ -3980,11 +4163,11 @@ export function StudyPlannerLIA() {
                 for (let i = 0; i < availableSpace && currentLessonIndex < allPendingLessons.length; i++) {
                   const lesson = allPendingLessons[currentLessonIndex];
 
-                  if (lesson && lesson.lesson_title && lesson.lesson_title.trim() !== '') {
+                  if (lesson && lesson.lessonTitle && lesson.lessonTitle.trim() !== '') {
                     slotDist.lessons.push({
                       courseTitle: lesson.courseTitle || 'Curso',
-                      lesson_title: lesson.lesson_title.trim(),
-                      lesson_order_index: lesson.lesson_order_index || 0
+                      lessonTitle: lesson.lessonTitle.trim(),
+                      lessonOrderIndex: lesson.lessonOrderIndex || 0
                     });
                     currentLessonIndex++;
                   } else {
@@ -4010,19 +4193,19 @@ export function StudyPlannerLIA() {
             .map(item => {
               // Validar y filtrar lecciones inválidas
               const validLessons = item.lessons.filter(lesson => {
-                const isValid = lesson && 
-                  lesson.lesson_title && 
-                  typeof lesson.lesson_title === 'string' &&
-                  lesson.lesson_title.trim() !== '' &&
-                  lesson.lesson_order_index >= 0;
+                const isValid = lesson &&
+                  lesson.lessonTitle &&
+                  typeof lesson.lessonTitle === 'string' &&
+                  lesson.lessonTitle.trim() !== '' &&
+                  lesson.lessonOrderIndex >= 0;
                 if (!isValid) {
                   console.warn(`⚠️ Lección inválida filtrada de distribución:`, lesson);
                 }
                 return isValid;
               }).map(lesson => ({
                 courseTitle: lesson.courseTitle || 'Curso',
-                lesson_title: lesson.lesson_title.trim(), // Asegurar sin espacios extra
-                lesson_order_index: lesson.lesson_order_index || 0
+                lessonTitle: lesson.lessonTitle.trim(), // Asegurar sin espacios extra
+                lessonOrderIndex: lesson.lessonOrderIndex || 0
               }));
               
               // Solo incluir slots que tengan lecciones válidas
@@ -4059,14 +4242,21 @@ export function StudyPlannerLIA() {
             console.log(`📦 Primera distribución:`, JSON.stringify(distributionToSave[0], null, 2));
             const allSavedLessons = distributionToSave.flatMap(d => d.lessons);
             console.log(`📦 Total lecciones en distribución: ${allSavedLessons.length}`);
-            console.log(`📦 Primeras 5 lecciones:`, allSavedLessons.slice(0, 5).map(l => `${l.lesson_order_index}: ${l.lesson_title}`));
+            console.log(`📦 Primeras 5 lecciones:`, allSavedLessons.slice(0, 5).map(l => `${l.lessonOrderIndex}: ${l.lessonTitle}`));
           }
           
-          // Mostrar todos los horarios hasta la fecha objetivo del usuario
-          // Agrupar por fecha para mostrar todos los slots de cada día
+          // ✅ MOSTRAR SOLO LOS SLOTS QUE TIENEN LECCIONES ASIGNADAS
+          // No mostrar todos los slots disponibles, solo los que realmente se van a usar
+          const slotsWithLessons = lessonDistribution.map(dist => dist.slot);
+
+          console.log(`📅 Mostrando recomendaciones:`);
+          console.log(`   Slots disponibles (slotsUntilTarget): ${slotsUntilTarget.length}`);
+          console.log(`   Slots con lecciones asignadas: ${slotsWithLessons.length}`);
+
+          // Agrupar por fecha para mostrar los slots con lecciones
           const slotsByDay = new Map<string, FreeSlotWithDay[]>();
 
-          slotsUntilTarget.forEach(slot => {
+          slotsWithLessons.forEach(slot => {
             if (!slotsByDay.has(slot.dateStr)) {
               slotsByDay.set(slot.dateStr, []);
             }
@@ -4078,12 +4268,18 @@ export function StudyPlannerLIA() {
             return new Date(a).getTime() - new Date(b).getTime();
           });
 
-          // Mostrar todos los días con sus horarios
+          console.log(`   Días con sesiones: ${sortedDays.length}`);
+          console.log(`   Primer día: ${sortedDays[0]}`);
+          console.log(`   Último día: ${sortedDays[sortedDays.length - 1]}`);
+
+          // Mostrar todos los días con sus horarios (solo slots con lecciones asignadas)
           sortedDays.forEach(dateStr => {
             const slots = slotsByDay.get(dateStr)!;
 
             // Ordenar slots del día por hora de inicio
             slots.sort((a, b) => a.start.getTime() - b.start.getTime());
+
+            console.log(`   ${dateStr}: ${slots.length} slots`);
 
             // Mostrar cada slot del día
             slots.forEach(slot => {
@@ -5168,7 +5364,7 @@ Cuéntame:
       // Contar total de lecciones
       savedLessonDistribution.forEach((item) => {
         if (item?.lessons && Array.isArray(item.lessons)) {
-          totalLessonsAssigned += item.lessons.filter(l => l?.lesson_title?.trim()).length;
+          totalLessonsAssigned += item.lessons.filter(l => l?.lessonTitle?.trim()).length;
         }
       });
 
@@ -5185,16 +5381,16 @@ Cuéntame:
         }
 
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
-        const lessonCount = item.lessons?.filter(l => l?.lesson_title?.trim()).length || 0;
+        const lessonCount = item.lessons?.filter(l => l?.lessonTitle?.trim()).length || 0;
 
         distributionSummary += `\n**${formattedDate}** de ${item.startTime} a ${item.endTime}. Lecciones a estudiar:\n`;
 
         // Mostrar TODAS las lecciones asignadas a cada slot
         if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
           item.lessons.forEach((lesson, lessonIndex) => {
-            if (lesson?.lesson_title?.trim()) {
-              const lessonTitle = lesson.lesson_title.trim();
-              const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : lessonIndex + 1;
+            if (lesson?.lessonTitle?.trim()) {
+              const lessonTitle = lesson.lessonTitle.trim();
+              const lessonNum = lesson.lessonOrderIndex > 0 ? lesson.lessonOrderIndex : lessonIndex + 1;
               distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
 
               // Log para debugging de las primeras sesiones
@@ -5278,16 +5474,16 @@ Cuéntame:
         }
 
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
-        const lessonCount = item.lessons?.filter(l => l?.lesson_title?.trim()).length || 0;
+        const lessonCount = item.lessons?.filter(l => l?.lessonTitle?.trim()).length || 0;
         totalLessonsAssigned += lessonCount;
 
         addScheduleContext += `**${formattedDate}** de ${item.startTime} a ${item.endTime}:\n`;
-        
+
         if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
           item.lessons.forEach((lesson) => {
-            if (lesson?.lesson_title?.trim()) {
-              const lessonTitle = lesson.lesson_title.trim();
-              const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : 0;
+            if (lesson?.lessonTitle?.trim()) {
+              const lessonTitle = lesson.lessonTitle.trim();
+              const lessonNum = lesson.lessonOrderIndex > 0 ? lesson.lessonOrderIndex : 0;
               addScheduleContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
             }
           });

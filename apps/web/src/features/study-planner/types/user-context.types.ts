@@ -592,6 +592,8 @@ export interface StudySession {
   description?: string;
   courseId: string;
   lessonId?: string;
+  /** Título de la lección (para mostrar en UI) */
+  lessonTitle?: string;
   startTime: string;
   endTime: string;
   durationMinutes: number;
