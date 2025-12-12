@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft, HelpCircle, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { HolidayService } from '@/lib/holidays';
 
 // Componentes de iconos de Google y Microsoft
@@ -115,6 +116,7 @@ function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
 }
 
 export function StudyPlannerLIA() {
+  const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -215,6 +217,7 @@ export function StudyPlannerLIA() {
   const processingRef = useRef<boolean>(false);
   const pendingTranscriptRef = useRef<string | null>(null);
   const pendingTimeoutRef = useRef<number | null>(null);
+  const redirectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const conversationHistoryRef = useRef(conversationHistory);
   const lastErrorTimeRef = useRef<number>(0);
   const hasAttemptedOpenRef = useRef<boolean>(false);
@@ -4922,73 +4925,139 @@ Cuéntame:
           ? new Date(savedLessonDistribution[savedLessonDistribution.length - 1].dateStr).toISOString()
           : null;
       
-      // Transformar sesiones al formato esperado
-      const sessions = savedLessonDistribution.map(slot => {
-        const dateParts = slot.dateStr.split('-');
-        const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
-        
-        const startMatch = slot.startTime.match(/(\d{1,2}):(\d{2})/);
-        const endMatch = slot.endTime.match(/(\d{1,2}):(\d{2})/);
-        
-        let startTime = new Date(date);
-        let endTime = new Date(date);
-        
-        if (startMatch && endMatch) {
+      // Transformar sesiones al formato esperado y validar
+      const sessions = savedLessonDistribution
+        .map((slot, index) => {
+          // Validar campos requeridos del slot
+          if (!slot.dateStr || !slot.startTime || !slot.endTime) {
+            console.warn(`⚠️ Slot ${index + 1} tiene campos faltantes:`, slot);
+            return null;
+          }
+          
+          const dateParts = slot.dateStr.split('-');
+          if (dateParts.length !== 3) {
+            console.warn(`⚠️ Slot ${index + 1} tiene formato de fecha inválido:`, slot.dateStr);
+            return null;
+          }
+          
+          const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+          if (isNaN(date.getTime())) {
+            console.warn(`⚠️ Slot ${index + 1} tiene fecha inválida:`, slot.dateStr);
+            return null;
+          }
+          
+          const startMatch = slot.startTime.match(/(\d{1,2}):(\d{2})/);
+          const endMatch = slot.endTime.match(/(\d{1,2}):(\d{2})/);
+          
+          if (!startMatch || !endMatch) {
+            console.warn(`⚠️ Slot ${index + 1} tiene formato de hora inválido:`, { startTime: slot.startTime, endTime: slot.endTime });
+            return null;
+          }
+          
+          let startTime = new Date(date);
+          let endTime = new Date(date);
+          
           startTime.setHours(parseInt(startMatch[1]), parseInt(startMatch[2]), 0, 0);
           endTime.setHours(parseInt(endMatch[1]), parseInt(endMatch[2]), 0, 0);
-        }
-        
-        const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
-        
-        // Obtener la primera lección del slot para el título y courseId
-        const firstLesson = slot.lessons && slot.lessons.length > 0 ? slot.lessons[0] : null;
-        const courseTitle = firstLesson?.courseTitle || 'Curso';
-        const lessonTitle = firstLesson?.lesson_title || 'Sesión de estudio';
-        
-        // Buscar el courseId del curso seleccionado
-        const course = availableCourses.find(c => c.title === courseTitle || selectedCourseIds.includes(c.id));
-        const courseId = course?.id || selectedCourseIds[0] || '';
-        
-        // Crear título de la sesión
-        let sessionTitle = 'Sesión de estudio';
-        if (slot.lessons && slot.lessons.length > 0) {
-          if (slot.lessons.length === 1) {
-            // Una sola lección: usar el título completo
-            sessionTitle = slot.lessons[0].lesson_title;
-          } else if (slot.lessons.length === 2) {
-            // Dos lecciones: mostrar ambas en el título (limitado a 100 caracteres)
-            const title1 = slot.lessons[0].lesson_title;
-            const title2 = slot.lessons[1].lesson_title;
-            const combinedTitle = `${title1} y ${title2}`;
-            sessionTitle = combinedTitle.length > 100 
-              ? `${title1.substring(0, 50)}... y ${title2.substring(0, 40)}...`
-              : combinedTitle;
-          } else {
-            // Más de dos lecciones: mostrar primera y cantidad restante
-            const firstTitle = slot.lessons[0].lesson_title;
-            sessionTitle = firstTitle.length > 60
-              ? `${firstTitle.substring(0, 60)}... y ${slot.lessons.length - 1} más`
-              : `${firstTitle} y ${slot.lessons.length - 1} más`;
+          
+          // Validar que las fechas sean válidas
+          if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+            console.warn(`⚠️ Slot ${index + 1} tiene fechas inválidas después de parsear:`, { startTime: slot.startTime, endTime: slot.endTime });
+            return null;
           }
-        }
-        
-        // Crear descripción con todas las lecciones (formato numerado)
-        const description = slot.lessons && slot.lessons.length > 0
-          ? slot.lessons.map((l, idx) => `${idx + 1}. ${l.lesson_title}`).join('\n')
-          : 'Sesión de estudio programada';
-        
-        return {
-          title: sessionTitle,
-          description,
-          courseId,
-          lessonId: undefined, // No tenemos el lessonId directamente, se puede buscar después si es necesario
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          durationMinutes,
-          isAiGenerated: true,
-          sessionType: preferredSessionType,
-        };
-      });
+          
+          // Validar que endTime sea después de startTime
+          if (endTime.getTime() <= startTime.getTime()) {
+            console.warn(`⚠️ Slot ${index + 1} tiene endTime antes o igual a startTime:`, { startTime: slot.startTime, endTime: slot.endTime });
+            return null;
+          }
+          
+          const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+          
+          // Obtener la primera lección del slot para el título y courseId
+          const firstLesson = slot.lessons && slot.lessons.length > 0 ? slot.lessons[0] : null;
+          const courseTitle = firstLesson?.courseTitle || 'Curso';
+          // Corregir: usar lessonTitle (camelCase) según el tipo StoredLessonDistribution
+          const lessonTitle = firstLesson?.lessonTitle || 'Sesión de estudio';
+          
+          // Buscar el courseId del curso seleccionado
+          const course = availableCourses.find(c => c.title === courseTitle || selectedCourseIds.includes(c.id));
+          const courseId = course?.id || selectedCourseIds[0] || '';
+          
+          // Crear título de la sesión
+          let sessionTitle = 'Sesión de estudio';
+          if (slot.lessons && slot.lessons.length > 0) {
+            if (slot.lessons.length === 1) {
+              // Una sola lección: usar el título completo
+              sessionTitle = slot.lessons[0].lessonTitle || 'Sesión de estudio';
+            } else if (slot.lessons.length === 2) {
+              // Dos lecciones: mostrar ambas en el título (limitado a 100 caracteres)
+              const title1 = slot.lessons[0].lessonTitle || 'Lección 1';
+              const title2 = slot.lessons[1].lessonTitle || 'Lección 2';
+              const combinedTitle = `${title1} y ${title2}`;
+              sessionTitle = combinedTitle.length > 100 
+                ? `${title1.substring(0, 50)}... y ${title2.substring(0, 40)}...`
+                : combinedTitle;
+            } else {
+              // Más de dos lecciones: mostrar primera y cantidad restante
+              const firstTitle = slot.lessons[0].lessonTitle || 'Sesión de estudio';
+              sessionTitle = firstTitle.length > 60
+                ? `${firstTitle.substring(0, 60)}... y ${slot.lessons.length - 1} más`
+                : `${firstTitle} y ${slot.lessons.length - 1} más`;
+            }
+          }
+          
+          // Validar que el título no esté vacío
+          if (!sessionTitle || sessionTitle.trim() === '') {
+            sessionTitle = `Sesión de estudio ${index + 1}`;
+          }
+          
+          // Crear descripción con todas las lecciones (formato numerado)
+          const description = slot.lessons && slot.lessons.length > 0
+            ? slot.lessons.map((l, idx) => `${idx + 1}. ${l.lessonTitle || `Lección ${idx + 1}`}`).join('\n')
+            : 'Sesión de estudio programada';
+          
+          return {
+            title: sessionTitle,
+            description,
+            courseId,
+            lessonId: undefined, // No tenemos el lessonId directamente, se puede buscar después si es necesario
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            durationMinutes,
+            isAiGenerated: true,
+            sessionType: preferredSessionType,
+          };
+        })
+        .filter((session): session is NonNullable<typeof session> => {
+          // Filtrar sesiones nulas y validar campos requeridos
+          if (!session) return false;
+          
+          const isValid = !!(
+            session.title &&
+            session.title.trim() !== '' &&
+            session.startTime &&
+            session.endTime &&
+            new Date(session.startTime).getTime() &&
+            new Date(session.endTime).getTime()
+          );
+          
+          if (!isValid) {
+            console.warn('⚠️ Sesión inválida filtrada:', session);
+          }
+          
+          return isValid;
+        });
+      
+      // Validar que haya sesiones válidas después del filtrado
+      if (sessions.length === 0) {
+        const errorMessage = 'No se pudieron crear sesiones válidas. Por favor, verifica que todas las sesiones tengan fecha, hora de inicio y hora de fin válidas.';
+        console.error('❌ No hay sesiones válidas después del filtrado. Total slots:', savedLessonDistribution.length);
+        throw new Error(errorMessage);
+      }
+      
+      // Log para debugging
+      console.log(`✅ ${sessions.length} sesiones válidas preparadas de ${savedLessonDistribution.length} slots originales`);
       
       // Crear configuración del plan
       const planConfig = {
@@ -5046,13 +5115,43 @@ Cuéntame:
       if (!saveResponse.ok) {
         let errorMessage = 'Error al guardar el plan';
         try {
-          const errorData = await saveResponse.json();
-          errorMessage = errorData.error || errorMessage;
-          console.error('❌ Error del servidor:', errorData);
-        } catch (e) {
           const errorText = await saveResponse.text();
-          console.error('❌ Error del servidor (texto):', errorText);
-          errorMessage = `Error ${saveResponse.status}: ${saveResponse.statusText}`;
+          
+          // Intentar parsear como JSON
+          let errorData: any = {};
+          try {
+            errorData = errorText ? JSON.parse(errorText) : {};
+          } catch (parseError) {
+            // Si no es JSON válido, usar el texto directamente
+            console.error('❌ Error del servidor (texto no JSON):', errorText);
+            errorMessage = errorText && errorText.trim() 
+              ? `Error ${saveResponse.status}: ${errorText.substring(0, 200)}`
+              : `Error ${saveResponse.status}: ${saveResponse.statusText}`;
+            throw new Error(errorMessage);
+          }
+          
+          // Si errorData está vacío o no tiene error, usar el mensaje por defecto
+          if (errorData && typeof errorData === 'object') {
+            if (errorData.error && typeof errorData.error === 'string' && errorData.error.trim() !== '') {
+              errorMessage = errorData.error;
+            } else if (errorData.message && typeof errorData.message === 'string' && errorData.message.trim() !== '') {
+              errorMessage = errorData.message;
+            } else {
+              // Si el objeto está vacío o no tiene mensaje útil, construir uno descriptivo
+              errorMessage = `Error ${saveResponse.status}: ${saveResponse.statusText || 'Error desconocido del servidor'}`;
+            }
+          }
+          
+          console.error('❌ Error del servidor:', {
+            status: saveResponse.status,
+            statusText: saveResponse.statusText,
+            errorData: errorData,
+            errorMessage: errorMessage
+          });
+        } catch (e) {
+          // Si falla todo, usar el error por defecto
+          console.error('❌ Error procesando respuesta del servidor:', e);
+          errorMessage = `Error ${saveResponse.status}: ${saveResponse.statusText || 'Error desconocido'}`;
         }
         throw new Error(errorMessage);
       }
@@ -5101,11 +5200,51 @@ Cuéntame:
         return newHistory;
       });
       
-      if (isAudioEnabled) {
-        await speakText('Perfecto. He guardado tu plan de estudios con todas las sesiones programadas. Puedes comenzar a estudiar cuando lo desees.');
+      setIsProcessing(false);
+      
+      // Limpiar cualquier timer de redirección previo
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
       }
       
-      setIsProcessing(false);
+      // Configurar redirección ANTES del audio para asegurar que se ejecute
+      console.log('✅ Plan guardado exitosamente. Redirigiendo al dashboard en 3 segundos...');
+      console.log('📍 Router disponible:', !!router);
+      console.log('📍 Ruta objetivo: /study-planner/dashboard');
+      
+      const targetUrl = '/study-planner/dashboard';
+      redirectTimerRef.current = setTimeout(() => {
+        console.log('🔄 Ejecutando redirección al dashboard del planificador...');
+        redirectTimerRef.current = null;
+        
+        // Usar window.location.href como método principal (más confiable)
+        // Esto asegura que la redirección funcione incluso si hay problemas con el router
+        console.log('📍 Redirigiendo a:', targetUrl);
+        
+        try {
+          // Intentar con router primero
+          if (router && typeof router.replace === 'function') {
+            console.log('✅ Usando router.replace');
+            router.replace(targetUrl);
+          } else {
+            console.log('⚠️ Router no disponible, usando window.location');
+            window.location.href = targetUrl;
+          }
+        } catch (redirectError) {
+          console.error('❌ Error al redirigir:', redirectError);
+          // Fallback garantizado: usar window.location
+          window.location.href = targetUrl;
+        }
+      }, 3000);
+      
+      // Reproducir audio después de configurar la redirección (no bloquea)
+      if (isAudioEnabled) {
+        // No esperar el audio para no bloquear la redirección
+        speakText('Perfecto. He guardado tu plan de estudios con todas las sesiones programadas. Puedes comenzar a estudiar cuando lo desees.').catch(err => {
+          console.error('Error reproduciendo audio:', err);
+        });
+      }
       
     } catch (error: any) {
       console.error('Error guardando plan:', error);
