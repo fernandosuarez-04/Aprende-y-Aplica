@@ -349,15 +349,30 @@ export async function GET(request: NextRequest) {
     }));
     
     // ===== MÉTRICAS DE HOY Y COMPARACIÓN =====
-    // Usar fecha local (no UTC) para calcular "hoy" correctamente
+    // IMPORTANTE: Usar UTC para coincidir con las fechas en la BD que están en UTC
     const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0); // Inicio del día en hora local
-    const todayEnd = new Date(now);
-    todayEnd.setHours(23, 59, 59, 999); // Final del día en hora local
+    const todayStart = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
+    const todayEnd = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      23, 59, 59, 999
+    ));
+    
+    console.log('[LIA Analytics] Fechas de hoy (UTC):', {
+      now: now.toISOString(),
+      todayStart: todayStart.toISOString(),
+      todayEnd: todayEnd.toISOString(),
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
     
     // Usar fecha actual para incluir datos hasta ahora
-    const nowForToday = new Date().toISOString();
+    const nowForToday = now.toISOString();
     
     const { data: todayMessages } = await supabase
       .from('lia_messages')
@@ -368,11 +383,11 @@ export async function GET(request: NextRequest) {
     const todayCost = todayMessages?.reduce((sum, m) => sum + (m.cost_usd || 0), 0) || 0;
     const todayTokens = todayMessages?.reduce((sum, m) => sum + (m.tokens_used || 0), 0) || 0;
     
-    // Ayer para comparación (usando hora local)
+    // Ayer para comparación (usando UTC)
     const yesterdayStart = new Date(todayStart);
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    yesterdayStart.setUTCDate(yesterdayStart.getUTCDate() - 1);
     const yesterdayEnd = new Date(todayStart);
-    yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
+    yesterdayEnd.setUTCMilliseconds(yesterdayEnd.getUTCMilliseconds() - 1);
     
     const { data: yesterdayMessages } = await supabase
       .from('lia_messages')
