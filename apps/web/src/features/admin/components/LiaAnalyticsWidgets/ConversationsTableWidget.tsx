@@ -83,6 +83,9 @@ export function ConversationsTableWidget({
       const endDate = new Date();
       let startDate = new Date();
       
+      // ✅ Si period es 'all', no filtrar por fecha
+      let shouldFilterByDate = true;
+      
       switch (period) {
         case 'day':
           startDate.setHours(0, 0, 0, 0);
@@ -96,13 +99,36 @@ export function ConversationsTableWidget({
         case 'year':
           startDate.setFullYear(startDate.getFullYear() - 1);
           break;
+        case 'all':
+          shouldFilterByDate = false;
+          break;
+        default:
+          // Por defecto, último mes
+          startDate.setMonth(startDate.getMonth() - 1);
       }
 
-      params.append('startDate', startDate.toISOString());
-      params.append('endDate', endDate.toISOString());
+      if (shouldFilterByDate) {
+        params.append('startDate', startDate.toISOString());
+        params.append('endDate', endDate.toISOString());
+      }
+
+      console.log('[ConversationsTableWidget] Fetching:', {
+        url: `/api/admin/lia-analytics/conversations?${params}`,
+        period,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
 
       const response = await fetch(`/api/admin/lia-analytics/conversations?${params}`);
       const data = await response.json();
+
+      console.log('[ConversationsTableWidget] Response:', {
+        success: data.success,
+        total: data.data?.pagination?.total,
+        conversationsCount: data.data?.conversations?.length,
+        error: data.error,
+        details: data.details
+      });
 
       if (data.success) {
         setConversations(data.data.conversations);

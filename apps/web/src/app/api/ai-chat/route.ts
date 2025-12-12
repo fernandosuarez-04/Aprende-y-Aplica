@@ -2007,8 +2007,11 @@ export async function POST(request: NextRequest) {
     // Función para inicializar analytics de forma asíncrona (no bloquea la respuesta)
     const initializeAnalyticsAsync = async (): Promise<{ liaLogger: LiaLogger | null; conversationId: string | null }> => {
       if (!user) {
+        logger.warn('[LIA Analytics] ⚠️ No hay usuario autenticado, skipping analytics');
         return { liaLogger: null, conversationId: null };
       }
+
+      logger.info('[LIA Analytics] 🚀 Iniciando analytics para usuario:', { userId: user.id, hasExistingConversation: !!conversationId });
 
       try {
         const liaLogger = new LiaLogger(user.id);
