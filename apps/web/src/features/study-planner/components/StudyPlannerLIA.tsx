@@ -2057,15 +2057,23 @@ export function StudyPlannerLIA() {
               console.warn(`Error obteniendo información completa del curso ${courseId}:`, fetchError);
             }
 
-            // Filtrar solo lecciones publicadas
-            const publishedLessons = allLessons.filter(
-              (lesson: any) => lesson.is_published !== false
-            );
+            // ✅ CORRECCIÓN: Normalizar lecciones de snake_case a camelCase para consistencia
+            const normalizedLessons = allLessons.map((lesson: any) => ({
+              lessonId: lesson.lesson_id || lesson.lessonId,
+              lessonTitle: lesson.lesson_title || lesson.lessonTitle || '',
+              lessonOrderIndex: lesson.lesson_order_index !== undefined ? lesson.lesson_order_index : (lesson.lessonOrderIndex !== undefined ? lesson.lessonOrderIndex : 0),
+              durationSeconds: lesson.duration_seconds || lesson.durationSeconds || 0,
+              is_published: lesson.is_published !== false
+            })).filter((lesson: any) => lesson.lessonId && lesson.lessonTitle && lesson.is_published);
+            
+            // Filtrar solo lecciones publicadas (ya normalizadas)
+            const publishedLessons = normalizedLessons;
 
             // Calcular duración total en minutos
+            // ✅ CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
             if (publishedLessons.length > 0) {
               totalDurationMinutes = publishedLessons.reduce((sum: number, lesson: any) => {
-                const durationSeconds = lesson.duration_seconds || 0;
+                const durationSeconds = lesson.durationSeconds || 0;
                 return sum + Math.ceil(durationSeconds / 60); // Convertir segundos a minutos
               }, 0);
             } else {
@@ -2074,10 +2082,11 @@ export function StudyPlannerLIA() {
             }
 
             // Obtener títulos de lecciones para los objetivos de aprendizaje
+            // ✅ CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
             const lessonTitles = publishedLessons
               .slice(0, 10)
-              .map((lesson: any) => lesson.lessonTitle)
-              .filter(Boolean);
+              .map((lesson: any) => lesson.lessonTitle || '')
+              .filter((title: string) => title.trim() !== '');
 
             // Si no tenemos lecciones, usar información del curso disponible
             const totalLessons = publishedLessons.length > 0 
@@ -3376,7 +3385,16 @@ export function StudyPlannerLIA() {
                         const modulesData = await modulesResponse.json();
                         if (modulesData.modules && Array.isArray(modulesData.modules)) {
                           const allLessons = modulesData.modules.flatMap((module: any) => module.lessons || []);
-                          const publishedLessons = allLessons.filter((lesson: any) => lesson.is_published !== false);
+                          // ✅ CORRECCIÓN: Normalizar lecciones de snake_case a camelCase para consistencia
+                          const normalizedLessons = allLessons.map((lesson: any) => ({
+                            lessonId: lesson.lesson_id || lesson.lessonId,
+                            lessonTitle: lesson.lesson_title || lesson.lessonTitle || '',
+                            lessonOrderIndex: lesson.lesson_order_index !== undefined ? lesson.lesson_order_index : (lesson.lessonOrderIndex !== undefined ? lesson.lessonOrderIndex : 0),
+                            durationSeconds: lesson.duration_seconds || lesson.durationSeconds || 0,
+                            is_published: lesson.is_published !== false
+                          })).filter((lesson: any) => lesson.lessonId && lesson.lessonTitle && lesson.is_published);
+                          
+                          const publishedLessons = normalizedLessons;
                           const totalLessons = publishedLessons.length || 0;
                           
                           // Obtener lecciones completadas usando el mismo método que LiaContextService
@@ -3399,16 +3417,18 @@ export function StudyPlannerLIA() {
                           }
                           
                           // Filtrar lecciones pendientes (no completadas)
-                          const remainingLessonsData = publishedLessons.filter((lesson: any) => 
-                            !completedLessonIds.includes(lesson.lesson_id)
-                          );
+                          // ✅ CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
+                          const remainingLessonsData = publishedLessons.filter((lesson: any) => {
+                            return lesson.lessonId && !completedLessonIds.includes(lesson.lessonId);
+                          });
                           
                           // Calcular lecciones pendientes (no completadas)
                           const remainingLessons = remainingLessonsData.length;
                           
                           // Calcular minutos solo de las lecciones pendientes
+                          // ✅ CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
                           const totalDurationMinutes = remainingLessonsData.reduce((sum: number, lesson: any) => {
-                            const durationSeconds = lesson.duration_seconds || 0;
+                            const durationSeconds = lesson.durationSeconds || 0;
                             return sum + Math.ceil(durationSeconds / 60);
                           }, 0);
                           
@@ -3820,10 +3840,17 @@ export function StudyPlannerLIA() {
                                 console.warn(`   ⚠️ Lección inválida en módulo ${module.moduleId}:`, lesson);
                                 return null;
                               }
+                              // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido (>= 1 según BD)
+                              // La BD tiene CHECK constraint: lesson_order_index > 0, así que nunca debería ser 0
+                              // Pero por seguridad, si viene como 0 o undefined, usar el índice del array + 1
+                              const orderIndex = lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0 
+                                ? lesson.lessonOrderIndex 
+                                : 0; // Se ajustará después si es necesario
+                              
                               return {
                                 lessonId: lesson.lessonId,
                                 lessonTitle: lesson.lessonTitle.trim(),
-                                lessonOrderIndex: lesson.lessonOrderIndex || 0,
+                                lessonOrderIndex: orderIndex,
                                 moduleOrderIndex: module.moduleOrderIndex || 0, // ✅ CRÍTICO: Para ordenar correctamente
                                 durationSeconds: lesson.durationSeconds || 0
                               };
@@ -3950,12 +3977,18 @@ export function StudyPlannerLIA() {
               }
 
               if (!completedIds.includes(lesson.lessonId)) {
+                // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido (>= 1 según BD)
+                // La BD tiene CHECK constraint: lesson_order_index > 0
+                const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                  ? lesson.lessonOrderIndex 
+                  : 0; // Se ajustará al mostrar si es necesario
+                
                 allPendingLessons.push({
                   courseId,
                   courseTitle,
                   lessonId: lesson.lessonId,
                   lessonTitle: lesson.lessonTitle.trim(), // Asegurar que no tenga espacios extra
-                  lessonOrderIndex: lesson.lessonOrderIndex || 0,
+                  lessonOrderIndex: orderIndex,
                   durationSeconds: lesson.durationSeconds || 0
                 });
                 pendingCount++;
@@ -4025,6 +4058,8 @@ export function StudyPlannerLIA() {
           
           const lessonDistribution: LessonDistribution[] = [];
           let currentLessonIndex = 0;
+          // ✅ CORRECCIÓN CRÍTICA: Rastrear lessonIds asignados para evitar duplicados
+          const assignedLessonIds = new Set<string>();
           
           // Calcular distribución de lecciones por slot (para guardarla, no mostrar aún)
           const sessionDuration = profileAvailability?.recommendedSessionLength || 30;
@@ -4133,7 +4168,7 @@ export function StudyPlannerLIA() {
             // Asignar lecciones a este slot (solo lecciones válidas)
             const lessonsForSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
 
-            // ✅ CORRECCIÓN: Asignar solo lecciones válidas (ya filtradas previamente)
+            // ✅ CORRECCIÓN: Asignar solo lecciones válidas (ya filtradas previamente) y evitar duplicados
             let assignedInSlot = 0;
             while (assignedInSlot < lessonsToAssign && currentLessonIndex < validPendingLessons.length) {
               const lesson = validPendingLessons[currentLessonIndex];
@@ -4145,11 +4180,26 @@ export function StudyPlannerLIA() {
                 continue;
               }
 
+              // ✅ CORRECCIÓN CRÍTICA: Verificar que la lección no haya sido asignada ya
+              if (assignedLessonIds.has(lesson.lessonId)) {
+                console.warn(`⚠️ Lección duplicada detectada y omitida: ${lesson.lessonId} - ${lesson.lessonTitle}`);
+                currentLessonIndex++;
+                continue; // Saltar esta lección y pasar a la siguiente
+              }
+
+              // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
+              const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                ? lesson.lessonOrderIndex 
+                : 0;
+              
               lessonsForSlot.push({
                 courseTitle: lesson.courseTitle || 'Curso',
                 lessonTitle: lesson.lessonTitle.trim(),
-                lessonOrderIndex: lesson.lessonOrderIndex || 0
+                lessonOrderIndex: orderIndex
               });
+
+              // ✅ Marcar como asignada para evitar duplicados
+              assignedLessonIds.add(lesson.lessonId);
 
               // Log para las primeras asignaciones
               if (slotIndex < 3 && assignedInSlot < 2) {
@@ -4197,11 +4247,28 @@ export function StudyPlannerLIA() {
 
                 // Las lecciones ya están validadas
                 if (lesson && lesson.lessonTitle) {
+                  // ✅ CORRECCIÓN CRÍTICA: Verificar que la lección no haya sido asignada ya
+                  if (assignedLessonIds.has(lesson.lessonId)) {
+                    console.warn(`⚠️ Lección duplicada detectada y omitida en redistribución: ${lesson.lessonId} - ${lesson.lessonTitle}`);
+                    currentLessonIndex++;
+                    i--; // No contar lecciones duplicadas
+                    continue;
+                  }
+
+                  // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
+                  const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                    ? lesson.lessonOrderIndex 
+                    : 0;
+                  
                   lessonsForUnusedSlot.push({
                     courseTitle: lesson.courseTitle || 'Curso',
                     lessonTitle: lesson.lessonTitle.trim(),
-                    lessonOrderIndex: lesson.lessonOrderIndex || 0
+                    lessonOrderIndex: orderIndex
                   });
+                  
+                  // ✅ Marcar como asignada para evitar duplicados
+                  assignedLessonIds.add(lesson.lessonId);
+                  
                   currentLessonIndex++;
                 } else {
                   console.error(`❌ ERROR: Lección inválida encontrada durante redistribución en slot no usado`);
@@ -4249,11 +4316,28 @@ export function StudyPlannerLIA() {
 
                   // Las lecciones ya están validadas
                   if (lesson && lesson.lessonTitle) {
+                    // ✅ CORRECCIÓN CRÍTICA: Verificar que la lección no haya sido asignada ya
+                    if (assignedLessonIds.has(lesson.lessonId)) {
+                      console.warn(`⚠️ Lección duplicada detectada y omitida en redistribución: ${lesson.lessonId} - ${lesson.lessonTitle}`);
+                      currentLessonIndex++;
+                      i--; // No contar lecciones duplicadas
+                      continue;
+                    }
+
+                    // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
+                    const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                      ? lesson.lessonOrderIndex 
+                      : 0;
+                    
                     slotDist.lessons.push({
                       courseTitle: lesson.courseTitle || 'Curso',
                       lessonTitle: lesson.lessonTitle.trim(),
-                      lessonOrderIndex: lesson.lessonOrderIndex || 0
+                      lessonOrderIndex: orderIndex
                     });
+                    
+                    // ✅ Marcar como asignada para evitar duplicados
+                    assignedLessonIds.add(lesson.lessonId);
+                    
                     currentLessonIndex++;
                   } else {
                     console.error(`❌ ERROR: Lección inválida encontrada durante redistribución en slot existente`);
@@ -4288,11 +4372,18 @@ export function StudyPlannerLIA() {
                   console.warn(`⚠️ Lección inválida filtrada de distribución:`, lesson);
                 }
                 return isValid;
-              }).map(lesson => ({
-                courseTitle: lesson.courseTitle || 'Curso',
-                lessonTitle: lesson.lessonTitle.trim(), // Asegurar sin espacios extra
-                lessonOrderIndex: lesson.lessonOrderIndex || 0
-              }));
+              }).map(lesson => {
+                // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
+                const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                  ? lesson.lessonOrderIndex 
+                  : 0;
+                
+                return {
+                  courseTitle: lesson.courseTitle || 'Curso',
+                  lessonTitle: lesson.lessonTitle.trim(), // Asegurar sin espacios extra
+                  lessonOrderIndex: orderIndex
+                };
+              });
               
               // Solo incluir slots que tengan lecciones válidas
               if (validLessons.length === 0) {
@@ -5662,12 +5753,26 @@ Cuéntame:
           item.lessons.forEach((lesson, lessonIndex) => {
             if (lesson?.lessonTitle?.trim()) {
               const lessonTitle = lesson.lessonTitle.trim();
-              const lessonNum = lesson.lessonOrderIndex > 0 ? lesson.lessonOrderIndex : lessonIndex + 1;
-              distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
+              
+              // ✅ CORRECCIÓN CRÍTICA: Verificar si el título ya incluye un número de lección
+              // Si el título ya tiene "Lección X" o "X." o "X.1" al inicio, no agregar número adicional
+              const titleStartsWithNumber = /^(Lección\s*)?\d+[\.\s]/.test(lessonTitle);
+              const titleHasLessonNumber = /^(Lección\s*\d+)/i.test(lessonTitle);
+              
+              if (titleStartsWithNumber || titleHasLessonNumber) {
+                // El título ya incluye el número, solo mostrar el título
+                distributionSummary += `• ${lessonTitle}\n`;
+              } else {
+                // El título no incluye número, agregar número solo si es necesario
+                const lessonNum = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                  ? lesson.lessonOrderIndex 
+                  : (lessonIndex + 1);
+                distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
+              }
 
               // Log para debugging de las primeras sesiones
               if (idx < 3 && lessonIndex < 3) {
-                console.log(`   Slot ${idx}, Lección ${lessonIndex}: ${lessonNum} - ${lessonTitle}`);
+                console.log(`   Slot ${idx}, Lección ${lessonIndex}: ${lesson.lessonOrderIndex || lessonIndex + 1} - ${lessonTitle}`);
               }
             }
           });
@@ -5755,8 +5860,21 @@ Cuéntame:
           item.lessons.forEach((lesson) => {
             if (lesson?.lessonTitle?.trim()) {
               const lessonTitle = lesson.lessonTitle.trim();
-              const lessonNum = lesson.lessonOrderIndex > 0 ? lesson.lessonOrderIndex : 0;
-              addScheduleContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
+              
+              // ✅ CORRECCIÓN CRÍTICA: Verificar si el título ya incluye un número de lección
+              const titleStartsWithNumber = /^(Lección\s*)?\d+[\.\s]/.test(lessonTitle);
+              const titleHasLessonNumber = /^(Lección\s*\d+)/i.test(lessonTitle);
+              
+              if (titleStartsWithNumber || titleHasLessonNumber) {
+                // El título ya incluye el número, solo mostrar el título
+                addScheduleContext += `  • ${lessonTitle}\n`;
+              } else {
+                // El título no incluye número, agregar número solo si es necesario
+                const lessonNum = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                  ? lesson.lessonOrderIndex 
+                  : 1;
+                addScheduleContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
+              }
             }
           });
         }
@@ -5850,8 +5968,21 @@ Cuéntame:
           item.lessons.forEach((lesson) => {
             if (lesson?.lessonTitle?.trim()) {
               const lessonTitle = lesson.lessonTitle.trim();
-              const lessonNum = lesson.lessonOrderIndex > 0 ? lesson.lessonOrderIndex : 0;
-              changeDateContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
+              
+              // ✅ CORRECCIÓN CRÍTICA: Verificar si el título ya incluye un número de lección
+              const titleStartsWithNumber = /^(Lección\s*)?\d+[\.\s]/.test(lessonTitle);
+              const titleHasLessonNumber = /^(Lección\s*\d+)/i.test(lessonTitle);
+              
+              if (titleStartsWithNumber || titleHasLessonNumber) {
+                // El título ya incluye el número, solo mostrar el título
+                changeDateContext += `  • ${lessonTitle}\n`;
+              } else {
+                // El título no incluye número, agregar número solo si es necesario
+                const lessonNum = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                  ? lesson.lessonOrderIndex 
+                  : 1;
+                changeDateContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
+              }
             }
           });
         }
