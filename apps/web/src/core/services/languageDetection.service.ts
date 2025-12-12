@@ -4,6 +4,7 @@
  */
 
 import { SupportedLanguage } from '../i18n/i18n';
+import { trackOpenAICall, calculateOpenAIMetadata } from '../../lib/openai/usage-monitor';
 
 type DetectableLanguage = 'es' | 'en' | 'pt';
 
@@ -50,6 +51,7 @@ Responde ÚNICAMENTE con el código del idioma (es, en o pt), sin explicaciones 
 Texto:
 ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`;
 
+      const startTime = Date.now();
       const response = await fetch(this.OPENAI_BASE_URL, {
         method: 'POST',
         headers: {
@@ -81,6 +83,19 @@ ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`;
       }
 
       const data = await response.json();
+      const responseTime = Date.now() - startTime;
+      
+      // ✅ Registrar uso de OpenAI para detección de idioma
+      if (data.usage) {
+        await trackOpenAICall(calculateOpenAIMetadata(
+          data.usage,
+          this.OPENAI_MODEL,
+          'language-detection',
+          undefined, // No tenemos userId en este contexto
+          responseTime
+        ));
+      }
+      
       const detectedLang = data.choices[0]?.message?.content?.trim().toLowerCase() || 'es';
 
       // Validar que sea uno de los idiomas soportados

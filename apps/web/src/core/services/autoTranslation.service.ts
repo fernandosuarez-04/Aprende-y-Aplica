@@ -4,6 +4,7 @@
  */
 
 import { SupportedLanguage } from '../i18n/i18n';
+import { trackOpenAICall, calculateOpenAIMetadata } from '../../lib/openai/usage-monitor';
 
 type TargetLanguage = SupportedLanguage; // 'es' | 'en' | 'pt'
 type SourceLanguage = 'es' | 'en' | 'pt';
@@ -121,6 +122,7 @@ Traducción:`;
     try {
       console.log(`[AutoTranslationService] Enviando solicitud a OpenAI API (modelo: ${this.OPENAI_MODEL})`);
       
+      const startTime = Date.now();
       const response = await fetch(this.OPENAI_BASE_URL, {
         method: 'POST',
         headers: {
@@ -152,6 +154,19 @@ Traducción:`;
       }
 
       const data = await response.json();
+      const responseTime = Date.now() - startTime;
+      
+      // ✅ Registrar uso de OpenAI para traducción
+      if (data.usage) {
+        await trackOpenAICall(calculateOpenAIMetadata(
+          data.usage,
+          this.OPENAI_MODEL,
+          'auto-translation',
+          undefined, // No tenemos userId en este contexto
+          responseTime
+        ));
+      }
+      
       const translatedText = data.choices[0]?.message?.content?.trim() || text;
 
       if (translatedText === text) {

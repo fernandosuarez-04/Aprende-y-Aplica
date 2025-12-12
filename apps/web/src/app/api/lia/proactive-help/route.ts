@@ -24,6 +24,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { DifficultyAnalysis } from '../../../../lib/rrweb/difficulty-pattern-detector';
 import { SessionAnalyzer } from '../../../../lib/rrweb/session-analyzer';
+import { trackOpenAICall, calculateOpenAIMetadata } from '../../../../lib/openai/usage-monitor';
 
 interface ProactiveHelpRequest {
   analysis: DifficultyAnalysis;
@@ -83,6 +84,9 @@ export async function POST(request: NextRequest) {
     const openaiApiKey = process.env.OPENAI_API_KEY;
 
     if (openaiApiKey) {
+      const startTime = Date.now();
+      const model = 'gpt-4-turbo-preview';
+      
       // Llamada real a OpenAI
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
           'Authorization': `Bearer ${openaiApiKey}`
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo-preview',
+          model,
           messages: [
             {
               role: 'system',
@@ -115,6 +119,19 @@ export async function POST(request: NextRequest) {
       }
 
       const data = await openaiResponse.json();
+      const responseTime = Date.now() - startTime;
+      
+      // ✅ Registrar uso de OpenAI
+      if (data.usage) {
+        await trackOpenAICall(calculateOpenAIMetadata(
+          data.usage,
+          model,
+          'lia-proactive-help',
+          body.userId,
+          responseTime
+        ));
+      }
+      
       liaResponse = data.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
       
       // Extraer sugerencias del response (LIA puede formatear con bullets)
