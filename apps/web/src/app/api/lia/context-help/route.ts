@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sessionAnalyzer } from '../../../../lib/rrweb/session-analyzer';
+import { trackOpenAICall, calculateOpenAIMetadata } from '../../../../lib/openai/usage-monitor';
 import type { eventWithTime } from '@rrweb/types';
 
 interface ContextHelpRequest {
@@ -160,6 +161,9 @@ async function callLIA(prompt: string): Promise<string> {
       return generateMockResponse(prompt);
     }
 
+    const startTime = Date.now();
+    const model = 'gpt-4-turbo-preview';
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -167,7 +171,7 @@ async function callLIA(prompt: string): Promise<string> {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
+        model,
         messages: [
           {
             role: 'system',
@@ -188,6 +192,19 @@ async function callLIA(prompt: string): Promise<string> {
     }
 
     const data = await response.json();
+    const responseTime = Date.now() - startTime;
+    
+    // ✅ Registrar uso de OpenAI
+    if (data.usage) {
+      await trackOpenAICall(calculateOpenAIMetadata(
+        data.usage,
+        model,
+        'lia-context-help',
+        undefined, // No tenemos userId en este contexto
+        responseTime
+      ));
+    }
+    
     return data.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
 
   } catch (error) {

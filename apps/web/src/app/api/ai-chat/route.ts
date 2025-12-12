@@ -2007,8 +2007,11 @@ export async function POST(request: NextRequest) {
     // Función para inicializar analytics de forma asíncrona (no bloquea la respuesta)
     const initializeAnalyticsAsync = async (): Promise<{ liaLogger: LiaLogger | null; conversationId: string | null }> => {
       if (!user) {
+        logger.warn('[LIA Analytics] ⚠️ No hay usuario autenticado, skipping analytics');
         return { liaLogger: null, conversationId: null };
       }
+
+      logger.info('[LIA Analytics] 🚀 Iniciando analytics para usuario:', { userId: user.id, hasExistingConversation: !!conversationId });
 
       try {
         const liaLogger = new LiaLogger(user.id);
@@ -2088,6 +2091,8 @@ export async function POST(request: NextRequest) {
           // Si hay conversationId existente, establecerlo en el logger
           logger.info('Continuando conversación LIA existente (async)', { conversationId, userId: user.id });
           liaLogger.setConversationId(conversationId);
+          // ✅ Recuperar la secuencia de mensajes para continuar correctamente
+          await liaLogger.recoverMessageSequence();
           return { liaLogger, conversationId };
         }
       } catch (error) {
@@ -2106,7 +2111,7 @@ export async function POST(request: NextRequest) {
     const hasCourseContext = context === 'course' && courseContext !== undefined;
     const userId = user?.id || null; // Obtener userId para registro de uso
 
-    let responseMetadata: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } | undefined;
+    let responseMetadata: { tokensUsed?: number; promptTokens?: number; completionTokens?: number; costUsd?: number; promptCostUsd?: number; completionCostUsd?: number; modelUsed?: string; responseTimeMs?: number } | undefined;
     
     if (openaiApiKey) {
       try {
@@ -2149,31 +2154,62 @@ export async function POST(request: NextRequest) {
     // No bloquear la respuesta esperando analytics
     analyticsPromise.then(async ({ liaLogger, conversationId: analyticsConversationId }) => {
       if (!liaLogger || !analyticsConversationId || isSystemMessage) {
+        logger.info('[LIA Analytics] Skipping analytics:', { 
+          hasLogger: !!liaLogger, 
+          hasConversationId: !!analyticsConversationId, 
+          isSystemMessage 
+        });
         return;
       }
 
       try {
-        // Registrar mensaje del usuario
+        logger.info('[LIA Analytics] Registrando mensajes...', { conversationId: analyticsConversationId });
+        
+        // Registrar mensaje del usuario CON tokens de entrada y costo
         await liaLogger.logMessage(
           'user',
           message,
-          false
+          false,
+          responseMetadata ? {
+            tokensUsed: responseMetadata.promptTokens,
+            costUsd: responseMetadata.promptCostUsd,
+            modelUsed: responseMetadata.modelUsed
+          } : undefined
         );
         
-        // Registrar respuesta del asistente
+        // Registrar respuesta del asistente CON tokens de salida y costo
         await liaLogger.logMessage(
           'assistant',
           response,
           false,
-          responseMetadata
+          responseMetadata ? {
+            tokensUsed: responseMetadata.completionTokens,
+            costUsd: responseMetadata.completionCostUsd,
+            modelUsed: responseMetadata.modelUsed,
+            responseTimeMs: responseMetadata.responseTimeMs
+          } : undefined
         );
+        
+        logger.info('[LIA Analytics] ✅ Mensajes registrados exitosamente', { 
+          conversationId: analyticsConversationId,
+          promptTokens: responseMetadata?.promptTokens,
+          completionTokens: responseMetadata?.completionTokens,
+          totalTokens: responseMetadata?.tokensUsed,
+          promptCostUsd: responseMetadata?.promptCostUsd,
+          completionCostUsd: responseMetadata?.completionCostUsd,
+          totalCostUsd: responseMetadata?.costUsd
+        });
         
         // Actualizar conversationId si se creó una nueva
         if (analyticsConversationId && !existingConversationId) {
           conversationId = analyticsConversationId;
         }
       } catch (error) {
-        logger.error('❌ Error registrando analytics (async):', error);
+        logger.error('❌ Error registrando analytics (async):', {
+          error: error instanceof Error ? error.message : error,
+          conversationId: analyticsConversationId,
+          userId: user?.id
+        });
       }
     }).catch((error) => {
       logger.error('❌ Error en promesa de analytics:', error);
@@ -2261,7 +2297,7 @@ async function callOpenAI(
   isSystemMessage: boolean = false,
   language: SupportedLanguage = 'es',
   context: string = 'general'  // ✅ OPTIMIZACIÓN: Agregar contexto para optimizaciones específicas
-): Promise<{ response: string; metadata?: { tokensUsed?: number; costUsd?: number; modelUsed?: string; responseTimeMs?: number } }> {
+): Promise<{ response: string; metadata?: { tokensUsed?: number; promptTokens?: number; completionTokens?: number; costUsd?: number; promptCostUsd?: number; completionCostUsd?: number; modelUsed?: string; responseTimeMs?: number } }> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
   if (!openaiApiKey) {
@@ -2490,7 +2526,12 @@ ${antiMarkdownInstructions}
   // Preparar metadatos para retornar
   const metadata = data.usage ? {
     tokensUsed: data.usage.total_tokens,
+    promptTokens: data.usage.prompt_tokens || 0,
+    completionTokens: data.usage.completion_tokens || 0,
     costUsd: estimatedCost,
+    // Calcular costos separados para prompt y completion
+    promptCostUsd: calculateCost(data.usage.prompt_tokens || 0, 0, model),
+    completionCostUsd: calculateCost(0, data.usage.completion_tokens || 0, model),
     modelUsed: model
   } : undefined;
   

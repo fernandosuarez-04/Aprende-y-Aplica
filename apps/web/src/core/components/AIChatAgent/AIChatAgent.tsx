@@ -1550,6 +1550,11 @@ export function AIChatAgent({
         }
 
         const data = await response.json();
+        
+        // ✅ ANALYTICS: Guardar conversationId que viene del backend
+        if (data.conversationId && !conversationId) {
+          setConversationId(data.conversationId);
+        }
 
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),

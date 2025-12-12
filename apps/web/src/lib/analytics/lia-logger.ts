@@ -11,7 +11,6 @@
  * Los tipos se generarán automáticamente cuando se ejecute el comando de regeneración de tipos.
  */
 
-// @ts-nocheck
 import { createClient } from '../supabase/server';
 import type { CourseLessonContext } from '../../core/types/lia.types';
 
@@ -52,6 +51,7 @@ export interface ActivityProgress {
 export class LiaLogger {
   private userId: string;
   private conversationId: string | null = null;
+  private messageSequence: number = 0; // Contador de secuencia de mensajes
 
   constructor(userId: string) {
     this.userId = userId;
@@ -115,11 +115,12 @@ export class LiaLogger {
       .single();
 
     if (error) {
-      // console.error('Error starting conversation:', error);
+      console.error('[LiaLogger] Error starting conversation:', error);
       throw error;
     }
 
     this.conversationId = (data as any)?.conversation_id || null;
+    this.messageSequence = 0; // Reset secuencia para nueva conversación
     return this.conversationId!
   }
 
@@ -139,6 +140,9 @@ export class LiaLogger {
 
     const supabase = await createClient();
 
+    // Incrementar secuencia de mensajes
+    this.messageSequence++;
+
     // Usar INSERT directo para mayor confiabilidad
     const { data, error } = await supabase
       .from('lia_messages' as any)
@@ -151,13 +155,14 @@ export class LiaLogger {
         tokens_used: metadata?.tokensUsed || null,
         cost_usd: metadata?.costUsd || null,
         response_time_ms: metadata?.responseTimeMs || null,
+        message_sequence: this.messageSequence, // ✅ Campo requerido
         created_at: new Date().toISOString()
       } as any)
       .select('message_id')
       .single();
 
     if (error) {
-      // console.error('Error logging message:', error);
+      console.error('[LiaLogger] Error logging message:', error);
       throw error;
     }
 
@@ -415,7 +420,7 @@ export class LiaLogger {
       .eq('completion_id', completionId);
 
     if (error) {
-      // console.error('Error incrementing redirections:', error);
+      console.error('[LiaLogger] Error incrementing redirections:', error);
     }
   }
 
@@ -431,6 +436,38 @@ export class LiaLogger {
    */
   setConversationId(conversationId: string): void {
     this.conversationId = conversationId;
+    this.messageSequence = 0; // Reset, se debe llamar recoverMessageSequence después
+  }
+
+  /**
+   * Recupera la secuencia de mensajes de una conversación existente
+   * Debe llamarse después de setConversationId para continuar correctamente
+   */
+  async recoverMessageSequence(): Promise<void> {
+    if (!this.conversationId) return;
+    
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('lia_messages' as any)
+      .select('message_sequence')
+      .eq('conversation_id', this.conversationId)
+      .order('message_sequence', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('[LiaLogger] Error recovering message sequence:', error);
+    }
+    
+    this.messageSequence = data?.message_sequence || 0;
+    console.log('[LiaLogger] Recovered message sequence:', this.messageSequence);
+  }
+
+  /**
+   * Obtiene la secuencia actual de mensajes
+   */
+  getCurrentMessageSequence(): number {
+    return this.messageSequence;
   }
 }
 

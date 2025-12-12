@@ -174,3 +174,84 @@ export function getUsageStats(): {
     last24Hours: [...usageLogs]
   };
 }
+
+// ============================================================================
+// REGISTRO EN BASE DE DATOS
+// ============================================================================
+
+export interface OpenAICallMetadata {
+  userId?: string;
+  endpoint: string; // Identificador del endpoint que hizo la llamada (ej: 'ai-chat', 'ai-intent', 'translation')
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  promptCost: number;
+  completionCost: number;
+  totalCost: number;
+  responseTimeMs?: number;
+}
+
+/**
+ * ✅ Registra una llamada a OpenAI tanto en memoria como en los logs del servidor
+ * Esta función es el punto centralizado para tracking de costos de toda la plataforma
+ */
+export async function trackOpenAICall(metadata: OpenAICallMetadata): Promise<void> {
+  // 1. Registrar en memoria (para rate limiting)
+  if (metadata.userId) {
+    logOpenAIUsage({
+      userId: metadata.userId,
+      timestamp: new Date(),
+      model: metadata.model,
+      promptTokens: metadata.promptTokens,
+      completionTokens: metadata.completionTokens,
+      totalTokens: metadata.totalTokens,
+      estimatedCost: metadata.totalCost
+    });
+  }
+  
+  // 2. Log detallado para monitoreo en servidor
+  console.log('[OpenAI Usage]', {
+    endpoint: metadata.endpoint,
+    userId: metadata.userId || 'anonymous',
+    model: metadata.model,
+    tokens: {
+      prompt: metadata.promptTokens,
+      completion: metadata.completionTokens,
+      total: metadata.totalTokens
+    },
+    cost: {
+      prompt: `$${metadata.promptCost.toFixed(6)}`,
+      completion: `$${metadata.completionCost.toFixed(6)}`,
+      total: `$${metadata.totalCost.toFixed(6)}`
+    },
+    responseTimeMs: metadata.responseTimeMs
+  });
+}
+
+/**
+ * ✅ Helper para calcular metadata de costos desde respuesta de OpenAI
+ */
+export function calculateOpenAIMetadata(
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
+  model: string,
+  endpoint: string,
+  userId?: string,
+  responseTimeMs?: number
+): OpenAICallMetadata {
+  const promptCost = calculateCost(usage.prompt_tokens, 0, model);
+  const completionCost = calculateCost(0, usage.completion_tokens, model);
+  
+  return {
+    userId,
+    endpoint,
+    model,
+    promptTokens: usage.prompt_tokens,
+    completionTokens: usage.completion_tokens,
+    totalTokens: usage.total_tokens,
+    promptCost,
+    completionCost,
+    totalCost: promptCost + completionCost,
+    responseTimeMs
+  };
+}

@@ -18,6 +18,16 @@ export async function GET(request: NextRequest) {
     
     const supabase = await createClient();
     
+    // ✅ DEBUG: Verificar total de conversaciones sin filtros
+    const { count: totalWithoutFilters, error: countError } = await supabase
+      .from('lia_conversations')
+      .select('*', { count: 'exact', head: true });
+    
+    if (countError) {
+      console.error('[LIA Analytics Conversations] Error counting total:', countError);
+    }
+    console.log('[LIA Analytics Conversations] Total conversaciones sin filtros:', totalWithoutFilters);
+    
     // Obtener parámetros
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -44,7 +54,7 @@ export async function GET(request: NextRequest) {
         total_lia_messages,
         device_type,
         browser,
-        is_completed
+        conversation_completed
       `, { count: 'exact' });
     
     // Aplicar filtros
@@ -56,11 +66,16 @@ export async function GET(request: NextRequest) {
       query = query.eq('user_id', userId);
     }
     
+    // ✅ Solo aplicar filtros de fecha si se proporcionan
+    // NOTA: El frontend siempre envía fechas, pero si no hay datos en ese rango,
+    // podríamos querer mostrar datos sin filtrar
     if (startDate) {
+      console.log('[LIA Analytics Conversations] Applying startDate filter:', startDate);
       query = query.gte('started_at', startDate);
     }
     
     if (endDate) {
+      console.log('[LIA Analytics Conversations] Applying endDate filter:', endDate);
       query = query.lte('started_at', endDate);
     }
     
@@ -71,10 +86,21 @@ export async function GET(request: NextRequest) {
     
     const { data: conversations, count, error } = await query;
     
+    // ✅ Log para debugging
+    console.log('[LIA Analytics Conversations]', {
+      filters: { contextType, userId, startDate, endDate },
+      pagination: { page, limit, offset },
+      results: { count, error: error?.message, conversationsReturned: conversations?.length }
+    });
+    
     if (error) {
       console.error('Error fetching conversations:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      console.error('Error details:', error.details);
+      console.error('Error hint:', error.hint);
       return NextResponse.json(
-        { success: false, error: 'Error al obtener conversaciones' },
+        { success: false, error: 'Error al obtener conversaciones', details: error.message },
         { status: 500 }
       );
     }
@@ -171,7 +197,7 @@ export async function GET(request: NextRequest) {
         cost: Number(metrics.cost.toFixed(6)),
         avgResponseTimeMs: metrics.avgResponseTime,
         durationSeconds,
-        isCompleted: conv.is_completed,
+        isCompleted: conv.conversation_completed,
         deviceType: conv.device_type,
         browser: conv.browser
       };
@@ -202,8 +228,9 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('Error en LIA Analytics Conversations:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { success: false, error: 'Error interno del servidor', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

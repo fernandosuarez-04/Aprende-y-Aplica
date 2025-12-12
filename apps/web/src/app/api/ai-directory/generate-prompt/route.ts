@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
 import { OpenAI } from 'openai';
 import { formatApiError, logError } from '@/core/utils/api-errors';
+import { trackOpenAICall, calculateOpenAIMetadata, calculateCost } from '@/lib/openai/usage-monitor';
+import { SessionService } from '@/features/auth/services/session.service';
+import { LiaLogger } from '@/lib/analytics/lia-logger';
 
 // Configuración de Lia directamente en el archivo
 const LIA_CONFIG = {
@@ -146,6 +149,27 @@ export async function POST(request: NextRequest) {
   try {
     logger.log('🔍 API generate-prompt called');
     
+    // ✅ Obtener usuario autenticado para analytics
+    const user = await SessionService.getCurrentUser();
+    const userId = user?.id || null;
+    
+    // ✅ Inicializar LiaLogger si hay usuario
+    let liaLogger: LiaLogger | null = null;
+    let conversationId: string | null = null;
+    
+    if (userId) {
+      liaLogger = new LiaLogger(userId);
+      try {
+        conversationId = await liaLogger.startConversation({
+          contextType: 'general', // Prompts usa contexto general
+        });
+        logger.log('✅ [LiaLogger] Conversación iniciada:', conversationId);
+      } catch (logErr) {
+        logger.log('⚠️ [LiaLogger] Error iniciando conversación:', logErr);
+        liaLogger = null;
+      }
+    }
+    
     const { message, conversationHistory } = await request.json();
     logger.log('📝 Message received:', message);
 
@@ -203,15 +227,33 @@ export async function POST(request: NextRequest) {
     // Llamar a OpenAI
     logger.log('🤖 Calling OpenAI with', messages.length, 'messages');
     logger.log('📋 Messages array:', JSON.stringify(messages, null, 2));
+    const startTime = Date.now();
+    const model = 'gpt-4o';
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model,
       messages: messages,
       temperature: 0.7,
       max_tokens: 2000,
       presence_penalty: 0.1,
       frequency_penalty: 0.1
     });
+    const responseTime = Date.now() - startTime;
     logger.log('✅ OpenAI response received');
+    
+    // ✅ Registrar uso de OpenAI para generación de prompts
+    if (completion.usage) {
+      await trackOpenAICall(calculateOpenAIMetadata(
+        {
+          prompt_tokens: completion.usage.prompt_tokens,
+          completion_tokens: completion.usage.completion_tokens,
+          total_tokens: completion.usage.total_tokens
+        },
+        model,
+        'prompt-generation',
+        undefined, // No tenemos userId en este contexto
+        responseTime
+      ));
+    }
 
     const response = completion.choices[0]?.message?.content;
     logger.log('📄 OpenAI raw response:', response);
@@ -238,8 +280,35 @@ export async function POST(request: NextRequest) {
     const finalResponse = {
       response: response,
       message: response,
-      generatedPrompt: generatedPrompt
+      generatedPrompt: generatedPrompt,
+      conversationId: conversationId // ✅ Devolver conversationId para tracking
     };
+    
+    // ✅ Registrar mensajes en BD con LiaLogger
+    if (liaLogger && conversationId && completion.usage) {
+      try {
+        // Registrar mensaje del usuario
+        await liaLogger.logMessage('user', message, false);
+        
+        // Registrar respuesta del asistente con metadatos
+        const totalCost = calculateCost(
+          completion.usage.prompt_tokens,
+          completion.usage.completion_tokens,
+          model
+        );
+        
+        await liaLogger.logMessage('assistant', response || '', false, {
+          modelUsed: model,
+          tokensUsed: completion.usage.total_tokens,
+          costUsd: totalCost,
+          responseTimeMs: responseTime
+        });
+        
+        logger.log('✅ [LiaLogger] Mensajes registrados en BD');
+      } catch (logErr) {
+        logger.log('⚠️ [LiaLogger] Error registrando mensajes:', logErr);
+      }
+    }
     
     logger.log('📤 Sending response to frontend:', JSON.stringify(finalResponse, null, 2));
     

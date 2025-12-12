@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft, HelpCircle, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { HolidayService } from '../../../lib/holidays';
 
 // Componentes de iconos de Google y Microsoft
@@ -115,6 +116,7 @@ function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
 }
 
 export function StudyPlannerLIA() {
+  const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -202,6 +204,9 @@ export function StudyPlannerLIA() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
   
+  // ✅ Estado para tracking de analytics de LIA
+  const [liaConversationId, setLiaConversationId] = useState<string | null>(null);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
@@ -210,6 +215,7 @@ export function StudyPlannerLIA() {
   const processingRef = useRef<boolean>(false);
   const pendingTranscriptRef = useRef<string | null>(null);
   const pendingTimeoutRef = useRef<number | null>(null);
+  const redirectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const conversationHistoryRef = useRef(conversationHistory);
   const lastErrorTimeRef = useRef<number>(0);
   const hasAttemptedOpenRef = useRef<boolean>(false);
@@ -1048,6 +1054,7 @@ export function StudyPlannerLIA() {
           message: question,
           context: 'study-planner',
           conversationHistory: conversationHistory || [],
+          conversationId: liaConversationId || undefined, // ✅ Pasar conversationId para analytics
           userName: undefined,
           pageContext: {
             pathname: '/study-planner/create',
@@ -5202,13 +5209,43 @@ Cuéntame:
       if (!saveResponse.ok) {
         let errorMessage = 'Error al guardar el plan';
         try {
-          const errorData = await saveResponse.json();
-          errorMessage = errorData.error || errorMessage;
-          console.error('❌ Error del servidor:', errorData);
-        } catch (e) {
           const errorText = await saveResponse.text();
-          console.error('❌ Error del servidor (texto):', errorText);
-          errorMessage = `Error ${saveResponse.status}: ${saveResponse.statusText}`;
+          
+          // Intentar parsear como JSON
+          let errorData: any = {};
+          try {
+            errorData = errorText ? JSON.parse(errorText) : {};
+          } catch (parseError) {
+            // Si no es JSON válido, usar el texto directamente
+            console.error('❌ Error del servidor (texto no JSON):', errorText);
+            errorMessage = errorText && errorText.trim() 
+              ? `Error ${saveResponse.status}: ${errorText.substring(0, 200)}`
+              : `Error ${saveResponse.status}: ${saveResponse.statusText}`;
+            throw new Error(errorMessage);
+          }
+          
+          // Si errorData está vacío o no tiene error, usar el mensaje por defecto
+          if (errorData && typeof errorData === 'object') {
+            if (errorData.error && typeof errorData.error === 'string' && errorData.error.trim() !== '') {
+              errorMessage = errorData.error;
+            } else if (errorData.message && typeof errorData.message === 'string' && errorData.message.trim() !== '') {
+              errorMessage = errorData.message;
+            } else {
+              // Si el objeto está vacío o no tiene mensaje útil, construir uno descriptivo
+              errorMessage = `Error ${saveResponse.status}: ${saveResponse.statusText || 'Error desconocido del servidor'}`;
+            }
+          }
+          
+          console.error('❌ Error del servidor:', {
+            status: saveResponse.status,
+            statusText: saveResponse.statusText,
+            errorData: errorData,
+            errorMessage: errorMessage
+          });
+        } catch (e) {
+          // Si falla todo, usar el error por defecto
+          console.error('❌ Error procesando respuesta del servidor:', e);
+          errorMessage = `Error ${saveResponse.status}: ${saveResponse.statusText || 'Error desconocido'}`;
         }
         throw new Error(errorMessage);
       }
@@ -5292,11 +5329,51 @@ Cuéntame:
         return newHistory;
       });
       
-      if (isAudioEnabled) {
-        await speakText('Perfecto. He guardado tu plan de estudios con todas las sesiones programadas. Puedes comenzar a estudiar cuando lo desees.');
+      setIsProcessing(false);
+      
+      // Limpiar cualquier timer de redirección previo
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
       }
       
-      setIsProcessing(false);
+      // Configurar redirección ANTES del audio para asegurar que se ejecute
+      console.log('✅ Plan guardado exitosamente. Redirigiendo al dashboard en 3 segundos...');
+      console.log('📍 Router disponible:', !!router);
+      console.log('📍 Ruta objetivo: /study-planner/dashboard');
+      
+      const targetUrl = '/study-planner/dashboard';
+      redirectTimerRef.current = setTimeout(() => {
+        console.log('🔄 Ejecutando redirección al dashboard del planificador...');
+        redirectTimerRef.current = null;
+        
+        // Usar window.location.href como método principal (más confiable)
+        // Esto asegura que la redirección funcione incluso si hay problemas con el router
+        console.log('📍 Redirigiendo a:', targetUrl);
+        
+        try {
+          // Intentar con router primero
+          if (router && typeof router.replace === 'function') {
+            console.log('✅ Usando router.replace');
+            router.replace(targetUrl);
+          } else {
+            console.log('⚠️ Router no disponible, usando window.location');
+            window.location.href = targetUrl;
+          }
+        } catch (redirectError) {
+          console.error('❌ Error al redirigir:', redirectError);
+          // Fallback garantizado: usar window.location
+          window.location.href = targetUrl;
+        }
+      }, 3000);
+      
+      // Reproducir audio después de configurar la redirección (no bloquea)
+      if (isAudioEnabled) {
+        // No esperar el audio para no bloquear la redirección
+        speakText('Perfecto. He guardado tu plan de estudios con todas las sesiones programadas. Puedes comenzar a estudiar cuando lo desees.').catch(err => {
+          console.error('Error reproduciendo audio:', err);
+        });
+      }
       
     } catch (error: any) {
       console.error('Error guardando plan:', error);
@@ -5849,6 +5926,7 @@ Cuéntame:
           context: 'study-planner',
           language: 'es', // FORZAR ESPAÑOL siempre
           conversationHistory: newHistory.slice(-10),
+          conversationId: liaConversationId || undefined, // ✅ Pasar conversationId para analytics
           pageContext: {
             pathname: '/study-planner/create',
             detectedArea: 'study-planner',
@@ -5895,6 +5973,12 @@ Cuéntame:
 
       const data = await response.json();
       let liaResponse = data.response;
+      
+      // ✅ Guardar conversationId para analytics (sendMessage)
+      if (data.conversationId && !liaConversationId) {
+        setLiaConversationId(data.conversationId);
+        console.log('[Study Planner LIA] Nueva conversación iniciada (sendMessage):', data.conversationId);
+      }
 
       // Filtro adicional de seguridad: eliminar cualquier rastro del prompt del sistema
       const systemPromptIndicators = [

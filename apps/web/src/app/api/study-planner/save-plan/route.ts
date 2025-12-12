@@ -148,16 +148,84 @@ export async function POST(request: NextRequest): Promise<NextResponse<SavePlanR
       );
     }
     
+    // Validar que haya sesiones válidas después del filtrado del cliente
+    if (!body.sessions || body.sessions.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No hay sesiones válidas para guardar. Por favor, verifica que todas las sesiones tengan título, hora de inicio y hora de fin.' },
+        { status: 400 }
+      );
+    }
+    
     // Crear sesiones (validar y limpiar datos)
-    const sessionsToInsert = body.sessions.map((session, index) => {
-      // Validar campos requeridos
-      if (!session.title || !session.startTime || !session.endTime) {
-        throw new Error(`Sesión ${index + 1} tiene campos requeridos faltantes: title, startTime o endTime`);
+    const sessionsToInsert: any[] = [];
+    const invalidSessions: Array<{ index: number; reason: string }> = [];
+    
+    for (let index = 0; index < body.sessions.length; index++) {
+      const session = body.sessions[index];
+      
+      // Validar campos requeridos con mensajes específicos
+      const missingFields: string[] = [];
+      if (!session.title || typeof session.title !== 'string' || session.title.trim() === '') {
+        missingFields.push('title');
+      }
+      if (!session.startTime || typeof session.startTime !== 'string') {
+        missingFields.push('startTime');
+      }
+      if (!session.endTime || typeof session.endTime !== 'string') {
+        missingFields.push('endTime');
+      }
+      
+      if (missingFields.length > 0) {
+        invalidSessions.push({
+          index: index + 1,
+          reason: `Campos requeridos faltantes: ${missingFields.join(', ')}`
+        });
+        continue;
+      }
+      
+      // Validar formato de fechas
+      let startDate: Date;
+      let endDate: Date;
+      
+      try {
+        startDate = new Date(session.startTime);
+        endDate = new Date(session.endTime);
+        
+        if (isNaN(startDate.getTime())) {
+          invalidSessions.push({
+            index: index + 1,
+            reason: `startTime inválido: ${session.startTime}`
+          });
+          continue;
+        }
+        
+        if (isNaN(endDate.getTime())) {
+          invalidSessions.push({
+            index: index + 1,
+            reason: `endTime inválido: ${session.endTime}`
+          });
+          continue;
+        }
+        
+        // Validar que endTime sea después de startTime
+        if (endDate.getTime() <= startDate.getTime()) {
+          invalidSessions.push({
+            index: index + 1,
+            reason: `endTime debe ser posterior a startTime`
+          });
+          continue;
+        }
+      } catch (dateError) {
+        invalidSessions.push({
+          index: index + 1,
+          reason: `Error parseando fechas: ${dateError instanceof Error ? dateError.message : 'Error desconocido'}`
+        });
+        continue;
       }
       
       // NOTA: duration_minutes tiene un DEFAULT calculado en la BD que usa end_time - start_time
       // No debemos incluir duration_minutes en el INSERT para que PostgreSQL lo calcule automáticamente
-      return {
+      sessionsToInsert.push({
         plan_id: plan.id,
         user_id: user.id,
         title: session.title.substring(0, 500), // Limitar longitud
@@ -170,8 +238,29 @@ export async function POST(request: NextRequest): Promise<NextResponse<SavePlanR
         status: 'planned',
         is_ai_generated: session.isAiGenerated !== undefined ? session.isAiGenerated : true,
         session_type: session.sessionType || 'medium',
-      };
-    });
+      });
+    }
+    
+    // Si hay sesiones inválidas, retornar error con detalles
+    if (invalidSessions.length > 0) {
+      const errorDetails = invalidSessions.map(s => `Sesión ${s.index}: ${s.reason}`).join('; ');
+      console.error('❌ Sesiones inválidas detectadas:', invalidSessions);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Se encontraron ${invalidSessions.length} sesión(es) inválida(s). ${errorDetails}` 
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Validar que haya al menos una sesión válida después del filtrado
+    if (sessionsToInsert.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No hay sesiones válidas para guardar después de la validación.' },
+        { status: 400 }
+      );
+    }
     
     const { data: createdSessions, error: sessionsError } = await supabase
       .from('study_sessions')
