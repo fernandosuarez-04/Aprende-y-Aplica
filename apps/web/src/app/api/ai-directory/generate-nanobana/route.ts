@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
 import { OpenAI } from 'openai';
 import { formatApiError, logError } from '@/core/utils/api-errors';
+import { trackOpenAICall, calculateOpenAIMetadata, calculateCost } from '@/lib/openai/usage-monitor';
+import { SessionService } from '@/features/auth/services/session.service';
+import { LiaLogger } from '@/lib/analytics/lia-logger';
 
 // Configurar OpenAI
 const openai = new OpenAI({
@@ -336,6 +339,28 @@ export async function POST(request: NextRequest) {
   try {
     logger.log('🎨 API generate-nanobana called');
     
+    // ✅ Obtener usuario autenticado para analytics
+    const user = await SessionService.getCurrentUser();
+    const userId = user?.id || null;
+    
+    // ✅ Inicializar LiaLogger si hay usuario
+    let liaLogger: LiaLogger | null = null;
+    let conversationId: string | null = null;
+    
+    if (userId) {
+      liaLogger = new LiaLogger(userId);
+      try {
+        conversationId = await liaLogger.startConversation({
+          contextType: 'general', // NanoBanana usa contexto general
+        });
+        logger.log('✅ [LiaLogger] Conversación iniciada:', conversationId);
+      } catch (logError) {
+        logger.log('⚠️ [LiaLogger] Error iniciando conversación:', logError);
+        // Continuar sin analytics si falla
+        liaLogger = null;
+      }
+    }
+    
     const { message, conversationHistory, preferredDomain, preferredFormat } = await request.json();
     logger.log('📝 Message received:', message);
 
@@ -407,14 +432,32 @@ Genera un JSON completo basado en la solicitud del usuario, utilizando la planti
 
     // Llamar a OpenAI
     logger.log('🤖 Calling OpenAI for NanoBanana JSON generation');
+    const startTime = Date.now();
+    const model = 'gpt-4o';
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model,
       messages: messages,
       temperature: 0.5, // Más bajo para mayor consistencia
       max_tokens: 4000,
       response_format: { type: "json_object" }
     });
+    const responseTime = Date.now() - startTime;
     logger.log('✅ OpenAI response received');
+    
+    // ✅ Registrar uso de OpenAI para NanoBanana
+    if (completion.usage) {
+      await trackOpenAICall(calculateOpenAIMetadata(
+        {
+          prompt_tokens: completion.usage.prompt_tokens,
+          completion_tokens: completion.usage.completion_tokens,
+          total_tokens: completion.usage.total_tokens
+        },
+        model,
+        'nanobana-generation',
+        undefined, // No tenemos userId en este contexto
+        responseTime
+      ));
+    }
 
     const response = completion.choices[0]?.message?.content;
     
@@ -482,8 +525,35 @@ El esquema está listo para usar en NanoBanana Pro. Puedes copiarlo directamente
       generatedSchema: generatedSchema,
       domain: domain,
       outputFormat: outputFormat,
-      jsonString: JSON.stringify(generatedSchema, null, 2)
+      jsonString: JSON.stringify(generatedSchema, null, 2),
+      conversationId: conversationId // ✅ Devolver conversationId para tracking
     };
+    
+    // ✅ Registrar mensajes en BD con LiaLogger
+    if (liaLogger && conversationId && completion.usage) {
+      try {
+        // Registrar mensaje del usuario
+        await liaLogger.logMessage('user', message, false);
+        
+        // Registrar respuesta del asistente con metadatos
+        const totalCost = calculateCost(
+          completion.usage.prompt_tokens,
+          completion.usage.completion_tokens,
+          model
+        );
+        
+        await liaLogger.logMessage('assistant', friendlyResponse, false, {
+          modelUsed: model,
+          tokensUsed: completion.usage.total_tokens,
+          costUsd: totalCost,
+          responseTimeMs: responseTime
+        });
+        
+        logger.log('✅ [LiaLogger] Mensajes registrados en BD');
+      } catch (logError) {
+        logger.log('⚠️ [LiaLogger] Error registrando mensajes:', logError);
+      }
+    }
     
     logger.log('📤 Sending NanoBanana response');
     

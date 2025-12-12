@@ -489,8 +489,18 @@ export function calculateOpenAIMetadata(
 | `/api/lia/context-help` | ✅ Tracking agregado | [route.ts](apps/web/src/app/api/lia/context-help/route.ts) |
 | `/api/lia/proactive-help` | ✅ Tracking agregado | [route.ts](apps/web/src/app/api/lia/proactive-help/route.ts) |
 | `/api/lia/onboarding-chat` | ✅ Delega a `/api/ai-chat` | [route.ts](apps/web/src/app/api/lia/onboarding-chat/route.ts) |
+| `/api/ai-directory/generate-nanobana` | ✅ Tracking agregado | [route.ts](apps/web/src/app/api/ai-directory/generate-nanobana/route.ts) |
+| `/api/ai-directory/generate-prompt` | ✅ Tracking agregado | [route.ts](apps/web/src/app/api/ai-directory/generate-prompt/route.ts) |
 | `AutoTranslationService` | ✅ Tracking agregado | [autoTranslation.service.ts](apps/web/src/core/services/autoTranslation.service.ts) |
 | `LanguageDetectionService` | ✅ Tracking agregado | [languageDetection.service.ts](apps/web/src/core/services/languageDetection.service.ts) |
+
+### Componentes con Analytics Integrados
+
+| Componente | Archivo | Cambios |
+|------------|---------|---------|
+| `AIChatAgent` (Chat Global) | [AIChatAgent.tsx](apps/web/src/core/components/AIChatAgent/AIChatAgent.tsx) | ✅ Guarda `conversationId` de respuesta |
+| `StudyPlannerLIA` | [StudyPlannerLIA.tsx](apps/web/src/features/study-planner/components/StudyPlannerLIA.tsx) | ✅ Guarda `conversationId` |
+| `useLiaChat` (Hook cursos) | [useLiaChat.ts](apps/web/src/core/hooks/useLiaChat.ts) | ✅ Ya tenía tracking |
 
 ### Desglose de Tokens y Costos
 
