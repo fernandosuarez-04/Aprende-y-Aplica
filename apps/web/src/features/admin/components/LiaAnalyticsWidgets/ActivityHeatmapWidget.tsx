@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { FireIcon } from '@heroicons/react/24/outline';
+import { HeatmapDetailModal } from './HeatmapDetailModal';
 
 interface HeatmapData {
   dayOfWeek: number; // 0-6 (Domingo-Sábado)
@@ -22,6 +23,8 @@ export function ActivityHeatmapWidget({ period = 'month', isLoading: externalLoa
   const [data, setData] = useState<HeatmapData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredCell, setHoveredCell] = useState<{ day: number; hour: number } | null>(null);
+  const [selectedCell, setSelectedCell] = useState<{ day: number; hour: number } | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [totalMessages, setTotalMessages] = useState(0);
   const [peakHour, setPeakHour] = useState<{ day: string; hour: string; count: number } | null>(null);
 
@@ -153,6 +156,10 @@ export function ActivityHeatmapWidget({ period = 'month', isLoading: externalLoa
                       `}
                       onMouseEnter={() => setHoveredCell({ day: dayIndex, hour })}
                       onMouseLeave={() => setHoveredCell(null)}
+                      onClick={() => {
+                        setSelectedCell({ day: dayIndex, hour });
+                        setIsModalOpen(true);
+                      }}
                     />
                   );
                 })}
@@ -183,20 +190,40 @@ export function ActivityHeatmapWidget({ period = 'month', isLoading: externalLoa
               </div>
             )}
           </div>
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
+            💡 Haz clic para ver detalles
+          </p>
         </div>
       )}
 
       {/* Legend */}
-      <div className="flex items-center justify-end gap-1 mt-4 text-xs text-gray-500 dark:text-gray-400">
-        <span>Menos</span>
-        <div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800"></div>
-        <div className="w-3 h-3 rounded-sm bg-emerald-100 dark:bg-emerald-900/30"></div>
-        <div className="w-3 h-3 rounded-sm bg-emerald-200 dark:bg-emerald-800/40"></div>
-        <div className="w-3 h-3 rounded-sm bg-emerald-300 dark:bg-emerald-700/50"></div>
-        <div className="w-3 h-3 rounded-sm bg-emerald-400 dark:bg-emerald-600/60"></div>
-        <div className="w-3 h-3 rounded-sm bg-emerald-500 dark:bg-emerald-500"></div>
-        <span>Más</span>
+      <div className="flex items-center justify-between mt-4">
+        <p className="text-xs text-gray-400 italic">Clic en celda = ver detalles</p>
+        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+          <span>Menos</span>
+          <div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800"></div>
+          <div className="w-3 h-3 rounded-sm bg-emerald-100 dark:bg-emerald-900/30"></div>
+          <div className="w-3 h-3 rounded-sm bg-emerald-200 dark:bg-emerald-800/40"></div>
+          <div className="w-3 h-3 rounded-sm bg-emerald-300 dark:bg-emerald-700/50"></div>
+          <div className="w-3 h-3 rounded-sm bg-emerald-400 dark:bg-emerald-600/60"></div>
+          <div className="w-3 h-3 rounded-sm bg-emerald-500 dark:bg-emerald-500"></div>
+          <span>Más</span>
+        </div>
       </div>
+
+      {/* Detail Modal */}
+      {selectedCell && (
+        <HeatmapDetailModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedCell(null);
+          }}
+          dayOfWeek={selectedCell.day}
+          hour={selectedCell.hour}
+          period={period}
+        />
+      )}
     </div>
   );
 }
