@@ -3394,7 +3394,18 @@ export function StudyPlannerLIA() {
                             is_published: lesson.is_published !== false
                           })).filter((lesson: any) => lesson.lessonId && lesson.lessonTitle && lesson.is_published);
                           
-                          const publishedLessons = normalizedLessons;
+                          // ✅ CORRECCIÓN CRÍTICA: Eliminar duplicados por lessonId
+                          const uniqueLessonsMap = new Map<string, any>();
+                          normalizedLessons.forEach((lesson: any) => {
+                            if (lesson && lesson.lessonId) {
+                              if (!uniqueLessonsMap.has(lesson.lessonId)) {
+                                uniqueLessonsMap.set(lesson.lessonId, lesson);
+                              } else {
+                                console.warn(`   ⚠️ Lección duplicada detectada en API (cálculo): ${lesson.lessonId} - ${lesson.lessonTitle}`);
+                              }
+                            }
+                          });
+                          const publishedLessons = Array.from(uniqueLessonsMap.values());
                           const totalLessons = publishedLessons.length || 0;
                           
                           // Obtener lecciones completadas usando el mismo método que LiaContextService
@@ -3857,9 +3868,23 @@ export function StudyPlannerLIA() {
                             }).filter((lesson: any) => lesson !== null); // Filtrar nulos
                           });
                             
+                            // ✅ CORRECCIÓN CRÍTICA: Eliminar duplicados por lessonId ANTES de filtrar y ordenar
+                            const uniqueLessonsMap = new Map<string, any>();
+                            allLessons.forEach((lesson: any) => {
+                              if (lesson && lesson.lessonId) {
+                                // Si ya existe, mantener la primera ocurrencia
+                                if (!uniqueLessonsMap.has(lesson.lessonId)) {
+                                  uniqueLessonsMap.set(lesson.lessonId, lesson);
+                                } else {
+                                  console.warn(`   ⚠️ Lección duplicada detectada en API: ${lesson.lessonId} - ${lesson.lessonTitle}`);
+                                }
+                              }
+                            });
+                            const uniqueLessons = Array.from(uniqueLessonsMap.values());
+                            
                             // Filtrar solo lecciones válidas con título no vacío
                             // IMPORTANTE: Ordenar primero por módulo, luego por lección dentro del módulo
-                            const publishedLessons = allLessons
+                            const publishedLessons = uniqueLessons
                               .filter((lesson: any) => {
                                 const isValid = lesson &&
                                   lesson.lessonId &&
@@ -3881,7 +3906,7 @@ export function StudyPlannerLIA() {
                                 return (a.lessonOrderIndex || 0) - (b.lessonOrderIndex || 0);
                               });
                             
-                            console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones válidas obtenidas`);
+                            console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones válidas obtenidas (${allLessons.length} totales, ${allLessons.length - publishedLessons.length} duplicadas/inválidas eliminadas)`);
                             if (publishedLessons.length > 0) {
                               console.log(`   Primeras 5 lecciones:`, publishedLessons.slice(0, 5).map((l: any) => ({
                                 index: l.lessonOrderIndex,
@@ -3950,8 +3975,20 @@ export function StudyPlannerLIA() {
             }
           }
           
-          // Crear lista plana de todas las lecciones pendientes de todos los cursos, ordenadas
-          const allPendingLessons: Array<{ courseId: string; courseTitle: string; lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number }> = [];
+          // ✅ PASO 1: Crear lista plana de todas las lecciones pendientes de todos los cursos
+          // Estructura: { courseId, courseTitle, lessonId, lessonTitle, lessonOrderIndex, moduleOrderIndex, durationSeconds }
+          const allPendingLessons: Array<{ 
+            courseId: string; 
+            courseTitle: string; 
+            lessonId: string; 
+            lessonTitle: string; 
+            lessonOrderIndex: number; 
+            moduleOrderIndex: number;
+            durationSeconds: number;
+          }> = [];
+          
+          // ✅ PASO 1.1: Rastrear lessonIds agregados para evitar duplicados desde el inicio
+          const addedLessonIds = new Set<string>();
           
           selectedCourseIds.forEach(courseId => {
             const courseFromList = availableCourses.find(c => c.id === courseId);
@@ -3960,7 +3997,7 @@ export function StudyPlannerLIA() {
             const completedIds = completedLessonIdsByCourse.get(courseId) || [];
             
             console.log(`📚 Curso ${courseId} (${courseTitle}):`);
-            console.log(`   Total lecciones: ${lessons.length}`);
+            console.log(`   Total lecciones disponibles: ${lessons.length}`);
             console.log(`   Lecciones completadas: ${completedIds.length}`);
             if (completedIds.length > 0) {
               console.log(`   IDs completados:`, completedIds);
@@ -3968,60 +4005,114 @@ export function StudyPlannerLIA() {
             
             let pendingCount = 0;
             let skippedCount = 0;
+            let duplicateCount = 0;
+            let completedCount = 0;
+            
             lessons.forEach(lesson => {
-              // Validar que la lección tenga título válido antes de agregarla
+              // Validar que la lección tenga datos válidos
+              if (!lesson || !lesson.lessonId) {
+                console.warn(`   ⚠️ Lección sin ID válido - omitida`);
+                skippedCount++;
+                return;
+              }
+              
               if (!lesson.lessonTitle || lesson.lessonTitle.trim() === '') {
-                console.warn(`   ⚠️ Lección ${lesson.lessonOrderIndex} (${lesson.lessonId}) sin título válido - omitida`);
+                console.warn(`   ⚠️ Lección ${lesson.lessonId} sin título válido - omitida`);
                 skippedCount++;
                 return;
               }
 
-              if (!completedIds.includes(lesson.lessonId)) {
-                // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido (>= 1 según BD)
-                // La BD tiene CHECK constraint: lesson_order_index > 0
-                const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
-                  ? lesson.lessonOrderIndex 
-                  : 0; // Se ajustará al mostrar si es necesario
-                
-                allPendingLessons.push({
-                  courseId,
-                  courseTitle,
-                  lessonId: lesson.lessonId,
-                  lessonTitle: lesson.lessonTitle.trim(), // Asegurar que no tenga espacios extra
-                  lessonOrderIndex: orderIndex,
-                  durationSeconds: lesson.durationSeconds || 0
-                });
-                pendingCount++;
-              } else {
-                skippedCount++;
-                console.log(`   ✓ Lección ${lesson.lessonOrderIndex} "${lesson.lessonTitle}" (${lesson.lessonId}) ya completada - omitida`);
+              // ✅ PASO 1.2: Verificar duplicados ANTES de agregar a la lista
+              if (addedLessonIds.has(lesson.lessonId)) {
+                console.warn(`   ⚠️ Lección duplicada detectada y omitida: ${lesson.lessonId} - ${lesson.lessonTitle} (ya agregada anteriormente)`);
+                duplicateCount++;
+                return;
               }
+
+              // ✅ PASO 1.3: Verificar si la lección está completada
+              if (completedIds.includes(lesson.lessonId)) {
+                completedCount++;
+                return; // No agregar lecciones completadas
+              }
+
+              // ✅ PASO 1.4: Agregar lección pendiente con todos sus datos de orden
+              const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                ? lesson.lessonOrderIndex 
+                : 0;
+              
+              const moduleOrderIndex = (lesson as any).moduleOrderIndex || 0;
+              
+              allPendingLessons.push({
+                courseId,
+                courseTitle,
+                lessonId: lesson.lessonId,
+                lessonTitle: lesson.lessonTitle.trim(), // Asegurar que no tenga espacios extra
+                lessonOrderIndex: orderIndex,
+                moduleOrderIndex: moduleOrderIndex,
+                durationSeconds: lesson.durationSeconds || 0
+              });
+              
+              // ✅ Marcar como agregada para evitar duplicados
+              addedLessonIds.add(lesson.lessonId);
+              
+              pendingCount++;
             });
-            console.log(`   Lecciones pendientes agregadas: ${pendingCount}, omitidas: ${skippedCount}`);
+            
+            console.log(`   ✅ Lecciones pendientes: ${pendingCount}, completadas: ${completedCount}, omitidas: ${skippedCount}, duplicadas: ${duplicateCount}`);
           });
 
-          // Ordenar todas las lecciones por curso, luego por módulo, luego por lección
+          // ✅ PASO 3: Ordenar todas las lecciones para mantener la continuidad del taller
+          // Orden: 1) Por curso (según orden de selección), 2) Por módulo, 3) Por lección
           allPendingLessons.sort((a, b) => {
-            // Primero por curso
-            if (a.courseId !== b.courseId) {
-              return selectedCourseIds.indexOf(a.courseId) - selectedCourseIds.indexOf(b.courseId);
+            // 1. Primero por curso (mantener el orden de selección)
+            const courseIndexA = selectedCourseIds.indexOf(a.courseId);
+            const courseIndexB = selectedCourseIds.indexOf(b.courseId);
+            if (courseIndexA !== courseIndexB) {
+              return courseIndexA - courseIndexB;
             }
-            // Luego por módulo dentro del curso
-            if ((a as any).moduleOrderIndex !== (b as any).moduleOrderIndex) {
-              return ((a as any).moduleOrderIndex || 0) - ((b as any).moduleOrderIndex || 0);
+            
+            // 2. Luego por módulo dentro del curso (orden ascendente)
+            if (a.moduleOrderIndex !== b.moduleOrderIndex) {
+              return a.moduleOrderIndex - b.moduleOrderIndex;
             }
-            // Finalmente por lección dentro del módulo
+            
+            // 3. Finalmente por lección dentro del módulo (orden ascendente)
             return a.lessonOrderIndex - b.lessonOrderIndex;
           });
 
-          console.log(`📚 Lecciones pendientes totales: ${allPendingLessons.length}`);
+          console.log(`📚 Lecciones pendientes totales (ordenadas): ${allPendingLessons.length}`);
           if (allPendingLessons.length > 0) {
-            console.log(`   Primeras 5 lecciones pendientes:`, allPendingLessons.slice(0, 5).map(l => ({
-              index: l.lessonOrderIndex,
-              title: l.lessonTitle,
-              id: l.lessonId,
-              course: l.courseTitle
+            console.log(`   ✅ Orden de lecciones verificado:`);
+            console.log(`   Primeras 10 lecciones (ordenadas):`, allPendingLessons.slice(0, 10).map((l, idx) => ({
+              posición: idx + 1,
+              curso: l.courseTitle,
+              módulo: l.moduleOrderIndex,
+              lección: l.lessonOrderIndex,
+              título: l.lessonTitle.substring(0, 50) + (l.lessonTitle.length > 50 ? '...' : ''),
+              id: l.lessonId
             })));
+            
+            // Verificar que el orden es correcto
+            let orderIsCorrect = true;
+            for (let i = 1; i < allPendingLessons.length; i++) {
+              const prev = allPendingLessons[i - 1];
+              const curr = allPendingLessons[i];
+              
+              // Mismo curso: verificar módulo y lección
+              if (prev.courseId === curr.courseId) {
+                if (prev.moduleOrderIndex > curr.moduleOrderIndex) {
+                  console.error(`❌ ERROR DE ORDEN: Módulo ${prev.moduleOrderIndex} después de ${curr.moduleOrderIndex} en curso ${prev.courseId}`);
+                  orderIsCorrect = false;
+                } else if (prev.moduleOrderIndex === curr.moduleOrderIndex && prev.lessonOrderIndex >= curr.lessonOrderIndex) {
+                  console.error(`❌ ERROR DE ORDEN: Lección ${prev.lessonOrderIndex} después de ${curr.lessonOrderIndex} en módulo ${prev.moduleOrderIndex}`);
+                  orderIsCorrect = false;
+                }
+              }
+            }
+            
+            if (orderIsCorrect) {
+              console.log(`   ✅ Orden de lecciones verificado correctamente`);
+            }
           }
 
           // ✅ CORRECCIÓN: Filtrar lecciones inválidas ANTES de la distribución
@@ -5754,21 +5845,9 @@ Cuéntame:
             if (lesson?.lessonTitle?.trim()) {
               const lessonTitle = lesson.lessonTitle.trim();
               
-              // ✅ CORRECCIÓN CRÍTICA: Verificar si el título ya incluye un número de lección
-              // Si el título ya tiene "Lección X" o "X." o "X.1" al inicio, no agregar número adicional
-              const titleStartsWithNumber = /^(Lección\s*)?\d+[\.\s]/.test(lessonTitle);
-              const titleHasLessonNumber = /^(Lección\s*\d+)/i.test(lessonTitle);
-              
-              if (titleStartsWithNumber || titleHasLessonNumber) {
-                // El título ya incluye el número, solo mostrar el título
-                distributionSummary += `• ${lessonTitle}\n`;
-              } else {
-                // El título no incluye número, agregar número solo si es necesario
-                const lessonNum = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
-                  ? lesson.lessonOrderIndex 
-                  : (lessonIndex + 1);
-                distributionSummary += `• Lección ${lessonNum}: ${lessonTitle}\n`;
-              }
+              // ✅ PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
+              // Mostrar solo el título tal como viene de la base de datos
+              distributionSummary += `• ${lessonTitle}\n`;
 
               // Log para debugging de las primeras sesiones
               if (idx < 3 && lessonIndex < 3) {
@@ -5861,20 +5940,9 @@ Cuéntame:
             if (lesson?.lessonTitle?.trim()) {
               const lessonTitle = lesson.lessonTitle.trim();
               
-              // ✅ CORRECCIÓN CRÍTICA: Verificar si el título ya incluye un número de lección
-              const titleStartsWithNumber = /^(Lección\s*)?\d+[\.\s]/.test(lessonTitle);
-              const titleHasLessonNumber = /^(Lección\s*\d+)/i.test(lessonTitle);
-              
-              if (titleStartsWithNumber || titleHasLessonNumber) {
-                // El título ya incluye el número, solo mostrar el título
-                addScheduleContext += `  • ${lessonTitle}\n`;
-              } else {
-                // El título no incluye número, agregar número solo si es necesario
-                const lessonNum = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
-                  ? lesson.lessonOrderIndex 
-                  : 1;
-                addScheduleContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
-              }
+              // ✅ PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
+              // Mostrar solo el título tal como viene de la base de datos
+              addScheduleContext += `  • ${lessonTitle}\n`;
             }
           });
         }
@@ -5969,20 +6037,9 @@ Cuéntame:
             if (lesson?.lessonTitle?.trim()) {
               const lessonTitle = lesson.lessonTitle.trim();
               
-              // ✅ CORRECCIÓN CRÍTICA: Verificar si el título ya incluye un número de lección
-              const titleStartsWithNumber = /^(Lección\s*)?\d+[\.\s]/.test(lessonTitle);
-              const titleHasLessonNumber = /^(Lección\s*\d+)/i.test(lessonTitle);
-              
-              if (titleStartsWithNumber || titleHasLessonNumber) {
-                // El título ya incluye el número, solo mostrar el título
-                changeDateContext += `  • ${lessonTitle}\n`;
-              } else {
-                // El título no incluye número, agregar número solo si es necesario
-                const lessonNum = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
-                  ? lesson.lessonOrderIndex 
-                  : 1;
-                changeDateContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
-              }
+              // ✅ PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
+              // Mostrar solo el título tal como viene de la base de datos
+              changeDateContext += `  • ${lessonTitle}\n`;
             }
           });
         }
