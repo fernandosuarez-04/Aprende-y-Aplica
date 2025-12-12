@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft, HelpCircle, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
-import { HolidayService } from '@/lib/holidays';
+import { HolidayService } from '../../../lib/holidays';
 
 // Componentes de iconos de Google y Microsoft
 const GoogleIcon = () => (
@@ -151,10 +151,8 @@ export function StudyPlannerLIA() {
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   // Inicializar currentMonth con el día 1 del mes actual para evitar problemas
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  });
+  // ✅ CORRECCIÓN: Usar null inicialmente y establecer en useEffect para evitar problemas de hidratación
+  const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
   
   // Función helper para normalizar currentMonth siempre al día 1
   const setCurrentMonthNormalized = (date: Date) => {
@@ -539,6 +537,14 @@ export function StudyPlannerLIA() {
     checkUserAndCalendarStatus();
   }, [currentUserId]);
 
+  // ✅ CORRECCIÓN: Inicializar currentMonth en el cliente para evitar problemas de hidratación
+  useEffect(() => {
+    if (currentMonth === null) {
+      const now = new Date();
+      setCurrentMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+    }
+  }, [currentMonth]);
+
   // Normalizar currentMonth cuando se abre el modal de fecha
   useEffect(() => {
     if (showDateModal && currentMonth) {
@@ -548,7 +554,7 @@ export function StudyPlannerLIA() {
         setCurrentMonth(normalized);
       }
     }
-  }, [showDateModal]);
+  }, [showDateModal, currentMonth]);
 
   // Inicializar mensaje de bienvenida cuando se carga la página (solo si no hay historial)
   useEffect(() => {
@@ -1354,6 +1360,10 @@ export function StudyPlannerLIA() {
     
     setIsConnectingCalendar(true);
     
+    // ✅ CORRECCIÓN: Cerrar el modal INMEDIATAMENTE cuando se abre el popup
+    setShowCalendarModal(false);
+    console.log('✅ [Calendar] Modal cerrado - popup abierto');
+    
     // Usar NEXT_PUBLIC_APP_URL si está disponible, sino usar window.location.origin
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const redirectUri = `${baseUrl}/api/study-planner/calendar/callback`;
@@ -1380,111 +1390,159 @@ export function StudyPlannerLIA() {
     if (!popup) {
       alert('Por favor, permite que se abran ventanas emergentes para este sitio y vuelve a intentar.');
       setIsConnectingCalendar(false);
+      setShowCalendarModal(true); // Reabrir modal si falla
       return;
     }
     
-    // Bandera para evitar procesar el mismo mensaje múltiples veces
-    let messageProcessed = false;
+    // ✅ NUEVO FLUJO SIMPLIFICADO: Detectar cuando el popup se cierra usando polling
+    // En lugar de depender de postMessage (que puede fallar por COOP), verificamos
+    // periódicamente si el popup se cerró y luego verificamos el estado del calendario
     
-    // Escuchar mensajes del popup
+    let popupCheckInterval: NodeJS.Timeout | null = null;
+    let hasCheckedAfterClose = false;
+    const popupOpenTime = Date.now();
+    
+    // Función para verificar el estado del calendario y continuar con el análisis
+    const checkCalendarAndContinue = async (provider: 'google' | 'microsoft' = 'google') => {
+      if (hasCheckedAfterClose) {
+        return; // Ya se verificó, evitar duplicados
+      }
+      hasCheckedAfterClose = true;
+      
+      // Limpiar interval si existe
+      if (popupCheckInterval) {
+        clearInterval(popupCheckInterval);
+        popupCheckInterval = null;
+      }
+      
+      console.log('🔍 [Calendar] Verificando estado del calendario después de cerrar popup...');
+      
+      try {
+        const response = await fetch('/api/study-planner/calendar/status');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.isConnected && data.provider) {
+            console.log('✅ [Calendar] Calendario conectado y verificado:', data.provider);
+            
+            // Actualizar estado
+            setIsConnectingCalendar(false);
+            setConnectedCalendar(data.provider as 'google' | 'microsoft');
+            
+            // Notificar
+            const successMsg = `¡Calendario de ${data.provider === 'google' ? 'Google' : 'Microsoft'} conectado exitosamente! Déjame analizar tu disponibilidad...`;
+            setConversationHistory(prev => {
+              const lastMessage = prev[prev.length - 1];
+              if (lastMessage && lastMessage.content === successMsg) {
+                return prev;
+              }
+              return [...prev, { role: 'assistant', content: successMsg }];
+            });
+            
+            // Continuar con el análisis
+            checkAndAskStudyPreferences(data.provider as 'google' | 'microsoft').then(canProceed => {
+              if (canProceed) {
+                analyzeCalendarAndSuggest(data.provider as 'google' | 'microsoft');
+              }
+            });
+          } else {
+            console.warn('⚠️ [Calendar] Calendario no encontrado en BD, reintentando en 1 segundo...');
+            // Reintentar después de 1 segundo
+            hasCheckedAfterClose = false;
+            setTimeout(() => {
+              checkCalendarAndContinue(provider);
+            }, 1000);
+          }
+        }
+      } catch (error) {
+        console.error('❌ [Calendar] Error verificando estado del calendario:', error);
+        setIsConnectingCalendar(false);
+      }
+    };
+    
+    // Verificar periódicamente si el popup se cerró
+    popupCheckInterval = setInterval(() => {
+      try {
+        // Intentar verificar si el popup está cerrado (puede fallar por COOP)
+        let isClosed = false;
+        try {
+          isClosed = popup.closed === true;
+        } catch (e) {
+          // COOP bloquea el acceso, usar alternativa: verificar después de un tiempo razonable
+          // Si han pasado más de 10 segundos desde que se abrió, asumir que se cerró
+          const timeSinceOpen = Date.now() - popupOpenTime;
+          if (timeSinceOpen > 10000) {
+            isClosed = true;
+            console.log('⏰ [Calendar] Han pasado más de 10 segundos, asumiendo que el popup se cerró');
+          }
+        }
+        
+        if (isClosed && !hasCheckedAfterClose) {
+          console.log('✅ [Calendar] Popup detectado como cerrado, verificando calendario...');
+          
+          // Esperar un momento para asegurar que el callback se procesó en el servidor
+          setTimeout(() => {
+            checkCalendarAndContinue('google');
+          }, 1500); // 1.5 segundos de delay para dar tiempo al servidor
+        }
+      } catch (e) {
+        // Ignorar errores de COOP
+      }
+    }, 1000); // Verificar cada segundo
+    
+    // Timeout de seguridad: si después de 60 segundos no se detecta cierre, verificar de todas formas
+    setTimeout(() => {
+      if (popupCheckInterval) {
+        clearInterval(popupCheckInterval);
+        popupCheckInterval = null;
+      }
+      if (!hasCheckedAfterClose) {
+        console.log('⏰ [Calendar] Timeout de seguridad (60s): verificando calendario...');
+        checkCalendarAndContinue('google');
+      }
+    }, 60 * 1000); // 60 segundos
+    
+    // ✅ ESCUCHAR MENSAJES POSTMESSAGE COMO FALLBACK (opcional)
+    // Si el mensaje postMessage llega, procesarlo inmediatamente
     const messageListener = (event: MessageEvent) => {
-      // Debug: log del mensaje recibido
-      console.log('Mensaje recibido del popup:', {
-        origin: event.origin,
-        expectedOrigin: baseUrl,
-        currentHostname: window.location.hostname,
-        data: event.data
-      });
-      
-      // Verificar origen para seguridad (más permisivo para desarrollo)
-      const isSameOrigin = event.origin === baseUrl || 
-                          event.origin === window.location.origin ||
-                          event.origin.includes(window.location.hostname);
-      
-      if (!isSameOrigin) {
-        console.warn('Mensaje rechazado por origen diferente:', event.origin);
+      // ✅ FALLBACK: Si llega un mensaje postMessage, procesarlo inmediatamente
+      if (event.data && event.data.type === 'calendar-connected') {
+        console.log('📨 [Calendar] Mensaje postMessage recibido - procesando inmediatamente');
+        
+        // Limpiar interval de polling
+        if (popupCheckInterval) {
+          clearInterval(popupCheckInterval);
+          popupCheckInterval = null;
+        }
+        
+        // Marcar como verificado
+        hasCheckedAfterClose = true;
+        
+        // Limpiar listener
+        window.removeEventListener('message', messageListener);
+        
+        // Verificar y continuar
+        const provider = event.data.provider || 'google';
+        checkCalendarAndContinue(provider);
         return;
       }
       
-      if (event.data && event.data.type === 'calendar-connected') {
-        // Evitar procesar el mismo mensaje múltiples veces
-        if (messageProcessed) {
-          console.log('Mensaje ya procesado, ignorando duplicado');
-          return;
+      // Manejar errores de calendario
+      if (event.data && event.data.type === 'calendar-error') {
+        console.error('❌ [Calendar] Error al conectar calendario:', event.data.error);
+        
+        // Limpiar interval
+        if (popupCheckInterval) {
+          clearInterval(popupCheckInterval);
+          popupCheckInterval = null;
         }
-        messageProcessed = true;
         
-        const provider = event.data.provider || 'google';
-        console.log('Calendario conectado exitosamente:', provider);
-        
-        // Limpiar listeners
+        // Limpiar listener
         window.removeEventListener('message', messageListener);
-        if (checkClosed) {
-          clearInterval(checkClosed);
-          checkClosed = null;
-        }
-        
-        // Cerrar popup si aún está abierto
-        if (popup && !popup.closed) {
-          try {
-            popup.close();
-          } catch (e) {
-            console.warn('No se pudo cerrar el popup:', e);
-          }
-        }
-        
-        // Actualizar estado
-        setIsConnectingCalendar(false);
-        setConnectedCalendar(provider as 'google' | 'microsoft');
-        setShowCalendarModal(false);
-        
-        // Notificar y analizar calendario (solo una vez)
-        const successMsg = `¡Calendario de ${provider === 'google' ? 'Google' : 'Microsoft'} conectado exitosamente! Déjame analizar tu disponibilidad...`;
-        setConversationHistory(prev => {
-          // Verificar que no se haya agregado ya este mensaje
-          const lastMessage = prev[prev.length - 1];
-          if (lastMessage && lastMessage.content === successMsg) {
-            return prev; // Ya existe, no agregar duplicado
-          }
-          return [...prev, { role: 'assistant', content: successMsg }];
-        });
-        
-        // Verificar si ya se preguntó sobre enfoque y fecha antes de analizar
-        checkAndAskStudyPreferences(provider).then(canProceed => {
-          if (canProceed) {
-            analyzeCalendarAndSuggest(provider);
-          }
-        });
-        
-      } else if (event.data && event.data.type === 'calendar-error') {
-        console.error('Error al conectar calendario:', event.data.error, 'Tipo:', event.data.errorType || event.data.error);
-        
-        // Limpiar listeners
-        connectionCompleted = true;
-        window.removeEventListener('message', wrappedMessageListener);
-        if (checkClosed) {
-          clearInterval(checkClosed);
-          checkClosed = null;
-        }
-        
-        // Intentar cerrar popup (puede fallar por COOP)
-        if (popup) {
-          try {
-            if (typeof popup.closed === 'boolean' && !popup.closed) {
-              popup.close();
-            }
-          } catch (e) {
-            // Ignorar errores de COOP
-            console.log('No se pudo verificar/cerrar el popup (COOP)');
-          }
-        }
         
         setIsConnectingCalendar(false);
         
-        // Obtener errorType - puede venir directamente o extraerse del error
+        // Obtener errorType
         let errorType = event.data.errorType || '';
-        
-        // Si no hay errorType pero hay un error, intentar extraerlo del mensaje
         if (!errorType && event.data.error) {
           const errorMsg = event.data.error.toLowerCase();
           if (errorMsg.includes('usuario no autorizado') || errorMsg.includes('test user')) {
@@ -1493,12 +1551,6 @@ export function StudyPlannerLIA() {
             errorType = 'app_not_verified';
           } else if (errorMsg.includes('acceso denegado') || errorMsg.includes('access denied')) {
             errorType = 'access_denied';
-          } else if (errorMsg.includes('redirect_uri') || errorMsg.includes('redirect uri')) {
-            errorType = 'redirect_uri_mismatch';
-          } else if (errorMsg.includes('client_id') || errorMsg.includes('client id')) {
-            errorType = 'invalid_client';
-          } else if (errorMsg.includes('expirado') || errorMsg.includes('expired')) {
-            errorType = 'code_expired';
           }
         }
         
@@ -1515,69 +1567,10 @@ export function StudyPlannerLIA() {
       }
     };
     
-    // Ref para rastrear si ya se completó la conexión
-    let connectionCompleted = false;
-    let checkClosed: NodeJS.Timeout | null = null;
+    // Registrar listener de mensajes (como fallback)
+    window.addEventListener('message', messageListener);
     
-    // Actualizar el messageListener para marcar cuando se complete
-    // NOTA: messageListener ya tiene la bandera messageProcessed, así que solo necesitamos
-    // un wrapper para marcar connectionCompleted y limpiar el intervalo
-    const wrappedMessageListener = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'calendar-connected') {
-        connectionCompleted = true;
-        if (checkClosed) {
-          clearInterval(checkClosed);
-          checkClosed = null;
-        }
-      }
-      messageListener(event);
-    };
-    
-    // Solo registrar UN listener (el wrapped)
-    window.addEventListener('message', wrappedMessageListener);
-    
-    // También verificar si el popup se cierra manualmente
-    // Nota: popup.closed puede fallar por COOP, así que lo envuelvo en try-catch
-    // Reducimos la frecuencia del check para evitar muchas advertencias
-    checkClosed = setInterval(() => {
-      try {
-        // Solo verificar si aún no se completó la conexión
-        if (!connectionCompleted) {
-          // Acceder a popup.closed solo si popup existe
-          if (popup && typeof popup.closed === 'boolean' && popup.closed) {
-            if (checkClosed) {
-              clearInterval(checkClosed);
-              checkClosed = null;
-            }
-            window.removeEventListener('message', wrappedMessageListener);
-            setIsConnectingCalendar(false);
-            console.warn('El popup se cerró sin completar la conexión');
-          }
-        } else {
-          // Si ya se completó, limpiar el intervalo
-          if (checkClosed) {
-            clearInterval(checkClosed);
-            checkClosed = null;
-          }
-        }
-      } catch (e) {
-        // Ignorar errores de COOP silenciosamente - confiamos en los mensajes postMessage
-        // No loguear para evitar spam en consola
-      }
-    }, 2000); // Reducir frecuencia a cada 2 segundos
-    
-    // Limpiar después de 5 minutos como fallback
-    setTimeout(() => {
-      if (!connectionCompleted) {
-        window.removeEventListener('message', wrappedMessageListener);
-        if (checkClosed) {
-          clearInterval(checkClosed);
-          checkClosed = null;
-        }
-        setIsConnectingCalendar(false);
-        console.warn('Timeout: conexión de calendario no completada después de 5 minutos');
-      }
-    }, 5 * 60 * 1000);
+    console.log('✅ [Calendar] Polling iniciado - verificando cada segundo si el popup se cierra...');
   };
 
   // Conectar calendario de Microsoft
@@ -1595,6 +1588,10 @@ export function StudyPlannerLIA() {
     }
     
     setIsConnectingCalendar(true);
+    
+    // ✅ CORRECCIÓN: Cerrar el modal INMEDIATAMENTE cuando se abre el popup
+    setShowCalendarModal(false);
+    console.log('✅ [Calendar] Modal cerrado - popup abierto (Microsoft)');
     
     // Usar NEXT_PUBLIC_APP_URL si está disponible, sino usar window.location.origin
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
@@ -1620,174 +1617,159 @@ export function StudyPlannerLIA() {
     if (!popup) {
       alert('Por favor, permite que se abran ventanas emergentes para este sitio y vuelve a intentar.');
       setIsConnectingCalendar(false);
+      setShowCalendarModal(true); // Reabrir modal si falla
       return;
     }
     
-    // Bandera para evitar procesar el mismo mensaje múltiples veces
-    let messageProcessed = false;
+    // ✅ NUEVO FLUJO SIMPLIFICADO: Detectar cuando el popup se cierra usando polling
+    let popupCheckInterval: NodeJS.Timeout | null = null;
+    let hasCheckedAfterClose = false;
+    const popupOpenTime = Date.now();
     
-    // Escuchar mensajes del popup
+    // Función para verificar el estado del calendario y continuar con el análisis
+    const checkCalendarAndContinue = async (provider: 'google' | 'microsoft' = 'microsoft') => {
+      if (hasCheckedAfterClose) {
+        return;
+      }
+      hasCheckedAfterClose = true;
+      
+      if (popupCheckInterval) {
+        clearInterval(popupCheckInterval);
+        popupCheckInterval = null;
+      }
+      
+      console.log('🔍 [Calendar] Verificando estado del calendario después de cerrar popup (Microsoft)...');
+      
+      try {
+        const response = await fetch('/api/study-planner/calendar/status');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.isConnected && data.provider) {
+            console.log('✅ [Calendar] Calendario conectado y verificado:', data.provider);
+            
+            setIsConnectingCalendar(false);
+            setConnectedCalendar(data.provider as 'google' | 'microsoft');
+            
+            const successMsg = `¡Calendario de ${data.provider === 'google' ? 'Google' : 'Microsoft'} conectado exitosamente! Déjame analizar tu disponibilidad...`;
+            setConversationHistory(prev => {
+              const lastMessage = prev[prev.length - 1];
+              if (lastMessage && lastMessage.content === successMsg) {
+                return prev;
+              }
+              return [...prev, { role: 'assistant', content: successMsg }];
+            });
+            
+            checkAndAskStudyPreferences(data.provider as 'google' | 'microsoft').then(canProceed => {
+              if (canProceed) {
+                analyzeCalendarAndSuggest(data.provider as 'google' | 'microsoft');
+              }
+            });
+          } else {
+            console.warn('⚠️ [Calendar] Calendario no encontrado en BD, reintentando en 1 segundo...');
+            hasCheckedAfterClose = false;
+            setTimeout(() => {
+              checkCalendarAndContinue(provider);
+            }, 1000);
+          }
+        }
+      } catch (error) {
+        console.error('❌ [Calendar] Error verificando estado del calendario:', error);
+        setIsConnectingCalendar(false);
+      }
+    };
+    
+    // Verificar periódicamente si el popup se cerró
+    popupCheckInterval = setInterval(() => {
+      try {
+        let isClosed = false;
+        try {
+          isClosed = popup.closed === true;
+        } catch (e) {
+          const timeSinceOpen = Date.now() - popupOpenTime;
+          if (timeSinceOpen > 10000) {
+            isClosed = true;
+            console.log('⏰ [Calendar] Han pasado más de 10 segundos, asumiendo que el popup se cerró');
+          }
+        }
+        
+        if (isClosed && !hasCheckedAfterClose) {
+          console.log('✅ [Calendar] Popup detectado como cerrado, verificando calendario...');
+          setTimeout(() => {
+            checkCalendarAndContinue('microsoft');
+          }, 1500);
+        }
+      } catch (e) {
+        // Ignorar errores de COOP
+      }
+    }, 1000);
+    
+    // Timeout de seguridad
+    setTimeout(() => {
+      if (popupCheckInterval) {
+        clearInterval(popupCheckInterval);
+        popupCheckInterval = null;
+      }
+      if (!hasCheckedAfterClose) {
+        console.log('⏰ [Calendar] Timeout de seguridad (60s): verificando calendario...');
+        checkCalendarAndContinue('microsoft');
+      }
+    }, 60 * 1000);
+    
+    // ✅ ESCUCHAR MENSAJES POSTMESSAGE COMO FALLBACK
     const messageListener = (event: MessageEvent) => {
-      // Debug: log del mensaje recibido
-      console.log('Mensaje recibido del popup (Microsoft):', {
-        origin: event.origin,
-        expectedOrigin: baseUrl,
-        currentHostname: window.location.hostname,
-        data: event.data
-      });
-      
-      // Verificar origen para seguridad (más permisivo para desarrollo)
-      const isSameOrigin = event.origin === baseUrl || 
-                          event.origin === window.location.origin ||
-                          event.origin.includes(window.location.hostname);
-      
-      if (!isSameOrigin) {
-        console.warn('Mensaje rechazado por origen diferente:', event.origin);
+      if (event.data && event.data.type === 'calendar-connected') {
+        console.log('📨 [Calendar] Mensaje postMessage recibido - procesando inmediatamente (Microsoft)');
+        
+        if (popupCheckInterval) {
+          clearInterval(popupCheckInterval);
+          popupCheckInterval = null;
+        }
+        
+        hasCheckedAfterClose = true;
+        window.removeEventListener('message', messageListener);
+        
+        const provider = event.data.provider || 'microsoft';
+        checkCalendarAndContinue(provider);
         return;
       }
       
-      if (event.data && event.data.type === 'calendar-connected') {
-        // Evitar procesar el mismo mensaje múltiples veces
-        if (messageProcessed) {
-          console.log('Mensaje ya procesado, ignorando duplicado');
-          return;
+      if (event.data && event.data.type === 'calendar-error') {
+        console.error('❌ [Calendar] Error al conectar calendario:', event.data.error);
+        
+        if (popupCheckInterval) {
+          clearInterval(popupCheckInterval);
+          popupCheckInterval = null;
         }
-        messageProcessed = true;
         
-        const provider = event.data.provider || 'microsoft';
-        console.log('Calendario conectado exitosamente:', provider);
-        
-        // Limpiar listeners
         window.removeEventListener('message', messageListener);
-        if (checkClosed) {
-          clearInterval(checkClosed);
-          checkClosed = null;
-        }
-        
-        // Cerrar popup si aún está abierto
-        if (popup && !popup.closed) {
-          try {
-            popup.close();
-          } catch (e) {
-            console.warn('No se pudo cerrar el popup:', e);
-          }
-        }
-        
-        // Actualizar estado
-        setIsConnectingCalendar(false);
-        setConnectedCalendar(provider as 'google' | 'microsoft');
-        setShowCalendarModal(false);
-        
-        // Notificar y analizar calendario (solo una vez)
-        const successMsg = `¡Calendario de ${provider === 'google' ? 'Google' : 'Microsoft'} conectado exitosamente! Déjame analizar tu disponibilidad...`;
-        setConversationHistory(prev => {
-          // Verificar que no se haya agregado ya este mensaje
-          const lastMessage = prev[prev.length - 1];
-          if (lastMessage && lastMessage.content === successMsg) {
-            return prev; // Ya existe, no agregar duplicado
-          }
-          return [...prev, { role: 'assistant', content: successMsg }];
-        });
-        
-        // Verificar si ya se preguntó sobre enfoque y fecha antes de analizar
-        checkAndAskStudyPreferences(provider).then(canProceed => {
-          if (canProceed) {
-            analyzeCalendarAndSuggest(provider);
-          }
-        });
-        
-      } else if (event.data && event.data.type === 'calendar-error') {
-        console.error('Error al conectar calendario:', event.data.error, 'Tipo:', event.data.errorType);
-        
-        // Limpiar listeners
-        window.removeEventListener('message', messageListener);
-        if (checkClosed) {
-          clearInterval(checkClosed);
-          checkClosed = null;
-        }
-        
-        // Cerrar popup si aún está abierto
-        if (popup && !popup.closed) {
-          try {
-            popup.close();
-          } catch (e) {
-            console.warn('No se pudo cerrar el popup:', e);
-          }
-        }
-        
         setIsConnectingCalendar(false);
         
-        // Mostrar error más amigable según el tipo de error
-        const errorType = event.data.errorType || '';
+        let errorType = event.data.errorType || '';
+        if (!errorType && event.data.error) {
+          const errorMsg = event.data.error.toLowerCase();
+          if (errorMsg.includes('usuario no autorizado') || errorMsg.includes('test user')) {
+            errorType = 'test_mode_user_not_added';
+          } else if (errorMsg.includes('verificación') || errorMsg.includes('verification') || errorMsg.includes('policy')) {
+            errorType = 'app_not_verified';
+          } else if (errorMsg.includes('acceso denegado') || errorMsg.includes('access denied')) {
+            errorType = 'access_denied';
+          }
+        }
+        
         const errorMsg = event.data.error || 'Error desconocido';
         const userFriendlyMsg = getCalendarErrorMessage(errorType, errorMsg);
         
-        // Notificar a LIA sobre el error
         setConversationHistory(prev => [...prev, { 
           role: 'assistant', 
-          content: `No pude conectar tu calendario de Microsoft. ${userFriendlyMsg.split('\n\n')[0]}` 
+          content: `No pude conectar tu calendario. ${userFriendlyMsg.split('\n\n')[0]}` 
         }]);
         
         alert(`Error al conectar calendario:\n\n${userFriendlyMsg}`);
       }
     };
     
-    // Ref para rastrear si ya se completó la conexión
-    let connectionCompleted = false;
-    
-    // También verificar si el popup se cierra manualmente
-    // Nota: popup.closed puede fallar por COOP, así que lo envuelvo en try-catch
-    let checkClosed: NodeJS.Timeout | null = null;
-    
-    // Actualizar el messageListener para marcar cuando se complete
-    // NOTA: messageListener ya tiene la bandera messageProcessed, así que solo necesitamos
-    // un wrapper para marcar connectionCompleted y limpiar el intervalo
-    const wrappedMessageListener = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'calendar-connected') {
-        connectionCompleted = true;
-        if (checkClosed) {
-          clearInterval(checkClosed);
-          checkClosed = null;
-        }
-      }
-      messageListener(event);
-    };
-    
-    // Solo registrar UN listener (el wrapped)
-    window.addEventListener('message', wrappedMessageListener);
-    
-    // Iniciar el intervalo de verificación
-    checkClosed = setInterval(() => {
-      try {
-        if (popup.closed && !connectionCompleted) {
-          if (checkClosed) {
-            clearInterval(checkClosed);
-            checkClosed = null;
-          }
-          window.removeEventListener('message', wrappedMessageListener);
-          setIsConnectingCalendar(false);
-          console.warn('El popup se cerró sin completar la conexión');
-        }
-      } catch (e) {
-        // Ignorar errores de COOP - confiamos en los mensajes postMessage
-        // El intervalo seguirá corriendo hasta que se complete la conexión
-      }
-    }, 1000);
-    
-    // Limpiar después de 5 minutos como fallback
-    setTimeout(() => {
-      if (popup && !popup.closed) {
-        console.warn('Timeout: cerrando popup después de 5 minutos');
-        popup.close();
-      }
-      window.removeEventListener('message', wrappedMessageListener);
-      if (checkClosed) {
-        clearInterval(checkClosed);
-      }
-      if (!connectionCompleted) {
-        setIsConnectingCalendar(false);
-      }
-    }, 5 * 60 * 1000);
+    window.addEventListener('message', messageListener);
+    console.log('✅ [Calendar] Polling iniciado - verificando cada segundo si el popup se cierra... (Microsoft)');
   };
 
   // Calcular tiempo disponible estimado según perfil profesional
@@ -2579,11 +2561,51 @@ export function StudyPlannerLIA() {
             }))
           });
         } else {
-          const errorText = await eventsResponse.text();
-          console.error('❌ Error en respuesta de eventos:', eventsResponse.status, errorText);
+          // ✅ CORRECCIÓN: Manejar error de token expirado y requerir reconexión
+          let errorData: any = {};
+          try {
+            errorData = await eventsResponse.json();
+          } catch (jsonError) {
+            // Si no se puede parsear como JSON, intentar obtener como texto
+            try {
+              const errorText = await eventsResponse.text();
+              errorData = { error: errorText };
+            } catch (textError) {
+              errorData = { error: 'Error desconocido al obtener respuesta' };
+            }
+          }
+          
+          console.error('❌ Error en respuesta de eventos:', eventsResponse.status, errorData);
+          
+          // Si el error indica que se requiere reconexión, actualizar estado
+          if (eventsResponse.status === 401 && errorData.requiresReconnection) {
+            console.warn('⚠️ Token expirado y no se pudo refrescar. Se requiere reconexión del calendario.');
+            setConnectedCalendar(null);
+            
+            // Agregar mensaje al usuario pidiendo reconexión
+            const reconnectMsg = `Tu conexión con el calendario ha expirado. Por favor, reconecta tu calendario para continuar.`;
+            setConversationHistory(prev => [...prev, { 
+              role: 'assistant', 
+              content: reconnectMsg 
+            }]);
+            
+            // Mostrar modal de conexión si está disponible
+            setTimeout(() => {
+              setShowCalendarModal(true);
+            }, 1000);
+            
+            // Continuar sin eventos del calendario en lugar de fallar completamente
+            calendarEvents = [];
+          } else {
+            // Otro tipo de error, continuar sin eventos pero loguear
+            calendarEvents = [];
+            console.warn('⚠️ No se pudieron obtener eventos del calendario, continuando sin análisis de disponibilidad');
+          }
         }
       } catch (calError) {
         console.error('Error obteniendo eventos:', calError);
+        // Continuar sin eventos en lugar de fallar completamente
+        calendarEvents = [];
       }
 
       // 3. ANALIZAR EL CALENDARIO - Versión mejorada
@@ -2690,21 +2712,48 @@ export function StudyPlannerLIA() {
         }
       });
       
-      // Marcar días que requieren descanso (día siguiente a eventos pesados)
+      // ✅ CORRECCIÓN: Marcar días que requieren descanso (día siguiente a eventos pesados)
       // IMPORTANTE: Solo propagamos el descanso desde días que tienen eventos pesados PROPIOS
       // (heavyEvents.length > 0), NO desde días que ya fueron marcados como "día después"
       // para evitar propagación en cascada infinita
+      // 
+      // ESTRATEGIA: Primero identificar todos los días con eventos pesados propios,
+      // luego marcar SOLO el día siguiente de cada uno, sin propagación adicional
+      const daysWithHeavyEvents: Array<{ dateStr: string; restReason: string }> = [];
+      
       Object.values(daySlots).forEach(dayData => {
-        // Solo propagar si el día tiene eventos pesados propios (no si fue marcado por propagación)
+        // Solo considerar días con eventos pesados propios (no días marcados por propagación)
         if (dayData.requiresRestAfter && dayData.heavyEvents && dayData.heavyEvents.length > 0) {
-          // Marcar el día siguiente también para evitar estudio
-          const nextDay = new Date(dayData.date);
-          nextDay.setDate(nextDay.getDate() + 1);
-          const nextDayStr = nextDay.toISOString().split('T')[0];
-          
-          if (daySlots[nextDayStr] && !daySlots[nextDayStr].requiresRestAfter) {
+          daysWithHeavyEvents.push({
+            dateStr: dayData.dateStr,
+            restReason: dayData.restReason || 'evento pesado'
+          });
+        }
+      });
+      
+      console.log(`📅 Días con eventos pesados propios que requieren descanso: ${daysWithHeavyEvents.length}`);
+      
+      // Ahora marcar SOLO el día siguiente de cada día con evento pesado
+      // Esto evita propagación en cascada si hay eventos pesados en días consecutivos
+      daysWithHeavyEvents.forEach(({ dateStr, restReason }) => {
+        const dayData = daySlots[dateStr];
+        if (!dayData) return;
+        
+        // Marcar el día siguiente también para evitar estudio
+        const nextDay = new Date(dayData.date);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayStr = nextDay.toISOString().split('T')[0];
+        
+        if (daySlots[nextDayStr]) {
+          // Solo marcar si no tiene eventos pesados propios (para evitar doble marcado)
+          // Si el día siguiente ya tiene eventos pesados propios, ya está marcado correctamente
+          if (!daySlots[nextDayStr].requiresRestAfter) {
             daySlots[nextDayStr].requiresRestAfter = true;
-            daySlots[nextDayStr].restReason = `día después de ${dayData.restReason || 'evento pesado'}`;
+            daySlots[nextDayStr].restReason = `día después de ${restReason}`;
+            console.log(`   📌 Marcado día siguiente para descanso: ${nextDayStr} (después de ${dateStr})`);
+          } else if (daySlots[nextDayStr].heavyEvents && daySlots[nextDayStr].heavyEvents.length > 0) {
+            // El día siguiente ya tiene eventos pesados propios, no necesita marcado adicional
+            console.log(`   ℹ️ Día siguiente ${nextDayStr} ya tiene eventos pesados propios, no se marca adicionalmente`);
           }
         }
       });
@@ -2982,15 +3031,20 @@ export function StudyPlannerLIA() {
         console.log(`   Último día: ${daysAnalysis[daysAnalysis.length - 1].dateStr}`);
       }
       
-      // Agrupar slots por día primero, para distribuir a lo largo del período completo
+      // ✅ CORRECCIÓN: Agrupar slots por día primero, para distribuir a lo largo del período completo
+      // IMPORTANTE: Solo excluir días específicos marcados para descanso, NO días posteriores
       const slotsByDayInitial = new Map<string, FreeSlotWithDay[]>();
       daysAnalysis.forEach(day => {
         // Excluir días que requieren descanso después de eventos pesados
-        // IMPORTANTE: Solo excluir el día específico, NO afectar días posteriores
+        // IMPORTANTE: Solo excluir el día específico marcado, NO afectar días posteriores
         if (day.requiresRestAfter) {
           console.log(`   ⏭️ Excluyendo día con descanso: ${day.dateStr} (${day.restReason})`);
+          // ✅ CRÍTICO: Usar 'return' aquí para saltar SOLO este día, no afectar días posteriores
           return;
         }
+        
+        // ✅ VERIFICACIÓN: Asegurar que los días posteriores NO se excluyan automáticamente
+        // Si llegamos aquí, el día NO requiere descanso y debe procesarse normalmente
 
         const validSlots = day.freeSlots
           .filter(slot => {
@@ -3358,7 +3412,7 @@ export function StudyPlannerLIA() {
                           const effectiveLessonTime = Math.max(avgLessonDuration * 1.5, profileAvailability.recommendedSessionLength);
                           const sessionsForCourse = Math.ceil(totalDurationMinutes / profileAvailability.recommendedSessionLength);
                           
-                          console.log(`   Curso ${courseTitle}: ${remainingLessons} lecciones pendientes (${completedLessonsCount} completadas, ${totalLessons} totales)`);
+                          console.log(`   Curso ${courseTitle}: ${remainingLessons} lecciones pendientes (${completedLessonIds.length} completadas, ${totalLessons} totales)`);
                           
                           return {
                             courseId,
@@ -3613,7 +3667,9 @@ export function StudyPlannerLIA() {
           const totalMinutes = firstWeeksSlots.reduce((sum, slot) => sum + slot.durationMinutes, 0);
           weeklyAvailableMinutes = Math.round(totalMinutes / weeksUntilTarget);
         } else {
-          weeklyAvailableMinutes = finalSlots.reduce((sum, slot) => sum + slot.durationMinutes, 0) / Math.max(1, Math.ceil(finalSlots.length / slotsPerWeek));
+          // Calcular slots por semana basado en los días disponibles
+          const slotsPerWeek = Math.max(1, Math.ceil(finalSlots.length / Math.max(1, weeksUntilTarget)));
+          weeklyAvailableMinutes = finalSlots.reduce((sum, slot) => sum + slot.durationMinutes, 0) / slotsPerWeek;
         }
       } else {
         weeklyAvailableMinutes = profileAvailability?.weeklyMinutes || 300;
@@ -3893,7 +3949,6 @@ export function StudyPlannerLIA() {
                   lessonId: lesson.lessonId,
                   lessonTitle: lesson.lessonTitle.trim(), // Asegurar que no tenga espacios extra
                   lessonOrderIndex: lesson.lessonOrderIndex || 0,
-                  moduleOrderIndex: (lesson as any).moduleOrderIndex || 0, // ✅ AGREGADO
                   durationSeconds: lesson.durationSeconds || 0
                 });
                 pendingCount++;
@@ -3929,11 +3984,31 @@ export function StudyPlannerLIA() {
             })));
           }
 
-          // Validar que las lecciones tengan datos correctos
-          const invalidLessons = allPendingLessons.filter(l => !l.lessonTitle || l.lessonTitle === '');
-          if (invalidLessons.length > 0) {
-            console.warn(`⚠️ ${invalidLessons.length} lecciones sin título encontradas`);
+          // ✅ CORRECCIÓN: Filtrar lecciones inválidas ANTES de la distribución
+          // Esto evita que se salten lecciones válidas durante el proceso de asignación
+          const validPendingLessons = allPendingLessons.filter(l => {
+            const isValid = l && 
+                           l.lessonId && 
+                           l.lessonTitle && 
+                           typeof l.lessonTitle === 'string' && 
+                           l.lessonTitle.trim() !== '' &&
+                           l.lessonOrderIndex >= 0;
+            if (!isValid) {
+              console.warn(`⚠️ Lección inválida filtrada:`, {
+                lessonId: l?.lessonId,
+                lessonTitle: l?.lessonTitle,
+                lessonOrderIndex: l?.lessonOrderIndex
+              });
+            }
+            return isValid;
+          });
+
+          const invalidLessonsCount = allPendingLessons.length - validPendingLessons.length;
+          if (invalidLessonsCount > 0) {
+            console.warn(`⚠️ ${invalidLessonsCount} lecciones inválidas filtradas antes de la distribución`);
           }
+
+          console.log(`📚 Lecciones válidas para distribuir: ${validPendingLessons.length} de ${allPendingLessons.length} totales`);
 
           // Guardar distribución de lecciones para el resumen final (no mostrar en recomendaciones iniciales)
           type LessonDistribution = {
@@ -3989,14 +4064,14 @@ export function StudyPlannerLIA() {
             console.log(`   Último slot: ${slotsUntilTarget[slotsUntilTarget.length - 1].dayName} ${slotsUntilTarget[slotsUntilTarget.length - 1].date.toLocaleDateString('es-ES')}`);
           }
           
-          // ✅ SIMPLIFICADO: Distribuir lecciones asumiendo 25 min por lección
-          console.log(`📊 Distribuyendo ${allPendingLessons.length} lecciones pendientes en ${slotsUntilTarget.length} slots`);
+          // ✅ CORRECCIÓN: Usar solo lecciones válidas para la distribución
+          console.log(`📊 Distribuyendo ${validPendingLessons.length} lecciones válidas en ${slotsUntilTarget.length} slots`);
 
           const MINUTES_PER_LESSON = 25; // Asumir 25 minutos por lección como solicita el usuario
 
           // Calcular capacidad total disponible en todos los slots
           const totalSlotsAvailable = slotsUntilTarget.length;
-          const totalLessons = allPendingLessons.length;
+          const totalLessons = validPendingLessons.length;
 
           // Calcular capacidad total de todos los slots (cuántas lecciones caben en total)
           let totalCapacity = 0;
@@ -4022,8 +4097,8 @@ export function StudyPlannerLIA() {
             // Calcular cuántas lecciones caben en el slot basado en 25 min por lección
             const maxLessonsInSlot = Math.max(1, Math.floor(slotDurationMinutes / MINUTES_PER_LESSON));
 
-            // Calcular cuántas lecciones quedan por asignar
-            const remainingLessons = allPendingLessons.length - currentLessonIndex;
+            // Calcular cuántas lecciones quedan por asignar (usar solo lecciones válidas)
+            const remainingLessons = validPendingLessons.length - currentLessonIndex;
             const remainingSlots = slotsUntilTarget.length - slotIndex;
 
             // ✅ NUEVA LÓGICA SIMPLIFICADA: Distribuir uniformemente
@@ -4051,14 +4126,14 @@ export function StudyPlannerLIA() {
             // Asignar lecciones a este slot (solo lecciones válidas)
             const lessonsForSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
 
-            // Continuar asignando mientras haya lecciones pendientes y espacio en el slot
+            // ✅ CORRECCIÓN: Asignar solo lecciones válidas (ya filtradas previamente)
             let assignedInSlot = 0;
-            while (assignedInSlot < lessonsToAssign && currentLessonIndex < allPendingLessons.length) {
-              const lesson = allPendingLessons[currentLessonIndex];
+            while (assignedInSlot < lessonsToAssign && currentLessonIndex < validPendingLessons.length) {
+              const lesson = validPendingLessons[currentLessonIndex];
 
-              // Validar que la lección tenga datos válidos antes de asignarla
-              if (!lesson || !lesson.lessonId || !lesson.lessonTitle || typeof lesson.lessonTitle !== 'string' || lesson.lessonTitle.trim() === '') {
-                console.warn(`⚠️ Lección en índice ${currentLessonIndex} tiene datos inválidos, saltando:`, lesson);
+              // Las lecciones ya están validadas, pero agregar verificación de seguridad
+              if (!lesson || !lesson.lessonId || !lesson.lessonTitle) {
+                console.error(`❌ ERROR: Lección en índice ${currentLessonIndex} es inválida después del filtrado. Esto no debería pasar.`);
                 currentLessonIndex++;
                 continue;
               }
@@ -4089,12 +4164,12 @@ export function StudyPlannerLIA() {
             }
           });
           
-          console.log(`✅ Distribución completada: ${lessonDistribution.length} slots con lecciones, ${currentLessonIndex} lecciones asignadas de ${allPendingLessons.length} totales`);
+          console.log(`✅ Distribución completada: ${lessonDistribution.length} slots con lecciones, ${currentLessonIndex} lecciones asignadas de ${validPendingLessons.length} válidas`);
 
           // Si quedan lecciones sin asignar, redistribuir en los slots con más espacio
           // Primero intentar usar slots que no se usaron, luego redistribuir en los existentes
-          if (currentLessonIndex < allPendingLessons.length) {
-            const remainingLessons = allPendingLessons.length - currentLessonIndex;
+          if (currentLessonIndex < validPendingLessons.length) {
+            const remainingLessons = validPendingLessons.length - currentLessonIndex;
             console.log(`⚠️ Quedan ${remainingLessons} lecciones sin asignar. Redistribuyendo...`);
 
             // Primero, intentar usar slots que no se usaron (si hay slots sin lecciones)
@@ -4103,17 +4178,18 @@ export function StudyPlannerLIA() {
             
             console.log(`   Slots no usados disponibles: ${unusedSlots.length}`);
             
-            // Agregar lecciones a slots no usados
+            // ✅ CORRECCIÓN: Usar solo lecciones válidas en la redistribución
             for (const unusedSlot of unusedSlots) {
-              if (currentLessonIndex >= allPendingLessons.length) break;
+              if (currentLessonIndex >= validPendingLessons.length) break;
 
               const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / MINUTES_PER_LESSON));
               const lessonsForUnusedSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
               
-              for (let i = 0; i < slotCapacity && currentLessonIndex < allPendingLessons.length; i++) {
-                const lesson = allPendingLessons[currentLessonIndex];
+              for (let i = 0; i < slotCapacity && currentLessonIndex < validPendingLessons.length; i++) {
+                const lesson = validPendingLessons[currentLessonIndex];
 
-                if (lesson && lesson.lessonTitle && lesson.lessonTitle.trim() !== '') {
+                // Las lecciones ya están validadas
+                if (lesson && lesson.lessonTitle) {
                   lessonsForUnusedSlot.push({
                     courseTitle: lesson.courseTitle || 'Curso',
                     lessonTitle: lesson.lessonTitle.trim(),
@@ -4121,6 +4197,7 @@ export function StudyPlannerLIA() {
                   });
                   currentLessonIndex++;
                 } else {
+                  console.error(`❌ ERROR: Lección inválida encontrada durante redistribución en slot no usado`);
                   currentLessonIndex++;
                   i--; // No contar lecciones inválidas
                 }
@@ -4135,8 +4212,8 @@ export function StudyPlannerLIA() {
               }
             }
 
-            // Luego, redistribuir en slots existentes con espacio disponible
-            if (currentLessonIndex < allPendingLessons.length) {
+            // ✅ CORRECCIÓN: Usar solo lecciones válidas en la redistribución
+            if (currentLessonIndex < validPendingLessons.length) {
               // Ordenar slots por espacio disponible (mayor primero)
               const slotsWithSpace = lessonDistribution
                 .filter(dist => {
@@ -4153,17 +4230,18 @@ export function StudyPlannerLIA() {
 
               // Redistribuir lecciones pendientes
               for (const slotDist of slotsWithSpace) {
-                if (currentLessonIndex >= allPendingLessons.length) break;
+                if (currentLessonIndex >= validPendingLessons.length) break;
 
                 const slotCapacity = Math.floor(slotDist.slot.durationMinutes / MINUTES_PER_LESSON);
                 const currentLessons = slotDist.lessons.length;
                 const availableSpace = slotCapacity - currentLessons;
 
                 // Agregar lecciones hasta llenar el espacio
-                for (let i = 0; i < availableSpace && currentLessonIndex < allPendingLessons.length; i++) {
-                  const lesson = allPendingLessons[currentLessonIndex];
+                for (let i = 0; i < availableSpace && currentLessonIndex < validPendingLessons.length; i++) {
+                  const lesson = validPendingLessons[currentLessonIndex];
 
-                  if (lesson && lesson.lessonTitle && lesson.lessonTitle.trim() !== '') {
+                  // Las lecciones ya están validadas
+                  if (lesson && lesson.lessonTitle) {
                     slotDist.lessons.push({
                       courseTitle: lesson.courseTitle || 'Curso',
                       lessonTitle: lesson.lessonTitle.trim(),
@@ -4171,6 +4249,7 @@ export function StudyPlannerLIA() {
                     });
                     currentLessonIndex++;
                   } else {
+                    console.error(`❌ ERROR: Lección inválida encontrada durante redistribución en slot existente`);
                     currentLessonIndex++;
                     i--; // No contar lecciones inválidas
                   }
@@ -4178,13 +4257,13 @@ export function StudyPlannerLIA() {
               }
             }
 
-            console.log(`✅ Redistribución completada: ${currentLessonIndex} de ${allPendingLessons.length} lecciones asignadas`);
+            console.log(`✅ Redistribución completada: ${currentLessonIndex} de ${validPendingLessons.length} lecciones válidas asignadas`);
           }
           
           // Verificar si aún quedan lecciones sin asignar después de la redistribución
-          if (currentLessonIndex < allPendingLessons.length) {
-            const stillRemaining = allPendingLessons.length - currentLessonIndex;
-            console.warn(`⚠️ Después de la redistribución, aún quedan ${stillRemaining} lecciones sin asignar de ${allPendingLessons.length} totales`);
+          if (currentLessonIndex < validPendingLessons.length) {
+            const stillRemaining = validPendingLessons.length - currentLessonIndex;
+            console.warn(`⚠️ Después de la redistribución, aún quedan ${stillRemaining} lecciones sin asignar de ${validPendingLessons.length} válidas`);
           }
 
           // Guardar distribución en el estado para usar en el resumen final
@@ -4213,19 +4292,19 @@ export function StudyPlannerLIA() {
                 return null;
               }
               
+              // ✅ CORRECCIÓN CRÍTICA: Guardar horarios en formato 24h para evitar problemas con AM/PM
+              // Formato: "HH:MM" (ej: "14:30", "09:00")
+              const formatTime24h = (date: Date): string => {
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                return `${hours}:${minutes}`;
+              };
+              
               return {
                 dateStr: item.slot.dateStr,
                 dayName: item.slot.dayName,
-                startTime: item.slot.start.toLocaleTimeString('es-ES', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  hour12: true 
-                }),
-                endTime: item.slot.end.toLocaleTimeString('es-ES', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  hour12: true 
-                }),
+                startTime: formatTime24h(item.slot.start),
+                endTime: formatTime24h(item.slot.end),
                 lessons: validLessons
               };
             })
@@ -4233,8 +4312,8 @@ export function StudyPlannerLIA() {
           
           setSavedLessonDistribution(distributionToSave);
           setSavedTargetDate(targetDate);
-          // Usar el número real de lecciones pendientes, no el calculado (que puede tener errores)
-          setSavedTotalLessons(allPendingLessons.length);
+          // ✅ CORRECCIÓN: Usar el número de lecciones válidas, no el total (que incluye inválidas)
+          setSavedTotalLessons(validPendingLessons.length);
           
           console.log(`📦 Distribución de lecciones guardada: ${distributionToSave.length} slots`);
           // Log detallado para debugging
@@ -4918,59 +4997,140 @@ Cuéntame:
           ? new Date(savedLessonDistribution[savedLessonDistribution.length - 1].dateStr).toISOString()
           : null;
       
-      // Transformar sesiones al formato esperado
+      // ✅ CORRECCIÓN CRÍTICA: Transformar sesiones al formato esperado
+      // Mejorar el parsing de horarios para manejar AM/PM y formato 24h correctamente
       const sessions = savedLessonDistribution.map(slot => {
         const dateParts = slot.dateStr.split('-');
         const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
         
-        const startMatch = slot.startTime.match(/(\d{1,2}):(\d{2})/);
-        const endMatch = slot.endTime.match(/(\d{1,2}):(\d{2})/);
+        // ✅ CORRECCIÓN CRÍTICA: Parsear horarios en formato 24h (HH:MM)
+        // Ahora guardamos en formato 24h para evitar problemas con AM/PM
+        // Pero también soportamos formato 12h por compatibilidad con datos antiguos
+        const parseTime = (timeStr: string): { hours: number; minutes: number } => {
+          if (!timeStr || typeof timeStr !== 'string') {
+            console.warn(`⚠️ Horario inválido: ${timeStr}`);
+            return { hours: 9, minutes: 0 };
+          }
+          
+          // Normalizar el string: remover espacios extra
+          const normalized = timeStr.trim();
+          
+          // Buscar patrón de hora:minuto
+          const timeMatch = normalized.match(/(\d{1,2}):(\d{2})/);
+          if (!timeMatch) {
+            console.warn(`⚠️ No se pudo extraer hora:minuto de: ${timeStr}`);
+            return { hours: 9, minutes: 0 };
+          }
+          
+          let hours = parseInt(timeMatch[1], 10);
+          const minutes = parseInt(timeMatch[2], 10);
+          
+          // Validar que los valores sean correctos
+          if (isNaN(hours) || isNaN(minutes) || minutes < 0 || minutes > 59) {
+            console.warn(`⚠️ Valores de hora inválidos: ${hours}:${minutes} de: ${timeStr}`);
+            return { hours: 9, minutes: 0 };
+          }
+          
+          // ✅ CORRECCIÓN CRÍTICA: Detectar AM/PM en formato español e inglés
+          // Formatos posibles: "a. m.", "a.m.", "am", "AM", "p. m.", "p.m.", "pm", "PM"
+          const normalizedLower = normalized.toLowerCase();
+          const isPM = /p\.?\s*m\.?|pm/i.test(normalizedLower);
+          const isAM = /a\.?\s*m\.?|am/i.test(normalizedLower);
+          
+          // Si es formato 12h (tiene AM/PM), convertir a 24h
+          if (isPM || isAM) {
+            if (isPM) {
+              // PM: si es 12 PM, mantener 12; si es 1-11 PM, sumar 12
+              if (hours === 12) {
+                hours = 12; // 12 PM = 12:00
+              } else if (hours >= 1 && hours <= 11) {
+                hours += 12; // 1 PM = 13:00, 2 PM = 14:00, etc.
+              }
+            } else if (isAM) {
+              // AM: si es 12 AM, convertir a 0; si es 1-11 AM, mantener
+              if (hours === 12) {
+                hours = 0; // 12 AM = 00:00
+              }
+              // Si es 1-11 AM, ya está correcto (no cambiar)
+            }
+          }
+          // Si no tiene AM/PM, asumir formato 24h (ya está correcto)
+          
+          // Validar horas finales
+          if (hours < 0 || hours > 23) {
+            console.warn(`⚠️ Hora fuera de rango después de conversión: ${hours}:${minutes} de: ${timeStr}`);
+            return { hours: 9, minutes: 0 };
+          }
+          
+          console.log(`🕐 Parseado: "${timeStr}" → ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} (${isAM ? 'AM' : isPM ? 'PM' : '24h'})`);
+          
+          return { hours, minutes };
+        };
+        
+        const startTimeParsed = parseTime(slot.startTime);
+        const endTimeParsed = parseTime(slot.endTime);
         
         let startTime = new Date(date);
         let endTime = new Date(date);
         
-        if (startMatch && endMatch) {
-          startTime.setHours(parseInt(startMatch[1]), parseInt(startMatch[2]), 0, 0);
-          endTime.setHours(parseInt(endMatch[1]), parseInt(endMatch[2]), 0, 0);
+        startTime.setHours(startTimeParsed.hours, startTimeParsed.minutes, 0, 0);
+        endTime.setHours(endTimeParsed.hours, endTimeParsed.minutes, 0, 0);
+        
+        // ✅ Validar que el horario de fin sea después del inicio
+        if (endTime <= startTime) {
+          console.error(`❌ ERROR: Horario de fin (${slot.endTime}) debe ser después del inicio (${slot.startTime})`);
+          // Ajustar automáticamente: agregar 1 hora al final si es necesario
+          endTime = new Date(startTime);
+          endTime.setHours(endTime.getHours() + 1);
         }
         
         const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
         
-        // Obtener la primera lección del slot para el título y courseId
+        // ✅ CORRECCIÓN CRÍTICA: Obtener la primera lección del slot para el título y courseId
+        // IMPORTANTE: La estructura usa lessonTitle (camelCase), NO lesson_title (snake_case)
         const firstLesson = slot.lessons && slot.lessons.length > 0 ? slot.lessons[0] : null;
         const courseTitle = firstLesson?.courseTitle || 'Curso';
-        const lessonTitle = firstLesson?.lesson_title || 'Sesión de estudio';
+        const lessonTitle = firstLesson?.lessonTitle || 'Sesión de estudio';
         
         // Buscar el courseId del curso seleccionado
         const course = availableCourses.find(c => c.title === courseTitle || selectedCourseIds.includes(c.id));
         const courseId = course?.id || selectedCourseIds[0] || '';
         
-        // Crear título de la sesión
+        // ✅ CORRECCIÓN CRÍTICA: Crear título de la sesión usando lessonTitle (camelCase)
         let sessionTitle = 'Sesión de estudio';
         if (slot.lessons && slot.lessons.length > 0) {
-          if (slot.lessons.length === 1) {
+          // Validar que las lecciones tengan títulos válidos
+          const validLessons = slot.lessons.filter(l => l.lessonTitle && l.lessonTitle.trim() !== '');
+          
+          if (validLessons.length === 0) {
+            console.warn(`⚠️ Slot sin lecciones válidas: ${slot.dateStr} ${slot.startTime}`);
+            sessionTitle = 'Sesión de estudio';
+          } else if (validLessons.length === 1) {
             // Una sola lección: usar el título completo
-            sessionTitle = slot.lessons[0].lesson_title;
-          } else if (slot.lessons.length === 2) {
+            sessionTitle = validLessons[0].lessonTitle.trim();
+          } else if (validLessons.length === 2) {
             // Dos lecciones: mostrar ambas en el título (limitado a 100 caracteres)
-            const title1 = slot.lessons[0].lesson_title;
-            const title2 = slot.lessons[1].lesson_title;
+            const title1 = validLessons[0].lessonTitle.trim();
+            const title2 = validLessons[1].lessonTitle.trim();
             const combinedTitle = `${title1} y ${title2}`;
             sessionTitle = combinedTitle.length > 100 
               ? `${title1.substring(0, 50)}... y ${title2.substring(0, 40)}...`
               : combinedTitle;
           } else {
             // Más de dos lecciones: mostrar primera y cantidad restante
-            const firstTitle = slot.lessons[0].lesson_title;
+            const firstTitle = validLessons[0].lessonTitle.trim();
             sessionTitle = firstTitle.length > 60
-              ? `${firstTitle.substring(0, 60)}... y ${slot.lessons.length - 1} más`
-              : `${firstTitle} y ${slot.lessons.length - 1} más`;
+              ? `${firstTitle.substring(0, 60)}... y ${validLessons.length - 1} más`
+              : `${firstTitle} y ${validLessons.length - 1} más`;
           }
         }
         
-        // Crear descripción con todas las lecciones (formato numerado)
+        // ✅ CORRECCIÓN CRÍTICA: Crear descripción con todas las lecciones usando lessonTitle (camelCase)
         const description = slot.lessons && slot.lessons.length > 0
-          ? slot.lessons.map((l, idx) => `${idx + 1}. ${l.lesson_title}`).join('\n')
+          ? slot.lessons
+              .filter(l => l.lessonTitle && l.lessonTitle.trim() !== '')
+              .map((l, idx) => `${idx + 1}. ${l.lessonTitle.trim()}`)
+              .join('\n')
           : 'Sesión de estudio programada';
         
         return {
@@ -5059,9 +5219,11 @@ Cuéntame:
         throw new Error(saveData.error || 'Error al guardar el plan');
       }
       
-      // Si hay calendario conectado, sincronizar las sesiones
+      // ✅ CORRECCIÓN: Si hay calendario conectado, sincronizar las sesiones con mejor manejo de errores
       if (connectedCalendar && saveData.data?.planId && saveData.data?.sessionIds && saveData.data.sessionIds.length > 0) {
         try {
+          console.log(`📅 Iniciando sincronización de ${saveData.data.sessionIds.length} sesiones con ${connectedCalendar} Calendar...`);
+          
           const syncResponse = await fetch('/api/study-planner/calendar/sync-sessions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -5074,12 +5236,45 @@ Cuéntame:
             const syncData = await syncResponse.json();
             if (syncData.success && syncData.data) {
               console.log(`✅ ${syncData.data.syncedCount} sesiones sincronizadas con el calendario`);
+              if (syncData.data.failedCount > 0) {
+                console.warn(`⚠️ ${syncData.data.failedCount} sesiones fallaron al sincronizar`);
+                if (syncData.data.errors) {
+                  console.error('Errores:', syncData.data.errors);
+                }
+              }
+            } else {
+              console.error('❌ Error en respuesta de sincronización:', syncData);
+            }
+          } else {
+            const errorText = await syncResponse.text();
+            console.error(`❌ Error sincronizando con calendario (${syncResponse.status}):`, errorText);
+            
+            // Si es error 401, puede requerir reconexión
+            if (syncResponse.status === 401) {
+              setConnectedCalendar(null);
+              const reconnectMsg = `Tu conexión con el calendario ha expirado. Por favor, reconecta tu calendario para sincronizar las sesiones.`;
+              setConversationHistory(prev => [...prev, { 
+                role: 'assistant', 
+                content: reconnectMsg 
+              }]);
             }
           }
         } catch (syncError) {
-          console.error('Error sincronizando con calendario:', syncError);
-          // No fallar el guardado si falla la sincronización
+          console.error('❌ Error sincronizando con calendario:', syncError);
+          // No fallar el guardado si falla la sincronización, pero informar al usuario
+          const syncErrorMsg = `El plan se guardó correctamente, pero hubo un problema al sincronizar con tu calendario. Puedes intentar sincronizar manualmente más tarde.`;
+          setConversationHistory(prev => [...prev, { 
+            role: 'assistant', 
+            content: syncErrorMsg 
+          }]);
         }
+      } else {
+        console.log('ℹ️ No se sincronizó con calendario:', {
+          hasCalendar: !!connectedCalendar,
+          hasPlanId: !!saveData.data?.planId,
+          hasSessionIds: !!saveData.data?.sessionIds,
+          sessionIdsCount: saveData.data?.sessionIds?.length || 0
+        });
       }
       
       // Mostrar mensaje de éxito
@@ -5569,16 +5764,16 @@ Cuéntame:
         }
 
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
-        const lessonCount = item.lessons?.filter(l => l?.lesson_title?.trim()).length || 0;
+        const lessonCount = item.lessons?.filter(l => l?.lessonTitle?.trim()).length || 0;
         totalLessonsAssigned += lessonCount;
 
         changeDateContext += `**${formattedDate}** de ${item.startTime} a ${item.endTime}:\n`;
         
         if (item.lessons && Array.isArray(item.lessons) && item.lessons.length > 0) {
           item.lessons.forEach((lesson) => {
-            if (lesson?.lesson_title?.trim()) {
-              const lessonTitle = lesson.lesson_title.trim();
-              const lessonNum = lesson.lesson_order_index > 0 ? lesson.lesson_order_index : 0;
+            if (lesson?.lessonTitle?.trim()) {
+              const lessonTitle = lesson.lessonTitle.trim();
+              const lessonNum = lesson.lessonOrderIndex > 0 ? lesson.lessonOrderIndex : 0;
               changeDateContext += `  • Lección ${lessonNum}: ${lessonTitle}\n`;
             }
           });
@@ -5684,8 +5879,7 @@ Cuéntame:
               calendarConnected: connectedCalendar !== null,
               calendarProvider: connectedCalendar
             }
-          },
-          language: 'es'
+          }
         }),
       });
 
@@ -7437,6 +7631,7 @@ Cuéntame:
                     <div className="flex items-center justify-between mb-4">
                       <motion.button
                         onClick={() => {
+                          if (!currentMonth) return;
                           // Normalizar fecha antes de cambiar mes - asegurar día 1
                           const year = currentMonth.getFullYear();
                           const month = currentMonth.getMonth();
@@ -7450,10 +7645,11 @@ Cuéntame:
                         <ChevronLeft size={20} />
                       </motion.button>
                       <h4 className="text-lg font-semibold text-white">
-                        {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                        {currentMonth ? currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) : 'Cargando...'}
                       </h4>
                       <motion.button
                         onClick={() => {
+                          if (!currentMonth) return;
                           // Normalizar fecha antes de cambiar mes - asegurar día 1
                           const year = currentMonth.getFullYear();
                           const month = currentMonth.getMonth();
@@ -7480,6 +7676,11 @@ Cuéntame:
                     {/* Días del mes */}
                     <div className="grid grid-cols-7 gap-1">
                       {(() => {
+                        // ✅ CORRECCIÓN: Verificar que currentMonth no sea null
+                        if (!currentMonth) {
+                          return <div className="col-span-7 text-center text-slate-400 py-4">Cargando calendario...</div>;
+                        }
+                        
                         // Obtener año y mes directamente de currentMonth
                         // Asegurar que siempre trabajemos con valores limpios
                         const year = currentMonth.getFullYear();
@@ -7687,7 +7888,7 @@ Cuéntame:
                     toggleListening();
                   }
                 }}
-                disabled={isProcessing || (isListening && userMessage.trim())}
+                disabled={isProcessing || (isListening && !!userMessage.trim())}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg ${

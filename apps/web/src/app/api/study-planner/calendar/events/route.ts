@@ -68,19 +68,43 @@ export async function GET(request: NextRequest) {
       expiresAt: integration.expires_at
     });
 
-    // Verificar si el token ha expirado
-    const tokenExpiry = new Date(integration.expires_at);
+    // ✅ CORRECCIÓN: Verificar si el token ha expirado con manejo seguro de null
     let accessToken = integration.access_token;
-
-    if (tokenExpiry <= new Date()) {
-      console.log('⏰ [Calendar Events API] Token expirado, refrescando...');
+    let tokenExpiry: Date | null = null;
+    
+    if (integration.expires_at) {
+      try {
+        tokenExpiry = new Date(integration.expires_at);
+      } catch (e) {
+        console.warn('⚠️ [Calendar Events API] Error parseando expires_at:', e);
+        tokenExpiry = null;
+      }
+    }
+    
+    // Si no hay fecha de expiración o el token está expirado, intentar refrescar
+    const needsRefresh = !tokenExpiry || !integration.expires_at || tokenExpiry <= new Date();
+    
+    if (needsRefresh) {
+      console.log('⏰ [Calendar Events API] Token expirado o sin fecha de expiración, refrescando...');
+      
+      // Verificar que haya refresh_token disponible
+      if (!integration.refresh_token) {
+        console.error('❌ [Calendar Events API] No hay refresh_token disponible');
+        return NextResponse.json({ 
+          error: 'Token expirado y no hay refresh token disponible. Por favor, reconecta tu calendario.',
+          events: [],
+          requiresReconnection: true
+        }, { status: 401 });
+      }
+      
       // Refrescar token
       const refreshResult = await refreshAccessToken(integration);
-      if (!refreshResult.success) {
-        console.log('❌ [Calendar Events API] No se pudo refrescar el token');
+      if (!refreshResult.success || !refreshResult.accessToken) {
+        console.error('❌ [Calendar Events API] No se pudo refrescar el token:', refreshResult);
         return NextResponse.json({ 
-          error: 'Token expirado y no se pudo refrescar',
-          events: [] 
+          error: 'Token expirado y no se pudo refrescar. Por favor, reconecta tu calendario.',
+          events: [],
+          requiresReconnection: true
         }, { status: 401 });
       }
       accessToken = refreshResult.accessToken;
@@ -144,7 +168,21 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
                                   process.env.MICROSOFT_OAUTH_CLIENT_SECRET || '';
 
   try {
+    // ✅ CORRECCIÓN: Validar que las credenciales estén disponibles
     if (integration.provider === 'google') {
+      if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+        console.error('❌ [Refresh Token] Faltan credenciales de Google Calendar');
+        console.error('   GOOGLE_CLIENT_ID:', GOOGLE_CLIENT_ID ? '✅' : '❌');
+        console.error('   GOOGLE_CLIENT_SECRET:', GOOGLE_CLIENT_SECRET ? '✅' : '❌');
+        return { success: false };
+      }
+      
+      if (!integration.refresh_token) {
+        console.error('❌ [Refresh Token] No hay refresh_token en la integración');
+        return { success: false };
+      }
+      
+      console.log('🔄 [Refresh Token] Refrescando token de Google...');
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -157,25 +195,55 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
       });
 
       if (!response.ok) {
-        console.error('Error refrescando token de Google:', await response.text());
+        const errorText = await response.text();
+        console.error('❌ [Refresh Token] Error refrescando token de Google:', response.status, errorText);
         return { success: false };
       }
 
       const tokens = await response.json();
       
+      if (!tokens.access_token) {
+        console.error('❌ [Refresh Token] No se recibió access_token en la respuesta');
+        return { success: false };
+      }
+      
+      // ✅ CORRECCIÓN: Guardar nuevo refresh_token si viene en la respuesta
+      // Preservar el existente si no viene uno nuevo (Google no siempre devuelve uno nuevo)
+      const refreshTokenToSave = tokens.refresh_token || integration.refresh_token;
+      
       // Actualizar en base de datos
       const supabase = createAdminClient();
-      await supabase
+      const { error: updateError } = await supabase
         .from('calendar_integrations')
         .update({
           access_token: tokens.access_token,
-          expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+          refresh_token: refreshTokenToSave,
+          expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', integration.id);
+      
+      if (updateError) {
+        console.error('❌ [Refresh Token] Error actualizando token en BD:', updateError);
+        // Aún así retornar el token si se obtuvo correctamente
+      } else {
+        console.log('✅ [Refresh Token] Token actualizado en BD exitosamente');
+      }
 
       return { success: true, accessToken: tokens.access_token };
       
     } else if (integration.provider === 'microsoft') {
+      if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET) {
+        console.error('❌ [Refresh Token] Faltan credenciales de Microsoft Calendar');
+        return { success: false };
+      }
+      
+      if (!integration.refresh_token) {
+        console.error('❌ [Refresh Token] No hay refresh_token en la integración');
+        return { success: false };
+      }
+      
+      console.log('🔄 [Refresh Token] Refrescando token de Microsoft...');
       const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -184,26 +252,40 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
           client_secret: MICROSOFT_CLIENT_SECRET,
           refresh_token: integration.refresh_token,
           grant_type: 'refresh_token',
+          scope: 'offline_access Calendars.Read User.Read',
         }),
       });
 
       if (!response.ok) {
-        console.error('Error refrescando token de Microsoft:', await response.text());
+        const errorText = await response.text();
+        console.error('❌ [Refresh Token] Error refrescando token de Microsoft:', response.status, errorText);
         return { success: false };
       }
 
       const tokens = await response.json();
       
+      if (!tokens.access_token) {
+        console.error('❌ [Refresh Token] No se recibió access_token en la respuesta');
+        return { success: false };
+      }
+      
       // Actualizar en base de datos
       const supabase = createAdminClient();
-      await supabase
+      const { error: updateError } = await supabase
         .from('calendar_integrations')
         .update({
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token || integration.refresh_token,
-          expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+          expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', integration.id);
+      
+      if (updateError) {
+        console.error('❌ [Refresh Token] Error actualizando token en BD:', updateError);
+      } else {
+        console.log('✅ [Refresh Token] Token actualizado en BD exitosamente');
+      }
 
       return { success: true, accessToken: tokens.access_token };
     }
