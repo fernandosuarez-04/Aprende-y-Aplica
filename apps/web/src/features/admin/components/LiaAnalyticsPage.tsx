@@ -239,6 +239,12 @@ export function LiaAnalyticsPage() {
             tokens: 0,
             messages: 0,
             costChange: 0,
+            activeUsers: 0,
+            usersChange: 0,
+          }}
+          efficiency={data?.efficiency || {
+            avgMessagesPerConversation: 0,
+            avgCostPerMessage: 0,
           }}
           projectedMonthlyCost={data?.projections.monthlyEstimate || 0}
           isLoading={isLoading}
