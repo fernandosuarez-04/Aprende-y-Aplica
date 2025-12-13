@@ -68,8 +68,11 @@ export interface ActiveStudyPlan {
 // Cambios detectados en el calendario
 export interface CalendarChange {
   type: 'new_event' | 'modified_event' | 'deleted_event' | 'conflict';
-  eventTitle: string;
+  sessionId: string;
+  sessionTitle: string;
+  eventTitle?: string; // Mantener para compatibilidad
   eventTime: string;
+  externalEventId: string;
   affectedSessions?: string[];
   suggestedAction?: string;
 }
@@ -108,8 +111,8 @@ const initialState: StudyPlannerDashboardState = {
   hasNewCalendarChanges: false,
 };
 
-// Constante para el check de calendario (24 horas en ms)
-const CALENDAR_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
+// Constante para el check de calendario (verificar cada vez, pero no más de cada hora)
+const CALENDAR_CHECK_INTERVAL = 60 * 60 * 1000; // 1 hora
 
 /**
  * Hook para manejar la interacción con LIA en el dashboard del planificador
@@ -127,13 +130,14 @@ export function useStudyPlannerDashboardLIA(): StudyPlannerDashboardState & Stud
     }
   }, [user]);
 
-  // Verificar cambios en calendario al entrar (una vez al día)
+  // Verificar cambios en calendario automáticamente al cargar el plan
   useEffect(() => {
-    if (user && !hasCheckedCalendarRef.current) {
-      checkCalendarChangesIfNeeded();
+    if (user && state.activePlan && !hasCheckedCalendarRef.current) {
+      // Verificar cambios inmediatamente al cargar
+      checkCalendarChanges();
       hasCheckedCalendarRef.current = true;
     }
-  }, [user]);
+  }, [user, state.activePlan]);
 
   // Cargar plan de estudio activo
   const loadActivePlan = useCallback(async () => {
@@ -246,7 +250,7 @@ Solo dime qué necesitas cambiar y yo me encargo. Por ejemplo:
     if (!user) return;
 
     try {
-      const response = await fetch('/api/study-planner/dashboard/sync-calendar/check', {
+      const response = await fetch('/api/study-planner/calendar/check-changes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -261,26 +265,59 @@ Solo dime qué necesitas cambiar y yo me encargo. Por ejemplo:
       // Guardar fecha de verificación
       localStorage.setItem(`calendar_check_${user.id}`, now.toISOString());
 
-      if (data.success && data.data?.changes?.length > 0) {
-        setState(prev => ({
-          ...prev,
-          calendarChanges: data.data.changes,
-          lastCalendarCheck: now,
-          hasNewCalendarChanges: true,
-        }));
+      if (data.success && data.data) {
+        const changes = data.data.changes || [];
+        
+        if (changes.length > 0) {
+          // Hay cambios detectados - actualizar estado primero
+          setState(prev => ({
+            ...prev,
+            calendarChanges: changes,
+            lastCalendarCheck: now,
+            hasNewCalendarChanges: true,
+          }));
 
-        // Agregar mensaje proactivo de LIA sobre los cambios
-        const changeMessage: DashboardMessage = {
-          id: `calendar-${Date.now()}`,
-          role: 'assistant',
-          content: formatCalendarChangesMessage(data.data.changes),
-          timestamp: now,
-        };
+          // Recargar el plan para reflejar actualizaciones en BD (sesiones marcadas como eliminadas)
+          // Usar la función loadActivePlan directamente en lugar de await dentro del callback
+          // porque loadActivePlan ya actualiza el estado
+          loadActivePlan().catch(err => console.error('Error recargando plan después de cambios:', err));
 
-        setState(prev => ({
-          ...prev,
-          messages: [...prev.messages, changeMessage],
-        }));
+          // Agregar mensaje proactivo de LIA sobre los cambios SOLO si no existe ya uno similar
+          // (evitar duplicados si se ejecuta múltiples veces)
+          const changeMessage: DashboardMessage = {
+            id: `calendar-changes-${Date.now()}`,
+            role: 'assistant',
+            content: formatCalendarChangesMessage(changes),
+            timestamp: now,
+          };
+
+          setState(prev => {
+            // Verificar si ya hay un mensaje de cambios reciente (últimos 5 minutos)
+            const recentChangeMessage = prev.messages.find(m => 
+              m.role === 'assistant' && 
+              m.content.includes('cambios importantes en tu calendario') &&
+              (now.getTime() - m.timestamp.getTime()) < 5 * 60 * 1000
+            );
+            
+            // Solo agregar si no hay uno reciente
+            if (recentChangeMessage) {
+              return prev;
+            }
+            
+            return {
+              ...prev,
+              messages: [...prev.messages, changeMessage],
+            };
+          });
+        } else {
+          // No hay cambios
+          setState(prev => ({
+            ...prev,
+            lastCalendarCheck: now,
+            hasNewCalendarChanges: false,
+            calendarChanges: [],
+          }));
+        }
       } else {
         setState(prev => ({
           ...prev,
@@ -291,14 +328,33 @@ Solo dime qué necesitas cambiar y yo me encargo. Por ejemplo:
     } catch (error) {
       console.error('Error verificando calendario:', error);
     }
-  }, [user]);
+  }, [user, loadActivePlan]);
 
   // Formatear mensaje de cambios en calendario
   const formatCalendarChangesMessage = (changes: CalendarChange[]): string => {
+    const deletedEvents = changes.filter(c => c.type === 'deleted_event');
+    const modifiedEvents = changes.filter(c => c.type === 'modified_event');
     const conflicts = changes.filter(c => c.type === 'conflict');
-    const newEvents = changes.filter(c => c.type === 'new_event');
 
-    let message = '🔔 **He detectado cambios en tu calendario:**\n\n';
+    let message = '🔔 **He detectado cambios importantes en tu calendario:**\n\n';
+
+    if (deletedEvents.length > 0) {
+      message += '❌ **Sesiones eliminadas del calendario:**\n';
+      deletedEvents.forEach(c => {
+        message += `• "${c.sessionTitle}" (${c.eventTime})\n`;
+      });
+      message += '\n';
+      message += 'Estas sesiones ya no aparecen en tu calendario pero siguen en tu plan. ¿Quieres que las elimine del plan también?\n\n';
+    }
+
+    if (modifiedEvents.length > 0) {
+      message += '🔄 **Sesiones modificadas en el calendario:**\n';
+      modifiedEvents.forEach(c => {
+        message += `• "${c.sessionTitle}" - ${c.suggestedAction || 'Hora cambiada'}\n`;
+      });
+      message += '\n';
+      message += '¿Quieres que actualice los horarios en tu plan para que coincidan?\n\n';
+    }
 
     if (conflicts.length > 0) {
       message += '⚠️ **Conflictos encontrados:**\n';
@@ -308,15 +364,11 @@ Solo dime qué necesitas cambiar y yo me encargo. Por ejemplo:
       message += '\n';
     }
 
-    if (newEvents.length > 0) {
-      message += '📅 **Nuevos eventos:**\n';
-      newEvents.forEach(c => {
-        message += `• ${c.eventTitle} (${c.eventTime})\n`;
-      });
-      message += '\n';
+    if (deletedEvents.length === 0 && modifiedEvents.length === 0 && conflicts.length === 0) {
+      message = '✅ Todo está sincronizado. No he detectado cambios en tu calendario.';
+    } else {
+      message += 'Dime cómo quieres proceder y te ayudo a actualizar tu plan.';
     }
-
-    message += '¿Quieres que ajuste tu plan de estudios para acomodar estos cambios?';
 
     return message;
   };

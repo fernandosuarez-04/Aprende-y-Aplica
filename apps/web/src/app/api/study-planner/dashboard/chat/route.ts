@@ -84,11 +84,40 @@ const SYSTEM_PROMPT = `Eres LIA, la asistente de inteligencia artificial del Pla
 ## FECHA Y HORA ACTUAL
 {{CURRENT_DATE_TIME}}
 
-## TU PERSONALIDAD
-- Eres amigable, motivadora y proactiva
+## TU PERSONALIDAD Y COMPORTAMIENTO PROACTIVO
+- Eres amigable, motivadora y MUY PROACTIVA
 - Usas emojis para hacer la conversación más cálida
 - Siempre confirmas antes de ejecutar acciones destructivas (eliminar)
 - Celebras los logros del usuario
+- **SIEMPRE** te basas en el CONTEXTO ACTUAL para responder, NUNCA en información de mensajes anteriores
+- Si detectas que algo cambió (sesiones eliminadas, plan vacío), pregunta proactivamente por qué
+- Ofreces alternativas y sugerencias sin que te las pidan
+
+## ⚠️ REGLA CRÍTICA: FUENTE DE VERDAD
+**EL CONTEXTO ACTUAL ({{PLAN_CONTEXT}}) ES LA ÚNICA FUENTE DE VERDAD.**
+- Si el CONTEXTO ACTUAL dice "No hay sesiones programadas", entonces NO HAY SESIONES. Punto.
+- NUNCA uses información del historial de conversación para listar sesiones.
+- Si el usuario pregunta por sus lecciones/sesiones, SOLO reporta lo que está en el CONTEXTO ACTUAL.
+- Si el CONTEXTO ACTUAL está vacío pero el historial menciona sesiones, significa que FUERON ELIMINADAS.
+
+## COMPORTAMIENTO PROACTIVO
+Cuando detectes situaciones especiales, actúa proactivamente:
+
+1. **Plan vacío o sin sesiones:**
+   - "😮 Veo que no tienes sesiones de estudio programadas. ¿Las eliminaste intencionalmente? 
+   - ¿Te gustaría que te ayude a crear un nuevo plan de estudios?
+   - ¿Hubo algún problema con el plan anterior que pueda ayudarte a resolver?"
+
+2. **Pocas sesiones restantes:**
+   - "📊 Solo te quedan X sesiones. ¿Quieres que te ayude a agregar más?"
+
+3. **Sesiones atrasadas o perdidas:**
+   - "⚠️ Veo que tienes sesiones con estado 'missed'. ¿Quieres que las reprograme?"
+
+4. **El usuario eliminó algo:**
+   - Pregunta por qué lo eliminó
+   - Ofrece reprogramar o ajustar
+   - Sugiere alternativas
 
 ## ACCIONES QUE PUEDES EJECUTAR
 
@@ -162,19 +191,152 @@ Después del tag de acción, incluye tu mensaje para el usuario.
 2. Si no tienes suficiente información, PREGUNTA al usuario
 3. Para acciones destructivas (DELETE), SIEMPRE pide confirmación
 4. Si el usuario menciona un horario ambiguo, pide aclaración
-5. Usa el contexto del plan actual para identificar sesiones
-6. Si no hay plan activo, guía al usuario a crear uno
+5. **USA SOLO EL CONTEXTO ACTUAL** para identificar sesiones, NUNCA el historial
+6. Si no hay plan activo o está vacío, sé proactiva y ofrece ayuda
+7. Si el usuario dice que algo "es falso", verifica el CONTEXTO ACTUAL y disculparte si te equivocaste
 
-## CONTEXTO ACTUAL
+## CONTEXTO ACTUAL (FUENTE DE VERDAD - SIEMPRE USAR ESTO)
 {{PLAN_CONTEXT}}
 
-## HISTORIAL DE CONVERSACIÓN
+## HISTORIAL DE CONVERSACIÓN (SOLO PARA CONTEXTO DE LA CHARLA, NO PARA DATOS)
 {{CONVERSATION_HISTORY}}
 `;
 
-// Función para obtener el contexto del plan y eventos del calendario
-async function getPlanContext(userId: string, planId?: string): Promise<string> {
+// ============================================================================
+// Función de sincronización bidireccional con calendario
+// ============================================================================
+
+interface SyncResult {
+  deletedFromDb: string[];
+  orphanedSessions: string[];
+  message: string;
+}
+
+/**
+ * Sincroniza las sesiones de la BD con el calendario de Google.
+ * Compara las sesiones de estudio en la BD contra los eventos del calendario:
+ * 1. Si una sesión tiene external_event_id y el evento no existe → eliminar de BD
+ * 2. Si una sesión NO tiene external_event_id, buscar por título/hora en el calendario
+ *    - Si no se encuentra en el calendario → eliminar de BD (fue eliminada externamente)
+ */
+async function syncSessionsWithCalendar(
+  userId: string, 
+  planId: string,
+  accessToken: string,
+  calendarEvents: CalendarEvent[] // Eventos del calendario ya obtenidos
+): Promise<SyncResult> {
   const supabase = createAdminClient();
+  const result: SyncResult = {
+    deletedFromDb: [],
+    orphanedSessions: [],
+    message: ''
+  };
+  
+  logger.info('🔄 Iniciando sincronización bidireccional con calendario...');
+  
+  // Obtener TODAS las sesiones de estudio del plan (próximas 2 semanas)
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const twoWeeksLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  
+  const { data: allSessions, error } = await supabase
+    .from('study_sessions')
+    .select('id, title, external_event_id, start_time, end_time')
+    .eq('plan_id', planId)
+    .gte('start_time', todayStart.toISOString())
+    .lte('start_time', twoWeeksLater.toISOString());
+  
+  if (error || !allSessions || allSessions.length === 0) {
+    logger.info('ℹ️ No hay sesiones de estudio para sincronizar');
+    return result;
+  }
+  
+  logger.info(`📋 Verificando ${allSessions.length} sesiones contra ${calendarEvents.length} eventos del calendario...`);
+  
+  // Crear un mapa de eventos del calendario para búsqueda rápida
+  // Los eventos de sesión de estudio tienen títulos como "Lección X..."
+  const calendarEventIds = new Set(calendarEvents.map(e => e.id));
+  
+  // Función para verificar si un evento del calendario coincide con una sesión
+  const findMatchingCalendarEvent = (session: typeof allSessions[0]): CalendarEvent | undefined => {
+    // Primero buscar por external_event_id
+    if (session.external_event_id && calendarEventIds.has(session.external_event_id)) {
+      return calendarEvents.find(e => e.id === session.external_event_id);
+    }
+    
+    // Si no tiene external_event_id, buscar por título similar y hora similar
+    const sessionStart = new Date(session.start_time).getTime();
+    const sessionEnd = new Date(session.end_time).getTime();
+    
+    return calendarEvents.find(event => {
+      // Verificar si el título contiene parte del título de la sesión o viceversa
+      const titleMatch = event.title.toLowerCase().includes(session.title.toLowerCase().substring(0, 20)) ||
+                        session.title.toLowerCase().includes(event.title.toLowerCase().substring(0, 20)) ||
+                        (event.isStudySession && session.title.toLowerCase().includes('lección'));
+      
+      // Verificar si las horas son similares (dentro de 5 minutos)
+      const eventStart = new Date(event.start).getTime();
+      const eventEnd = new Date(event.end).getTime();
+      const timeMatch = Math.abs(sessionStart - eventStart) < 5 * 60 * 1000 && 
+                       Math.abs(sessionEnd - eventEnd) < 5 * 60 * 1000;
+      
+      return titleMatch && timeMatch;
+    });
+  };
+  
+  // Verificar cada sesión
+  for (const session of allSessions) {
+    const matchingEvent = findMatchingCalendarEvent(session);
+    
+    if (!matchingEvent) {
+      // La sesión NO está en el calendario - eliminar de la BD
+      logger.warn(`⚠️ Sesión "${session.title}" no encontrada en calendario - eliminando de BD`);
+      
+      const { error: deleteError } = await supabase
+        .from('study_sessions')
+        .delete()
+        .eq('id', session.id);
+      
+      if (!deleteError) {
+        result.deletedFromDb.push(session.title);
+        logger.info(`✅ Sesión "${session.title}" eliminada de la BD`);
+      } else {
+        logger.error(`❌ Error eliminando sesión: ${deleteError.message}`);
+      }
+    } else {
+      // La sesión está en el calendario - todo bien
+      logger.info(`✅ Sesión "${session.title}" verificada en calendario`);
+      
+      // Si no tenía external_event_id, actualizarlo
+      if (!session.external_event_id && matchingEvent.id) {
+        await supabase
+          .from('study_sessions')
+          .update({ external_event_id: matchingEvent.id })
+          .eq('id', session.id);
+        logger.info(`📝 Vinculado external_event_id a sesión "${session.title}"`);
+      }
+    }
+  }
+  
+  if (result.deletedFromDb.length > 0) {
+    result.message = `Se detectó que eliminaste ${result.deletedFromDb.length} sesión(es) de tu calendario: ${result.deletedFromDb.join(', ')}. Las he eliminado también del sistema.`;
+    logger.info(`🔄 Sincronización completada: ${result.deletedFromDb.length} sesiones eliminadas`);
+  } else {
+    logger.info('🔄 Sincronización completada: todas las sesiones están sincronizadas');
+  }
+  
+  return result;
+}
+
+// ============================================================================
+// Función para obtener el contexto del plan y eventos del calendario
+// ============================================================================
+
+async function getPlanContext(userId: string, planId?: string): Promise<{ context: string; syncResult?: SyncResult }> {
+  const supabase = createAdminClient();
+  
+  logger.info(`🔍 getPlanContext - userId: ${userId}, planId: ${planId || 'no especificado'}`);
 
   // Obtener plan más reciente (la tabla no tiene columna status)
   let planQuery = supabase
@@ -194,7 +356,9 @@ async function getPlanContext(userId: string, planId?: string): Promise<string> 
     planQuery = planQuery.eq('id', planId);
   }
 
-  const { data: plan } = await planQuery.single();
+  const { data: plan, error: planError } = await planQuery.single();
+  
+  logger.info(`📋 Plan obtenido: ${plan?.id || 'ninguno'}, error: ${planError?.message || 'ninguno'}`);
   
   const timezone = plan?.timezone || 'America/Bogota';
 
@@ -208,24 +372,58 @@ async function getPlanContext(userId: string, planId?: string): Promise<string> 
   
   const twoWeeksLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-  // Obtener eventos del calendario (HOY)
+  // Obtener eventos del calendario
   let calendarEventsToday: CalendarEvent[] = [];
   let calendarEventsWeek: CalendarEvent[] = [];
+  let calendarEventsTwoWeeks: CalendarEvent[] = [];
+  let syncResult: SyncResult | undefined;
   
   const { accessToken, provider } = await getCalendarAccessToken(userId);
   
+  logger.info(`🔑 Calendar token: ${accessToken ? 'SÍ' : 'NO'}, provider: ${provider}`);
+  
   if (accessToken && provider === 'google') {
-    // Eventos de hoy
+    // PRIMERO: Obtener eventos del calendario para las próximas 2 semanas
+    logger.info(`📅 Consultando eventos de hoy: ${todayStart.toISOString()} - ${todayEnd.toISOString()}`);
     calendarEventsToday = await listGoogleCalendarEvents(accessToken, todayStart, todayEnd, timezone);
+    logger.info(`📅 Eventos de hoy encontrados: ${calendarEventsToday.length}`);
+    
     // Eventos de la semana (7 días)
     const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     calendarEventsWeek = await listGoogleCalendarEvents(accessToken, todayStart, weekEnd, timezone);
+    logger.info(`📅 Eventos de la semana encontrados: ${calendarEventsWeek.length}`);
+    
+    // Eventos de 2 semanas (para sincronización)
+    calendarEventsTwoWeeks = await listGoogleCalendarEvents(accessToken, todayStart, twoWeeksLater, timezone);
+    logger.info(`📅 Eventos de 2 semanas encontrados: ${calendarEventsTwoWeeks.length}`);
+    
+    // AHORA: Sincronizar sesiones con el calendario (detectar eliminaciones)
+    if (plan) {
+      syncResult = await syncSessionsWithCalendar(userId, plan.id, accessToken, calendarEventsTwoWeeks);
+    }
+  } else {
+    logger.warn(`⚠️ No se pudo obtener acceso al calendario`);
   }
 
   let context = '';
+  
+  // Si se detectaron eliminaciones, agregar alerta al contexto
+  if (syncResult && syncResult.deletedFromDb.length > 0) {
+    context += `## ⚠️ CAMBIOS DETECTADOS EN EL CALENDARIO
+Se detectó que el usuario eliminó ${syncResult.deletedFromDb.length} sesión(es) directamente del calendario de Google:
+${syncResult.deletedFromDb.map(s => `- "${s}"`).join('\n')}
+
+**IMPORTANTE:** Estas sesiones han sido eliminadas automáticamente del sistema.
+Debes mencionar esto al usuario de forma proactiva y preguntarle:
+1. ¿Por qué decidió eliminar esas sesiones?
+2. ¿Quiere reprogramarlas para otro horario?
+3. ¿Necesita ajustar su plan de estudios?
+
+`;
+  }
 
   // Sección de calendario
-  context += `## 📅 EVENTOS DEL CALENDARIO (HOY)
+  context += `## 📅 EVENTOS DEL CALENDARIO EXTERNO - HOY (Google Calendar)
 `;
   
   if (calendarEventsToday.length > 0) {
@@ -236,16 +434,18 @@ async function getPlanContext(userId: string, planId?: string): Promise<string> 
 `;
     }
   } else {
-    context += 'No hay eventos programados para hoy.\n';
+    context += '⚠️ No hay eventos programados para hoy en Google Calendar.\n';
   }
 
   if (!plan) {
-    context += '\nEl usuario no tiene un plan de estudios activo.';
-    return context;
+    context += '\n⚠️ El usuario NO tiene un plan de estudios activo.';
+    return { context, syncResult: undefined };
   }
 
-  // Obtener sesiones del plan
-  const { data: sessions } = await supabase
+  // Obtener sesiones del plan - CONSULTA DIRECTA A LA BD (sin caché)
+  logger.info(`📋 Consultando sesiones del plan ${plan.id} desde ${todayStart.toISOString()} hasta ${twoWeeksLater.toISOString()}`);
+  
+  const { data: sessions, error: sessionsError } = await supabase
     .from('study_sessions')
     .select(`
       id,
@@ -263,6 +463,12 @@ async function getPlanContext(userId: string, planId?: string): Promise<string> 
     .lte('start_time', twoWeeksLater.toISOString())
     .order('start_time', { ascending: true });
 
+  logger.info(`📋 Sesiones encontradas: ${sessions?.length || 0}, error: ${sessionsError?.message || 'ninguno'}`);
+  
+  if (sessions && sessions.length > 0) {
+    logger.info(`📋 IDs de sesiones: ${sessions.map(s => s.id).join(', ')}`);
+  }
+
   // Formatear contexto del plan
   context += `
 ## 📚 PLAN DE ESTUDIOS ACTIVO
@@ -271,7 +477,7 @@ async function getPlanContext(userId: string, planId?: string): Promise<string> 
 - **Zona horaria:** ${plan.timezone}
 - **Días preferidos:** ${formatPreferredDays(plan.preferred_days)}
 
-## SESIONES DE ESTUDIO PRÓXIMAS (hasta 14 días)
+## SESIONES DE ESTUDIO PRÓXIMAS (consulta en tiempo real a la BD)
 `;
 
   if (sessions && sessions.length > 0) {
@@ -305,8 +511,17 @@ ${sessionIdx + 1}. **${session.title}**${dayLabel}
    - Estado: ${translateStatus(session.status)}
 `;
     }
+    
+    context += `
+**TOTAL: ${sessions.length} sesiones de estudio programadas.**
+`;
   } else {
-    context += 'No hay sesiones de estudio programadas en los próximos 14 días.';
+    context += `
+⚠️ **IMPORTANTE: NO HAY SESIONES DE ESTUDIO PROGRAMADAS.**
+El usuario NO tiene ninguna sesión de estudio en los próximos 14 días.
+Si el usuario pregunta por sus lecciones o sesiones, debes informarle que no tiene ninguna.
+Sé proactiva y pregunta si quiere crear un nuevo plan o si eliminó las sesiones intencionalmente.
+`;
   }
 
   // Agregar otros eventos de la semana (no sesiones de estudio)
@@ -324,7 +539,7 @@ ${sessionIdx + 1}. **${session.title}**${dayLabel}
     }
   }
 
-  return context;
+  return { context, syncResult };
 }
 
 // Funciones helper de formateo
@@ -401,7 +616,10 @@ async function getCalendarAccessToken(userId: string): Promise<{ accessToken: st
     .eq('user_id', userId)
     .single();
 
+  logger.info(`🔑 getCalendarAccessToken - integración encontrada: ${!!integration}, access_token: ${integration?.access_token ? 'SÍ' : 'NO'}`);
+
   if (!integration || !integration.access_token) {
+    logger.warn('⚠️ No hay integración de calendario o no hay access_token');
     return { accessToken: null, provider: null };
   }
 
@@ -409,12 +627,17 @@ async function getCalendarAccessToken(userId: string): Promise<{ accessToken: st
   const expiresAt = integration.expires_at ? new Date(integration.expires_at) : null;
   const now = new Date();
   
+  logger.info(`🔑 Token expira: ${expiresAt?.toISOString() || 'desconocido'}, ahora: ${now.toISOString()}`);
+  
   if (expiresAt && expiresAt < now && integration.refresh_token) {
+    logger.info('🔄 Token expirado, refrescando...');
     // Refrescar token
     const refreshed = await refreshAccessToken(integration);
     if (refreshed.success && refreshed.accessToken) {
+      logger.info('✅ Token refrescado exitosamente');
       return { accessToken: refreshed.accessToken, provider: integration.provider };
     }
+    logger.error('❌ Error refrescando token');
   }
 
   return { accessToken: integration.access_token, provider: integration.provider };
@@ -658,6 +881,8 @@ async function listGoogleCalendarEvents(
     const data = await response.json();
     const events: CalendarEvent[] = [];
     
+    logger.info(`📅 Respuesta de Google Calendar: ${data.items?.length || 0} items`);
+    
     for (const item of data.items || []) {
       // Determinar si es un evento de todo el día
       const isAllDay = !!item.start?.date && !item.start?.dateTime;
@@ -666,6 +891,8 @@ async function listGoogleCalendarEvents(
       const isStudySession = item.description?.includes('📚') || 
                             item.summary?.toLowerCase().includes('lección') ||
                             item.summary?.toLowerCase().includes('sesión de estudio');
+      
+      logger.info(`   - Evento: "${item.summary}" (${isStudySession ? 'sesión de estudio' : 'evento externo'})`);
       
       events.push({
         id: item.id,
@@ -678,7 +905,7 @@ async function listGoogleCalendarEvents(
       });
     }
     
-    logger.info(`✅ Se obtuvieron ${events.length} eventos del calendario`);
+    logger.info(`✅ Se obtuvieron ${events.length} eventos del calendario (${events.filter(e => e.isStudySession).length} sesiones, ${events.filter(e => !e.isStudySession).length} externos)`);
     return events;
   } catch (error) {
     logger.error('Error en listGoogleCalendarEvents:', error);
@@ -1185,8 +1412,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
       );
     }
 
-    // Obtener contexto del plan
-    const planContext = await getPlanContext(user.id, activePlanId);
+    // Obtener contexto del plan (incluye sincronización con calendario)
+    const { context: planContext, syncResult } = await getPlanContext(user.id, activePlanId);
 
     // Preparar historial de conversación
     const historyText = conversationHistory
