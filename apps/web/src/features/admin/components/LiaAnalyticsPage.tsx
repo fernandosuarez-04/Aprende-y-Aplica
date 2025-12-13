@@ -15,7 +15,8 @@ import {
   ContextDistributionWidget,
   TopUsersWidget,
   ConversationsTableWidget,
-  ActivityPerformanceWidget,
+  ActivityHeatmapWidget,
+  TopQuestionsWidget,
 } from './LiaAnalyticsWidgets';
 
 interface AnalyticsData {
@@ -238,6 +239,12 @@ export function LiaAnalyticsPage() {
             tokens: 0,
             messages: 0,
             costChange: 0,
+            activeUsers: 0,
+            usersChange: 0,
+          }}
+          efficiency={data?.efficiency || {
+            avgMessagesPerConversation: 0,
+            avgCostPerMessage: 0,
           }}
           projectedMonthlyCost={data?.projections.monthlyEstimate || 0}
           isLoading={isLoading}
@@ -264,17 +271,20 @@ export function LiaAnalyticsPage() {
           totalTokens={data?.summary.totalTokens || 0}
           isLoading={isLoading}
         />
-        <ActivityPerformanceWidget period={period} isLoading={isLoading} />
+        <ActivityHeatmapWidget period={period} isLoading={isLoading} />
       </div>
 
-      {/* Third Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      {/* Third Row - Top Questions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <TopQuestionsWidget period={period} limit={8} isLoading={isLoading} />
         <div className="lg:col-span-1">
           <TopUsersWidget period={period} limit={8} isLoading={isLoading} />
         </div>
-        <div className="lg:col-span-2">
-          <ConversationsTableWidget period={period} />
-        </div>
+      </div>
+
+      {/* Fourth Row - Conversations Table */}
+      <div className="mb-8">
+        <ConversationsTableWidget period={period} />
       </div>
 
       {/* Info Footer */}

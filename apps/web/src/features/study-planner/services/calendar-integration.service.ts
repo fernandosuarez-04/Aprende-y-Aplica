@@ -358,7 +358,7 @@ export class CalendarIntegrationService {
     // Verificar si ya existe una integración
     const { data: existing } = await supabase
       .from('calendar_integrations')
-      .select('id')
+      .select('id, refresh_token')
       .eq('user_id', userId)
       .eq('provider', provider)
       .single();
@@ -367,11 +367,16 @@ export class CalendarIntegrationService {
     
     if (existing) {
       // Actualizar existente
+      // ✅ CORRECCIÓN: Preservar refresh_token existente si no viene uno nuevo
+      // Google no siempre devuelve un nuevo refresh_token al refrescar,
+      // por lo que debemos preservar el existente
+      const refreshTokenToSave = tokens.refresh_token || existing.refresh_token;
+      
       const { data, error } = await supabase
         .from('calendar_integrations')
         .update({
           access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token || null,
+          refresh_token: refreshTokenToSave,
           expires_at: expiresAt,
           scope: tokens.scope,
           updated_at: new Date().toISOString(),
@@ -534,10 +539,15 @@ export class CalendarIntegrationService {
         ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
         : null;
       
+      // ✅ CORRECCIÓN: Guardar nuevo refresh_token si viene en la respuesta
+      // Preservar el existente si no viene uno nuevo
+      const refreshTokenToSave = tokens.refresh_token || integration.refresh_token;
+      
       await supabase
         .from('calendar_integrations')
         .update({
           access_token: tokens.access_token,
+          refresh_token: refreshTokenToSave,
           expires_at: newExpiresAt,
           updated_at: new Date().toISOString(),
         })
