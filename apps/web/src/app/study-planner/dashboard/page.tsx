@@ -79,27 +79,39 @@ export default function StudyPlannerDashboardPage() {
     }
   };
 
-  // Formatear fecha de sesión
+  // Formatear fecha de sesión (usando zona horaria local)
   const formatSessionDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('es-ES', { 
+    return date.toLocaleDateString('es-CO', { 
       weekday: 'short', 
       day: 'numeric', 
-      month: 'short' 
+      month: 'short',
+      timeZone: 'America/Bogota'
     });
   };
 
   const formatSessionTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleTimeString('es-ES', { 
+    return date.toLocaleTimeString('es-CO', { 
       hour: '2-digit', 
-      minute: '2-digit' 
+      minute: '2-digit',
+      timeZone: 'America/Bogota'
     });
   };
 
-  // Obtener sesiones próximas
+  // Obtener sesiones próximas (incluye todas las de hoy, incluso si ya pasó la hora)
   const upcomingSessions = activePlan?.sessions
-    .filter(s => s.status === 'planned' && new Date(s.startTime) > new Date())
+    .filter(s => {
+      if (s.status !== 'planned') return false;
+      const sessionDate = new Date(s.startTime);
+      const now = new Date();
+      
+      // Incluir sesiones de hoy (aunque ya hayan pasado) y futuras
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+      
+      return sessionDate >= todayStart;
+    })
     .slice(0, 5) || [];
 
   // Renderizar mensaje del chat
