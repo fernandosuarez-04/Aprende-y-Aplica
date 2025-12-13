@@ -1,0 +1,276 @@
+import { createClient } from '../../../lib/supabase/server'
+
+export interface AdminMaterial {
+  material_id: string
+  material_title: string
+  material_description: string | null
+  material_type: 'pdf' | 'link' | 'document' | 'quiz' | 'exercise' | 'reading'
+  file_url: string | null
+  external_url: string | null
+  content_data: any | null
+  material_order_index: number
+  is_downloadable: boolean
+  lesson_id: string
+  created_at: string
+}
+
+export interface CreateMaterialData {
+  material_title: string
+  material_description?: string
+  material_type: 'pdf' | 'link' | 'document' | 'quiz' | 'exercise' | 'reading'
+  file_url?: string
+  external_url?: string
+  content_data?: any
+  is_downloadable?: boolean
+}
+
+export interface UpdateMaterialData {
+  material_title?: string
+  material_description?: string
+  material_type?: 'pdf' | 'link' | 'document' | 'quiz' | 'exercise' | 'reading'
+  file_url?: string
+  external_url?: string
+  content_data?: any
+  is_downloadable?: boolean
+}
+
+export class AdminMaterialsService {
+  static async getLessonMaterials(lessonId: string): Promise<AdminMaterial[]> {
+    const supabase = await createClient()
+
+    try {
+      const { data, error } = await supabase
+        .from('lesson_materials')
+        .select('*')
+        .eq('lesson_id', lessonId)
+        .order('material_order_index', { ascending: true })
+
+      if (error) {
+        // console.error('Error fetching materials:', error)
+        throw error
+      }
+
+      return data || []
+    } catch (error) {
+      // console.error('Error in AdminMaterialsService.getLessonMaterials:', error)
+      throw error
+    }
+  }
+
+  static async getMaterialById(materialId: string): Promise<AdminMaterial | null> {
+    const supabase = await createClient()
+
+    try {
+      const { data, error } = await supabase
+        .from('lesson_materials')
+        .select('*')
+        .eq('material_id', materialId)
+        .single()
+
+      if (error) {
+        // console.error('Error fetching material:', error)
+        throw error
+      }
+
+      return data
+    } catch (error) {
+      // console.error('Error in AdminMaterialsService.getMaterialById:', error)
+      return null
+    }
+  }
+
+  static async createMaterial(lessonId: string, materialData: CreateMaterialData, userId?: string): Promise<AdminMaterial> {
+    const supabase = await createClient()
+
+    try {
+      // Obtener el próximo order_index
+      const { count } = await supabase
+        .from('lesson_materials')
+        .select('*', { count: 'exact', head: true })
+        .eq('lesson_id', lessonId)
+
+      const nextOrderIndex = (count || 0) + 1
+
+      const insertData: any = {
+        lesson_id: lessonId,
+        material_title: materialData.material_title,
+        material_description: materialData.material_description,
+        material_type: materialData.material_type,
+        material_order_index: nextOrderIndex,
+        is_downloadable: materialData.is_downloadable ?? false,
+        created_at: new Date().toISOString()
+      }
+
+      // Setear URLs según el tipo
+      if (materialData.material_type === 'link') {
+        insertData.external_url = materialData.external_url
+      } else if (['pdf', 'document'].includes(materialData.material_type)) {
+        insertData.file_url = materialData.file_url
+      } else if (['quiz', 'exercise'].includes(materialData.material_type)) {
+        insertData.content_data = materialData.content_data || {}
+      }
+
+      const { data, error } = await supabase
+        .from('lesson_materials')
+        .insert(insertData)
+        .select()
+        .single()
+
+      if (error) {
+        // console.error('Error creating material:', error)
+        throw error
+      }
+
+      // Traducir automáticamente el material a inglés y portugués
+      try {
+        const { translateMaterialOnCreate } = await import('@/core/services/courseTranslation.service')
+        await translateMaterialOnCreate(
+          data.material_id,
+          {
+            material_title: data.material_title,
+            material_description: data.material_description,
+            content_data: data.content_data
+          },
+          userId
+        )
+      } catch (translationError) {
+        // No fallar la creación del material si falla la traducción
+        console.error('Error en traducción automática del material:', translationError)
+      }
+
+      return data
+    } catch (error) {
+      // console.error('Error in AdminMaterialsService.createMaterial:', error)
+      throw error
+    }
+  }
+
+  static async updateMaterial(materialId: string, materialData: UpdateMaterialData): Promise<AdminMaterial> {
+    const supabase = await createClient()
+
+    try {
+      const updateData: any = { ...materialData }
+
+      // Si cambia el tipo, resetear URLs no relevantes
+      if (materialData.material_type === 'link') {
+        updateData.external_url = materialData.external_url
+        updateData.file_url = null
+        updateData.content_data = null
+      } else if (['pdf', 'document'].includes(materialData.material_type || '')) {
+        updateData.file_url = materialData.file_url
+        updateData.external_url = null
+        updateData.content_data = null
+      } else if (['quiz', 'exercise'].includes(materialData.material_type || '')) {
+        updateData.content_data = materialData.content_data || {}
+        updateData.file_url = null
+        updateData.external_url = null
+      }
+
+      const { data, error } = await supabase
+        .from('lesson_materials')
+        .update(updateData)
+        .eq('material_id', materialId)
+        .select()
+        .single()
+
+      if (error) {
+        // console.error('Error updating material:', error)
+        throw error
+      }
+
+      return data
+    } catch (error) {
+      // console.error('Error in AdminMaterialsService.updateMaterial:', error)
+      throw error
+    }
+  }
+
+  static async deleteMaterial(materialId: string): Promise<void> {
+    const supabase = await createClient()
+
+    try {
+      // Obtener información del material antes de eliminar (para eliminar archivo si aplica)
+      const { data: material } = await supabase
+        .from('lesson_materials')
+        .select('file_url')
+        .eq('material_id', materialId)
+        .single()
+
+      const { error } = await supabase
+        .from('lesson_materials')
+        .delete()
+        .eq('material_id', materialId)
+
+      if (error) {
+        // console.error('Error deleting material:', error)
+        throw error
+      }
+
+      // TODO: Eliminar archivo de Supabase Storage si existe file_url
+      // Esto se implementaría en el futuro si es necesario
+    } catch (error) {
+      // console.error('Error in AdminMaterialsService.deleteMaterial:', error)
+      throw error
+    }
+  }
+
+  static async reorderMaterials(lessonId: string, materials: Array<{ material_id: string, material_order_index: number }>): Promise<void> {
+    const supabase = await createClient()
+
+    try {
+      const updates = materials.map((material) =>
+        supabase
+          .from('lesson_materials')
+          .update({ material_order_index: material.material_order_index })
+          .eq('material_id', material.material_id)
+      )
+
+      const results = await Promise.all(updates)
+      const errors = results.filter(r => r.error)
+
+      if (errors.length > 0) {
+        // console.error('Error reordering materials:', errors)
+        throw new Error('Error al reordenar materiales')
+      }
+    } catch (error) {
+      // console.error('Error in AdminMaterialsService.reorderMaterials:', error)
+      throw error
+    }
+  }
+
+  static async uploadMaterialFile(file: File, materialType: string): Promise<string> {
+    try {
+      const supabase = await createClient()
+
+      // Generar nombre único
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const folder = materialType === 'pdf' ? 'pdfs' : 'documents'
+      const filePath = `course-materials/${folder}/${fileName}`
+
+      // Subir archivo
+      const { data, error } = await supabase.storage
+        .from('course-materials')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) {
+        // console.error('Error uploading file:', error)
+        throw error
+      }
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('course-materials')
+        .getPublicUrl(filePath)
+
+      return urlData.publicUrl
+    } catch (error) {
+      // console.error('Error in AdminMaterialsService.uploadMaterialFile:', error)
+      throw error
+    }
+  }
+}
+

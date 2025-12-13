@@ -132,7 +132,7 @@ export function ImageModal({ isOpen, onClose, imageUrl, imageName, imageData }: 
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1 }}
                 onError={(e) => {
-                  console.error('Error loading image in modal:', imageUrl);
+                  // console.error('Error loading image in modal:', imageUrl);
                   e.currentTarget.style.display = 'none';
                   // Mostrar placeholder de error
                   const placeholder = document.createElement('div');

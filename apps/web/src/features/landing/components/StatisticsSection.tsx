@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { Statistic } from '@shared/types/content';
+import { Statistic } from '@aprende-y-aplica/shared';
 import { fadeIn, slideUp } from '../../../shared/utils/animations';
 import { useRef } from 'react';
 
@@ -12,7 +12,7 @@ interface StatisticsSectionProps {
 
 // Componente para animar números
 function AnimatedCounter({ endValue, duration = 2 }: { endValue: string; duration?: number }) {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState<number | string>(0);
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
 
@@ -28,6 +28,7 @@ function AnimatedCounter({ endValue, duration = 2 }: { endValue: string; duratio
     const increment = numericValue / (duration * 60); // 60fps
     const timer = setInterval(() => {
       setCount((prev) => {
+        if (typeof prev !== 'number') return numericValue;
         const next = prev + increment;
         if (next >= numericValue) {
           clearInterval(timer);

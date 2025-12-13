@@ -1,0 +1,2 @@
+export { BusinessLogo } from './BusinessLogo';
+

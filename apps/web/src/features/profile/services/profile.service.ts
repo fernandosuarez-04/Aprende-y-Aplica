@@ -55,7 +55,7 @@ export class ProfileService {
         .single()
 
       if (error) {
-        console.error('Error fetching profile:', error)
+        // console.error('Error fetching profile:', error)
         throw new Error(`Error al obtener perfil: ${error.message}`)
       }
 
@@ -87,7 +87,7 @@ export class ProfileService {
         email_verified: data.email_verified || false
       }
     } catch (error) {
-      console.error('Error in ProfileService.getProfile:', error)
+      // console.error('Error in ProfileService.getProfile:', error)
       throw error
     }
   }
@@ -107,7 +107,7 @@ export class ProfileService {
         .single()
 
       if (error) {
-        console.error('Error updating profile:', error)
+        // console.error('Error updating profile:', error)
         throw new Error(`Error al actualizar perfil: ${error.message}`)
       }
 
@@ -139,7 +139,7 @@ export class ProfileService {
         email_verified: data.email_verified || false
       }
     } catch (error) {
-      console.error('Error in ProfileService.updateProfile:', error)
+      // console.error('Error in ProfileService.updateProfile:', error)
       throw error
     }
   }
@@ -148,24 +148,39 @@ export class ProfileService {
     try {
       const supabase = createClient()
       
+      // Validar tipo de archivo (coincide con configuración del bucket: image/png, image/jpeg, image/jpg, image/gif)
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Tipo de archivo no válido. Solo se permiten PNG, JPEG, JPG y GIF.')
+      }
+
+      // Validar tamaño (máximo 10MB según configuración del bucket)
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSize) {
+        throw new Error('El archivo es demasiado grande. Máximo 10MB.')
+      }
+      
       // Generar nombre único para el archivo
       const fileExt = file.name.split('.').pop()
       const fileName = `${userId}-${Date.now()}.${fileExt}`
       const filePath = `profile-pictures/${fileName}`
 
-      // Subir archivo a Supabase Storage
+      // Subir archivo a Supabase Storage (bucket: avatars)
       const { data, error } = await supabase.storage
-        .from('profile-pictures')
-        .upload(filePath, file)
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
       if (error) {
-        console.error('Error uploading profile picture:', error)
+        // console.error('Error uploading profile picture:', error)
         throw new Error(`Error al subir imagen: ${error.message}`)
       }
 
       // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
-        .from('profile-pictures')
+        .from('avatars')
         .getPublicUrl(filePath)
 
       // Actualizar perfil con nueva URL
@@ -173,7 +188,7 @@ export class ProfileService {
 
       return publicUrl
     } catch (error) {
-      console.error('Error in ProfileService.uploadProfilePicture:', error)
+      // console.error('Error in ProfileService.uploadProfilePicture:', error)
       throw error
     }
   }
@@ -193,7 +208,7 @@ export class ProfileService {
         .upload(filePath, file)
 
       if (error) {
-        console.error('Error uploading curriculum:', error)
+        // console.error('Error uploading curriculum:', error)
         throw new Error(`Error al subir curriculum: ${error.message}`)
       }
 
@@ -207,7 +222,7 @@ export class ProfileService {
 
       return publicUrl
     } catch (error) {
-      console.error('Error in ProfileService.uploadCurriculum:', error)
+      // console.error('Error in ProfileService.uploadCurriculum:', error)
       throw error
     }
   }
@@ -232,12 +247,24 @@ export class ProfileService {
       })
 
       if (updateError) {
-        console.error('Error updating password:', updateError)
+        // console.error('Error updating password:', updateError)
         throw new Error(`Error al cambiar contraseña: ${updateError.message}`)
       }
+
+      // Crear notificación de cambio de contraseña
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        await AutoNotificationsService.notifyPasswordChanged(userId, {
+          timestamp: new Date().toISOString()
+        })
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        // console.error('Error creando notificación de cambio de contraseña:', notificationError)
+      }
     } catch (error) {
-      console.error('Error in ProfileService.changePassword:', error)
+      // console.error('Error in ProfileService.changePassword:', error)
       throw error
     }
   }
+
 }

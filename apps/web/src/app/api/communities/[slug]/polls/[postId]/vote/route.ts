@@ -18,19 +18,25 @@ export async function POST(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Verificar si el usuario necesita completar el cuestionario
+    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
+    const { QuestionnaireValidationService } = await import('../../../../../../../features/auth/services/questionnaire-validation.service');
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+    
+    if (requiresQuestionnaire) {
+      return NextResponse.json({ 
+        error: 'Debes completar el cuestionario de Mis Estadísticas antes de votar en comunidades',
+        requiresQuestionnaire: true,
+        redirectUrl: '/statistics'
+      }, { status: 403 });
+    }
+
     const body = await request.json();
     const { option, action } = body; // action: 'vote' o 'remove'
 
     if (!option) {
       return NextResponse.json({ error: 'Opción requerida' }, { status: 400 });
     }
-
-    console.log('🗳️ [POLL VOTE] Procesando voto:', {
-      postId,
-      userId: user.id,
-      option,
-      action
-    });
 
     // Obtener el post para verificar que es una encuesta
     const { data: post, error: postError } = await supabase
@@ -47,9 +53,19 @@ export async function POST(
       return NextResponse.json({ error: 'Este post no es una encuesta' }, { status: 400 });
     }
 
-    const pollData = (post as any).attachment_data;
-    if (!pollData || !pollData.options || !pollData.votes) {
+    let pollData = (post as any).attachment_data;
+    if (!pollData || !pollData.options) {
       return NextResponse.json({ error: 'Datos de encuesta inválidos' }, { status: 400 });
+    }
+
+    // Si no tiene estructura votes, inicializarla automáticamente
+    if (!pollData.votes || typeof pollData.votes !== 'object') {
+      const initialVotes: Record<string, string[]> = {};
+      pollData.options.forEach((option: string) => {
+        initialVotes[option] = [];
+      });
+      pollData.votes = initialVotes;
+      pollData.userVotes = pollData.userVotes || {};
     }
 
     // Verificar que la opción existe
@@ -59,8 +75,6 @@ export async function POST(
 
     // Obtener el voto actual del usuario desde attachment_data
     const currentUserVote = pollData.userVotes?.[user.id] || null;
-
-    console.log('🗳️ [POLL VOTE] Voto actual del usuario:', currentUserVote);
 
     // Crear una copia de los datos de la encuesta para modificar
     const updatedPollData = { ...pollData };
@@ -138,11 +152,9 @@ export async function POST(
       .eq('id', postId);
 
     if (updatePostError) {
-      console.error('Error actualizando post:', updatePostError);
+      // console.error('Error actualizando post:', updatePostError);
       return NextResponse.json({ error: 'Error actualizando encuesta' }, { status: 500 });
     }
-
-    console.log('✅ [POLL VOTE] Voto procesado exitosamente');
 
     return NextResponse.json({
       success: true,
@@ -152,7 +164,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Error en votación de encuesta:', error);
+    // console.error('Error en votación de encuesta:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
@@ -174,6 +186,19 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Verificar si el usuario necesita completar el cuestionario
+    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
+    const { QuestionnaireValidationService } = await import('../../../../../../../features/auth/services/questionnaire-validation.service');
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+    
+    if (requiresQuestionnaire) {
+      return NextResponse.json({ 
+        error: 'Debes completar el cuestionario de Mis Estadísticas antes de acceder a comunidades',
+        requiresQuestionnaire: true,
+        redirectUrl: '/statistics'
+      }, { status: 403 });
+    }
+
     // Obtener el post para acceder a los datos de la encuesta
     const { data: post, error: postError } = await supabase
       .from('community_posts')
@@ -185,16 +210,28 @@ export async function GET(
       return NextResponse.json({ error: 'Post no encontrado' }, { status: 404 });
     }
 
-    const pollData = (post as any).attachment_data;
+    let pollData = (post as any).attachment_data;
+
+    // Si no tiene estructura votes, inicializarla automáticamente
+    if (pollData && pollData.options && (!pollData.votes || typeof pollData.votes !== 'object')) {
+      const initialVotes: Record<string, string[]> = {};
+      pollData.options.forEach((option: string) => {
+        initialVotes[option] = [];
+      });
+      pollData.votes = initialVotes;
+      pollData.userVotes = pollData.userVotes || {};
+    }
+
     const userVote = pollData?.userVotes?.[user.id] || null;
 
     return NextResponse.json({
       success: true,
-      userVote: userVote
+      userVote: userVote,
+      pollData: pollData  // Agregar pollData completo para que el componente pueda actualizarse
     });
 
   } catch (error) {
-    console.error('Error obteniendo voto de usuario:', error);
+    // console.error('Error obteniendo voto de usuario:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

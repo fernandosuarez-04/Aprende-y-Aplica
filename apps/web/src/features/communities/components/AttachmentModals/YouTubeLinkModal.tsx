@@ -43,7 +43,7 @@ export function YouTubeLinkModal({ isOpen, onClose, onConfirm, type }: YouTubeLi
       setIsValid(false);
       onClose();
     } catch (error) {
-      console.error('Error validating URL:', error);
+      // console.error('Error validating URL:', error);
     } finally {
       setIsLoading(false);
     }
@@ -79,11 +79,11 @@ export function YouTubeLinkModal({ isOpen, onClose, onConfirm, type }: YouTubeLi
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md"
+          className="relative bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-md"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="p-6 border-b border-slate-700">
+          <div className="p-6 border-b border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${
@@ -96,10 +96,10 @@ export function YouTubeLinkModal({ isOpen, onClose, onConfirm, type }: YouTubeLi
                   )}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                     {type === 'youtube' ? 'Enlace de YouTube' : 'Enlace web'}
                   </h3>
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
                     {type === 'youtube' 
                       ? 'Pega la URL del video de YouTube' 
                       : 'Pega la URL del sitio web'
@@ -109,7 +109,7 @@ export function YouTubeLinkModal({ isOpen, onClose, onConfirm, type }: YouTubeLi
               </div>
               <button
                 onClick={onClose}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -121,7 +121,7 @@ export function YouTubeLinkModal({ isOpen, onClose, onConfirm, type }: YouTubeLi
             {/* URL Input */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   URL
                 </label>
                 <div className="relative">
@@ -133,11 +133,11 @@ export function YouTubeLinkModal({ isOpen, onClose, onConfirm, type }: YouTubeLi
                       ? 'https://www.youtube.com/watch?v=...' 
                       : 'https://ejemplo.com'
                     }
-                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                    className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
                   />
                   {isValid && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400" />
                     </div>
                   )}
                 </div>
@@ -146,10 +146,10 @@ export function YouTubeLinkModal({ isOpen, onClose, onConfirm, type }: YouTubeLi
               {/* Preview */}
               {type === 'youtube' && isValid && getPreviewUrl() && (
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">
                     Vista previa
                   </label>
-                  <div className="relative bg-slate-800 rounded-lg overflow-hidden">
+                  <div className="relative bg-gray-100 dark:bg-slate-800 rounded-lg overflow-hidden">
                     <img
                       src={getPreviewUrl()!}
                       alt="YouTube preview"
@@ -164,7 +164,7 @@ export function YouTubeLinkModal({ isOpen, onClose, onConfirm, type }: YouTubeLi
 
               {/* Validation message */}
               {url && !isValid && (
-                <div className="text-sm text-red-400">
+                <div className="text-sm text-red-600 dark:text-red-400">
                   {type === 'youtube' 
                     ? 'Por favor, ingresa una URL válida de YouTube'
                     : 'Por favor, ingresa una URL válida'
@@ -175,17 +175,17 @@ export function YouTubeLinkModal({ isOpen, onClose, onConfirm, type }: YouTubeLi
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-slate-700 flex gap-3">
+          <div className="p-6 border-t border-gray-200 dark:border-slate-700 flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white rounded-lg transition-colors"
             >
               Cancelar
             </button>
             <button
               onClick={handleConfirm}
               disabled={!isValid || isLoading}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-slate-600 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>

@@ -6,7 +6,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@aprende-y-aplica/ui';
+import { useTranslation } from 'react-i18next';
 import { ThemeToggle } from '../ThemeToggle';
+import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg';
 import { Menu, X } from 'lucide-react';
 import { fadeIn, slideUp } from '../../../shared/utils/animations';
 
@@ -14,6 +16,8 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { clickCount, isActivated, handleLogoClick } = useLogoEasterEgg();
+  const { t } = useTranslation('common');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,31 +43,57 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <motion.div
-            className="flex items-center gap-3"
+            className="flex items-center gap-3 cursor-pointer"
             variants={fadeIn}
             initial="hidden"
             animate="visible"
+            onClick={handleLogoClick}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+            <motion.div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden relative"
+              animate={isActivated ? { 
+                rotate: [0, 360, 0],
+                scale: [1, 1.2, 1]
+              } : {}}
+              transition={{ duration: 0.6 }}
+            >
               <Image
                 src="/icono.png"
-                alt="Aprende y Aplica Logo"
+                alt={t('navbar.logoAlt')}
                 width={40}
                 height={40}
                 className="w-full h-full object-contain logo-adaptive"
               />
-            </div>
-            <span className="font-bold text-xl hidden sm:block navbar-logo-text">
-              Aprende y Aplica
+              {/* Efecto visual cuando está activado */}
+              {isActivated && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-xl opacity-50"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.5, 0] }}
+                  transition={{ duration: 0.6 }}
+                />
+              )}
+            </motion.div>
+            <span className="font-bold text-xl hidden sm:block text-gray-900 dark:text-white navbar-logo-text">
+              {t('appName')}
             </span>
+            
+            {/* Contador oculto - solo para debugging */}
+            {clickCount > 0 && clickCount < 5 && (
+              <div className="sr-only">
+                {t('navbar.clickCounter', { current: clickCount, total: 5 })}
+              </div>
+            )}
           </motion.div>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-8">
             {/* Navigation Links - Solo Inicio */}
             <div className="flex items-center gap-6">
-              <Link href="/" className="text-sm font-medium hover:text-blue-400 transition-colors">
-                Inicio
+              <Link href="/" className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                {t('navbar.home')}
               </Link>
             </div>
             
@@ -72,12 +102,12 @@ export function Navbar() {
             <div className="flex items-center gap-4">
               <Link href="/auth">
                 <Button variant="ghost" size="sm">
-                  Iniciar Sesión
+                  {t('navbar.login')}
                 </Button>
               </Link>
-              <Link href="/auth">
+              <Link href="/auth?tab=register">
                 <Button variant="primary" size="sm">
-                  Registrarse
+                  {t('navbar.register')}
                 </Button>
               </Link>
             </div>
@@ -85,7 +115,7 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <motion.button
-            className="lg:hidden w-10 h-10 rounded-lg backdrop-blur-sm border flex items-center justify-center transition-all duration-300 navbar-mobile-button"
+            className="lg:hidden w-10 h-10 rounded-lg backdrop-blur-sm border flex items-center justify-center transition-all duration-300 navbar-mobile-button text-gray-900 dark:text-white"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             whileTap={{ scale: 0.95 }}
           >
@@ -115,10 +145,10 @@ export function Navbar() {
             <div className="space-y-3">
               <Link 
                 href="/" 
-                className="block text-sm font-medium hover:text-blue-400 transition-colors"
+                className="block text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Inicio
+                {t('navbar.home')}
               </Link>
             </div>
             
@@ -127,12 +157,12 @@ export function Navbar() {
               <div className="flex gap-3">
                 <Link href="/auth">
                   <Button variant="ghost" size="sm">
-                    Iniciar Sesión
+                    {t('navbar.login')}
                   </Button>
                 </Link>
-                <Link href="/auth">
+                <Link href="/auth?tab=register">
                   <Button variant="primary" size="sm">
-                    Registrarse
+                    {t('navbar.register')}
                   </Button>
                 </Link>
               </div>

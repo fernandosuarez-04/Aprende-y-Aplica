@@ -77,7 +77,7 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
       case 'image':
         return (
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-700">
+            <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-slate-700">
               <img 
                 src={data.url} 
                 alt={data.name}
@@ -85,10 +85,10 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 {data.name}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-gray-600 dark:text-slate-400">
                 {formatFileSize(data.size)}
               </p>
             </div>
@@ -103,10 +103,10 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
               <IconComponent className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 {data.name}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-gray-600 dark:text-slate-400">
                 {formatFileSize(data.size)}
               </p>
             </div>
@@ -120,10 +120,10 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
               <Youtube className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 Video de YouTube
               </p>
-              <p className="text-xs text-slate-400 truncate">
+              <p className="text-xs text-gray-600 dark:text-slate-400 truncate">
                 {data.url}
               </p>
             </div>
@@ -137,10 +137,10 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
               <Link className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 Enlace web
               </p>
-              <p className="text-xs text-slate-400 truncate">
+              <p className="text-xs text-gray-600 dark:text-slate-400 truncate">
                 {data.url}
               </p>
             </div>
@@ -154,10 +154,10 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
               <BarChart3 className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 {data.question || 'Nueva encuesta'}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-gray-600 dark:text-slate-400">
                 {data.options?.length || 0} opciones
               </p>
             </div>
@@ -171,10 +171,10 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
               <File className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                 Archivo adjunto
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-gray-600 dark:text-slate-400">
                 Tipo: {type}
               </p>
             </div>
@@ -189,7 +189,7 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
-      className={`bg-slate-700/50 border border-slate-600/50 rounded-lg p-3 ${className}`}
+      className={`bg-gray-100 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-lg p-3 ${className}`}
     >
       <div className="flex items-center justify-between">
         {renderContent()}
@@ -198,7 +198,7 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
           {(type === 'youtube' || type === 'link') && (
             <button
               onClick={() => window.open(data.url, '_blank')}
-              className="p-1 text-slate-400 hover:text-blue-400 transition-colors"
+              className="p-1 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               title="Abrir enlace"
             >
               <ExternalLink className="w-4 h-4" />
@@ -214,7 +214,7 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
                 link.download = data.name;
                 link.click();
               }}
-              className="p-1 text-slate-400 hover:text-green-400 transition-colors"
+              className="p-1 text-gray-500 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
               title="Descargar archivo"
             >
               <Download className="w-4 h-4" />
@@ -224,7 +224,7 @@ export function AttachmentPreview({ type, data, onRemove, className = '' }: Atta
           {/* Botón de eliminar */}
           <button
             onClick={onRemove}
-            className="p-1 text-slate-400 hover:text-red-400 transition-colors"
+            className="p-1 text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
             title="Eliminar adjunto"
           >
             <X className="w-4 h-4" />

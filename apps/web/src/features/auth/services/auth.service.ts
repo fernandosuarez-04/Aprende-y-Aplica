@@ -45,13 +45,13 @@ export class AuthService {
     try {
       const supabase = await createClient()
       
-      await supabase
-        .from('user_session')
+      await (supabase
+        .from('user_session') as any)
         .update({ revoked: true })
         .lt('expires_at', new Date().toISOString())
     } catch (error) {
       // Log error but don't throw to avoid breaking auth flow
-      console.error('Error clearing expired sessions:', error)
+      // console.error('Error clearing expired sessions:', error)
     }
   }
 }

@@ -15,6 +15,8 @@ import {
 interface InlineAttachmentButtonsProps {
   onAttachmentSelect: (type: string, data: any) => void;
   className?: string;
+  currentAttachmentsCount?: number;
+  maxAttachments?: number;
 }
 
 interface AttachmentType {
@@ -70,11 +72,22 @@ const attachmentTypes: AttachmentType[] = [
   }
 ];
 
-export function InlineAttachmentButtons({ onAttachmentSelect, className = '' }: InlineAttachmentButtonsProps) {
+export function InlineAttachmentButtons({ 
+  onAttachmentSelect, 
+  className = '',
+  currentAttachmentsCount = 0,
+  maxAttachments = 3
+}: InlineAttachmentButtonsProps) {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAttachmentTypeSelect = (type: AttachmentType) => {
+    // Verificar límite
+    if (currentAttachmentsCount >= maxAttachments) {
+      alert(`Máximo ${maxAttachments} adjuntos por publicación`);
+      return;
+    }
+
     setSelectedType(type.id);
     
     if (type.id === 'image' || type.id === 'document' || type.id === 'video') {
@@ -152,7 +165,7 @@ export function InlineAttachmentButtons({ onAttachmentSelect, className = '' }: 
       </div>
 
       {/* Separador visual */}
-      <div className="w-px h-6 bg-slate-600/50 mx-1" />
+      <div className="w-px h-6 bg-gray-300 dark:bg-slate-600/50 mx-1" />
 
       {/* Grupo 2: Enlaces y Encuestas */}
       <div className="flex items-center gap-1">

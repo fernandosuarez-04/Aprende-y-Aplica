@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
+import { z } from 'zod';
+
+// ✅ Schema de validación para UUID
+const ReelIdSchema = z.string().uuid('ID de reel inválido');
 
 export async function GET(
   request: NextRequest,
@@ -9,7 +13,15 @@ export async function GET(
     const supabase = await createClient();
     const { id } = await params;
 
-    console.log('🔍 Fetching reel:', id);
+    // ✅ SEGURIDAD: Validar que el ID sea un UUID válido
+    try {
+      ReelIdSchema.parse(id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'ID de reel inválido' },
+        { status: 400 }
+      );
+    }
 
     // Obtener el reel con información del creador
     const { data: reel, error: reelError } = await supabase
@@ -44,7 +56,7 @@ export async function GET(
       .single();
 
     if (reelError || !reel) {
-      console.error('❌ Reel not found:', reelError);
+      // console.error('❌ Reel not found:', reelError);
       return NextResponse.json({ error: 'Reel no encontrado' }, { status: 404 });
     }
 
@@ -91,18 +103,16 @@ export async function GET(
         user_agent: request.headers.get('user-agent') || 'unknown'
       });
 
-    console.log('✅ Reel fetched successfully:', reel.id);
-
     return NextResponse.json({
       reel: {
         ...reel,
-        hashtags: hashtags?.map(h => h.reel_hashtags.name) || []
+        hashtags: hashtags?.map((h: any) => h.reel_hashtags.name) || []
       },
       comments: comments || []
     });
 
   } catch (error) {
-    console.error('❌ Error in reel API:', error);
+    // console.error('❌ Error in reel API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -159,7 +169,7 @@ export async function PUT(
       .single();
 
     if (updateError) {
-      console.error('❌ Error updating reel:', updateError);
+      // console.error('❌ Error updating reel:', updateError);
       return NextResponse.json({ error: 'Error al actualizar el reel' }, { status: 500 });
     }
 
@@ -193,15 +203,13 @@ export async function PUT(
       }
     }
 
-    console.log('✅ Reel updated successfully:', id);
-
     return NextResponse.json({
       reel: updatedReel,
       message: 'Reel actualizado exitosamente'
     });
 
   } catch (error) {
-    console.error('❌ Error in reel PUT API:', error);
+    // console.error('❌ Error in reel PUT API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -243,18 +251,16 @@ export async function DELETE(
       .eq('id', id);
 
     if (deleteError) {
-      console.error('❌ Error deleting reel:', deleteError);
+      // console.error('❌ Error deleting reel:', deleteError);
       return NextResponse.json({ error: 'Error al eliminar el reel' }, { status: 500 });
     }
-
-    console.log('✅ Reel deleted successfully:', id);
 
     return NextResponse.json({
       message: 'Reel eliminado exitosamente'
     });
 
   } catch (error) {
-    console.error('❌ Error in reel DELETE API:', error);
+    // console.error('❌ Error in reel DELETE API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

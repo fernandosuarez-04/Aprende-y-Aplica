@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { createClient } from '../../../lib/supabase/client'
 import type { Database } from '../../../lib/supabase/types'
-import { createBrowserClient } from '@supabase/ssr'
 
 export interface UserProfile {
   id: string
@@ -49,8 +48,29 @@ export interface UpdateProfileRequest {
   country_code?: string
 }
 
+interface UserSubscription {
+  subscription_id: string
+  subscription_type: string
+  subscription_status: string
+  price_cents: number
+  start_date: string
+  end_date: string | null
+  next_billing_date: string | null
+  course_id: string | null
+  course_title?: string | null
+}
+
+interface UserStats {
+  completedCourses: number
+  completedLessons: number
+  certificates: number
+  coursesInProgress: number
+  subscriptions?: UserSubscription[]
+}
+
 interface UseProfileReturn {
   profile: UserProfile | null
+  stats: UserStats | null
   loading: boolean
   error: string | null
   saving: boolean
@@ -63,6 +83,7 @@ interface UseProfileReturn {
 
 export function useProfile(): UseProfileReturn {
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -89,7 +110,7 @@ export function useProfile(): UseProfileReturn {
         .single() as { data: Database['public']['Tables']['users']['Row'] | null, error: any }
 
       if (fetchError || !data) {
-        console.error('Error fetching user profile:', fetchError)
+        // console.error('Error fetching user profile:', fetchError)
         throw new Error(`Error al obtener perfil: ${fetchError?.message || 'No data found'}`)
       }
 
@@ -119,11 +140,40 @@ export function useProfile(): UseProfileReturn {
       }
       
       setProfile(profileData)
-      console.log('🔍 Profile data loaded:', profileData)
+      // console.log('🔍 Profile data loaded:', profileData)
+
+      // Obtener estadísticas del usuario desde la API
+      try {
+        const response = await fetch('/api/profile/stats', {
+          method: 'GET',
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          const userStats = await response.json()
+          setStats(userStats)
+        } else {
+          // Si falla, usar valores por defecto
+          setStats({
+            completedCourses: 0,
+            averageProgress: 0,
+            totalStudyTime: 0
+          })
+        }
+      } catch (statsError) {
+        // No lanzar error, solo usar valores por defecto
+        // console.error('Error fetching user stats:', statsError)
+        setStats({
+          completedCourses: 0,
+          completedLessons: 0,
+          certificates: 0,
+          coursesInProgress: 0
+        })
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error fetching profile:', err)
+      // console.error('Error fetching profile:', err)
     } finally {
       setLoading(false)
     }
@@ -138,58 +188,35 @@ export function useProfile(): UseProfileReturn {
       setSaving(true)
       setError(null)
       
-      // Actualizar directamente en la base de datos
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      
-      const { data, error: updateError } = await supabase
-        .from('users')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
-        .select('*')
-        .single()
+      // Usar el endpoint de la API para que se creen las notificaciones automáticamente
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updates)
+      })
 
-      if (updateError || !data) {
-        console.error('Error updating profile:', updateError)
-        throw new Error(`Error al actualizar perfil: ${updateError?.message || 'No data found'}`)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || errorData.error || 'Error al actualizar perfil')
       }
 
-      // Convertir los datos actualizados al formato esperado
-      const updatedProfileData: UserProfile = {
-        id: (data as any).id,
-        username: (data as any).username || 'usuario',
-        email: (data as any).email || 'usuario@ejemplo.com',
-        first_name: (data as any).first_name || '',
-        last_name: (data as any).last_name || '',
-        display_name: (data as any).display_name || (data as any).first_name || 'Usuario',
-        phone: (data as any).phone || (data as any).phone_number || '',
-        bio: (data as any).bio || '',
-        location: (data as any).location || '',
-        cargo_rol: (data as any).cargo_rol || '',
-        type_rol: (data as any).type_rol || '',
-        profile_picture_url: (data as any).profile_picture_url || '',
-        curriculum_url: (data as any).curriculum_url || '',
-        linkedin_url: (data as any).linkedin_url || '',
-        github_url: (data as any).github_url || '',
-        website_url: (data as any).website_url || '',
-        country_code: (data as any).country_code || '',
-        points: (data as any).points || 0,
-        created_at: (data as any).created_at,
-        last_login_at: (data as any).last_login_at || '',
-        email_verified: (data as any).email_verified || false
-      }
+      const updatedProfileData: UserProfile = await response.json()
       
       setProfile(updatedProfileData)
+
+      // Refrescar notificaciones inmediatamente para mostrar la nueva notificación
+      // Disparamos un evento que el contexto de notificaciones escucha
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refresh-notifications'))
+      }
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error updating profile:', err)
+      // console.error('Error updating profile:', err)
       throw err
     } finally {
       setSaving(false)
@@ -212,75 +239,61 @@ export function useProfile(): UseProfileReturn {
         throw new Error('Usuario no autenticado')
       }
       
-      console.log('🔍 Usuario autenticado:', currentUser.id)
+      // console.log('🔍 Usuario autenticado:', currentUser.id)
       
-      // Validar archivo
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+      // Validar archivo (coincide con configuración del bucket: image/png, image/jpeg, image/jpg, image/gif)
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
       if (!allowedTypes.includes(file.type)) {
-        throw new Error('Tipo de archivo no válido. Solo se permiten JPG, PNG y WebP.')
+        throw new Error('Tipo de archivo no válido. Solo se permiten PNG, JPEG, JPG y GIF.')
       }
 
-      const maxSize = 5 * 1024 * 1024 // 5MB
+      const maxSize = 10 * 1024 * 1024 // 10MB (según configuración del bucket)
       if (file.size > maxSize) {
-        throw new Error('El archivo es demasiado grande. Máximo 5MB.')
+        throw new Error('El archivo es demasiado grande. Máximo 10MB.')
       }
       
-      console.log('📁 Archivo válido:', file.name, file.type, file.size)
+      // console.log('📁 Archivo válido:', file.name, file.type, file.size)
       
       // Subir directamente a Supabase Storage
       const fileExt = file.name.split('.').pop()
       const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`
       const filePath = `profile-pictures/${fileName}`
 
-      console.log('📤 Subiendo archivo:', filePath)
+      // console.log('📤 Subiendo archivo:', filePath)
 
-      // Subir archivo a Supabase Storage
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const { data, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file)
+      // Subir archivo usando API REST (mejor manejo de autenticación y RLS)
+      const formData = new FormData()
+      formData.append('file', file)
 
-      if (uploadError) {
-        console.error('❌ Error uploading profile picture:', uploadError)
-        throw new Error(`Error al subir imagen: ${uploadError.message}`)
+      console.log('📤 Subiendo archivo vía API REST...')
+
+      const response = await fetch('/api/profile/upload-picture', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include' // Incluir cookies de sesión
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || errorData.message || `Error al subir imagen: ${response.statusText}`)
       }
 
-      console.log('✅ Upload exitoso directo a Supabase')
+      const { imageUrl } = await response.json()
 
-      // Obtener URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath)
-
-      console.log('🔗 URL pública:', publicUrl)
-
-      // Actualizar perfil en la base de datos
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ 
-          profile_picture_url: publicUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentUser.id)
-
-      if (updateError) {
-        console.error('❌ Error updating profile:', updateError)
-        throw new Error(`Error al actualizar perfil: ${updateError.message}`)
+      if (!imageUrl) {
+        throw new Error('No se recibió la URL de la imagen')
       }
-      
-      console.log('✅ Perfil actualizado en base de datos')
-      
+
+      console.log('✅ Upload exitoso vía API REST:', imageUrl)
+
       // Actualizar perfil local con nueva URL
-      setProfile(prev => prev ? { ...prev, profile_picture_url: publicUrl } : null)
+      setProfile(prev => prev ? { ...prev, profile_picture_url: imageUrl } : null)
       
-      return publicUrl
+      return imageUrl
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error uploading profile picture:', err)
+      // console.error('Error uploading profile picture:', err)
       throw err
     } finally {
       setSaving(false)
@@ -323,16 +336,14 @@ export function useProfile(): UseProfileReturn {
       const filePath = `curriculums/${fileName}`
 
       // Subir archivo a Supabase Storage
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Usar createClient() que maneja la sesión del usuario correctamente
+      const supabase = createClient()
       const { data, error: uploadError } = await supabase.storage
         .from('curriculums')
         .upload(filePath, file)
 
       if (uploadError) {
-        console.error('Error uploading curriculum:', uploadError)
+        // console.error('Error uploading curriculum:', uploadError)
         throw new Error(`Error al subir curriculum: ${uploadError.message}`)
       }
 
@@ -351,7 +362,7 @@ export function useProfile(): UseProfileReturn {
         .eq('id', currentUser.id)
 
       if (updateError) {
-        console.error('Error updating profile:', updateError)
+        // console.error('Error updating profile:', updateError)
         throw new Error(`Error al actualizar perfil: ${updateError.message}`)
       }
       
@@ -362,7 +373,7 @@ export function useProfile(): UseProfileReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error uploading curriculum:', err)
+      // console.error('Error uploading curriculum:', err)
       throw err
     } finally {
       setSaving(false)
@@ -379,11 +390,11 @@ export function useProfile(): UseProfileReturn {
       setError(null)
       
       // TODO: Implementar API para cambio de contraseña
-      console.log('Change password not implemented yet')
+      // console.log('Change password not implemented yet')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      console.error('Error changing password:', err)
+      // console.error('Error changing password:', err)
       throw err
     } finally {
       setSaving(false)
@@ -400,6 +411,7 @@ export function useProfile(): UseProfileReturn {
 
   return {
     profile,
+    stats,
     loading,
     error,
     saving,

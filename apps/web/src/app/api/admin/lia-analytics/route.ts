@@ -1,0 +1,440 @@
+/**
+ * API de LIA Analytics - Endpoint Principal
+ * 
+ * Proporciona métricas resumidas del uso y costos de LIA
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
+
+export const dynamic = 'force-dynamic';
+
+interface DateRange {
+  startDate: Date;
+  endDate: Date;
+}
+
+function getDateRange(period: string): DateRange {
+  // IMPORTANTE: Usar UTC para coincidir con cómo se guardan los datos en la BD
+  // Las fechas se guardan como "2025-12-05 16:04:55.295407+00" (UTC)
+  const now = new Date();
+  
+  // endDate: Hasta el final del día actual (23:59:59.999) en UTC
+  const endDate = new Date(now);
+  endDate.setUTCHours(23, 59, 59, 999);
+  
+  let startDate = new Date(now);
+  
+  switch (period) {
+    case 'day':
+      // Hoy desde las 00:00:00 en UTC
+      startDate.setUTCHours(0, 0, 0, 0);
+      break;
+    case 'week':
+      // Últimos 7 días (incluyendo hoy) en UTC
+      startDate.setUTCDate(startDate.getUTCDate() - 6); // -6 para incluir hoy (7 días total)
+      startDate.setUTCHours(0, 0, 0, 0);
+      break;
+    case 'month':
+      // Último mes (30 días, incluyendo hoy) en UTC
+      startDate.setUTCDate(startDate.getUTCDate() - 29); // -29 para incluir hoy (30 días total)
+      startDate.setUTCHours(0, 0, 0, 0);
+      break;
+    case 'year':
+      // Último año (365 días, incluyendo hoy) en UTC
+      startDate.setUTCDate(startDate.getUTCDate() - 364); // -364 para incluir hoy (365 días total)
+      startDate.setUTCHours(0, 0, 0, 0);
+      break;
+    default:
+      // Por defecto: último mes
+      startDate.setUTCDate(startDate.getUTCDate() - 29);
+      startDate.setUTCHours(0, 0, 0, 0);
+  }
+  
+  return { startDate, endDate };
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // ✅ SEGURIDAD: Verificar autenticación y autorización de admin
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
+    
+    const supabase = await createClient();
+    
+    // Obtener parámetros
+    const { searchParams } = new URL(request.url);
+    const period = searchParams.get('period') || 'month';
+    const customStartDate = searchParams.get('startDate');
+    const customEndDate = searchParams.get('endDate');
+    
+    let startDate: Date;
+    let endDate: Date;
+    
+    if (customStartDate && customEndDate) {
+      startDate = new Date(customStartDate);
+      endDate = new Date(customEndDate);
+    } else {
+      const range = getDateRange(period);
+      startDate = range.startDate;
+      endDate = range.endDate;
+    }
+    
+    // ===== MÉTRICAS PRINCIPALES =====
+    
+    // Usar fecha actual para incluir datos hasta el momento presente
+    const nowISO = new Date().toISOString();
+    
+    // Total de conversaciones
+    const { count: totalConversations } = await supabase
+      .from('lia_conversations')
+      .select('*', { count: 'exact', head: true })
+      .gte('started_at', startDate.toISOString())
+      .lte('started_at', nowISO);
+    
+    // Total de mensajes y métricas
+    const { data: messagesData } = await supabase
+      .from('lia_messages')
+      .select('tokens_used, cost_usd, response_time_ms, model_used, role')
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', nowISO);
+    
+    const totalMessages = messagesData?.length || 0;
+    const assistantMessages = messagesData?.filter(m => m.role === 'assistant') || [];
+    const totalTokens = messagesData?.reduce((sum, m) => sum + (m.tokens_used || 0), 0) || 0;
+    const totalCostUsd = messagesData?.reduce((sum, m) => sum + (m.cost_usd || 0), 0) || 0;
+    
+    // Tiempo de respuesta promedio (solo mensajes del asistente)
+    const responseTimes = assistantMessages
+      .filter(m => m.response_time_ms)
+      .map(m => m.response_time_ms);
+    const avgResponseTimeMs = responseTimes.length > 0 
+      ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+      : 0;
+    
+    // Actividades completadas
+    const { count: completedActivities } = await supabase
+      .from('lia_activity_completions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'completed')
+      .gte('completed_at', startDate.toISOString())
+      .lte('completed_at', nowISO);
+    
+    // ===== COSTOS POR DÍA =====
+    // IMPORTANTE: Las fechas en la BD se guardan en UTC (toISOString())
+    // startDate ya viene en UTC desde getDateRange(), solo necesitamos asegurar que esté en inicio del día
+    const startDateUTC = new Date(startDate);
+    startDateUTC.setUTCHours(0, 0, 0, 0);
+    
+    // Consultar TODOS los mensajes del período
+    // Supabase tiene un límite por defecto de 1000 registros, pero podemos obtener más con paginación
+    let allDailyCosts: any[] = [];
+    let hasMore = true;
+    let offset = 0;
+    const limit = 1000; // Límite por página de Supabase
+    
+    while (hasMore) {
+      const { data: pageData, error: dailyCostsError } = await supabase
+        .from('lia_messages')
+        .select('created_at, cost_usd, tokens_used')
+        .gte('created_at', startDateUTC.toISOString())
+        .lte('created_at', nowISO)
+        .order('created_at', { ascending: true })
+        .range(offset, offset + limit - 1);
+      
+      if (dailyCostsError) {
+        console.error('[LIA Analytics] Error fetching daily costs:', dailyCostsError);
+        break;
+      }
+      
+      if (pageData && pageData.length > 0) {
+        allDailyCosts = [...allDailyCosts, ...pageData];
+        offset += limit;
+        hasMore = pageData.length === limit; // Si hay menos registros que el límite, no hay más páginas
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    const dailyCosts = allDailyCosts;
+    
+    // Agrupar por día usando UTC (las fechas en BD están en UTC)
+    // IMPORTANTE: Las fechas se guardan como "2025-12-05 16:04:55.295407+00" (UTC)
+    // Necesitamos extraer el día directamente del string o usar UTC para evitar problemas de zona horaria
+    const costsByDay = new Map<string, { cost: number; tokens: number; messages: number }>();
+    
+    if (dailyCosts && dailyCosts.length > 0) {
+      dailyCosts.forEach(msg => {
+        if (!msg.created_at) return; // Saltar si no hay fecha
+        
+        // Extraer la fecha directamente del string UTC para evitar problemas de conversión
+        // El formato es "2025-12-05 16:04:55.295407+00" o ISO string
+        let date: string;
+        
+        if (typeof msg.created_at === 'string') {
+          // Si viene como "2025-12-05 16:04:55.295407+00", extraer solo la parte de fecha
+          if (msg.created_at.includes(' ')) {
+            date = msg.created_at.split(' ')[0]; // "2025-12-05"
+          } else {
+            // Si viene como ISO string "2025-12-05T16:04:55.295Z"
+            date = msg.created_at.split('T')[0]; // "2025-12-05"
+          }
+        } else {
+          // Fallback: usar Date y métodos UTC
+          const msgDate = new Date(msg.created_at);
+          const year = msgDate.getUTCFullYear();
+          const month = String(msgDate.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(msgDate.getUTCDate()).padStart(2, '0');
+          date = `${year}-${month}-${day}`;
+        }
+        
+        const existing = costsByDay.get(date) || { cost: 0, tokens: 0, messages: 0 };
+        costsByDay.set(date, {
+          cost: existing.cost + (Number(msg.cost_usd) || 0),
+          tokens: existing.tokens + (Number(msg.tokens_used) || 0),
+          messages: existing.messages + 1
+        });
+      });
+    }
+    
+    // Debug: Verificar qué datos se obtuvieron y agrupados (usando UTC)
+    const uniqueDatesFromData = dailyCosts ? [...new Set(dailyCosts.map(m => {
+      const d = new Date(m.created_at);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    }))].sort() : [];
+    
+    console.log('[LIA Analytics] Consulta de costos diarios:', {
+      queryRange: {
+        startDateUTC: startDateUTC.toISOString(),
+        endDateUTC: nowISO,
+        startDateLocal: startDate.toISOString()
+      },
+      totalRecords: dailyCosts?.length || 0,
+      dateRange: dailyCosts?.length > 0 ? {
+        first: dailyCosts[0]?.created_at,
+        last: dailyCosts[dailyCosts.length - 1]?.created_at
+      } : null,
+      uniqueDatesFromData,
+      groupedDates: Array.from(costsByDay.keys()).sort(),
+      groupedDataSample: Array.from(costsByDay.entries()).slice(0, 10).reduce((acc, [date, data]) => {
+        acc[date] = { cost: data.cost, tokens: data.tokens, messages: data.messages };
+        return acc;
+      }, {} as Record<string, any>)
+    });
+    
+    // Asegurar que incluimos todos los días del rango, incluso si no hay datos
+    // IMPORTANTE: Usar UTC para coincidir con cómo se agruparon los datos
+    const costsByPeriod: Array<{ date: string; cost: number; tokens: number; messages: number }> = [];
+    
+    // Reutilizar startDateUTC que ya fue declarado arriba para la consulta
+    // Solo necesitamos crear todayUTC para el bucle
+    const todayUTC = new Date(); // Fecha actual
+    todayUTC.setUTCHours(23, 59, 59, 999);
+    
+    // Iterar día por día desde startDate hasta hoy (en UTC)
+    const tempDate = new Date(startDateUTC);
+    let dayCount = 0;
+    const maxDays = 365; // Límite de seguridad
+    
+    while (tempDate <= todayUTC && dayCount < maxDays) {
+      const year = tempDate.getUTCFullYear();
+      const month = String(tempDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(tempDate.getUTCDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
+      const dayData = costsByDay.get(dateStr) || { cost: 0, tokens: 0, messages: 0 };
+      costsByPeriod.push({
+        date: dateStr,
+        cost: Number(dayData.cost.toFixed(6)),
+        tokens: dayData.tokens,
+        messages: dayData.messages
+      });
+      
+      // Avanzar al siguiente día (en UTC)
+      tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+      dayCount++;
+    }
+    
+    // Debug: Log para verificar datos
+    console.log('[LIA Analytics] Costos por período:', {
+      startDateUTC: startDateUTC.toISOString(),
+      todayUTC: todayUTC.toISOString(),
+      totalDays: costsByPeriod.length,
+      daysWithData: costsByPeriod.filter(d => d.messages > 0).length,
+      firstDate: costsByPeriod[0]?.date,
+      lastDate: costsByPeriod[costsByPeriod.length - 1]?.date,
+      totalMessagesFound: dailyCosts?.length || 0,
+      sampleDaysWithData: costsByPeriod.filter(d => d.messages > 0).slice(0, 10).map(d => ({
+        date: d.date,
+        messages: d.messages,
+        cost: d.cost,
+        tokens: d.tokens
+      }))
+    });
+    
+    // ===== DISTRIBUCIÓN POR CONTEXTO =====
+    const { data: contextData } = await supabase
+      .from('lia_conversations')
+      .select(`
+        context_type,
+        conversation_id
+      `)
+      .gte('started_at', startDate.toISOString())
+      .lte('started_at', nowISO);
+    
+    // Obtener costos por conversación
+    const conversationIds = contextData?.map(c => c.conversation_id) || [];
+    
+    let messagesByConversation: any[] = [];
+    if (conversationIds.length > 0) {
+      const { data } = await supabase
+        .from('lia_messages')
+        .select('conversation_id, cost_usd, tokens_used')
+        .in('conversation_id', conversationIds);
+      messagesByConversation = data || [];
+    }
+    
+    // Crear mapa de costos por conversación
+    const costByConversation = new Map<string, { cost: number; tokens: number }>();
+    messagesByConversation?.forEach(m => {
+      const existing = costByConversation.get(m.conversation_id) || { cost: 0, tokens: 0 };
+      costByConversation.set(m.conversation_id, {
+        cost: existing.cost + (m.cost_usd || 0),
+        tokens: existing.tokens + (m.tokens_used || 0)
+      });
+    });
+    
+    // Agrupar por tipo de contexto
+    const contextCounts = new Map<string, { count: number; cost: number; tokens: number }>();
+    contextData?.forEach(conv => {
+      const type = conv.context_type || 'general';
+      const convCosts = costByConversation.get(conv.conversation_id) || { cost: 0, tokens: 0 };
+      const existing = contextCounts.get(type) || { count: 0, cost: 0, tokens: 0 };
+      contextCounts.set(type, {
+        count: existing.count + 1,
+        cost: existing.cost + convCosts.cost,
+        tokens: existing.tokens + convCosts.tokens
+      });
+    });
+    
+    const totalContextCount = Array.from(contextCounts.values()).reduce((sum, c) => sum + c.count, 0);
+    const contextDistribution = Array.from(contextCounts.entries()).map(([contextType, data]) => ({
+      contextType,
+      count: data.count,
+      cost: Number(data.cost.toFixed(6)),
+      tokens: data.tokens,
+      percentage: totalContextCount > 0 ? Number(((data.count / totalContextCount) * 100).toFixed(1)) : 0
+    }));
+    
+    // ===== USO POR MODELO =====
+    const modelCounts = new Map<string, { tokens: number; cost: number; count: number }>();
+    assistantMessages?.forEach(m => {
+      const model = m.model_used || 'gpt-4o-mini';
+      const existing = modelCounts.get(model) || { tokens: 0, cost: 0, count: 0 };
+      modelCounts.set(model, {
+        tokens: existing.tokens + (m.tokens_used || 0),
+        cost: existing.cost + (m.cost_usd || 0),
+        count: existing.count + 1
+      });
+    });
+    
+    const totalModelTokens = Array.from(modelCounts.values()).reduce((sum, m) => sum + m.tokens, 0);
+    const modelUsage = Array.from(modelCounts.entries()).map(([model, data]) => ({
+      model,
+      tokens: data.tokens,
+      cost: Number(data.cost.toFixed(6)),
+      count: data.count,
+      percentage: totalModelTokens > 0 ? Number(((data.tokens / totalModelTokens) * 100).toFixed(1)) : 0
+    }));
+    
+    // ===== MÉTRICAS DE HOY Y COMPARACIÓN =====
+    // Usar fecha local (no UTC) para calcular "hoy" correctamente
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0); // Inicio del día en hora local
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999); // Final del día en hora local
+    
+    // Usar fecha actual para incluir datos hasta ahora
+    const nowForToday = new Date().toISOString();
+    
+    const { data: todayMessages } = await supabase
+      .from('lia_messages')
+      .select('cost_usd, tokens_used')
+      .gte('created_at', todayStart.toISOString())
+      .lte('created_at', nowForToday);
+    
+    const todayCost = todayMessages?.reduce((sum, m) => sum + (m.cost_usd || 0), 0) || 0;
+    const todayTokens = todayMessages?.reduce((sum, m) => sum + (m.tokens_used || 0), 0) || 0;
+    
+    // Ayer para comparación (usando hora local)
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    const yesterdayEnd = new Date(todayStart);
+    yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
+    
+    const { data: yesterdayMessages } = await supabase
+      .from('lia_messages')
+      .select('cost_usd, tokens_used')
+      .gte('created_at', yesterdayStart.toISOString())
+      .lte('created_at', yesterdayEnd.toISOString());
+    
+    const yesterdayCost = yesterdayMessages?.reduce((sum, m) => sum + (m.cost_usd || 0), 0) || 0;
+    
+    // Calcular cambio porcentual
+    const costChange = yesterdayCost > 0 
+      ? Number((((todayCost - yesterdayCost) / yesterdayCost) * 100).toFixed(1))
+      : 0;
+    
+    // ===== PROYECCIÓN MENSUAL =====
+    const daysInPeriod = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const avgDailyCost = daysInPeriod > 0 ? totalCostUsd / daysInPeriod : 0;
+    const projectedMonthlyCost = avgDailyCost * 30;
+    
+    return NextResponse.json({
+      success: true,
+      data: {
+        period: {
+          start: startDate.toISOString(),
+          end: nowISO,
+          type: period
+        },
+        summary: {
+          totalConversations: totalConversations || 0,
+          totalMessages,
+          totalTokens,
+          totalCostUsd: Number(totalCostUsd.toFixed(6)),
+          avgResponseTimeMs,
+          completedActivities: completedActivities || 0
+        },
+        today: {
+          cost: Number(todayCost.toFixed(6)),
+          tokens: todayTokens,
+          messages: todayMessages?.length || 0,
+          costChange
+        },
+        projections: {
+          dailyAvg: Number(avgDailyCost.toFixed(6)),
+          monthlyEstimate: Number(projectedMonthlyCost.toFixed(4))
+        },
+        costsByPeriod,
+        contextDistribution,
+        modelUsage
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error en LIA Analytics:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}

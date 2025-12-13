@@ -1,0 +1,52 @@
+{
+  "loading": "Cargando dashboard...",
+  "categories": {
+    "errorTitle": "Error al cargar categorías",
+    "errorMessage": "Usando categorías por defecto"
+  },
+  "courses": {
+    "loading": "Cargando cursos...",
+    "errorTitle": "Error al cargar cursos",
+    "noRatings": "Sin calificaciones",
+    "goToCourse": "Ir al curso",
+    "viewDetails": "Ver detalles",
+    "addToCart": "Agregar al carrito",
+    "empty": {
+      "title": "No hay cursos disponibles",
+      "favorites": "No tienes cursos favoritos aún",
+      "all": "No hay cursos en la plataforma",
+      "category": "No hay cursos en la categoría {{category}}"
+    }
+  },
+  "filters": {
+    "all": "Todos",
+    "favorites": "Favoritos"
+  },
+  "stats": {
+    "title": "Tu Progreso",
+    "completed": "Talleres Completados",
+    "inProgress": "En Progreso",
+    "favorites": "Favoritos"
+  },
+  "activity": {
+    "title": "Actividad Reciente",
+    "completed": "Completaste \"{{course}}\"",
+    "inProgress": "Continuaste \"{{course}}\"",
+    "purchased": "Adquiriste \"{{course}}\"",
+    "emptyTitle": "No hay actividad reciente",
+    "emptySubtitle": "Comienza un curso para ver tu progreso"
+  },
+  "courseTitles": {
+    "ia-esencial-aprende-lo-que-otros-tardan-meses-en-descubrir": "IA esencial, aprende lo que otros tardan meses en descubrir",
+    "introduccion-a-la-ia": "Introducción a la IA"
+  },
+  "assistant": {
+    "initialMessage": "¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con información sobre talleres, cursos y contenido educativo. ¿En qué puedo asistirte hoy?",
+    "placeholder": "Pregunta sobre talleres, cursos..."
+  },
+  "sections": {
+    "whatToLearnNow": "Qué aprender ahora",
+    "recommendationsForYou": "Recomendaciones para ti"
+  }
+}
+

@@ -23,7 +23,7 @@ export async function GET(
       .rpc('get_post_reaction_stats', { post_id: postId });
 
     if (statsError) {
-      console.error('Error fetching reaction stats:', statsError);
+      // console.error('Error fetching reaction stats:', statsError);
       return NextResponse.json({ error: 'Error al obtener estadísticas' }, { status: 500 });
     }
 
@@ -35,7 +35,7 @@ export async function GET(
       });
 
     if (topError) {
-      console.error('Error fetching top reactions:', topError);
+      // console.error('Error fetching top reactions:', topError);
       return NextResponse.json({ error: 'Error al obtener reacciones populares' }, { status: 500 });
     }
 
@@ -47,7 +47,7 @@ export async function GET(
       .single();
 
     if (postError) {
-      console.error('Error fetching post:', postError);
+      // console.error('Error fetching post:', postError);
       return NextResponse.json({ error: 'Error al obtener información del post' }, { status: 500 });
     }
 
@@ -90,7 +90,7 @@ export async function GET(
       });
 
     if (usersError) {
-      console.error('Error fetching top users:', usersError);
+      // console.error('Error fetching top users:', usersError);
     }
 
     return NextResponse.json({
@@ -107,7 +107,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error in stats GET:', error);
+    // console.error('Error in stats GET:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
@@ -135,18 +135,16 @@ export async function POST(
         .rpc('refresh_post_reaction_stats');
 
       if (refreshError) {
-        console.warn('Error refreshing materialized view:', refreshError);
-      }
+        }
     } catch (error) {
-      console.warn('Could not refresh materialized view:', error);
-    }
+      }
 
     // Obtener estadísticas actualizadas
     const { data: stats, error: statsError } = await supabase
       .rpc('get_post_reaction_stats', { post_id: postId });
 
     if (statsError) {
-      console.error('Error fetching updated stats:', statsError);
+      // console.error('Error fetching updated stats:', statsError);
       return NextResponse.json({ error: 'Error al obtener estadísticas actualizadas' }, { status: 500 });
     }
 
@@ -157,7 +155,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Error in stats POST:', error);
+    // console.error('Error in stats POST:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

@@ -7,6 +7,8 @@ import { ArrowLeft, Copy, Check, Star, Eye, Download, Clock, Sparkles, ExternalL
 import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
 import { LoadingSpinner } from '../../../features/ai-directory/components/LoadingSpinner';
+import { PromptRatingInline } from '../../../features/ai-directory/components/PromptRatingInline';
+import { StarRating } from '../../../features/courses/components/StarRating';
 
 interface Prompt {
   prompt_id: string;
@@ -26,8 +28,8 @@ interface Prompt {
   view_count: number;
   like_count: number;
   download_count: number;
-  rating: number;
-  rating_count: number;
+  rating?: number | null;
+  rating_count?: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -58,28 +60,40 @@ export default function PromptDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const fetchPrompt = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/ai-directory/prompts/${params.slug}`);
-        
-        if (!response.ok) {
-          throw new Error('Prompt not found');
-        }
-
-        const data = await response.json();
-        setPrompt(data.prompt);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+  const fetchPrompt = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/ai-directory/prompts/${params.slug}`);
+      
+      if (!response.ok) {
+        throw new Error('Prompt not found');
       }
-    };
 
+      const data = await response.json();
+      setPrompt(data.prompt);
+      setError(null);
+
+      // Incrementar contador de visualizaciones
+      try {
+        await fetch(`/api/ai-directory/prompts/${params.slug}/view`, {
+          method: 'POST',
+        });
+      } catch (viewError) {
+        // No fallar si el incremento de vistas falla
+        console.error('Error incrementing view count:', viewError);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (params.slug) {
       fetchPrompt();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.slug]);
 
   const handleCopyPrompt = async () => {
@@ -90,13 +104,33 @@ export default function PromptDetailPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy prompt:', err);
+      // console.error('Failed to copy prompt:', err);
+    }
+  };
+
+  const handleDownloadPrompt = () => {
+    if (!prompt || !prompt.content || !prompt.title) return;
+    
+    try {
+      const promptContent = `# ${prompt.title}\n\n${prompt.description ? `## Descripción\n${prompt.description}\n\n` : ''}## Contenido del Prompt\n\n${prompt.content}${prompt.tags && prompt.tags.length > 0 ? `\n\n## Tags\n${prompt.tags.join(', ')}` : ''}${prompt.use_cases && prompt.use_cases.length > 0 ? `\n\n## Casos de Uso\n${prompt.use_cases.map(uc => `- ${uc}`).join('\n')}` : ''}${prompt.tips && prompt.tips.length > 0 ? `\n\n## Consejos de Uso\n${prompt.tips.map(tip => `- ${tip}`).join('\n')}` : ''}\n\n---\nDescargado desde Aprende y Aplica IA\nFecha: ${new Date().toLocaleString('es-ES')}`;
+      
+      const blob = new Blob([promptContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${prompt.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      // console.error('Error al descargar el prompt:', err);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -104,9 +138,9 @@ export default function PromptDetailPage() {
 
   if (error || !prompt) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Prompt no encontrado</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Prompt no encontrado</h1>
           <Link href="/prompt-directory">
             <Button variant="primary">Volver al Directorio</Button>
           </Link>
@@ -116,7 +150,7 @@ export default function PromptDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
       {/* Header */}
       <motion.div
         className="relative pt-24 pb-8 overflow-hidden"
@@ -125,7 +159,7 @@ export default function PromptDetailPage() {
         transition={{ duration: 0.8 }}
       >
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-20 dark:opacity-100 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl" />
         
         <div className="container mx-auto px-4 relative z-10">
@@ -165,20 +199,20 @@ export default function PromptDetailPage() {
               </div>
               
               {prompt.is_featured && (
-                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30">
-                  <Sparkles className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm font-medium text-purple-300">Destacado</span>
+                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 dark:from-purple-500/20 dark:to-pink-500/20 border border-purple-500/50 dark:border-purple-500/30">
+                  <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Destacado</span>
                 </div>
               )}
             </div>
 
             {/* Title */}
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
               {prompt.title}
             </h1>
 
             {/* Description */}
-            <p className="text-xl text-gray-300 mb-8">
+            <p className="text-xl text-gray-700 dark:text-gray-300 mb-8">
               {prompt.description}
             </p>
 
@@ -189,42 +223,33 @@ export default function PromptDetailPage() {
               </div>
               
               {prompt.estimated_time_minutes && (
-                <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                   <Clock className="w-4 h-4" />
                   <span>{prompt.estimated_time_minutes} minutos</span>
                 </div>
               )}
               
-              <div className="flex items-center gap-2 text-gray-400">
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <Eye className="w-4 h-4" />
                 <span>{prompt.view_count.toLocaleString()} visualizaciones</span>
               </div>
               
-              <div className="flex items-center gap-2 text-gray-400">
-                <Star className="w-4 h-4" />
-                <span>{prompt.rating.toFixed(1)} ({prompt.rating_count} reseñas)</span>
-              </div>
+              {prompt.rating && prompt.rating > 0 ? (
+                <div className="flex items-center gap-2">
+                  <StarRating
+                    rating={prompt.rating}
+                    size="sm"
+                    showRatingNumber={true}
+                    reviewCount={prompt.rating_count || 0}
+                  />
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 dark:text-gray-500">
+                  Sin calificaciones
+                </div>
+              )}
             </div>
 
-            {/* Copy Button */}
-            <motion.button
-              onClick={handleCopyPrompt}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  ¡Copiado!
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  Copiar Prompt
-                </>
-              )}
-            </motion.button>
           </motion.div>
         </div>
       </motion.div>
@@ -236,61 +261,31 @@ export default function PromptDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.4 }}
       >
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
               {/* Prompt Content */}
-              <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">Contenido del Prompt</h2>
-                <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
-                  <pre className="text-gray-300 whitespace-pre-wrap font-mono text-sm leading-relaxed">
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Contenido del Prompt</h2>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                  <pre className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono text-sm leading-relaxed">
                     {prompt.content}
                   </pre>
                 </div>
               </div>
-
-              {/* Use Cases */}
-              {prompt.use_cases && prompt.use_cases.length > 0 && (
-                <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                  <h2 className="text-2xl font-bold text-white mb-4">Casos de Uso</h2>
-                  <ul className="space-y-3">
-                    {prompt.use_cases.map((useCase, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full bg-purple-500 mt-2 flex-shrink-0" />
-                        <span className="text-gray-300">{useCase}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Tips */}
-              {prompt.tips && prompt.tips.length > 0 && (
-                <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                  <h2 className="text-2xl font-bold text-white mb-4">Consejos de Uso</h2>
-                  <ul className="space-y-3">
-                    {prompt.tips.map((tip, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
-                        <span className="text-gray-300">{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Tags */}
-              <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Tags</h3>
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tags</h3>
                 <div className="flex flex-wrap gap-2">
                   {prompt.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 rounded-lg bg-gray-800 text-gray-300 text-sm"
+                      className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm"
                     >
                       {tag}
                     </span>
@@ -298,35 +293,44 @@ export default function PromptDetailPage() {
                 </div>
               </div>
 
+              {/* Rating Section */}
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Calificación</h3>
+                <PromptRatingInline
+                  promptSlug={prompt.slug}
+                  currentRating={prompt.rating || 0}
+                  currentRatingCount={prompt.rating_count || 0}
+                  onRatingSubmitted={async (newRating, newRatingCount) => {
+                    // Actualizar solo los datos de rating sin recargar toda la página
+                    if (prompt) {
+                      setPrompt({
+                        ...prompt,
+                        rating: newRating,
+                        rating_count: newRatingCount,
+                      });
+                    }
+                  }}
+                />
+              </div>
+
               {/* Stats */}
-              <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Estadísticas</h3>
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Estadísticas</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Visualizaciones</span>
-                    <span className="text-white font-medium">{prompt.view_count.toLocaleString()}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Visualizaciones</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{prompt.view_count.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Descargas</span>
-                    <span className="text-white font-medium">{prompt.download_count}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Calificación</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400" />
-                      <span className="text-white font-medium">{prompt.rating.toFixed(1)}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Reseñas</span>
-                    <span className="text-white font-medium">{prompt.rating_count}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Descargas</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{prompt.download_count}</span>
                   </div>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Acciones</h3>
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Acciones</h3>
                 <div className="space-y-3">
                   <Button
                     onClick={handleCopyPrompt}
@@ -336,12 +340,46 @@ export default function PromptDetailPage() {
                     {copied ? '¡Copiado!' : 'Copiar Prompt'}
                   </Button>
                   
-                  <Button variant="ghost" className="w-full">
+                  <Button 
+                    onClick={handleDownloadPrompt}
+                    variant="secondary" 
+                    className="w-full"
+                  >
                     <Download className="w-4 h-4 mr-2" />
                     Descargar
                   </Button>
                 </div>
               </div>
+
+              {/* Use Cases */}
+              {prompt.use_cases && prompt.use_cases.length > 0 && (
+                <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Casos de Uso</h3>
+                  <ul className="space-y-2">
+                    {prompt.use_cases.map((useCase, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-purple-500 mt-2 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{useCase}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Tips */}
+              {prompt.tips && prompt.tips.length > 0 && (
+                <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg dark:shadow-xl">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Consejos de Uso</h3>
+                  <ul className="space-y-2">
+                    {prompt.tips.map((tip, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>

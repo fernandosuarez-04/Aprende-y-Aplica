@@ -37,15 +37,15 @@ export function SearchBar({
   return (
     <div className={`relative ${className}`}>
       <motion.div
-        className={`relative bg-gray-900/50 backdrop-blur-md border rounded-xl transition-all duration-300 ${
+        className={`relative bg-white dark:bg-gray-900/50 backdrop-blur-md border rounded-xl transition-all duration-300 ${
           isFocused 
-            ? 'border-purple-500/50 shadow-lg shadow-purple-500/10' 
-            : 'border-gray-700 hover:border-gray-600'
+            ? 'border-purple-500/50 dark:border-purple-500/50 shadow-lg shadow-purple-500/10 dark:shadow-purple-500/10' 
+            : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600'
         }`}
         whileFocus={{ scale: 1.02 }}
       >
         <div className="flex items-center px-4 py-3">
-          <Search className="w-5 h-5 text-gray-400 mr-3" />
+          <Search className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-3" />
           
           <input
             type="text"
@@ -54,20 +54,20 @@ export function SearchBar({
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder={placeholder}
-            className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
+            className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
           />
           
           {query && (
             <motion.button
               onClick={handleClear}
-              className="ml-3 p-1 rounded-lg hover:bg-gray-800 transition-colors"
+              className="ml-3 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
             >
-              <X className="w-4 h-4 text-gray-400 hover:text-white" />
+              <X className="w-4 h-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white" />
             </motion.button>
           )}
         </div>

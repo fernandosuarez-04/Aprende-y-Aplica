@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
+import { formatApiError, logError } from '@/core/utils/api-errors';
 
 // Definir las ligas basadas en puntos
 const LEAGUE_SYSTEM = {
@@ -24,8 +25,6 @@ export async function GET(
     const supabase = await createClient();
     const { slug } = await params;
 
-    console.log('🔍 Fetching leagues data for community:', slug);
-
     // Obtener el usuario actual
     const { SessionService } = await import('../../../../../features/auth/services/session.service');
     const user = await SessionService.getCurrentUser();
@@ -43,11 +42,9 @@ export async function GET(
       .single();
 
     if (communityError || !community) {
-      console.error('❌ Community error:', communityError);
+      // console.error('❌ Community error:', communityError);
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
-
-    console.log('✅ Community found:', community.name);
 
     // Obtener todos los miembros de la comunidad con sus puntos
     let members = [];
@@ -76,17 +73,14 @@ export async function GET(
         .order('joined_at', { ascending: true });
 
       if (membersError) {
-        console.log('⚠️ Error with direct join, trying alternative approach:', membersError.message);
-        
-        // Si falla el join, obtener datos por separado
+        // 🚀 OPTIMIZACIÓN: Si falla el join, obtener datos por separado con Map para O(1) lookup
         const { data: membersData2, error: membersError2 } = await supabase
           .from('community_members')
-          .select('*')
+          .select('id, role, joined_at, user_id') // Solo campos necesarios
           .eq('community_id', community.id)
           .eq('is_active', true);
 
         if (membersError2) {
-          console.log('⚠️ Error with community_members table:', membersError2.message);
           throw new Error('No se pudo acceder a la tabla community_members');
         }
 
@@ -98,12 +92,14 @@ export async function GET(
             .in('id', userIds);
 
           if (usersError) {
-            console.log('⚠️ Error fetching users:', usersError.message);
             throw new Error('No se pudo obtener información de usuarios');
           }
 
+          // Crear Map de usuarios para búsqueda O(1) en lugar de O(n)
+          const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
+
           members = membersData2.map(member => {
-            const user = usersData?.find(u => u.id === member.user_id);
+            const user = usersMap.get(member.user_id);
             return {
               ...member,
               users: user || {
@@ -122,7 +118,6 @@ export async function GET(
         members = membersData || [];
       }
     } catch (error) {
-      console.log('⚠️ Error accessing real data:', error);
       members = [];
     }
 
@@ -172,12 +167,6 @@ export async function GET(
     // Obtener el usuario actual con su información de liga
     const currentUser = membersWithRanks.find(m => m.user_id === user.id);
 
-    console.log('✅ Returning leagues data:', {
-      totalMembers: membersWithRanks.length,
-      leagueStats,
-      currentUser: currentUser ? `${currentUser.username} - ${currentUser.league}` : 'Not found'
-    });
-
     return NextResponse.json({
       community: {
         id: community.id,
@@ -194,9 +183,9 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('❌ Error in leagues API:', error);
+    logError('GET /api/communities/[slug]/leagues', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
+      formatApiError(error, 'Error al obtener datos de las ligas'),
       { status: 500 }
     );
   }

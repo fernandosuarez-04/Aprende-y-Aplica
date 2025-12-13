@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@aprende-y-aplica/ui';
 import { ChevronLeft, ChevronRight, Quote } from 'lucide-react';
-import { Testimonial } from '@shared/types/content';
+import { Testimonial } from '@aprende-y-aplica/shared';
 import { fadeIn, slideUp } from '../../../shared/utils/animations';
 
 interface TestimonialsSectionProps {

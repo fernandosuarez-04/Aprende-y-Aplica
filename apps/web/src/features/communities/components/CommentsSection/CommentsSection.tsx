@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Send, Users, Reply } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
+import { sanitizeComment } from '../../../../lib/sanitize/html-sanitizer';
 
 interface Comment {
   id: string;
@@ -51,7 +52,7 @@ export function CommentsSection({
         setComments(data.comments || []);
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      // console.error('Error fetching comments:', error);
     }
   };
 
@@ -84,11 +85,11 @@ export function CommentsSection({
         onCommentAdded?.(data.comment);
       } else {
         const errorData = await response.json();
-        console.error('Error creating comment:', errorData.error);
+        // console.error('Error creating comment:', errorData.error);
         alert('Error al crear el comentario: ' + errorData.error);
       }
     } catch (error) {
-      console.error('Error creating comment:', error);
+      // console.error('Error creating comment:', error);
       alert('Error al crear el comentario');
     } finally {
       setIsSubmitting(false);
@@ -124,11 +125,11 @@ export function CommentsSection({
         setReplyingTo(null);
       } else {
         const errorData = await response.json();
-        console.error('Error creating reply:', errorData.error);
+        // console.error('Error creating reply:', errorData.error);
         alert('Error al crear la respuesta: ' + errorData.error);
       }
     } catch (error) {
-      console.error('Error creating reply:', error);
+      // console.error('Error creating reply:', error);
       alert('Error al crear la respuesta');
     } finally {
       setIsSubmitting(false);
@@ -271,7 +272,10 @@ export function CommentsSection({
                           {formatTimeAgo(comment.created_at)}
                         </span>
                       </div>
-                      <p className="text-slate-300 mb-4 leading-relaxed">{comment.content}</p>
+                      <p 
+                        className="text-slate-300 mb-4 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: sanitizeComment(comment.content) }}
+                      />
                       
                       {/* Botón de responder */}
                       <button

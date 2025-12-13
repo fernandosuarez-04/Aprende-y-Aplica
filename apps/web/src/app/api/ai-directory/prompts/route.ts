@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
+import { SessionService } from '../../../../features/auth/services/session.service';
+import { PromptFavoritesService } from '../../../../features/ai-directory/services/prompt-favorites.service';
+
+// ✅ Función de sanitización para prevenir inyección PostgREST
+function sanitizeSearchInput(input: string): string {
+  // Remover caracteres especiales de PostgREST y limitar longitud
+  return input
+    .replace(/[%_{}()]/g, '\\$&') // Escapar caracteres especiales
+    .trim()
+    .substring(0, 100); // Limitar longitud a 100 caracteres
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,10 +25,57 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const difficulty = searchParams.get('difficulty');
     const featured = searchParams.get('featured');
+    const favorites = searchParams.get('favorites');
     const sortBy = searchParams.get('sortBy') || 'created_at';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
     const offset = (page - 1) * limit;
+
+    // Get favorite prompt IDs if favorites filter is enabled
+    let favoritePromptIds: string[] = [];
+    if (favorites === 'true') {
+      try {
+        const currentUser = await SessionService.getCurrentUser();
+        if (currentUser) {
+          favoritePromptIds = await PromptFavoritesService.getUserPromptFavorites(currentUser.id);
+          // If user has no favorites, return empty result
+          if (favoritePromptIds.length === 0) {
+            return NextResponse.json({
+              prompts: [],
+              pagination: {
+                page,
+                limit,
+                total: 0,
+                totalPages: 0
+              }
+            });
+          }
+        } else {
+          // If not authenticated and favorites is requested, return empty
+          return NextResponse.json({
+            prompts: [],
+            pagination: {
+              page,
+              limit,
+              total: 0,
+              totalPages: 0
+            }
+          });
+        }
+      } catch (error) {
+        logger.error('Error fetching favorite prompts:', error);
+        // If error fetching favorites, return empty result
+        return NextResponse.json({
+          prompts: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0
+          }
+        });
+      }
+    }
 
     // Build query
     let query = supabase
@@ -37,8 +96,19 @@ export async function GET(request: NextRequest) {
       query = query.eq('category_id', category);
     }
 
+    // ✅ Sanitizar búsqueda antes de usar
     if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,tags.cs.{${search}}`);
+      const sanitizedSearch = sanitizeSearchInput(search);
+      
+      // Validar que la búsqueda no esté vacía después de sanitizar
+      if (!sanitizedSearch) {
+        return NextResponse.json(
+          { error: 'Búsqueda inválida' },
+          { status: 400 }
+        );
+      }
+      
+      query = query.or(`title.ilike.%${sanitizedSearch}%,description.ilike.%${sanitizedSearch}%`);
     }
 
     if (difficulty) {
@@ -47,6 +117,11 @@ export async function GET(request: NextRequest) {
 
     if (featured === 'true') {
       query = query.eq('is_featured', true);
+    }
+
+    // Apply favorites filter
+    if (favorites === 'true' && favoritePromptIds.length > 0) {
+      query = query.in('prompt_id', favoritePromptIds);
     }
 
     // Apply sorting
@@ -58,7 +133,7 @@ export async function GET(request: NextRequest) {
     const { data: prompts, error } = await query;
 
     if (error) {
-      console.error('Error fetching prompts:', error);
+      logger.error('Error fetching prompts:', error);
       return NextResponse.json(
         { error: 'Failed to fetch prompts' },
         { status: 500 }
@@ -75,8 +150,12 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.eq('category_id', category);
     }
 
+    // ✅ Aplicar la misma sanitización al countQuery
     if (search) {
-      countQuery = countQuery.or(`title.ilike.%${search}%,description.ilike.%${search}%,tags.cs.{${search}}`);
+      const sanitizedSearch = sanitizeSearchInput(search);
+      if (sanitizedSearch) {
+        countQuery = countQuery.or(`title.ilike.%${sanitizedSearch}%,description.ilike.%${sanitizedSearch}%`);
+      }
     }
 
     if (difficulty) {
@@ -87,10 +166,15 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.eq('is_featured', true);
     }
 
+    // Apply favorites filter to count query
+    if (favorites === 'true' && favoritePromptIds.length > 0) {
+      countQuery = countQuery.in('prompt_id', favoritePromptIds);
+    }
+
     const { count, error: countError } = await countQuery;
 
     if (countError) {
-      console.error('Error fetching count:', countError);
+      logger.error('Error fetching count:', countError);
       return NextResponse.json(
         { error: 'Failed to fetch count' },
         { status: 500 }
@@ -107,7 +191,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Unexpected error:', error);
+    logger.error('Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

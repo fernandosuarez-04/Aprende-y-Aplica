@@ -30,7 +30,7 @@ export async function verifyEmailAction(formData: FormData | { token: string }) 
     })
     
     if (error) {
-      console.error('Email verification error:', error)
+      // console.error('Email verification error:', error)
       return { error: 'Código de verificación inválido o expirado' }
     }
     
@@ -45,7 +45,7 @@ export async function verifyEmailAction(formData: FormData | { token: string }) 
       .eq('email', data.user.email)
     
     if (updateError) {
-      console.error('Error updating email verification:', updateError)
+      // console.error('Error updating email verification:', updateError)
       return { error: 'Error al actualizar verificación de email' }
     }
     
@@ -55,7 +55,7 @@ export async function verifyEmailAction(formData: FormData | { token: string }) 
       user: data.user 
     }
   } catch (error) {
-    console.error('Verify email error:', error)
+    // console.error('Verify email error:', error)
     if (error instanceof z.ZodError) {
       return { error: error.errors[0].message }
     }

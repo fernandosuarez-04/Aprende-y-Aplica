@@ -310,3 +310,4 @@ export enum QuestionType {
 
 // Tipos de Contenido para Landing Page
 export * from './content';
+

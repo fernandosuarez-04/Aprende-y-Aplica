@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { OpenAI } from 'openai';
+import { formatApiError, logError } from '@/core/utils/api-errors';
 
 // Configuración de Lia directamente en el archivo
 const LIA_CONFIG = {
@@ -142,14 +144,14 @@ interface ChatMessage {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 API generate-prompt called');
+    logger.log('🔍 API generate-prompt called');
     
     const { message, conversationHistory } = await request.json();
-    console.log('📝 Message received:', message);
+    logger.log('📝 Message received:', message);
 
     // Validar entrada
     if (!message || typeof message !== 'string') {
-      console.log('❌ No message provided');
+      logger.log('❌ No message provided');
       return NextResponse.json(
         { error: 'Mensaje requerido' },
         { status: 400 }
@@ -199,8 +201,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Llamar a OpenAI
-    console.log('🤖 Calling OpenAI with', messages.length, 'messages');
-    console.log('📋 Messages array:', JSON.stringify(messages, null, 2));
+    logger.log('🤖 Calling OpenAI with', messages.length, 'messages');
+    logger.log('📋 Messages array:', JSON.stringify(messages, null, 2));
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: messages,
@@ -209,10 +211,10 @@ export async function POST(request: NextRequest) {
       presence_penalty: 0.1,
       frequency_penalty: 0.1
     });
-    console.log('✅ OpenAI response received');
+    logger.log('✅ OpenAI response received');
 
     const response = completion.choices[0]?.message?.content;
-    console.log('📄 OpenAI raw response:', response);
+    logger.log('📄 OpenAI raw response:', response);
     
     if (!response) {
       throw new Error('No se recibió respuesta de OpenAI');
@@ -239,35 +241,32 @@ export async function POST(request: NextRequest) {
       generatedPrompt: generatedPrompt
     };
     
-    console.log('📤 Sending response to frontend:', JSON.stringify(finalResponse, null, 2));
+    logger.log('📤 Sending response to frontend:', JSON.stringify(finalResponse, null, 2));
     
     return NextResponse.json(finalResponse);
 
   } catch (error) {
-    console.error('❌ Error in generate-prompt API:', error);
-    console.error('❌ Error message:', error.message);
-    console.error('❌ Error code:', error.code);
-    console.error('❌ Error stack:', error.stack);
-    
+    logError('POST /api/ai-directory/generate-prompt', error);
+
     // Manejar errores específicos de OpenAI
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
         return NextResponse.json(
-          { error: 'Error de configuración de API' },
+          formatApiError(error, 'Error de configuración de API'),
           { status: 500 }
         );
       }
-      
+
       if (error.message.includes('rate limit')) {
         return NextResponse.json(
-          { error: 'Límite de solicitudes excedido. Inténtalo más tarde.' },
+          formatApiError(error, 'Límite de solicitudes excedido. Inténtalo más tarde.'),
           { status: 429 }
         );
       }
     }
 
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      formatApiError(error, 'Error al generar prompt'),
       { status: 500 }
     );
   }

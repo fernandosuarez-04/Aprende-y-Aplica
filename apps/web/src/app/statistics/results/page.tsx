@@ -32,41 +32,15 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
   const radius = 180;   // ✅ Aumentado para hacer el radar más grande
   
   const angleStep = (2 * Math.PI) / dimensions.length;
-  
-  // Calcular puntos para cada dimensión con escala ULTRA EXTREMA para llenar completamente el radar
+
+  // Calcular puntos para cada dimensión usando valores reales
   const points = dimensions.map((dimension, index) => {
-    const value = data.find(d => d.dimension === dimension)?.score || 0;
-    // ✅ Escala ULTRA EXTREMA para llenar completamente el radar
-    let scaledValue;
-    if (value === 0) {
-      scaledValue = 35; // Mínimo visible ultra grande
-    } else if (value <= 3) {
-      scaledValue = value * 12; // 12x para valores muy bajos
-    } else if (value <= 5) {
-      scaledValue = value * 10; // 10x para valores muy bajos
-    } else if (value <= 8) {
-      scaledValue = value * 8; // 8x para valores bajos
-    } else if (value <= 12) {
-      scaledValue = value * 7; // 7x para valores medios-bajos
-    } else if (value <= 15) {
-      scaledValue = value * 6; // 6x para valores medios-bajos
-    } else if (value <= 20) {
-      scaledValue = value * 5; // 5x para valores bajos-medios
-    } else if (value <= 25) {
-      scaledValue = value * 4.5; // 4.5x para valores medios
-    } else if (value <= 35) {
-      scaledValue = value * 4; // 4x para valores medios
-    } else if (value <= 50) {
-      scaledValue = value * 3; // 3x para valores medios-altos
-    } else if (value <= 70) {
-      scaledValue = value * 2.5; // 2.5x para valores altos
-    } else {
-      scaledValue = value * 2; // 2x para valores muy altos
-    }
-    
-    // Asegurar que nunca sea menor a 35 para máxima visibilidad
-    scaledValue = Math.max(scaledValue, 35);
-    
+    const dataItem = data.find(d => d.dimension === dimension);
+    const value = dataItem?.score ?? 0;
+
+    // Usar el valor real directamente (ya está en escala 0-100)
+    const scaledValue = value;
+
     const angle = index * angleStep - Math.PI / 2; // Empezar desde arriba
     const x = centerX + (radius * (scaledValue / maxValue)) * Math.cos(angle);
     const y = centerY + (radius * (scaledValue / maxValue)) * Math.sin(angle);
@@ -89,7 +63,8 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
             cy={centerY}
             r={radius * (value / maxValue)}
             fill="none"
-            stroke="rgba(255, 255, 255, 0.1)"
+            stroke="rgba(0, 0, 0, 0.1)"
+            className="dark:stroke-white/10"
             strokeWidth="1"
           />
         ))}
@@ -106,7 +81,8 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
               y1={centerY}
               x2={x}
               y2={y}
-              stroke="rgba(255, 255, 255, 0.1)"
+              stroke="rgba(0, 0, 0, 0.1)"
+              className="dark:stroke-white/10"
               strokeWidth="1"
             />
           );
@@ -151,7 +127,7 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
               y={labelY}
               textAnchor="middle"
               dominantBaseline="middle"
-              className="fill-white text-sm font-medium"
+              className="fill-gray-900 dark:fill-white text-sm font-medium"
               style={{ fontSize: '14px' }} // ✅ Tamaño fijo para consistencia
             >
               {point.dimension}
@@ -167,7 +143,7 @@ const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] })
             y={point.y - 18}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="fill-white text-xs font-bold"
+            className="fill-gray-900 dark:fill-white text-xs font-bold"
             style={{ fontSize: '12px' }} // ✅ Tamaño fijo para consistencia
           >
             {point.value}
@@ -207,16 +183,16 @@ const StatCard = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.5 }}
-      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
+      className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-6 hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-300 shadow-lg dark:shadow-xl"
     >
       <div className="flex items-center gap-4">
         <div className={`w-12 h-12 bg-gradient-to-r ${colorClasses[color as keyof typeof colorClasses]} rounded-xl flex items-center justify-center`}>
           <Icon className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-white mb-1">{title}</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
           <p className="text-2xl font-bold text-primary mb-2">{value}</p>
-          <p className="text-white/60 text-sm">{description}</p>
+          <p className="text-gray-700 dark:text-white/60 text-sm">{description}</p>
         </div>
       </div>
     </motion.div>
@@ -245,47 +221,47 @@ const CountryBarChart = ({ data, userCountry }: { data: any[], userCountry?: str
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05, duration: 0.5 }}
-            className={`group flex items-center gap-4 p-2 rounded-lg hover:bg-white/5 transition-all duration-300 cursor-pointer ${
-              isUserCountry ? 'bg-yellow-500/20 border border-yellow-500/30' : ''
+            className={`group flex items-center gap-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 cursor-pointer ${
+              isUserCountry ? 'bg-yellow-500/20 dark:bg-yellow-500/20 border border-yellow-500/30 dark:border-yellow-500/30' : ''
             }`}
           >
             <div className="w-24 text-right">
-              <span className={`text-sm font-medium truncate block group-hover:text-white transition-colors ${
-                isUserCountry ? 'text-yellow-300 font-bold' : 'text-white/80'
+              <span className={`text-sm font-medium truncate block group-hover:text-gray-900 dark:group-hover:text-white transition-colors ${
+                isUserCountry ? 'text-yellow-600 dark:text-yellow-300 font-bold' : 'text-gray-900 dark:text-white/80'
               }`}>
                 {country.pais || 'N/A'}
                 {isUserCountry && <span className="ml-1 text-yellow-400">⭐</span>}
               </span>
             </div>
-            <div className="flex-1 bg-white/10 rounded-full h-6 overflow-hidden relative">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${((country.indice_aipi || 0) / maxValue) * 100}%` }}
-                transition={{ delay: index * 0.05 + 0.5, duration: 1 }}
-                className={`h-full rounded-full relative overflow-hidden group-hover:brightness-125 transition-all duration-300 ${
-                  isUserCountry 
-                    ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' 
-                    : 'bg-gradient-to-r from-primary to-purple-500'
-                }`}
-              >
-                {/* Efecto de brillo en hover */}
+              <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-6 overflow-hidden relative">
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  initial={{ x: '-100%' }}
-                  whileHover={{ x: '100%' }}
-                  transition={{ duration: 0.8, ease: "easeInOut" }}
-                />
-              </motion.div>
-              {/* Tooltip en hover */}
-              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
-                {country.pais}: {(country.indice_aipi || 0).toFixed(3)}
-                {isUserCountry && ' (Tu país)'}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${((country.indice_aipi || 0) / maxValue) * 100}%` }}
+                  transition={{ delay: index * 0.05 + 0.5, duration: 1 }}
+                  className={`h-full rounded-full relative overflow-hidden group-hover:brightness-125 transition-all duration-300 ${
+                    isUserCountry 
+                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' 
+                      : 'bg-gradient-to-r from-primary to-purple-500'
+                  }`}
+                >
+                  {/* Efecto de brillo en hover */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                    initial={{ x: '-100%' }}
+                    whileHover={{ x: '100%' }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                  />
+                </motion.div>
+                {/* Tooltip en hover */}
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+                  {country.pais}: {(country.indice_aipi || 0).toFixed(3)}
+                  {isUserCountry && ' (Tu país)'}
+                </div>
               </div>
-            </div>
-            <div className="w-16 text-left">
-              <span className={`text-sm font-bold group-hover:text-white transition-colors ${
-                isUserCountry ? 'text-yellow-300' : 'text-white/80'
-              }`}>
+              <div className="w-16 text-left">
+                <span className={`text-sm font-bold group-hover:text-gray-900 dark:group-hover:text-white transition-colors ${
+                  isUserCountry ? 'text-yellow-600 dark:text-yellow-300' : 'text-gray-900 dark:text-white/80'
+                }`}>
                 {(country.indice_aipi || 0).toFixed(2)}
               </span>
             </div>
@@ -316,6 +292,9 @@ export default function StatisticsResultsPage() {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [countryData, setCountryData] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [showDifficultyModal, setShowDifficultyModal] = useState(false);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
+  const [updatingDifficulty, setUpdatingDifficulty] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -340,7 +319,7 @@ export default function StatisticsResultsPage() {
         .single();
 
       if (profileError || !userProfile) {
-        console.log('🔍 Usuario sin perfil, redirigiendo a personalizar experiencia');
+        // console.log('🔍 Usuario sin perfil, redirigiendo a personalizar experiencia');
         router.push('/statistics');
         return;
       }
@@ -353,16 +332,16 @@ export default function StatisticsResultsPage() {
         .limit(1);
 
       if (responsesError || !responses || responses.length === 0) {
-        console.log('🔍 Usuario sin respuestas, redirigiendo a personalizar experiencia');
+        // console.log('🔍 Usuario sin respuestas, redirigiendo a personalizar experiencia');
         router.push('/statistics');
         return;
       }
 
-      console.log('🔍 Usuario tiene datos, cargando estadísticas');
+      // console.log('🔍 Usuario tiene datos, cargando estadísticas');
       // Si tiene datos, cargar las estadísticas
       fetchStatisticsData();
     } catch (error) {
-      console.error('Error verificando datos del usuario:', error);
+      // console.error('Error verificando datos del usuario:', error);
       router.push('/statistics');
     }
   };
@@ -404,13 +383,16 @@ export default function StatisticsResultsPage() {
             peso,
             escala,
             scoring,
-            respuesta_correcta
+            respuesta_correcta,
+            texto,
+            dimension,
+            dificultad
           )
         `)
         .eq('user_perfil_id', userProfile.id);
 
       if (responsesError) {
-        console.warn('Error al obtener respuestas:', responsesError);
+        // console.warn('Error al obtener respuestas:', responsesError);
       }
 
       // Obtener datos de adopción por países
@@ -420,11 +402,24 @@ export default function StatisticsResultsPage() {
         .order('indice_aipi', { ascending: false });
 
       if (adoptionError) {
-        console.warn('Error al obtener datos de adopción:', adoptionError);
+        // console.warn('Error al obtener datos de adopción:', adoptionError);
       }
 
-      // Procesar datos para el radar
-      const processedRadarData = processRadarData(responses || []);
+      // Log simplificado de respuestas recibidas
+      console.log('📋 Total de respuestas recibidas:', responses?.length || 0);
+
+      // Log para debug de Inversión
+      console.log('📋 Preguntas 16-18:', responses?.filter(r => r.pregunta_id >= 16 && r.pregunta_id <= 18).map(r => ({
+        id: r.pregunta_id,
+        bloque: r.preguntas?.bloque,
+        section: r.preguntas?.section,
+        texto: r.preguntas?.texto?.substring(0, 80) + '...',
+        valor: r.valor
+      })));
+      
+      // Procesar datos para el radar (pasar dificultad_id del usuario)
+      const processedRadarData = processRadarData(responses || [], userProfile.dificultad_id);
+      console.log('📊 Datos del radar procesados:', processedRadarData);
       setRadarData(processedRadarData);
 
       // Procesar análisis
@@ -439,48 +434,314 @@ export default function StatisticsResultsPage() {
       setCountryData(adoptionData || []);
 
     } catch (error) {
-      console.error('Error al obtener estadísticas:', error);
+      // console.error('Error al obtener estadísticas:', error);
       setError('Error al cargar las estadísticas');
     } finally {
       setLoading(false);
     }
   };
 
-  const processRadarData = (responses: any[]) => {
-    const dimensions = ['Conocimiento', 'Aplicación', 'Productividad', 'Estrategia', 'Inversión'];
-    const sectionMapping = {
-      'Adopción': 'Aplicación',
-      'Conocimiento': 'Conocimiento',
-      'Técnico': 'Conocimiento'
+  /**
+   * Normaliza el score según la dificultad del usuario
+   * - Dificultad 1: máximo 20 puntos (20%) - escala proporcional
+   * - Dificultad 2: máximo 40 puntos (40%) - escala proporcional
+   * - Dificultad 3: máximo 60 puntos (60%) - escala proporcional
+   * - Dificultad 4: máximo 80 puntos (80%) - escala proporcional
+   * - Dificultad 5: máximo 100 puntos (100%) - sin escalar
+   * 
+   * Ejemplo: Si el usuario tiene dificultad 1 y obtiene 50 puntos (50%),
+   * el score normalizado será 10 puntos (50% de 20 = 10)
+   */
+  const normalizeScoreByDifficulty = (score: number, userDifficulty: number | null | undefined): number => {
+    if (!userDifficulty || userDifficulty < 1 || userDifficulty > 5) {
+      // Si no hay dificultad definida, retornar el score sin normalizar
+      return score;
+    }
+
+    const maxScoreByDifficulty: { [key: number]: number } = {
+      1: 20,
+      2: 40,
+      3: 60,
+      4: 80,
+      5: 100
     };
 
+    const maxScore = maxScoreByDifficulty[userDifficulty] || 100;
+    
+    // Normalización proporcional: escalar el score según el máximo permitido
+    // Si el score es 50 y el máximo es 20, entonces: 50 * 20 / 100 = 10
+    // Si el score es 100 y el máximo es 20, entonces: 100 * 20 / 100 = 20
+    const normalizedScore = (score * maxScore) / 100;
+    
+    return Math.round(normalizedScore);
+  };
+
+  // Función para calcular la dificultad desde el uso de IA
+  const calcularDificultad = (uso_ia: string): number => {
+    const usoIALower = uso_ia.toLowerCase().trim();
+    
+    if (usoIALower.includes('siempre') || usoIALower.includes('todos los días') || usoIALower.includes('todos o casi todos los días')) {
+      return 5;
+    } else if (usoIALower.includes('frecuentemente') || usoIALower.includes('casi siempre') || usoIALower.includes('3-4 veces por semana')) {
+      return 4;
+    } else if (usoIALower.includes('a veces') || usoIALower.includes('ocasionalmente') || usoIALower.includes('1-2 veces por semana')) {
+      return 3;
+    } else if (usoIALower.includes('rara vez') || usoIALower.includes('casi nunca') || usoIALower.includes('1-2 veces al mes')) {
+      return 2;
+    } else {
+      return 1; // Nunca (por defecto)
+    }
+  };
+
+  // Función para actualizar la dificultad del usuario
+  const handleUpdateDifficulty = async () => {
+    if (!selectedDifficulty) {
+      alert('Por favor selecciona una opción');
+      return;
+    }
+
+    try {
+      setUpdatingDifficulty(true);
+      const supabase = createClient();
+
+      if (!user || !userProfile) {
+        alert('Error: Usuario no autenticado');
+        return;
+      }
+
+      // Calcular la nueva dificultad
+      const nuevaDificultad = calcularDificultad(selectedDifficulty);
+
+      // Actualizar el perfil del usuario
+      const { error: updateError } = await supabase
+        .from('user_perfil')
+        .update({ 
+          dificultad_id: nuevaDificultad,
+          uso_ia_respuesta: selectedDifficulty
+        })
+        .eq('id', userProfile.id);
+
+      if (updateError) {
+        console.error('Error al actualizar dificultad:', updateError);
+        alert('Error al actualizar la dificultad. Por favor intenta de nuevo.');
+        return;
+      }
+
+      // Actualizar el estado local
+      setUserProfile({
+        ...userProfile,
+        dificultad_id: nuevaDificultad
+      });
+
+      // Cerrar el modal y redirigir al cuestionario
+      setShowDifficultyModal(false);
+      router.push('/questionnaire/direct');
+    } catch (error) {
+      console.error('Error al actualizar dificultad:', error);
+      alert('Error al actualizar la dificultad. Por favor intenta de nuevo.');
+    } finally {
+      setUpdatingDifficulty(false);
+    }
+  };
+
+  const processRadarData = (responses: any[], userDifficulty: number | null | undefined = null) => {
+    const dimensions = ['Conocimiento', 'Aplicación', 'Productividad', 'Estrategia', 'Inversión'];
+    
+    // Procesar scores por dimensión
+    
     const scores = dimensions.map(dimension => {
       const relevantResponses = responses.filter(response => {
+        // Usar el campo dimension directamente de la pregunta (es un array jsonb)
+        const questionDimensions = response.preguntas?.dimension;
+        
+        // Si la pregunta tiene el campo dimension, usarlo directamente
+        if (questionDimensions && Array.isArray(questionDimensions)) {
+          return questionDimensions.includes(dimension);
+        }
+        
+        // Fallback: usar la lógica anterior si no hay campo dimension
         const section = response.preguntas?.section || '';
-        const mappedDimension = sectionMapping[section as keyof typeof sectionMapping] || dimension;
+        const bloque = response.preguntas?.bloque || '';
+        const texto = response.preguntas?.texto?.toLowerCase() || '';
+        const preguntaId = response.pregunta_id;
+
+        // Log de debug para preguntas 13-18 (todas las de Conocimiento)
+        if (preguntaId >= 13 && preguntaId <= 18) {
+          console.log(`🔍 Evaluando pregunta ${preguntaId} para dimensión ${dimension}:`, {
+            preguntaId,
+            bloque,
+            section,
+            texto_preview: texto.substring(0, 50)
+          });
+        }
+
+        // Mapear sección/bloque a dimensión de manera más inteligente
+        let mappedDimension = '';
+
+        // 1. Mapeo directo por bloque (si existe)
+        if (bloque === 'Productividad' || bloque === 'productividad') {
+          mappedDimension = 'Productividad';
+        } else if (bloque === 'Estrategia' || bloque === 'estrategia') {
+          mappedDimension = 'Estrategia';
+        } else if (bloque === 'Inversión' || bloque === 'Inversion' || bloque === 'inversión' || bloque === 'inversion') {
+          mappedDimension = 'Inversión';
+        } else if (bloque === 'Adopción') {
+          // 2. Para bloque "Adopción", distribuir por ID de pregunta
+          // IDs 7-8: Aplicación (uso frecuente de herramientas)
+          // IDs 9-10: Productividad (frecuencia de uso)
+          // IDs 11-12: Estrategia (planificación y adopción estratégica)
+          if (preguntaId >= 7 && preguntaId <= 8) {
+            mappedDimension = 'Aplicación';
+          } else if (preguntaId >= 9 && preguntaId <= 10) {
+            mappedDimension = 'Productividad';
+          } else if (preguntaId >= 11 && preguntaId <= 12) {
+            mappedDimension = 'Estrategia';
+          } else {
+            // Fallback: distribuir por texto
+            if (texto.includes('frecuencia') || texto.includes('uso') || texto.includes('aplicación') || texto.includes('aplicar')) {
+              mappedDimension = 'Aplicación';
+            } else if (texto.includes('productividad') || texto.includes('eficiencia') || texto.includes('optimizar')) {
+              mappedDimension = 'Productividad';
+            } else if (texto.includes('estrategia') || texto.includes('planificación') || texto.includes('plan')) {
+              mappedDimension = 'Estrategia';
+            } else {
+              mappedDimension = 'Aplicación'; // Default para Adopción
+            }
+          }
+        } else if (bloque === 'Conocimiento') {
+          // 3. Para "Conocimiento", distribuir por ID de pregunta
+          // IDs 13-15: Conocimiento (conceptos básicos)
+          // IDs 16-17: Inversión (presupuesto, capacitación)
+          // ID 18: Estrategia (contratos, gobernanza)
+
+          // Log para debug
+          if (preguntaId >= 16 && preguntaId <= 18) {
+            console.log(`🔍 Mapeando pregunta ${preguntaId}:`, {
+              preguntaId,
+              tipo_preguntaId: typeof preguntaId,
+              comparacion_16_17: preguntaId >= 16 && preguntaId <= 17,
+              comparacion_18: preguntaId === 18
+            });
+          }
+
+          if (preguntaId >= 13 && preguntaId <= 15) {
+            mappedDimension = 'Conocimiento';
+          } else if (preguntaId >= 16 && preguntaId <= 17) {
+            mappedDimension = 'Inversión';
+            console.log(`✅ Pregunta ${preguntaId} mapeada a Inversión`);
+          } else if (preguntaId === 18) {
+            mappedDimension = 'Estrategia';
+            console.log(`✅ Pregunta ${preguntaId} mapeada a Estrategia (desde Conocimiento)`);
+          } else {
+            // Fallback: distribuir por texto
+            if (texto.includes('inversión') || texto.includes('presupuesto') || texto.includes('capacitación') || texto.includes('formación')) {
+              mappedDimension = 'Inversión';
+            } else {
+              mappedDimension = 'Conocimiento'; // Default para Conocimiento
+            }
+          }
+        } else {
+          // 4. Fallback general por texto
+          if (texto.includes('productividad') || texto.includes('eficiencia')) {
+            mappedDimension = 'Productividad';
+          } else if (texto.includes('estrategia') || texto.includes('planificación')) {
+            mappedDimension = 'Estrategia';
+          } else if (texto.includes('inversión') || texto.includes('presupuesto')) {
+            mappedDimension = 'Inversión';
+          } else if (texto.includes('conocimiento') || texto.includes('conceptos')) {
+            mappedDimension = 'Conocimiento';
+          } else {
+            mappedDimension = 'Aplicación';
+          }
+        }
+
+        // Log del resultado del mapeo para preguntas 16-18
+        if (preguntaId >= 16 && preguntaId <= 18) {
+          console.log(`✅ Pregunta ${preguntaId} mapeada a: "${mappedDimension}" (buscando: "${dimension}")`);
+        }
+
         return mappedDimension === dimension;
       });
+
+      // Log simplificado
+      if (relevantResponses.length > 0) {
+        console.log(`📈 ${dimension}: ${relevantResponses.length} respuestas`);
+      }
 
       let totalScore = 0;
       let totalWeight = 0;
 
-      relevantResponses.forEach(response => {
+      relevantResponses.forEach((response, idx) => {
+        const preguntaId = response.pregunta_id;
         const weight = response.preguntas?.peso || 1;
-        const value = response.valor;
+        let value = response.valor;
+        
+        // Manejar valor como jsonb - Supabase normalmente devuelve jsonb ya parseado
+        // Pero puede venir como string si es un JSON string anidado
+        if (value != null) {
+          // Si es un string, verificar si necesita parsing
+          if (typeof value === 'string') {
+            const trimmed = value.trim();
+            // Si parece un JSON string (empieza y termina con comillas dobles)
+            if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length > 2) {
+              try {
+                value = JSON.parse(value);
+              } catch (e) {
+                // Si falla, mantener el valor original
+              }
+            }
+          }
+        }
         
         // Calcular puntuación basada en el tipo de respuesta
         let score = 0;
-        if (typeof value === 'string') {
-          // Para respuestas de texto, usar escala si está disponible
+
+        // 🔍 PASO 1: Verificar si la pregunta tiene respuesta_correcta (preguntas de conocimiento)
+        const correctAnswer = response.preguntas?.respuesta_correcta;
+
+        if (correctAnswer) {
+          // ✅ Pregunta de conocimiento: correcto = 100, incorrecto = 0
+          if (typeof value === 'string') {
+            score = value.trim() === correctAnswer.trim() ? 100 : 0;
+          }
+        } else if (typeof value === 'string') {
+          // 📊 Pregunta de adopción/frecuencia: usar escala A-E
           const escala = response.preguntas?.escala;
-          if (escala && typeof escala === 'object') {
+
+          if (escala && typeof escala === 'object' && Object.keys(escala).length > 0) {
+            // Intentar encontrar el score en la escala
+            // La clave puede ser el valor completo o solo la letra (A, B, C, D, E)
             score = escala[value] || 0;
+
+            // Si no encontró score, intentar con solo la primera letra
+            if (score === 0 && value.length > 0) {
+              const firstChar = value.trim()[0].toUpperCase();
+              score = escala[firstChar] || escala[firstChar.toLowerCase()] || 0;
+
+              // Si aún no encuentra, buscar claves que empiecen con la letra
+              if (score === 0) {
+                for (const key of Object.keys(escala)) {
+                  if (key.trim().toUpperCase().startsWith(firstChar)) {
+                    score = escala[key];
+                    break;
+                  }
+                }
+              }
+            }
           } else {
             // Puntuación por defecto basada en la respuesta
-            score = value.includes('A)') ? 0 : 
-                   value.includes('B)') ? 25 :
-                   value.includes('C)') ? 50 :
-                   value.includes('D)') ? 75 : 100;
+            // ⚠️ IMPORTANTE: Buscar el patrón al INICIO del string (usando startsWith o regex)
+            // para evitar falsos positivos (ej: "D) Frecuente" contiene 'A' en "Frecuente")
+            const trimmedValue = value.trim();
+
+            if (trimmedValue.startsWith('E)') || /^E\)/i.test(trimmedValue)) score = 100;
+            else if (trimmedValue.startsWith('D)') || /^D\)/i.test(trimmedValue)) score = 75;
+            else if (trimmedValue.startsWith('C)') || /^C\)/i.test(trimmedValue)) score = 50;
+            else if (trimmedValue.startsWith('B)') || /^B\)/i.test(trimmedValue)) score = 25;
+            else if (trimmedValue.startsWith('A)') || /^A\)/i.test(trimmedValue)) score = 0;
+            else {
+              score = 50; // Respuesta por defecto
+            }
           }
         } else if (typeof value === 'number') {
           score = value;
@@ -488,15 +749,36 @@ export default function StatisticsResultsPage() {
 
         totalScore += score * weight;
         totalWeight += weight;
+
+        // Log detallado para Conocimiento (preguntas 13-15)
+        if (dimension === 'Conocimiento' && preguntaId >= 13 && preguntaId <= 15) {
+          console.log(`📝 Conocimiento - Pregunta ${preguntaId}:`, {
+            valor: value,
+            respuesta_correcta: correctAnswer,
+            es_correcta: correctAnswer ? (value.trim() === correctAnswer.trim()) : 'N/A',
+            score,
+            weight,
+            runningTotal: totalScore,
+            runningWeight: totalWeight
+          });
+        }
       });
 
       const finalScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
       
+      // Aplicar normalización por dificultad del usuario
+      const normalizedScore = normalizeScoreByDifficulty(finalScore, userDifficulty);
+
       return {
         dimension,
-        score: Math.min(100, Math.max(0, finalScore))
+        score: Math.min(100, Math.max(0, normalizedScore)),
+        rawScore: finalScore, // Guardar el score sin normalizar para referencia
+        maxPossibleScore: userDifficulty ? (userDifficulty * 20) : 100 // Máximo posible según dificultad
       };
     });
+
+    // Log final de scores
+    console.log('📊 Scores finales por dimensión:', scores.map(s => `${s.dimension}: ${s.score}`).join(', '));
 
     return scores;
   };
@@ -513,13 +795,27 @@ export default function StatisticsResultsPage() {
     let adoptionScore = 0;
     if (adoptionResponses.length > 0) {
       const totalAdoption = adoptionResponses.reduce((sum, response) => {
-        const value = response.valor;
+        let value = response.valor;
+
+        // Manejar valor como jsonb
+        if (value && typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            // Si falla el parse, usar el valor original
+          }
+        }
+
         let score = 0;
         if (typeof value === 'string') {
-          score = value.includes('A)') ? 0 : 
-                 value.includes('B)') ? 25 :
-                 value.includes('C)') ? 50 :
-                 value.includes('D)') ? 75 : 100;
+          const trimmedValue = value.trim();
+          // Buscar el patrón al INICIO del string para evitar falsos positivos
+          if (trimmedValue.startsWith('E)') || /^E\)/i.test(trimmedValue)) score = 100;
+          else if (trimmedValue.startsWith('D)') || /^D\)/i.test(trimmedValue)) score = 75;
+          else if (trimmedValue.startsWith('C)') || /^C\)/i.test(trimmedValue)) score = 50;
+          else if (trimmedValue.startsWith('B)') || /^B\)/i.test(trimmedValue)) score = 25;
+          else if (trimmedValue.startsWith('A)') || /^A\)/i.test(trimmedValue)) score = 0;
+          else score = 50;
         }
         return sum + score;
       }, 0);
@@ -532,7 +828,17 @@ export default function StatisticsResultsPage() {
     if (knowledgeResponses.length > 0) {
       knowledgeResponses.forEach(response => {
         const correctAnswer = response.preguntas?.respuesta_correcta;
-        const userAnswer = response.valor;
+        let userAnswer = response.valor;
+        
+        // Manejar valor como jsonb
+        if (userAnswer && typeof userAnswer === 'string' && userAnswer.startsWith('"') && userAnswer.endsWith('"')) {
+          try {
+            userAnswer = JSON.parse(userAnswer);
+          } catch (e) {
+            // Si falla el parse, usar el valor original
+          }
+        }
+        
         if (correctAnswer && userAnswer === correctAnswer) {
           correctAnswers++;
         }
@@ -622,14 +928,14 @@ export default function StatisticsResultsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Analizando tus resultados...</p>
+          <div className="w-16 h-16 border-4 border-primary dark:border-primary/50 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-700 dark:text-gray-300 text-lg">Analizando tus resultados...</p>
         </motion.div>
       </div>
     );
@@ -637,15 +943,15 @@ export default function StatisticsResultsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center max-w-md mx-auto p-6"
         >
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">Error</h2>
-          <p className="text-white/70 mb-6">{error}</p>
+          <AlertCircle className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-6">{error}</p>
           <button
             onClick={() => router.push('/statistics')}
             className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"
@@ -658,25 +964,149 @@ export default function StatisticsResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+      {/* Modal de Dificultad */}
+      <AnimatePresence>
+        {showDifficultyModal && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDifficultyModal(false)}
+              className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 backdrop-blur-sm"
+            />
+            
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 border border-gray-200 dark:border-slate-700">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                    <Brain className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      Actualizar Nivel de Dificultad
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-white/60 mt-1">
+                      Selecciona tu nivel actual de uso de IA
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-3">
+                    ¿Qué tanto utilizas la IA en tu ámbito laboral? <span className="text-red-500 dark:text-red-400">*</span>
+                  </label>
+                  <select
+                    value={selectedDifficulty}
+                    onChange={(e) => setSelectedDifficulty(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Selecciona una opción
+                    </option>
+                    <option value="Nunca" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Nunca
+                    </option>
+                    <option value="Rara vez" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Rara vez (1-2 veces al mes)
+                    </option>
+                    <option value="A veces" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      A veces (1-2 veces por semana)
+                    </option>
+                    <option value="Frecuentemente" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Frecuentemente (3-4 veces por semana)
+                    </option>
+                    <option value="Siempre" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+                      Siempre (todos o casi todos los días)
+                    </option>
+                  </select>
+                  
+                  {userProfile?.dificultad_id && (
+                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Nivel actual:</strong> {userProfile.dificultad_id} 
+                        {userProfile.dificultad_id < 5 && (
+                          <span className="block mt-1 text-blue-700 dark:text-blue-300">
+                            Si crees que puedes hacer el siguiente nivel, selecciona una opción más alta.
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDifficultyModal(false)}
+                    disabled={updatingDifficulty}
+                    className="flex-1 px-4 py-3 bg-gray-200 dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleUpdateDifficulty}
+                    disabled={!selectedDifficulty || updatingDifficulty}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-500 text-white rounded-lg hover:from-primary/80 hover:to-purple-500/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {updatingDifficulty ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Actualizando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Continuar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/5 backdrop-blur-sm border-b border-white/10 pt-24"
+        className="bg-white/80 dark:bg-white/5 backdrop-blur-sm border-b border-gray-200 dark:border-white/10 pt-24"
       >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="w-20"></div> {/* Spacer izquierdo */}
             
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-white mb-2">Mis Estadísticas</h1>
-              <p className="text-white/60 text-sm">Análisis personalizado de tus resultados</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Mis Estadísticas</h1>
+              <p className="text-gray-600 dark:text-white/60 text-sm">Análisis personalizado de tus resultados</p>
             </div>
             
             <button
-              onClick={() => router.push('/questionnaire/direct')}
-              className="flex items-center px-4 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 hover:border-primary/50 text-primary hover:text-primary/90 rounded-lg transition-all duration-300 group"
+              onClick={() => {
+                // Obtener la dificultad actual del usuario para pre-seleccionarla
+                if (userProfile?.dificultad_id) {
+                  const dificultadMap: { [key: number]: string } = {
+                    1: 'Nunca',
+                    2: 'Rara vez',
+                    3: 'A veces',
+                    4: 'Frecuentemente',
+                    5: 'Siempre'
+                  };
+                  setSelectedDifficulty(dificultadMap[userProfile.dificultad_id] || '');
+                }
+                setShowDifficultyModal(true);
+              }}
+              className="flex items-center px-4 py-2 bg-primary/20 dark:bg-primary/20 hover:bg-primary/30 dark:hover:bg-primary/30 border border-primary/30 dark:border-primary/30 hover:border-primary/50 dark:hover:border-primary/50 text-primary dark:text-primary hover:text-primary/90 rounded-lg transition-all duration-300 group"
             >
               <RefreshCw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
               <span className="text-sm font-medium">Nueva Encuesta</span>
@@ -690,19 +1120,38 @@ export default function StatisticsResultsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 mb-8"
+          className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 mb-8 shadow-lg dark:shadow-xl"
         >
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
                 <Brain className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Radar de Competencias en IA</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Radar de Competencias en IA</h2>
             </div>
-            <p className="text-white/60 max-w-2xl mx-auto">
+            <p className="text-gray-700 dark:text-white/60 max-w-2xl mx-auto mb-4">
               Visualización de tus fortalezas por área funcional basada en tu cuestionario. 
               Cada dimensión se evalúa en una escala de 0 a 100 puntos.
             </p>
+            {userProfile?.dificultad_id && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-blue-800 dark:text-blue-200">
+                    <p className="font-semibold mb-1">Nivel de Dificultad: {userProfile.dificultad_id}</p>
+                    <p>
+                      Tus scores están normalizados según tu nivel de dificultad. 
+                      El máximo posible para tu nivel es {userProfile.dificultad_id * 20} puntos.
+                      {userProfile.dificultad_id < 5 && (
+                        <span className="block mt-1 text-blue-700 dark:text-blue-300">
+                          A medida que avances en tu conocimiento de IA, podrás alcanzar niveles más altos.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex flex-col lg:flex-row gap-8 items-center">
@@ -714,7 +1163,7 @@ export default function StatisticsResultsPage() {
             </div>
             
             <div className="flex-1 space-y-4">
-              <h3 className="text-lg font-bold text-white mb-4">¿Qué significa cada dimensión?</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">¿Qué significa cada dimensión?</h3>
               
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
@@ -722,8 +1171,8 @@ export default function StatisticsResultsPage() {
                     <Brain className="w-4 h-4 text-blue-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Conocimiento</h4>
-                    <p className="text-white/60 text-sm">Tu comprensión teórica sobre IA, conceptos fundamentales y terminología.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Conocimiento</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu comprensión teórica sobre IA, conceptos fundamentales y terminología.</p>
                   </div>
                 </div>
                 
@@ -732,8 +1181,8 @@ export default function StatisticsResultsPage() {
                     <Target className="w-4 h-4 text-green-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Aplicación</h4>
-                    <p className="text-white/60 text-sm">Tu capacidad para implementar IA en casos de uso reales.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Aplicación</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu capacidad para implementar IA en casos de uso reales.</p>
                   </div>
                 </div>
                 
@@ -742,8 +1191,8 @@ export default function StatisticsResultsPage() {
                     <TrendingUp className="w-4 h-4 text-purple-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Productividad</h4>
-                    <p className="text-white/60 text-sm">Cómo utilizas la IA para optimizar tu trabajo diario.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Productividad</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Cómo utilizas la IA para optimizar tu trabajo diario.</p>
                   </div>
                 </div>
                 
@@ -752,8 +1201,8 @@ export default function StatisticsResultsPage() {
                     <Lightbulb className="w-4 h-4 text-orange-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Estrategia</h4>
-                    <p className="text-white/60 text-sm">Tu visión sobre el impacto estratégico de la IA en tu organización.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Estrategia</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu visión sobre el impacto estratégico de la IA en tu organización.</p>
                   </div>
                 </div>
                 
@@ -762,8 +1211,8 @@ export default function StatisticsResultsPage() {
                     <DollarSign className="w-4 h-4 text-red-400" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">Inversión</h4>
-                    <p className="text-white/60 text-sm">Tu disposición para invertir en herramientas y formación en IA.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">Inversión</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu disposición para invertir en herramientas y formación en IA.</p>
                   </div>
                 </div>
               </div>
@@ -800,13 +1249,13 @@ export default function StatisticsResultsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 mb-8"
+            className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 mb-8 shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
                 <Award className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Recomendaciones Personalizadas</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Recomendaciones Personalizadas</h2>
             </div>
             
             <div className="grid md:grid-cols-2 gap-4">
@@ -816,7 +1265,7 @@ export default function StatisticsResultsPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.8 + index * 0.1 }}
-                  className="bg-white/5 border border-white/10 rounded-xl p-4"
+                  className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4"
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 ${
@@ -827,8 +1276,8 @@ export default function StatisticsResultsPage() {
                       }`} />
                     </div>
                     <div>
-                      <h3 className="text-white font-medium mb-2">{rec.title}</h3>
-                      <p className="text-white/60 text-sm">{rec.description}</p>
+                      <h3 className="text-gray-900 dark:text-white font-medium mb-2">{rec.title}</h3>
+                      <p className="text-gray-700 dark:text-white/60 text-sm">{rec.description}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -843,16 +1292,16 @@ export default function StatisticsResultsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1 }}
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8"
+            className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
                 <Globe className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Adopción de GenAI en Países Hispanoparlantes</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Adopción de GenAI en Países Hispanoparlantes</h2>
             </div>
             
-            <p className="text-white/60 mb-6">
+            <p className="text-gray-700 dark:text-white/60 mb-6">
               Índice de Adopción e Implementación de IA (AIPI) por país. 
               Compara tu nivel de adopción con el promedio de tu región.
             </p>
@@ -863,21 +1312,21 @@ export default function StatisticsResultsPage() {
               </div>
               
               <div className="space-y-4">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                       <BarChart3 className="w-4 h-4 text-blue-400" />
                     </div>
-                    <h3 className="text-white font-medium">Estadísticas Generales</h3>
+                    <h3 className="text-gray-900 dark:text-white font-medium">Estadísticas Generales</h3>
                   </div>
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Países analizados:</span>
-                      <span className="text-white font-bold text-lg">{countryData.length}</span>
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Países analizados:</span>
+                      <span className="text-gray-900 dark:text-white font-bold text-lg">{countryData.length}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Promedio AIPI:</span>
-                      <span className="text-white font-bold text-lg">
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Promedio AIPI:</span>
+                      <span className="text-gray-900 dark:text-white font-bold text-lg">
                         {countryData.length > 0 
                           ? (() => {
                               // Filtrar solo países con valores válidos (no null)
@@ -891,10 +1340,10 @@ export default function StatisticsResultsPage() {
                         }
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Máximo:</span>
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Máximo:</span>
                       <div className="text-right">
-                        <div className="text-white font-bold text-lg">
+                        <div className="text-gray-900 dark:text-white font-bold text-lg">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -905,7 +1354,7 @@ export default function StatisticsResultsPage() {
                             : '0.000'
                           }
                         </div>
-                        <div className="text-white/60 text-xs">
+                        <div className="text-gray-600 dark:text-white/60 text-xs">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -919,38 +1368,38 @@ export default function StatisticsResultsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Mínimo:</span>
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Mínimo:</span>
                       <div className="text-right">
-                        <div className="text-white font-bold text-lg">
+                        <div className="text-gray-900 dark:text-white font-bold text-lg">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
                                 const validCountries = countryData.filter(c => c.indice_aipi != null && c.indice_aipi > 0);
                                 const minValue = validCountries.length > 0 ? Math.min(...validCountries.map(c => c.indice_aipi)) : 0;
-                                console.log('🔍 Debug mínimo corregido:', {
-                                  validCountries: validCountries.map(c => ({ pais: c.pais, indice_aipi: c.indice_aipi })),
-                                  minValue,
-                                  totalCountries: countryData.length,
-                                  validCountriesCount: validCountries.length
-                                });
+                                // console.log('🔍 Debug mínimo corregido:', {
+                                //   validCountries: validCountries.map(c => ({ pais: c.pais, indice_aipi: c.indice_aipi })),
+                                //   minValue,
+                                //   totalCountries: countryData.length,
+                                //   validCountriesCount: validCountries.length
+                                // });
                                 return minValue.toFixed(3);
                               })()
                             : '0.000'
                           }
                         </div>
-                        <div className="text-white/60 text-xs">
+                        <div className="text-gray-600 dark:text-white/60 text-xs">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
                                 const validCountries = countryData.filter(c => c.indice_aipi != null && c.indice_aipi > 0);
                                 const minValue = validCountries.length > 0 ? Math.min(...validCountries.map(c => c.indice_aipi)) : 0;
                                 const minCountry = validCountries.find(c => c.indice_aipi === minValue);
-                                console.log('🔍 Debug país mínimo corregido:', { 
-                                  minValue, 
-                                  minCountry,
-                                  validCountries: validCountries.map(c => ({ pais: c.pais, indice_aipi: c.indice_aipi }))
-                                });
+                                // console.log('🔍 Debug país mínimo corregido:', {
+                                //   minValue,
+                                //   minCountry,
+                                //   validCountries: validCountries.map(c => ({ pais: c.pais, indice_aipi: c.indice_aipi }))
+                                // });
                                 return minCountry?.pais || 'N/A';
                               })()
                             : 'N/A'
@@ -958,9 +1407,9 @@ export default function StatisticsResultsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-white/70">Rango:</span>
-                      <span className="text-white font-bold text-lg">
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <span className="text-gray-700 dark:text-white/70">Rango:</span>
+                      <span className="text-gray-900 dark:text-white font-bold text-lg">
                         {countryData.length > 0 
                           ? (() => {
                               // Filtrar solo países con valores válidos (no null)
@@ -977,21 +1426,21 @@ export default function StatisticsResultsPage() {
                       const userCountryData = countryData.find(c => 
                         c.pais && c.pais.toLowerCase().trim() === userProfile.pais.toLowerCase().trim()
                       );
-                      console.log('🔍 Debug país usuario:', {
-                        userProfilePais: userProfile.pais,
-                        countryData: countryData.map(c => c.pais),
-                        userCountryData,
-                        countryDataLength: countryData.length
-                      });
+                      // console.log('🔍 Debug país usuario:', {
+                      //   userProfilePais: userProfile.pais,
+                      //   countryData: countryData.map(c => c.pais),
+                      //   userCountryData,
+                      //   countryDataLength: countryData.length
+                      // });
                       return userCountryData;
                     })() && (
-                      <div className="flex justify-between items-center p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                        <span className="text-yellow-300 font-medium">Tu país ({userProfile.pais}):</span>
+                      <div className="flex justify-between items-center p-3 bg-yellow-500/10 dark:bg-yellow-500/10 border border-yellow-500/20 dark:border-yellow-500/20 rounded-lg">
+                        <span className="text-yellow-700 dark:text-yellow-300 font-medium">Tu país ({userProfile.pais}):</span>
                         <div className="text-right">
-                          <div className="text-yellow-300 font-bold text-lg">
+                          <div className="text-yellow-700 dark:text-yellow-300 font-bold text-lg">
                             {countryData.find(c => c.pais && c.pais.toLowerCase().trim() === userProfile.pais.toLowerCase().trim())?.indice_aipi?.toFixed(3) || '0.000'}
                           </div>
-                          <div className="text-yellow-400/70 text-xs">
+                          <div className="text-yellow-600 dark:text-yellow-400/70 text-xs">
                             Posición #{countryData.findIndex(c => c.pais && c.pais.toLowerCase().trim() === userProfile.pais.toLowerCase().trim()) + 1} de {countryData.length}
                           </div>
                         </div>
@@ -1000,25 +1449,25 @@ export default function StatisticsResultsPage() {
                   </div>
                 </div>
                 
-                <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
                       <Info className="w-4 h-4 text-green-400" />
                     </div>
-                    <h3 className="text-white font-medium">Fuente y Metodología</h3>
+                    <h3 className="text-gray-900 dark:text-white font-medium">Fuente y Metodología</h3>
                   </div>
                   <div className="space-y-3 text-sm">
-                    <div className="p-3 bg-white/5 rounded-lg">
-                      <h4 className="text-white font-medium mb-2">Metodología AIPI</h4>
-                      <p className="text-white/70 leading-relaxed">
+                    <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Metodología AIPI</h4>
+                      <p className="text-gray-700 dark:text-white/70 leading-relaxed">
                         El Índice de Adopción e Implementación de IA (AIPI) evalúa el nivel de adopción de 
                         inteligencia artificial en países hispanoparlantes basándose en métricas de 
                         implementación empresarial, uso personal, inversión en tecnología y políticas públicas.
                       </p>
                     </div>
-                    <div className="p-3 bg-white/5 rounded-lg">
-                      <h4 className="text-white font-medium mb-2">Fuentes de Datos</h4>
-                      <p className="text-white/70 leading-relaxed">
+                    <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Fuentes de Datos</h4>
+                      <p className="text-gray-700 dark:text-white/70 leading-relaxed">
                         • Estudios de adopción empresarial (2023-2024)<br/>
                         • Encuestas de uso personal de IA<br/>
                         • Inversión en tecnología por país<br/>
@@ -1026,9 +1475,9 @@ export default function StatisticsResultsPage() {
                         • Índices de innovación tecnológica
                       </p>
                     </div>
-                    <div className="p-3 bg-white/5 rounded-lg">
-                      <h4 className="text-white font-medium mb-2">Actualización</h4>
-                      <p className="text-white/70 leading-relaxed">
+                    <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Actualización</h4>
+                      <p className="text-gray-700 dark:text-white/70 leading-relaxed">
                         Datos actualizados trimestralmente. Última actualización: Enero 2025
                       </p>
                     </div>

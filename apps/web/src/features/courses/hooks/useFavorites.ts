@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import useSWR from 'swr'
 import { useAuth } from '../../auth/hooks/useAuth'
 
 interface UseFavoritesReturn {
@@ -12,92 +12,105 @@ interface UseFavoritesReturn {
   refetch: () => Promise<void>
 }
 
+// ⚡ Fetcher optimizado para SWR
+const favoritesFetcher = async (url: string): Promise<string[]> => {
+  const response = await fetch(url, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  if (!response.ok) {
+    // Si es un error 500, devolver array vacío (problema de configuración)
+    if (response.status === 500) {
+      return []
+    }
+    throw new Error(`Error ${response.status}: ${response.statusText}`)
+  }
+
+  return response.json()
+}
+
 export function useFavorites(): UseFavoritesReturn {
-  const [favorites, setFavorites] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const { user } = useAuth()
 
-  const fetchFavorites = async () => {
-    if (!user?.id) {
-      setFavorites([])
-      setLoading(false)
-      return
-    }
+  // ⚡ SWR con cache y deduplicación
+  const url = user?.id ? `/api/favorites?userId=${user.id}` : null
 
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await fetch(`/api/favorites?userId=${user.id}`)
-      
-      if (!response.ok) {
-        // Si es un error 500, probablemente es un problema de configuración
-        if (response.status === 500) {
-          console.warn('Error 500 en favoritos - probablemente Supabase no configurado')
-          setFavorites([]) // Devolver array vacío en lugar de error
-          return
-        }
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      setFavorites(data)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      
-      // Si es un error de configuración, no mostrar error al usuario
-      if (errorMessage.includes('Variables de entorno') || errorMessage.includes('500')) {
-        console.warn('Supabase no configurado, usando favoritos vacíos')
-        setFavorites([])
-        setError(null)
-      } else {
-        setError(errorMessage)
-        console.error('Error fetching favorites:', err)
-      }
-    } finally {
-      setLoading(false)
+  const { data: favorites = [], error, isLoading, mutate } = useSWR<string[]>(
+    url,
+    favoritesFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 10000, // 10s deduplication
+      refreshInterval: 0,
+      shouldRetryOnError: false,
+      fallbackData: [],
     }
-  }
+  )
 
   const toggleFavorite = async (courseId: string): Promise<boolean> => {
     if (!user?.id) {
-      setError('Debes estar autenticado para usar favoritos')
       return false
     }
 
+    // Guardar el valor anterior ANTES del optimistic update
+    const previousFavorites = [...favorites]
+
     try {
-      setError(null)
-      
+      // ⚡ Optimistic update
+      const isCurrentlyFavorite = favorites.includes(courseId)
+      const optimisticFavorites = isCurrentlyFavorite
+        ? favorites.filter(id => id !== courseId)
+        : [...favorites, courseId]
+
+      // Update UI immediately (optimistic update)
+      mutate(optimisticFavorites, false)
+
       const response = await fetch('/api/favorites', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          courseId
-        })
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, courseId })
       })
-      
+
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        // Rollback usando el valor guardado anteriormente
+        mutate(previousFavorites, false)
+        throw new Error(`Error ${response.status}`)
       }
-      
-      const { isFavorite: newFavoriteStatus } = await response.json()
-      
-      // Actualizar el estado local
-      if (newFavoriteStatus) {
-        setFavorites(prev => [...prev, courseId])
+
+      const { isFavorite: newFavoriteStatus, favorites: updatedFavorites } = await response.json()
+
+      // Si el servidor devolvió la lista actualizada de favoritos, usarla directamente
+      // Esto asegura que el estado esté 100% sincronizado con la BD
+      if (Array.isArray(updatedFavorites)) {
+        // Actualizar el cache con la lista exacta del servidor
+        // false = no revalidar (ya tenemos los datos frescos)
+        mutate(updatedFavorites, false)
       } else {
-        setFavorites(prev => prev.filter(id => id !== courseId))
+        // Fallback: Asegurar que el estado optimista coincida con la respuesta del servidor
+        const currentInOptimistic = optimisticFavorites.includes(courseId)
+        if (currentInOptimistic !== newFavoriteStatus) {
+          // Corregir el estado optimista
+          const correctedFavorites = newFavoriteStatus
+            ? [...optimisticFavorites.filter(id => id !== courseId), courseId]
+            : optimisticFavorites.filter(id => id !== courseId)
+          
+          // Actualizar el cache con el estado correcto
+          mutate(correctedFavorites, false)
+        }
+
+        // Revalidar desde el servidor para asegurar consistencia (sin bloquear la UI)
+        mutate().catch(() => {
+          // Si falla la revalidación, el estado optimista ya está correcto
+        })
       }
-      
+
       return newFavoriteStatus
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMessage)
-      console.error('Error toggling favorite:', err)
+      // Rollback usando el valor guardado anteriormente
+      mutate(previousFavorites, false)
       return false
     }
   }
@@ -106,16 +119,12 @@ export function useFavorites(): UseFavoritesReturn {
     return favorites.includes(courseId)
   }
 
-  useEffect(() => {
-    fetchFavorites()
-  }, [user?.id])
-
   return {
     favorites,
-    loading,
-    error,
+    loading: isLoading,
+    error: error?.message || null,
     toggleFavorite,
     isFavorite,
-    refetch: fetchFavorites
+    refetch: mutate
   }
 }

@@ -21,6 +21,7 @@ const registerSchema = z.object({
   confirmPassword: z.string().min(1, 'Confirma la contraseña'),
   countryCode: z.string().min(1, 'Selecciona un país'),
   phoneNumber: z.string().min(1, 'El teléfono es requerido'),
+  cargo_titulo: z.string().max(100, 'El cargo no puede exceder 100 caracteres').optional(),
   acceptTerms: z.boolean().refine(val => val === true, {
     message: 'Debes aceptar los términos y condiciones',
   }),
@@ -45,7 +46,35 @@ export async function registerAction(formData: FormData) {
     
     const parsed = registerSchema.parse(formDataParsed)
 
+    // Obtener contexto de organización si viene de registro personalizado
+    const organizationId = formData.get('organizationId')?.toString()
+    const organizationSlug = formData.get('organizationSlug')?.toString()
+
     const supabase = await createClient()
+
+    // Validar organización si viene de registro personalizado
+    if (organizationId && organizationSlug) {
+      const { data: organization, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, slug, subscription_plan, subscription_status, is_active')
+        .eq('id', organizationId)
+        .eq('slug', organizationSlug)
+        .single()
+
+      if (orgError || !organization) {
+        return { error: 'Organización no encontrada' }
+      }
+
+      // Validar que puede usar login personalizado
+      const allowedPlans = ['team', 'business', 'enterprise']
+      const activeStatuses = ['active', 'trial']
+      
+      if (!allowedPlans.includes(organization.subscription_plan) || 
+          !activeStatuses.includes(organization.subscription_status) ||
+          !organization.is_active) {
+        return { error: 'Esta organización no permite nuevos registros' }
+      }
+    }
 
     // Verificar usuario/email no exista en nuestra tabla (como antes)
     const { data: existing } = await supabase
@@ -67,6 +96,8 @@ export async function registerAction(formData: FormData) {
     const userId = crypto.randomUUID()
 
     // Crear usuario directamente en la tabla users (sin Supabase Auth)
+    const cargoTitulo = parsed.cargo_titulo?.trim() || 'Usuario';
+    
     const { data: user, error } = await supabase
       .from('users')
       .insert({
@@ -80,17 +111,36 @@ export async function registerAction(formData: FormData) {
         country_code: parsed.countryCode,
         phone: parsed.phoneNumber, // Campo phone para el número de teléfono (varchar en DB)
         cargo_rol: 'Usuario', // Rol por defecto para nuevos usuarios
-        type_rol: 'Usuario', // Tipo de rol por defecto para nuevos usuarios
+        type_rol: cargoTitulo, // Tipo de rol: cargo_titulo si se proporciona, 'Usuario' por defecto
         email_verified: false, // Se verificará después con email manual
+        organization_id: organizationId || null, // Asignar organización si viene de registro personalizado
       })
       .select()
       .single()
 
     if (error) {
-      console.error('Error creating user profile:', error)
+      // console.error('Error creating user profile:', error)
       // Limpiar cuenta de auth en caso de error
       // Nota: Esto requeriría service role key, por ahora solo logueamos
       return { error: 'Error al crear perfil de usuario' }
+    }
+
+    // Si se proporcionó cargo_titulo, crear perfil inicial en user_perfil
+    if (parsed.cargo_titulo && parsed.cargo_titulo.trim()) {
+      try {
+        await supabase
+          .from('user_perfil')
+          .insert({
+            user_id: user.id,
+            cargo_titulo: parsed.cargo_titulo.trim(),
+            creado_en: new Date().toISOString(),
+            actualizado_en: new Date().toISOString()
+          })
+      } catch (profileError) {
+        // No fallar el registro si hay error creando el perfil
+        // El perfil se puede crear después cuando complete el cuestionario
+        // console.error('Error creating initial profile:', profileError)
+      }
     }
 
     return { 
@@ -99,7 +149,7 @@ export async function registerAction(formData: FormData) {
       userId: user.id 
     }
   } catch (error) {
-    console.error('Register error:', error)
+    // console.error('Register error:', error)
     if (error instanceof z.ZodError) {
       return { error: error.errors[0].message }
     }

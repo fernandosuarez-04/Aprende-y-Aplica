@@ -1,0 +1,292 @@
+{
+  "loading": {
+    "course": "Loading course...",
+    "lesson": "Loading lesson...",
+    "notes": "Loading notes...",
+    "conversations": "Loading conversations...",
+    "video": "Loading video...",
+    "transcript": "Loading transcript...",
+    "summary": "Loading summary...",
+    "activities": "Loading activities...",
+    "questions": "Loading questions...",
+    "general": "Loading..."
+  },
+  "header": {
+    "backButton": "Go back",
+    "workshop": "Aprende y Aplica Workshop",
+    "progress": "Progress"
+  },
+  "leftPanel": {
+    "title": "Course Materials",
+    "content": "Content",
+    "notes": "Notes",
+    "expandContent": "Expand Content",
+    "collapseContent": "Collapse Content",
+    "expandModule": "Expand module",
+    "collapseModule": "Collapse module",
+    "completed": "completed",
+    "completedPercentage": "complete",
+    "notesSection": {
+      "myNotes": "My Notes",
+      "newNote": "New Note",
+      "expandNotes": "Expand Notes",
+      "collapseNotes": "Collapse Notes",
+      "savedNotes": "Saved notes",
+      "noSavedNotes": "No saved notes yet",
+      "saveFirstNote": "Save your first note to get started",
+      "editNote": "Edit note",
+      "deleteNote": "Delete note",
+      "notesProgress": "Notes Progress",
+      "notesCreated": "Notes created",
+      "lessonsWithNotes": "Lessons with notes",
+      "lastUpdate": "Last update",
+      "viewNotes": "View notes"
+    }
+  },
+  "tabs": {
+    "video": "Video",
+    "transcript": "Transcript",
+    "summary": "Summary",
+    "activities": "Activities",
+    "questions": "Questions"
+  },
+  "lesson": {
+    "duration": "duration",
+    "completed": "Completed",
+    "inProgress": "In Progress",
+    "locked": "Locked"
+  },
+  "navigation": {
+    "previous": "Previous",
+    "next": "Next",
+    "backToCourses": "Back to My Courses",
+    "completeCourse": "Complete Course"
+  },
+  "lia": {
+    "title": "Lia",
+    "subtitle": "Your personalized tutor",
+    "placeholder": "Type your message here...",
+    "send": "Send",
+    "newConversation": "New conversation",
+    "viewHistory": "View history",
+    "resetConversation": "Reset conversation",
+    "expand": "Expand Lia",
+    "minimize": "Minimize Lia",
+    "moreOptions": "More options",
+    "copyMessage": "Copy message",
+    "createNote": "Create note",
+    "conversationHistory": "Conversation History",
+    "closeHistory": "Close history",
+    "noConversations": "No previous conversations",
+    "generalConversation": "General conversation",
+    "messages": "message",
+    "messagesPlural": "messages",
+    "editName": "Edit name",
+    "deleteConversation": "Delete conversation",
+    "deleteConfirmTitle": "Delete conversation",
+    "deleteConfirmSubtitle": "This action cannot be undone",
+    "deleteConfirmMessage": "Are you sure you want to delete this conversation? All messages will be permanently lost.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save"
+  },
+  "notes": {
+    "title": "Course Notes",
+    "createNote": "Create Note",
+    "editNote": "Edit Note",
+    "deleteNote": "Delete Note",
+    "total": "Total notes",
+    "lessonsWithNotes": "Lessons with notes",
+    "lastUpdate": "Last update",
+    "now": "Now",
+    "search": "Search notes...",
+    "filterByLesson": "Filter by lesson",
+    "allLessons": "All lessons",
+    "noNotes": "No notes yet",
+    "noNotesSubtitle": "Create your first note while learning",
+    "noResults": "No notes found",
+    "noResultsSubtitle": "Try different search terms",
+    "noteTitle": "Note title",
+    "noteContent": "Note content",
+    "tags": "Tags",
+    "tagsPlaceholder": "Add tags (comma separated)",
+    "lesson": "Lesson",
+    "saveNote": "Save Note",
+    "saving": "Saving...",
+    "deleting": "Deleting...",
+    "deleteConfirmTitle": "Delete this note?",
+    "deleteConfirmMessage": "This action cannot be undone"
+  },
+  "activities": {
+    "title": "Activities",
+    "required": "Required",
+    "optional": "Optional",
+    "complete": "Complete",
+    "completed": "Completed",
+    "inProgress": "In Progress",
+    "notStarted": "Not Started",
+    "suggestedPrompts": "Suggested Prompts",
+    "expandPrompts": "Expand prompts",
+    "collapsePrompts": "Collapse prompts",
+    "typeYourAnswer": "Type your answer here...",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "completionRequirement": "To advance to the next lesson, it is necessary to complete all required activities and pass the corresponding quizzes. We recommend reviewing each activity and material carefully to ensure a complete understanding of the content.",
+    "expandCollapse": "Expand activities and materials",
+    "expand": "Expand",
+    "collapse": "Collapse"
+  },
+  "video": {
+    "title": "Lesson",
+    "description": "Description",
+    "previousLesson": "Previous Lesson",
+    "nextLesson": "Next Lesson",
+    "markComplete": "Mark as Complete",
+    "completeToUnlock": "Complete this lesson to unlock the next one"
+  },
+  "errors": {
+    "courseNotFound": "Course not found",
+    "courseNotFoundMessage": "The course you're looking for doesn't exist",
+    "lessonNotFound": "Lesson not found",
+    "loadingError": "Error loading",
+    "savingError": "Error saving",
+    "genericError": "An error occurred",
+    "tryAgain": "Try again"
+  },
+  "modals": {
+    "courseCompleted": {
+      "title": "Congratulations!",
+      "message": "You have successfully completed the course",
+      "rateNow": "Rate now",
+      "rateLater": "Later"
+    },
+    "cannotComplete": {
+      "title": "You can't advance yet",
+      "message": "You must complete the required activities for this lesson before continuing",
+      "pendingActivities": "Pending activities",
+      "understand": "Understood"
+    },
+    "close": "Close",
+    "resetConversation": {
+      "title": "Reset conversation with Lia?",
+      "message": "Do you want to clear the conversation history and start over? The chat will reset and you'll start a new conversation with Lia.",
+      "cancel": "Cancel",
+      "confirm": "Reset conversation"
+    },
+    "understand": "Understood"
+  },
+  "transcript": {
+    "title": "Video Transcript",
+    "loading": "Loading transcript...",
+    "notAvailable": "Transcript not available",
+    "notAvailableMessage": "This lesson doesn't have a transcript yet. The transcript will be added soon.",
+    "createNoteFromSelection": "Create note from selection",
+    "selectText": "Select text to create a note",
+    "selectLesson": "Select a lesson",
+    "selectLessonMessage": "Select a lesson from the left panel to view its transcript",
+    "completeTranscription": "Complete Transcript",
+    "characters": "characters",
+    "readTime": "min read",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "download": "Download",
+    "saveToNotes": "Save to notes",
+    "savingToNotes": "Saving...",
+    "lastUpdate": "Last update",
+    "tips": {
+      "checkAudio": "Verify that the video has audio",
+      "autoGenerated": "Transcript is automatically generated",
+      "contactInstructor": "Contact instructor if you need help"
+    }
+  },
+  "summary": {
+    "title": "Summary",
+    "loading": "Loading summary...",
+    "notAvailable": "Summary not available",
+    "keyPoints": "Key points",
+    "objectives": "Objectives",
+    "keySummary": "Key Summary",
+    "readTime": "min read"
+  },
+  "questions": {
+    "title": "Questions",
+    "askQuestion": "Ask a question",
+    "yourQuestion": "Your question",
+    "questionPlaceholder": "Write your question about the course...",
+    "submit": "Submit question",
+    "noQuestions": "No questions yet",
+    "noQuestionsSubtitle": "Be the first to ask a question",
+    "answers": "answer",
+    "answersPlural": "answers",
+    "reply": "Reply",
+    "like": "Like",
+    "views": "view",
+    "viewsPlural": "views"
+  },
+  "quiz": {
+    "submit": "Submit Answers",
+    "unansweredQuestions": "Please answer all questions ({{count}} unanswered)",
+    "score": "Score",
+    "of": "of",
+    "points": "points",
+    "correctAnswers": "Correct answers: {{correct}}/{{total}}",
+    "passed": "Passed!",
+    "failed": "Need improvement",
+    "tryAgain": "Try again",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "yourAnswer": "Your answer",
+    "correctAnswer": "Correct answer",
+    "explanation": "Explanation"
+  },
+  "tour": {
+    "courseLearnLabel": "View course tour",
+    "replayLabel": "View Course Tour",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to your course!",
+        "description": "This is your interactive learning space. Here you'll find lessons, practical activities and resources to master the topic.",
+        "speech": "Welcome to your course. This is your interactive learning space. Here you'll find lessons, practical activities and resources to master the topic."
+      },
+      "navigation": {
+        "title": "Course navigation",
+        "description": "In the left panel you'll see all the modules and lessons of the course. Click on any lesson to access its content.",
+        "speech": "In the left panel you'll see all the modules and lessons of the course. Click on any lesson to access its content."
+      },
+      "materials": {
+        "title": "Lesson materials",
+        "description": "Each lesson may include videos, texts, downloadable PDFs and additional resources. Explore all available content.",
+        "speech": "Each lesson may include videos, texts, downloadable PDFs and additional resources. Explore all available content."
+      },
+      "activities": {
+        "title": "Practical activities",
+        "description": "Complete the activities to put what you've learned into practice. They are essential for your progress and certification.",
+        "speech": "Complete the activities to put what you've learned into practice. They are essential for your progress and certification."
+      },
+      "lia": {
+        "title": "LIA is here to help you",
+        "description": "If you have questions about the content, activities or any topic in the course, ask LIA. She will help you at all times.",
+        "speech": "If you have questions about the content, activities or any topic in the course, ask LIA. She will help you at all times."
+      },
+      "progress": {
+        "title": "Progress tracking",
+        "description": "Your progress is saved automatically. You can see how much you've advanced in the course and which lessons you've completed.",
+        "speech": "Your progress is saved automatically. You can see how much you've advanced in the course and which lessons you've completed."
+      },
+      "questions": {
+        "title": "Do you have any questions?",
+        "description": "Before starting, if you have any questions about how to use the learning platform, you can ask me. Click on the microphone and speak to me.",
+        "speech": "Before starting, if you have any questions about how to use the learning platform, click on the microphone and speak to me. I'll respond by voice."
+      },
+      "ready": {
+        "title": "Ready to learn!",
+        "description": "Now you're ready to begin your learning journey. Remember, LIA will always be available to help you.",
+        "speech": "Now you're ready to begin your learning journey. Remember, LIA will always be available to help you."
+      }
+    }
+  },
+  "voice": {
+    "microphoneError": "Microphone permission is required",
+    "speechNotSupported": "Your browser does not support speech recognition"
+  }
+}

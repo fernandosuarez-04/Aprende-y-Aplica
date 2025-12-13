@@ -43,6 +43,7 @@ interface UsePromptsOptions {
   category?: string | null;
   difficulty?: string | null;
   featured?: boolean;
+  favorites?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   page?: number;
@@ -74,6 +75,7 @@ export function usePrompts(options: UsePromptsOptions = {}): UsePromptsReturn {
       if (options.category) params.append('category', options.category);
       if (options.difficulty) params.append('difficulty', options.difficulty);
       if (options.featured) params.append('featured', 'true');
+      if (options.favorites) params.append('favorites', 'true');
       if (options.sortBy) params.append('sortBy', options.sortBy);
       if (options.sortOrder) params.append('sortOrder', options.sortOrder);
       if (options.page) params.append('page', options.page.toString());
@@ -104,6 +106,7 @@ export function usePrompts(options: UsePromptsOptions = {}): UsePromptsReturn {
     options.category,
     options.difficulty,
     options.featured,
+    options.favorites,
     options.sortBy,
     options.sortOrder,
     options.page,

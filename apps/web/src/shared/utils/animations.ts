@@ -134,6 +134,30 @@ export const slideRight: Variants = {
   }
 };
 
+export const slideInFromLeft: Variants = {
+  hidden: { 
+    opacity: 0, 
+    x: -100 
+  },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+export const slideInFromRight: Variants = {
+  hidden: { 
+    opacity: 0, 
+    x: 100 
+  },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
 // Stagger animations
 export const staggerContainer: Variants = {
   hidden: { opacity: 0 },
@@ -186,6 +210,17 @@ export const cardHover: Variants = {
   hover: { 
     scale: 1.02, 
     y: -4,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+export const scaleOnHover: Variants = {
+  rest: { 
+    scale: 1,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
+  },
+  hover: { 
+    scale: 1.05,
     transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
   }
 };

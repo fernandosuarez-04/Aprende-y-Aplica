@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server';
 
 export async function POST(request: NextRequest) {
@@ -11,6 +12,18 @@ export async function POST(request: NextRequest) {
     
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // Verificar si el usuario necesita completar el cuestionario
+    const { QuestionnaireValidationService } = await import('../../../../features/auth/services/questionnaire-validation.service');
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+    
+    if (requiresQuestionnaire) {
+      return NextResponse.json({ 
+        error: 'Debes completar el cuestionario de perfil profesional antes de unirte a comunidades',
+        requiresQuestionnaire: true,
+        redirectUrl: '/statistics'
+      }, { status: 403 });
     }
 
     const { communityId } = await request.json();
@@ -39,15 +52,16 @@ export async function POST(request: NextRequest) {
 
     // Lógica especial para "Profesionales"
     if (community.slug === 'profesionales') {
-      // Verificar si el usuario ya tiene membresía en CUALQUIER otra comunidad
+      // Verificar si el usuario ya tiene membresía en OTRAS comunidades (excluir Profesionales)
       const { data: allMemberships, error: allMembershipsError } = await supabase
         .from('community_members')
-        .select('community_id, communities!inner(name)')
+        .select('community_id, communities!inner(name, slug)')
         .eq('user_id', user.id)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .neq('communities.slug', 'profesionales');
 
       if (allMembershipsError) {
-        console.error('Error checking all memberships:', allMembershipsError);
+        logger.error('Error checking all memberships:', allMembershipsError);
         return NextResponse.json({ error: 'Error al verificar membresías' }, { status: 500 });
       }
 
@@ -69,12 +83,55 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (membershipError && membershipError.code !== 'PGRST116') {
-      console.error('Error checking membership:', membershipError);
+      logger.error('Error checking membership:', membershipError);
       return NextResponse.json({ error: 'Error al verificar membresía' }, { status: 500 });
     }
 
     if (existingMembership) {
       return NextResponse.json({ error: 'Ya eres miembro de esta comunidad' }, { status: 400 });
+    }
+
+    // Si está uniéndose a una comunidad diferente de "Profesionales",
+    // remover automáticamente de "Profesionales" si está allí
+    if (community.slug !== 'profesionales') {
+      // Buscar la comunidad "Profesionales"
+      const { data: profesionalesComm } = await supabase
+        .from('communities')
+        .select('id, member_count')
+        .eq('slug', 'profesionales')
+        .single();
+
+      if (profesionalesComm) {
+        // Verificar si el usuario es miembro de "Profesionales"
+        const { data: profMembership } = await supabase
+          .from('community_members')
+          .select('id')
+          .eq('community_id', profesionalesComm.id)
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .single();
+
+        if (profMembership) {
+          // Remover de "Profesionales"
+          const { error: removeError } = await supabase
+            .from('community_members')
+            .update({ is_active: false, updated_at: new Date().toISOString() })
+            .eq('id', profMembership.id);
+
+          if (!removeError) {
+            // Decrementar contador de miembros de "Profesionales"
+            await supabase
+              .from('communities')
+              .update({
+                member_count: Math.max(0, profesionalesComm.member_count - 1),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', profesionalesComm.id);
+
+            logger.info(`User ${user.id} automatically removed from Profesionales when joining ${community.name}`);
+          }
+        }
+      }
     }
 
     // Agregar usuario a la comunidad
@@ -89,21 +146,21 @@ export async function POST(request: NextRequest) {
       });
 
     if (joinError) {
-      console.error('Error joining community:', joinError);
+      logger.error('Error joining community:', joinError);
       return NextResponse.json({ error: 'Error al unirse a la comunidad' }, { status: 500 });
     }
 
     // Actualizar contador de miembros
     const { error: updateError } = await supabase
       .from('communities')
-      .update({ 
+      .update({
         member_count: community.member_count + 1,
         updated_at: new Date().toISOString()
       })
       .eq('id', communityId);
 
     if (updateError) {
-      console.error('Error updating member count:', updateError);
+      logger.error('Error updating member count:', updateError);
       // No fallar la operación por esto, solo logear
     }
 
@@ -113,7 +170,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in join community API:', error);
+    logger.error('Error in join community API:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -29,14 +29,14 @@ export const errorHandler = (
   next: NextFunction
 ) => {
   // Log del error para debugging
-  console.error('Error occurred:', {
-    message: err.message,
-    stack: err.stack,
-    url: req.url,
-    method: req.method,
-    ip: req.ip,
-    timestamp: new Date().toISOString(),
-  });
+  // console.error('Error occurred:', {
+  //   message: err.message,
+  //   stack: err.stack,
+  //   url: req.url,
+  //   method: req.method,
+  //   ip: req.ip,
+  //   timestamp: new Date().toISOString(),
+  // });
 
   // Error conocido de la aplicación
   if (err instanceof AppError) {

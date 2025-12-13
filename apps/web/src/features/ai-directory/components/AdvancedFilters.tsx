@@ -34,16 +34,16 @@ export function AdvancedFilters({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <h4 className="text-md font-semibold text-white">Filtros Avanzados</h4>
+      <h4 className="text-md font-semibold text-gray-900 dark:text-white">Filtros Avanzados</h4>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Sort By */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">Ordenar por</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Ordenar por</label>
           <select
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -55,14 +55,14 @@ export function AdvancedFilters({
 
         {/* Sort Order */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-300">Orden</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Orden</label>
           <div className="flex gap-2">
             <motion.button
               onClick={() => onSortOrderChange('asc')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
                 sortOrder === 'asc'
-                  ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                  : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                  ? 'bg-purple-500/20 dark:bg-purple-500/20 border-purple-500 dark:border-purple-500 text-purple-700 dark:text-purple-300'
+                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
               }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -75,8 +75,8 @@ export function AdvancedFilters({
               onClick={() => onSortOrderChange('desc')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
                 sortOrder === 'desc'
-                  ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                  : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                  ? 'bg-purple-500/20 dark:bg-purple-500/20 border-purple-500 dark:border-purple-500 text-purple-700 dark:text-purple-300'
+                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
               }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

@@ -3,11 +3,11 @@ import { createClient } from '../../../../../lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { slug } = params;
+    const { slug } = await params;
 
     const { data: prompt, error } = await supabase
       .from('ai_prompts')
@@ -25,7 +25,7 @@ export async function GET(
       .single();
 
     if (error) {
-      console.error('Error fetching prompt:', error);
+      // console.error('Error fetching prompt:', error);
       return NextResponse.json(
         { error: 'Prompt not found' },
         { status: 404 }
@@ -42,7 +42,7 @@ export async function GET(
 
     return NextResponse.json({ prompt });
   } catch (error) {
-    console.error('Unexpected error:', error);
+    // console.error('Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

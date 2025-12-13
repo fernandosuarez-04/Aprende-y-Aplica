@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Star, Eye, ExternalLink, Sparkles, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
+import { StarRating } from '@/features/courses/components/StarRating';
 
 interface App {
   app_id: string;
@@ -34,8 +35,8 @@ interface App {
   is_verified: boolean;
   view_count: number;
   like_count: number;
-  rating: number;
-  rating_count: number;
+  rating?: number | null;
+  rating_count?: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -49,6 +50,7 @@ interface App {
 
 interface AppCardProps {
   app: App;
+  viewMode?: 'grid' | 'list';
 }
 
 const pricingColors = {
@@ -65,7 +67,7 @@ const pricingLabels = {
   subscription: 'Suscripción'
 };
 
-export function AppCard({ app }: AppCardProps) {
+export function AppCard({ app, viewMode = 'grid' }: AppCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -78,8 +80,10 @@ export function AppCard({ app }: AppCardProps) {
 
   return (
     <motion.div
-      className="group relative bg-gray-900/50 backdrop-blur-md border border-gray-700 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-300 overflow-hidden"
-      whileHover={{ y: -4 }}
+      className={`group relative bg-white dark:bg-gray-900/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 overflow-hidden shadow-lg dark:shadow-xl ${
+        viewMode === 'list' ? 'flex flex-row' : 'h-full flex flex-col'
+      }`}
+      whileHover={{ y: viewMode === 'grid' ? -4 : 0 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
     >
@@ -96,138 +100,181 @@ export function AppCard({ app }: AppCardProps) {
         </div>
       )}
 
-      {/* Category Badge */}
-      <div className="mb-4">
-        <div 
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border"
-          style={{ 
-            backgroundColor: `${app.ai_categories.color}20`,
-            color: app.ai_categories.color,
-            borderColor: `${app.ai_categories.color}30`
-          }}
-        >
-          <span>{app.ai_categories.name}</span>
-        </div>
-      </div>
-
-      {/* Logo and Title */}
-      <div className="flex items-start gap-4 mb-4">
-        <div className="w-16 h-16 rounded-xl bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+      {/* Logo - Different size for list mode */}
+      {viewMode === 'list' && (
+        <div className="w-24 h-24 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0 mr-6">
           {app.logo_url ? (
             <Image
               src={app.logo_url}
               alt={`${app.name} logo`}
-              width={64}
-              height={64}
+              width={96}
+              height={96}
               className="w-full h-full object-contain"
             />
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">
+            <div className="w-full h-full rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <span className="text-white font-bold text-2xl">
                 {app.name.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
         </div>
-        
-        <div className="flex-1 min-w-0">
-          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">
-            {app.name}
-          </h3>
-          
-          {/* Pricing Badge */}
-          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-medium ${pricingColors[app.pricing_model as keyof typeof pricingColors]}`}>
-            <span>{pricingLabels[app.pricing_model as keyof typeof pricingLabels]}</span>
+      )}
+
+      <div className={`flex-1 flex flex-col ${viewMode === 'list' ? 'min-w-0' : ''}`}>
+        {/* Category Badge */}
+        <div className={viewMode === 'list' ? 'mb-2' : 'mb-4'}>
+          <div 
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border"
+            style={{ 
+              backgroundColor: `${app.ai_categories.color}20`,
+              color: app.ai_categories.color,
+              borderColor: `${app.ai_categories.color}30`
+            }}
+          >
+            <span>{app.ai_categories.name}</span>
           </div>
         </div>
-      </div>
 
-      {/* Description */}
-      <p className="text-gray-400 text-sm mb-4 line-clamp-3">
-        {app.description}
-      </p>
-
-      {/* Features */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {app.features.slice(0, 3).map((feature, index) => (
-          <span
-            key={index}
-            className="px-2 py-1 rounded-md bg-gray-800 text-gray-300 text-xs"
-          >
-            {feature}
-          </span>
-        ))}
-        {app.features.length > 3 && (
-          <span className="px-2 py-1 rounded-md bg-gray-800 text-gray-300 text-xs">
-            +{app.features.length - 3}
-          </span>
-        )}
-      </div>
-
-      {/* Platform Availability */}
-      <div className="flex items-center gap-4 mb-4 text-xs text-gray-400">
-        {app.mobile_app && (
-          <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-400" />
-            <span>Móvil</span>
+        {/* Logo and Title - Only for grid mode */}
+        {viewMode === 'grid' && (
+          <div className="flex items-start gap-4 mb-4 flex-shrink-0" style={{ minHeight: '5rem' }}>
+            <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {app.logo_url ? (
+                <Image
+                  src={app.logo_url}
+                  alt={`${app.name} logo`}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="w-full h-full rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">
+                    {app.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex-1 min-w-0 flex flex-col justify-start">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors line-clamp-2">
+                {app.name}
+              </h3>
+              
+              {/* Pricing Badge */}
+              <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full border text-xs font-semibold ${pricingColors[app.pricing_model as keyof typeof pricingColors]}`}>
+                <span>{pricingLabels[app.pricing_model as keyof typeof pricingLabels]}</span>
+              </div>
+            </div>
           </div>
         )}
-        {app.desktop_app && (
-          <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-400" />
-            <span>Desktop</span>
-          </div>
-        )}
-        {app.browser_extension && (
-          <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-400" />
-            <span>Extensión</span>
-          </div>
-        )}
-        {app.api_available && (
-          <div className="flex items-center gap-1">
-            <CheckCircle className="w-3 h-3 text-green-400" />
-            <span>API</span>
-          </div>
-        )}
-      </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-4 mb-6 text-gray-400 text-xs">
-        <div className="flex items-center gap-1">
-          <Eye className="w-3 h-3" />
-          <span>{app.view_count.toLocaleString()}</span>
+        {/* Title and Pricing - For list mode */}
+        {viewMode === 'list' && (
+          <div className="mb-3">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors line-clamp-1">
+              {app.name}
+            </h3>
+            <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full border text-xs font-semibold ${pricingColors[app.pricing_model as keyof typeof pricingColors]}`}>
+              <span>{pricingLabels[app.pricing_model as keyof typeof pricingLabels]}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Description - Different height for list mode */}
+        <div className={`mb-4 flex-shrink-0 ${viewMode === 'grid' ? '' : 'mb-3'}`} style={viewMode === 'grid' ? { minHeight: '4.5rem' } : {}}>
+          <p className={`text-gray-600 dark:text-gray-400 text-sm ${viewMode === 'list' ? 'line-clamp-2' : 'line-clamp-3'}`}>
+            {app.description}
+          </p>
         </div>
-        
-        <div className="flex items-center gap-1">
-          <Star className="w-3 h-3" />
-          <span>{app.rating.toFixed(1)} ({app.rating_count})</span>
-        </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3">
-        <Link href={`/apps-directory/${app.slug}`} className="flex-1">
-          <Button 
-            variant="primary" 
-            className="w-full group-hover:bg-blue-600 transition-colors"
-          >
-            Descubrir
-          </Button>
-        </Link>
-        
-        {app.website_url && (
-          <motion.a
-            href={app.website_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2 rounded-lg border border-gray-600 hover:border-blue-500 text-gray-400 hover:text-blue-400 transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <ExternalLink className="w-4 h-4" />
-          </motion.a>
-        )}
+        {/* Features - Different display for list mode */}
+        <div className={`flex flex-wrap gap-2 mb-4 flex-shrink-0 ${viewMode === 'list' ? 'mb-3' : ''}`} style={viewMode === 'grid' ? { minHeight: '2rem' } : {}}>
+          {app.features.slice(0, viewMode === 'list' ? 5 : 3).map((feature, index) => (
+            <span
+              key={index}
+              className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs"
+            >
+              {feature}
+            </span>
+          ))}
+          {app.features.length > (viewMode === 'list' ? 5 : 3) && (
+            <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs">
+              +{app.features.length - (viewMode === 'list' ? 5 : 3)}
+            </span>
+          )}
+        </div>
+
+        {/* Bottom section - Different layout for list mode */}
+        <div className={`${viewMode === 'list' ? 'flex items-center justify-between gap-4' : 'flex flex-col flex-1'}`}>
+          <div className={viewMode === 'list' ? 'flex-1' : 'flex-1'}>
+            {/* Platform Availability */}
+            <div className={`flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 flex-shrink-0 ${viewMode === 'list' ? 'mb-3' : 'mb-4'}`} style={viewMode === 'grid' ? { minHeight: '1.5rem' } : {}}>
+              {app.mobile_app && (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  <span>Móvil</span>
+                </div>
+              )}
+              {app.desktop_app && (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  <span>Desktop</span>
+                </div>
+              )}
+              {app.browser_extension && (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  <span>Extensión</span>
+                </div>
+              )}
+              {app.api_available && (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  <span>API</span>
+                </div>
+              )}
+            </div>
+
+            {/* Stats */}
+            <div className={`flex items-center gap-4 text-gray-600 dark:text-gray-400 text-xs flex-shrink-0 ${viewMode === 'list' ? 'mb-0' : 'mb-0'}`} style={viewMode === 'grid' ? { minHeight: '1.5rem' } : {}}>
+              <div className="flex items-center gap-1.5 h-[14px] min-h-[14px]">
+                <Eye className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="text-xs leading-none">{app.view_count.toLocaleString()}</span>
+              </div>
+              
+              <div className="flex items-center h-[14px] min-h-[14px]">
+                {app.rating && app.rating > 0 ? (
+                  <div className="flex items-center h-[14px] min-h-[14px]">
+                    <StarRating
+                      rating={app.rating}
+                      size="sm"
+                      showRatingNumber={true}
+                      reviewCount={app.rating_count || 0}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap leading-none h-[14px] min-h-[14px] flex items-center">
+                    Sin calificaciones
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className={`flex items-center gap-3 ${viewMode === 'list' ? 'mt-0' : 'mt-auto pt-4'}`} onClick={(e) => e.stopPropagation()}>
+            <Link href={`/apps-directory/${app.slug}`} className={viewMode === 'list' ? '' : 'w-full'}>
+              <Button
+                variant="primary"
+                className={`${viewMode === 'list' ? '' : 'w-full'} group-hover:bg-blue-600 transition-colors`}
+              >
+                Descubrir
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Hover Effect */}

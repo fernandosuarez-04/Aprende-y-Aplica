@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
@@ -59,13 +60,15 @@ export async function GET(request: NextRequest) {
           escala,
           scoring,
           respuesta_correcta,
-          tipo
+          tipo,
+          dimension,
+          dificultad
         )
       `)
       .eq('user_perfil_id', userProfile.id);
 
     if (responsesError) {
-      console.error('Error al obtener respuestas:', responsesError);
+      logger.error('Error al obtener respuestas:', responsesError);
       return NextResponse.json(
         { error: 'Error al obtener respuestas del usuario' },
         { status: 500 }
@@ -79,11 +82,11 @@ export async function GET(request: NextRequest) {
       .order('indice_aipi', { ascending: false });
 
     if (adoptionError) {
-      console.warn('Error al obtener datos de adopción:', adoptionError);
+      logger.warn('Error al obtener datos de adopción:', adoptionError);
     }
 
-    // Procesar datos para el radar
-    const radarData = processRadarData(responses || []);
+    // Procesar datos para el radar (pasar dificultad_id del usuario)
+    const radarData = processRadarData(responses || [], userProfile.dificultad_id);
 
     // Procesar análisis
     const analysis = processAnalysis(responses || [], userProfile);
@@ -103,7 +106,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error en API de estadísticas:', error);
+    logger.error('Error en API de estadísticas:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -111,17 +114,55 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function processRadarData(responses: any[]) {
-  const dimensions = ['Conocimiento', 'Aplicación', 'Productividad', 'Estrategia', 'Inversión'];
-  const sectionMapping = {
-    'Adopción': 'Aplicación',
-    'Conocimiento': 'Conocimiento',
-    'Técnico': 'Conocimiento',
-    'Cuestionario': 'Aplicación' // Por defecto
+/**
+ * Normaliza el score según la dificultad del usuario
+ * - Dificultad 1: máximo 20 puntos (20%) - escala proporcional
+ * - Dificultad 2: máximo 40 puntos (40%) - escala proporcional
+ * - Dificultad 3: máximo 60 puntos (60%) - escala proporcional
+ * - Dificultad 4: máximo 80 puntos (80%) - escala proporcional
+ * - Dificultad 5: máximo 100 puntos (100%) - sin escalar
+ * 
+ * Ejemplo: Si el usuario tiene dificultad 1 y obtiene 50 puntos (50%),
+ * el score normalizado será 10 puntos (50% de 20 = 10)
+ */
+function normalizeScoreByDifficulty(score: number, userDifficulty: number | null | undefined): number {
+  if (!userDifficulty || userDifficulty < 1 || userDifficulty > 5) {
+    // Si no hay dificultad definida, retornar el score sin normalizar
+    return score;
+  }
+
+  const maxScoreByDifficulty: { [key: number]: number } = {
+    1: 20,
+    2: 40,
+    3: 60,
+    4: 80,
+    5: 100
   };
+
+  const maxScore = maxScoreByDifficulty[userDifficulty] || 100;
+  
+  // Normalización proporcional: escalar el score según el máximo permitido
+  // Si el score es 50 y el máximo es 20, entonces: 50 * 20 / 100 = 10
+  // Si el score es 100 y el máximo es 20, entonces: 100 * 20 / 100 = 20
+  const normalizedScore = (score * maxScore) / 100;
+  
+  return Math.round(normalizedScore);
+}
+
+function processRadarData(responses: any[], userDifficulty: number | null | undefined = null) {
+  const dimensions = ['Conocimiento', 'Aplicación', 'Productividad', 'Estrategia', 'Inversión'];
 
   const scores = dimensions.map(dimension => {
     const relevantResponses = responses.filter(response => {
+      // Usar el campo dimension directamente de la pregunta (es un array jsonb)
+      const questionDimensions = response.preguntas?.dimension;
+      
+      // Si la pregunta tiene el campo dimension, usarlo directamente
+      if (questionDimensions && Array.isArray(questionDimensions)) {
+        return questionDimensions.includes(dimension);
+      }
+      
+      // Fallback: usar la lógica anterior si no hay campo dimension
       const section = response.preguntas?.section || '';
       const bloque = response.preguntas?.bloque || '';
       
@@ -155,7 +196,17 @@ function processRadarData(responses: any[]) {
 
     relevantResponses.forEach(response => {
       const weight = response.preguntas?.peso || 1;
-      const value = response.valor;
+      let value = response.valor;
+      
+      // Manejar valor como jsonb - puede venir como string JSON o ya parseado
+      if (value && typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+        // Si es un string JSON, parsearlo
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          // Si falla el parse, usar el valor original
+        }
+      }
       
       // Calcular puntuación basada en el tipo de respuesta
       let score = 0;
@@ -183,9 +234,14 @@ function processRadarData(responses: any[]) {
 
     const finalScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
     
+    // Aplicar normalización por dificultad del usuario
+    const normalizedScore = normalizeScoreByDifficulty(finalScore, userDifficulty);
+    
     return {
       dimension,
-      score: Math.min(100, Math.max(0, finalScore))
+      score: Math.min(100, Math.max(0, normalizedScore)),
+      rawScore: finalScore, // Guardar el score sin normalizar para referencia
+      maxPossibleScore: userDifficulty ? (userDifficulty * 20) : 100 // Máximo posible según dificultad
     };
   });
 
@@ -209,7 +265,17 @@ function processAnalysis(responses: any[], userProfile: any) {
   let adoptionScore = 0;
   if (adoptionResponses.length > 0) {
     const totalAdoption = adoptionResponses.reduce((sum, response) => {
-      const value = response.valor;
+      let value = response.valor;
+      
+      // Manejar valor como jsonb
+      if (value && typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          // Si falla el parse, usar el valor original
+        }
+      }
+      
       let score = 0;
       if (typeof value === 'string') {
         if (value.includes('A)')) score = 0;
@@ -230,7 +296,17 @@ function processAnalysis(responses: any[], userProfile: any) {
   if (knowledgeResponses.length > 0) {
     knowledgeResponses.forEach(response => {
       const correctAnswer = response.preguntas?.respuesta_correcta;
-      const userAnswer = response.valor;
+      let userAnswer = response.valor;
+      
+      // Manejar valor como jsonb
+      if (userAnswer && typeof userAnswer === 'string' && userAnswer.startsWith('"') && userAnswer.endsWith('"')) {
+        try {
+          userAnswer = JSON.parse(userAnswer);
+        } catch (e) {
+          // Si falla el parse, usar el valor original
+        }
+      }
+      
       if (correctAnswer && userAnswer === correctAnswer) {
         correctAnswers++;
       }

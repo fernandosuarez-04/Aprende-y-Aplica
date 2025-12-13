@@ -69,21 +69,16 @@ export default function QuestionnairePage() {
       
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log('Session data:', { session: !!session, error: sessionError });
-      
       if (sessionError) {
-        console.error('Error getting session:', sessionError);
+        // console.error('Error getting session:', sessionError);
         setError('Error de autenticación. Por favor inicia sesión nuevamente.');
         return;
       }
       
       if (!session?.access_token) {
-        console.warn('No hay sesión activa');
         setError('No hay sesión activa. Por favor inicia sesión.');
         return;
       }
-      
-      console.log('Token encontrado, haciendo request...');
       
       const response = await fetch('/api/questionnaire/questions-client', {
         headers: {
@@ -107,7 +102,7 @@ export default function QuestionnairePage() {
         setError(result.error || 'Error al cargar las preguntas');
       }
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      // console.error('Error fetching questions:', error);
       setError('Error al cargar las preguntas');
     } finally {
       setLoading(false);
@@ -135,7 +130,7 @@ export default function QuestionnairePage() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.access_token) {
-        console.error('No hay sesión activa para guardar respuesta');
+        // console.error('No hay sesión activa para guardar respuesta');
         return;
       }
       
@@ -151,11 +146,11 @@ export default function QuestionnairePage() {
       const result = await response.json();
       
       if (!response.ok) {
-        console.error('Error saving answer:', result.error);
+        // console.error('Error saving answer:', result.error);
         // No mostramos error al usuario para no interrumpir el flujo
       }
     } catch (error) {
-      console.error('Error saving answer:', error);
+      // console.error('Error saving answer:', error);
     } finally {
       setSaving(false);
     }
@@ -190,14 +185,14 @@ export default function QuestionnairePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Cargando cuestionario...</p>
+          <p className="text-gray-700 dark:text-white text-lg">Cargando cuestionario...</p>
         </motion.div>
       </div>
     );
@@ -205,7 +200,7 @@ export default function QuestionnairePage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -214,8 +209,8 @@ export default function QuestionnairePage() {
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Target className="w-8 h-8 text-red-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Error</h2>
-          <p className="text-white/70 mb-6">{error || 'No se pudieron cargar las preguntas'}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Error</h2>
+          <p className="text-gray-700 dark:text-white/70 mb-6">{error || 'No se pudieron cargar las preguntas'}</p>
           <div className="flex gap-4">
             <button
               onClick={() => router.push('/statistics')}
@@ -242,31 +237,31 @@ export default function QuestionnairePage() {
   const answeredQuestions = Object.keys(answers).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/5 backdrop-blur-sm border-b border-white/10 p-6"
+        className="bg-white/80 dark:bg-white/5 backdrop-blur-sm border-b border-gray-200 dark:border-white/10 p-6"
       >
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => router.push('/statistics')}
-              className="flex items-center text-white/70 hover:text-white transition-colors"
+              className="flex items-center text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
               Volver al Perfil
             </button>
             
             <div className="flex items-center space-x-4">
-              <div className="flex items-center text-white/70">
+              <div className="flex items-center text-gray-700 dark:text-white/70">
                 <BookOpen className="w-5 h-5 mr-2" />
                 <span className="text-sm">
                   {currentQuestionIndex + 1} de {data.questions.length}
                 </span>
               </div>
-              <div className="flex items-center text-white/70">
+              <div className="flex items-center text-gray-700 dark:text-white/70">
                 <CheckCircle className="w-5 h-5 mr-2" />
                 <span className="text-sm">{answeredQuestions} respondidas</span>
               </div>
@@ -274,7 +269,7 @@ export default function QuestionnairePage() {
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-white/10 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
@@ -294,7 +289,7 @@ export default function QuestionnairePage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
-            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8"
+            className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 shadow-lg dark:shadow-xl"
           >
             {/* Question Header */}
             <div className="mb-8">
@@ -306,13 +301,13 @@ export default function QuestionnairePage() {
                   <h3 className="text-sm text-primary font-medium uppercase tracking-wide">
                     {currentQuestion.section} • {currentQuestion.bloque}
                   </h3>
-                  <p className="text-white/60 text-sm">
+                  <p className="text-gray-600 dark:text-white/60 text-sm">
                     Pregunta {currentQuestion.codigo}
                   </p>
                 </div>
               </div>
               
-              <h2 className="text-2xl font-bold text-white leading-relaxed">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white leading-relaxed">
                 {currentQuestion.texto}
               </h2>
             </div>
@@ -330,15 +325,15 @@ export default function QuestionnairePage() {
                   onClick={() => handleAnswerChange(currentQuestion.id, opcion.value)}
                   className={`w-full p-4 text-left rounded-xl border transition-all duration-200 ${
                     answers[currentQuestion.id] === opcion.value
-                      ? 'bg-primary/20 border-primary text-white'
-                      : 'bg-white/5 border-white/20 text-white/80 hover:bg-white/10 hover:border-white/30'
+                      ? 'bg-primary/20 dark:bg-primary/20 border-primary dark:border-primary text-gray-900 dark:text-white'
+                      : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/20 text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-300 dark:hover:border-white/30'
                   }`}
                 >
                   <div className="flex items-center">
                     <div className={`w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center ${
                       answers[currentQuestion.id] === opcion.value
-                        ? 'border-primary bg-primary'
-                        : 'border-white/40'
+                        ? 'border-primary bg-primary dark:border-primary dark:bg-primary'
+                        : 'border-gray-300 dark:border-white/40'
                     }`}>
                       {answers[currentQuestion.id] === opcion.value && (
                         <div className="w-2 h-2 bg-white rounded-full" />
@@ -357,8 +352,8 @@ export default function QuestionnairePage() {
                 disabled={currentQuestionIndex === 0}
                 className={`flex items-center px-6 py-3 rounded-lg transition-all duration-200 ${
                   currentQuestionIndex === 0
-                    ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                    : 'bg-white/10 text-white hover:bg-white/20'
+                    ? 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-white/30 cursor-not-allowed'
+                    : 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-white/20'
                 }`}
               >
                 <ArrowLeft className="w-5 h-5 mr-2" />
@@ -367,8 +362,8 @@ export default function QuestionnairePage() {
 
               <div className="flex items-center space-x-4">
                 {saving && (
-                  <div className="flex items-center text-white/60">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white/60 rounded-full animate-spin mr-2"></div>
+                  <div className="flex items-center text-gray-600 dark:text-white/60">
+                    <div className="w-4 h-4 border-2 border-gray-400 dark:border-white/30 border-t-gray-600 dark:border-t-white/60 rounded-full animate-spin mr-2"></div>
                     <span className="text-sm">Guardando...</span>
                   </div>
                 )}
@@ -381,7 +376,7 @@ export default function QuestionnairePage() {
                   className={`flex items-center px-6 py-3 rounded-lg transition-all duration-200 ${
                     answers[currentQuestion.id]
                       ? 'bg-gradient-to-r from-primary to-purple-500 text-white hover:from-primary/80 hover:to-purple-500/80'
-                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                      : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-white/30 cursor-not-allowed'
                   }`}
                 >
                   <Award className="w-5 h-5 mr-2" />
@@ -394,7 +389,7 @@ export default function QuestionnairePage() {
                   className={`flex items-center px-6 py-3 rounded-lg transition-all duration-200 ${
                     answers[currentQuestion.id]
                       ? 'bg-primary text-white hover:bg-primary/80'
-                      : 'bg-white/5 text-white/30 cursor-not-allowed'
+                      : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-white/30 cursor-not-allowed'
                   }`}
                 >
                   Siguiente

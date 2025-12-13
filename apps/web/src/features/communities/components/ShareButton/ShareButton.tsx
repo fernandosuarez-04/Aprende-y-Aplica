@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Share2, Copy, Link, MessageSquare, Mail, Twitter, Facebook } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
+import { getBaseUrl } from '../../../../lib/env';
 
 interface ShareButtonProps {
   postId: string;
@@ -35,7 +36,7 @@ export function ShareButton({ postId, postContent, communityName, communitySlug 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const postUrl = `${window.location.origin}/communities/${communitySlug}#post-${postId}`;
+  const postUrl = `${getBaseUrl()}/communities/${communitySlug}#post-${postId}`;
   const shareText = `Mira este post de ${communityName}: "${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}"`;
 
   const shareOptions = [
@@ -71,7 +72,7 @@ export function ShareButton({ postId, postContent, communityName, communitySlug 
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Error copying to clipboard:', err);
+      // console.error('Error copying to clipboard:', err);
       // Fallback para navegadores que no soportan clipboard API
       const textArea = document.createElement('textarea');
       textArea.value = text;

@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft,
   Search,
   Users,
   MessageSquare,
-  Heart,
   Share2,
   MoreHorizontal,
   Plus,
@@ -16,6 +16,8 @@ import {
   Link,
   Play,
   BarChart3,
+  Info,
+  Trophy,
   Send,
   Clock,
   CheckCircle,
@@ -41,20 +43,68 @@ import {
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
 import { useRouter, useParams } from 'next/navigation';
+import { useQuestionnaireValidation } from '../../../features/auth/hooks/useQuestionnaireValidation';
+import { QuestionnaireRequiredModal } from '../../../features/auth/components/QuestionnaireRequiredModal';
 // Importaciones usando rutas relativas
 import { ReactionButton } from '../../../features/communities/components/ReactionButton';
 import { ReactionBanner } from '../../../features/communities/components/ReactionBanner';
-import { ReactionDetailsModal } from '../../../features/communities/components/ReactionDetailsModal';
 import { PostInteractions } from '../../../features/communities/components/PostInteractions';
 import { useReactions, useAttachments } from '../../../features/communities/hooks';
-import { CommentsSection } from '../../../features/communities/components/CommentsSection';
-import { InlineAttachmentButtons, AttachmentPreview, PostAttachment, YouTubeLinkModal, PollModal } from '../../../features/communities/components';
+
+// Lazy loading de componentes pesados de communities
+const ReactionDetailsModal = dynamic(() => import('../../../features/communities/components/ReactionDetailsModal').then(mod => ({ default: mod.ReactionDetailsModal })), {
+  ssr: false
+});
+const CommentsSection = dynamic(() => import('../../../features/communities/components/CommentsSection').then(mod => ({ default: mod.CommentsSection })), {
+  ssr: false
+});
+const YouTubeLinkModal = dynamic(() => import('../../../features/communities/components/AttachmentModals/YouTubeLinkModal').then(mod => ({ default: mod.YouTubeLinkModal })), {
+  ssr: false
+});
+const PollModal = dynamic(() => import('../../../features/communities/components/AttachmentModals/PollModal').then(mod => ({ default: mod.PollModal })), {
+  ssr: false
+});
+const InfinitePostsFeed = dynamic(() => import('../../../features/communities/components/InfinitePostsFeed').then(mod => ({ default: mod.InfinitePostsFeed })), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="community-post animate-pulse">
+          <div className="h-48 bg-slate-800/50 rounded-lg" />
+        </div>
+      ))}
+    </div>
+  )
+});
+import { InlineAttachmentButtons, AttachmentPreview, PostAttachment } from '../../../features/communities/components';
+import { formatRelativeTime } from '../../../core/utils/date-utils';
+import { getBaseUrl } from '../../../lib/env';
 // import { ShareButton } from '../../../../features/communities/components/ShareButton';
 // import { AttachmentViewer } from '../../../../features/communities/components/AttachmentViewer';
-// import { useAuth } from '@/features/auth/hooks/useAuth';
+// import { useAuth } from '../../../features/auth/hooks/useAuth';
 
 // Componentes completos para la comunidad
 // ReactionButton component is now imported from features/communities/components
+
+/**
+ * Helper para obtener el emoji correspondiente a cada tipo de reacción
+ */
+function getReactionEmoji(type: string): string {
+  const emojiMap: Record<string, string> = {
+    'like': '👍',
+    'love': '❤️',
+    'laugh': '😂',
+    'haha': '😂',
+    'wow': '😮',
+    'sad': '😢',
+    'angry': '😡',
+    'clap': '👏',
+    'fire': '🔥',
+    'rocket': '🚀',
+    'eyes': '👀'
+  };
+  return emojiMap[type] || '👍';
+}
 
 function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComments, setShowComments }: any) {
   const [comments, setComments] = useState<any[]>([]);
@@ -71,7 +121,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
         setComments(data.comments || []);
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      // console.error('Error fetching comments:', error);
     }
   };
 
@@ -104,11 +154,11 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
         onCommentAdded?.(data.comment);
       } else {
         const errorData = await response.json();
-        console.error('Error creating comment:', errorData.error);
+        // console.error('Error creating comment:', errorData.error);
         alert('Error al crear el comentario: ' + errorData.error);
       }
     } catch (error) {
-      console.error('Error creating comment:', error);
+      // console.error('Error creating comment:', error);
       alert('Error al crear el comentario');
     } finally {
       setIsSubmitting(false);
@@ -126,7 +176,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
             transition={{ duration: 0.3 }}
             className="space-y-4"
           >
-            <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50">
+            <div className="bg-gray-50 dark:bg-slate-800/30 rounded-xl p-4 border border-gray-200 dark:border-slate-700/50">
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
                   U
@@ -136,7 +186,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Escribe un comentario..."
-                    className="w-full bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
+                    className="w-full bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
                     rows={2}
                   />
                   <div className="flex justify-end mt-2">
@@ -163,7 +213,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
                   key={comment.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-slate-800/30 rounded-xl p-4 border border-slate-700/50"
+                  className="bg-gray-50 dark:bg-slate-800/30 rounded-xl p-4 border border-gray-200 dark:border-slate-700/50"
                 >
                   <div className="flex gap-3">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
@@ -171,17 +221,17 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-white">
+                        <span className="font-semibold text-gray-900 dark:text-white">
                           {comment.user?.first_name && comment.user?.last_name 
                             ? `${comment.user.first_name} ${comment.user.last_name}`
                             : comment.user?.username || 'Usuario'
                           }
                         </span>
-                        <span className="text-slate-400 text-sm">
+                        <span className="text-gray-600 dark:text-slate-400 text-sm">
                           {new Date(comment.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-slate-200">{comment.content}</p>
+                      <p className="text-gray-800 dark:text-slate-200">{comment.content}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -216,7 +266,7 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const postUrl = `${window.location.origin}/communities/${communitySlug}#post-${postId}`;
+  const postUrl = `${getBaseUrl()}/communities/${communitySlug}#post-${postId}`;
   const shareText = `Mira este post de ${communityName}: "${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}"`;
 
   const copyToClipboard = async (text: string) => {
@@ -225,7 +275,7 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Error copying to clipboard:', err);
+      // console.error('Error copying to clipboard:', err);
     }
   };
 
@@ -245,12 +295,12 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
       <div className="relative" ref={buttonRef}>
         <motion.button
           onClick={() => setShowMenu(!showMenu)}
-          className="flex items-center gap-2 text-slate-400 hover:text-green-400 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30"
+          className="flex items-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Share2 className="w-5 h-5" />
-          <span>Compartir</span>
+          <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="text-xs sm:text-sm">Compartir</span>
         </motion.button>
 
         <AnimatePresence>
@@ -261,29 +311,29 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="absolute bottom-full left-0 mb-2 bg-slate-800 border border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
+              className="absolute bottom-full left-0 mb-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
             >
               <div className="space-y-2">
                 <button
                   onClick={() => copyToClipboard(postUrl)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
-                  <Copy className="w-4 h-4 text-blue-400" />
-                  <span className="text-slate-200 text-sm">Copiar enlace</span>
+                  <Copy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-gray-900 dark:text-slate-200 text-sm">Copiar enlace</span>
                 </button>
                 <button
                   onClick={shareToTwitter}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
-                  <Twitter className="w-4 h-4 text-blue-400" />
-                  <span className="text-slate-200 text-sm">Compartir en Twitter</span>
+                  <Twitter className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Twitter</span>
                 </button>
                 <button
                   onClick={shareToFacebook}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
-                  <Facebook className="w-4 h-4 text-blue-600" />
-                  <span className="text-slate-200 text-sm">Compartir en Facebook</span>
+                  <Facebook className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Facebook</span>
                 </button>
               </div>
 
@@ -293,9 +343,9 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="mt-2 pt-2 border-t border-slate-600"
+                    className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-600"
                   >
-                    <div className="flex items-center gap-2 text-green-400 text-sm">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
                       <Copy className="w-3 h-3" />
                       ¡Enlace copiado!
                     </div>
@@ -313,7 +363,7 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
     <div className="relative" ref={buttonRef}>
       <motion.button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 text-slate-400 hover:text-green-400 transition-colors"
+        className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
@@ -329,29 +379,29 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute bottom-full left-0 mb-2 bg-slate-800 border border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
+            className="absolute bottom-full left-0 mb-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl p-3 shadow-2xl backdrop-blur-sm z-50 min-w-[200px]"
           >
             <div className="space-y-2">
               <button
                 onClick={() => copyToClipboard(postUrl)}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
               >
-                <Copy className="w-4 h-4 text-blue-400" />
-                <span className="text-slate-200 text-sm">Copiar enlace</span>
+                <Copy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-gray-900 dark:text-slate-200 text-sm">Copiar enlace</span>
               </button>
               <button
                 onClick={shareToTwitter}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
               >
-                <Twitter className="w-4 h-4 text-blue-400" />
-                <span className="text-slate-200 text-sm">Compartir en Twitter</span>
+                <Twitter className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Twitter</span>
               </button>
               <button
                 onClick={shareToFacebook}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
               >
-                <Facebook className="w-4 h-4 text-blue-600" />
-                <span className="text-slate-200 text-sm">Compartir en Facebook</span>
+                <Facebook className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Facebook</span>
               </button>
             </div>
 
@@ -361,9 +411,9 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="mt-2 pt-2 border-t border-slate-600"
+                  className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-600"
                 >
-                  <div className="flex items-center gap-2 text-green-400 text-sm">
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
                     <Copy className="w-3 h-3" />
                     ¡Enlace copiado!
                   </div>
@@ -384,8 +434,8 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPollData, setCurrentPollData] = useState(pollData);
 
-  console.log('🎯 PollViewer received data:', pollData);
-  console.log('🎯 PollViewer - Raw pollData keys:', Object.keys(pollData || {}));
+  // console.log('🎯 PollViewer received data:', pollData);
+  // console.log('🎯 PollViewer - Raw pollData keys:', Object.keys(pollData || {}));
 
   // Normalizar los datos de la encuesta
   const normalizedData = {
@@ -393,7 +443,7 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
     options: currentPollData.options || currentPollData.choices || currentPollData.responses || []
   };
   
-  console.log('🎯 PollViewer - Normalized data:', normalizedData);
+  // console.log('🎯 PollViewer - Normalized data:', normalizedData);
 
   // Calcular votos totales usando la estructura del sistema anterior
   const totalVotes = normalizedData.options?.reduce((sum: number, option: any) => {
@@ -415,7 +465,7 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
           }
         }
       } catch (error) {
-        console.error('Error obteniendo voto del usuario:', error);
+        // console.error('Error obteniendo voto del usuario:', error);
       }
     };
 
@@ -456,15 +506,15 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
             setHasVoted(false);
           }
           
-          console.log('✅ Voto procesado:', data.message);
+          // console.log('✅ Voto procesado:', data.message);
         }
       } else {
         const errorData = await response.json();
-        console.error('Error en votación:', errorData.error);
+        // console.error('Error en votación:', errorData.error);
         // Aquí podrías mostrar un toast de error
       }
     } catch (error) {
-      console.error('Error enviando voto:', error);
+      // console.error('Error enviando voto:', error);
       // Aquí podrías mostrar un toast de error
     } finally {
       setIsLoading(false);
@@ -472,34 +522,34 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 via-slate-900/60 to-slate-800/80 border border-slate-700/40 backdrop-blur-xl shadow-2xl mb-6"
-    >
-      {/* Efecto de brillo sutil */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
-      
-      {/* Header con gradiente */}
-      <div className="relative bg-gradient-to-r from-blue-500/10 via-purple-500/5 to-indigo-500/10 border-b border-slate-700/30">
-        <div className="flex items-center gap-4 p-6">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative overflow-hidden rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-800/80 dark:via-slate-900/60 dark:to-slate-800/80 border border-gray-200 dark:border-slate-700/40 backdrop-blur-xl shadow-2xl mb-6"
+      >
+        {/* Efecto de brillo sutil */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+        
+        {/* Header con gradiente */}
+        <div className="relative bg-gradient-to-r from-blue-500/10 via-purple-500/5 to-indigo-500/10 border-b border-gray-200 dark:border-slate-700/30">
+          <div className="flex items-center gap-4 p-6">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></div>
             </div>
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
-          </div>
-          <div className="flex-1">
-            <h4 className="text-white font-bold text-xl mb-1">
-              {normalizedData.question}
-            </h4>
-            <p className="text-slate-400 text-sm">Selecciona tu respuesta</p>
+            <div className="flex-1">
+              <h4 className="text-gray-900 dark:text-white font-bold text-xl mb-1">
+                {normalizedData.question}
+              </h4>
+              <p className="text-gray-600 dark:text-slate-400 text-sm">Selecciona tu respuesta</p>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Opciones de la encuesta */}
       <div className="p-6 space-y-4">
@@ -520,8 +570,8 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
                 isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
               } ${
                 isSelected 
-                  ? 'border-blue-400 bg-gradient-to-r from-blue-500/20 via-blue-500/10 to-indigo-500/20 shadow-lg shadow-blue-500/30 scale-[1.02]' 
-                  : 'border-slate-600/50 bg-slate-800/40 hover:border-blue-400/60 hover:bg-slate-700/50 hover:scale-[1.01] hover:shadow-lg hover:shadow-blue-500/20'
+                  ? 'border-blue-500 dark:border-blue-400 bg-gradient-to-r from-blue-500/20 dark:from-blue-500/20 via-blue-500/10 dark:via-blue-500/10 to-indigo-500/20 dark:to-indigo-500/20 shadow-lg shadow-blue-500/30 scale-[1.02]' 
+                  : 'border-gray-300 dark:border-slate-600/50 bg-gray-50 dark:bg-slate-800/40 hover:border-blue-500/60 dark:hover:border-blue-400/60 hover:bg-gray-100 dark:hover:bg-slate-700/50 hover:scale-[1.01] hover:shadow-lg hover:shadow-blue-500/20'
               }`}
               onClick={() => !isLoading && handleVote(optionKey)}
             >
@@ -542,16 +592,16 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
                         </svg>
                       </motion.div>
                     )}
-                    <span className="text-white font-semibold text-lg">
+                    <span className="text-gray-900 dark:text-white font-semibold text-lg">
                       {optionKey}
                     </span>
                   </div>
                   
                   <div className="text-right">
-                    <div className="text-blue-400 font-bold text-lg">
+                    <div className="text-blue-600 dark:text-blue-400 font-bold text-lg">
                       {percentage}%
                     </div>
-                    <div className="text-slate-400 text-sm">
+                    <div className="text-gray-600 dark:text-slate-400 text-sm">
                       {voteCount} votos
                     </div>
                   </div>
@@ -560,7 +610,7 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
                 {/* Barra de progreso mejorada */}
                 {hasVoted && (
                   <div className="relative">
-                    <div className="w-full h-3 bg-slate-700/50 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-gray-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
                       <motion.div
                         className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-indigo-500 rounded-full relative"
                         initial={{ width: 0 }}
@@ -580,27 +630,27 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
       </div>
 
       {/* Footer mejorado */}
-      <div className="bg-gradient-to-r from-slate-800/50 to-slate-900/50 border-t border-slate-700/30 p-6">
+      <div className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-slate-800/50 dark:to-slate-900/50 border-t border-gray-200 dark:border-slate-700/30 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-            <span className="text-slate-300 font-medium">
+            <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse"></div>
+            <span className="text-gray-700 dark:text-slate-300 font-medium">
               {totalVotes} votos totales
             </span>
           </div>
           
           {isLoading ? (
-            <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-700/30 rounded-lg px-3 py-2 border border-slate-600/30">
-              <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400 bg-gray-200 dark:bg-slate-700/30 rounded-lg px-3 py-2 border border-gray-300 dark:border-slate-600/30">
+              <div className="w-4 h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
               <span>Procesando voto...</span>
             </div>
           ) : hasVoted ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 text-xs text-slate-400 bg-slate-700/30 rounded-lg px-3 py-2 border border-slate-600/30"
+              className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400 bg-gray-200 dark:bg-slate-700/30 rounded-lg px-3 py-2 border border-gray-300 dark:border-slate-600/30"
             >
-              <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Haz click en tu voto para quitarlo o en otra opción para cambiar</span>
@@ -617,23 +667,23 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
   const [imageError, setImageError] = useState(false);
 
   // Debug: ver qué datos llegan
-  console.log('🔍 AttachmentViewer props:', { 
-    attachmentUrl, 
-    attachmentType, 
-    attachmentData, 
-    fileName,
-    isPoll: attachmentType === 'poll',
-    hasAttachmentData: !!attachmentData
-  });
+  // console.log('🔍 AttachmentViewer props:', {
+  //   attachmentUrl,
+  //   attachmentType,
+  //   attachmentData,
+  //   fileName,
+  //   isPoll: attachmentType === 'poll',
+  //   hasAttachmentData: !!attachmentData
+  // });
   
   // Debug más detallado para encuestas
   if (attachmentType === 'poll') {
-    console.log('🎯 POLL DETECTED - Full data:', {
-      attachmentType,
-      attachmentData,
-      attachmentUrl,
-      fileName
-    });
+    // console.log('🎯 POLL DETECTED - Full data:', {
+    //   attachmentType,
+    //   attachmentData,
+    //   attachmentUrl,
+    //   fileName
+    // });
   }
 
   // Si es una encuesta, renderizar el componente de encuesta
@@ -644,13 +694,13 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
                  (attachmentData && (attachmentData.question || attachmentData.options));
   
   if (isPoll && attachmentData) {
-    console.log('✅ Rendering PollViewer with data:', attachmentData);
+    // console.log('✅ Rendering PollViewer with data:', attachmentData);
     return <PollViewer pollData={attachmentData} postId={postId} />;
   }
 
   // Debug: si parece ser poll pero no tiene datos
   if (isPoll && !attachmentData) {
-    console.log('❌ Poll type detected but no attachment data:', { attachmentType, attachmentData });
+    // console.log('❌ Poll type detected but no attachment data:', { attachmentType, attachmentData });
   }
 
   if (!attachmentUrl) return null;
@@ -858,21 +908,21 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
                 onError={() => setImageError(true)}
               />
             ) : (
-              <div className="flex items-center justify-center h-64 bg-slate-800 text-slate-400">
+              <div className="flex items-center justify-center h-64 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400">
                 <div className="text-center">
                   <ImageIcon className="w-16 h-16 mx-auto mb-3" />
-                  <p className="text-lg">Error al cargar la imagen</p>
+                  <p className="text-lg text-gray-900 dark:text-white">Error al cargar la imagen</p>
                 </div>
               </div>
             )}
             
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="bg-black/50 backdrop-blur-sm rounded-full p-3">
-                  <ImageIcon className="w-6 h-6 text-white" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 dark:group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="bg-black/50 backdrop-blur-sm rounded-full p-3">
+                    <ImageIcon className="w-6 h-6 text-white" />
+                  </div>
                 </div>
               </div>
-            </div>
           </div>
         </motion.div>
 
@@ -946,7 +996,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-indigo-500/10 border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
+        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-indigo-500/10 dark:from-blue-500/10 dark:via-purple-500/5 dark:to-indigo-500/10 border border-blue-400/20 dark:border-blue-400/20 hover:border-blue-400/40 dark:hover:border-blue-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
       >
         {/* Efecto de brillo sutil */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
@@ -964,17 +1014,17 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
             {/* Contenido principal */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <Globe className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                <h4 className="text-white font-semibold text-lg truncate">
+                <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <h4 className="text-gray-900 dark:text-white font-semibold text-lg truncate">
                   {pageName}
                 </h4>
               </div>
               
-              <p className="text-blue-200/80 text-sm mb-3 font-medium">
+              <p className="text-blue-600 dark:text-blue-200/80 text-sm mb-3 font-medium">
                 {fileName || 'Enlace web'}
               </p>
               
-              <div className="flex items-center gap-2 text-xs text-blue-400/70 bg-blue-500/10 rounded-lg px-3 py-2 border border-blue-400/20">
+              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400/70 bg-blue-500/10 dark:bg-blue-500/10 rounded-lg px-3 py-2 border border-blue-400/20 dark:border-blue-400/20">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span className="truncate">{attachmentUrl}</span>
               </div>
@@ -1054,7 +1104,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-500/10 via-gray-500/5 to-slate-500/10 border border-slate-400/20 hover:border-slate-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
+        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-100 dark:from-slate-500/10 via-gray-50 dark:via-gray-500/5 to-gray-100 dark:to-slate-500/10 border border-gray-300 dark:border-slate-400/20 hover:border-gray-400 dark:hover:border-slate-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
       >
         {/* Efecto de brillo sutil */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
@@ -1072,23 +1122,23 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
             {/* Contenido principal */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <File className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                <h4 className="text-white font-semibold text-lg truncate">
+                <File className="w-5 h-5 text-gray-600 dark:text-slate-400 flex-shrink-0" />
+                <h4 className="text-gray-900 dark:text-white font-semibold text-lg truncate">
                   {documentName}
                 </h4>
               </div>
               
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-slate-300/80 text-sm font-medium">
+                <span className="text-gray-700 dark:text-slate-300/80 text-sm font-medium">
                   {attachmentType || 'Archivo adjunto'}
                 </span>
-                <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
-                <span className="text-slate-400/70 text-xs">
+                <div className="w-1 h-1 bg-gray-400 dark:bg-slate-400 rounded-full"></div>
+                <span className="text-gray-600 dark:text-slate-400/70 text-xs">
                   Documento
                 </span>
               </div>
               
-              <div className="flex items-center gap-2 text-xs text-slate-400/70 bg-slate-500/10 rounded-lg px-3 py-2 border border-slate-400/20">
+              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400/70 bg-gray-200 dark:bg-slate-500/10 rounded-lg px-3 py-2 border border-gray-300 dark:border-slate-400/20">
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                 <span>Archivo adjunto disponible</span>
               </div>
@@ -1196,7 +1246,7 @@ function useAuth() {
           setUser(null);
         }
       } catch (error) {
-        console.error('Error getting session:', error);
+        // console.error('Error getting session:', error);
         setUser(null);
       } finally {
         setLoading(false);
@@ -1215,7 +1265,7 @@ function useAuth() {
         router.push('/auth');
       }
     } catch (error) {
-      console.error('Error during logout:', error);
+      // console.error('Error during logout:', error);
       // Fallback: limpiar estado local y redirigir
       setUser(null);
       router.push('/auth');
@@ -1297,6 +1347,9 @@ const cardVariants = {
   hover: { y: -2, scale: 1.01 }
 };
 
+const MOBILE_BOTTOM_NAV_HEIGHT = 72;
+const MOBILE_CONTENT_EXTRA_PADDING = 24;
+
 export default function CommunityDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -1311,7 +1364,7 @@ export default function CommunityDetailPage() {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [activeTab, setActiveTab] = useState('comunidad');
   const [isCreatingPost, setIsCreatingPost] = useState(false);
-  const [postAttachment, setPostAttachment] = useState<{ type: string; data: any } | null>(null);
+  const [postAttachments, setPostAttachments] = useState<Array<{ type: string; data: any; id: string }>>([]);
   const [showYouTubeModal, setShowYouTubeModal] = useState(false);
   const [showPollModal, setShowPollModal] = useState(false);
   const [pendingAttachmentType, setPendingAttachmentType] = useState<string | null>(null);
@@ -1321,13 +1374,83 @@ export default function CommunityDetailPage() {
   const [showReactionDetails, setShowReactionDetails] = useState<Record<string, boolean>>({});
   const [selectedReactionType, setSelectedReactionType] = useState<string | null>(null);
   const [postReactionStats, setPostReactionStats] = useState<Record<string, any>>({});
+  const communityHeaderRef = useRef<HTMLElement | null>(null);
+  const feedSectionRef = useRef<HTMLElement | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  
+  // Validar cuestionario
+  const { isRequired, isLoading: isLoadingValidation, status } = useQuestionnaireValidation(user?.id);
 
   useEffect(() => {
     if (slug) {
-      fetchCommunityDetail();
-      fetchPosts();
+      // console.log('🚀 Loading community in parallel mode');
+      console.time('Total Community Load');
+      
+      // ✅ Ejecutar ambas llamadas en PARALELO en lugar de secuencial
+      Promise.all([
+        fetchCommunityDetail(),
+        fetchPosts()
+      ]).then(() => {
+        console.timeEnd('Total Community Load');
+        // console.log('✅ Community fully loaded');
+      }).catch(error => {
+        // console.error('❌ Error loading community:', error);
+      });
     }
   }, [slug]);
+
+  // Verificar si necesita cuestionario cuando el usuario está cargado
+  useEffect(() => {
+    if (user && !isLoadingValidation && isRequired) {
+      setShowQuestionnaireModal(true);
+    }
+  }, [user, isLoadingValidation, isRequired]);
+
+  useEffect(() => {
+    const checkViewport = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 768);
+      }
+    };
+
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
+
+  const communityTabs = [
+    { id: 'comunidad', label: 'Comunidad', icon: MessageSquare },
+    { id: 'miembros', label: 'Miembros', icon: Users, href: `/communities/${slug}/members` },
+    { id: 'ligas', label: 'Ligas', icon: Trophy, href: `/communities/${slug}/leagues` },
+    { id: 'acerca', label: 'Acerca', icon: Info },
+  ];
+
+  const handleTabNavigation = (tabId: string) => {
+    setActiveTab(tabId);
+
+    if (tabId === 'miembros') {
+      router.push(`/communities/${slug}/members`);
+      return;
+    }
+
+    if (tabId === 'ligas') {
+      router.push(`/communities/${slug}/leagues`);
+      return;
+    }
+
+    if (tabId === 'acerca') {
+      if (communityHeaderRef.current) {
+        communityHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    if (tabId === 'comunidad' && feedSectionRef.current) {
+      feedSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const fetchCommunityDetail = async () => {
     try {
@@ -1336,10 +1459,10 @@ export default function CommunityDetailPage() {
         const data = await response.json();
         setCommunity(data.community);
       } else {
-        console.error('Error fetching community:', response.statusText);
+        // console.error('Error fetching community:', response.statusText);
       }
     } catch (error) {
-      console.error('Error fetching community:', error);
+      // console.error('Error fetching community:', error);
     }
   };
 
@@ -1348,11 +1471,11 @@ export default function CommunityDetailPage() {
       const response = await fetch(`/api/communities/${slug}/posts`);
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Posts data received:', data.posts);
+        // console.log('📊 Posts data received:', data.posts);
         
         // Debug: buscar posts con encuestas
         const pollPosts = data.posts?.filter((post: any) => post.attachment_type === 'poll');
-        console.log('🔍 Poll posts found:', pollPosts);
+        // console.log('🔍 Poll posts found:', pollPosts);
         
         setPosts(data.posts || []);
         
@@ -1362,7 +1485,7 @@ export default function CommunityDetailPage() {
         }
       } else {
         const errorData = await response.json();
-        console.error('Error fetching posts:', errorData);
+        // console.error('Error fetching posts:', errorData);
         
         // Si es error de autenticación, no mostrar posts pero permitir ver la comunidad
         if (response.status === 401 && errorData.requires_auth) {
@@ -1372,7 +1495,7 @@ export default function CommunityDetailPage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      // console.error('Error fetching posts:', error);
     } finally {
       setIsLoading(false);
     }
@@ -1380,66 +1503,202 @@ export default function CommunityDetailPage() {
 
   const loadUserReactions = async (posts: Post[]) => {
     try {
-      const reactionPromises = posts.map(async (post) => {
-        try {
-          const response = await fetch(`/api/communities/${slug}/posts/${post.id}/reactions?include_stats=true`);
-          if (response.ok) {
-            const data = await response.json();
-            return { 
-              postId: post.id, 
-              userReaction: data.userReaction,
-              reactionStats: data.reactions || {}
-            };
-          }
-        } catch (error) {
-          console.error(`Error loading reactions for post ${post.id}:`, error);
-        }
-        return { postId: post.id, userReaction: null, reactionStats: {} };
+      if (posts.length === 0) return;
+
+      const postIds = posts.map(post => post.id);
+      
+      // console.log(`🚀 Loading reactions for ${postIds.length} posts using batch endpoint`);
+      console.time('Batch Reactions Load');
+
+      // ✅ 1 SOLA LLAMADA HTTP para obtener todas las reacciones
+      const response = await fetch(`/api/communities/${slug}/posts/reactions/batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ postIds }),
       });
 
-      const reactions = await Promise.all(reactionPromises);
+      if (!response.ok) {
+        // console.error('Error loading batch reactions:', response.statusText);
+        return;
+      }
+
+      const data = await response.json();
+      console.timeEnd('Batch Reactions Load');
+      // console.log(`✅ Batch reactions loaded successfully for ${data.totalPosts} posts`);
+
+      // Mapear los datos recibidos al formato esperado
       const userReactionsMap: Record<string, string | null> = {};
       const reactionStatsMap: Record<string, any> = {};
+      const postReactionsMap: Record<string, { type: string | null; count: number }> = {};
       
-      reactions.forEach(({ postId, userReaction, reactionStats }) => {
-        userReactionsMap[postId] = userReaction;
-        reactionStatsMap[postId] = reactionStats;
+      Object.entries(data.reactionsByPost).forEach(([postId, postData]: [string, any]) => {
+        userReactionsMap[postId] = postData.userReaction;
+        
+        // Normalizar las estadísticas de reacciones y asegurar que tengan emoji
+        const normalizedReactions: Record<string, any> = {};
+        Object.entries(postData.reactions || {}).forEach(([reactionType, reactionData]: [string, any]) => {
+          const normalizedType = reactionType === 'haha' ? 'laugh' : reactionType;
+          normalizedReactions[normalizedType] = {
+            type: normalizedType,
+            reaction_type: normalizedType,
+            count: reactionData.count || 0,
+            emoji: reactionData.emoji || getReactionEmoji(normalizedType),
+            hasUserReacted: reactionData.hasUserReacted || false
+          };
+        });
+        
+        reactionStatsMap[postId] = normalizedReactions;
+        
+        // Actualizar también postReactions con el conteo total
+        postReactionsMap[postId] = {
+          type: postData.userReaction,
+          count: postData.totalReactions || 0
+        };
       });
+
       setUserReactions(userReactionsMap);
       setPostReactionStats(reactionStatsMap);
+      setPostReactions(prev => ({ ...prev, ...postReactionsMap }));
+
     } catch (error) {
-      console.error('Error loading user reactions:', error);
+      // console.error('Error loading user reactions:', error);
     }
   };
 
   const handleAttachmentSelect = (type: string, data: any) => {
+    // Verificar límite de 3 adjuntos
+    if (postAttachments.length >= 3) {
+      alert('Máximo 3 adjuntos por publicación');
+      return;
+    }
+
     if (type === 'youtube' || type === 'link') {
       setPendingAttachmentType(type);
       setShowYouTubeModal(true);
     } else if (type === 'poll') {
+      // Las encuestas solo pueden ser una por publicación
+      if (postAttachments.some(att => att.type === 'poll')) {
+        alert('Solo puedes agregar una encuesta por publicación');
+        return;
+      }
       setShowPollModal(true);
     } else {
       // Para archivos (imagen, documento, video)
-      setPostAttachment({ type, data });
+      const newAttachment = {
+        type,
+        data,
+        id: `${type}-${Date.now()}-${Math.random()}`
+      };
+      setPostAttachments(prev => [...prev, newAttachment]);
+    }
+  };
+
+  const handlePasteImage = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    // Buscar una imagen en los elementos del portapapeles
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      // Verificar si el elemento es una imagen
+      if (item.type.indexOf('image') !== -1) {
+        e.preventDefault(); // Prevenir que se pegue el texto de la imagen
+        
+        const file = item.getAsFile();
+        if (!file) return;
+
+        // Validar que sea un tipo de imagen válido
+        const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+        if (!validImageTypes.includes(file.type)) {
+          alert('Tipo de imagen no soportado. Por favor, usa PNG, JPEG, GIF o WebP.');
+          return;
+        }
+
+        // Validar tamaño (máximo 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+          alert('La imagen es demasiado grande. El tamaño máximo es 10MB.');
+          return;
+        }
+
+        // Verificar límite de 3 adjuntos
+        if (postAttachments.length >= 3) {
+          alert('Máximo 3 adjuntos por publicación');
+          return;
+        }
+
+        // Leer el archivo como DataURL para la vista previa
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const data = {
+            file,
+            url: event.target?.result,
+            name: file.name || `imagen-${Date.now()}.${file.type.split('/')[1]}`,
+            size: file.size,
+            mimeType: file.type,
+            type: 'image'
+          };
+          
+          // Agregar el adjunto al array
+          const newAttachment = {
+            type: 'image',
+            data,
+            id: `image-${Date.now()}-${Math.random()}`
+          };
+          setPostAttachments(prev => [...prev, newAttachment]);
+        };
+        reader.readAsDataURL(file);
+        break;
+      }
     }
   };
 
   const handleYouTubeLinkConfirm = (url: string, type: 'youtube' | 'link') => {
-    setPostAttachment({ 
-      type, 
-      data: { url, name: type === 'youtube' ? 'Video de YouTube' : 'Enlace web' }
-    });
+    if (postAttachments.length >= 3) {
+      alert('Máximo 3 adjuntos por publicación');
+      setShowYouTubeModal(false);
+      setPendingAttachmentType(null);
+      return;
+    }
+
+    const newAttachment = {
+      type,
+      data: { url, name: type === 'youtube' ? 'Video de YouTube' : 'Enlace web' },
+      id: `${type}-${Date.now()}-${Math.random()}`
+    };
+    setPostAttachments(prev => [...prev, newAttachment]);
     setShowYouTubeModal(false);
     setPendingAttachmentType(null);
   };
 
   const handlePollConfirm = (pollData: any) => {
-    setPostAttachment({ type: 'poll', data: pollData });
+    // Las encuestas solo pueden ser una por publicación
+    if (postAttachments.some(att => att.type === 'poll')) {
+      alert('Solo puedes agregar una encuesta por publicación');
+      setShowPollModal(false);
+      return;
+    }
+
+    if (postAttachments.length >= 3) {
+      alert('Máximo 3 adjuntos por publicación');
+      setShowPollModal(false);
+      return;
+    }
+
+    const newAttachment = {
+      type: 'poll',
+      data: pollData,
+      id: `poll-${Date.now()}-${Math.random()}`
+    };
+    setPostAttachments(prev => [...prev, newAttachment]);
     setShowPollModal(false);
   };
 
-  const handleRemoveAttachment = () => {
-    setPostAttachment(null);
+  const handleRemoveAttachment = (id: string) => {
+    setPostAttachments(prev => prev.filter(att => att.id !== id));
   };
 
   const { createPostWithAttachment, isProcessing: isProcessingAttachment, error: attachmentError } = useAttachments();
@@ -1449,28 +1708,34 @@ export default function CommunityDetailPage() {
     
     setIsCreatingPost(true);
     try {
-      // Preparar datos del adjunto si existe
-      let attachmentData = null;
-      if (postAttachment) {
-        attachmentData = {
-          type: postAttachment.type,
-          ...postAttachment.data
-        };
-        console.log('🎥 [YOUTUBE] handleCreatePost - TIPO ANTES DE ENVIAR:', postAttachment.type, attachmentData);
-      }
+      // Preparar datos de los adjuntos si existen
+      const attachmentsData = postAttachments.length > 0 
+        ? postAttachments.map(att => ({
+            type: att.type,
+            ...att.data
+          }))
+        : null;
 
-      const result = await createPostWithAttachment(slug, newPostContent, attachmentData);
+      const result = await createPostWithAttachment(slug, newPostContent, attachmentsData);
       
-      // Agregar el nuevo post al inicio de la lista
-      setPosts(prev => [result.post, ...prev]);
+      // Agregar el nuevo post al inicio de la lista con toda la información necesaria
+      const newPost = {
+        ...result.post,
+        // Asegurar que tenga todos los campos necesarios para renderizar
+        comment_count: result.post.comment_count || 0,
+        reaction_count: result.post.reaction_count || 0,
+        likes_count: result.post.likes_count || 0,
+      };
+      
+      setPosts(prev => [newPost, ...prev]);
       setNewPostContent('');
-      setPostAttachment(null);
+      setPostAttachments([]);
       
       // Actualizar contador de posts en la comunidad
       setCommunity(prev => prev ? { ...prev, member_count: prev.member_count + 1 } : null);
       
     } catch (error) {
-      console.error('Error creating post:', error);
+      // console.error('Error creating post:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el post';
       alert(errorMessage);
     } finally {
@@ -1578,14 +1843,14 @@ export default function CommunityDetailPage() {
             }));
           }
         } catch (error) {
-          console.error('Error reloading reaction stats:', error);
+          // console.error('Error reloading reaction stats:', error);
         }
       } else {
         const errorData = await response.json();
-        console.error('Error handling reaction:', errorData.error);
+        // console.error('Error handling reaction:', errorData.error);
       }
     } catch (error) {
-      console.error('Error handling reaction:', error);
+      // console.error('Error handling reaction:', error);
     }
   };
 
@@ -1611,7 +1876,7 @@ export default function CommunityDetailPage() {
           fetchPosts();
         } else {
           const errorData = await response.json();
-          console.error('Error joining community:', errorData.error);
+          // console.error('Error joining community:', errorData.error);
         }
       } else {
         const response = await fetch('/api/communities/request-access', {
@@ -1626,47 +1891,16 @@ export default function CommunityDetailPage() {
           setCommunity(prev => prev ? { ...prev, has_pending_request: true } : null);
         } else {
           const errorData = await response.json();
-          console.error('Error requesting access:', errorData.error);
+          // console.error('Error requesting access:', errorData.error);
         }
       }
     } catch (error) {
-      console.error('Error joining community:', error);
+      // console.error('Error joining community:', error);
     } finally {
       setIsJoining(false);
     }
   };
 
-  const getCommunityStyle = (community: Community) => {
-    if (community.slug === 'profesionales') {
-      return {
-        background: 'bg-gradient-to-br from-blue-900/40 to-slate-800/60',
-        headerBg: 'bg-gradient-to-r from-blue-600 to-blue-700',
-        accent: 'text-blue-400',
-        border: 'border-blue-500/30'
-      };
-    } else if (community.slug === 'ecos-liderazgo') {
-      return {
-        background: 'bg-gradient-to-br from-purple-900/40 to-slate-800/60',
-        headerBg: 'bg-gradient-to-r from-purple-600 to-purple-700',
-        accent: 'text-orange-400',
-        border: 'border-orange-500/30'
-      };
-    } else if (community.slug === 'openminder') {
-      return {
-        background: 'bg-gradient-to-br from-slate-900/50 to-black/60',
-        headerBg: 'bg-gradient-to-r from-slate-800 to-slate-900',
-        accent: 'text-yellow-400',
-        border: 'border-yellow-500/30'
-      };
-    }
-    
-    return {
-      background: 'bg-gradient-to-br from-slate-800/50 to-slate-900/60',
-      headerBg: 'bg-gradient-to-r from-slate-700 to-slate-800',
-      accent: 'text-slate-400',
-      border: 'border-slate-600/30'
-    };
-  };
 
   const getAccessButton = () => {
     if (!community) return null;
@@ -1674,7 +1908,7 @@ export default function CommunityDetailPage() {
     if (community.is_member) {
       return (
         <Button
-          className="bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+          className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-100"
           disabled
         >
           <CheckCircle className="w-4 h-4 mr-2" />
@@ -1686,7 +1920,7 @@ export default function CommunityDetailPage() {
     if (community.has_pending_request) {
       return (
         <Button
-          className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30"
+          className="w-full sm:w-auto bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-400/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-100"
           disabled
         >
           <Clock className="w-4 h-4 mr-2" />
@@ -1699,9 +1933,9 @@ export default function CommunityDetailPage() {
       if (community.can_join === false) {
         return (
           <div className="text-center">
-            <div className="text-slate-400 text-sm mb-2">Ya perteneces a otra comunidad</div>
+            <div className="text-white/70 text-sm mb-2">Ya perteneces a otra comunidad</div>
             <Button
-              className="bg-slate-600/50 text-slate-400 border border-slate-600/50"
+              className="w-full sm:w-auto bg-white/15 text-white/70 border border-white/20 backdrop-blur disabled:opacity-80"
               disabled
             >
               <Lock className="w-4 h-4 mr-2" />
@@ -1715,7 +1949,7 @@ export default function CommunityDetailPage() {
         <Button
           onClick={handleJoinCommunity}
           disabled={isJoining}
-          className="bg-blue-500 hover:bg-blue-600 text-white"
+          className="w-full sm:w-auto bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
         >
           {isJoining ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -1731,7 +1965,7 @@ export default function CommunityDetailPage() {
       <Button
         onClick={handleJoinCommunity}
         disabled={isJoining}
-        className="bg-purple-500 hover:bg-purple-600 text-white"
+        className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
       >
         {isJoining ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -1743,9 +1977,33 @@ export default function CommunityDetailPage() {
     );
   };
 
+  const postsCount = useMemo(() => posts.length, [posts]);
+  const commentsCount = useMemo(
+    () => posts.reduce((total, post) => total + (post.comment_count ?? 0), 0),
+    [posts]
+  );
+  const reactionsCount = useMemo(
+    () => posts.reduce((total, post) => total + (post.reaction_count ?? post.likes_count ?? 0), 0),
+    [posts]
+  );
+  const formattedUpdatedAt = useMemo(() => {
+    if (!community) return '';
+    return new Date(community.updated_at).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short'
+    });
+  }, [community?.updated_at]);
+  const communityCategoryLabel = useMemo(() => {
+    if (!community?.category) return 'Comunidad';
+    return community.category
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }, [community?.category]);
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
         <div className="flex items-center justify-center min-h-screen">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -1755,10 +2013,10 @@ export default function CommunityDetailPage() {
 
   if (!community) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Comunidad no encontrada</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Comunidad no encontrada</h1>
             <Button onClick={() => router.push('/communities')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver a Comunidades
@@ -1769,62 +2027,71 @@ export default function CommunityDetailPage() {
     );
   }
 
-  const communityStyle = getCommunityStyle(community);
-  const canViewContent = community.is_member || (community.access_type === 'free' && community.can_join !== false);
-  const needsAuth = !community.is_member && community.access_type === 'invitation_only';
+  const canViewContent = community.is_member || (community.access_type === 'free' && community.can_join !== false) || (community.slug === 'profesionales' && community.is_member);
+  const needsAuth = !community.is_member && community.access_type === 'invitation_only' && !(community.slug === 'profesionales');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div
+      className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900"
+      style={
+        isMobile
+          ? {
+              paddingBottom: `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+            }
+          : undefined
+      }
+    >
       {/* Navigation Bar */}
       <motion.nav
-        className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50"
-        initial={{ y: -100 }}
+        className="hidden md:block"
+        initial={{ y: -80 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
+        <div className="max-w-7xl mx-auto px-6 pt-6">
+          <div className="flex items-center justify-between gap-6 rounded-[32px] bg-white/5 border border-white/10 shadow-xl backdrop-blur-xl px-6 py-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
                 onClick={() => router.push('/communities')}
-                className="bg-slate-700/50 hover:bg-slate-600/50 text-white border border-slate-600/50"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 text-slate-900 font-semibold shadow-lg shadow-slate-200 transition-all duration-300 hover:-translate-y-0.5 dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-500 dark:text-white dark:shadow-blue-500/30"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
                 Volver
-              </Button>
-              
-              <div className="flex items-center gap-1">
-                {['comunidad', 'miembros', 'ligas', 'acerca'].map((tab) => (
+              </button>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {communityTabs.map((tab, index) => (
                   <button
-                    key={tab}
-                    onClick={() => {
-                      if (tab === 'miembros') {
-                        router.push(`/communities/${slug}/members`);
-                      } else if (tab === 'ligas') {
-                        router.push(`/communities/${slug}/leagues`);
-                      } else {
-                        setActiveTab(tab);
-                      }
-                    }}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      activeTab === tab
-                        ? 'bg-blue-500 text-white'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                    key={tab.id}
+                    onClick={() => handleTabNavigation(tab.id)}
+                    className={`group relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                      activeTab === tab.id
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white'
                     }`}
                   >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    <span className="relative z-10 flex items-center gap-2">
+                      {tab.label}
+                    </span>
+                    <span
+                      className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 transition-opacity ${
+                        activeTab === tab.id
+                          ? 'opacity-100 shadow-lg shadow-purple-500/30 dark:shadow-purple-500/30'
+                          : 'group-hover:opacity-30 bg-white/50 dark:bg-gradient-to-r dark:from-blue-500 dark:to-purple-500'
+                      }`}
+                    />
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-white/60 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Buscar en esta comunidad..."
-                  className="pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                  className="pl-12 pr-4 py-2 rounded-full bg-white/90 border border-white/70 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-transparent transition-all dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder-white/60"
                 />
               </div>
             </div>
@@ -1834,90 +2101,98 @@ export default function CommunityDetailPage() {
 
       {/* Community Header */}
       <motion.section
-        className={`relative py-16 px-6 overflow-hidden ${communityStyle.background}`}
+        ref={communityHeaderRef}
+        className="relative px-4 sm:px-6 lg:px-8 py-10"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Community Image as Background */}
-        {community.image_url ? (
-          <div className="absolute inset-0">
-            <img
-              src={community.image_url}
-              alt={community.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Si la imagen falla al cargar, mostrar el gradiente
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const gradient = target.nextElementSibling as HTMLElement;
-                if (gradient) gradient.style.display = 'block';
-              }}
-            />
-            {/* Overlay oscuro para mejorar legibilidad del texto */}
-            <div className="absolute inset-0 bg-black/50" />
-          </div>
-        ) : (
-          <>
-            {/* Background Effects - solo si no hay imagen */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10" />
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
-          </>
-        )}
-        
-        <div className="relative max-w-7xl mx-auto z-10">
+        <div className="max-w-7xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
           <motion.div
-            className="flex items-start justify-between"
+            className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl overflow-hidden backdrop-blur-xl"
             variants={itemVariants}
           >
-            <div className="flex items-start gap-6">
-              {/* Community Avatar - solo si no hay imagen de fondo */}
-              {!community.image_url && (
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                  <Users className="w-10 h-10 text-white" />
-                </div>
+            <div className="relative h-52 sm:h-64 overflow-hidden">
+              {community.image_url ? (
+                <>
+                  <img
+                    src={community.image_url}
+                    alt={community.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/20 to-transparent" />
+                </>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-500/30" />
               )}
-
-              <div className="flex-1">
-                <h1 className="text-4xl font-bold text-white mb-2">
+            </div>
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-900/5 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-white/80">
+                  <Globe className="w-3.5 h-3.5" />
+                  {communityCategoryLabel}
+                </span>
+                <div className="w-full md:hidden">
+                  {getAccessButton()}
+                </div>
+              </div>
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3">
                   {community.name}
                 </h1>
-                <p className="text-xl text-white/90 mb-4 max-w-2xl">
+                <p className="text-slate-600 dark:text-white/80 text-base sm:text-lg leading-relaxed">
                   {community.description}
                 </p>
-                
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="flex items-center gap-2 text-white/80">
-                    <Users className="w-4 h-4" />
-                    {community.member_count} Miembros
-                  </div>
-                  <div className={`flex items-center gap-2 ${communityStyle.accent}`}>
-                    {community.access_type === 'free' ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <Lock className="w-4 h-4" />
-                    )}
-                    {community.access_type === 'free' ? 'Acceso Gratuito' : 'Por Invitación'}
-                  </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-white/80">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                  <Users className="w-4 h-4" />
+                  {community.member_count} Miembros
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                  {(community.access_type === 'free' || (community.slug === 'profesionales' && community.is_member)) ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <Lock className="w-4 h-4" />
+                  )}
+                  {(community.access_type === 'free' || (community.slug === 'profesionales' && community.is_member)) ? 'Acceso gratuito' : 'Por invitación'}
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                  <Clock className="w-4 h-4" />
+                  Actualizado {formattedUpdatedAt}
                 </div>
               </div>
             </div>
+          </motion.div>
 
-            <div className="flex flex-col items-end gap-4">
+          <motion.div className="space-y-4" variants={itemVariants}>
+            <div className="hidden md:block">
               {getAccessButton()}
-              
-              <div className="text-right">
-                <div className="text-2xl font-bold text-blue-400">24</div>
-                <div className="text-slate-400 text-sm">POSTS</div>
+            </div>
+            <div className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-slate-600 dark:text-white/60 uppercase tracking-[0.3em]">Actividad</p>
+                <div className="h-1 w-16 rounded-full bg-gradient-to-r from-blue-400 to-purple-400" />
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-purple-400">7</div>
-                <div className="text-slate-400 text-sm">COMENTARIOS</div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-green-400">11</div>
-                <div className="text-slate-400 text-sm">REACCIONES</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { label: 'Posts', value: postsCount, gradient: 'from-blue-500 to-cyan-500' },
+                  { label: 'Comentarios', value: commentsCount, gradient: 'from-purple-500 to-pink-500' },
+                  { label: 'Reacciones', value: reactionsCount, gradient: 'from-emerald-500 to-lime-500' },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-2xl bg-white/70 border border-white/30 px-4 py-5 text-center dark:bg-white/5 dark:border-white/10"
+                  >
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                      {stat.value}
+                    </p>
+                    <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-white/70">
+                      {stat.label}
+                    </span>
+                    <div className={`mt-3 h-1 rounded-full bg-gradient-to-r ${stat.gradient}`} />
+                  </div>
+                ))}
               </div>
             </div>
           </motion.div>
@@ -1926,7 +2201,13 @@ export default function CommunityDetailPage() {
 
       {/* Main Content */}
       <motion.section
-        className="px-6 py-8"
+        ref={feedSectionRef}
+        className="px-4 md:px-6 pt-8"
+        style={{
+          paddingBottom: isMobile
+            ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px) + ${MOBILE_CONTENT_EXTRA_PADDING}px)`
+            : '4rem',
+        }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -1938,7 +2219,7 @@ export default function CommunityDetailPage() {
               {community.is_member && (
                 <motion.div
                   variants={cardVariants}
-                  className="bg-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-2xl p-6 mb-6"
+                  className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-600/50 rounded-2xl p-6 mb-6 shadow-lg dark:shadow-xl"
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden">
@@ -1965,31 +2246,37 @@ export default function CommunityDetailPage() {
                         placeholder="Escribe algo para la comunidad..."
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
-                        className="w-full bg-transparent text-white placeholder-slate-400 resize-none focus:outline-none"
+                        onPaste={handlePasteImage}
+                        className="w-full bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 resize-none focus:outline-none"
                         rows={3}
                       />
-                      {/* Preview del adjunto */}
-                      {postAttachment && (
-                        <div className="mt-4">
-                          <AttachmentPreview
-                            type={postAttachment.type}
-                            data={postAttachment.data}
-                            onRemove={handleRemoveAttachment}
-                          />
+                      {/* Preview de los adjuntos */}
+                      {postAttachments.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          {postAttachments.map((attachment) => (
+                            <AttachmentPreview
+                              key={attachment.id}
+                              type={attachment.type}
+                              data={attachment.data}
+                              onRemove={() => handleRemoveAttachment(attachment.id)}
+                            />
+                          ))}
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between mt-4 gap-4">
-                        <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mt-4 gap-4">
+                        <div className="w-full sm:flex-1">
                           <InlineAttachmentButtons
                             onAttachmentSelect={handleAttachmentSelect}
+                            currentAttachmentsCount={postAttachments.length}
+                            maxAttachments={3}
                           />
                         </div>
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 sm:w-auto w-full">
                           <Button
                             onClick={handleCreatePost}
-                            disabled={!newPostContent.trim() || isCreatingPost || isProcessingAttachment}
-                            className="btn-primary disabled:opacity-50"
+                            disabled={!newPostContent.trim() || isCreatingPost || isProcessingAttachment || postAttachments.length > 3}
+                            className="btn-primary disabled:opacity-50 w-full sm:w-auto justify-center"
                           >
                             {(isCreatingPost || isProcessingAttachment) ? (
                               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -2005,15 +2292,16 @@ export default function CommunityDetailPage() {
                 </motion.div>
               )}
 
-              {/* Posts Feed */}
-              <motion.div
-                variants={containerVariants}
-                className="space-y-6"
-              >
-                {posts.map((post, index) => (
+              {/* Posts Feed with Infinite Scroll */}
+              <InfinitePostsFeed
+                communitySlug={slug}
+                initialPosts={posts}
+                renderPost={(post, index) => (
                   <motion.div
                     key={post.id}
                     variants={cardVariants}
+                    initial="hidden"
+                    animate="visible"
                     whileHover="hover"
                     className="community-post"
                   >
@@ -2040,25 +2328,25 @@ export default function CommunityDetailPage() {
                           )}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-white">
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
                             {post.user?.first_name && post.user?.last_name 
                               ? `${post.user.first_name} ${post.user.last_name}`
                               : post.user?.username || post.user?.email || 'Usuario'
                             }
                           </h3>
-                          <p className="text-sm text-slate-400">
-                            Hace {Math.floor(Math.random() * 30)} días • general
+                          <p className="text-sm text-gray-600 dark:text-slate-400">
+                            {formatRelativeTime(post.created_at)} • general
                           </p>
                         </div>
                       </div>
-                      <button className="text-slate-400 hover:text-white">
+                      <button className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white">
                         <MoreHorizontal className="w-5 h-5" />
                       </button>
                     </div>
 
                     {/* Post Content */}
                     <div className="community-post-content">
-                      <p>{post.content}</p>
+                      <p className="text-gray-900 dark:text-white">{post.content}</p>
                     </div>
 
                     {/* Post Attachments */}
@@ -2073,25 +2361,21 @@ export default function CommunityDetailPage() {
                     )}
 
                     {/* Facebook-style Post Stats Bar - Reacciones y comentarios */}
-                    <div className="flex items-center justify-between py-2 px-4 text-sm text-slate-400 border-b border-slate-700/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 px-4 text-sm text-gray-600 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700/30">
                       {/* Reacciones */}
                       {(() => {
                         const totalReactions = postReactions[post.id]?.count || post.reaction_count || 0;
                         const reactionStats = postReactionStats[post.id] || {};
-                        const topReactions = Object.values(reactionStats).map((reaction: any) => ({
-                          reaction_type: reaction.type,
-                          count: reaction.count,
-                          emoji: reaction.emoji
-                        }));
                         
-                        console.log('Post reaction data:', {
-                          postId: post.id,
-                          totalReactions,
-                          reactionStats,
-                          topReactions,
-                          postReactions: postReactions[post.id],
-                          postReactionCount: post.reaction_count
-                        });
+                        // Convertir las estadísticas a topReactions y ordenar por conteo (mayor a menor)
+                        const topReactions = Object.values(reactionStats)
+                          .map((reaction: any) => ({
+                            reaction_type: reaction.type || reaction.reaction_type,
+                            count: reaction.count || 0,
+                            emoji: reaction.emoji || getReactionEmoji(reaction.type || reaction.reaction_type)
+                          }))
+                          .filter((reaction: any) => reaction.count > 0) // Solo incluir reacciones con conteo > 0
+                          .sort((a: any, b: any) => b.count - a.count); // Ordenar por conteo descendente
                         
                         return (
                           <ReactionBanner
@@ -2121,22 +2405,24 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="text-slate-400 hover:text-blue-400 transition-colors"
+                        className="text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         {post.comment_count} comentarios
                       </button>
                     </div>
 
                     {/* Facebook-style Action Buttons */}
-                    <div className="flex items-center justify-around py-2">
+                    <div className="flex flex-nowrap items-center justify-between gap-1 sm:gap-2 py-1.5 sm:py-2 px-1 sm:px-2 border-t border-gray-200 dark:border-slate-700/30">
                       {/* Botón de Reacciones */}
-                      <ReactionButton
-                        postId={post.id}
-                        currentReaction={userReactions[post.id] || null}
-                        reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
-                        onReaction={handleReaction}
-                        isFacebookStyle={true}
-                      />
+                      <div className="flex-1 min-w-0 flex justify-center">
+                        <ReactionButton
+                          postId={post.id}
+                          currentReaction={userReactions[post.id] || null}
+                          reactionCount={postReactions[post.id]?.count || post.reaction_count || 0}
+                          onReaction={handleReaction}
+                          isFacebookStyle={true}
+                        />
+                      </div>
                       <button 
                         onClick={() => {
                           const isCurrentlyShowing = showCommentsForPost[post.id] || false;
@@ -2153,18 +2439,20 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-slate-700/30"
+                        className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
                       >
-                        <MessageSquare className="w-5 h-5" />
-                        <span>Comentar</span>
+                        <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="text-xs sm:text-sm">Comentar</span>
                       </button>
-                      <ShareButton
-                        postId={post.id}
-                        postContent={post.content}
-                        communityName={community.name}
-                        communitySlug={slug}
-                        isFacebookStyle={true}
-                      />
+                      <div className="flex-1 min-w-0 flex justify-center">
+                        <ShareButton
+                          postId={post.id}
+                          postContent={post.content}
+                          communityName={community.name}
+                          communitySlug={slug}
+                          isFacebookStyle={true}
+                        />
+                      </div>
                     </div>
 
                     {/* Sección de comentarios */}
@@ -2190,25 +2478,8 @@ export default function CommunityDetailPage() {
                       />
                     </div>
                   </motion.div>
-                ))}
-
-                {posts.length === 0 && (
-                  <motion.div
-                    variants={cardVariants}
-                    className="text-center py-16"
-                  >
-                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-800/50 flex items-center justify-center">
-                      <MessageSquare className="w-12 h-12 text-slate-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">
-                      No hay posts aún
-                    </h3>
-                    <p className="text-slate-400">
-                      Sé el primero en compartir algo en esta comunidad
-                    </p>
-                  </motion.div>
                 )}
-              </motion.div>
+              />
             </>
           ) : (
             /* Preview Mode for Non-Members */
@@ -2216,13 +2487,13 @@ export default function CommunityDetailPage() {
               variants={cardVariants}
               className="text-center py-16"
             >
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-800/50 flex items-center justify-center">
-                <EyeOff className="w-12 h-12 text-slate-400" />
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-slate-800/50 flex items-center justify-center">
+                <EyeOff className="w-12 h-12 text-gray-600 dark:text-slate-400" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 Contenido restringido
               </h3>
-              <p className="text-slate-400 mb-6">
+              <p className="text-gray-600 dark:text-slate-400 mb-6">
                 {community.access_type === 'free' 
                   ? 'Únete a esta comunidad para ver todo el contenido'
                   : 'Esta comunidad es solo por invitación'
@@ -2234,6 +2505,55 @@ export default function CommunityDetailPage() {
         </div>
       </motion.section>
 
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <motion.nav
+          initial={{ y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.25 }}
+          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+          style={{
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          <div className="flex items-center justify-around px-4 py-3">
+            {communityTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabNavigation(tab.id)}
+                  className={`flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all ${
+                    isActive
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-xs font-medium">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.nav>
+      )}
+
+      {/* Modal de cuestionario requerido */}
+      <QuestionnaireRequiredModal
+        isOpen={showQuestionnaireModal}
+        onContinue={() => {
+          setShowQuestionnaireModal(false);
+          router.push('/statistics');
+        }}
+        onCancel={() => {
+          setShowQuestionnaireModal(false);
+          router.push('/dashboard');
+        }}
+        isOAuthUser={status?.isGoogleOAuth || false}
+      />
+
       {/* Modales de detalles de reacciones */}
       {posts.map((post) => (
         <ReactionDetailsModal
@@ -2242,7 +2562,7 @@ export default function CommunityDetailPage() {
           onClose={() => closeReactionDetails(post.id)}
           postId={post.id}
           communitySlug={slug}
-          selectedReactionType={selectedReactionType}
+          selectedReactionType={selectedReactionType || undefined}
         />
       ))}
 

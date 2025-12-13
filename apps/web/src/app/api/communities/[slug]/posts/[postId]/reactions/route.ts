@@ -38,7 +38,7 @@ export async function GET(
       .order('created_at', { ascending: false });
 
     if (reactionsError) {
-      console.error('Error fetching reactions:', reactionsError);
+      // console.error('Error fetching reactions:', reactionsError);
       return NextResponse.json({ error: 'Error al obtener reacciones' }, { status: 500 });
     }
 
@@ -103,8 +103,7 @@ export async function GET(
           topReactions = topData;
         }
       } catch (error) {
-        console.warn('Error fetching top reactions:', error);
-      }
+        }
     }
 
     // Calcular total de reacciones
@@ -120,7 +119,7 @@ export async function GET(
       userReaction: getUserCurrentReaction(reactions, user.id)
     });
   } catch (error) {
-    console.error('Error in reactions GET:', error);
+    // console.error('Error in reactions GET:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
@@ -159,6 +158,19 @@ export async function POST(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Verificar si el usuario necesita completar el cuestionario
+    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
+    const { QuestionnaireValidationService } = await import('../../../../../../../features/auth/services/questionnaire-validation.service');
+    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
+    
+    if (requiresQuestionnaire) {
+      return NextResponse.json({ 
+        error: 'Debes completar el cuestionario de Mis Estadísticas antes de reaccionar en comunidades',
+        requiresQuestionnaire: true,
+        redirectUrl: '/statistics'
+      }, { status: 403 });
+    }
+
     const { postId } = await params;
     const { reaction_type, action } = await request.json();
 
@@ -183,7 +195,7 @@ export async function POST(
       .eq('user_id', user.id);
 
     if (checkError) {
-      console.error('Error checking existing reactions:', checkError);
+      // console.error('Error checking existing reactions:', checkError);
       return NextResponse.json({ error: 'Error al verificar reacciones' }, { status: 500 });
     }
 
@@ -199,7 +211,7 @@ export async function POST(
           .eq('id', currentReaction.id);
 
         if (deleteError) {
-          console.error('Error deleting reaction:', deleteError);
+          // console.error('Error deleting reaction:', deleteError);
           return NextResponse.json({ error: 'Error al eliminar reacción' }, { status: 500 });
         }
 
@@ -228,7 +240,7 @@ export async function POST(
           .eq('id', currentReaction.id);
 
         if (updateError) {
-          console.error('Error updating reaction:', updateError);
+          // console.error('Error updating reaction:', updateError);
           return NextResponse.json({ error: 'Error al actualizar reacción' }, { status: 500 });
         }
 
@@ -251,9 +263,34 @@ export async function POST(
           .single();
 
         if (insertError) {
-          console.error('Error creating reaction:', insertError);
+          // console.error('Error creating reaction:', insertError);
           return NextResponse.json({ error: 'Error al crear reacción' }, { status: 500 });
         }
+
+        // Crear notificación para el autor del post (en background)
+        (async () => {
+          try {
+            // Obtener información del post para saber quién es el autor y el community_id
+            const { data: post } = await supabase
+              .from('community_posts')
+              .select('user_id, community_id')
+              .eq('id', postId)
+              .single();
+
+            if (post && post.user_id && post.user_id !== user.id) {
+              const { AutoNotificationsService } = await import('../../../../../../../features/notifications/services/auto-notifications.service');
+              await AutoNotificationsService.notifyCommunityPostReaction(
+                postId,
+                post.user_id,
+                user.id,
+                reaction_type,
+                post.community_id
+              );
+            }
+          } catch (notificationError) {
+            // Error silenciado para no afectar el flujo principal
+          }
+        })().catch(() => {}); // Fire and forget
 
         // El trigger automáticamente incrementará el contador
         return NextResponse.json({ 
@@ -264,7 +301,7 @@ export async function POST(
       }
     }
   } catch (error) {
-    console.error('Error in reactions POST:', error);
+    // console.error('Error in reactions POST:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

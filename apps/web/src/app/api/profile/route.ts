@@ -1,20 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '../../../lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 import { ProfileServerService } from '../../../features/profile/services/profile-server.service'
+import { SessionService } from '../../../features/auth/services/session.service'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Usar SessionService para obtener el usuario actual (sistema de autenticación personalizado)
+    const user = await SessionService.getCurrentUser()
 
-    if (userError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const profile = await ProfileServerService.getProfile(user.id)
     return NextResponse.json(profile)
   } catch (error) {
-    console.error('Error in profile GET API:', error)
+    logger.error('Error in profile GET API:', error)
     return NextResponse.json(
       { 
         error: 'Internal Server Error',
@@ -27,10 +28,10 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Usar SessionService para obtener el usuario actual (sistema de autenticación personalizado)
+    const user = await SessionService.getCurrentUser()
 
-    if (userError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -39,7 +40,7 @@ export async function PUT(request: NextRequest) {
     
     return NextResponse.json(updatedProfile)
   } catch (error) {
-    console.error('Error in profile PUT API:', error)
+    logger.error('Error in profile PUT API:', error)
     return NextResponse.json(
       { 
         error: 'Internal Server Error',

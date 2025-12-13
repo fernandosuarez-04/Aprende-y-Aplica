@@ -3,9 +3,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Card, CardContent, Badge, Button } from '@aprende-y-aplica/ui';
+import { Card, CardContent, Button } from '@aprende-y-aplica/ui';
 import { ArrowRight, Check } from 'lucide-react';
-import { HeroContent } from '@shared/types/content';
+import { HeroContent } from '@aprende-y-aplica/shared';
 import { fadeIn, slideUp, slideInFromLeft, slideInFromRight, staggerContainer, staggerItem } from '../../../shared/utils/animations';
 import { AnimatedBackground } from '../../../core/components/AnimatedBackground';
 import { useParallax } from '../../../shared/hooks/useParallax';
@@ -67,13 +67,6 @@ export function HeroSection({ content }: HeroSectionProps) {
             animate="visible"
             variants={staggerContainer}
           >
-            {/* Tag */}
-            <motion.div variants={staggerItem}>
-              <Badge variant="outline" className="text-primary border-primary/30 hover:bg-primary/10">
-                {tag}
-              </Badge>
-            </motion.div>
-
             {/* Title */}
             <motion.h1
               className="text-5xl lg:text-7xl font-bold leading-tight"

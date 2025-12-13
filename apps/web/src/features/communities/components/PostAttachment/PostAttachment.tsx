@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
+import NextImage from 'next/image';
 import { motion } from 'framer-motion';
 import { 
   Image, 
@@ -24,7 +25,8 @@ interface PostAttachmentProps {
   communitySlug?: string;
 }
 
-export function PostAttachment({ 
+// Memoizado para evitar re-renders cuando las props no cambian
+export const PostAttachment = memo(function PostAttachment({ 
   attachmentType, 
   attachmentUrl, 
   attachmentData, 
@@ -36,12 +38,31 @@ export function PostAttachment({
 
   if (!attachmentType) return null;
 
+  // Si es múltiple, renderizar todos los adjuntos
+  // Verificar si attachment_data tiene la flag isMultiple o si hay un array de attachments
+  if (attachmentData?.isMultiple && attachmentData?.attachments && Array.isArray(attachmentData.attachments)) {
+    return (
+      <div className={`space-y-3 ${className}`}>
+        {attachmentData.attachments.map((att: any, index: number) => (
+          <PostAttachment
+            key={index}
+            attachmentType={att.attachment_type}
+            attachmentUrl={att.attachment_url}
+            attachmentData={att.attachment_data}
+            postId={postId}
+            communitySlug={communitySlug}
+          />
+        ))}
+      </div>
+    );
+  }
+
   // Validar que tenemos una URL válida para tipos que la requieren
   const hasValidUrl = attachmentUrl && attachmentUrl.trim() !== '';
   const requiresUrl = ['image', 'video', 'document', 'youtube', 'link'].includes(attachmentType);
   
   if (requiresUrl && !hasValidUrl) {
-    console.warn('PostAttachment: Missing or invalid URL for type:', attachmentType);
+    // console.warn('PostAttachment: Missing or invalid URL for type:', attachmentType);
     return null;
   }
 
@@ -59,7 +80,7 @@ export function PostAttachment({
           // Verificar que el base64 esté bien formateado
           const base64Regex = /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/;
           if (!base64Regex.test(attachmentUrl)) {
-            console.warn('🎨 [IMAGE] Base64 mal formateado:', attachmentUrl.substring(0, 100) + '...');
+            // console.warn('🎨 [IMAGE] Base64 mal formateado:', attachmentUrl.substring(0, 100) + '...');
             return (
               <div className="w-full h-48 bg-slate-700 rounded-lg flex items-center justify-center">
                 <div className="text-center">
@@ -72,19 +93,19 @@ export function PostAttachment({
         }
         
         return (
-          <div className="relative group">
-            <img
+          <div className="relative group w-full max-h-96">
+            <NextImage
               src={attachmentUrl}
               alt={attachmentData?.name || 'Imagen adjunta'}
+              width={800}
+              height={600}
               className="w-full max-h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => setShowImageModal(true)}
-              onLoad={() => {
-                if (isBase64) {
-                  console.log('🎨 [IMAGE] Base64 cargado exitosamente');
-                }
-              }}
+              priority={false}
+              quality={85}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 800px"
               onError={(e) => {
-                console.error('🎨 [IMAGE] Error loading image:', isBase64 ? 'Base64 image failed to load' : attachmentUrl);
+                // console.error('🎨 [IMAGE] Error loading image:', isBase64 ? 'Base64 image failed to load' : attachmentUrl);
                 // En lugar de ocultar, mostrar un placeholder
                 e.currentTarget.style.display = 'none';
                 // Crear un placeholder
@@ -118,7 +139,7 @@ export function PostAttachment({
         const isYouTubeUrl = attachmentUrl.includes('youtube.com/embed/') || attachmentUrl.includes('youtu.be/') || attachmentUrl.includes('youtube.com/watch');
         
         if (isYouTubeUrl) {
-          console.log('🎥 [YOUTUBE] Detectado video de YouTube en caso video, renderizando como YouTube');
+          // console.log('🎥 [YOUTUBE] Detectado video de YouTube en caso video, renderizando como YouTube');
           
           // Extraer videoId de la URL
           let videoId = null;
@@ -134,7 +155,7 @@ export function PostAttachment({
           const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
           
           return (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
+            <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg overflow-hidden">
               {embedUrl ? (
                 <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                   <iframe
@@ -144,8 +165,8 @@ export function PostAttachment({
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    onLoad={() => console.log('🎥 [YOUTUBE] Iframe cargado exitosamente:', embedUrl)}
-                    onError={(e) => console.error('🎥 [YOUTUBE] Error cargando iframe:', embedUrl, e)}
+                    onLoad={() => {/* console.log('🎥 [YOUTUBE] Iframe cargado exitosamente:', embedUrl) */}}
+                    onError={(e) => {/* console.error('🎥 [YOUTUBE] Error cargando iframe:', embedUrl, e) */}}
                   />
                   {/* Debug info - temporal */}
                   <div className="absolute top-2 left-2 bg-black/70 text-white text-xs p-1 rounded opacity-50">
@@ -154,10 +175,10 @@ export function PostAttachment({
                 </div>
               ) : (
                 <div className="relative">
-                  <div className="w-full h-48 bg-slate-700 flex items-center justify-center">
+                  <div className="w-full h-48 bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
                     <div className="text-center">
-                      <Youtube className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-400 text-sm mb-3">No se pudo extraer videoId</p>
+                      <Youtube className="w-12 h-12 text-gray-600 dark:text-slate-400 mx-auto mb-2" />
+                      <p className="text-gray-700 dark:text-slate-400 text-sm mb-3">No se pudo extraer videoId</p>
                       <button
                         onClick={() => window.open(attachmentUrl, '_blank')}
                         className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2 mx-auto"
@@ -170,10 +191,10 @@ export function PostAttachment({
                 </div>
               )}
               <div className="p-4">
-                <h4 className="font-medium text-white mb-1">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-1">
                   Video de YouTube
                 </h4>
-                <p className="text-sm text-slate-400 flex items-center gap-1">
+                <p className="text-sm text-gray-600 dark:text-slate-400 flex items-center gap-1">
                   <Youtube className="w-4 h-4" />
                   YouTube
                 </p>
@@ -194,7 +215,7 @@ export function PostAttachment({
               className="w-full max-h-96 rounded-lg"
               poster={attachmentData?.thumbnail}
               onError={(e) => {
-                console.error('Error loading video:', isVideoBase64 ? 'Base64 video failed to load' : attachmentUrl);
+                // console.error('Error loading video:', isVideoBase64 ? 'Base64 video failed to load' : attachmentUrl);
                 e.currentTarget.style.display = 'none';
               }}
             />
@@ -219,7 +240,7 @@ export function PostAttachment({
         const isDocExternalUrl = attachmentUrl.startsWith('http');
         
         return (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 hover:bg-slate-700/50 transition-colors cursor-pointer"
+          <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg p-4 hover:bg-gray-200 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                onClick={() => {
                  if (isDocExternalUrl) {
                    window.open(attachmentUrl, '_blank');
@@ -236,14 +257,14 @@ export function PostAttachment({
                 <FileText className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-white truncate">
+                <h4 className="font-medium text-gray-900 dark:text-white truncate">
                   {attachmentData?.name || 'Documento'}
                 </h4>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-gray-600 dark:text-slate-400">
                   {attachmentData?.size ? formatFileSize(attachmentData.size) : 'Documento adjunto'}
                 </p>
               </div>
-              <ExternalLink className="w-5 h-5 text-slate-400" />
+              <ExternalLink className="w-5 h-5 text-gray-600 dark:text-slate-400" />
             </div>
           </div>
         );
@@ -264,17 +285,17 @@ export function PostAttachment({
         const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
         
         // Debug: Log para ver qué datos tenemos
-        console.log('🎥 [YOUTUBE DEBUG] Datos completos:', { 
-          attachmentUrl, 
-          attachmentData, 
-          videoId, 
-          embedUrl,
-          extractedVideoId: videoId,
-          attachmentType: 'youtube'
-        });
+        // console.log('🎥 [YOUTUBE DEBUG] Datos completos:', {
+        //   attachmentUrl,
+        //   attachmentData,
+        //   videoId,
+        //   embedUrl,
+        //   extractedVideoId: videoId,
+        //   attachmentType: 'youtube'
+        // });
         
         return (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
+          <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg overflow-hidden">
             {embedUrl ? (
               <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                 <iframe
@@ -284,8 +305,8 @@ export function PostAttachment({
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                  onLoad={() => console.log('🎥 [YOUTUBE] Iframe cargado exitosamente:', embedUrl)}
-                  onError={(e) => console.error('🎥 [YOUTUBE] Error cargando iframe:', embedUrl, e)}
+                  onLoad={() => {/* console.log('🎥 [YOUTUBE] Iframe cargado exitosamente:', embedUrl) */}}
+                  onError={(e) => {/* console.error('🎥 [YOUTUBE] Error cargando iframe:', embedUrl, e) */}}
                 />
                 {/* Debug info - temporal */}
                 <div className="absolute top-2 left-2 bg-black/70 text-white text-xs p-1 rounded opacity-50">
@@ -323,22 +344,72 @@ export function PostAttachment({
 
       case 'link':
         if (!attachmentUrl) return null;
+        
+        // Si es un enlace de YouTube (guardado como 'link' pero con flag isYouTube)
+        if (attachmentData?.isYouTube) {
+          let videoId = attachmentData?.videoId;
+          
+          // Si no hay videoId en attachmentData, intentar extraerlo de la URL
+          if (!videoId && attachmentUrl) {
+            const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/;
+            const match = attachmentUrl.match(regex);
+            videoId = match ? match[1] : null;
+          }
+          
+          const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+          
+          return (
+            <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg overflow-hidden">
+              {embedUrl ? (
+                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                  <iframe
+                    src={embedUrl}
+                    className="absolute top-0 left-0 w-full h-full"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={attachmentData?.title || 'Video de YouTube'}
+                  />
+                </div>
+              ) : (
+                <div className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center">
+                      <Youtube className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                        {attachmentData?.title || 'Video de YouTube'}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-slate-400 flex items-center gap-1">
+                        <Youtube className="w-4 h-4" />
+                        YouTube
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+        
+        // Enlace web normal
         return (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 hover:bg-slate-700/50 transition-colors cursor-pointer"
+          <div className="bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-700 rounded-lg p-4 hover:bg-gray-200 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                onClick={() => window.open(attachmentUrl, '_blank')}>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
                 <Link className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-white mb-1">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-1">
                   {attachmentData?.title || 'Enlace web'}
                 </h4>
-                <p className="text-sm text-slate-400 truncate">
+                <p className="text-sm text-gray-600 dark:text-slate-400 truncate">
                   {attachmentUrl}
                 </p>
               </div>
-              <ExternalLink className="w-5 h-5 text-slate-400" />
+              <ExternalLink className="w-5 h-5 text-gray-600 dark:text-slate-400" />
             </div>
           </div>
         );
@@ -378,7 +449,7 @@ export function PostAttachment({
       )}
     </>
   );
-}
+});
 
 // Componente de encuesta interactiva
 function InteractivePoll({ 
@@ -413,9 +484,13 @@ function InteractivePoll({
         const data = await response.json();
         setUserVote(data.userVote);
         setSelectedOption(data.userVote);
+        // Actualizar pollData con los datos actuales de la base de datos
+        if (data.pollData) {
+          setPollData(data.pollData);
+        }
       }
     } catch (error) {
-      console.error('Error loading user vote:', error);
+      // console.error('Error loading user vote:', error);
     }
   };
 
@@ -448,7 +523,7 @@ function InteractivePoll({
         alert(error.error || 'Error al votar');
       }
     } catch (error) {
-      console.error('Error voting:', error);
+      // console.error('Error voting:', error);
       alert('Error al votar');
     } finally {
       setIsVoting(false);
@@ -456,40 +531,53 @@ function InteractivePoll({
   };
 
   const calculatePercentage = (option: string) => {
-    if (!pollData?.votes || !pollData.votes[option]) return 0;
+    // Validar que pollData y votes existan
+    if (!pollData || !pollData.votes || typeof pollData.votes !== 'object') {
+      return 0;
+    }
+
+    // Si la opción no existe en votes, retornar 0
+    if (!pollData.votes[option]) {
+      return 0;
+    }
+
     const totalVotes = Object.values(pollData.votes).reduce((total: number, votes: any) => {
       return total + (Array.isArray(votes) ? votes.length : 0);
     }, 0);
-    
+
     if (totalVotes === 0) return 0;
     const optionVotes = Array.isArray(pollData.votes[option]) ? pollData.votes[option].length : 0;
     return Math.round((optionVotes / totalVotes) * 100);
   };
 
   const getTotalVotes = () => {
-    if (!pollData?.votes) return 0;
+    // Validar que pollData y votes existan
+    if (!pollData || !pollData.votes || typeof pollData.votes !== 'object') {
+      return 0;
+    }
+
     return Object.values(pollData.votes).reduce((total: number, votes: any) => {
       return total + (Array.isArray(votes) ? votes.length : 0);
     }, 0);
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-600/50 rounded-xl p-5 shadow-lg backdrop-blur-sm">
+    <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800/60 dark:to-slate-900/60 border border-gray-200 dark:border-slate-600/50 rounded-xl p-5 shadow-lg backdrop-blur-sm">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 flex items-center justify-center shadow-lg">
           <BarChart3 className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1">
-          <h4 className="font-semibold text-white text-lg">Encuesta</h4>
-          <p className="text-xs text-slate-400">Participa en la votación</p>
+          <h4 className="font-semibold text-gray-900 dark:text-white text-lg">Encuesta</h4>
+          <p className="text-xs text-gray-600 dark:text-slate-400">Participa en la votación</p>
         </div>
-        <div className="bg-slate-700/50 rounded-lg px-3 py-1">
-          <span className="text-sm font-medium text-slate-300">
+        <div className="bg-gray-100 dark:bg-slate-700/50 rounded-lg px-3 py-1">
+          <span className="text-sm font-medium text-gray-700 dark:text-slate-300">
             {getTotalVotes()} {getTotalVotes() === 1 ? 'voto' : 'votos'}
           </span>
         </div>
       </div>
-      <h5 className="text-white text-lg font-medium mb-4 leading-relaxed">{pollData?.question}</h5>
+      <h5 className="text-gray-900 dark:text-white text-lg font-medium mb-4 leading-relaxed">{pollData?.question}</h5>
       <div className="space-y-3">
         {pollData?.options?.map((option: string, index: number) => {
           const percentage = calculatePercentage(option);
@@ -507,8 +595,8 @@ function InteractivePoll({
               <div 
                 className={`relative flex items-center gap-4 p-4 rounded-xl transition-all duration-300 cursor-pointer group overflow-hidden ${
                   isSelected 
-                    ? 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 border-2 border-orange-400/50 shadow-lg shadow-orange-500/20' 
-                    : 'bg-slate-700/30 border border-slate-600/30 hover:bg-slate-600/40 hover:border-slate-500/50'
+                    ? 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 border-2 border-orange-400/50 dark:border-orange-400/50 shadow-lg shadow-orange-500/20' 
+                    : 'bg-gray-50 dark:bg-slate-700/30 border border-gray-300 dark:border-slate-600/30 hover:bg-gray-100 dark:hover:bg-slate-600/40 hover:border-gray-400 dark:hover:border-slate-500/50'
                 }`}
                 onClick={() => setSelectedOption(option)}
               >
@@ -525,8 +613,8 @@ function InteractivePoll({
                   />
                   <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
                     isSelected 
-                      ? 'border-orange-400 bg-orange-400' 
-                      : 'border-slate-400 group-hover:border-slate-300'
+                      ? 'border-orange-400 bg-orange-400 dark:border-orange-400 dark:bg-orange-400' 
+                      : 'border-gray-400 dark:border-slate-400 group-hover:border-gray-500 dark:group-hover:border-slate-300'
                   }`}>
                     {isSelected && (
                       <motion.div 
@@ -544,7 +632,7 @@ function InteractivePoll({
                   <label 
                     htmlFor={`${pollId}-option-${index}`}
                     className={`block text-sm font-medium cursor-pointer transition-colors ${
-                      isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'
+                      isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-white'
                     }`}
                   >
                     {option}
@@ -554,16 +642,16 @@ function InteractivePoll({
                   {getTotalVotes() > 0 && (
                     <div className="mt-2">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-gray-600 dark:text-slate-400">
                           {percentage}% • {Array.isArray(pollData.votes?.[option]) ? pollData.votes[option].length : 0} votos
                         </span>
                       </div>
-                      <div className="h-2 bg-slate-600/50 rounded-full overflow-hidden">
+                      <div className="h-2 bg-gray-200 dark:bg-slate-600/50 rounded-full overflow-hidden">
                         <motion.div 
                           className={`h-full rounded-full ${
                             isSelected 
                               ? 'bg-gradient-to-r from-orange-400 to-amber-400' 
-                              : 'bg-gradient-to-r from-slate-400 to-slate-500'
+                              : 'bg-gradient-to-r from-gray-400 to-gray-500 dark:from-slate-400 dark:to-slate-500'
                           }`}
                           initial={{ width: 0 }}
                           animate={{ width: `${percentage}%` }}
@@ -577,8 +665,8 @@ function InteractivePoll({
                 {/* Indicador de porcentaje */}
                 <div className={`text-sm font-bold px-2 py-1 rounded-lg transition-colors ${
                   isSelected 
-                    ? 'bg-orange-400/20 text-orange-300' 
-                    : 'bg-slate-600/50 text-slate-400'
+                    ? 'bg-orange-400/20 text-orange-700 dark:text-orange-300' 
+                    : 'bg-gray-200 dark:bg-slate-600/50 text-gray-600 dark:text-slate-400'
                 }`}>
                   {percentage}%
                 </div>
@@ -589,7 +677,7 @@ function InteractivePoll({
       </div>
       <div className="mt-6 flex justify-between items-center">
         {/* Información adicional */}
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-gray-600 dark:text-slate-500">
           {getTotalVotes() > 0 ? `${getTotalVotes()} personas han votado` : 'Sé el primero en votar'}
         </div>
         

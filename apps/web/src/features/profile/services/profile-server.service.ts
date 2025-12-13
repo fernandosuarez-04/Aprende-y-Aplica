@@ -55,7 +55,7 @@ export class ProfileServerService {
         .single()
 
       if (error) {
-        console.error('Error fetching profile:', error)
+        // console.error('Error fetching profile:', error)
         throw new Error(`Error al obtener perfil: ${error.message}`)
       }
 
@@ -87,7 +87,7 @@ export class ProfileServerService {
         email_verified: data.email_verified || false
       }
     } catch (error) {
-      console.error('Error in ProfileServerService.getProfile:', error)
+      // console.error('Error in ProfileServerService.getProfile:', error)
       throw error
     }
   }
@@ -95,6 +95,13 @@ export class ProfileServerService {
   static async updateProfile(userId: string, updates: UpdateProfileRequest): Promise<UserProfile> {
     try {
       const supabase = await createClient()
+      
+      // Obtener datos anteriores para comparar
+      const { data: oldData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
       
       const { data, error } = await supabase
         .from('users')
@@ -107,12 +114,40 @@ export class ProfileServerService {
         .single()
 
       if (error) {
-        console.error('Error updating profile:', error)
+        // console.error('Error updating profile:', error)
         throw new Error(`Error al actualizar perfil: ${error.message}`)
       }
 
       if (!data) {
         throw new Error('Error al actualizar perfil')
+      }
+
+      // Crear notificación de actualización de perfil
+      // Solo incluir campos que realmente cambiaron (comparar valores anteriores vs nuevos)
+      try {
+        const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
+        
+        // Comparar valores anteriores vs nuevos para detectar cambios reales
+        const actualChanges: string[] = []
+        if (oldData) {
+          for (const [key, newValue] of Object.entries(updates)) {
+            const oldValue = oldData[key as keyof typeof oldData]
+            // Comparar valores (convertir a string para comparación segura)
+            if (String(oldValue || '') !== String(newValue || '')) {
+              actualChanges.push(key)
+            }
+          }
+        } else {
+          // Si no hay datos anteriores, usar todas las claves de updates
+          actualChanges.push(...Object.keys(updates))
+        }
+        
+        await AutoNotificationsService.notifyProfileUpdated(userId, actualChanges, {
+          timestamp: new Date().toISOString()
+        })
+      } catch (notificationError) {
+        // No lanzar error para no afectar el flujo principal
+        // console.error('Error creando notificación de actualización de perfil:', notificationError)
       }
 
       return {
@@ -139,8 +174,138 @@ export class ProfileServerService {
         email_verified: data.email_verified || false
       }
     } catch (error) {
-      console.error('Error in ProfileServerService.updateProfile:', error)
+      // console.error('Error in ProfileServerService.updateProfile:', error)
       throw error
+    }
+  }
+
+  static async getUserStats(userId: string): Promise<{
+    completedCourses: number
+    completedLessons: number
+    certificates: number
+    coursesInProgress: number
+  }> {
+    try {
+      const supabase = await createClient()
+
+      // Obtener cursos completados
+      const { count: completedCount, error: completedError } = await supabase
+        .from('user_course_enrollments')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('enrollment_status', 'completed')
+
+      if (completedError) {
+        // console.error('Error fetching completed courses:', completedError)
+      }
+
+      // Obtener lecciones completadas
+      const { count: completedLessonsCount, error: lessonsError } = await supabase
+        .from('user_lesson_progress')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_completed', true)
+
+      if (lessonsError) {
+        // console.error('Error fetching completed lessons:', lessonsError)
+      }
+
+      // Obtener certificados obtenidos
+      const { count: certificatesCount, error: certificatesError } = await supabase
+        .from('user_course_certificates')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+
+      if (certificatesError) {
+        // console.error('Error fetching certificates:', certificatesError)
+      }
+
+      // Obtener cursos en progreso
+      const { count: inProgressCount, error: inProgressError } = await supabase
+        .from('user_course_enrollments')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('enrollment_status', 'active')
+
+      if (inProgressError) {
+        // console.error('Error fetching courses in progress:', inProgressError)
+      }
+
+      return {
+        completedCourses: completedCount || 0,
+        completedLessons: completedLessonsCount || 0,
+        certificates: certificatesCount || 0,
+        coursesInProgress: inProgressCount || 0
+      }
+    } catch (error) {
+      // console.error('Error in ProfileServerService.getUserStats:', error)
+      // Retornar valores por defecto en caso de error
+      return {
+        completedCourses: 0,
+        completedLessons: 0,
+        certificates: 0,
+        coursesInProgress: 0
+      }
+    }
+  }
+
+  static async getUserSubscriptions(userId: string): Promise<Array<{
+    subscription_id: string
+    subscription_type: string
+    subscription_status: string
+    price_cents: number
+    start_date: string
+    end_date: string | null
+    next_billing_date: string | null
+    course_id: string | null
+    course_title?: string
+  }>> {
+    try {
+      const supabase = await createClient()
+
+      // Obtener suscripciones del usuario con información del curso si existe
+      const { data: subscriptions, error } = await supabase
+        .from('subscriptions')
+        .select(`
+          subscription_id,
+          subscription_type,
+          subscription_status,
+          price_cents,
+          start_date,
+          end_date,
+          next_billing_date,
+          course_id,
+          courses:course_id (
+            title
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        // console.error('Error fetching subscriptions:', error)
+        return []
+      }
+
+      if (!subscriptions || subscriptions.length === 0) {
+        return []
+      }
+
+      // Formatear los datos
+      return subscriptions.map((sub: any) => ({
+        subscription_id: sub.subscription_id,
+        subscription_type: sub.subscription_type,
+        subscription_status: sub.subscription_status,
+        price_cents: sub.price_cents,
+        start_date: sub.start_date,
+        end_date: sub.end_date,
+        next_billing_date: sub.next_billing_date,
+        course_id: sub.course_id,
+        course_title: sub.courses?.title || null
+      }))
+    } catch (error) {
+      // console.error('Error in ProfileServerService.getUserSubscriptions:', error)
+      return []
     }
   }
 }

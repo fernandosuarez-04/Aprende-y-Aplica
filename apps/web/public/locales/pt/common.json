@@ -1,0 +1,178 @@
+{
+  "appName": "Aprende y Aplica",
+  "welcome": "Bem-vindo",
+  "language": "Idioma",
+  "change_language": "Mudar idioma",
+  "languages": {
+    "es": "Espanhol",
+    "en": "Inglês",
+    "pt": "Português"
+  },
+  "languageSelector": {
+    "label": "Idioma: {{language}}",
+    "active": "Ativo"
+  },
+  "dashboardNav": {
+    "workshops": "Oficinas",
+    "directory": "Diretório IA",
+    "community": "Comunidade",
+    "news": "Notícias",
+    "promptDirectory": {
+      "title": "Prompt Directory",
+      "description": "Coleção de prompts de IA"
+    },
+    "appsDirectory": {
+      "title": "Apps Directory",
+      "description": "Ferramentas de IA disponíveis"
+    }
+  },
+  "navbar": {
+    "home": "Início",
+    "login": "Entrar",
+    "register": "Criar conta",
+    "logoAlt": "Logo da Aprende y Aplica",
+    "clickCounter": "Contador: {{current}}/{{total}}"
+  },
+  "aiChat": {
+    "placeholder": "Digite sua pergunta...",
+    "online": "Online",
+    "pressEnter": "Pressione Enter para enviar",
+    "clickToSend": "Clique para enviar",
+    "clickToDictate": "Clique para ditar",
+    "responseFallback": "Desculpe, não consegui processar sua mensagem agora.",
+    "errorGeneric": "Desculpe, ocorreu um erro. Tente novamente.",
+    "helpPrompt": "O que posso fazer aqui? Ajude-me",
+    "helpFallback": "Desculpe, não consegui gerar uma resposta.",
+    "helpError": "Desculpe, ocorreu um erro ao processar seu pedido de ajuda. Tente novamente.",
+    "initialMessage": "Olá! 👋 Sou Lia, sua assistente de IA. Estou aqui para ajudá-lo com qualquer pergunta que tenha.",
+    "clearConversation": "Limpar conversa",
+    "changeMode": "Mudar modo da Lia",
+    "clearContext": "Limpar contexto",
+    "clearContextConfirm": "Deseja limpar o contexto e iniciar uma nova conversa?",
+    "reportProblem": "Reportar problema",
+    "promptMode": {
+      "placeholder": "Descreva que tipo de prompt você quer criar...",
+      "title": "Designer de Prompts",
+      "description": "Crie e refine prompts profissionais guiados pela LIA.",
+      "viewGenerated": "Ver Prompt Gerado",
+      "download": "Baixar",
+      "titleLabel": "Título",
+      "contentLabel": "Conteúdo",
+      "emptyDescription": "Gere e refine prompts profissionais. Indique o objetivo, o tom e os requisitos; LIA entrega um prompt pronto para usar com boas práticas.",
+      "loginRequired": "Você deve fazer login para salvar prompts"
+    },
+    "nanobanaMode": {
+      "title": "NanoBanana Pro",
+      "description": "Gera JSON estruturado para renderização visual precisa.",
+      "emptyDescription": "Gera JSON estruturado para NanoBanana Pro. Descreva UI, fotografias ou diagramas e obtenha esquemas precisos e reproduzíveis.",
+      "welcome": "🎨 Bem-vindo ao Modo NanoBanana!\n\nSou seu assistente para criar JSON estruturado otimizado para NanoBanana Pro.\n\n**O que posso criar?**\n• 📱 UI/Wireframes (apps, dashboards, landing pages)\n• 📸 Fotografias (produtos, marketing, lifestyle)\n• 📊 Diagramas (fluxos, arquiteturas, processos)\n\nDescreva o que você precisa e gerarei um JSON preciso e reproduzível.",
+      "viewJson": "Ver JSON NanoBanana"
+    },
+    "contextMode": {
+      "title": "Contexto Persistente",
+      "description": "Mantém as últimas {{count}} mensagens entre páginas",
+      "emptyDescription": "Mantém a conversa ativa entre páginas. Salva automaticamente as últimas {{count}} mensagens para continuar de onde parou.",
+      "active": "Contexto ativo: {{count}} mensagem",
+      "active_plural": "Contexto ativo: {{count}} mensagens",
+      "showingLast": "(mostrando últimas {{count}})"
+    },
+    "assistantMode": {
+      "title": "Assistente",
+      "emptyDescription": "Assistente conversacional para resolver dúvidas gerais, explorar conteúdo e guiá-lo pela plataforma."
+    },
+    "voice": {
+      "listening": "Ouvindo...",
+      "processing": "Processando...",
+      "thinking": "Pensando...",
+      "speaking": "Falando...",
+      "tapToSpeak": "Toque para falar",
+      "tapToStop": "Toque para parar",
+      "microphoneError": "Erro ao acessar o microfone",
+      "speechNotSupported": "Seu navegador não suporta reconhecimento de voz"
+    }
+  },
+  "tours": {
+    "viewTourWithLia": "Ver Tour com LIA",
+    "viewTourWithLiaTitle": "Ver novamente a experiência de boas-vindas com LIA",
+    "viewGuidedTour": "Ver tour guiado",
+    "promptDirectory": {
+      "replayButtonLabel": "Ver tour do diretório",
+      "buttonLabel": "Ver Tour do Diretório"
+    }
+  },
+  "onboarding": {
+    "steps": {
+      "1": {
+        "title": "Bem-vindo ao Aprende y Aplica!",
+        "description": "Sou seu assistente inteligente. Estou aqui para guiá-lo em sua jornada de aprendizado com inteligência artificial.",
+        "speech": "Bem-vindo ao Aprende y Aplica. Sou seu assistente inteligente. Estou aqui para guiá-lo em sua jornada de aprendizado com inteligência artificial."
+      },
+      "2": {
+        "title": "Conheça a LIA",
+        "description": "LIA é sua companheira de aprendizado que te acompanhará em todos os lugares. Ela pode responder suas perguntas, ajudá-lo com tarefas e se adaptar ao contexto de cada página.",
+        "speech": "LIA é sua companheira de aprendizado que te acompanhará em todos os lugares. Ela pode responder suas perguntas e se adaptar ao contexto de cada página.",
+        "actionLabel": "Ver Dashboard"
+      },
+      "3": {
+        "title": "Explore o conteúdo",
+        "description": "Acesse cursos, oficinas, comunidades e notícias sobre IA. Tudo projetado para que você aprenda de forma prática e eficaz.",
+        "speech": "Acesse cursos, oficinas, comunidades e notícias sobre inteligência artificial. Tudo projetado para que você aprenda de forma prática e eficaz.",
+        "actionLabel": "Ver Cursos"
+      },
+      "4": {
+        "title": "Diretório de Prompts",
+        "description": "Descubra e crie prompts de IA profissionais. Uma ferramenta poderosa para maximizar o potencial da inteligência artificial.",
+        "speech": "Descubra e crie prompts de IA profissionais. Uma ferramenta poderosa para maximizar o potencial da inteligência artificial.",
+        "actionLabel": "Ver Prompts"
+      },
+      "5": {
+        "title": "Vamos conversar um momento",
+        "description": "Antes de explorar a plataforma, gostaria de me fazer alguma pergunta? Posso falar com você sobre o que precisar saber.",
+        "speech": "Antes de explorar a plataforma, gostaria de me fazer alguma pergunta? Clique no microfone e fale comigo. Responderei por voz."
+      },
+      "6": {
+        "title": "Você está pronto!",
+        "description": "Agora você pode começar sua aventura. Lembre-se, LIA estará sempre disponível no canto inferior direito para ajudá-lo.",
+        "speech": "Agora você pode começar sua aventura. Lembre-se, LIA estará sempre disponível para ajudá-lo.",
+        "actionLabel": "Começar"
+      }
+    },
+    "buttons": {
+      "previous": "Anterior",
+      "next": "Próximo",
+      "continueWithoutAsking": "Continuar sem perguntar",
+      "continue": "Continuar",
+      "start": "Vamos lá!",
+      "skipIntro": "Pular introdução"
+    },
+    "voice": {
+      "processing": "Processando sua pergunta...",
+      "listening": "Ouvindo... Fale agora",
+      "clickToSpeak": "Clique no microfone para falar com LIA",
+      "errorProcessing": "Desculpe, tive um problema ao processar sua pergunta. Poderia tentar novamente?",
+      "browserNotSupported": "Seu navegador não suporta reconhecimento de voz. Por favor, use Chrome, Edge ou Safari.",
+      "micPermissionNeeded": "Preciso de permissão para usar o microfone.\n\nPor favor:\n1. Clique no ícone do microfone na barra de endereços\n2. Permita o acesso ao microfone\n3. Tente novamente",
+      "micError": "Erro ao acessar o microfone. Por favor, verifique se seu microfone está conectado e funcionando."
+    }
+  },
+  "menu": {
+    "stats": "Minhas estatísticas",
+    "learning": "Meu aprendizado",
+    "certificates": "Meus certificados",
+    "notifications": "Notificações",
+    "profile": "Editar perfil",
+    "account": "Configurações da conta",
+    "subscriptions": "Assinaturas",
+    "paymentMethods": "Métodos de pagamento",
+    "purchaseHistory": "Histórico de compras",
+    "theme": {
+      "system": "Modo do sistema",
+      "light": "Modo claro",
+      "dark": "Modo escuro"
+    },
+    "adminPanel": "Painel de administração",
+    "instructorPanel": "Painel do instrutor",
+    "logout": "Sair"
+  }
+}
+

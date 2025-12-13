@@ -3,10 +3,10 @@ import { createClient } from '../../../../lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params
+    const { slug } = await params
 
     if (!slug) {
       return NextResponse.json(
@@ -31,7 +31,7 @@ export async function GET(
           { status: 404 }
         )
       }
-      console.error('Error fetching news by slug:', error)
+      // console.error('Error fetching news by slug:', error)
       return NextResponse.json(
         { 
           error: 'Error al obtener noticia',
@@ -50,7 +50,7 @@ export async function GET(
 
     return NextResponse.json(newsWithMetrics)
   } catch (error) {
-    console.error('Error in news slug API:', error)
+    // console.error('Error in news slug API:', error)
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',
