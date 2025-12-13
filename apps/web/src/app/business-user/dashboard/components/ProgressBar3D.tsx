@@ -50,7 +50,7 @@ export function ProgressBar3D({
             duration: 1.2,
             ease: [0.16, 1, 0.3, 1]
           }}
-          className="absolute inset-0 h-full bg-gradient-to-r from-[#00D4B3] via-[#00D4B3] to-[#00b89a] rounded-full shadow-lg shadow-[#00D4B3]/30" /* Aqua para progreso */
+          className="absolute inset-0 h-full bg-gradient-to-r from-[#00D4B3] via-[#00D4B3] to-[#00b89a] rounded-full shadow-lg shadow-[#00D4B3]/30"
         >
           {/* Shine effect */}
           <motion.div
@@ -67,7 +67,7 @@ export function ProgressBar3D({
           />
           
           {/* Glow effect on edges */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00D4B3]/60 via-transparent to-[#00D4B3]/60 rounded-full blur-sm" /> {/* Aqua */
+          <div className="absolute inset-0 bg-gradient-to-r from-[#00D4B3]/60 via-transparent to-[#00D4B3]/60 rounded-full blur-sm" />
           
           {/* Animated particles */}
           {clampedProgress > 0 && clampedProgress < 100 && (
