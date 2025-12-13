@@ -2630,7 +2630,7 @@ Antes de cada respuesta, pregúntate:
           <p className="text-gray-700 dark:text-gray-300 mb-8">{t('errors.courseNotFoundMessage')}</p>
           <button 
             onClick={() => router.push('/my-courses')} 
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-colors"
           >
             {t('navigation.backToCourses')}
           </button>
@@ -2851,7 +2851,7 @@ Antes de cada respuesta, pregúntate:
         }
       }}
     >
-    <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 overflow-hidden">
+    <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 overflow-hidden">
       {/* Header superior con nueva estructura - Responsive */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -2889,7 +2889,7 @@ Antes de cada respuesta, pregúntate:
                   initial={{ width: 0 }}
                   animate={{ width: `${courseProgress}%` }}
                   transition={{ duration: 1 }}
-                  className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
+                  className="h-full bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] rounded-full shadow-lg"
                 />
               </div>
             </div>
@@ -2944,7 +2944,7 @@ Antes de cada respuesta, pregúntate:
                 {/* Header con línea separadora alineada con panel central */}
                 <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
                   <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-blue-400" />
+                    <BookOpen className="w-4 h-4 text-[#00D4B3]" />
                     {t('leftPanel.title')}
                   </h2>
                   <button
@@ -2966,7 +2966,7 @@ Antes de cada respuesta, pregúntate:
                   {/* Header de Contenido con botón de colapsar */}
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                      <Layers className="w-5 h-5 text-blue-400" />
+                      <Layers className="w-5 h-5 text-[#00D4B3]" />
                       {t('leftPanel.content')}
                     </h3>
                     <button
@@ -3038,7 +3038,7 @@ Antes de cada respuesta, pregúntate:
                     <div key={module.module_id} className="mb-6">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center flex-shrink-0">
                             <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
                           </div>
                           <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{module.module_title}</h3>
@@ -3071,7 +3071,7 @@ Antes de cada respuesta, pregúntate:
                               <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
                                 {completedLessons}/{totalLessons} {t('leftPanel.completed')}
                               </span>
-                              <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
+                              <span className="px-3 py-1 bg-[#00D4B3]/20 text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 font-medium">
                                 {completionPercentage}% {t('leftPanel.completedPercentage')}
                               </span>
                             </div>
@@ -3616,8 +3616,8 @@ Antes de cada respuesta, pregúntate:
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
-                  <BookOpen className="w-10 h-10 text-blue-400" />
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4 border border-[#0A2540]/30"> {/* Azul Profundo a Aqua */
+                  <BookOpen className="w-10 h-10 text-[#00D4B3]" /> {/* Aqua */
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Este curso aún no tiene contenido</h3>
                 <p className="text-gray-600 dark:text-slate-400">Los módulos y lecciones se agregarán pronto</p>
@@ -4337,14 +4337,14 @@ Antes de cada respuesta, pregúntate:
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-xl shadow-lg border border-purple-200/50 dark:border-purple-500/30 p-2"
+                          className="bg-gradient-to-br from-[#0A2540]/10 to-[#00D4B3]/10 dark:from-[#0A2540]/20 dark:to-[#00D4B3]/20 backdrop-blur-xl rounded-xl shadow-lg border border-[#0A2540]/30 dark:border-[#0A2540]/30 p-2"
                         >
                           <button
                             onClick={() => setIsPromptsCollapsed(false)}
                             className="w-full flex items-center justify-between hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg px-2 py-1.5 transition-colors group"
                           >
                             <div className="flex items-center gap-1.5">
-                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-md shrink-0">
+                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center shadow-md shrink-0">
                                 <HelpCircle className="w-3 h-3 text-white" />
                               </div>
                               <div className="min-w-0">
@@ -4352,7 +4352,7 @@ Antes de cada respuesta, pregúntate:
                                 <p className="text-[10px] text-gray-600 dark:text-slate-400 truncate">{currentActivityPrompts.length} {currentActivityPrompts.length === 1 ? 'disponible' : 'disponibles'}</p>
                               </div>
                             </div>
-                            <ChevronUp className="w-4 h-4 text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors shrink-0 ml-2" />
+                            <ChevronUp className="w-4 h-4 text-gray-700 dark:text-gray-300 group-hover:text-[#0A2540] dark:group-hover:text-[#0A2540] transition-colors shrink-0 ml-2" />
                           </button>
                         </motion.div>
                       ) : (

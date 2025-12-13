@@ -16,6 +16,7 @@ import { DevResetButton } from '../core/components/OnboardingAgent/DevResetButto
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+  weight: ['400', '500', '700'], // Regular, Medium, Bold
 });
 
 const montserrat = Montserrat({
@@ -200,7 +201,7 @@ export default function RootLayout({
         {/* 🎨 Splash Screens iOS */}
         <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
       </head>
-      <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`}>
+      <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`} suppressHydrationWarning>
         <GlobalRecorderProvider>
           <SWRProvider>
             <I18nProvider>

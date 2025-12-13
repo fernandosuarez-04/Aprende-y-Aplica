@@ -66,71 +66,104 @@
 }
 
 :root {
-  --color-bg-dark: #0f172a;
+  /* Nueva Paleta SOFIA - Colores Principales */
+  --color-primary: #0A2540; /* Azul Profundo - Tecnología + confianza */
+  --color-accent: #00D4B3; /* Aqua/Verde Azulado - Aprendizaje + IA viva */
+  --color-bg-dark: #0F1419; /* Fondo oscuro base - Gris azulado oscuro */
+  --color-bg-light: #FFFFFF; /* Fondo claro para cards */
   --color-contrast: #f8fafc;
-  --color-primary: #3b82f6;
-  --color-secondary: #8b5cf6;
-  --color-accent: #06b6d4;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  
+  /* Colores Secundarios */
+  --color-success: #10B981; /* Verde Suave - Logro y progreso */
+  --color-warning: #F59E0B; /* Amarillo Ámbar Suave - Alerta y foco */
   --color-error: #ef4444;
+  --color-secondary: #8b5cf6; /* Mantener para compatibilidad */
+  
+  /* Variables específicas para LIA y Progreso */
+  --color-lia: #00D4B3; /* Específico para elementos de LIA */
+  --color-progress: #00D4B3; /* Barras de progreso */
+  --color-card-bg: #FFFFFF; /* Fondo de cards principales */
+  
+  /* Escala de Grises Neutros - Nueva base */
   --color-gray-50: #f8fafc;
   --color-gray-100: #f1f5f9;
-  --color-gray-200: #e2e8f0;
-  --color-gray-300: #cbd5e1;
-  --color-gray-400: #94a3b8;
-  --color-gray-500: #64748b;
-  --color-gray-600: #475569;
-  --color-gray-700: #334155;
-  --color-gray-800: #1e293b;
-  --color-gray-900: #0f172a;
-  --color-gray-950: #020617;
+  --color-gray-200: #E9ECEF; /* Light gray - Estructura */
+  --color-gray-300: #dee2e6;
+  --color-gray-400: #ced4da;
+  --color-gray-500: #6C757D; /* Dark gray - Tipografía y bordes */
+  --color-gray-600: #495057;
+  --color-gray-700: #343a40;
+  --color-gray-800: #1E2329; /* Gris oscuro con tinte azulado */
+  --color-gray-900: #0F1419; /* Fondo oscuro principal */
+  --color-gray-950: #0A0D12; /* Fondo más oscuro */
 }
 
 /* Light mode variables */
 .light {
-  --color-bg-dark: #ffffff;
-  --color-contrast: #0f172a;
-  --color-primary: #3b82f6;
-  --color-secondary: #8b5cf6;
-  --color-accent: #06b6d4;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  /* Nueva Paleta SOFIA - Modo Claro */
+  --color-primary: #0A2540; /* Azul Profundo - Tecnología + confianza */
+  --color-accent: #00D4B3; /* Aqua/Verde Azulado - Aprendizaje + IA viva */
+  --color-bg-dark: #ffffff; /* Fondo claro en modo light */
+  --color-bg-light: #FFFFFF; /* Fondo de cards (blanco) */
+  --color-contrast: #0A2540; /* Texto oscuro sobre fondo claro */
+  
+  /* Colores Secundarios */
+  --color-success: #10B981; /* Verde Suave */
+  --color-warning: #F59E0B; /* Amarillo Ámbar Suave */
   --color-error: #ef4444;
+  --color-secondary: #8b5cf6;
+  
+  /* Variables específicas */
+  --color-lia: #00D4B3;
+  --color-progress: #00D4B3;
+  --color-card-bg: #FFFFFF;
+  
+  /* Escala de Grises Neutros */
   --color-gray-50: #f8fafc;
   --color-gray-100: #f1f5f9;
-  --color-gray-200: #e2e8f0;
-  --color-gray-300: #cbd5e1;
-  --color-gray-400: #94a3b8;
-  --color-gray-500: #64748b;
-  --color-gray-600: #475569;
-  --color-gray-700: #334155;
-  --color-gray-800: #1e293b;
-  --color-gray-900: #0f172a;
-  --color-gray-950: #020617;
+  --color-gray-200: #E9ECEF; /* Light gray - Estructura */
+  --color-gray-300: #dee2e6;
+  --color-gray-400: #ced4da;
+  --color-gray-500: #6C757D; /* Dark gray - Tipografía y bordes */
+  --color-gray-600: #495057;
+  --color-gray-700: #343a40;
+  --color-gray-800: #1E2329; /* Gris oscuro con tinte azulado */
+  --color-gray-900: #0F1419; /* Fondo oscuro principal */
+  --color-gray-950: #0A0D12; /* Fondo más oscuro */
 }
 
 /* Dark mode variables (explicit) */
 .dark {
-  --color-bg-dark: #0f172a;
-  --color-contrast: #f8fafc;
-  --color-primary: #3b82f6;
-  --color-secondary: #8b5cf6;
-  --color-accent: #06b6d4;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  /* Nueva Paleta SOFIA - Modo Oscuro */
+  --color-primary: #0A2540; /* Azul Profundo - Tecnología + confianza */
+  --color-accent: #00D4B3; /* Aqua/Verde Azulado - Aprendizaje + IA viva */
+  --color-bg-dark: #0F1419; /* Fondo oscuro base - Gris azulado oscuro */
+  --color-bg-light: #FFFFFF; /* Fondo de cards (blanco sobre oscuro) */
+  --color-contrast: #f8fafc; /* Texto claro sobre fondo oscuro */
+  
+  /* Colores Secundarios */
+  --color-success: #10B981; /* Verde Suave */
+  --color-warning: #F59E0B; /* Amarillo Ámbar Suave */
   --color-error: #ef4444;
+  --color-secondary: #8b5cf6;
+  
+  /* Variables específicas */
+  --color-lia: #00D4B3;
+  --color-progress: #00D4B3;
+  --color-card-bg: #FFFFFF;
+  
+  /* Escala de Grises Neutros */
   --color-gray-50: #f8fafc;
   --color-gray-100: #f1f5f9;
-  --color-gray-200: #e2e8f0;
-  --color-gray-300: #cbd5e1;
-  --color-gray-400: #94a3b8;
-  --color-gray-500: #64748b;
-  --color-gray-600: #475569;
-  --color-gray-700: #334155;
-  --color-gray-800: #1e293b;
-  --color-gray-900: #0f172a;
-  --color-gray-950: #020617;
+  --color-gray-200: #E9ECEF; /* Light gray - Estructura */
+  --color-gray-300: #dee2e6;
+  --color-gray-400: #ced4da;
+  --color-gray-500: #6C757D; /* Dark gray - Tipografía y bordes */
+  --color-gray-600: #495057;
+  --color-gray-700: #343a40;
+  --color-gray-800: #1E2329; /* Gris oscuro con tinte azulado */
+  --color-gray-900: #0F1419; /* Fondo oscuro principal */
+  --color-gray-950: #0A0D12; /* Fondo más oscuro */
 }
 
 * {
@@ -424,23 +457,23 @@ a {
   }
 }
 
-/* Gradient text */
+/* Gradient text - Nueva Paleta SOFIA */
 .gradient-text {
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
+  background: linear-gradient(135deg, #0A2540 0%, #00D4B3 50%, #00D4B3 100%); /* Azul Profundo a Aqua */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-purple {
-  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  background: linear-gradient(135deg, #0A2540 0%, #8b5cf6 100%); /* Azul Profundo a Purple (mantener para compatibilidad) */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-blue {
-  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, #0A2540 0%, #00D4B3 100%); /* Azul Profundo a Aqua */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -625,11 +658,11 @@ a {
 }
 
 .dark .auth-input:focus {
-  @apply bg-slate-700/50 border-blue-500/50 shadow-lg shadow-blue-500/10;
+  @apply bg-slate-700/50 border-[#00D4B3]/50 shadow-lg shadow-[#00D4B3]/10; /* Aqua para focus */
 }
 
 .light .auth-input:focus {
-  @apply bg-white border-blue-500/50 shadow-lg shadow-blue-500/10;
+  @apply bg-white border-[#0A2540]/50 shadow-lg shadow-[#0A2540]/10; /* Azul Profundo para focus */
 }
 
 .dark .auth-input::placeholder {
@@ -657,7 +690,7 @@ a {
 }
 
 .dark .auth-card-enhanced {
-  @apply bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl;
+  @apply bg-[#1E2329]/80 backdrop-blur-xl border border-[#0A2540]/30 shadow-2xl;
 }
 
 .light .auth-card-enhanced {
@@ -665,9 +698,9 @@ a {
 }
 
 .dark .bg-glass-enhanced {
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(30, 35, 41, 0.8); /* #1E2329 con opacidad */
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(71, 85, 105, 0.3);
+  border: 1px solid rgba(10, 37, 64, 0.3); /* #0A2540 con opacidad */
 }
 
 .light .bg-glass-enhanced {
@@ -1030,11 +1063,11 @@ a {
 
 /* Attachment type styles */
 .attachment-link {
-  @apply bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30;
+  @apply bg-gradient-to-r from-[#0A2540]/30 to-[#00D4B3]/30 border border-[#0A2540]/30; /* Azul Profundo a Aqua */
 }
 
 .attachment-link:hover {
-  @apply from-blue-900/40 to-purple-900/40 border-blue-500/50;
+  @apply from-[#0A2540]/40 to-[#00D4B3]/40 border-[#0A2540]/50;
 }
 
 .attachment-document {
@@ -1046,7 +1079,7 @@ a {
 }
 
 .attachment-link-icon {
-  @apply bg-blue-600/20 text-blue-400 border border-blue-500/30;
+  @apply bg-[#0A2540]/20 text-[#00D4B3] border border-[#0A2540]/30; /* Azul Profundo con texto Aqua */
 }
 
 .attachment-document-icon {
@@ -1058,7 +1091,7 @@ a {
 }
 
 .community-post-avatar {
-  @apply w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden;
+  @apply w-10 h-10 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center overflow-hidden; /* Azul Profundo a Aqua */
 }
 
 .community-post-content {
@@ -1190,9 +1223,9 @@ a {
   border: 1px solid rgba(71, 85, 105, 0.5);
 }
 
-/* Button enhancements */
+/* Button enhancements - Nueva Paleta SOFIA */
 .btn-primary {
-  @apply bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/25 rounded-xl py-3 px-6 font-medium transition-all duration-300;
+  @apply bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg shadow-[#0A2540]/25 rounded-xl py-3 px-6 font-medium transition-all duration-300; /* Azul Profundo */
 }
 
 .btn-secondary {
@@ -1203,23 +1236,34 @@ a {
   @apply bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/25 rounded-xl py-3 px-6 font-medium transition-all duration-300;
 }
 
-/* Text gradients */
+.btn-accent {
+  @apply bg-[#00D4B3] hover:bg-[#00b89a] text-white shadow-lg shadow-[#00D4B3]/25 rounded-xl py-3 px-6 font-medium transition-all duration-300; /* Aqua */
+}
+
+/* Text gradients - Nueva Paleta SOFIA */
 .text-gradient-blue {
-  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, #0A2540 0%, #00D4B3 100%); /* Azul Profundo a Aqua */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .text-gradient-purple {
-  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  background: linear-gradient(135deg, #0A2540 0%, #8b5cf6 100%); /* Azul Profundo a Purple (compatibilidad) */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .text-gradient-green {
-  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, #10B981 0%, #00D4B3 100%); /* Verde Suave a Aqua */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-aqua {
+  background: linear-gradient(135deg, #00D4B3 0%, #00b89a 100%); /* Aqua gradient */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

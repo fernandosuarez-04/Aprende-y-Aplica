@@ -1,7 +1,22 @@
 import { NotificationService, CreateNotificationParams } from './notification.service'
 import { getNotificationPriority } from '../utils/notification-categories'
-import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+
+// Import dinámico de createClient para evitar problemas en build
+// Solo se importa cuando se necesita usar (server-side)
+// Usamos una técnica de importación que webpack no puede analizar estáticamente
+async function getServerClient() {
+  // Verificar que estamos en el servidor
+  if (typeof window !== 'undefined') {
+    throw new Error('getServerClient can only be used on the server')
+  }
+  
+  // Usar import dinámico con una ruta construida en tiempo de ejecución
+  // Esto evita que webpack analice el módulo durante el build
+  const serverModulePath = ['@', 'lib', 'supabase', 'server'].join('/')
+  const module = await import(serverModulePath)
+  return await module.createClient()
+}
 
 /**
  * Servicio para crear notificaciones automáticas
@@ -276,7 +291,7 @@ export class AutoNotificationsService {
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
       
       // Obtener todos los miembros de la comunidad excepto el autor
       const { data: members, error } = await supabase
@@ -346,7 +361,7 @@ export class AutoNotificationsService {
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
       
       // Obtener todos los usuarios activos
       const { data: users, error } = await supabase
@@ -436,7 +451,7 @@ export class AutoNotificationsService {
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
       
       // Obtener todos los usuarios activos
       const { data: users, error } = await supabase
@@ -498,7 +513,7 @@ export class AutoNotificationsService {
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
       
       // Obtener usuarios con intereses relacionados (simplificado: todos los usuarios activos)
       // En producción, aquí se podría filtrar por intereses, categorías, etc.
@@ -572,7 +587,7 @@ export class AutoNotificationsService {
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
       
       // Obtener usuarios interesados en prompts de IA (simplificado: usuarios activos)
       // En producción, aquí se podría filtrar por intereses en IA
@@ -655,7 +670,7 @@ export class AutoNotificationsService {
         return
       }
 
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Obtener información del autor del comentario
       const { data: commentAuthor } = await supabase
@@ -727,7 +742,7 @@ export class AutoNotificationsService {
         return
       }
 
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Obtener información del autor de la reacción
       const { data: reactionAuthor } = await supabase
@@ -803,7 +818,7 @@ export class AutoNotificationsService {
         return
       }
 
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Obtener información del autor del like
       const { data: likeAuthor } = await supabase
@@ -866,7 +881,7 @@ export class AutoNotificationsService {
         return
       }
 
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Obtener información del autor del comentario
       const { data: commentAuthor } = await supabase
@@ -1018,7 +1033,7 @@ export class AutoNotificationsService {
         return
       }
 
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Obtener información del autor de la respuesta
       const { data: answerAuthor } = await supabase
@@ -1079,7 +1094,7 @@ export class AutoNotificationsService {
         return
       }
 
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Obtener información del usuario que marcó como favorito
       const { data: favoritedBy } = await supabase
@@ -1162,7 +1177,7 @@ export class AutoNotificationsService {
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Obtener información del nuevo miembro
       const { data: newMember } = await supabase

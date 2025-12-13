@@ -163,7 +163,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Configuración de Webpack para resolver alias en el monorepo
+    // Configuración de Webpack para resolver alias en el monorepo
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -271,6 +271,30 @@ const nextConfig: NextConfig = {
       } else if (Array.isArray(config.externals)) {
         config.externals.push('rrweb', 'rrweb-player', '@rrweb/types');
       }
+    }
+
+    // Configuración para evitar que webpack analice módulos server-only durante el build del cliente
+    // Esto permite que los imports dinámicos funcionen correctamente
+    if (!isServer) {
+      const webpack = require('webpack');
+      // Ignorar módulos server-only durante el análisis estático del cliente
+      config.plugins = config.plugins || [];
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          checkResource(resource: string, context: string) {
+            // Ignorar imports de server.ts desde servicios que usan imports dinámicos
+            if (resource.includes('lib/supabase/server')) {
+              // Ignorar si viene de servicios que usan imports dinámicos
+              if (context.includes('features/notifications/services/auto-notifications.service') ||
+                  context.includes('features/notifications/services/notification.service') ||
+                  context.includes('features/auth/services/questionnaire-validation.service')) {
+                return true;
+              }
+            }
+            return false;
+          },
+        })
+      );
     }
 
     return config;

@@ -1,5 +1,19 @@
-import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
+
+// Import dinámico de createClient para evitar problemas en build
+// Solo se importa cuando se necesita usar (server-side)
+async function getServerClient() {
+  // Verificar que estamos en el servidor
+  if (typeof window !== 'undefined') {
+    throw new Error('getServerClient can only be used on the server')
+  }
+  
+  // Usar import dinámico con una ruta construida en tiempo de ejecución
+  // Esto evita que webpack analice el módulo durante el build
+  const serverModulePath = ['@', 'lib', 'supabase', 'server'].join('/')
+  const module = await import(serverModulePath)
+  return await module.createClient()
+}
 
 /**
  * Servicio para validar el estado del cuestionario de usuarios
@@ -10,7 +24,7 @@ export class QuestionnaireValidationService {
    */
   static async isGoogleOAuthUser(userId: string): Promise<boolean> {
     try {
-      const supabase = await createClient();
+      const supabase = await getServerClient();
       
       const { data, error } = await supabase
         .from('oauth_accounts')
@@ -39,7 +53,7 @@ export class QuestionnaireValidationService {
    */
   static async isQuestionnaireCompleted(userId: string): Promise<boolean> {
     try {
-      const supabase = await createClient();
+      const supabase = await getServerClient();
 
       // Verificar si tiene perfil
       const { data: profile, error: profileError } = await supabase
@@ -139,7 +153,7 @@ export class QuestionnaireValidationService {
         };
       }
 
-      const supabase = await createClient();
+      const supabase = await getServerClient();
 
       // Verificar perfil
       const { data: profile } = await supabase

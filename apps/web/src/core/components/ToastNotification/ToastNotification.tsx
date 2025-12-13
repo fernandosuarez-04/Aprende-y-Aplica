@@ -44,10 +44,10 @@ export function ToastNotification({
         };
       case 'info':
         return {
-          bg: 'bg-blue-50 dark:bg-blue-900/20',
-          border: 'border-blue-200 dark:border-blue-800',
-          text: 'text-blue-700 dark:text-blue-300',
-          icon: <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />,
+          bg: 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20', /* Aqua */
+          border: 'border-[#00D4B3]/30 dark:border-[#00D4B3]/30',
+          text: 'text-[#00D4B3] dark:text-[#00D4B3]',
+          icon: <AlertCircle className="w-5 h-5 text-[#00D4B3] dark:text-[#00D4B3]" />, /* Aqua */
         };
       default: // error
         return {
@@ -103,7 +103,7 @@ export function ToastNotification({
               initial={{ width: '100%' }}
               animate={{ width: '0%' }}
               transition={{ duration: duration / 1000, ease: 'linear' }}
-              className={`absolute bottom-0 left-0 right-0 h-1 ${type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'} rounded-b-lg`}
+              className={`absolute bottom-0 left-0 right-0 h-1 ${type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-[#00D4B3]'} rounded-b-lg`} /* Aqua para info */
             />
           )}
         </motion.div>

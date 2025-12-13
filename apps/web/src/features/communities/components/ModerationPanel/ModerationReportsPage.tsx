@@ -160,9 +160,9 @@ export function ModerationReportsPage({ communitySlug }: ModerationReportsPagePr
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-800">
+    <div className="min-h-screen bg-white dark:bg-[#0F1419]">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-[#1E2329] border-b border-gray-200 dark:border-[#0A2540]/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-6">
             <div className="flex items-center space-x-4">
@@ -192,7 +192,7 @@ export function ModerationReportsPage({ communitySlug }: ModerationReportsPagePr
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-gray-200 dark:border-[#0A2540]/30 p-6 mb-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Reportes de Posts

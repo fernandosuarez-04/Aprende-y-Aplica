@@ -54,6 +54,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     
     // Validar parámetros requeridos
     if (!code || !state) {
+      // Verificar si viene de un popup (aunque falten parámetros)
+      let isPopup = false;
+      try {
+        if (state) {
+          const stateData = JSON.parse(state);
+          isPopup = stateData.usePopup === true;
+        }
+      } catch {
+        // Si no se puede parsear, asumimos que no es popup
+      }
+      
+      if (isPopup) {
+        return NextResponse.redirect(
+          new URL(`/study-planner/calendar/callback?error=missing_params&error_description=${encodeURIComponent('Faltan parámetros requeridos')}&state=${encodeURIComponent(state)}`, request.url)
+        );
+      }
+      
       return NextResponse.redirect(
         new URL('/study-planner/create?calendar_error=missing_params', request.url)
       );
@@ -70,10 +87,31 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     
     // Parsear state para obtener provider (el userId ahora lo obtenemos de la sesión)
     let stateData: { provider?: 'google' | 'microsoft'; returnUrl?: string; usePopup?: boolean };
+    let isPopup = false;
     try {
-      stateData = JSON.parse(state);
+      // Intentar parsear el state (puede estar codificado)
+      try {
+        stateData = JSON.parse(state);
+      } catch {
+        // Si falla, intentar decodificar primero
+        try {
+          stateData = JSON.parse(decodeURIComponent(state));
+        } catch {
+          // Si aún falla, intentar decodificar dos veces
+          stateData = JSON.parse(decodeURIComponent(decodeURIComponent(state)));
+        }
+      }
+      isPopup = stateData.usePopup === true;
     } catch (parseError) {
-      console.error('Error parseando state:', parseError);
+      console.error('Error parseando state:', parseError, 'State recibido:', state);
+      
+      // Si es popup, redirigir a la página de callback del cliente
+      if (state && state.includes('usePopup')) {
+        return NextResponse.redirect(
+          new URL(`/study-planner/calendar/callback?error=invalid_state&error_description=${encodeURIComponent('Error al procesar los parámetros de autorización')}&state=${encodeURIComponent(state)}`, request.url)
+        );
+      }
+      
       return NextResponse.redirect(
         new URL('/study-planner/create?calendar_error=invalid_state', request.url)
       );
@@ -87,7 +125,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
     
     // Completar conexión del calendario
-    const isPopup = stateData.usePopup === true;
+    // isPopup ya está definido arriba
     let integration;
     
     try {
