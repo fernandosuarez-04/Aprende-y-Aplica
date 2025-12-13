@@ -121,6 +121,16 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     // Si se cambia A curso/contexto CON una pregunta, debe responder
     let shouldWaitForNextMessage = false;
 
+    // ✅ Si es un mensaje del sistema con contexto, forzar el modo correcto
+    // Esto permite que los mensajes automáticos de ayuda proactiva usen el contexto apropiado
+    if (isSystemMessage) {
+      if (workshopContext && workshopContext.contextType === 'workshop') {
+        modeForThisMessage = 'course'; // Talleres usan el mismo modo que cursos
+      } else if (courseContext) {
+        modeForThisMessage = 'course';
+      }
+    }
+
     // ✨ DETECCIÓN BIDIRECCIONAL DE INTENCIONES (solo si no es mensaje del sistema)
     if (!isSystemMessage) {
       try {

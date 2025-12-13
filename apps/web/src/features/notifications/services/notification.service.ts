@@ -1,6 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { SessionService } from '@/features/auth/services/session.service'
+
+// Import dinámico de createClient para evitar problemas en build
+// Solo se importa cuando se necesita usar (server-side)
+async function getServerClient() {
+  // Verificar que estamos en el servidor
+  if (typeof window !== 'undefined') {
+    throw new Error('getServerClient can only be used on the server')
+  }
+  
+  // Usar import dinámico con una ruta construida en tiempo de ejecución
+  // Esto evita que webpack analice el módulo durante el build
+  const serverModulePath = ['@', 'lib', 'supabase', 'server'].join('/')
+  const module = await import(serverModulePath)
+  return await module.createClient()
+}
 
 /**
  * Interfaz para crear una notificación
@@ -76,7 +90,7 @@ export class NotificationService {
     minutesWindow: number
   ): Promise<boolean> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
       const now = new Date()
       const windowStart = new Date(now.getTime() - minutesWindow * 60 * 1000)
 
@@ -109,7 +123,7 @@ export class NotificationService {
     params: CreateNotificationParams
   ): Promise<Notification> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
       
       const {
         userId,
@@ -197,7 +211,7 @@ export class NotificationService {
     filters?: NotificationFilters
   ): Promise<{ notifications: Notification[]; total: number }> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       const {
         status,
@@ -276,7 +290,7 @@ export class NotificationService {
     high: number
   }> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // ✅ OPTIMIZACIÓN: Usar función RPC que hace COUNT directo
       // Requiere: database-fixes/optimize_notifications.sql ejecutado
@@ -316,7 +330,7 @@ export class NotificationService {
     critical: number
     high: number
   }> {
-    const supabase = await createClient()
+    const supabase = await getServerClient()
     const now = new Date().toISOString()
 
     // ✅ OPTIMIZACIÓN: Usar COUNT agregado en SQL
@@ -362,7 +376,7 @@ export class NotificationService {
     userId: string
   ): Promise<Notification> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Verificar que la notificación pertenece al usuario
       const { data: existing, error: checkError } = await supabase
@@ -423,7 +437,7 @@ export class NotificationService {
     userId: string
   ): Promise<{ updated: number }> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       if (!notificationIds || notificationIds.length === 0) {
         return { updated: 0 }
@@ -468,7 +482,7 @@ export class NotificationService {
     userId: string
   ): Promise<Notification> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Verificar que la notificación pertenece al usuario
       const { data: existing, error: checkError } = await supabase
@@ -518,7 +532,7 @@ export class NotificationService {
     userId: string
   ): Promise<void> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Verificar que la notificación pertenece al usuario
       const { data: existing, error: checkError } = await supabase
@@ -562,7 +576,7 @@ export class NotificationService {
    */
   static async markAllAsRead(userId: string): Promise<{ updated: number }> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // ✅ OPTIMIZACIÓN: Usar función RPC para batch update
       // Requiere: database-fixes/optimize_notifications.sql ejecutado
@@ -601,7 +615,7 @@ export class NotificationService {
    * ✅ OPTIMIZACIÓN: Usa COUNT para obtener el número de actualizadas sin traer datos
    */
   private static async markAllAsReadFallback(userId: string): Promise<{ updated: number }> {
-    const supabase = await createClient()
+    const supabase = await getServerClient()
     const now = new Date().toISOString()
 
     // Primero contar cuántas notificaciones se van a actualizar
@@ -658,7 +672,7 @@ export class NotificationService {
     limit: number = 10
   ): Promise<any[]> {
     try {
-      const supabase = await createClient()
+      const supabase = await getServerClient()
 
       // Obtener las notificaciones más recientes del sistema
       const { data: notifications, error } = await supabase

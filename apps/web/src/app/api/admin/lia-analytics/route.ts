@@ -349,15 +349,30 @@ export async function GET(request: NextRequest) {
     }));
     
     // ===== MÉTRICAS DE HOY Y COMPARACIÓN =====
-    // Usar fecha local (no UTC) para calcular "hoy" correctamente
+    // IMPORTANTE: Usar UTC para coincidir con las fechas en la BD que están en UTC
     const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0); // Inicio del día en hora local
-    const todayEnd = new Date(now);
-    todayEnd.setHours(23, 59, 59, 999); // Final del día en hora local
+    const todayStart = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
+    const todayEnd = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      23, 59, 59, 999
+    ));
+    
+    console.log('[LIA Analytics] Fechas de hoy (UTC):', {
+      now: now.toISOString(),
+      todayStart: todayStart.toISOString(),
+      todayEnd: todayEnd.toISOString(),
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
     
     // Usar fecha actual para incluir datos hasta ahora
-    const nowForToday = new Date().toISOString();
+    const nowForToday = now.toISOString();
     
     const { data: todayMessages } = await supabase
       .from('lia_messages')
@@ -368,12 +383,36 @@ export async function GET(request: NextRequest) {
     const todayCost = todayMessages?.reduce((sum, m) => sum + (m.cost_usd || 0), 0) || 0;
     const todayTokens = todayMessages?.reduce((sum, m) => sum + (m.tokens_used || 0), 0) || 0;
     
-    // Ayer para comparación (usando hora local)
+    // Ayer para comparación (usando UTC) - declarar ANTES de usarlo
     const yesterdayStart = new Date(todayStart);
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    yesterdayStart.setUTCDate(yesterdayStart.getUTCDate() - 1);
     const yesterdayEnd = new Date(todayStart);
-    yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
+    yesterdayEnd.setUTCMilliseconds(yesterdayEnd.getUTCMilliseconds() - 1);
     
+    // ===== USUARIOS ACTIVOS HOY =====
+    const { data: todayConversations } = await supabase
+      .from('lia_conversations')
+      .select('user_id')
+      .gte('started_at', todayStart.toISOString())
+      .lte('started_at', nowForToday);
+    
+    const uniqueUsersToday = new Set(todayConversations?.map(c => c.user_id).filter(Boolean));
+    const activeUsersToday = uniqueUsersToday.size;
+    
+    // Usuarios activos ayer para comparación
+    const { data: yesterdayConversations } = await supabase
+      .from('lia_conversations')
+      .select('user_id')
+      .gte('started_at', yesterdayStart.toISOString())
+      .lte('started_at', yesterdayEnd.toISOString());
+    
+    const uniqueUsersYesterday = new Set(yesterdayConversations?.map(c => c.user_id).filter(Boolean));
+    const activeUsersYesterday = uniqueUsersYesterday.size;
+    const usersChange = activeUsersYesterday > 0 
+      ? Number((((activeUsersToday - activeUsersYesterday) / activeUsersYesterday) * 100).toFixed(1))
+      : 0;
+    
+    // ===== MENSAJES DE AYER PARA COMPARACIÓN DE COSTOS =====
     const { data: yesterdayMessages } = await supabase
       .from('lia_messages')
       .select('cost_usd, tokens_used')
@@ -391,6 +430,17 @@ export async function GET(request: NextRequest) {
     const daysInPeriod = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const avgDailyCost = daysInPeriod > 0 ? totalCostUsd / daysInPeriod : 0;
     const projectedMonthlyCost = avgDailyCost * 30;
+    
+    // ===== MÉTRICAS ADICIONALES =====
+    // Promedio de mensajes por conversación
+    const avgMessagesPerConversation = (totalConversations && totalConversations > 0)
+      ? Number((totalMessages / totalConversations).toFixed(1))
+      : 0;
+    
+    // Costo promedio por mensaje
+    const avgCostPerMessage = totalMessages > 0
+      ? Number((totalCostUsd / totalMessages).toFixed(6))
+      : 0;
     
     return NextResponse.json({
       success: true,
@@ -412,7 +462,13 @@ export async function GET(request: NextRequest) {
           cost: Number(todayCost.toFixed(6)),
           tokens: todayTokens,
           messages: todayMessages?.length || 0,
-          costChange
+          costChange,
+          activeUsers: activeUsersToday,
+          usersChange
+        },
+        efficiency: {
+          avgMessagesPerConversation,
+          avgCostPerMessage
         },
         projections: {
           dailyAvg: Number(avgDailyCost.toFixed(6)),

@@ -68,9 +68,11 @@ import { ContextualVoiceGuide, ReplayTourButton } from '../../../../core/compone
 import { useCourseLearnTourSteps } from '../../../../features/courses/config/course-learn-tour';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
+import { useSwipe } from '../../../../hooks/useSwipe';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 import { useLanguage } from '../../../../core/providers/I18nProvider';
+import { LanguageSelector } from '../../../../core/components/LanguageSelector';
 // ✨ Nuevos imports para integración de modos
 import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
 import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/NanoBananaPreviewPanel';
@@ -661,6 +663,26 @@ export default function CourseLearnPage() {
       }
     }
   }, [isMobile]); // Solo cuando cambia isMobile
+
+  // Hook para detectar gestos de swipe en móvil
+  // Solo funciona cuando ambos paneles están cerrados para evitar conflictos
+  const swipeRef = useSwipe({
+    onSwipeRight: () => {
+      // Swipe de izquierda a derecha → abrir panel izquierdo
+      if (isMobile && !isLeftPanelOpen && !isRightPanelOpen) {
+        setIsLeftPanelOpen(true);
+      }
+    },
+    onSwipeLeft: () => {
+      // Swipe de derecha a izquierda → abrir panel derecho
+      if (isMobile && !isLeftPanelOpen && !isRightPanelOpen) {
+        setIsRightPanelOpen(true);
+      }
+    },
+    threshold: 50, // Mínimo 50px de desplazamiento
+    velocity: 0.3, // Mínimo 0.3px/ms de velocidad
+    enabled: isMobile && !isLeftPanelOpen && !isRightPanelOpen // Solo habilitado en móvil cuando ambos paneles están cerrados
+  });
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
     title: string;
@@ -2608,7 +2630,7 @@ Antes de cada respuesta, pregúntate:
           <p className="text-gray-700 dark:text-gray-300 mb-8">{t('errors.courseNotFoundMessage')}</p>
           <button 
             onClick={() => router.push('/my-courses')} 
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-colors"
           >
             {t('navigation.backToCourses')}
           </button>
@@ -2686,6 +2708,26 @@ Antes de cada respuesta, pregúntate:
         const requiredActivities = currentActivities.filter(a => a.is_required);
         const pendingRequired = requiredActivities.filter(a => !a.is_completed);
         const completedActivities = currentActivities.filter(a => a.is_completed);
+
+        // 🎯 ANÁLISIS INTELIGENTE: Detectar la actividad actual en la que está trabajando
+        // Basado en el tab activo y el scroll/interacciones recientes
+        let currentActivityFocus = null;
+        if (activeTab === 'activities' && pendingRequired.length > 0) {
+          // Si está en la pestaña de actividades y hay pendientes, asumir que está en la primera pendiente
+          currentActivityFocus = pendingRequired[0];
+        } else if (pendingRequired.length > 0) {
+          // Si no está en actividades pero hay pendientes, mencionar que tiene actividades sin completar
+          currentActivityFocus = null;
+        }
+
+        // 🎯 Detectar patrones temporales y de progreso
+        const totalLessonsInCourse = modules.reduce((total, module) => total + module.lessons.length, 0);
+        const currentLessonIndex = getAllLessonsOrdered().findIndex(
+          item => item.lesson.lesson_id === currentLesson?.lesson_id
+        );
+        const progressPercentage = totalLessonsInCourse > 0
+          ? Math.round(((currentLessonIndex + 1) / totalLessonsInCourse) * 100)
+          : 0;
         
         // Construir contexto enriquecido de la lección con información de la dificultad detectada
         // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
@@ -2722,10 +2764,27 @@ Antes de cada respuesta, pregúntate:
               type: a.activity_type,
               isRequired: a.is_required,
               isCompleted: a.is_completed
-            }))
+            })),
+            // 🎯 NUEVO: Actividad actual en foco
+            currentActivityFocus: currentActivityFocus ? {
+              title: currentActivityFocus.activity_title,
+              type: currentActivityFocus.activity_type,
+              isRequired: currentActivityFocus.is_required,
+              description: currentActivityFocus.activity_description || 'Sin descripción'
+            } : null
           },
           // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
           userBehaviorContext: behaviorAnalysis,
+          // 🎯 NUEVO: Contexto de progreso del usuario
+          learningProgressContext: {
+            currentLessonNumber: currentLessonIndex + 1,
+            totalLessons: totalLessonsInCourse,
+            progressPercentage: progressPercentage,
+            currentTab: activeTab, // video, transcript, summary, activities
+            timeInCurrentLesson: currentLesson?.duration_seconds
+              ? `${Math.round(currentLesson.duration_seconds / 60)} minutos`
+              : 'Desconocido'
+          },
           // Agregar información de la dificultad detectada al contexto
           difficultyDetected: {
             patterns: analysis.patterns.map(p => ({
@@ -2751,26 +2810,48 @@ Antes de cada respuesta, pregúntate:
               })()
             })),
             overallScore: analysis.overallScore,
-            shouldIntervene: analysis.shouldIntervene
+            shouldIntervene: analysis.shouldIntervene,
+            // 🎯 NUEVO: Sugerencia de tipo de ayuda basada en patrones
+            suggestedHelpType: (() => {
+              const primaryPattern = analysis.patterns[0];
+              if (!primaryPattern) return 'general';
+
+              switch (primaryPattern.type) {
+                case 'inactivity':
+                  return activeTab === 'activities' ? 'activity_guidance' : 'content_explanation';
+                case 'excessive_scroll':
+                  return 'content_navigation';
+                case 'failed_attempts':
+                  return 'activity_hints';
+                case 'frequent_deletion':
+                  return 'activity_structure';
+                case 'repetitive_cycles':
+                  return 'concept_clarification';
+                case 'erroneous_clicks':
+                  return 'interface_guidance';
+                default:
+                  return 'general';
+              }
+            })()
           }
         } : getLessonContext();
         
         try {
-          // Enviar mensaje simple visible + contexto enriquecido en segundo plano
-          // El mensaje se mostrará como usuario normal: "Necesito ayuda con esta lección"
-          // El contexto enriquecido se procesará en el API pero NO se mostrará
+          // Enviar mensaje con contexto enriquecido en segundo plano
+          // ✅ isSystemMessage=true: El mensaje NO se mostrará en el chat como mensaje del usuario
+          // pero SÍ se enviará al API para que LIA responda con ayuda contextual
           // ✅ Si es un taller, enviar como workshopContext
           if (workshopMetadata && enrichedLessonContext?.contextType === 'workshop') {
-            await sendLiaMessage(visibleUserMessage, undefined, enrichedLessonContext as CourseLessonContext, false);
+            await sendLiaMessage(visibleUserMessage, undefined, enrichedLessonContext as CourseLessonContext, true);
           } else {
-            await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, false);
+            await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, undefined, true);
           }
         } catch (error) {
           console.error('❌ Error enviando mensaje proactivo a LIA:', error);
         }
       }}
     >
-    <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 overflow-hidden">
+    <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 overflow-hidden">
       {/* Header superior con nueva estructura - Responsive */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -2808,7 +2889,7 @@ Antes de cada respuesta, pregúntate:
                   initial={{ width: 0 }}
                   animate={{ width: `${courseProgress}%` }}
                   transition={{ duration: 1 }}
-                  className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-full shadow-lg"
+                  className="h-full bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] rounded-full shadow-lg"
                 />
               </div>
             </div>
@@ -2817,11 +2898,19 @@ Antes de cada respuesta, pregúntate:
               {courseProgress}%
             </span>
           </div>
+
+          {/* Sección derecha: Selector de idioma */}
+          <div className="flex items-center gap-2 shrink-0">
+            <LanguageSelector className="z-[1000]" />
+          </div>
         </div>
       </motion.div>
 
       {/* Contenido principal - 3 paneles - Responsive */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10">
+      <div 
+        ref={swipeRef}
+        className="flex-1 flex flex-col md:flex-row overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10"
+      >
         {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
         <AnimatePresence>
           {isLeftPanelOpen && (
@@ -2845,7 +2934,7 @@ Antes de cada respuesta, pregúntate:
                 className={`
                   ${isMobile 
                     ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none' 
-                    : 'relative'
+                    : 'relative h-full'
                   }
                   bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col overflow-hidden shadow-xl 
                   ${isMobile ? 'my-0 ml-0 md:my-2 md:ml-2' : 'my-2 ml-2'}
@@ -2855,7 +2944,7 @@ Antes de cada respuesta, pregúntate:
                 {/* Header con línea separadora alineada con panel central */}
                 <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
                   <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-blue-400" />
+                    <BookOpen className="w-4 h-4 text-[#00D4B3]" />
                     {t('leftPanel.title')}
                   </h2>
                   <button
@@ -2877,7 +2966,7 @@ Antes de cada respuesta, pregúntate:
                   {/* Header de Contenido con botón de colapsar */}
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                      <Layers className="w-5 h-5 text-blue-400" />
+                      <Layers className="w-5 h-5 text-[#00D4B3]" />
                       {t('leftPanel.content')}
                     </h3>
                     <button
@@ -2949,7 +3038,7 @@ Antes de cada respuesta, pregúntate:
                     <div key={module.module_id} className="mb-6">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center flex-shrink-0">
                             <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
                           </div>
                           <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{module.module_title}</h3>
@@ -2982,7 +3071,7 @@ Antes de cada respuesta, pregúntate:
                               <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
                                 {completedLessons}/{totalLessons} {t('leftPanel.completed')}
                               </span>
-                              <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
+                              <span className="px-3 py-1 bg-[#00D4B3]/20 text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 font-medium">
                                 {completionPercentage}% {t('leftPanel.completedPercentage')}
                               </span>
                             </div>
@@ -3527,8 +3616,8 @@ Antes de cada respuesta, pregúntate:
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
-                  <BookOpen className="w-10 h-10 text-blue-400" />
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4 border border-[#0A2540]/30"> {/* Azul Profundo a Aqua */
+                  <BookOpen className="w-10 h-10 text-[#00D4B3]" /> {/* Aqua */
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Este curso aún no tiene contenido</h3>
                 <p className="text-gray-600 dark:text-slate-400">Los módulos y lecciones se agregarán pronto</p>
@@ -3670,7 +3759,7 @@ Antes de cada respuesta, pregúntate:
                 className={`
                   ${isMobile 
                     ? 'fixed top-0 right-0 bottom-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
-                    : 'relative'
+                    : 'relative h-full'
                   }
                   bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
                   ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
@@ -3685,10 +3774,8 @@ Antes de cada respuesta, pregúntate:
                         }),
                       }
                     : {
-                        ...(calculateLiaMaxHeight && {
-                          height: calculateLiaMaxHeight,
-                          maxHeight: calculateLiaMaxHeight,
-                        }),
+                        // En desktop, no usar altura calculada, dejar que h-full de la clase maneje la altura
+                        // para que coincida con los otros paneles
                       }
                 }
               >
@@ -4250,14 +4337,14 @@ Antes de cada respuesta, pregúntate:
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-xl shadow-lg border border-purple-200/50 dark:border-purple-500/30 p-2"
+                          className="bg-gradient-to-br from-[#0A2540]/10 to-[#00D4B3]/10 dark:from-[#0A2540]/20 dark:to-[#00D4B3]/20 backdrop-blur-xl rounded-xl shadow-lg border border-[#0A2540]/30 dark:border-[#0A2540]/30 p-2"
                         >
                           <button
                             onClick={() => setIsPromptsCollapsed(false)}
                             className="w-full flex items-center justify-between hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg px-2 py-1.5 transition-colors group"
                           >
                             <div className="flex items-center gap-1.5">
-                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-md shrink-0">
+                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center shadow-md shrink-0">
                                 <HelpCircle className="w-3 h-3 text-white" />
                               </div>
                               <div className="min-w-0">
@@ -4265,7 +4352,7 @@ Antes de cada respuesta, pregúntate:
                                 <p className="text-[10px] text-gray-600 dark:text-slate-400 truncate">{currentActivityPrompts.length} {currentActivityPrompts.length === 1 ? 'disponible' : 'disponibles'}</p>
                               </div>
                             </div>
-                            <ChevronUp className="w-4 h-4 text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors shrink-0 ml-2" />
+                            <ChevronUp className="w-4 h-4 text-gray-700 dark:text-gray-300 group-hover:text-[#0A2540] dark:group-hover:text-[#0A2540] transition-colors shrink-0 ml-2" />
                           </button>
                         </motion.div>
                       ) : (

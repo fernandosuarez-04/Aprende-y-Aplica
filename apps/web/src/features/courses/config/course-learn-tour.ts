@@ -46,12 +46,6 @@ export function useCourseLearnTourSteps(): VoiceGuideStep[] {
     },
     {
       id: 7,
-      title: t('tour.steps.questions.title'),
-      description: t('tour.steps.questions.description'),
-      speech: t('tour.steps.questions.speech')
-    },
-    {
-      id: 8,
       title: t('tour.steps.ready.title'),
       description: t('tour.steps.ready.description'),
       speech: t('tour.steps.ready.speech')
@@ -99,12 +93,6 @@ export const COURSE_LEARN_TOUR_STEPS: VoiceGuideStep[] = [
   },
   {
     id: 7,
-    title: '¿Tienes alguna pregunta?',
-    description: 'Antes de comenzar, si tienes alguna duda sobre cómo usar la plataforma de aprendizaje, puedes preguntarme. Haz clic en el micrófono y háblame.',
-    speech: 'Antes de comenzar, si tienes alguna duda sobre cómo usar la plataforma de aprendizaje, haz clic en el micrófono y háblame. Te responderé por voz.'
-  },
-  {
-    id: 8,
     title: '¡Listo para aprender!',
     description: 'Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, LIA siempre estará disponible para ayudarte.',
     speech: 'Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, LIA siempre estará disponible para ayudarte.'

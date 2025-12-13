@@ -1104,10 +1104,7 @@ export function ContextualVoiceGuide({
                             whileHover={{ x: '100%' }}
                             transition={{ duration: 0.6, ease: 'easeInOut' }}
                           />
-                          <span className="relative z-10">
-                            <span className="hidden sm:inline">{currentStep === 4 ? t('onboarding.buttons.continueWithoutAsking') : t('onboarding.buttons.next')}</span>
-                            <span className="sm:hidden">{currentStep === 4 ? t('onboarding.buttons.continue') : t('onboarding.buttons.next')}</span>
-                          </span>
+                          <span className="relative z-10">{t('onboarding.buttons.next')}</span>
                           <motion.span
                             className="relative z-10"
                             whileHover={{ x: 4 }}

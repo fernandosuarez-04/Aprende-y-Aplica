@@ -3,12 +3,12 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { 
-  User, 
-  BarChart, 
-  BookOpen, 
-  Edit3, 
-  Moon, 
+import {
+  User,
+  BarChart,
+  BookOpen,
+  Edit3,
+  Moon,
   Sun,
   Monitor,
   LogOut,
@@ -20,15 +20,12 @@ import {
   Settings,
   Receipt,
   Award,
-  Languages as LanguagesIcon,
   Bell
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../features/auth/hooks/useAuth'
 import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
 import { useThemeStore, Theme } from '../../stores/themeStore'
-import { useLanguage } from '../../providers/I18nProvider'
-import type { SupportedLanguage } from '../../i18n/i18n'
 
 interface UserDropdownProps {
   className?: string
@@ -37,15 +34,12 @@ interface UserDropdownProps {
 export const UserDropdown = React.memo(function UserDropdown({ className = '' }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isThemeSubmenuOpen, setIsThemeSubmenuOpen] = useState(false)
-  const [isLanguageSubmenuOpen, setIsLanguageSubmenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const themeSubmenuRef = useRef<HTMLDivElement>(null)
-  const languageSubmenuRef = useRef<HTMLDivElement>(null)
   const { user, logout } = useAuth()
   const { userProfile, loading: profileLoading } = useUserProfile()
   const { theme, setTheme, resolvedTheme, initializeTheme } = useThemeStore()
   const router = useRouter()
-  const { language, setLanguage } = useLanguage()
   const { t } = useTranslation('common')
 
   // Inicializar tema al montar
@@ -59,13 +53,9 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
         setIsThemeSubmenuOpen(false)
-        setIsLanguageSubmenuOpen(false)
       }
       if (themeSubmenuRef.current && !themeSubmenuRef.current.contains(event.target as Node)) {
         setIsThemeSubmenuOpen(false)
-      }
-      if (languageSubmenuRef.current && !languageSubmenuRef.current.contains(event.target as Node)) {
-        setIsLanguageSubmenuOpen(false)
       }
     }
 
@@ -91,23 +81,6 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     setIsOpen(false)
   }, [logout])
 
-  const handleLanguageChange = useCallback((lang: SupportedLanguage) => {
-    setLanguage(lang)
-    setIsLanguageSubmenuOpen(false)
-  }, [setLanguage])
-
-  const languageOptions = [
-    { value: 'es' as SupportedLanguage, label: t('languages.es') },
-    { value: 'en' as SupportedLanguage, label: t('languages.en') },
-    { value: 'pt' as SupportedLanguage, label: t('languages.pt') },
-  ]
-
-  const languageLabelMap = languageOptions.reduce<Record<SupportedLanguage, string>>((acc, option) => {
-    acc[option.value] = option.label
-    return acc
-  }, { es: '', en: '', pt: '' })
-
-  const languageMenuLabel = t('languageSelector.label', { language: languageLabelMap[language] })
   const themeLabel =
     theme === 'light'
       ? t('menu.theme.light')
@@ -132,7 +105,6 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
       'payment-methods': { rotate: -5, scale: 1.15, y: -2 },
       'purchase-history': { rotate: 0, scale: 1.15, y: -2 },
       'theme': { rotate: 15, scale: 1.15, y: -2 },
-      'language': { rotate: -15, scale: 1.15, y: -2 },
       'admin': { rotate: 0, scale: 1.2, y: -2 },
       'instructor': { rotate: 0, scale: 1.2, y: -2 },
       'logout': { rotate: -10, scale: 1.15, y: -2 }
@@ -243,16 +215,6 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
       icon: resolvedTheme === 'light' ? Sun : resolvedTheme === 'dark' ? Moon : Monitor,
       onClick: () => {
         setIsThemeSubmenuOpen(!isThemeSubmenuOpen)
-        setIsLanguageSubmenuOpen(false)
-      }
-    },
-    {
-      id: 'language',
-      label: languageMenuLabel,
-      icon: LanguagesIcon,
-      onClick: () => {
-        setIsLanguageSubmenuOpen(!isLanguageSubmenuOpen)
-        setIsThemeSubmenuOpen(false)
       }
     },
     {
@@ -500,9 +462,9 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                       }`} />
                     </motion.div>
                       <span className="font-medium text-sm flex-1">{item.label}</span>
-                      {(item.id === 'theme' || item.id === 'language') && (
+                      {item.id === 'theme' && (
                         <ChevronDown className={`w-4 h-4 text-text-secondary dark:text-text-secondary transition-transform flex-shrink-0 ${
-                          (item.id === 'theme' && isThemeSubmenuOpen) || (item.id === 'language' && isLanguageSubmenuOpen) ? 'rotate-180' : ''
+                          isThemeSubmenuOpen ? 'rotate-180' : ''
                         }`} />
                       )}
                     </motion.button>
@@ -562,40 +524,6 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                                   animate={{ scale: 1 }}
                                   transition={{ duration: 0.2 }}
                                 />
-                              )}
-                            </motion.button>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {item.id === 'language' && isLanguageSubmenuOpen && (
-                      <div 
-                        ref={languageSubmenuRef}
-                        className="mt-1 ml-4 border-l-2 border-gray-300 dark:border-gray-700 pl-2"
-                      >
-                        {languageOptions.map((langOption) => {
-                          const isActive = language === langOption.value
-                          return (
-                            <motion.button
-                              key={langOption.value}
-                              onClick={() => handleLanguageChange(langOption.value)}
-                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                isActive
-                                  ? 'bg-primary/20 text-primary dark:bg-primary/20 dark:text-primary'
-                                  : 'text-text-secondary dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary dark:hover:text-text-primary'
-                              }`}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.15 }}
-                              whileHover={{ x: 4 }}
-                              whileTap={{ scale: 0.98 }}
-                            >
-                              <span>{langOption.label}</span>
-                              {isActive && (
-                                <span className="text-xs uppercase tracking-wide text-primary dark:text-primary">
-                                  {t('languageSelector.active')}
-                                </span>
                               )}
                             </motion.button>
                           )

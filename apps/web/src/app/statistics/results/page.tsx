@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Brain, 
-  TrendingUp, 
-  Target, 
-  DollarSign, 
+import {
+  Brain,
+  TrendingUp,
+  Target,
+  DollarSign,
   Lightbulb,
   BarChart3,
   Globe,
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '../../../lib/supabase/client';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 // Componente del gráfico de radar
 const RadarChart = ({ data, dimensions }: { data: any[], dimensions: string[] }) => {
@@ -285,6 +286,7 @@ const normalizeCountryName = (name: string) => {
 export default function StatisticsResultsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation('statistics-results');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -935,7 +937,7 @@ export default function StatisticsResultsPage() {
           className="text-center"
         >
           <div className="w-16 h-16 border-4 border-primary dark:border-primary/50 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-700 dark:text-gray-300 text-lg">Analizando tus resultados...</p>
+          <p className="text-gray-700 dark:text-gray-300 text-lg">{t('loading')}</p>
         </motion.div>
       </div>
     );
@@ -950,13 +952,13 @@ export default function StatisticsResultsPage() {
           className="text-center max-w-md mx-auto p-6"
         >
           <AlertCircle className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('error.title')}</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-6">{error}</p>
           <button
             onClick={() => router.push('/statistics')}
             className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"
           >
-            Volver a Estadísticas
+            {t('error.backButton')}
           </button>
         </motion.div>
       </div>
@@ -993,17 +995,17 @@ export default function StatisticsResultsPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                      Actualizar Nivel de Dificultad
+                      {t('difficultyModal.title')}
                     </h2>
                     <p className="text-sm text-gray-600 dark:text-white/60 mt-1">
-                      Selecciona tu nivel actual de uso de IA
+                      {t('difficultyModal.subtitle')}
                     </p>
                   </div>
                 </div>
 
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-900 dark:text-white/90 mb-3">
-                    ¿Qué tanto utilizas la IA en tu ámbito laboral? <span className="text-red-500 dark:text-red-400">*</span>
+                    {t('difficultyModal.question')} <span className="text-red-500 dark:text-red-400">{t('difficultyModal.required')}</span>
                   </label>
                   <select
                     value={selectedDifficulty}
@@ -1011,32 +1013,32 @@ export default function StatisticsResultsPage() {
                     className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
                   >
                     <option value="" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
-                      Selecciona una opción
+                      {t('difficultyModal.selectPlaceholder')}
                     </option>
                     <option value="Nunca" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
-                      Nunca
+                      {t('difficultyModal.options.never')}
                     </option>
                     <option value="Rara vez" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
-                      Rara vez (1-2 veces al mes)
+                      {t('difficultyModal.options.rarely')}
                     </option>
                     <option value="A veces" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
-                      A veces (1-2 veces por semana)
+                      {t('difficultyModal.options.sometimes')}
                     </option>
                     <option value="Frecuentemente" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
-                      Frecuentemente (3-4 veces por semana)
+                      {t('difficultyModal.options.frequently')}
                     </option>
                     <option value="Siempre" className="bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
-                      Siempre (todos o casi todos los días)
+                      {t('difficultyModal.options.always')}
                     </option>
                   </select>
-                  
+
                   {userProfile?.dificultad_id && (
                     <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <p className="text-sm text-blue-800 dark:text-blue-200">
-                        <strong>Nivel actual:</strong> {userProfile.dificultad_id} 
+                        <strong>{t('difficultyModal.currentLevel')}</strong> {userProfile.dificultad_id}
                         {userProfile.dificultad_id < 5 && (
                           <span className="block mt-1 text-blue-700 dark:text-blue-300">
-                            Si crees que puedes hacer el siguiente nivel, selecciona una opción más alta.
+                            {t('difficultyModal.nextLevelHint')}
                           </span>
                         )}
                       </p>
@@ -1050,7 +1052,7 @@ export default function StatisticsResultsPage() {
                     disabled={updatingDifficulty}
                     className="flex-1 px-4 py-3 bg-gray-200 dark:bg-slate-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Cancelar
+                    {t('difficultyModal.cancelButton')}
                   </button>
                   <button
                     onClick={handleUpdateDifficulty}
@@ -1060,12 +1062,12 @@ export default function StatisticsResultsPage() {
                     {updatingDifficulty ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Actualizando...</span>
+                        <span>{t('difficultyModal.updatingButton')}</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle className="w-4 h-4" />
-                        <span>Continuar</span>
+                        <span>{t('difficultyModal.continueButton')}</span>
                       </>
                     )}
                   </button>
@@ -1085,12 +1087,12 @@ export default function StatisticsResultsPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="w-20"></div> {/* Spacer izquierdo */}
-            
+
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Mis Estadísticas</h1>
-              <p className="text-gray-600 dark:text-white/60 text-sm">Análisis personalizado de tus resultados</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('header.title')}</h1>
+              <p className="text-gray-600 dark:text-white/60 text-sm">{t('header.subtitle')}</p>
             </div>
-            
+
             <button
               onClick={() => {
                 // Obtener la dificultad actual del usuario para pre-seleccionarla
@@ -1109,7 +1111,7 @@ export default function StatisticsResultsPage() {
               className="flex items-center px-4 py-2 bg-primary/20 dark:bg-primary/20 hover:bg-primary/30 dark:hover:bg-primary/30 border border-primary/30 dark:border-primary/30 hover:border-primary/50 dark:hover:border-primary/50 text-primary dark:text-primary hover:text-primary/90 rounded-lg transition-all duration-300 group"
             >
               <RefreshCw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
-              <span className="text-sm font-medium">Nueva Encuesta</span>
+              <span className="text-sm font-medium">{t('header.newSurvey')}</span>
             </button>
           </div>
         </div>
@@ -1127,24 +1129,22 @@ export default function StatisticsResultsPage() {
               <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
                 <Brain className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Radar de Competencias en IA</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('radar.title')}</h2>
             </div>
             <p className="text-gray-700 dark:text-white/60 max-w-2xl mx-auto mb-4">
-              Visualización de tus fortalezas por área funcional basada en tu cuestionario. 
-              Cada dimensión se evalúa en una escala de 0 a 100 puntos.
+              {t('radar.description')}
             </p>
             {userProfile?.dificultad_id && (
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto">
                 <div className="flex items-start gap-3">
                   <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                   <div className="text-sm text-blue-800 dark:text-blue-200">
-                    <p className="font-semibold mb-1">Nivel de Dificultad: {userProfile.dificultad_id}</p>
+                    <p className="font-semibold mb-1">{t('radar.difficultyLevel')} {userProfile.dificultad_id}</p>
                     <p>
-                      Tus scores están normalizados según tu nivel de dificultad. 
-                      El máximo posible para tu nivel es {userProfile.dificultad_id * 20} puntos.
+                      {t('radar.difficultyInfo', { max: userProfile.dificultad_id * 20 })}
                       {userProfile.dificultad_id < 5 && (
                         <span className="block mt-1 text-blue-700 dark:text-blue-300">
-                          A medida que avances en tu conocimiento de IA, podrás alcanzar niveles más altos.
+                          {t('radar.difficultyAdvance')}
                         </span>
                       )}
                     </p>
@@ -1163,56 +1163,56 @@ export default function StatisticsResultsPage() {
             </div>
             
             <div className="flex-1 space-y-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">¿Qué significa cada dimensión?</h3>
-              
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('radar.dimensionsTitle')}</h3>
+
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
                     <Brain className="w-4 h-4 text-blue-400" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">Conocimiento</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu comprensión teórica sobre IA, conceptos fundamentales y terminología.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.knowledge.title')}</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.knowledge.description')}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
                     <Target className="w-4 h-4 text-green-400" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">Aplicación</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu capacidad para implementar IA en casos de uso reales.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.application.title')}</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.application.description')}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
                     <TrendingUp className="w-4 h-4 text-purple-400" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">Productividad</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">Cómo utilizas la IA para optimizar tu trabajo diario.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.productivity.title')}</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.productivity.description')}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
                     <Lightbulb className="w-4 h-4 text-orange-400" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">Estrategia</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu visión sobre el impacto estratégico de la IA en tu organización.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.strategy.title')}</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.strategy.description')}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
                     <DollarSign className="w-4 h-4 text-red-400" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">Inversión</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">Tu disposición para invertir en herramientas y formación en IA.</p>
+                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.investment.title')}</h4>
+                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.investment.description')}</p>
                   </div>
                 </div>
               </div>
@@ -1224,17 +1224,17 @@ export default function StatisticsResultsPage() {
         {analysisData && (
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <StatCard
-              title="Adopción de IA"
-              value={`${analysisData.adoption.score} puntos - ${analysisData.adoption.level}`}
+              title={t('analysis.adoption.title')}
+              value={`${analysisData.adoption.score} ${t('analysis.adoption.points')} - ${analysisData.adoption.level}`}
               description={analysisData.adoption.description}
               icon={Zap}
               color="blue"
               delay={0.2}
             />
-            
+
             <StatCard
-              title="Conocimiento Técnico"
-              value={`${analysisData.knowledge.correct}/${analysisData.knowledge.total} correctas (${analysisData.knowledge.score}%) - ${analysisData.knowledge.level}`}
+              title={t('analysis.knowledge.title')}
+              value={`${analysisData.knowledge.correct}/${analysisData.knowledge.total} ${t('analysis.knowledge.correct')} (${analysisData.knowledge.score}%) - ${analysisData.knowledge.level}`}
               description={analysisData.knowledge.description}
               icon={BookOpen}
               color="green"
@@ -1255,7 +1255,7 @@ export default function StatisticsResultsPage() {
               <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
                 <Award className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Recomendaciones Personalizadas</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('recommendations.title')}</h2>
             </div>
             
             <div className="grid md:grid-cols-2 gap-4">
@@ -1298,12 +1298,11 @@ export default function StatisticsResultsPage() {
               <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
                 <Globe className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Adopción de GenAI en Países Hispanoparlantes</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('countries.title')}</h2>
             </div>
-            
+
             <p className="text-gray-700 dark:text-white/60 mb-6">
-              Índice de Adopción e Implementación de IA (AIPI) por país. 
-              Compara tu nivel de adopción con el promedio de tu región.
+              {t('countries.description')}
             </p>
             
             <div className="grid lg:grid-cols-2 gap-8">
@@ -1317,15 +1316,15 @@ export default function StatisticsResultsPage() {
                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                       <BarChart3 className="w-4 h-4 text-blue-400" />
                     </div>
-                    <h3 className="text-gray-900 dark:text-white font-medium">Estadísticas Generales</h3>
+                    <h3 className="text-gray-900 dark:text-white font-medium">{t('countries.stats.title')}</h3>
                   </div>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">Países analizados:</span>
+                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.countriesAnalyzed')}</span>
                       <span className="text-gray-900 dark:text-white font-bold text-lg">{countryData.length}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">Promedio AIPI:</span>
+                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.averageAIPI')}</span>
                       <span className="text-gray-900 dark:text-white font-bold text-lg">
                         {countryData.length > 0 
                           ? (() => {
@@ -1341,7 +1340,7 @@ export default function StatisticsResultsPage() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">Máximo:</span>
+                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.maximum')}</span>
                       <div className="text-right">
                         <div className="text-gray-900 dark:text-white font-bold text-lg">
                           {countryData.length > 0 
@@ -1369,7 +1368,7 @@ export default function StatisticsResultsPage() {
                       </div>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">Mínimo:</span>
+                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.minimum')}</span>
                       <div className="text-right">
                         <div className="text-gray-900 dark:text-white font-bold text-lg">
                           {countryData.length > 0 
@@ -1408,7 +1407,7 @@ export default function StatisticsResultsPage() {
                       </div>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">Rango:</span>
+                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.range')}</span>
                       <span className="text-gray-900 dark:text-white font-bold text-lg">
                         {countryData.length > 0 
                           ? (() => {
@@ -1454,31 +1453,25 @@ export default function StatisticsResultsPage() {
                     <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
                       <Info className="w-4 h-4 text-green-400" />
                     </div>
-                    <h3 className="text-gray-900 dark:text-white font-medium">Fuente y Metodología</h3>
+                    <h3 className="text-gray-900 dark:text-white font-medium">{t('countries.methodology.title')}</h3>
                   </div>
                   <div className="space-y-3 text-sm">
                     <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Metodología AIPI</h4>
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">{t('countries.methodology.aipiTitle')}</h4>
                       <p className="text-gray-700 dark:text-white/70 leading-relaxed">
-                        El Índice de Adopción e Implementación de IA (AIPI) evalúa el nivel de adopción de 
-                        inteligencia artificial en países hispanoparlantes basándose en métricas de 
-                        implementación empresarial, uso personal, inversión en tecnología y políticas públicas.
+                        {t('countries.methodology.aipiDescription')}
                       </p>
                     </div>
                     <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Fuentes de Datos</h4>
-                      <p className="text-gray-700 dark:text-white/70 leading-relaxed">
-                        • Estudios de adopción empresarial (2023-2024)<br/>
-                        • Encuestas de uso personal de IA<br/>
-                        • Inversión en tecnología por país<br/>
-                        • Políticas públicas de digitalización<br/>
-                        • Índices de innovación tecnológica
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">{t('countries.methodology.sourcesTitle')}</h4>
+                      <p className="text-gray-700 dark:text-white/70 leading-relaxed whitespace-pre-line">
+                        {t('countries.methodology.sourcesDescription')}
                       </p>
                     </div>
                     <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">Actualización</h4>
+                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">{t('countries.methodology.updateTitle')}</h4>
                       <p className="text-gray-700 dark:text-white/70 leading-relaxed">
-                        Datos actualizados trimestralmente. Última actualización: Enero 2025
+                        {t('countries.methodology.updateDescription')}
                       </p>
                     </div>
                   </div>

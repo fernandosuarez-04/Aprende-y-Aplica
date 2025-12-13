@@ -2,53 +2,10 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff } from 'lucide-react';
+import { X, Volume2, VolumeX, ChevronRight } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { useLanguage } from '../../providers/I18nProvider';
-import { getPlatformContext, getAvailableLinksForLIA } from '../../../lib/lia/page-metadata';
-
-// Función para detectar automáticamente el contexto basado en la URL
-function detectContextFromURL(pathname: string): string {
-  if (pathname.includes('/communities')) return 'communities';
-  if (pathname.includes('/courses')) return 'courses';
-  if (pathname.includes('/workshops')) return 'workshops';
-  if (pathname.includes('/news')) return 'news';
-  if (pathname.includes('/dashboard')) return 'dashboard';
-  if (pathname.includes('/prompt-directory')) return 'prompts';
-  if (pathname.includes('/business-panel')) return 'business';
-  if (pathname.includes('/profile')) return 'profile';
-  return 'general';
-}
-
-// Función para obtener información contextual detallada de la página actual
-function getPageContextInfo(pathname: string): string {
-  const contextMap: Record<string, string> = {
-    '/communities': 'página de comunidades - donde los usuarios pueden unirse y participar en grupos',
-    '/courses': 'página de cursos - catálogo de cursos disponibles para aprendizaje',
-    '/workshops': 'página de talleres - eventos y sesiones de formación',
-    '/news': 'página de noticias - últimas actualizaciones y anuncios',
-    '/dashboard': 'panel principal del usuario - catálogo completo de talleres y cursos disponibles',
-    '/prompt-directory': 'directorio de prompts - colección de plantillas de prompts de IA',
-    '/business-panel': 'panel de negocios - herramientas para empresas',
-    '/profile': 'página de perfil de usuario',
-  };
-
-  // Buscar coincidencia exacta primero
-  if (contextMap[pathname]) {
-    return contextMap[pathname];
-  }
-
-  // Buscar coincidencia parcial
-  for (const [path, description] of Object.entries(contextMap)) {
-    if (pathname.includes(path)) {
-      return description;
-    }
-  }
-
-  return 'página principal de la plataforma';
-}
 
 interface OnboardingStep {
   id: number;
@@ -64,7 +21,7 @@ interface OnboardingStep {
 // Hook para obtener los pasos traducidos
 function useOnboardingSteps() {
   const { t } = useTranslation('common');
-  
+
   return useMemo(() => [
     {
       id: 1,
@@ -99,22 +56,6 @@ function useOnboardingSteps() {
       speech: t('onboarding.steps.4.speech'),
       action: {
         label: t('onboarding.steps.4.actionLabel'),
-        path: '/prompt-directory'
-      }
-    },
-    {
-      id: 5,
-      title: t('onboarding.steps.5.title'),
-      description: t('onboarding.steps.5.description'),
-      speech: t('onboarding.steps.5.speech'),
-    },
-    {
-      id: 6,
-      title: t('onboarding.steps.6.title'),
-      description: t('onboarding.steps.6.description'),
-      speech: t('onboarding.steps.6.speech'),
-      action: {
-        label: t('onboarding.steps.6.actionLabel'),
         path: '/dashboard'
       }
     }
@@ -123,7 +64,6 @@ function useOnboardingSteps() {
 
 export function OnboardingAgent() {
   const { t } = useTranslation('common');
-  const { language } = useLanguage();
   const ONBOARDING_STEPS = useOnboardingSteps();
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -131,23 +71,10 @@ export function OnboardingAgent() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
-  // Estados para conversación por voz
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
-  
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
-  const recognitionRef = useRef<any>(null);
-  const lastTranscriptRef = useRef<{ text: string; ts: number }>({ text: '', ts: 0 });
-  const processingRef = useRef<boolean>(false);
-  const pendingTranscriptRef = useRef<string | null>(null);
-  const pendingTimeoutRef = useRef<number | null>(null);
-  const conversationHistoryRef = useRef(conversationHistory);
-  const lastErrorTimeRef = useRef<number>(0);
   const router = useRouter();
   const pathname = usePathname();
   const hasAttemptedOpenRef = useRef<boolean>(false); // Para evitar aperturas múltiples
@@ -381,301 +308,6 @@ export function OnboardingAgent() {
         console.error('Error en síntesis de voz con ElevenLabs:', error);
       }
       setIsSpeaking(false);
-    }
-  };
-
-  // 🎙️ Mapeo de idiomas para reconocimiento de voz
-  const speechLanguageMap: Record<string, string> = {
-    'es': 'es-ES',
-    'en': 'en-US',
-    'pt': 'pt-BR'
-  };
-  
-  // Inicializar reconocimiento de voz
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.lang = speechLanguageMap[language] || 'es-ES';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-        recognition.onresult = (event: any) => {
-          const speechToTextRaw = event.results[0][0].transcript || '';
-          const speechToText = speechToTextRaw.trim();
-          console.log('Transcripción raw:', speechToTextRaw);
-
-          // Normalizar texto para deduplicación
-          const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
-          const norm = normalize(speechToText);
-
-          // Ignorar transcripciones demasiado cortas
-          if (norm.length < 2) {
-            console.warn('Transcripción demasiado corta, ignorando.');
-            setIsListening(false);
-            return;
-          }
-
-          // Guardar como transcripción pendiente y usar un pequeño debounce
-          pendingTranscriptRef.current = speechToText;
-
-          // Limpiar timeout anterior
-          if (pendingTimeoutRef.current) {
-            window.clearTimeout(pendingTimeoutRef.current);
-            pendingTimeoutRef.current = null;
-          }
-
-          // Ejecutar procesamiento después de un breve retardo; si viene otra onresult este timeout se reiniciará
-          pendingTimeoutRef.current = window.setTimeout(() => {
-            pendingTimeoutRef.current = null;
-
-            // Revalidar normalizado y evitar duplicados rápidos
-            const now = Date.now();
-            if (lastTranscriptRef.current.text === norm && now - lastTranscriptRef.current.ts < 3000) {
-              console.warn('Resultado duplicado detectado (post-debounce), ignorando.');
-              setIsListening(false);
-              return;
-            }
-
-            // Si ya estamos procesando otra pregunta, ignorar esta
-            if (processingRef.current) {
-              console.warn('Reconocimiento produjo resultado pero ya hay procesamiento en curso, ignorando.');
-              setIsListening(false);
-              return;
-            }
-
-            // Registrar la transcripción final recibida y procesarla.
-            // No marcar processingRef aquí para evitar que handleVoiceQuestion vea
-            // la bandera ya establecida y se salga prematuramente; handleVoiceQuestion
-            // es responsable de establecer processingRef de forma atómica.
-            lastTranscriptRef.current = { text: norm, ts: now };
-
-            const finalTranscript = pendingTranscriptRef.current || speechToText;
-            pendingTranscriptRef.current = null;
-
-            setTranscript(finalTranscript);
-            setIsListening(false);
-
-            // handleVoiceQuestion liberará processingRef al finalizar
-            handleVoiceQuestion(finalTranscript);
-          }, 350);
-        };
-
-        const ERROR_DEBOUNCE_MS = 2000; // 2 segundos entre errores
-
-        recognition.onerror = (event: any) => {
-          const errorType = event.error || 'unknown';
-          const now = Date.now();
-          
-          // Detener el reconocimiento
-          try {
-            if (recognitionRef.current) {
-              recognitionRef.current.stop();
-            }
-          } catch (e) {
-            // Ignorar errores al detener
-          }
-          
-          setIsListening(false);
-          
-          // Evitar spam de errores - solo mostrar si han pasado al menos 2 segundos
-          if (now - lastErrorTimeRef.current < ERROR_DEBOUNCE_MS && errorType === 'network') {
-            return; // Ignorar errores de red repetidos
-          }
-          lastErrorTimeRef.current = now;
-          
-          // Mostrar mensaje de error específico solo para errores importantes
-          if (errorType === 'not-allowed') {
-            alert(t('onboarding.voice.micPermissionNeeded'));
-          } else if (errorType === 'no-speech') {
-            // No mostrar error para no-speech, es normal
-          } else if (errorType === 'network') {
-            // Solo mostrar una vez, no repetir
-            console.warn('Error de red en reconocimiento de voz. Verifica tu conexión a internet.');
-          } else if (errorType === 'aborted') {
-            // No mostrar error para aborted, es normal cuando se cancela
-          } else {
-            console.warn(`Error en reconocimiento de voz: ${errorType}`);
-          }
-        };
-
-        recognitionRef.current = recognition;
-      } else {
-        console.warn('El navegador no soporta reconocimiento de voz');
-      }
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, [language, speechLanguageMap]);
-
-  // Función para iniciar/detener escucha
-  const toggleListening = async () => {
-    if (!recognitionRef.current) {
-      alert(t('onboarding.voice.browserNotSupported'));
-      return;
-    }
-
-    if (isListening) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) { 
-        // Ignorar errores al detener
-      }
-      setIsListening(false);
-    } else {
-      // ✅ Detener audio de LIA si está hablando antes de que el usuario hable
-      stopAllAudio();
-      
-      try {
-        // Asegurarse de que el reconocimiento esté detenido antes de iniciarlo
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {
-          // Ignorar si ya está detenido
-        }
-        
-        // Pequeño delay para asegurar que se detuvo completamente
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Solicitar permisos del micrófono primero
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        setTranscript('');
-        
-        // Verificar que no esté ya iniciado antes de iniciar
-        try {
-          recognitionRef.current.start();
-          setIsListening(true);
-        } catch (startError: any) {
-          if (startError.message?.includes('already started')) {
-            // Ya está iniciado, solo actualizar el estado
-            setIsListening(true);
-          } else {
-            throw startError;
-          }
-        }
-      } catch (error: any) {
-        console.error('Error al solicitar permisos de micrófono:', error);
-        setIsListening(false);
-        
-        if (error?.name === 'NotAllowedError') {
-          alert(t('onboarding.voice.micPermissionNeeded'));
-        } else if (error?.message?.includes('already started')) {
-          // Ya está iniciado, solo actualizar el estado
-          setIsListening(true);
-        } else {
-          alert(t('onboarding.voice.micError'));
-        }
-      }
-    }
-  };
-
-  // Función para procesar pregunta de voz con LIA
-  const handleVoiceQuestion = async (question: string) => {
-    if (!question.trim()) return;
-    // Evitar procesar preguntas en paralelo
-    if (processingRef.current) {
-      console.warn('Otra pregunta está en curso, ignorando la nueva.');
-      return;
-    }
-
-    // Detener cualquier audio/voz que esté sonando
-    stopAllAudio();
-
-    processingRef.current = true;
-    setIsProcessing(true);
-
-    // Evitar preguntas muy similares ya procesadas recientemente
-    const lastUserMsg = conversationHistoryRef.current.slice().reverse().find(m => m.role === 'user');
-    const now = Date.now();
-    if (lastUserMsg) {
-      const lastText = lastUserMsg.content || '';
-      const recent = now - (lastTranscriptRef.current.ts || 0) < 5000;
-      if (recent && (lastText === question || lastText.includes(question) || question.includes(lastText))) {
-        console.warn('Pregunta similar ya procesada recientemente, ignorando.');
-        processingRef.current = false;
-        setIsProcessing(false);
-        return;
-      }
-    }
-    
-    try {
-      // Construir contexto para LIA
-      const context = {
-        isOnboarding: true,
-        currentStep: currentStep + 1,
-        totalSteps: ONBOARDING_STEPS.length,
-        conversationHistory,
-      };
-
-      console.log('🤖 Enviando pregunta a LIA:', question);
-
-      // ✅ CORRECCIÓN: Construir pageContext correcto con pathname actual
-      // Esto permite que Lia sepa exactamente en qué página está el usuario
-      const currentPathname = pathname || '/dashboard';
-      const detectedArea = detectContextFromURL(currentPathname);
-      const pageDescription = getPageContextInfo(currentPathname);
-      const platformContextStr = getPlatformContext ? getPlatformContext() : undefined;
-      const availableLinks = getAvailableLinksForLIA ? getAvailableLinksForLIA() : undefined;
-
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: question,
-          context: 'onboarding',
-          conversationHistory: conversationHistory || [],
-          userName: undefined,
-          pageContext: {
-            pathname: currentPathname,
-            detectedArea: detectedArea,
-            description: pageDescription,
-            platformContext: platformContextStr,
-            availableLinks: availableLinks
-          },
-          language: language
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al comunicarse con LIA');
-      }
-
-      const data = await response.json();
-      const liaResponse = data.response;
-
-      console.log('💬 Respuesta de LIA:', liaResponse);
-
-      // Actualizar historial de conversación, evitando duplicados consecutivos
-      setConversationHistory(prev => {
-        const last = prev[prev.length - 1];
-        const lastUser = prev.slice().reverse().find(m => m.role === 'user');
-
-        const shouldAddUser = !(lastUser && lastUser.content === question);
-        const shouldAddAssistant = !(last && last.role === 'assistant' && last.content === liaResponse);
-
-        let next = prev.slice();
-        if (shouldAddUser) next = [...next, { role: 'user', content: question }];
-        if (shouldAddAssistant) next = [...next, { role: 'assistant', content: liaResponse }];
-        return next;
-      });
-
-      // Reproducir respuesta con ElevenLabs
-      await speakText(liaResponse);
-
-    } catch (error) {
-      console.error('❌ Error procesando pregunta:', error);
-      const errorMessage = t('onboarding.voice.errorProcessing');
-      try { await speakText(errorMessage); } catch(e) { /* ignore */ }
-    } finally {
-      processingRef.current = false;
-      setIsProcessing(false);
     }
   };
 
@@ -1142,10 +774,7 @@ export function OnboardingAgent() {
                             whileHover={{ x: '100%' }}
                             transition={{ duration: 0.6, ease: 'easeInOut' }}
                           />
-                          <span className="relative z-10">
-                            <span className="hidden sm:inline">{currentStep === 4 ? t('onboarding.buttons.continueWithoutAsking') : t('onboarding.buttons.next')}</span>
-                            <span className="sm:hidden">{currentStep === 4 ? t('onboarding.buttons.continue') : t('onboarding.buttons.next')}</span>
-                          </span>
+                          <span className="relative z-10">{t('onboarding.buttons.next')}</span>
                           <motion.span
                             className="relative z-10"
                             whileHover={{ x: 4 }}

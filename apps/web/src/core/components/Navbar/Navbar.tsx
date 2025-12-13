@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@aprende-y-aplica/ui';
 import { useTranslation } from 'react-i18next';
 import { ThemeToggle } from '../ThemeToggle';
+import { LanguageSelector } from '../LanguageSelector';
 import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg';
 import { Menu, X } from 'lucide-react';
 import { fadeIn, slideUp } from '../../../shared/utils/animations';
@@ -69,7 +70,7 @@ export function Navbar() {
               {/* Efecto visual cuando está activado */}
               {isActivated && (
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-xl opacity-50"
+                  className="absolute inset-0 bg-gradient-to-r from-[#0A2540] to-[#00D4B3] rounded-xl opacity-50" /* Azul Profundo a Aqua */
                   initial={{ opacity: 0 }}
                   animate={{ opacity: [0, 0.5, 0] }}
                   transition={{ duration: 0.6 }}
@@ -98,7 +99,9 @@ export function Navbar() {
             </div>
             
             <ThemeToggle />
-            
+
+            <LanguageSelector />
+
             <div className="flex items-center gap-4">
               <Link href="/auth">
                 <Button variant="ghost" size="sm">
@@ -153,7 +156,10 @@ export function Navbar() {
             </div>
             
             <div className="flex items-center justify-between pt-4 border-t border-gray-700">
-              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <LanguageSelector />
+              </div>
               <div className="flex gap-3">
                 <Link href="/auth">
                   <Button variant="ghost" size="sm">

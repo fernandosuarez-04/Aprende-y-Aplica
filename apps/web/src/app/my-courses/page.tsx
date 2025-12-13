@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { 
-  BookOpen, 
-  Clock, 
-  Play, 
+import {
+  BookOpen,
+  Clock,
+  Play,
   Award,
   TrendingUp,
   CheckCircle2,
@@ -18,6 +18,8 @@ import {
   TrendingDown
 } from 'lucide-react';
 import { Button } from '@aprende-y-aplica/ui';
+import { useTranslation } from 'react-i18next';
+import { useTranslatedContent } from '../../core/hoc/withContentTranslation';
 
 interface Course {
   purchase_id: string;
@@ -60,6 +62,41 @@ export default function MyCoursesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const router = useRouter();
+  const { t } = useTranslation('my-courses');
+
+  // Traducir contenido de cursos desde la BD
+  // Necesitamos adaptar los datos para el hook que espera 'id' y campos específicos
+  const coursesForTranslation = useMemo(() => {
+    return courses.map(course => ({
+      id: course.course_id,
+      title: course.course_title,
+      description: course.course_description,
+      ...course
+    }));
+  }, [courses]);
+
+  const translatedCoursesData = useTranslatedContent(
+    'course',
+    coursesForTranslation,
+    ['title', 'description']
+  );
+
+  // Mapear traducciones de vuelta a los cursos
+  const translatedCourses = useMemo(() => {
+    if (translatedCoursesData.length === 0) return courses;
+
+    return courses.map(course => {
+      const translated = translatedCoursesData.find(t => t.id === course.course_id);
+      if (translated) {
+        return {
+          ...course,
+          course_title: translated.title || course.course_title,
+          course_description: translated.description || course.course_description
+        };
+      }
+      return course;
+    });
+  }, [courses, translatedCoursesData]);
 
   useEffect(() => {
     fetchCourses();
@@ -90,15 +127,15 @@ export default function MyCoursesPage() {
     }
   };
 
-  const filteredCourses = courses.filter(course => {
+  const filteredCourses = translatedCourses.filter(course => {
     const matchesSearch = course.course_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          course.instructor_name.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     if (filterStatus === 'all') return matchesSearch;
     if (filterStatus === 'completed') return matchesSearch && course.progress_percentage >= 100;
     if (filterStatus === 'in_progress') return matchesSearch && course.progress_percentage > 0 && course.progress_percentage < 100;
     if (filterStatus === 'not_started') return matchesSearch && course.progress_percentage === 0;
-    
+
     return matchesSearch;
   });
 
@@ -116,34 +153,42 @@ export default function MyCoursesPage() {
       case 'beginner': return 'text-green-400 bg-green-400/10 border-green-400/30';
       case 'intermediate': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30';
       case 'advanced': return 'text-red-400 bg-red-400/10 border-red-400/30';
-      default: return 'text-blue-400 bg-blue-400/10 border-blue-400/30';
+      default: return 'text-[#00D4B3] bg-[#00D4B3]/10 border-[#00D4B3]/30';
     }
   };
 
   const getProgressColor = (progress: number) => {
     if (progress >= 100) return 'from-green-500 to-emerald-500';
-    if (progress >= 50) return 'from-blue-500 to-cyan-500';
-    if (progress > 0) return 'from-purple-500 to-pink-500';
+    if (progress >= 50) return 'from-[#00D4B3] to-[#00b89a]';
+    if (progress > 0) return 'from-[#0A2540] to-[#00D4B3]';
     return 'from-gray-500 to-gray-600';
+  };
+
+  const getDifficultyLabel = (difficulty: string) => {
+    const key = difficulty?.toLowerCase();
+    if (key === 'beginner') return t('difficulty.beginner');
+    if (key === 'intermediate') return t('difficulty.intermediate');
+    if (key === 'advanced') return t('difficulty.advanced');
+    return difficulty;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full mx-auto mb-4"
+            className="w-16 h-16 border-4 border-[#00D4B3]/30 border-t-[#00D4B3] rounded-full mx-auto mb-4"
           />
-          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando tus cursos...</p>
+          <p className="text-gray-700 dark:text-white/70 text-lg">{t('loading')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -153,13 +198,13 @@ export default function MyCoursesPage() {
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3]">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Mi Aprendizaje</h1>
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{t('header.title')}</h1>
             </div>
           </div>
-          <p className="text-gray-600 dark:text-slate-400 text-lg">Continúa donde lo dejaste</p>
+          <p className="text-gray-600 dark:text-slate-400 text-lg">{t('header.subtitle')}</p>
         </motion.div>
 
         {/* Stats Cards */}
@@ -168,13 +213,13 @@ export default function MyCoursesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
+            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-[#0A2540]/50 dark:hover:border-[#0A2540]/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-blue-500/20">
                 <Target className="w-5 h-5 text-blue-400" />
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">Total de Cursos</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('stats.totalCourses')}</span>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total_courses}</p>
           </motion.div>
@@ -189,7 +234,7 @@ export default function MyCoursesPage() {
               <div className="p-2 rounded-lg bg-green-500/20">
                 <CheckCircle2 className="w-5 h-5 text-green-400" />
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">Completados</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('stats.completed')}</span>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.completed_courses}</p>
           </motion.div>
@@ -198,13 +243,13 @@ export default function MyCoursesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-purple-500/50 dark:hover:border-purple-500/50 transition-colors shadow-lg dark:shadow-xl"
+            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-[#0A2540]/50 dark:hover:border-[#0A2540]/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-purple-500/20">
-                <TrendingUp className="w-5 h-5 text-purple-400" />
+              <div className="p-2 rounded-lg bg-[#00D4B3]/20">
+                <TrendingUp className="w-5 h-5 text-[#00D4B3]" />
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">En Progreso</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('stats.inProgress')}</span>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.in_progress_courses}</p>
           </motion.div>
@@ -219,7 +264,7 @@ export default function MyCoursesPage() {
               <div className="p-2 rounded-lg bg-cyan-500/20">
                 <Clock className="w-5 h-5 text-cyan-400" />
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">Tiempo Total</span>
+              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('stats.totalTime')}</span>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatDuration(stats.total_time_minutes)}</p>
           </motion.div>
@@ -236,28 +281,28 @@ export default function MyCoursesPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar en mis cursos..."
+              placeholder={t('search.placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50 dark:focus:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
             />
           </div>
-          
+
           <label htmlFor="filter-status" className="sr-only">
-            Filtrar cursos por estado
+            {t('filters.all')}
           </label>
           <select
             id="filter-status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            title="Filtrar cursos por estado"
-            aria-label="Filtrar cursos por estado"
+            title={t('filters.all')}
+            aria-label={t('filters.all')}
             className="px-4 py-3 bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 dark:focus:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
           >
-            <option value="all">Todos</option>
-            <option value="in_progress">En Progreso</option>
-            <option value="completed">Completados</option>
-            <option value="not_started">No Iniciados</option>
+            <option value="all">{t('filters.all')}</option>
+            <option value="in_progress">{t('filters.inProgress')}</option>
+            <option value="completed">{t('filters.completed')}</option>
+            <option value="not_started">{t('filters.notStarted')}</option>
           </select>
         </motion.div>
 
@@ -270,16 +315,16 @@ export default function MyCoursesPage() {
               exit={{ opacity: 0 }}
               className="text-center py-20"
             >
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="w-12 h-12 text-gray-400 dark:text-slate-400" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No tienes cursos aún</h3>
-              <p className="text-gray-600 dark:text-slate-400 mb-6">Adquiere cursos para comenzar tu aprendizaje</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('empty.title')}</h3>
+              <p className="text-gray-600 dark:text-slate-400 mb-6">{t('empty.subtitle')}</p>
               <Button
                 onClick={() => router.push('/dashboard')}
                 variant="gradient"
               >
-                Explorar Cursos
+                {t('empty.exploreButton')}
               </Button>
             </motion.div>
           ) : (
@@ -294,7 +339,7 @@ export default function MyCoursesPage() {
                   className="bg-white dark:bg-slate-800/60 border border-gray-100/70 dark:border-slate-700/60 rounded-[1.5rem] overflow-hidden hover:border-blue-400/60 dark:hover:border-blue-500/50 transition-all duration-300 group shadow-[0_20px_60px_rgba(15,20,40,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)] flex flex-col h-full w-full max-w-[420px]"
                 >
                   {/* Course Thumbnail */}
-                  <div className="relative h-40 bg-gradient-to-br from-blue-600/15 to-purple-600/15 overflow-hidden">
+                  <div className="relative h-40 bg-gradient-to-br from-[#0A2540]/15 to-[#00D4B3]/15 overflow-hidden">
                     {course.course_thumbnail ? (
                       <img
                         src={course.course_thumbnail}
@@ -305,16 +350,16 @@ export default function MyCoursesPage() {
                       <div className="w-full h-full flex items-center justify-center">
                         <div className="text-center">
                           <BookOpen className="w-16 h-16 text-blue-400/50 mx-auto mb-2" />
-                          <p className="text-gray-600 dark:text-slate-500">Imagen del curso</p>
+                          <p className="text-gray-600 dark:text-slate-500">{t('course.imagePlaceholder')}</p>
                         </div>
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-slate-900 via-transparent to-transparent" />
-                    
+
                     {/* Progress Overlay */}
                     {course.progress_percentage > 0 && (
                       <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/50 dark:bg-black/50 backdrop-blur-sm text-white text-sm font-medium">
-                        {course.progress_percentage}% completado
+                        {t('course.completedBadge', { percentage: course.progress_percentage })}
                       </div>
                     )}
                   </div>
@@ -328,7 +373,7 @@ export default function MyCoursesPage() {
                       </span>
                       {course.difficulty && (
                         <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(course.difficulty)}`}>
-                          {course.difficulty}
+                          {getDifficultyLabel(course.difficulty)}
                         </span>
                       )}
                     </div>
@@ -340,14 +385,14 @@ export default function MyCoursesPage() {
 
                     {/* Instructor */}
                     <p className="text-gray-600 dark:text-slate-400 text-sm">
-                      Por {course.instructor_name}
+                      {t('course.instructor', { name: course.instructor_name })}
                     </p>
 
                     {/* Progress Bar */}
                     {course.progress_percentage > 0 && (
                       <div className="mb-1">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-gray-600 dark:text-slate-400">Progreso</span>
+                          <span className="text-sm text-gray-600 dark:text-slate-400">{t('course.progress')}</span>
                           <span className="text-sm font-medium text-gray-900 dark:text-white">{course.progress_percentage}%</span>
                         </div>
                         <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -375,13 +420,13 @@ export default function MyCoursesPage() {
                         className="flex-1 group/btn h-12 rounded-xl shadow-[0_10px_25px_rgba(37,99,235,0.25)]"
                       >
                         <Play className="w-4 h-4 mr-2 group-hover/btn:translate-x-1 transition-transform" />
-                        {course.progress_percentage > 0 ? 'Continuar' : 'Iniciar'}
+                        {course.progress_percentage > 0 ? t('course.continueButton') : t('course.startButton')}
                       </Button>
-                      
+
                       {course.progress_percentage === 100 && (
                         <div className="px-4 py-2 rounded-xl bg-green-500/15 border border-green-500/30 flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-5 h-5 text-green-400" />
-                          <span className="text-green-400 font-medium">Completado</span>
+                          <span className="text-green-400 font-medium">{t('course.completedStatus')}</span>
                         </div>
                       )}
                     </div>

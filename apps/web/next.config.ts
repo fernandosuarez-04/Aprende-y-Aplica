@@ -163,7 +163,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Configuración de Webpack para resolver alias en el monorepo
+    // Configuración de Webpack para resolver alias en el monorepo
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -243,6 +243,58 @@ const nextConfig: NextConfig = {
         canvas: false,
         sharp: false,
       };
+    }
+
+    // Excluir rrweb y rrweb-player del bundle del servidor
+    // Estas librerías solo funcionan en el navegador y causan errores en el servidor
+    if (isServer) {
+      // Mantener los alias existentes y agregar exclusiones para rrweb
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'rrweb': false,
+        'rrweb-player': false,
+        '@rrweb/types': false,
+      };
+      
+      // También excluir en externals para evitar que se incluya en el bundle
+      config.externals = config.externals || [];
+      if (typeof config.externals === 'function') {
+        const originalExternals = config.externals;
+        config.externals = [
+          (context: string, request: string, callback: Function) => {
+            if (request === 'rrweb' || request === 'rrweb-player' || request === '@rrweb/types') {
+              return callback(null, 'commonjs ' + request);
+            }
+            return originalExternals(context, request, callback);
+          },
+        ];
+      } else if (Array.isArray(config.externals)) {
+        config.externals.push('rrweb', 'rrweb-player', '@rrweb/types');
+      }
+    }
+
+    // Configuración para evitar que webpack analice módulos server-only durante el build del cliente
+    // Esto permite que los imports dinámicos funcionen correctamente
+    if (!isServer) {
+      const webpack = require('webpack');
+      // Ignorar módulos server-only durante el análisis estático del cliente
+      config.plugins = config.plugins || [];
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          checkResource(resource: string, context: string) {
+            // Ignorar imports de server.ts desde servicios que usan imports dinámicos
+            if (resource.includes('lib/supabase/server')) {
+              // Ignorar si viene de servicios que usan imports dinámicos
+              if (context.includes('features/notifications/services/auto-notifications.service') ||
+                  context.includes('features/notifications/services/notification.service') ||
+                  context.includes('features/auth/services/questionnaire-validation.service')) {
+                return true;
+              }
+            }
+            return false;
+          },
+        })
+      );
     }
 
     return config;

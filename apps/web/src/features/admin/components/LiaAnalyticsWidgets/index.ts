@@ -10,5 +10,7 @@ export { ContextDistributionWidget } from './ContextDistributionWidget';
 export { TopUsersWidget } from './TopUsersWidget';
 export { ConversationsTableWidget } from './ConversationsTableWidget';
 export { ActivityPerformanceWidget } from './ActivityPerformanceWidget';
+export { ActivityHeatmapWidget } from './ActivityHeatmapWidget';
+export { TopQuestionsWidget } from './TopQuestionsWidget';
 export { LiaStatsCards } from './LiaStatsCards';
 

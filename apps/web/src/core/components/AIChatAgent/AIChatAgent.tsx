@@ -245,7 +245,7 @@ function renderTextWithLinks(text: string): React.ReactNode {
           }
           // Si es URL absoluta, dejar que el navegador maneje el enlace
         }}
-        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium transition-colors"
+        className="text-[#00D4B3] dark:text-[#00D4B3] hover:text-[#00b89a] dark:hover:text-[#00b89a] underline font-medium transition-colors"
         {...(!isRelative && { target: '_blank', rel: 'noopener noreferrer' })}
       >
         {linkText}
@@ -1550,6 +1550,11 @@ export function AIChatAgent({
         }
 
         const data = await response.json();
+        
+        // ✅ ANALYTICS: Guardar conversationId que viene del backend
+        if (data.conversationId && !conversationId) {
+          setConversationId(data.conversationId);
+        }
 
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -1992,13 +1997,13 @@ Fecha: ${new Date().toLocaleString()}
         };
       default:
         return {
-          header: 'from-blue-600 via-indigo-600 to-blue-600',
-          accent: 'blue',
-          bubbleUser: 'from-blue-500 to-indigo-500',
-          ring: 'focus:ring-blue-500',
-          borderUser: 'border-blue-500',
-          chipBg: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
-          chipActive: 'bg-blue-500 text-white border-transparent'
+          header: 'from-[#0A2540] via-[#0A2540] to-[#0A2540]', /* Azul Profundo */
+          accent: '[#00D4B3]', // Aqua
+          bubbleUser: 'from-[#0A2540] to-[#0A2540]', /* Azul Profundo */
+          ring: 'focus:ring-[#00D4B3]', /* Aqua para focus */
+          borderUser: 'border-[#0A2540]', /* Azul Profundo */
+          chipBg: 'bg-[#00D4B3]/15 text-[#00D4B3] border border-[#00D4B3]/30', /* Aqua para chips de LIA */
+          chipActive: 'bg-[#00D4B3] text-white border-transparent' /* Aqua activo */
         };
     }
   }, [currentMode]);
@@ -2111,11 +2116,11 @@ Fecha: ${new Date().toLocaleString()}
               }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-blue-500/50 transition-all cursor-pointer border-2 border-blue-400"
+              className="relative w-16 h-16 rounded-full bg-gradient-to-r from-[#00D4B3] via-[#00D4B3] to-[#00b89a] shadow-2xl hover:shadow-[#00D4B3]/50 transition-all cursor-pointer border-2 border-[#00D4B3]"
             >
               {/* Efecto de pulso */}
               <motion.div
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-[#00D4B3] via-[#00D4B3] to-[#00b89a]"
                 animate={{
                   scale: [1, 1.2, 1],
                   opacity: [0.7, 0, 0.7],
@@ -2166,7 +2171,7 @@ Fecha: ${new Date().toLocaleString()}
               maxHeight: calculateMaxHeight,
             }}
           >
-            <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full">
+            <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-[#0A2540]/30 flex flex-col bg-white dark:bg-[#1E2329] h-full">
               {/* Header del modal de prompt */}
               <motion.div 
                 className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 p-4 relative overflow-hidden flex-shrink-0"
@@ -2226,7 +2231,7 @@ Fecha: ${new Date().toLocaleString()}
                 
                 <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <MessageSquare className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3]" />
                     <span className="text-sm">{tCommon('aiChat.promptMode.contentLabel')}</span>
                   </h4>
                   <div className="text-gray-700 dark:text-slate-300 text-sm prose prose-sm max-w-none">
@@ -2246,7 +2251,7 @@ Fecha: ${new Date().toLocaleString()}
                   onClick={handleDownloadPrompt}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm"
+                  className="w-full bg-gradient-to-r from-[#0A2540] to-[#0A2540] hover:from-[#0d2f4d] hover:to-[#0d2f4d] text-white py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-sm"
                 >
                   <Download className="w-4 h-4" />
                   {tCommon('aiChat.promptMode.download')}
@@ -2276,7 +2281,7 @@ Fecha: ${new Date().toLocaleString()}
               maxHeight: calculateMaxHeight,
             }}
           >
-        <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-carbon-700 flex flex-col bg-white dark:bg-[#0f0f0f] h-full`}>
+        <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-[#0A2540]/30 flex flex-col bg-white dark:bg-[#1E2329] h-full`}>
           {/* Header con gradiente - compacto */}
           <motion.div 
             className={`bg-gradient-to-r ${theme.header} px-2 py-2 relative flex-shrink-0`}
@@ -2491,8 +2496,8 @@ Fecha: ${new Date().toLocaleString()}
                   animate={{ opacity: 1, y: 0 }}
                   className="sticky top-0 z-10 mb-2"
                 >
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2 backdrop-blur-sm">
-                    <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
+                  <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 text-xs text-[#00D4B3] dark:text-[#00D4B3]">
                       <Brain className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="font-medium">
                         Contexto activo: {messages.length} mensaje{messages.length !== 1 ? 's' : ''} {messages.length > MAX_CONTEXT_MESSAGES ? `(mostrando últimos ${MAX_CONTEXT_MESSAGES})` : ''}
@@ -2504,7 +2509,7 @@ Fecha: ${new Date().toLocaleString()}
                           clearContextMessages();
                         }
                       }}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
+                      className="text-[#00D4B3] dark:text-[#00D4B3] hover:text-[#00b89a] dark:hover:text-[#00b89a] transition-colors"
                       title={clearContextLabel}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -2556,7 +2561,7 @@ Fecha: ${new Date().toLocaleString()}
                           sizes="40px"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                        <div className="w-full h-full bg-gradient-to-r from-[#0A2540] to-[#00D4B3] flex items-center justify-center">
                           <User className="w-6 h-6 text-white" />
                         </div>
                       )}
@@ -2577,7 +2582,7 @@ Fecha: ${new Date().toLocaleString()}
                   <div className={`flex-1 rounded-2xl px-3.5 py-3 shadow-lg ${
                     message.role === 'user'
                       ? `bg-gradient-to-r ${theme.bubbleUser} text-white`
-                      : 'bg-white dark:bg-carbon-800 text-gray-900 dark:text-white border border-gray-200 dark:border-carbon-600'
+                      : 'bg-white dark:bg-[#1E2329] text-gray-900 dark:text-white border border-gray-200 dark:border-[#0A2540]/30'
                   }`}>
                     <p className="text-[13px] leading-relaxed whitespace-pre-wrap font-medium">
                       {renderTextWithLinks(message.content)}
@@ -2644,7 +2649,7 @@ Fecha: ${new Date().toLocaleString()}
                       sizes="40px"
                     />
                   </div>
-                  <div className="bg-white dark:bg-carbon-800 border border-gray-200 dark:border-carbon-600 rounded-2xl px-4 py-3">
+                  <div className="bg-white dark:bg-[#1E2329] border border-gray-200 dark:border-[#0A2540]/30 rounded-2xl px-4 py-3">
                     <div className="flex gap-1">
                       <motion.div
                         className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
@@ -2673,7 +2678,7 @@ Fecha: ${new Date().toLocaleString()}
           {/* Input */}
           {(
             <motion.div 
-              className="p-2 border-t border-gray-200 dark:border-carbon-700 bg-white dark:bg-[#0f0f0f] flex-shrink-0"
+              className="p-2 border-t border-gray-200 dark:border-[#0A2540]/30 bg-white dark:bg-[#1E2329] flex-shrink-0"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -2693,8 +2698,8 @@ Fecha: ${new Date().toLocaleString()}
                   rows={1}
                   className={`flex-1 px-3 py-2 border ${
                     useContextMode 
-                      ? 'bg-white/90 dark:bg-[#0b0b0b] border-emerald-400 dark:border-emerald-500 ring-2 ring-emerald-400/30' 
-                      : `bg-white/90 dark:bg-[#0b0b0b] ${currentMode==='prompt' ? 'border-purple-300 ring-2 ring-purple-300/30' : currentMode==='analysis' ? 'border-emerald-300 ring-2 ring-emerald-300/30' : 'border-blue-300 ring-2 ring-blue-300/30'}`
+                      ? 'bg-white/90 dark:bg-[#1E2329] border-emerald-400 dark:border-emerald-500 ring-2 ring-emerald-400/30' 
+                      : `bg-white/90 dark:bg-[#1E2329] ${currentMode==='prompt' ? 'border-purple-300 ring-2 ring-purple-300/30' : currentMode==='analysis' ? 'border-emerald-300 ring-2 ring-emerald-300/30' : 'border-[#00D4B3] ring-2 ring-[#00D4B3]/30'}`
                   } rounded-lg focus:outline-none focus:ring-2 ${theme.ring} text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all resize-none`}
                   style={{
                     minHeight: '38px',
@@ -2726,7 +2731,7 @@ Fecha: ${new Date().toLocaleString()}
                         : `bg-gradient-to-r ${theme.bubbleUser} text-white hover:opacity-90 shadow-lg`
                       : isRecording
                       ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/50'
-                      : `${currentMode==='prompt' ? 'bg-purple-100 text-purple-600' : currentMode==='analysis' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'} hover:opacity-90`
+                      : `${currentMode==='prompt' ? 'bg-purple-100 text-purple-600' : currentMode==='analysis' ? 'bg-emerald-100 text-emerald-600' : 'bg-[#00D4B3]/20 text-[#00D4B3]'} hover:opacity-90` /* Aqua para botón de envío */
                   } ${isTyping && !!inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {isTyping && inputMessage.trim() ? (

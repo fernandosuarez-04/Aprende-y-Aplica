@@ -5,13 +5,20 @@ import { Settings, Save, RefreshCw } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 // Importación dinámica de react-grid-layout para evitar problemas SSR
-const ReactGridLayout = dynamic(
-  () => import('react-grid-layout').then(mod => mod.Responsive),
-  {
-    ssr: false,
-    loading: () => <div className="text-center py-8 text-gray-500">Cargando layout...</div>
+let ResponsiveGridLayout: any = null
+let ResponsiveLayoutWithWidth: any = null
+
+if (typeof window !== 'undefined') {
+  try {
+    const ReactGridLayout = require('react-grid-layout')
+    ResponsiveGridLayout = ReactGridLayout.Responsive || ReactGridLayout.default
+    if (ResponsiveGridLayout && ReactGridLayout.WidthProvider) {
+      ResponsiveLayoutWithWidth = ReactGridLayout.WidthProvider(ResponsiveGridLayout)
+    }
+  } catch (error) {
+    console.error('Error loading react-grid-layout:', error)
   }
-)
+}
 
 interface WidgetConfig {
   id: string
@@ -193,12 +200,11 @@ export function DashboardLayoutManager({
       </div>
 
       {/* Contenedor con react-grid-layout */}
-      {typeof window !== 'undefined' && widgets.length > 0 && currentLayout.length > 0 ? (
+      {typeof window !== 'undefined' && ResponsiveLayoutWithWidth && widgets.length > 0 && currentLayout.length > 0 ? (
         <div className="w-full">
-          <ReactGridLayout
+          <ResponsiveLayoutWithWidth
             className="layout"
             layouts={{ lg: currentLayout }}
-            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
             cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
             rowHeight={60}
             isDraggable={isEditMode}
@@ -208,17 +214,16 @@ export function DashboardLayoutManager({
             margin={[24, 24]}
             compactType={null}
             preventCollision={false}
-            width={1200}
           >
             {widgets.map((widget) => {
               // Obtener el child correspondiente del mapa
               const child = childrenMap.get(widget.id)
-
+              
               if (!child) {
                 console.warn(`Widget ${widget.id} no tiene child correspondiente. Children disponibles:`, Array.from(childrenMap.keys()))
                 return null
               }
-
+              
               // El key debe coincidir exactamente con el 'i' en el layout para que react-grid-layout funcione
               return (
                 <div key={widget.id} className="relative">
@@ -231,7 +236,7 @@ export function DashboardLayoutManager({
                 </div>
               )
             })}
-          </ReactGridLayout>
+          </ResponsiveLayoutWithWidth>
           <style dangerouslySetInnerHTML={{__html: `
             .react-grid-layout {
               position: relative;
@@ -291,23 +296,21 @@ export function DashboardLayoutManager({
       ) : widgets.length > 0 ? (
         // Fallback cuando react-grid-layout no está disponible pero hay widgets
         <div className="grid grid-cols-12 gap-6">
-          {React.Children.map(children, (child, index) => {
-            if (React.isValidElement(child)) {
-              const widget = widgets[index]
-              if (widget) {
-                const colSpan = widget.position.w
-                return (
-                  <div 
-                    key={widget.id} 
-                    className="relative"
-                    style={{ gridColumn: `span ${colSpan}` }}
-                  >
-                    {child}
-                  </div>
-                )
-              }
+          {widgets.map((widget) => {
+            const child = childrenMap.get(widget.id)
+            if (!child) {
+              return null
             }
-            return child
+            const colSpan = widget.position.w
+            return (
+              <div 
+                key={widget.id} 
+                className="relative"
+                style={{ gridColumn: `span ${colSpan}` }}
+              >
+                {child}
+              </div>
+            )
           })}
         </div>
       ) : (

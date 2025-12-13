@@ -273,20 +273,11 @@
         "description": "Tu progreso se guarda automáticamente. Puedes ver cuánto has avanzado en el curso y qué lecciones has completado.",
         "speech": "Tu progreso se guarda automáticamente. Puedes ver cuánto has avanzado en el curso y qué lecciones has completado."
       },
-      "questions": {
-        "title": "¿Tienes alguna pregunta?",
-        "description": "Antes de comenzar, si tienes alguna duda sobre cómo usar la plataforma de aprendizaje, puedes preguntarme. Haz clic en el micrófono y háblame.",
-        "speech": "Antes de comenzar, si tienes alguna duda sobre cómo usar la plataforma de aprendizaje, haz clic en el micrófono y háblame. Te responderé por voz."
-      },
       "ready": {
         "title": "¡Listo para aprender!",
         "description": "Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, LIA siempre estará disponible para ayudarte.",
         "speech": "Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, LIA siempre estará disponible para ayudarte."
       }
     }
-  },
-  "voice": {
-    "microphoneError": "Se necesita permiso para usar el micrófono",
-    "speechNotSupported": "Tu navegador no soporta reconocimiento de voz"
   }
 }

@@ -1,0 +1,131 @@
+{
+  "loading": "Analisando seus resultados...",
+  "error": {
+    "title": "Erro",
+    "backButton": "Voltar para Estatísticas",
+    "userNotAuthenticated": "Usuário não autenticado",
+    "profileNotFound": "Perfil de usuário não encontrado",
+    "loadingError": "Erro ao carregar estatísticas"
+  },
+  "difficultyModal": {
+    "title": "Atualizar Nível de Dificuldade",
+    "subtitle": "Selecione seu nível atual de uso de IA",
+    "question": "Quanto você usa IA no seu ambiente de trabalho?",
+    "required": "*",
+    "selectPlaceholder": "Selecione uma opção",
+    "options": {
+      "never": "Nunca",
+      "rarely": "Raramente (1-2 vezes por mês)",
+      "sometimes": "Às vezes (1-2 vezes por semana)",
+      "frequently": "Frequentemente (3-4 vezes por semana)",
+      "always": "Sempre (todos ou quase todos os dias)"
+    },
+    "currentLevel": "Nível atual:",
+    "nextLevelHint": "Se você acha que pode fazer o próximo nível, selecione uma opção mais alta.",
+    "cancelButton": "Cancelar",
+    "updatingButton": "Atualizando...",
+    "continueButton": "Continuar",
+    "selectOption": "Por favor selecione uma opção",
+    "authError": "Erro: Usuário não autenticado",
+    "updateError": "Erro ao atualizar dificuldade. Por favor tente novamente."
+  },
+  "header": {
+    "title": "Minhas Estatísticas",
+    "subtitle": "Análise personalizada dos seus resultados",
+    "newSurvey": "Nova Pesquisa"
+  },
+  "radar": {
+    "title": "Radar de Competências em IA",
+    "description": "Visualização das suas fortalezas por área funcional baseada no seu questionário. Cada dimensão é avaliada em uma escala de 0 a 100 pontos.",
+    "difficultyLevel": "Nível de Dificuldade:",
+    "difficultyInfo": "Seus scores estão normalizados de acordo com seu nível de dificuldade. O máximo possível para seu nível é {{max}} pontos.",
+    "difficultyAdvance": "À medida que avançar no seu conhecimento de IA, poderá alcançar níveis mais altos.",
+    "dimensionsTitle": "O que significa cada dimensão?",
+    "dimensions": {
+      "knowledge": {
+        "title": "Conhecimento",
+        "description": "Sua compreensão teórica sobre IA, conceitos fundamentais e terminologia."
+      },
+      "application": {
+        "title": "Aplicação",
+        "description": "Sua capacidade de implementar IA em casos de uso reais."
+      },
+      "productivity": {
+        "title": "Produtividade",
+        "description": "Como você usa IA para otimizar seu trabalho diário."
+      },
+      "strategy": {
+        "title": "Estratégia",
+        "description": "Sua visão sobre o impacto estratégico da IA na sua organização."
+      },
+      "investment": {
+        "title": "Investimento",
+        "description": "Sua disposição para investir em ferramentas e formação em IA."
+      }
+    }
+  },
+  "analysis": {
+    "adoption": {
+      "title": "Adoção de IA",
+      "points": "pontos"
+    },
+    "knowledge": {
+      "title": "Conhecimento Técnico",
+      "correct": "corretas"
+    }
+  },
+  "levels": {
+    "advanced": "Avançado",
+    "intermediate": "Intermediário",
+    "medium": "Médio",
+    "basic": "Básico",
+    "beginner": "Iniciante"
+  },
+  "adoptionDescriptions": {
+    "excellent": "Excelente nível de adoção de IA. Você integrou efetivamente ferramentas de IA em múltiplas áreas do seu trabalho.",
+    "good": "Bom nível de adoção de IA. Você começou a integrar ferramentas de IA em alguns aspectos do seu trabalho.",
+    "medium": "Nível médio de adoção de IA. Você está explorando algumas ferramentas de IA no seu trabalho diário.",
+    "basic": "Nível básico de adoção de IA. Você começou a experimentar algumas ferramentas de IA.",
+    "beginner": "Nível iniciante de adoção de IA. Há muitas oportunidades para começar a integrar IA no seu trabalho."
+  },
+  "knowledgeDescriptions": {
+    "excellent": "Excelente compreensão técnica de IA. Você respondeu corretamente {{correct}} de {{total}} perguntas ({{score}}%).",
+    "good": "Boa compreensão técnica de IA. Você respondeu corretamente {{correct}} de {{total}} perguntas ({{score}}%).",
+    "medium": "Compreensão média de IA. Você respondeu corretamente {{correct}} de {{total}} perguntas ({{score}}%).",
+    "basic": "Compreensão básica de IA. Você respondeu corretamente {{correct}} de {{total}} perguntas ({{score}}%).",
+    "beginner": "Compreensão iniciante de IA. Você respondeu corretamente {{correct}} de {{total}} perguntas ({{score}}%). Há oportunidades significativas para expandir seu entendimento técnico."
+  },
+  "recommendations": {
+    "title": "Recomendações Personalizadas",
+    "improvementTitle": "Melhore em: {{dimension}}",
+    "improvementDescription": "Sua pontuação em {{dimension}} é de {{score}} pontos. Concentre-se em desenvolver esta área para equilibrar seu perfil de competências.",
+    "technicalTitle": "Aprofunde seus conhecimentos técnicos",
+    "technicalDescription": "Com {{correct}}/{{total}} respostas corretas ({{score}}%), concentre-se em entender melhor os fundamentos da IA e as melhores práticas.",
+    "adoptionTitle": "Aumente sua adoção de IA",
+    "adoptionDescription": "Explore mais ferramentas de IA e procure oportunidades para integrá-las ao seu fluxo de trabalho diário."
+  },
+  "countries": {
+    "title": "Adoção de GenAI em Países Hispanófonos",
+    "description": "Índice de Adoção e Implementação de IA (AIPI) por país. Compare seu nível de adoção com a média da sua região.",
+    "yourCountry": "(Seu país)",
+    "stats": {
+      "title": "Estatísticas Gerais",
+      "countriesAnalyzed": "Países analisados:",
+      "averageAIPI": "Média AIPI:",
+      "maximum": "Máximo:",
+      "minimum": "Mínimo:",
+      "range": "Amplitude:",
+      "yourCountryLabel": "Seu país ({{country}}):",
+      "position": "Posição #{{position}} de {{total}}"
+    },
+    "methodology": {
+      "title": "Fonte e Metodologia",
+      "aipiTitle": "Metodologia AIPI",
+      "aipiDescription": "O Índice de Adoção e Implementação de IA (AIPI) avalia o nível de adoção de inteligência artificial em países hispanófonos baseando-se em métricas de implementação empresarial, uso pessoal, investimento em tecnologia e políticas públicas.",
+      "sourcesTitle": "Fontes de Dados",
+      "sourcesDescription": "• Estudos de adoção empresarial (2023-2024)\n• Pesquisas de uso pessoal de IA\n• Investimento em tecnologia por país\n• Políticas públicas de digitalização\n• Índices de inovação tecnológica",
+      "updateTitle": "Atualização",
+      "updateDescription": "Dados atualizados trimestralmente. Última atualização: Janeiro 2025"
+    }
+  }
+}

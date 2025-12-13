@@ -29,14 +29,23 @@ interface CostOverviewWidgetProps {
 
 export function CostOverviewWidget({ data, isLoading, chartType = 'area' }: CostOverviewWidgetProps) {
   const chartData = useMemo(() => {
-    return data.map((item) => ({
-      ...item,
-      date: new Date(item.date).toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: 'short',
-      }),
-      costFormatted: `$${item.cost.toFixed(4)}`,
-    }));
+    return data.map((item) => {
+      // Parsear la fecha manualmente para evitar problemas de timezone
+      // item.date viene como "2025-12-12" (formato YYYY-MM-DD)
+      const [year, month, day] = item.date.split('-').map(Number);
+      // Crear fecha usando UTC para evitar conversiones de timezone
+      const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      
+      return {
+        ...item,
+        date: date.toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: 'short',
+          timeZone: 'UTC' // Forzar interpretación UTC
+        }),
+        costFormatted: `$${item.cost.toFixed(4)}`,
+      };
+    });
   }, [data]);
 
   const totalCost = useMemo(() => {

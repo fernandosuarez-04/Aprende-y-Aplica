@@ -36,12 +36,27 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
 
-  // Sincronizar SOLO si el número de posts iniciales AUMENTA (nuevo post creado)
+  // Sincronizar cuando cambian los posts iniciales (nuevo post creado, editado o eliminado)
   useEffect(() => {
-    if (uniqueInitialPosts.length > posts.length) {
-      setPosts(uniqueInitialPosts)
-    }
-  }, [uniqueInitialPosts.length, posts.length]) // Solo depende de la longitud, no del array completo
+    const initialPostIds = new Set(uniqueInitialPosts.map(p => p.id))
+    
+    setPosts(prevPosts => {
+      // Primero, eliminar posts que ya no están en initialPosts (eliminados)
+      const filteredPosts = prevPosts.filter(p => initialPostIds.has(p.id))
+      
+      // Luego, actualizar posts existentes y agregar nuevos
+      const updatedPosts = filteredPosts.map(prevPost => {
+        const updatedPost = uniqueInitialPosts.find(p => p.id === prevPost.id)
+        return updatedPost || prevPost
+      })
+      
+      // Agregar cualquier post nuevo que no esté en prevPosts
+      const existingIds = new Set(updatedPosts.map(p => p.id))
+      const newPosts = uniqueInitialPosts.filter(p => !existingIds.has(p.id))
+      
+      return [...updatedPosts, ...newPosts]
+    })
+  }, [uniqueInitialPosts]) // Depender del array completo para detectar cambios
 
   const loadMorePosts = useCallback(async () => {
     if (loading) return
@@ -100,9 +115,14 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
           <OptimizedPostCard
             key={post.id}
             post={post}
+            communitySlug={communitySlug}
             onReact={() => {/* console.log('React to', post.id) */}}
             onComment={() => {/* console.log('Comment on', post.id) */}}
             onShare={() => {/* console.log('Share', post.id) */}}
+            onPostUpdate={onPostsUpdate ? () => {
+              // Recargar posts cuando se actualiza uno
+              loadMorePosts()
+            } : undefined}
           />
         )
       ))}

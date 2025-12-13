@@ -1,0 +1,41 @@
+{
+  "loading": "Cargando tus cursos...",
+  "header": {
+    "title": "Mi Aprendizaje",
+    "subtitle": "Continúa donde lo dejaste"
+  },
+  "stats": {
+    "totalCourses": "Total de Cursos",
+    "completed": "Completados",
+    "inProgress": "En Progreso",
+    "totalTime": "Tiempo Total"
+  },
+  "search": {
+    "placeholder": "Buscar en mis cursos..."
+  },
+  "filters": {
+    "all": "Todos",
+    "inProgress": "En Progreso",
+    "completed": "Completados",
+    "notStarted": "No Iniciados"
+  },
+  "empty": {
+    "title": "No tienes cursos aún",
+    "subtitle": "Adquiere cursos para comenzar tu aprendizaje",
+    "exploreButton": "Explorar Cursos"
+  },
+  "course": {
+    "imagePlaceholder": "Imagen del curso",
+    "completedBadge": "{{percentage}}% completado",
+    "instructor": "Por {{name}}",
+    "progress": "Progreso",
+    "continueButton": "Continuar",
+    "startButton": "Iniciar",
+    "completedStatus": "Completado"
+  },
+  "difficulty": {
+    "beginner": "Principiante",
+    "intermediate": "Intermedio",
+    "advanced": "Avanzado"
+  }
+}
