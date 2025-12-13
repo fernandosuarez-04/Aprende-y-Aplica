@@ -182,11 +182,51 @@ Puedo ayudarte a organizar tu tiempo de estudio de manera eficiente según tu di
           ...prev,
           activePlan: plan,
           isLoading: false,
-          // Agregar mensaje de bienvenida directamente aquí
+          // Mostrar mensaje de carga mientras se obtiene el análisis proactivo
           messages: prev.messages.length === 0 ? [{
-            id: `welcome-${Date.now()}`,
+            id: `loading-${Date.now()}`,
             role: 'assistant' as const,
-            content: `¡Hola! 👋 Soy LIA, tu asistente para gestionar tu plan de estudios "${plan.name}".
+            content: `¡Hola! 👋 Soy LIA. Estoy analizando tu calendario y plan de estudios... ⏳`,
+            timestamp: new Date(),
+          }] : prev.messages,
+        }));
+        
+        // Si es la primera carga, hacer una llamada proactiva a LIA para obtener análisis
+        if (state.messages.length === 0) {
+          // Obtener análisis proactivo de LIA
+          try {
+            const chatResponse = await fetch('/api/study-planner/dashboard/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: '[INICIO_PROACTIVO] El usuario acaba de abrir el dashboard. Analiza su calendario y plan de estudios. Si hay conflictos, alertas de burnout, sesiones perdidas o cualquier problema, mencionalo inmediatamente. Si todo está bien, da la bienvenida y menciona qué viene próximamente.',
+                activePlanId: plan.id,
+                conversationHistory: [],
+              }),
+            });
+            
+            const chatData = await chatResponse.json();
+            
+            if (chatData.success && chatData.response) {
+              setState(prev => ({
+                ...prev,
+                messages: [{
+                  id: `proactive-${Date.now()}`,
+                  role: 'assistant' as const,
+                  content: chatData.response,
+                  timestamp: new Date(),
+                }],
+              }));
+            }
+          } catch (chatError) {
+            console.error('Error obteniendo análisis proactivo:', chatError);
+            // Fallback al mensaje estático si falla
+            setState(prev => ({
+              ...prev,
+              messages: [{
+                id: `welcome-${Date.now()}`,
+                role: 'assistant' as const,
+                content: `¡Hola! 👋 Soy LIA, tu asistente para gestionar tu plan de estudios "${plan.name}".
 
 Puedo ayudarte a:
 • 📅 **Mover sesiones** a horarios más convenientes
@@ -195,15 +235,12 @@ Puedo ayudarte a:
 • ➕ **Crear nuevas sesiones** de estudio
 • 🔄 **Reorganizar tu semana** según tu disponibilidad
 
-Solo dime qué necesitas cambiar y yo me encargo. Por ejemplo:
-- "Mueve mi sesión del martes a las 10am"
-- "Elimina la sesión de mañana"
-- "Quiero estudiar 30 minutos más el viernes"
-
 ¿En qué te puedo ayudar hoy?`,
-            timestamp: new Date(),
-          }] : prev.messages,
-        }));
+                timestamp: new Date(),
+              }],
+            }));
+          }
+        }
       } else {
         // Respuesta sin datos válidos
         setState(prev => ({
