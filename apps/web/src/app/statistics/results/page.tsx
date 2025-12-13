@@ -1086,7 +1086,7 @@ export default function StatisticsResultsPage() {
       >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="w-20"></div> {/* Spacer izquierdo */}
+            <div className="w-20"></div>
 
             <div className="text-center">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('header.title')}</h1>

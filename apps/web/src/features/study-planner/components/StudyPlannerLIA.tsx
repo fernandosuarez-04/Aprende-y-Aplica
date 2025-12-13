@@ -6320,7 +6320,7 @@ Cuéntame:
               <div className="relative flex flex-col items-center flex-shrink-0">
                 <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 mb-1.5 sm:mb-2 md:mb-3">
                   <motion.div
-                    className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-[#00D4B3] via-[#00D4B3] to-[#00b89a] p-1 overflow-hidden" /* Aqua para LIA */
+                    className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-[#00D4B3] via-[#00D4B3] to-[#00b89a] p-1 overflow-hidden"
                     animate={{ 
                       scale: isSpeaking ? [1, 1.08, 1] : 1,
                       boxShadow: isSpeaking 
@@ -6519,7 +6519,7 @@ Cuéntame:
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1, duration: 0.4 }}
-                        className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] dark:from-[#0A2540] dark:via-[#0A2540] dark:to-[#00D4B3] bg-clip-text text-transparent leading-tight px-2" /* Azul Profundo a Aqua */
+                        className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] dark:from-[#0A2540] dark:via-[#0A2540] dark:to-[#00D4B3] bg-clip-text text-transparent leading-tight px-2"
                       >
                         {step.title}
                       </motion.h2>

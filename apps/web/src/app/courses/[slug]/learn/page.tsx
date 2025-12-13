@@ -3616,8 +3616,8 @@ Antes de cada respuesta, pregúntate:
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4 border border-[#0A2540]/30"> {/* Azul Profundo a Aqua */
-                  <BookOpen className="w-10 h-10 text-[#00D4B3]" /> {/* Aqua */
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4 border border-[#0A2540]/30">
+                  <BookOpen className="w-10 h-10 text-[#00D4B3]" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Este curso aún no tiene contenido</h3>
                 <p className="text-gray-600 dark:text-slate-400">Los módulos y lecciones se agregarán pronto</p>

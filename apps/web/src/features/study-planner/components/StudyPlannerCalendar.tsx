@@ -645,7 +645,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           {/* Botón para crear evento */}
           <button
             onClick={handleCreateEvent}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#0A2540] hover:bg-[#0d2f4d] rounded-lg transition-colors flex items-center gap-2" /* Azul Profundo */
+            className="px-4 py-2 text-sm font-medium text-white bg-[#0A2540] hover:bg-[#0d2f4d] rounded-lg transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Crear evento
