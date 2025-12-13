@@ -173,6 +173,7 @@ export function StudyPlannerLIA() {
   const [savedLessonDistribution, setSavedLessonDistribution] = useState<StoredLessonDistribution[]>([]);
   const [savedTargetDate, setSavedTargetDate] = useState<string | null>(null);
   const [savedTotalLessons, setSavedTotalLessons] = useState<number>(0);
+  const [savedPlanId, setSavedPlanId] = useState<string | null>(null); // ✅ Guardar planId cuando se guarda el plan
   
   // Estado para rastrear si ya se mostró el resumen final
   const [hasShownFinalSummary, setHasShownFinalSummary] = useState<boolean>(false);
@@ -2539,6 +2540,10 @@ export function StudyPlannerLIA() {
       const startDate = new Date();
       startDate.setHours(0, 0, 0, 0);
       
+      // ✅ CAPTURAR HORA ACTUAL para filtrar slots pasados
+      const currentTime = new Date();
+      console.log(`🕐 Hora actual capturada: ${currentTime.toLocaleString('es-ES')}`);
+      
       // Calcular fecha final: usar la fecha objetivo si existe, sino 30 días desde hoy
       let endDate = new Date();
       if (targetDateObjForEvents) {
@@ -2838,6 +2843,13 @@ export function StudyPlannerLIA() {
           // ✅ DÍA COMPLETAMENTE LIBRE - Dividir en bloques de estudio realistas
           console.log(`📅 Día completamente libre detectado: ${dayData.dayName} ${dayData.date.toLocaleDateString('es-ES')}`);
 
+          // Verificar si es el día actual para filtrar bloques pasados
+          const slotDate = new Date(dayData.date);
+          slotDate.setHours(0, 0, 0, 0);
+          const today = new Date(currentTime);
+          today.setHours(0, 0, 0, 0);
+          const isToday = slotDate.getTime() === today.getTime();
+
           // Crear bloques de estudio en horarios convenientes: mañana, tarde, noche
           // Mañana: 7 AM - 12 PM
           const morningStart = new Date(dayStart);
@@ -2857,33 +2869,61 @@ export function StudyPlannerLIA() {
           const eveningEnd = new Date(dayStart);
           eveningEnd.setHours(22, 0, 0, 0);
 
-          // Agregar bloque de la mañana (7am - 12pm = 5 horas)
-          dayData.freeSlots.push({
-            start: new Date(morningStart),
-            end: new Date(morningEnd),
-            durationMinutes: 300, // 5 horas
-          });
+          // Agregar bloque de la mañana (7am - 12pm = 5 horas) solo si no ha pasado
+          if (!isToday || morningStart.getTime() > currentTime.getTime()) {
+            dayData.freeSlots.push({
+              start: new Date(morningStart),
+              end: new Date(morningEnd),
+              durationMinutes: 300, // 5 horas
+            });
+          } else {
+            console.log(`   ⏰ Bloque mañana filtrado (ya pasó): 7am - 12pm`);
+          }
 
-          // Agregar bloque de la tarde (12pm - 6pm = 6 horas)
-          dayData.freeSlots.push({
-            start: new Date(afternoonStart),
-            end: new Date(afternoonEnd),
-            durationMinutes: 360, // 6 horas
-          });
+          // Agregar bloque de la tarde (12pm - 6pm = 6 horas) solo si no ha pasado
+          if (!isToday || afternoonStart.getTime() > currentTime.getTime()) {
+            dayData.freeSlots.push({
+              start: new Date(afternoonStart),
+              end: new Date(afternoonEnd),
+              durationMinutes: 360, // 6 horas
+            });
+          } else {
+            console.log(`   ⏰ Bloque tarde filtrado (ya pasó): 12pm - 6pm`);
+          }
 
-          // Agregar bloque de la noche (6pm - 10pm = 4 horas)
-          dayData.freeSlots.push({
-            start: new Date(eveningStart),
-            end: new Date(eveningEnd),
-            durationMinutes: 240, // 4 horas
-          });
+          // Agregar bloque de la noche (6pm - 10pm = 4 horas) solo si no ha pasado
+          if (!isToday || eveningStart.getTime() > currentTime.getTime()) {
+            dayData.freeSlots.push({
+              start: new Date(eveningStart),
+              end: new Date(eveningEnd),
+              durationMinutes: 240, // 4 horas
+            });
+          } else {
+            console.log(`   ⏰ Bloque noche filtrado (ya pasó): 6pm - 10pm`);
+          }
 
-          console.log(`   ✅ 3 bloques creados: Mañana (5h), Tarde (6h), Noche (4h) = 15h totales`);
+          console.log(`   ✅ ${dayData.freeSlots.length} bloques creados (de 3 posibles): Mañana (5h), Tarde (6h), Noche (4h)`);
         } else {
           // Día con eventos - encontrar huecos entre eventos
+          // Verificar si es el día actual para filtrar huecos pasados
+          const slotDate = new Date(dayData.date);
+          slotDate.setHours(0, 0, 0, 0);
+          const today = new Date(currentTime);
+          today.setHours(0, 0, 0, 0);
+          const isToday = slotDate.getTime() === today.getTime();
+          
           // Asegurar que lastEnd no sea antes de las 7 AM
           if (lastEnd.getHours() < 7) {
             lastEnd.setHours(7, 0, 0, 0);
+          }
+          
+          // Si es el día actual, asegurar que lastEnd no sea antes de la hora actual
+          if (isToday && lastEnd.getTime() < currentTime.getTime()) {
+            lastEnd = new Date(currentTime);
+            // Asegurar que no sea antes de las 7 AM
+            if (lastEnd.getHours() < 7) {
+              lastEnd.setHours(7, 0, 0, 0);
+            }
           }
           
           dayData.busySlots.forEach(slot => {
@@ -2892,6 +2932,11 @@ export function StudyPlannerLIA() {
               const gapStart = new Date(Math.max(lastEnd.getTime(), dayStart.getTime()));
               if (gapStart.getHours() < 7) {
                 gapStart.setHours(7, 0, 0, 0);
+              }
+              
+              // Si es el día actual, asegurar que el hueco no comience antes de la hora actual
+              if (isToday && gapStart.getTime() < currentTime.getTime()) {
+                gapStart.setTime(currentTime.getTime());
               }
               
               // Asegurar que el fin del hueco no sea después de las 10 PM
@@ -2921,6 +2966,15 @@ export function StudyPlannerLIA() {
             // Asegurar que lastEnd no sea antes de las 7 AM
             if (lastEnd.getHours() < 7) {
               lastEnd.setHours(7, 0, 0, 0);
+            }
+            
+            // Si es el día actual, asegurar que lastEnd no sea antes de la hora actual
+            if (isToday && lastEnd.getTime() < currentTime.getTime()) {
+              lastEnd = new Date(currentTime);
+              // Asegurar que no sea antes de las 7 AM
+              if (lastEnd.getHours() < 7) {
+                lastEnd.setHours(7, 0, 0, 0);
+              }
             }
             
             const gapMinutes = (finalDayEnd.getTime() - lastEnd.getTime()) / (1000 * 60);
@@ -3028,6 +3082,47 @@ export function StudyPlannerLIA() {
         restReason?: string | null;
       };
       
+      // ✅ FUNCIÓN HELPER: Filtrar slots que ya pasaron en el día actual
+      /**
+       * Filtra slots que ya pasaron en el día actual.
+       * Si un slot es del día actual pero su hora de inicio ya pasó, se excluye.
+       * @param slots Array de slots a filtrar
+       * @param currentTime Hora actual del sistema
+       * @returns Array de slots válidos (que no han pasado)
+       */
+      const filterPastSlots = (slots: FreeSlotWithDay[], currentTime: Date): FreeSlotWithDay[] => {
+        const today = new Date(currentTime);
+        today.setHours(0, 0, 0, 0);
+        
+        return slots.filter(slot => {
+          const slotDate = new Date(slot.date);
+          slotDate.setHours(0, 0, 0, 0);
+          
+          // Si el slot es de un día futuro, siempre es válido
+          if (slotDate.getTime() > today.getTime()) {
+            return true;
+          }
+          
+          // Si el slot es del día actual, verificar que la hora de inicio no haya pasado
+          if (slotDate.getTime() === today.getTime()) {
+            const slotStartTime = slot.start.getTime();
+            const currentTimeMs = currentTime.getTime();
+            
+            // El slot es válido solo si su hora de inicio es en el futuro
+            const isValid = slotStartTime > currentTimeMs;
+            
+            if (!isValid) {
+              console.log(`   ⏰ Slot filtrado (ya pasó): ${slot.dayName} ${slot.start.toLocaleTimeString('es-ES')} - ${slot.end.toLocaleTimeString('es-ES')}`);
+            }
+            
+            return isValid;
+          }
+          
+          // Si el slot es de un día pasado, excluirlo
+          return false;
+        });
+      };
+      
       // Obtener la duración mínima recomendada según el enfoque
       const minSessionDuration = profileAvailability?.recommendedSessionLength || 30;
       
@@ -3075,7 +3170,37 @@ export function StudyPlannerLIA() {
             date: day.date,
             requiresRest: day.requiresRestAfter,
             restReason: day.restReason,
-          }));
+          }))
+          // ✅ FILTRAR SLOTS QUE YA PASARON EN EL DÍA ACTUAL
+          .filter(slot => {
+            const slotDate = new Date(slot.date);
+            slotDate.setHours(0, 0, 0, 0);
+            const today = new Date(currentTime);
+            today.setHours(0, 0, 0, 0);
+            
+            // Si el slot es de un día futuro, siempre es válido
+            if (slotDate.getTime() > today.getTime()) {
+              return true;
+            }
+            
+            // Si el slot es del día actual, verificar que la hora de inicio no haya pasado
+            if (slotDate.getTime() === today.getTime()) {
+              const slotStartTime = slot.start.getTime();
+              const currentTimeMs = currentTime.getTime();
+              
+              // El slot es válido solo si su hora de inicio es en el futuro
+              const isValid = slotStartTime > currentTimeMs;
+              
+              if (!isValid) {
+                console.log(`   ⏰ Slot filtrado (ya pasó): ${slot.dayName} ${slot.start.toLocaleTimeString('es-ES')} - ${slot.end.toLocaleTimeString('es-ES')}`);
+              }
+              
+              return isValid;
+            }
+            
+            // Si el slot es de un día pasado, excluirlo
+            return false;
+          });
 
         if (validSlots.length > 0) {
           // Ordenar los slots del día por calidad
@@ -3555,6 +3680,36 @@ export function StudyPlannerLIA() {
       const MIN_SLOT_DURATION = 25; // Duración mínima de una lección
       const finalSlots: FreeSlotWithDay[] = validDateSlots
         .filter(slot => slot.durationMinutes >= MIN_SLOT_DURATION)
+        // ✅ FILTRAR SLOTS QUE YA PASARON EN EL DÍA ACTUAL
+        .filter(slot => {
+          const slotDate = new Date(slot.date);
+          slotDate.setHours(0, 0, 0, 0);
+          const today = new Date(currentTime);
+          today.setHours(0, 0, 0, 0);
+          
+          // Si el slot es de un día futuro, siempre es válido
+          if (slotDate.getTime() > today.getTime()) {
+            return true;
+          }
+          
+          // Si el slot es del día actual, verificar que la hora de inicio no haya pasado
+          if (slotDate.getTime() === today.getTime()) {
+            const slotStartTime = slot.start.getTime();
+            const currentTimeMs = currentTime.getTime();
+            
+            // El slot es válido solo si su hora de inicio es en el futuro
+            const isValid = slotStartTime > currentTimeMs;
+            
+            if (!isValid) {
+              console.log(`   ⏰ Slot final filtrado (ya pasó): ${slot.dayName} ${slot.start.toLocaleTimeString('es-ES')} - ${slot.end.toLocaleTimeString('es-ES')}`);
+            }
+            
+            return isValid;
+          }
+          
+          // Si el slot es de un día pasado, excluirlo
+          return false;
+        })
         .sort((a, b) => a.date.getTime() - b.date.getTime()); // Ordenar cronológicamente
 
       console.log(`   Slots con duración mínima (${MIN_SLOT_DURATION} min): ${finalSlots.length}`);
@@ -5068,8 +5223,419 @@ Cuéntame:
     return null;
   };
 
+  // Función para parsear la respuesta de LIA y extraer horarios
+  const parseLiaScheduleResponse = (liaResponse: string): StoredLessonDistribution[] | null => {
+    try {
+      // Detectar si la respuesta contiene horarios (buscar patrones de fechas y horas)
+      // Patrones mejorados para detectar más formatos
+      const hasSchedulePatterns = /(?:lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\s+\d{1,2}/i.test(liaResponse) ||
+                                  /\d{1,2}\s+(?:de\s+)?(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/i.test(liaResponse) ||
+                                  /\d{1,2}\/\d{1,2}\/\d{4}/.test(liaResponse) ||
+                                  /(?:de\s+)?\d{1,2}:\d{2}\s+(?:a\.?m\.?|p\.?m\.?|a\s+las?\s+\d{1,2})/i.test(liaResponse) ||
+                                  /\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)\s+(?:a|hasta)\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)/i.test(liaResponse) ||
+                                  /horario/i.test(liaResponse) && /\d{1,2}/.test(liaResponse);
+
+      if (!hasSchedulePatterns) {
+        console.log('   ⚠️ No se detectaron patrones de horarios en la respuesta');
+        return null; // No hay horarios en la respuesta
+      }
+
+      console.log('🔍 Detectados patrones de horarios en respuesta de LIA, parseando...');
+
+      const extractedSchedules: StoredLessonDistribution[] = [];
+      
+      // Nombres de días y meses en español
+      const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+      const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      // Abreviaciones de meses (ej: "dic" para "diciembre")
+      const monthAbbreviations: { [key: string]: number } = {
+        'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
+        'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11
+      };
+      
+      // Función para parsear fecha desde texto
+      const parseDate = (dateText: string): { date: Date; dateStr: string; dayName: string } | null => {
+        const lowerText = dateText.toLowerCase().trim();
+        console.log(`   📅 parseDate intentando parsear: "${dateText}" (lower: "${lowerText}")`);
+        
+        // Patrón 1: "Lunes 15 de diciembre de 2024" o "Lunes 15 de diciembre"
+        const pattern1 = /(lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\s+(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?/i;
+        const match1 = lowerText.match(pattern1);
+        if (match1) {
+          const dayName = match1[1];
+          const day = parseInt(match1[2]);
+          const monthName = match1[3];
+          const year = match1[4] ? parseInt(match1[4]) : new Date().getFullYear();
+          const month = monthNames.findIndex(m => m === monthName.toLowerCase());
+          
+          if (month >= 0 && day >= 1 && day <= 31) {
+            const date = new Date(year, month, day);
+            if (!isNaN(date.getTime())) {
+              return {
+                date,
+                dateStr: `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+                dayName: dayName.charAt(0).toUpperCase() + dayName.slice(1)
+              };
+            }
+          }
+        }
+        
+        // Patrón 1b: "Sábado 13 dic" o "Lunes 15 dic" (con abreviación de mes, sin "de")
+        const pattern1b = /(lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\s+(\d{1,2})\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)(?:\s+de\s+(\d{4}))?/i;
+        const match1b = lowerText.match(pattern1b);
+        if (match1b) {
+          const dayName = match1b[1];
+          const day = parseInt(match1b[2]);
+          const monthAbbr = match1b[3].toLowerCase();
+          const year = match1b[4] ? parseInt(match1b[4]) : new Date().getFullYear();
+          const month = monthAbbreviations[monthAbbr];
+          
+          if (month !== undefined && day >= 1 && day <= 31) {
+            const date = new Date(year, month, day);
+            if (!isNaN(date.getTime())) {
+              return {
+                date,
+                dateStr: `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+                dayName: dayName.charAt(0).toUpperCase() + dayName.slice(1)
+              };
+            }
+          }
+        }
+        
+        // Patrón 2: "15/12/2024" o "15/12"
+        const pattern2 = /(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/;
+        const match2 = lowerText.match(pattern2);
+        if (match2) {
+          const day = parseInt(match2[1]);
+          const month = parseInt(match2[2]) - 1;
+          const year = match2[3] ? parseInt(match2[3]) : new Date().getFullYear();
+          
+          if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+            const date = new Date(year, month, day);
+            if (!isNaN(date.getTime())) {
+              const dayOfWeek = date.getDay();
+              return {
+                date,
+                dateStr: `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+                dayName: dayNames[dayOfWeek]
+              };
+            }
+          }
+        }
+        
+        // Patrón 3: "15 de diciembre" (sin día de la semana)
+        const pattern3 = /(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?/i;
+        const match3 = lowerText.match(pattern3);
+        if (match3) {
+          const day = parseInt(match3[1]);
+          const monthName = match3[2];
+          const year = match3[3] ? parseInt(match3[3]) : new Date().getFullYear();
+          const month = monthNames.findIndex(m => m === monthName.toLowerCase());
+          
+          if (month >= 0 && day >= 1 && day <= 31) {
+            const date = new Date(year, month, day);
+            if (!isNaN(date.getTime())) {
+              const dayOfWeek = date.getDay();
+              return {
+                date,
+                dateStr: `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+                dayName: dayNames[dayOfWeek]
+              };
+            }
+          }
+        }
+        
+        return null;
+      };
+      
+      // Función para parsear hora desde texto
+      const parseTime = (timeText: string): { hours: number; minutes: number } | null => {
+        const lowerText = timeText.toLowerCase().trim();
+        console.log(`   🕐 parseTime intentando parsear: "${timeText}" (lower: "${lowerText}")`);
+        
+        // Patrón 1: "6:00 p.m." o "6:00 pm" o "05:00 p. m." (con espacios) o "18:00"
+        const pattern1 = /(\d{1,2}):(\d{2})\s*(a\.?\s*m\.?|p\.?\s*m\.?)?/i;
+        const match1 = lowerText.match(pattern1);
+        if (match1) {
+          let hours = parseInt(match1[1]);
+          const minutes = parseInt(match1[2]);
+          const periodRaw = match1[3];
+          // Normalizar period: remover espacios y puntos, luego verificar si es PM o AM
+          const period = periodRaw ? periodRaw.toLowerCase().replace(/\s+/g, '').replace(/\./g, '') : '';
+          
+          // Si tiene "p" y no tiene "a", es PM
+          if (period && period.includes('p') && !period.includes('a')) {
+            if (hours !== 12) {
+              hours += 12;
+            }
+          } else if (period && period.includes('a') && !period.includes('p')) {
+            // Si tiene "a" y no tiene "p", es AM
+            if (hours === 12) {
+              hours = 0;
+            }
+          }
+          
+          if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+            return { hours, minutes };
+          }
+        }
+        
+        // Patrón 2: "6pm" o "6 pm" o "6 p. m." (con espacios) o "18"
+        const pattern2 = /(\d{1,2})\s*(a\.?\s*m\.?|p\.?\s*m\.?)?/i;
+        const match2 = lowerText.match(pattern2);
+        if (match2) {
+          let hours = parseInt(match2[1]);
+          const period = match2[2]?.toLowerCase().replace(/\s+/g, '');
+          
+          if (period?.includes('p') && hours !== 12) {
+            hours += 12;
+          } else if (period?.includes('a') && hours === 12) {
+            hours = 0;
+          }
+          
+          if (hours >= 0 && hours <= 23) {
+            return { hours, minutes: 0 };
+          }
+        }
+        
+        return null;
+      };
+      
+      // Buscar bloques de horarios en la respuesta
+      // Patrón mejorado: "Lunes 15 de diciembre de 02:00 p.m. a 04:30 p.m." o similar
+      // También detecta formatos como "**Lunes 15 de diciembre** de 02:00 p.m. a 04:30 p.m."
+      // Y formatos como "Sábado 13 dic a las 05:00 p. m. - 06:00 p. m."
+      // Patrón más flexible que permite espacios y variaciones
+      const scheduleBlockPattern = /(?:\*\*)?((?:lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\s+\d{1,2}(?:\s+de\s+)?(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)(?:\s+de\s+\d{4})?)(?:\*\*)?[^\n]{0,200}?(?:a\s+las?\s+)?(\d{1,2}(?::\d{2})?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)?)\s+(?:a|hasta|hasta las?|-)\s+(\d{1,2}(?::\d{2})?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)?)/gi;
+      
+      let match;
+      while ((match = scheduleBlockPattern.exec(liaResponse)) !== null) {
+        const dateText = match[1].trim();
+        const startTimeText = match[2].trim();
+        const endTimeText = match[3].trim();
+        
+        console.log(`   🔍 Intentando parsear: "${dateText}" -> "${startTimeText}" - "${endTimeText}"`);
+        
+        const dateInfo = parseDate(dateText);
+        const startTime = parseTime(startTimeText);
+        const endTime = parseTime(endTimeText);
+        
+        console.log(`   📅 Fecha parseada:`, dateInfo ? `${dateInfo.dateStr} (${dateInfo.dayName})` : 'null');
+        console.log(`   🕐 Hora inicio parseada:`, startTime ? `${startTime.hours}:${startTime.minutes}` : 'null');
+        console.log(`   🕐 Hora fin parseada:`, endTime ? `${endTime.hours}:${endTime.minutes}` : 'null');
+        
+        if (dateInfo && startTime && endTime) {
+          // Buscar lecciones asociadas a este horario (en las siguientes líneas)
+          const matchEnd = match.index + match[0].length;
+          const nextLines = liaResponse.substring(matchEnd, matchEnd + 500).split('\n').slice(0, 10);
+          const lessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
+          
+          for (const line of nextLines) {
+            // Detener si encontramos otro horario
+            if (/^(?:lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\s+\d{1,2}/i.test(line.trim())) {
+              break;
+            }
+            
+            // Buscar lecciones - patrones mejorados
+            // Formato: "• Lección 4: Introducción..." o "Lección 5: ..." o "- Lección 6: ..."
+            const lessonPatterns = [
+              /(?:•\s*|-?\s*)?(?:Lección\s+)?(\d+)[:\.]?\s*(.+?)(?:\n|$)/i,
+              /(?:•\s*|-?\s*)?Lección\s+(\d+)[:\.]?\s*(.+)/i,
+              /(?:•\s*|-?\s*)?(\d+)[:\.]\s*(.+)/i, // Formato simple: "4: Título"
+            ];
+            
+            for (const pattern of lessonPatterns) {
+              const lessonMatch = line.match(pattern);
+              if (lessonMatch) {
+                const lessonOrderIndex = parseInt(lessonMatch[1]) || 0;
+                const lessonTitle = lessonMatch[2].trim();
+                // Limpiar el título de caracteres especiales al inicio/final
+                const cleanTitle = lessonTitle.replace(/^[•\-\s]+/, '').replace(/[•\-\s]+$/, '').trim();
+                
+                // ✅ CRÍTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
+                // Un título válido debe tener más que solo el número de lección
+                const isOnlyLessonNumber = /^lección\s*\d+[:\-\.]?\s*$/i.test(cleanTitle) || 
+                                          /^lección\s*\d+[:\-\.]?\s*lección\s*\d+/i.test(cleanTitle);
+                
+                if (cleanTitle && cleanTitle.length > 3 && !isOnlyLessonNumber) {
+                  lessons.push({
+                    courseTitle: 'Curso',
+                    lessonTitle: cleanTitle,
+                    lessonOrderIndex
+                  });
+                  console.log(`   📚 Lección extraída: ${lessonOrderIndex} - "${cleanTitle}"`);
+                  break; // Solo agregar una vez
+                } else {
+                  console.log(`   ⚠️ Título de lección inválido o solo número: "${cleanTitle}"`);
+                }
+              }
+            }
+          }
+          
+          extractedSchedules.push({
+            dateStr: dateInfo.dateStr,
+            dayName: dateInfo.dayName,
+            startTime: `${String(startTime.hours).padStart(2, '0')}:${String(startTime.minutes).padStart(2, '0')}`,
+            endTime: `${String(endTime.hours).padStart(2, '0')}:${String(endTime.minutes).padStart(2, '0')}`,
+            lessons
+          });
+        }
+      }
+      
+      // Si no encontramos bloques completos, intentar buscar patrones más simples línea por línea
+      if (extractedSchedules.length === 0) {
+        const lines = liaResponse.split('\n');
+        let currentDate: { date: Date; dateStr: string; dayName: string } | null = null;
+        let currentStartTime: { hours: number; minutes: number } | null = null;
+        let currentEndTime: { hours: number; minutes: number } | null = null;
+        let currentLessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          // Buscar fecha en la línea
+          const dateInfo = parseDate(line);
+          if (dateInfo) {
+            // Guardar el horario anterior si existe
+            if (currentDate && currentStartTime && currentEndTime) {
+              extractedSchedules.push({
+                dateStr: currentDate.dateStr,
+                dayName: currentDate.dayName,
+                startTime: `${String(currentStartTime.hours).padStart(2, '0')}:${String(currentStartTime.minutes).padStart(2, '0')}`,
+                endTime: `${String(currentEndTime.hours).padStart(2, '0')}:${String(currentEndTime.minutes).padStart(2, '0')}`,
+                lessons: currentLessons
+              });
+            }
+            
+            // Iniciar nuevo horario
+            currentDate = dateInfo;
+            currentStartTime = null;
+            currentEndTime = null;
+            currentLessons = [];
+            continue;
+          }
+          
+          // Buscar horario en formato "de 6:00 p.m. a 8:00 p.m." o "6pm a 8pm" o "18:00 a 20:00" o "05:00 p. m. - 06:00 p. m."
+          const timeRangePattern = /(?:de\s+)?(\d{1,2}(?::\d{2})?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)?)\s+(?:a|hasta|hasta las?|-)\s+(\d{1,2}(?::\d{2})?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)?)/i;
+          const timeRangeMatch = line.match(timeRangePattern);
+          if (timeRangeMatch && currentDate) {
+            const startTime = parseTime(timeRangeMatch[1]);
+            const endTime = parseTime(timeRangeMatch[2]);
+            if (startTime && endTime) {
+              currentStartTime = startTime;
+              currentEndTime = endTime;
+            }
+            continue;
+          }
+          
+          // Buscar horario individual "a las 6:00 p.m." o "6pm" o "a las 05:00 p. m."
+          if (currentDate && !currentStartTime) {
+            const timePattern = /(?:a\s+las?\s+)?(\d{1,2}(?::\d{2})?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)?)/i;
+            const timeMatch = line.match(timePattern);
+            if (timeMatch) {
+              const time = parseTime(timeMatch[1]);
+              if (time) {
+                currentStartTime = time;
+                // Asumir duración de 45 minutos por defecto si no se especifica
+                const endTime = new Date(2000, 0, 1, time.hours, time.minutes);
+                endTime.setMinutes(endTime.getMinutes() + 45);
+                currentEndTime = { hours: endTime.getHours(), minutes: endTime.getMinutes() };
+              }
+            }
+          }
+          
+          // Buscar lecciones mencionadas: "• Lección 4: Introducción..." o "Lección 5: ..."
+          if (currentDate && (line.includes('Lección') || line.includes('lección') || line.startsWith('•') || line.startsWith('-'))) {
+            const lessonPatterns = [
+              /(?:•\s*|-?\s*)?(?:Lección\s+)?(\d+)[:\.]?\s*(.+)/i,
+              /(?:•\s*|-?\s*)?Lección\s+(\d+)[:\.]?\s*(.+)/i,
+              /(?:•\s*|-?\s*)?(\d+)[:\.]\s*(.+)/i, // Formato simple: "4: Título"
+            ];
+            
+            for (const pattern of lessonPatterns) {
+              const lessonMatch = line.match(pattern);
+              if (lessonMatch) {
+                const lessonOrderIndex = parseInt(lessonMatch[1]) || 0;
+                const lessonTitle = lessonMatch[2].trim();
+                // Limpiar el título de caracteres especiales al inicio/final
+                const cleanTitle = lessonTitle.replace(/^[•\-\s]+/, '').replace(/[•\-\s]+$/, '').trim();
+                
+                // ✅ CRÍTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
+                // Un título válido debe tener más que solo el número de lección
+                const isOnlyLessonNumber = /^lección\s*\d+[:\-\.]?\s*$/i.test(cleanTitle) || 
+                                          /^lección\s*\d+[:\-\.]?\s*lección\s*\d+/i.test(cleanTitle);
+                
+                if (cleanTitle && cleanTitle.length > 3 && !isOnlyLessonNumber) {
+                  currentLessons.push({
+                    courseTitle: 'Curso',
+                    lessonTitle: cleanTitle,
+                    lessonOrderIndex
+                  });
+                  console.log(`   📚 Lección extraída (línea por línea): ${lessonOrderIndex} - "${cleanTitle}"`);
+                  break; // Solo agregar una vez
+                } else {
+                  console.log(`   ⚠️ Título de lección inválido o solo número (línea por línea): "${cleanTitle}"`);
+                }
+              }
+            }
+          }
+        }
+        
+        // Guardar el último horario si existe
+        if (currentDate && currentStartTime && currentEndTime) {
+          extractedSchedules.push({
+            dateStr: currentDate.dateStr,
+            dayName: currentDate.dayName,
+            startTime: `${String(currentStartTime.hours).padStart(2, '0')}:${String(currentStartTime.minutes).padStart(2, '0')}`,
+            endTime: `${String(currentEndTime.hours).padStart(2, '0')}:${String(currentEndTime.minutes).padStart(2, '0')}`,
+            lessons: currentLessons
+          });
+        }
+      }
+      
+      if (extractedSchedules.length > 0) {
+        console.log(`✅ Extraídos ${extractedSchedules.length} horarios de la respuesta de LIA`);
+        console.log(`   Primeros 3 horarios extraídos:`, extractedSchedules.slice(0, 3).map(s => ({
+          fecha: s.dateStr,
+          hora: `${s.startTime}-${s.endTime}`,
+          lecciones: s.lessons.length
+        })));
+        return extractedSchedules;
+      }
+      
+      // Si detectamos patrones pero no extrajimos horarios, loguear para debugging
+      if (hasSchedulePatterns) {
+        console.warn('⚠️ Se detectaron patrones de horarios pero no se extrajeron horarios válidos');
+        console.warn('   Respuesta de LIA (primeros 500 caracteres):', liaResponse.substring(0, 500));
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('❌ Error parseando respuesta de LIA:', error);
+      return null;
+    }
+  };
+
   // Función para guardar el plan de estudios en la base de datos
   const saveStudyPlan = async () => {
+    // ✅ VALIDACIÓN CRÍTICA: Verificar que savedLessonDistribution tenga datos
+    console.log('💾 Iniciando guardado de plan de estudios...');
+    console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
+    
+    if (savedLessonDistribution.length === 0) {
+      throw new Error('No hay horarios para guardar. savedLessonDistribution está vacío.');
+    }
+    
+    // ✅ LOGGING: Mostrar qué se va a guardar
+    console.log('📋 Horarios que se van a guardar:');
+    savedLessonDistribution.slice(0, 5).forEach((slot, idx) => {
+      console.log(`   ${idx + 1}. ${slot.dateStr} ${slot.startTime}-${slot.endTime} (${slot.lessons.length} lecciones)`);
+    });
+    if (savedLessonDistribution.length > 5) {
+      console.log(`   ... y ${savedLessonDistribution.length - 5} más`);
+    }
+    
     try {
       // Obtener preferencias del usuario o usar valores por defecto
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -5438,6 +6004,12 @@ Cuéntame:
         throw new Error(saveData.error || 'Error al guardar el plan');
       }
       
+      // ✅ Guardar planId para poder actualizar sesiones después
+      if (saveData.data?.planId) {
+        setSavedPlanId(saveData.data.planId);
+        console.log(`✅ PlanId guardado: ${saveData.data.planId}`);
+      }
+      
       // ✅ CORRECCIÓN: Si hay calendario conectado, sincronizar las sesiones con mejor manejo de errores
       if (connectedCalendar && saveData.data?.planId && saveData.data?.sessionIds && saveData.data.sessionIds.length > 0) {
         try {
@@ -5685,6 +6257,176 @@ Cuéntame:
         setIsProcessing(false);
         return;
       }
+      
+      // ✅ ACTUALIZAR savedLessonDistribution con los nuevos horarios (si no hay conflictos)
+      // Si llegamos aquí, no hay conflictos (ya retornamos antes si los había)
+      console.log(`✅ Actualizando horarios en savedLessonDistribution (sin conflictos)`);
+      
+      const updatedDistribution = savedLessonDistribution.map(slot => {
+        if (slot.startTime && slot.endTime) {
+          const originalTimeMatch = slot.startTime.match(/(\d{1,2}):(\d{2})/);
+          if (originalTimeMatch) {
+            const originalHour = parseInt(originalTimeMatch[1]);
+            
+            // Si coincide con la hora que quiere cambiar
+            if (originalHour === timeChange.oldHour) {
+              // Crear nuevo horario con la hora cambiada
+              const dateParts = slot.dateStr.split('-');
+              const slotDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+              
+              const newStartTime = new Date(slotDate);
+              newStartTime.setHours(timeChange.newHour || originalHour, parseInt(originalTimeMatch[2]), 0);
+              
+              // Calcular hora de fin (mantener la duración original)
+              const originalEndTimeMatch = slot.endTime.match(/(\d{1,2}):(\d{2})/);
+              if (originalEndTimeMatch) {
+                const originalEndHour = parseInt(originalEndTimeMatch[1]);
+                const originalEndMin = parseInt(originalEndTimeMatch[2]);
+                const durationMinutes = (originalEndHour * 60 + originalEndMin) - (originalHour * 60 + parseInt(originalTimeMatch[2]));
+                
+                const newEndTime = new Date(newStartTime);
+                newEndTime.setMinutes(newEndTime.getMinutes() + durationMinutes);
+                
+                // Formatear nuevos horarios como strings (HH:MM) en formato 24h
+                const newStartTimeStr = `${newStartTime.getHours().toString().padStart(2, '0')}:${newStartTime.getMinutes().toString().padStart(2, '0')}`;
+                const newEndTimeStr = `${newEndTime.getHours().toString().padStart(2, '0')}:${newEndTime.getMinutes().toString().padStart(2, '0')}`;
+                
+                console.log(`   📝 Actualizando slot ${slot.dateStr}: ${slot.startTime}-${slot.endTime} → ${newStartTimeStr}-${newEndTimeStr}`);
+                
+                return {
+                  ...slot,
+                  startTime: newStartTimeStr,
+                  endTime: newEndTimeStr,
+                };
+              }
+            }
+          }
+        }
+        return slot;
+      });
+      
+      // Contar cuántos slots se actualizaron realmente
+      let updatedCount = 0;
+      updatedDistribution.forEach((slot, index) => {
+        const original = savedLessonDistribution[index];
+        if (original && (slot.startTime !== original.startTime || slot.endTime !== original.endTime)) {
+          updatedCount++;
+        }
+      });
+      
+      // Actualizar el estado con los horarios modificados solo si hubo cambios
+      if (updatedCount > 0) {
+        setSavedLessonDistribution(updatedDistribution);
+        
+        // ✅ ACTUALIZAR SESIONES EN LA BD si hay un plan guardado
+        // Si no hay savedPlanId en el estado, intentar obtener el plan activo del usuario
+        let planIdToUse = savedPlanId;
+        
+        if (!planIdToUse) {
+          try {
+            console.log(`📋 No hay savedPlanId, obteniendo plan activo del usuario...`);
+            const planResponse = await fetch('/api/study-planner/active-plan');
+            if (planResponse.ok) {
+              const planData = await planResponse.json();
+              if (planData.planId) {
+                planIdToUse = planData.planId;
+                setSavedPlanId(planIdToUse);
+                console.log(`✅ Plan activo obtenido: ${planIdToUse}`);
+              }
+            }
+          } catch (error) {
+            console.warn(`⚠️ No se pudo obtener el plan activo:`, error);
+          }
+        }
+        
+        if (planIdToUse) {
+          try {
+            console.log(`📝 Actualizando ${updatedCount} sesiones en la BD para plan ${planIdToUse}...`);
+            
+            // Preparar actualizaciones para el endpoint
+            const updates = updatedDistribution
+              .map((slot, index) => {
+                const original = savedLessonDistribution[index];
+                // Solo incluir slots que realmente cambiaron
+                if (original && (slot.startTime !== original.startTime || slot.endTime !== original.endTime)) {
+                  return {
+                    dateStr: slot.dateStr,
+                    originalStartTime: original.startTime,
+                    newStartTime: slot.startTime,
+                    newEndTime: slot.endTime,
+                  };
+                }
+                return null;
+              })
+              .filter((update): update is NonNullable<typeof update> => update !== null);
+
+            if (updates.length > 0) {
+              console.log(`📤 Enviando ${updates.length} actualizaciones a la BD:`, updates);
+              
+              const updateResponse = await fetch('/api/study-planner/sessions/update', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  planId: planIdToUse,
+                  updates: updates,
+                }),
+              });
+
+              if (updateResponse.ok) {
+                const updateData = await updateResponse.json();
+                console.log(`📥 Respuesta de actualización:`, updateData);
+                
+                if (updateData.success) {
+                  console.log(`✅ ${updateData.data.updatedCount} sesiones actualizadas en la BD de ${updateData.data.totalUpdates} intentadas`);
+                  
+                  if (updateData.data.errors && updateData.data.errors.length > 0) {
+                    console.warn(`⚠️ Errores al actualizar:`, updateData.data.errors);
+                    // Informar al usuario sobre errores
+                    const errorMsg = `Se actualizaron ${updateData.data.updatedCount} de ${updateData.data.totalUpdates} horarios. Algunos no se pudieron actualizar.`;
+                    setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+                  }
+                  
+                  // Si hay calendario conectado, re-sincronizar las sesiones actualizadas
+                  if (connectedCalendar) {
+                    // Obtener los IDs de las sesiones actualizadas para re-sincronizar
+                    // Por ahora, informamos al usuario que puede re-sincronizar
+                    const syncMessage = `Los horarios se han actualizado en tu plan. Si tienes eventos en el calendario, es posible que necesites actualizarlos manualmente o re-sincronizar.`;
+                    setConversationHistory(prev => [...prev, { role: 'assistant', content: syncMessage }]);
+                  }
+                } else {
+                  console.warn(`⚠️ La actualización falló:`, updateData);
+                  const errorMsg = `No se pudieron actualizar los horarios en la base de datos. Por favor, intenta guardar el plan de nuevo.`;
+                  setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+                }
+              } else {
+                const errorText = await updateResponse.text();
+                console.error(`❌ Error actualizando sesiones en BD (${updateResponse.status}):`, errorText);
+                const errorMsg = `Error al actualizar los horarios en la base de datos. Por favor, intenta guardar el plan de nuevo.`;
+                setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+              }
+            } else {
+              console.log(`⚠️ No hay actualizaciones para enviar (updates.length = 0)`);
+            }
+          } catch (updateError) {
+            console.error('❌ Error actualizando sesiones en BD:', updateError);
+            // No fallar el cambio de horario si falla la actualización en BD
+          }
+        }
+        
+        // Informar al usuario que se actualizaron los horarios
+        const updateMessage = planIdToUse
+          ? `✅ He actualizado ${updatedCount} horario${updatedCount > 1 ? 's' : ''} de ${timeChange.oldHour}:00 a ${timeChange.newHour}:00. Los cambios ya están guardados en tu plan.`
+          : `✅ He actualizado ${updatedCount} horario${updatedCount > 1 ? 's' : ''} de ${timeChange.oldHour}:00 a ${timeChange.newHour}:00. Los cambios se aplicarán cuando guardes el plan.`;
+        setConversationHistory(prev => [...prev, { role: 'assistant', content: updateMessage }]);
+        
+        if (isAudioEnabled) {
+          await speakText(`He actualizado ${updatedCount} horario${updatedCount > 1 ? 's' : ''} como solicitaste.`);
+        }
+        
+        console.log(`✅ ${updatedCount} horarios actualizados en savedLessonDistribution`);
+      } else {
+        console.log(`⚠️ No se encontraron horarios para actualizar (oldHour: ${timeChange.oldHour})`);
+      }
     }
     
     // Detectar si el usuario está confirmando los horarios propuestos (primera confirmación)
@@ -5726,10 +6468,38 @@ Cuéntame:
     
     // Si está confirmando el resumen final, guardar el plan
     if (isConfirmingFinalSummary) {
+      console.log('✅ Usuario confirmó resumen final - iniciando guardado...');
+      console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
+      console.log(`   hasShownFinalSummary: ${hasShownFinalSummary}`);
+      
       // Agregar mensaje del usuario
       const newHistory = [...conversationHistory, { role: 'user', content: message }];
       setConversationHistory(newHistory);
       setIsProcessing(true);
+      
+      // ✅ CRÍTICO: Esperar un momento para asegurar que el estado esté actualizado
+      // Esto es importante si LIA acaba de actualizar el estado
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // ✅ VALIDACIÓN CRÍTICA: Verificar que savedLessonDistribution tenga datos antes de guardar
+      if (savedLessonDistribution.length === 0) {
+        console.error('❌ ERROR: No hay horarios para guardar. savedLessonDistribution está vacío.');
+        setConversationHistory(prev => [...prev, { 
+          role: 'assistant', 
+          content: 'Lo siento, no hay horarios para guardar. Por favor, pide a LIA que genere un plan de estudios primero.' 
+        }]);
+        setIsProcessing(false);
+        return;
+      }
+      
+      // ✅ LOGGING: Verificar qué se va a guardar
+      console.log('📋 Preparando para guardar plan:');
+      console.log(`   Total de horarios: ${savedLessonDistribution.length}`);
+      console.log(`   Primeros 3 horarios:`, savedLessonDistribution.slice(0, 3).map(s => ({
+        fecha: s.dateStr,
+        hora: `${s.startTime}-${s.endTime}`,
+        lecciones: s.lessons.length
+      })));
       
       // Mostrar mensaje de procesamiento
       setConversationHistory(prev => [...prev, { 
@@ -6200,6 +6970,232 @@ Cuéntame:
 
       setConversationHistory(prev => [...prev, { role: 'assistant', content: liaResponse }]);
       
+      // ✅ NUEVO: Parsear respuesta de LIA para extraer horarios y actualizar savedLessonDistribution
+      // Ejecutar siempre que haya horarios en la respuesta o cuando sea relevante (agregar/confirmar horarios)
+      console.log('🔍 Intentando parsear respuesta de LIA para extraer horarios...');
+      console.log(`   Estado actual de savedLessonDistribution: ${savedLessonDistribution.length} horarios`);
+      console.log(`   Longitud de respuesta de LIA: ${liaResponse.length} caracteres`);
+      console.log(`   Primeros 500 caracteres de respuesta:`, liaResponse.substring(0, 500));
+      
+      const extractedSchedules = parseLiaScheduleResponse(liaResponse);
+      
+      if (extractedSchedules && extractedSchedules.length > 0) {
+        console.log(`📋 Parseando respuesta de LIA: ${extractedSchedules.length} horarios extraídos`);
+        console.log(`   Horarios existentes antes: ${savedLessonDistribution.length}`);
+        console.log(`   Primeros 3 horarios extraídos:`, extractedSchedules.slice(0, 3).map(s => ({
+          fecha: s.dateStr,
+          hora: `${s.startTime}-${s.endTime}`,
+          lecciones: s.lessons.length
+        })));
+        
+        // Detectar si LIA está mostrando un resumen completo (todos los horarios)
+        // Indicadores: menciona "RESUMEN", "DISTRIBUCIÓN", "todos los horarios", o tiene muchos horarios
+        const isCompleteSummary = liaResponse.includes('RESUMEN') || 
+                                  liaResponse.includes('resumen') ||
+                                  liaResponse.includes('DISTRIBUCIÓN') ||
+                                  liaResponse.includes('distribución') ||
+                                  liaResponse.includes('todos los horarios') ||
+                                  liaResponse.includes('horarios:') ||
+                                  liaResponse.includes('sesiones programadas') ||
+                                  liaResponse.includes('plan de estudios') ||
+                                  liaResponse.includes('sesiones generadas') ||
+                                  (extractedSchedules.length >= 5 && savedLessonDistribution.length > 0);
+        
+        console.log(`   ¿Es resumen completo? ${isCompleteSummary}`);
+        console.log(`   ¿Está agregando horarios? ${isAddingSchedules}`);
+        console.log(`   ¿Está confirmando horarios? ${isConfirmingSchedules}`);
+        
+        // Si es un resumen completo o si estamos agregando horarios (LIA muestra todos), reemplazar completamente
+        // Si es solo una modificación menor, fusionar
+        const shouldReplaceCompletely = isCompleteSummary || isAddingSchedules || isConfirmingSchedules;
+        
+        if (shouldReplaceCompletely) {
+          // Reemplazar completamente la distribución con los horarios extraídos
+          console.log(`🔄 Reemplazando completamente savedLessonDistribution con ${extractedSchedules.length} horarios`);
+          
+          // Preservar lecciones de horarios existentes si LIA no las mencionó explícitamente
+          setSavedLessonDistribution(prev => {
+            const existingMap = new Map<string, StoredLessonDistribution>();
+            prev.forEach(slot => {
+              const key = `${slot.dateStr}_${slot.startTime}`;
+              existingMap.set(key, slot);
+            });
+            
+            // Para cada horario extraído, preservar lecciones si no fueron mencionadas
+            const enrichedSchedules = extractedSchedules.map(extracted => {
+              const key = `${extracted.dateStr}_${extracted.startTime}`;
+              const existing = existingMap.get(key);
+              
+              console.log(`   🔍 Verificando horario ${extracted.dateStr} ${extracted.startTime}:`);
+              console.log(`      Lecciones extraídas: ${extracted.lessons.length}`);
+              console.log(`      Horario existente: ${existing ? 'Sí' : 'No'}`);
+              if (existing) {
+                console.log(`      Lecciones existentes: ${existing.lessons.length}`);
+                if (existing.lessons.length > 0) {
+                  console.log(`      Primera lección existente: ${existing.lessons[0].lessonTitle}`);
+                }
+              }
+              
+              // ✅ CRÍTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
+              // LIA generalmente solo menciona "Lección X" sin el título completo, por lo que
+              // debemos preservar los nombres completos de las lecciones existentes
+              if (existing && existing.lessons.length > 0) {
+                // Verificar si las lecciones extraídas tienen títulos completos y válidos
+                // Un título válido debe coincidir aproximadamente con el existente o tener contenido sustancial
+                const hasCompleteTitles = extracted.lessons.length > 0 && 
+                                         extracted.lessons.every(l => {
+                                           const title = l.lessonTitle?.trim() || '';
+                                           // Verificar que no sea solo "Lección X" o formato cortado
+                                           const isOnlyNumber = /^lección\s*\d+[:\-\.]?\s*$/i.test(title) ||
+                                                               /^lección\s*\d+[:\-\.]?\s*lección\s*\d+/i.test(title) ||
+                                                               /^\d+[:\-\.]?\s*$/i.test(title) ||
+                                                               /^\d+[:\-\.]?\s*\d+[:\-\.]?\s*$/i.test(title);
+                                           
+                                           // Verificar que el título tenga contenido sustancial (más de 20 caracteres)
+                                           const hasSubstantialContent = title.length > 20;
+                                           
+                                           // Verificar si el título extraído coincide con alguno de los existentes
+                                           const matchesExisting = existing.lessons.some(existingLesson => {
+                                             const existingTitle = existingLesson.lessonTitle?.trim() || '';
+                                             // Comparar si el título extraído está contenido en el existente o viceversa
+                                             return existingTitle.toLowerCase().includes(title.toLowerCase()) ||
+                                                    title.toLowerCase().includes(existingTitle.toLowerCase()) ||
+                                                    existingTitle === title;
+                                           });
+                                           
+                                           return !isOnlyNumber && (hasSubstantialContent || matchesExisting);
+                                         });
+                
+                // ✅ CRÍTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
+                // LIA generalmente no menciona los títulos completos, solo "Lección X" o títulos cortados
+                // Por seguridad, siempre preservamos los nombres completos existentes
+                console.log(`   📚 Preservando ${existing.lessons.length} lecciones con nombres completos para ${extracted.dateStr} ${extracted.startTime}`);
+                console.log(`      Lecciones preservadas:`, existing.lessons.map(l => `${l.lessonOrderIndex}: ${l.lessonTitle}`));
+                if (extracted.lessons.length > 0) {
+                  console.log(`      Lecciones extraídas (descartadas - usando nombres completos existentes):`, extracted.lessons.map(l => `"${l.lessonTitle}"`));
+                }
+                return {
+                  ...extracted,
+                  lessons: existing.lessons // SIEMPRE preservar todas las lecciones existentes con sus nombres completos
+                };
+              }
+              
+              // Si no hay lecciones existentes, usar las extraídas (aunque puedan estar incompletas)
+              if (extracted.lessons.length > 0) {
+                console.log(`   ⚠️ No hay lecciones existentes, usando ${extracted.lessons.length} lecciones extraídas`);
+                return extracted;
+              }
+              
+              // Si no hay lecciones válidas ni existentes, mantener el horario sin lecciones
+              console.log(`   ⚠️ No hay lecciones válidas para ${extracted.dateStr} ${extracted.startTime}`);
+              return extracted;
+            });
+            
+            // Ordenar por fecha y hora
+            const sortedSchedules = enrichedSchedules.sort((a, b) => {
+              const dateCompare = a.dateStr.localeCompare(b.dateStr);
+              if (dateCompare !== 0) return dateCompare;
+              return a.startTime.localeCompare(b.startTime);
+            });
+            
+            console.log(`✅ savedLessonDistribution reemplazado completamente: ${sortedSchedules.length} horarios`);
+            console.log(`   Verificación: Primeros 3 horarios guardados:`, sortedSchedules.slice(0, 3).map(s => ({
+              fecha: s.dateStr,
+              hora: `${s.startTime}-${s.endTime}`,
+              lecciones: s.lessons.length,
+              nombresLecciones: s.lessons.map(l => l.lessonTitle)
+            })));
+            return sortedSchedules;
+          });
+          
+          // ✅ CRÍTICO: Esperar un momento para que React actualice el estado antes de continuar
+          // Esto asegura que el estado esté actualizado si el usuario confirma inmediatamente
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } else {
+          // Fusionar horarios extraídos con los existentes (para modificaciones menores)
+          console.log(`🔀 Fusionando ${extractedSchedules.length} horarios con los existentes`);
+          
+          setSavedLessonDistribution(prev => {
+            const updated = [...prev];
+            const existingMap = new Map<string, StoredLessonDistribution>();
+            
+            // Crear mapa de horarios existentes (clave: dateStr + startTime)
+            prev.forEach(slot => {
+              const key = `${slot.dateStr}_${slot.startTime}`;
+              existingMap.set(key, slot);
+            });
+            
+            // Procesar horarios extraídos
+            extractedSchedules.forEach(extracted => {
+              const key = `${extracted.dateStr}_${extracted.startTime}`;
+              const existing = existingMap.get(key);
+              
+              if (existing) {
+                // Actualizar horario existente
+                const index = updated.findIndex(s => 
+                  s.dateStr === extracted.dateStr && s.startTime === extracted.startTime
+                );
+                if (index >= 0) {
+                  // ✅ CRÍTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
+                  // LIA generalmente no menciona los títulos completos, solo "Lección X" o títulos cortados
+                  // Por seguridad, siempre preservamos los nombres completos existentes
+                  const lessons = updated[index].lessons; // SIEMPRE usar las lecciones existentes con nombres completos
+                  
+                  console.log(`   ✏️ Actualizado horario: ${extracted.dateStr} ${extracted.startTime}`);
+                  console.log(`      Lecciones: ${lessons.length} preservadas (nombres completos)`);
+                  if (lessons.length > 0) {
+                    console.log(`      Nombres completos preservados:`, lessons.map(l => l.lessonTitle));
+                  }
+                  if (extracted.lessons.length > 0) {
+                    console.log(`      Lecciones extraídas (descartadas):`, extracted.lessons.map(l => `"${l.lessonTitle}"`));
+                  }
+                  
+                  updated[index] = {
+                    ...extracted,
+                    lessons
+                  };
+                }
+              } else {
+                // Agregar nuevo horario
+                updated.push(extracted);
+                console.log(`   ➕ Agregado nuevo horario: ${extracted.dateStr} ${extracted.startTime}`);
+              }
+            });
+            
+            // Ordenar por fecha y hora
+            updated.sort((a, b) => {
+              const dateCompare = a.dateStr.localeCompare(b.dateStr);
+              if (dateCompare !== 0) return dateCompare;
+              return a.startTime.localeCompare(b.startTime);
+            });
+            
+            console.log(`✅ savedLessonDistribution fusionado: ${updated.length} horarios totales`);
+            console.log(`   Verificación: Primeros 3 horarios guardados:`, updated.slice(0, 3).map(s => ({
+              fecha: s.dateStr,
+              hora: `${s.startTime}-${s.endTime}`,
+              lecciones: s.lessons.length
+            })));
+            return updated;
+          });
+          
+          // ✅ CRÍTICO: Esperar un momento para que React actualice el estado antes de continuar
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      } else {
+        console.log('⚠️ No se extrajeron horarios de la respuesta de LIA');
+        console.log(`   Estado actual de savedLessonDistribution: ${savedLessonDistribution.length} horarios`);
+        console.log(`   ¿Es confirmación de horarios? ${isConfirmingSchedules}`);
+        console.log(`   ¿Es resumen final? ${hasShownFinalSummary}`);
+        
+        // ✅ CRÍTICO: Si LIA mostró un resumen pero no extrajimos horarios, 
+        // y el usuario está confirmando, debemos preservar el estado actual
+        // Esto puede pasar si LIA no usa el formato exacto que el parser espera
+        if (isConfirmingSchedules || hasShownFinalSummary) {
+          console.log('   ℹ️ LIA mostró resumen pero no se extrajeron horarios - preservando estado actual');
+          console.log(`   ✅ Manteniendo ${savedLessonDistribution.length} horarios existentes en savedLessonDistribution`);
+        }
+      }
+      
       // Si fue una confirmación de horarios y LIA está mostrando el resumen final, marcar que se mostró
       if (isConfirmingSchedules && !hasShownFinalSummary && (
         liaResponse.includes('RESUMEN') || 
@@ -6215,11 +7211,10 @@ Cuéntame:
       }
       
       // Si fue una solicitud de agregar horarios, la respuesta de LIA ya incluye todos los horarios (existentes + nuevos)
-      // Cuando el usuario confirme, handleConfirmSchedules parseará la respuesta completa
+      // Los horarios ya fueron extraídos y actualizados arriba
       if (isAddingSchedules) {
         console.log('✅ LIA respondió a solicitud de agregar horarios');
-        console.log('   La respuesta incluye todos los horarios (existentes + nuevos)');
-        console.log('   Cuando el usuario confirme, se actualizará savedLessonDistribution');
+        console.log('   Los horarios han sido extraídos y actualizados en savedLessonDistribution');
       }
       
       // Detectar si LIA está pidiendo seleccionar cursos y abrir el modal automáticamente

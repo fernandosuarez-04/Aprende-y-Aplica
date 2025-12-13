@@ -113,6 +113,9 @@ export async function GET(request: NextRequest) {
       console.log('✅ [Calendar Events API] Token válido hasta:', tokenExpiry.toISOString());
     }
 
+    // ✅ SINCRONIZAR: Verificar si eventos de sesiones fueron eliminados manualmente en Google Calendar
+    await syncDeletedStudySessions(supabase, user.id, startDate, endDate, accessToken, integration);
+
     // Obtener eventos según el proveedor
     let events: any[] = [];
     
@@ -130,12 +133,80 @@ export async function GET(request: NextRequest) {
       console.log(`📅 [API Events] Primeros 3 eventos:`, events.slice(0, 3).map(e => ({ title: e.title, start: e.start })));
     }
 
+    // ✅ FILTRAR EVENTOS HUÉRFANOS: Eliminar eventos del calendario externo que corresponden a sesiones eliminadas
+    // Obtener todos los external_event_id de las sesiones activas del usuario
+    const { data: activeSessions } = await supabase
+      .from('study_sessions')
+      .select('external_event_id, calendar_provider')
+      .eq('user_id', user.id)
+      .not('external_event_id', 'is', null)
+      .eq('calendar_provider', integration.provider);
+
+    const activeEventIds = new Set(
+      (activeSessions || [])
+        .filter(s => s.external_event_id && s.calendar_provider === integration.provider)
+        .map(s => {
+          // Limpiar el ID del evento (puede venir con formato de recurrencia)
+          const eventId = s.external_event_id;
+          return typeof eventId === 'string' ? eventId.split('_')[0] : eventId;
+        })
+    );
+
+    console.log(`🔍 [API Events] Sesiones activas con eventos externos: ${activeEventIds.size}`);
+
+    // Filtrar eventos que corresponden a sesiones eliminadas
+    const filteredEvents = events.filter(event => {
+      // Limpiar el ID del evento (puede venir con formato de recurrencia)
+      const cleanEventId = event.id?.split('_')[0] || event.id;
+      
+      // Si el evento está en la lista de sesiones activas, incluirlo (es parte de un plan activo)
+      if (activeEventIds.has(cleanEventId)) {
+        return true;
+      }
+      
+      // Si el evento NO está en la lista de sesiones activas, podría ser:
+      // 1. Un evento legítimo del usuario (no parte de un plan)
+      // 2. Un evento huérfano de un plan eliminado
+      // Para distinguir, verificamos si hay algún evento en user_calendar_events con este ID
+      // Si no hay, probablemente es un evento huérfano del plan
+      // Por ahora, incluimos todos los eventos que no están en la lista de sesiones activas
+      // La limpieza adicional se hará en el endpoint de eventos personalizados
+      return true;
+    });
+
+    // Filtrar eventos que definitivamente son huérfanos: eventos que están en user_calendar_events
+    // pero que NO están en sesiones activas (fueron parte de un plan eliminado)
+    const { data: orphanedEvents } = await supabase
+      .from('user_calendar_events')
+      .select(integration.provider === 'google' ? 'google_event_id' : 'microsoft_event_id')
+      .eq('user_id', user.id)
+      .not(integration.provider === 'google' ? 'google_event_id' : 'microsoft_event_id', 'is', null);
+
+    const orphanedEventIds = new Set(
+      (orphanedEvents || [])
+        .map(e => {
+          const eventId = integration.provider === 'google' ? e.google_event_id : e.microsoft_event_id;
+          return typeof eventId === 'string' ? eventId.split('_')[0] : eventId;
+        })
+        .filter(id => id && !activeEventIds.has(id)) // Solo eventos que NO están en sesiones activas
+    );
+
+    console.log(`🗑️ [API Events] Eventos huérfanos detectados: ${orphanedEventIds.size}`);
+
+    // Filtrar eventos que están en la lista de huérfanos
+    const finalEvents = filteredEvents.filter(event => {
+      const cleanEventId = event.id?.split('_')[0] || event.id;
+      return !orphanedEventIds.has(cleanEventId);
+    });
+
+    console.log(`✅ [API Events] Eventos después de filtrar huérfanos: ${finalEvents.length} (${events.length - finalEvents.length} eliminados)`);
+
     return NextResponse.json({ 
-      events,
+      events: finalEvents,
       provider: integration.provider,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      totalEvents: events.length
+      totalEvents: finalEvents.length
     });
 
   } catch (error: any) {
@@ -404,6 +475,92 @@ async function getEventsFromCalendar(accessToken: string, calendarId: string, st
   } catch (error) {
     console.error(`Error obteniendo eventos del calendario ${calendarId}:`, error);
     return [];
+  }
+}
+
+/**
+ * Sincroniza sesiones de estudio: limpia external_event_id de sesiones cuyos eventos fueron eliminados manualmente en Google Calendar
+ */
+async function syncDeletedStudySessions(
+  supabase: any,
+  userId: string,
+  startDate: Date,
+  endDate: Date,
+  accessToken: string,
+  integration: any
+): Promise<void> {
+  try {
+    // Obtener todas las sesiones con external_event_id en el rango de fechas
+    const { data: sessionsWithEvents } = await supabase
+      .from('study_sessions')
+      .select('id, external_event_id, calendar_provider')
+      .eq('user_id', userId)
+      .not('external_event_id', 'is', null)
+      .eq('calendar_provider', integration.provider)
+      .gte('start_time', startDate.toISOString())
+      .lte('end_time', endDate.toISOString());
+
+    if (!sessionsWithEvents || sessionsWithEvents.length === 0) {
+      return; // No hay sesiones con eventos externos
+    }
+
+    // Obtener eventos actuales del calendario externo
+    let externalEvents: any[] = [];
+    
+    if (integration.provider === 'google') {
+      externalEvents = await getGoogleCalendarEvents(accessToken, startDate, endDate);
+    } else if (integration.provider === 'microsoft') {
+      externalEvents = await getMicrosoftCalendarEvents(accessToken, startDate, endDate);
+    }
+
+    // Crear un Set con los IDs de eventos externos que existen (limpiando formato de recurrencia)
+    const externalEventIds = new Set(
+      externalEvents.map((e: any) => {
+        const eventId = e.id;
+        return typeof eventId === 'string' ? eventId.split('_')[0] : eventId;
+      })
+    );
+
+    // Encontrar sesiones cuyos eventos fueron eliminados en el calendario externo
+    const sessionsToClean: string[] = [];
+
+    for (const session of sessionsWithEvents) {
+      if (!session.external_event_id) continue;
+      
+      // Limpiar el ID del evento (puede venir con formato de recurrencia)
+      const cleanEventId = typeof session.external_event_id === 'string' 
+        ? session.external_event_id.split('_')[0] 
+        : String(session.external_event_id).split('_')[0];
+
+      // Si el evento no está en la lista de eventos externos, fue eliminado
+      if (!externalEventIds.has(cleanEventId)) {
+        sessionsToClean.push(session.id);
+      }
+    }
+
+    // Limpiar external_event_id y calendar_provider de sesiones cuyos eventos fueron eliminados
+    if (sessionsToClean.length > 0) {
+      console.log(`🔄 [Sync Study Sessions] Limpiando ${sessionsToClean.length} sesiones con eventos eliminados en ${integration.provider} Calendar`);
+      
+      const { error: updateError } = await supabase
+        .from('study_sessions')
+        .update({
+          external_event_id: null,
+          calendar_provider: null,
+          updated_at: new Date().toISOString()
+        })
+        .in('id', sessionsToClean)
+        .eq('user_id', userId);
+
+      if (updateError) {
+        console.error('❌ [Sync Study Sessions] Error limpiando sesiones:', updateError);
+      } else {
+        console.log(`✅ [Sync Study Sessions] ${sessionsToClean.length} sesiones limpiadas exitosamente`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ [Sync Study Sessions] Error en syncDeletedStudySessions:', error);
+    // No lanzar error para que la carga de eventos continúe
   }
 }
 

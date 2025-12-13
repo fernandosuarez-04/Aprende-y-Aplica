@@ -662,7 +662,7 @@ IMPORTANTE: Siempre combina la respuesta educativa/informativa con la navegació
 
     // Información de dificultad detectada (si existe)
     const difficultyInfo = courseContext.difficultyDetected
-      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${courseContext.difficultyDetected.patterns.map(p => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${courseContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(courseContext.difficultyDetected.suggestedHelpType, courseContext)}`
+      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${courseContext.difficultyDetected.patterns.map(p => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${courseContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(courseContext.difficultyDetected.suggestedHelpType || 'general', courseContext)}`
       : '';
 
     // Información de comportamiento del usuario en el curso (si existe)
@@ -918,7 +918,7 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
 
     // ✅ Información de dificultad detectada para talleres (si existe)
     const workshopDifficultyInfo = workshopContext.difficultyDetected
-      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${workshopContext.difficultyDetected.patterns.map((p: any) => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${workshopContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(workshopContext.difficultyDetected.suggestedHelpType, workshopContext)}`
+      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${workshopContext.difficultyDetected.patterns.map((p: any) => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${workshopContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(workshopContext.difficultyDetected.suggestedHelpType || 'general', workshopContext)}`
       : '';
 
     // ✅ Información de comportamiento del usuario en el taller (si existe)

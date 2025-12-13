@@ -89,6 +89,9 @@ export async function GET(request: NextRequest) {
     if (events && events.length > 0) {
       await syncDeletedEvents(supabase, user.id, events, startDateParam, endDateParam);
       
+      // ✅ LIMPIAR EVENTOS HUÉRFANOS: Eliminar eventos en user_calendar_events que corresponden a sesiones eliminadas
+      await cleanupOrphanedPlanEvents(supabase, user.id);
+      
       // Obtener eventos actualizados después de la sincronización
       const { data: updatedEvents } = await supabase
         .from('user_calendar_events')
@@ -102,6 +105,9 @@ export async function GET(request: NextRequest) {
         events: updatedEvents || [],
       });
     }
+
+    // ✅ LIMPIAR EVENTOS HUÉRFANOS incluso si no hay eventos en el rango
+    await cleanupOrphanedPlanEvents(supabase, user.id);
 
     return NextResponse.json({
       events: events || [],
@@ -207,6 +213,74 @@ async function syncDeletedEvents(
     }
   } catch (error) {
     console.error('Error en syncDeletedEvents:', error);
+    // No lanzar error para que la carga de eventos continúe
+  }
+}
+
+/**
+ * Limpia eventos huérfanos en user_calendar_events que corresponden a sesiones eliminadas
+ */
+async function cleanupOrphanedPlanEvents(supabase: any, userId: string): Promise<void> {
+  try {
+    // Obtener todos los external_event_id de las sesiones activas
+    const { data: activeSessions } = await supabase
+      .from('study_sessions')
+      .select('external_event_id, calendar_provider')
+      .eq('user_id', userId)
+      .not('external_event_id', 'is', null);
+
+    // Crear un Set con los IDs de eventos activos (limpiando formato de recurrencia)
+    const activeEventIds = new Set(
+      (activeSessions || []).map(s => {
+        const eventId = s.external_event_id;
+        return typeof eventId === 'string' ? eventId.split('_')[0] : eventId;
+      })
+    );
+
+    // Obtener eventos en user_calendar_events que tienen google_event_id o microsoft_event_id
+    const { data: calendarEvents } = await supabase
+      .from('user_calendar_events')
+      .select('id, google_event_id, microsoft_event_id')
+      .eq('user_id', userId)
+      .or('google_event_id.not.is.null,microsoft_event_id.not.is.null');
+
+    if (!calendarEvents || calendarEvents.length === 0) {
+      return; // No hay eventos para limpiar
+    }
+
+    // Encontrar eventos huérfanos (tienen external_event_id pero no están en sesiones activas)
+    const orphanedEventIds: string[] = [];
+
+    for (const event of calendarEvents) {
+      const googleEventId = event.google_event_id ? String(event.google_event_id).split('_')[0] : null;
+      const microsoftEventId = event.microsoft_event_id ? String(event.microsoft_event_id).split('_')[0] : null;
+
+      // Si el evento tiene un external_event_id pero NO está en la lista de sesiones activas, es huérfano
+      if (googleEventId && !activeEventIds.has(googleEventId)) {
+        orphanedEventIds.push(event.id);
+      } else if (microsoftEventId && !activeEventIds.has(microsoftEventId)) {
+        orphanedEventIds.push(event.id);
+      }
+    }
+
+    // Eliminar eventos huérfanos
+    if (orphanedEventIds.length > 0) {
+      console.log(`🗑️ [Cleanup] Eliminando ${orphanedEventIds.length} eventos huérfanos de planes eliminados`);
+      
+      const { error: deleteError } = await supabase
+        .from('user_calendar_events')
+        .delete()
+        .in('id', orphanedEventIds)
+        .eq('user_id', userId);
+
+      if (deleteError) {
+        console.error('❌ [Cleanup] Error eliminando eventos huérfanos:', deleteError);
+      } else {
+        console.log(`✅ [Cleanup] ${orphanedEventIds.length} eventos huérfanos eliminados exitosamente`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ [Cleanup] Error en cleanupOrphanedPlanEvents:', error);
     // No lanzar error para que la carga de eventos continúe
   }
 }
