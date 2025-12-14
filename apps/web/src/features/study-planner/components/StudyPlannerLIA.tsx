@@ -199,6 +199,13 @@ export function StudyPlannerLIA() {
     maxEmpleados: number | null;
   } | null>(null);
   
+  // Estado para cursos asignados con fechas límite (B2B)
+  const [assignedCourses, setAssignedCourses] = useState<Array<{
+    courseId: string;
+    title: string;
+    dueDate: string | null;
+  }>>([]);
+  
   // Estados para conversación por voz
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -494,12 +501,11 @@ export function StudyPlannerLIA() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Verificar si ya hay un calendario conectado al cargar la página
-  // Y también obtener el userId para detectar cambios de usuario
+  // ✅ Obtener contexto del usuario AL INICIO (incluyendo userType) y verificar calendario
   useEffect(() => {
     const checkUserAndCalendarStatus = async () => {
       try {
-        // Primero, obtener el usuario actual
+        // Primero, obtener el contexto completo del usuario (incluyendo userType)
         const userResponse = await fetch('/api/study-planner/user-context');
         if (userResponse.ok) {
           const userData = await userResponse.json();
@@ -520,6 +526,62 @@ export function StudyPlannerLIA() {
           
           if (userId) {
             setCurrentUserId(userId);
+          }
+          
+          // ✅ ESTABLECER userContext COMPLETO AL INICIO (no solo en analyzeCalendarAndSuggest)
+          if (userData.success && userData.data) {
+            const userProfile = userData.data;
+            console.log('✅ [StudyPlannerLIA] Estableciendo userContext al inicio:', {
+              userType: userProfile.userType,
+              hasOrganization: !!userProfile.organization,
+              coursesCount: userProfile.courses?.length || 0,
+            });
+            
+            setUserContext({
+              userType: userProfile.userType || null,
+              rol: userProfile.professionalProfile?.rol?.nombre || null,
+              area: userProfile.professionalProfile?.area?.nombre || null,
+              nivel: userProfile.professionalProfile?.nivel?.nombre || null,
+              tamanoEmpresa: userProfile.professionalProfile?.tamanoEmpresa?.nombre || null,
+              organizationName: userProfile.organization?.name || null,
+              minEmpleados: userProfile.professionalProfile?.tamanoEmpresa?.minEmpleados || null,
+              maxEmpleados: userProfile.professionalProfile?.tamanoEmpresa?.maxEmpleados || null,
+            });
+            
+            // ✅ Para B2B, guardar cursos asignados con fechas límite
+            if (userProfile.userType === 'b2b' && userProfile.courses && Array.isArray(userProfile.courses)) {
+              const coursesWithDueDates = userProfile.courses
+                .filter((course: any) => {
+                  // Filtrar cursos que tengan fecha límite (dueDate puede estar en el objeto course o en el nivel superior)
+                  const dueDate = course.dueDate || course.course?.dueDate;
+                  return dueDate && dueDate !== null;
+                })
+                .map((course: any) => {
+                  // Obtener dueDate del nivel correcto
+                  const dueDate = course.dueDate || course.course?.dueDate;
+                  return {
+                    courseId: course.courseId || course.course?.id || course.id,
+                    title: course.course?.title || course.title || 'Curso',
+                    dueDate: dueDate,
+                  };
+                })
+                .sort((a: any, b: any) => {
+                  // Ordenar por fecha límite (más próxima primero)
+                  const dateA = new Date(a.dueDate).getTime();
+                  const dateB = new Date(b.dueDate).getTime();
+                  return dateA - dateB;
+                });
+              
+              setAssignedCourses(coursesWithDueDates);
+              console.log('✅ [StudyPlannerLIA] Cursos asignados con fechas límite:', coursesWithDueDates);
+              
+              // Si hay cursos con fechas límite, también establecer selectedCourseIds automáticamente
+              if (coursesWithDueDates.length > 0) {
+                const courseIds = coursesWithDueDates.map(c => c.courseId).filter(Boolean);
+                setSelectedCourseIds(courseIds);
+                console.log('✅ [StudyPlannerLIA] Cursos seleccionados automáticamente para B2B:', courseIds);
+              }
+            }
           }
         }
         
@@ -564,16 +626,46 @@ export function StudyPlannerLIA() {
   }, [showDateModal, currentMonth]);
 
   // Inicializar mensaje de bienvenida cuando se carga la página (solo si no hay historial)
+  // ✅ Mensaje dinámico según tipo de usuario (B2B vs B2C)
   useEffect(() => {
     if (showConversation && conversationHistory.length === 0 && !showCourseSelector) {
-      const welcomeMessage = '¡Perfecto! Vamos a crear tu plan de estudios. ¿Qué cursos te gustaría incluir?';
+      // ✅ ESPERAR a que userContext esté disponible antes de mostrar el mensaje
+      // Esto asegura que el mensaje sea correcto desde el inicio
+      if (userContext?.userType) {
+        const isB2B = userContext.userType === 'b2b';
+        
+        // Mensaje específico según tipo de usuario
+        let welcomeMessage: string;
+        
+        if (isB2B) {
+          // Para B2B, mensaje más directo y profesional - sin pregunta, inicia automáticamente
+          // El mensaje debe indicar que el flujo comenzará automáticamente
+          welcomeMessage = userContext.organizationName
+            ? `¡Hola! Soy LIA, tu asistente de aprendizaje. Veo que perteneces a ${userContext.organizationName}. Vamos a crear un plan de estudios que se adapte a tus necesidades y plazos. Comenzaré analizando tu contexto y luego te pediré que selecciones tu enfoque de estudio.`
+            : '¡Hola! Soy LIA, tu asistente de aprendizaje. Veo que perteneces a una organización. Vamos a crear un plan de estudios personalizado. Comenzaré analizando tu contexto y luego te pediré que selecciones tu enfoque de estudio.';
+        } else {
+          // Para B2C, mensaje con opción de seleccionar cursos
+          welcomeMessage = '¡Perfecto! Vamos a crear tu plan de estudios. ¿Qué cursos te gustaría incluir?';
+        }
+        
       setConversationHistory([{ role: 'assistant', content: welcomeMessage }]);
-      // Abrir automáticamente el modal de selección de cursos después de un pequeño delay
+        
+        // Para B2B: Abrir automáticamente el modal de enfoque después del mensaje
+        if (isB2B) {
+          setTimeout(() => {
+            setShowApproachModal(true);
+          }, 1500); // Esperar 1.5 segundos después del mensaje para que se lea
+        } else {
+          // Solo abrir selector de cursos para B2C (B2B no puede seleccionar)
       setTimeout(() => {
         loadUserCourses();
     }, 500);
     }
-  }, [showConversation, conversationHistory.length, showCourseSelector]);
+      }
+      // Si userContext aún no está disponible, NO mostrar mensaje genérico
+      // Esperar a que se cargue el userContext para mostrar el mensaje correcto
+    }
+  }, [showConversation, conversationHistory.length, showCourseSelector, userContext]);
 
   // NO mostrar automáticamente el modal - solo cuando el usuario lo solicite mediante el botón
 
@@ -1449,7 +1541,27 @@ export function StudyPlannerLIA() {
             // Continuar con el análisis
             checkAndAskStudyPreferences(data.provider as 'google' | 'microsoft').then(canProceed => {
               if (canProceed) {
-                analyzeCalendarAndSuggest(data.provider as 'google' | 'microsoft');
+                // ✅ Para B2B: Usar automáticamente la fecha límite si está disponible
+                let targetDateToUse: string | undefined = undefined;
+                if (userContext?.userType === 'b2b' && assignedCourses.length > 0) {
+                  const nearestDueDate = assignedCourses[0]?.dueDate;
+                  if (nearestDueDate) {
+                    // Convertir fecha ISO a formato legible
+                    const dueDateObj = new Date(nearestDueDate);
+                    const formattedDate = dueDateObj.toLocaleDateString('es-ES', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    });
+                    targetDateToUse = formattedDate;
+                    // También establecer targetDate en el estado si no está establecido
+                    if (!targetDate) {
+                      setTargetDate(formattedDate);
+                      setHasAskedTargetDate(true);
+                    }
+                  }
+                }
+                analyzeCalendarAndSuggest(data.provider as 'google' | 'microsoft', targetDateToUse);
               }
             });
           } else {
@@ -1669,7 +1781,27 @@ export function StudyPlannerLIA() {
             
             checkAndAskStudyPreferences(data.provider as 'google' | 'microsoft').then(canProceed => {
               if (canProceed) {
-                analyzeCalendarAndSuggest(data.provider as 'google' | 'microsoft');
+                // ✅ Para B2B: Usar automáticamente la fecha límite si está disponible
+                let targetDateToUse: string | undefined = undefined;
+                if (userContext?.userType === 'b2b' && assignedCourses.length > 0) {
+                  const nearestDueDate = assignedCourses[0]?.dueDate;
+                  if (nearestDueDate) {
+                    // Convertir fecha ISO a formato legible
+                    const dueDateObj = new Date(nearestDueDate);
+                    const formattedDate = dueDateObj.toLocaleDateString('es-ES', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    });
+                    targetDateToUse = formattedDate;
+                    // También establecer targetDate en el estado si no está establecido
+                    if (!targetDate) {
+                      setTargetDate(formattedDate);
+                      setHasAskedTargetDate(true);
+                    }
+                  }
+                }
+                analyzeCalendarAndSuggest(data.provider as 'google' | 'microsoft', targetDateToUse);
               }
             });
           } else {
@@ -2309,12 +2441,107 @@ export function StudyPlannerLIA() {
       largo: 'Sesiones más extensas para profundizar en el contenido'
     };
 
+    const isB2B = userContext?.userType === 'b2b';
+    
+    // ✅ Para B2B: Usar automáticamente la fecha límite más próxima de los cursos asignados
+    if (isB2B && assignedCourses.length > 0) {
+      // Encontrar la fecha límite más próxima
+      const nearestDueDate = assignedCourses[0]?.dueDate; // Ya están ordenados por fecha
+      const nearestCourse = assignedCourses[0];
+      
+      if (nearestDueDate) {
+        // Convertir la fecha límite a formato legible
+        const dueDateObj = new Date(nearestDueDate);
+        const formattedDate = dueDateObj.toLocaleDateString('es-ES', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+        
+        // ✅ Establecer la fecha objetivo en formato legible (no ISO)
+        // Esto es necesario para que analyzeCalendarAndSuggest pueda parsearla correctamente
+        setTargetDate(formattedDate);
+        setHasAskedTargetDate(true);
+        
+        // Mensaje específico para B2B con fecha límite
+        let confirmationMsg = `Perfecto, entonces estableceremos **${approachText[approach]}**. ${approachDescription[approach]}.\n\n`;
+        
+        if (assignedCourses.length === 1) {
+          confirmationMsg += `Usaré la fecha límite establecida por tu organización: **${formattedDate}** para el curso "${nearestCourse.title}".`;
+        } else {
+          confirmationMsg += `Usaré la fecha límite más próxima establecida por tu organización: **${formattedDate}** para el curso "${nearestCourse.title}".`;
+          if (assignedCourses.length > 1) {
+            confirmationMsg += `\n\nTienes ${assignedCourses.length} cursos asignados con fechas límite. El plan se ajustará para cumplir con todas las fechas establecidas.`;
+          }
+        }
+        
+        confirmationMsg += `\n\nAhora voy a analizar tu calendario para crear las mejores recomendaciones de horarios que te permitan cumplir con los plazos.`;
+        
+        setConversationHistory(prev => [...prev, { role: 'assistant', content: confirmationMsg }]);
+        
+        if (isAudioEnabled) {
+          await speakText(`Perfecto, entonces estableceremos ${approachText[approach]}. Usaré la fecha límite establecida por tu organización. Ahora voy a analizar tu calendario.`);
+        }
+        
+        setIsProcessing(false);
+        
+        // ✅ Verificar estado del calendario desde el servidor antes de decidir
+        setTimeout(async () => {
+          try {
+            // Verificar estado actual del calendario
+            const calendarResponse = await fetch('/api/study-planner/calendar/status');
+            if (calendarResponse.ok) {
+              const calendarData = await calendarResponse.json();
+              
+              if (calendarData.isConnected && calendarData.provider) {
+                // Calendario está conectado, actualizar estado y proceder con análisis
+                console.log('✅ [B2B] Calendario conectado, procediendo con análisis:', calendarData.provider);
+                setConnectedCalendar(calendarData.provider as 'google' | 'microsoft');
+                
+                // ✅ Convertir fecha ISO a formato legible antes de pasarla
+                const dueDateObj = new Date(nearestDueDate);
+                const formattedDate = dueDateObj.toLocaleDateString('es-ES', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                });
+                
+                // ✅ Asegurar que el estado esté actualizado antes de llamar
+                // Usar el approach directamente del parámetro en lugar del estado
+                await analyzeCalendarAndSuggest(
+                  calendarData.provider as 'google' | 'microsoft', 
+                  formattedDate,
+                  approach // Pasar el approach directamente
+                );
+              } else {
+                // Calendario NO está conectado, mostrar modal (obligatorio para B2B)
+                console.log('⚠️ [B2B] Calendario no conectado, mostrando modal obligatorio');
+                setConnectedCalendar(null);
+                setShowCalendarModal(true);
+              }
+            } else {
+              // Error al verificar, mostrar modal por seguridad
+              console.warn('⚠️ [B2B] Error verificando calendario, mostrando modal');
+              setShowCalendarModal(true);
+            }
+          } catch (error) {
+            console.error('❌ [B2B] Error verificando estado del calendario:', error);
+            // En caso de error, mostrar modal por seguridad
+            setShowCalendarModal(true);
+          }
+        }, 1500);
+        
+        return; // Salir temprano para B2B
+      }
+    }
+    
+    // Para B2C: Flujo normal con modal de fecha
     const confirmationMsg = `Perfecto, entonces estableceremos **${approachText[approach]}**. ${approachDescription[approach]}.\n\nAhora, **¿tienes alguna fecha estimada para terminar tus cursos?**`;
     
     setConversationHistory(prev => [...prev, { role: 'assistant', content: confirmationMsg }]);
     setHasAskedTargetDate(true);
     
-    // Abrir modal de selección de fecha después de un breve delay
+    // Abrir modal de selección de fecha después de un breve delay (solo para B2C)
     setTimeout(() => {
       setShowDateModal(true);
       // Calcular fecha inicial sugerida basada en el enfoque
@@ -2415,6 +2642,195 @@ export function StudyPlannerLIA() {
     await handleApproachSelection(approach);
   };
 
+  // ✅ FUNCIÓN ESPECÍFICA PARA ANÁLISIS DE CALENDARIO B2B
+  const analyzeCalendarAndSuggestB2B = async (
+    provider: string,
+    approach: 'rapido' | 'normal' | 'largo',
+    userProfile: any,
+    assignedCourses: Array<{ courseId: string; title: string; dueDate: string | null }>
+  ) => {
+    console.log('🏢 [B2B] Iniciando análisis específico para usuario B2B...', {
+      provider,
+      approach,
+      coursesCount: assignedCourses.length,
+    });
+    
+    setIsProcessing(true);
+    
+    try {
+      const rol = userProfile?.professionalProfile?.rol?.nombre;
+      const nivel = userProfile?.professionalProfile?.nivel?.nombre;
+      const area = userProfile?.professionalProfile?.area?.nombre;
+      const orgName = userProfile?.organization?.name;
+      
+      // 1. Obtener eventos del calendario hasta la fecha límite más lejana
+      const allDueDates = assignedCourses
+        .map(c => c.dueDate)
+        .filter(Boolean)
+        .map(d => new Date(d!))
+        .sort((a, b) => b.getTime() - a.getTime()); // Más lejana primero
+      
+      const furthestDueDate = allDueDates[0];
+      const nearestDueDate = allDueDates[allDueDates.length - 1];
+      
+      if (!furthestDueDate) {
+        console.error('❌ [B2B] No se encontraron fechas límite válidas');
+        setIsProcessing(false);
+        return;
+      }
+      
+      const startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(furthestDueDate);
+      endDate.setHours(23, 59, 59, 999);
+      
+      console.log(`📅 [B2B] Rango de análisis: ${startDate.toLocaleDateString('es-ES')} hasta ${endDate.toLocaleDateString('es-ES')}`);
+      console.log(`   Fecha límite más próxima: ${nearestDueDate.toLocaleDateString('es-ES')}`);
+      console.log(`   Fecha límite más lejana: ${furthestDueDate.toLocaleDateString('es-ES')}`);
+      
+      // 2. Obtener eventos del calendario
+      let calendarEvents: any[] = [];
+      try {
+        const eventsResponse = await fetch(
+          `/api/study-planner/calendar/events?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+        );
+        
+        if (eventsResponse.ok) {
+          const eventsData = await eventsResponse.json();
+          calendarEvents = eventsData.events || [];
+          console.log(`✅ [B2B] Eventos obtenidos: ${calendarEvents.length}`);
+        }
+      } catch (error) {
+        console.error('❌ [B2B] Error obteniendo eventos:', error);
+      }
+      
+      // 3. Calcular disponibilidad y slots para cada curso según su fecha límite
+      // Esta es la lógica específica B2B: distribuir según plazos organizacionales
+      const courseAnalysis = await Promise.all(
+        assignedCourses.map(async (course) => {
+          if (!course.dueDate) return null;
+          
+          const courseDueDate = new Date(course.dueDate);
+          const daysUntilDeadline = Math.ceil((courseDueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+          const weeksUntilDeadline = Math.ceil(daysUntilDeadline / 7);
+          
+          // Obtener lecciones pendientes del curso usando el mismo método que B2C
+          // 1. Obtener todas las lecciones desde metadata
+          let totalLessons = 0;
+          let completedLessons = 0;
+          
+          try {
+            // Obtener metadata del curso para contar todas las lecciones
+            const metadataResponse = await fetch(`/api/workshops/${course.courseId}/metadata`);
+            if (metadataResponse.ok) {
+              const metadataData = await metadataResponse.json();
+              if (metadataData.success && metadataData.metadata?.modules) {
+                // Contar todas las lecciones de todos los módulos
+                const allLessons = metadataData.metadata.modules.flatMap((module: any) => {
+                  if (!module.lessons || !Array.isArray(module.lessons)) {
+                    return [];
+                  }
+                  return module.lessons.map((lesson: any) => ({
+                    lessonId: lesson.lessonId,
+                    lessonTitle: lesson.lessonTitle,
+                  }));
+                });
+                
+                // Eliminar duplicados por lessonId
+                const uniqueLessonsMap = new Map<string, any>();
+                allLessons.forEach((lesson: any) => {
+                  if (lesson && lesson.lessonId) {
+                    if (!uniqueLessonsMap.has(lesson.lessonId)) {
+                      uniqueLessonsMap.set(lesson.lessonId, lesson);
+                    }
+                  }
+                });
+                
+                const publishedLessons = Array.from(uniqueLessonsMap.values());
+                totalLessons = publishedLessons.length || 0;
+                
+                // 2. Obtener lecciones completadas usando course-progress
+                let completedLessonIds: string[] = [];
+                try {
+                  const progressResponse = await fetch(
+                    `/api/study-planner/course-progress?courseId=${course.courseId}`
+                  );
+                  if (progressResponse.ok) {
+                    const progressData = await progressResponse.json();
+                    completedLessonIds = progressData.completedLessonIds || [];
+                    completedLessons = completedLessonIds.length;
+                    console.log(`✅ [B2B] Curso ${course.title}: ${completedLessons} lecciones completadas de ${totalLessons} totales`);
+                  } else {
+                    console.warn(`⚠️ [B2B] No se pudo obtener progreso del curso ${course.courseId}`);
+                  }
+                } catch (progressError) {
+                  console.warn(`⚠️ [B2B] Error obteniendo progreso del curso ${course.courseId}:`, progressError);
+                }
+              } else {
+                console.warn(`⚠️ [B2B] No se encontraron módulos en metadata para curso ${course.courseId}`);
+              }
+            } else {
+              console.warn(`⚠️ [B2B] No se pudo obtener metadata del curso ${course.courseId}`);
+            }
+          } catch (error) {
+            console.warn(`⚠️ [B2B] Error obteniendo lecciones del curso ${course.courseId}:`, error);
+          }
+          
+          const pendingLessons = totalLessons - completedLessons;
+          
+          return {
+            courseId: course.courseId,
+            title: course.title,
+            dueDate: course.dueDate,
+            dueDateObj: courseDueDate,
+            daysUntilDeadline,
+            weeksUntilDeadline,
+            totalLessons,
+            completedLessons,
+            pendingLessons,
+          };
+        })
+      );
+      
+      const validCourseAnalysis = courseAnalysis.filter(c => c !== null) as Array<NonNullable<typeof courseAnalysis[0]>>;
+      
+      // ✅ 4. Usar la misma lógica de análisis de calendario que B2C
+      // Establecer selectedCourseIds temporalmente para que la lógica funcione
+      const originalSelectedCourseIds = selectedCourseIds;
+      const b2bCourseIds = validCourseAnalysis.map(c => c.courseId);
+      setSelectedCourseIds(b2bCourseIds);
+      
+      // Establecer targetDate con la fecha límite más próxima
+      const nearestDueDateFormatted = nearestDueDate.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+      setTargetDate(nearestDueDateFormatted);
+      
+      // Llamar a analyzeCalendarAndSuggest con skipB2BRedirect=true para evitar bucle
+      // Esto permite usar toda la lógica de B2C (slots, distribución, etc.) pero desde B2B
+      await analyzeCalendarAndSuggest(
+        provider,
+        nearestDueDateFormatted,
+        approach,
+        true // ✅ skipB2BRedirect: evitar redirección y usar lógica B2C directamente
+      );
+      
+      // Restaurar selectedCourseIds original
+      setSelectedCourseIds(originalSelectedCourseIds);
+      
+      setIsProcessing(false);
+      
+    } catch (error) {
+      console.error('❌ [B2B] Error en análisis de calendario:', error);
+      setIsProcessing(false);
+      
+      const errorMsg = 'Hubo un error al analizar tu calendario. Por favor, intenta de nuevo.';
+      setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+    }
+  };
+
   // Manejar respuesta sobre fecha estimada
   const handleTargetDateResponse = async (dateResponse: string) => {
     setIsProcessing(true);
@@ -2443,27 +2859,52 @@ export function StudyPlannerLIA() {
   };
 
   // Analizar calendario y obtener contexto del usuario
-  const analyzeCalendarAndSuggest = async (provider: string, targetDateParam?: string) => {
+  const analyzeCalendarAndSuggest = async (
+    provider: string, 
+    targetDateParam?: string,
+    approachParam?: 'rapido' | 'normal' | 'largo' | null,
+    skipB2BRedirect?: boolean // ✅ Flag para evitar redirección cuando se llama desde B2B
+  ) => {
+    // ✅ Usar el parámetro si está disponible, sino usar el estado
+    const effectiveApproach = approachParam !== undefined ? approachParam : studyApproach;
+    const effectiveTargetDate = targetDateParam || targetDate;
+    
+    console.log('🔍 [analyzeCalendarAndSuggest] Iniciando análisis...', {
+      provider,
+      targetDateParam,
+      targetDate,
+      approachParam,
+      studyApproach,
+      effectiveApproach,
+      isProcessing,
+    });
+    
     // Evitar múltiples llamadas simultáneas
     if (isProcessing) {
-      console.log('Análisis de calendario ya en curso, ignorando llamada duplicada');
+      console.log('⚠️ [analyzeCalendarAndSuggest] Análisis de calendario ya en curso, ignorando llamada duplicada');
       return;
     }
     
-    // Usar el parámetro si está disponible, sino usar el estado
-    const effectiveTargetDate = targetDateParam || targetDate;
-    
     // Verificar que se tengan los datos necesarios antes de analizar
-    if (!studyApproach) {
-      console.log('⚠️ No se puede analizar: falta enfoque de estudio');
+    if (!effectiveApproach) {
+      console.log('⚠️ [analyzeCalendarAndSuggest] No se puede analizar: falta enfoque de estudio', {
+        approachParam,
+        studyApproach,
+        effectiveApproach,
+      });
       return;
     }
     
     if (!effectiveTargetDate || effectiveTargetDate === 'No tengo fecha específica') {
-      console.log('⚠️ No se puede analizar: falta fecha objetivo');
+      console.log('⚠️ [analyzeCalendarAndSuggest] No se puede analizar: falta fecha objetivo', {
+        effectiveTargetDate,
+        targetDateParam,
+        targetDate,
+      });
       return;
     }
     
+    console.log('✅ [analyzeCalendarAndSuggest] Todas las validaciones pasadas, procediendo con análisis...');
     setIsProcessing(true);
     
     try {
@@ -2486,8 +2927,24 @@ export function StudyPlannerLIA() {
             minEmpleados: userProfile.professionalProfile?.tamanoEmpresa?.minEmpleados || null,
             maxEmpleados: userProfile.professionalProfile?.tamanoEmpresa?.maxEmpleados || null,
           });
+          
+          // ✅ DETECTAR B2B Y REDIRIGIR A LÓGICA ESPECÍFICA
+          // Solo redirigir si no se está saltando la redirección (evitar bucle)
+          if (userProfile.userType === 'b2b' && assignedCourses.length > 0 && !skipB2BRedirect) {
+            console.log('✅ [B2B] Detectado usuario B2B, usando lógica específica para análisis de calendario');
+            setIsProcessing(false);
+            await analyzeCalendarAndSuggestB2B(
+              provider,
+              effectiveApproach!,
+              userProfile,
+              assignedCourses
+            );
+            return; // Salir temprano, no ejecutar lógica B2C
+          }
         }
       }
+      
+      // ✅ CONTINUAR CON LÓGICA B2C (si no es B2B o no tiene cursos asignados)
 
       // 2. OBTENER EVENTOS DEL CALENDARIO (hasta la fecha objetivo del usuario, sin límite mínimo)
       // Primero necesitamos calcular la fecha objetivo ANTES de obtener eventos
@@ -2499,7 +2956,7 @@ export function StudyPlannerLIA() {
       console.log(`   effectiveTargetDate (usado): "${effectiveTargetDate}"`);
       console.log(`   studyApproach: "${studyApproach}"`);
       
-      if (effectiveTargetDate && studyApproach && effectiveTargetDate !== 'No tengo fecha específica') {
+      if (effectiveTargetDate && effectiveApproach && effectiveTargetDate !== 'No tengo fecha específica') {
         try {
           // Intentar parsear la fecha objetivo - múltiples formatos posibles
           const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
@@ -3395,7 +3852,7 @@ export function StudyPlannerLIA() {
       let targetDateObj: Date | null = null;
       let weeksUntilTarget = 30; // Default: 30 días (aproximadamente 4 semanas)
       
-      if (effectiveTargetDate && studyApproach && effectiveTargetDate !== 'No tengo fecha específica') {
+      if (effectiveTargetDate && effectiveApproach && effectiveTargetDate !== 'No tengo fecha específica') {
         try {
           // Usar el mismo parseo robusto que se usa para targetDateObjForEvents
           const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
@@ -3722,9 +4179,9 @@ export function StudyPlannerLIA() {
 
       // Determinar duración máxima por slot según enfoque de estudio
       let maxSlotDuration: number;
-      if (studyApproach === 'rapido') {
+      if (effectiveApproach === 'rapido') {
         maxSlotDuration = cycleLength * 2; // 2 ciclos máximo (ej: 80 min)
-      } else if (studyApproach === 'largo') {
+      } else if (effectiveApproach === 'largo') {
         maxSlotDuration = cycleLength * 3; // 3 ciclos máximo (ej: 120 min)
       } else {
         maxSlotDuration = cycleLength * 2; // 2 ciclos máximo (ej: 80 min) - normal
@@ -3760,8 +4217,14 @@ export function StudyPlannerLIA() {
 
       console.log(`   Slots después de dividir: ${dividedSlots.length}`);
 
-      // ✅ LIMITAR A MÁXIMO 2 SLOTS POR DÍA (requisito del usuario)
-      // Agrupar slots por día y seleccionar los 2 mejores por día
+      // ✅ LIMITAR SLOTS POR DÍA (adaptado para B2B vs B2C)
+      // Para B2B: permitir más slots por día si es necesario para cumplir plazos
+      // Para B2C: máximo 2 slots por día (requisito del usuario)
+      // ✅ Cuando skipB2BRedirect=true, tratar como B2C para usar la misma lógica
+      const isB2BForSlots = userProfile?.userType === 'b2b' && !skipB2BRedirect;
+      const maxSlotsPerDay = isB2BForSlots ? 4 : 2; // B2B: hasta 4 slots, B2C: máximo 2
+      
+      // Agrupar slots por día y seleccionar los mejores por día
       const slotsByDay = new Map<string, FreeSlotWithDay[]>();
       dividedSlots.forEach(slot => {
         const dayKey = slot.date.toISOString().split('T')[0];
@@ -3771,7 +4234,7 @@ export function StudyPlannerLIA() {
         slotsByDay.get(dayKey)!.push(slot);
       });
 
-      console.log(`📅 Limitando a máximo 2 slots por día:`);
+      console.log(`📅 Limitando a máximo ${maxSlotsPerDay} slots por día (${isB2BForSlots ? 'B2B' : 'B2C'}):`);
       const limitedSlots: FreeSlotWithDay[] = [];
 
       slotsByDay.forEach((daySlots, dayKey) => {
@@ -3791,27 +4254,38 @@ export function StudyPlannerLIA() {
           return b.durationMinutes - a.durationMinutes;
         });
 
-        // Tomar máximo 2 slots por día
-        const selectedDaySlots = daySlots.slice(0, 2);
+        // Tomar máximo slots por día según tipo de usuario
+        const selectedDaySlots = daySlots.slice(0, maxSlotsPerDay);
         console.log(`   ${dayKey}: ${daySlots.length} slots → ${selectedDaySlots.length} seleccionados`);
         limitedSlots.push(...selectedDaySlots);
       });
 
-      console.log(`   Total slots después de limitar a 2 por día: ${limitedSlots.length}`);
+      console.log(`   Total slots después de limitar a ${maxSlotsPerDay} por día: ${limitedSlots.length}`);
 
       // ✅ DISTRIBUIR EQUIDISTANTEMENTE A LO LARGO DE TODO EL PERÍODO
       // No usar todos los slots consecutivamente - distribuir a lo largo del tiempo
       // Ordenar por fecha
       limitedSlots.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-      // ✅ IMPORTANTE: Usar el número REAL de lecciones pendientes que se calculará después
-      // NO usar totalLessonsNeeded que se calcula al inicio (puede ser incorrecto)
-      // Por ahora, usar una estimación generosa para asegurar suficientes slots
+      // ✅ CRÍTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
+      // Para B2B (sin skipB2BRedirect), usar TODOS los slots disponibles para asegurar que todas las lecciones se asignen
+      // Para B2C, usar distribución equidistante más conservadora
+      const isB2BUser = userProfile?.userType === 'b2b' && !skipB2BRedirect;
+      
+      let equidistantSlots: FreeSlotWithDay[] = [];
+      
+      if (isB2BUser) {
+        // ✅ B2B: Usar TODOS los slots disponibles para cumplir con plazos organizacionales
+        console.log(`📊 [B2B] Usando TODOS los slots disponibles para cumplir con plazos organizacionales`);
+        console.log(`   Slots disponibles: ${limitedSlots.length}`);
+        equidistantSlots = [...limitedSlots];
+      } else {
+        // ✅ B2C: Distribución equidistante más conservadora
       const estimatedLessons = Math.max(totalLessonsNeeded, 30); // Mínimo 30 lecciones
       const avgLessonsPerSlot = 2; // Estimación conservadora
       const slotsNeeded = Math.ceil(estimatedLessons / avgLessonsPerSlot);
 
-      console.log(`📊 Distribución equidistante:`);
+        console.log(`📊 Distribución equidistante (B2C):`);
       console.log(`   Lecciones estimadas inicialmente (totalLessonsNeeded): ${totalLessonsNeeded}`);
       console.log(`   Lecciones usadas para cálculo (máximo de 30): ${estimatedLessons}`);
       console.log(`   Promedio estimado por slot: ${avgLessonsPerSlot}`);
@@ -3819,7 +4293,6 @@ export function StudyPlannerLIA() {
       console.log(`   Slots necesarios (estimado): ${slotsNeeded}`);
 
       // Seleccionar slots distribuidos equidistantemente
-      const equidistantSlots: FreeSlotWithDay[] = [];
       if (limitedSlots.length > 0) {
         const totalAvailable = limitedSlots.length;
         const slotsToUse = Math.min(slotsNeeded, totalAvailable);
@@ -3838,6 +4311,8 @@ export function StudyPlannerLIA() {
       }
 
       console.log(`   Slots distribuidos equidistantemente: ${equidistantSlots.length}`);
+      }
+      
       if (equidistantSlots.length > 0) {
         console.log(`   Primer slot: ${equidistantSlots[0].dayName} ${equidistantSlots[0].date.toLocaleDateString('es-ES')}`);
         console.log(`   Último slot: ${equidistantSlots[equidistantSlots.length - 1].dayName} ${equidistantSlots[equidistantSlots.length - 1].date.toLocaleDateString('es-ES')}`);
@@ -3945,12 +4420,12 @@ export function StudyPlannerLIA() {
               ? `${Math.floor(profileAvailability.recommendedSessionLength / 60)} hora${Math.floor(profileAvailability.recommendedSessionLength / 60) > 1 ? 's' : ''}`
               : `${profileAvailability.recommendedSessionLength} minutos`;
             
-            const approachText = studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : studyApproach === 'largo' ? 'sesiones largas' : 'sesiones';
+            const approachText = effectiveApproach === 'rapido' ? 'sesiones rápidas' : effectiveApproach === 'normal' ? 'sesiones normales' : effectiveApproach === 'largo' ? 'sesiones largas' : 'sesiones';
             const targetDateText = effectiveTargetDate ? ` y tu objetivo de completar los cursos para ${effectiveTargetDate}` : '';
             
             recommendationIntro.push(`En base a tu perfil${rol ? ` como ${rol}` : ''}${nivel ? ` (${nivel})` : ''} y tu preferencia por **${approachText}**${targetDateText}, estimo que puedes dedicar aproximadamente ${Math.round(profileAvailability.minutesPerDay / 60 * 10) / 10} hora${profileAvailability.minutesPerDay >= 120 ? 's' : ''} al día para estudiar.`);
             
-            if (effectiveTargetDate && studyApproach) {
+            if (effectiveTargetDate && effectiveApproach) {
               recommendationIntro.push(`He distribuido las sesiones de estudio hasta ${effectiveTargetDate} para asegurar que completes tus cursos a tiempo.`);
             }
             
@@ -4317,31 +4792,64 @@ export function StudyPlannerLIA() {
             return a.date.getTime() - b.date.getTime();
           });
           
-          // Filtrar slots hasta la fecha objetivo del usuario (usar targetDateObj, no adjustedTargetDate)
-          // Esto asegura que se incluyan todos los slots hasta la fecha límite que el usuario estableció
-          const slotsUntilTarget = targetDateObj
+          // ✅ CRÍTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
+          // Para usuarios B2B (sin skipB2BRedirect), usar TODOS los slots hasta la fecha límite más lejana
+          // Para B2C, usar solo hasta la fecha objetivo del usuario
+          let slotsUntilTarget: FreeSlotWithDay[] = [];
+          
+          // ✅ Si skipB2BRedirect=true, tratar como B2C para usar la misma lógica de distribución
+          const shouldUseB2BLogic = isB2B && !skipB2BRedirect && userProfile?.courses && Array.isArray(userProfile.courses);
+          
+          if (shouldUseB2BLogic) {
+            // B2B: Obtener todas las fechas límite y usar la más lejana
+            const allDueDates = userProfile.courses
+              .map((c: any) => c.dueDate)
+              .filter(Boolean)
+              .map((d: string) => new Date(d))
+              .sort((a, b) => b.getTime() - a.getTime()); // Más lejana primero
+            
+            const furthestDueDate = allDueDates[0];
+            
+            if (furthestDueDate) {
+              slotsUntilTarget = sortedSlots.filter(slot => {
+                const slotDateOnly = new Date(slot.date);
+                slotDateOnly.setHours(0, 0, 0, 0);
+                const dueDateOnly = new Date(furthestDueDate);
+                dueDateOnly.setHours(0, 0, 0, 0);
+                // Incluir slots hasta e incluyendo el día de la fecha límite más lejana
+                const isBeforeDeadline = slotDateOnly.getTime() < dueDateOnly.getTime();
+                const isDeadlineDay = HolidayService.isSameDay(slotDateOnly, dueDateOnly);
+                return isBeforeDeadline || isDeadlineDay;
+              });
+              console.log(`📅 [B2B] Usando slots hasta fecha límite más lejana: ${furthestDueDate.toLocaleDateString('es-ES')} (${slotsUntilTarget.length} slots)`);
+            } else {
+              // Fallback: usar fecha objetivo si no hay fechas límite
+              slotsUntilTarget = targetDateObj
             ? sortedSlots.filter(slot => {
                 const slotDateOnly = new Date(slot.date);
                 slotDateOnly.setHours(0, 0, 0, 0);
-
-                // Usar fecha objetivo original del usuario (no la ajustada con buffer)
                 const targetDateOnly = new Date(targetDateObj);
                 targetDateOnly.setHours(0, 0, 0, 0);
-
-                // Incluir slots hasta e incluyendo el día de la fecha objetivo
                 const isBeforeDeadline = slotDateOnly.getTime() < targetDateOnly.getTime();
                 const isDeadlineDay = HolidayService.isSameDay(slotDateOnly, targetDateOnly);
-
-                const shouldInclude = isBeforeDeadline || isDeadlineDay;
-
-                // Log para debugging
-                if (!shouldInclude) {
-                  console.log(`❌ Slot excluido: ${slot.dayName} ${slotDateOnly.toLocaleDateString('es-ES')} - Después de fecha objetivo (${targetDateOnly.toLocaleDateString('es-ES')})`);
-                }
-
-                return shouldInclude;
+                    return isBeforeDeadline || isDeadlineDay;
+                  })
+                : sortedSlots;
+            }
+          } else {
+            // B2C: Filtrar slots hasta la fecha objetivo del usuario
+            slotsUntilTarget = targetDateObj
+              ? sortedSlots.filter(slot => {
+                  const slotDateOnly = new Date(slot.date);
+                  slotDateOnly.setHours(0, 0, 0, 0);
+                  const targetDateOnly = new Date(targetDateObj);
+                  targetDateOnly.setHours(0, 0, 0, 0);
+                  const isBeforeDeadline = slotDateOnly.getTime() < targetDateOnly.getTime();
+                  const isDeadlineDay = HolidayService.isSameDay(slotDateOnly, targetDateOnly);
+                  return isBeforeDeadline || isDeadlineDay;
               })
             : sortedSlots;
+          }
 
           console.log(`📅 Slots después de filtrar por fecha objetivo:`);
           console.log(`   Fecha objetivo: ${targetDateObj?.toLocaleDateString('es-ES')}`);
@@ -4389,24 +4897,33 @@ export function StudyPlannerLIA() {
             const remainingLessons = validPendingLessons.length - currentLessonIndex;
             const remainingSlots = slotsUntilTarget.length - slotIndex;
 
-            // ✅ NUEVA LÓGICA SIMPLIFICADA: Distribuir uniformemente
+            // ✅ USAR EXACTAMENTE LA MISMA LÓGICA QUE B2C: Agrupar lecciones eficientemente
+            // B2C agrupa múltiples lecciones por slot cuando hay capacidad
             let lessonsToAssign: number;
 
             if (remainingLessons === 0) {
-              // No quedan lecciones, no asignar nada
               lessonsToAssign = 0;
+            } else if (remainingSlots === 1) {
+              // Último slot: asignar todas las lecciones restantes (hasta capacidad)
+              lessonsToAssign = Math.min(remainingLessons, maxLessonsInSlot);
             } else {
               // Calcular el promedio de lecciones que deben ir en los slots restantes
               const avgNeededPerRemainingSlot = remainingSlots > 0
                 ? remainingLessons / remainingSlots
                 : remainingLessons;
 
-              // Asignar el promedio redondeado hacia arriba, limitado solo por la capacidad física del slot
-              // NO limitar a 2 lecciones - llenar según capacidad para distribuir todas las lecciones
-              lessonsToAssign = Math.min(
-                Math.ceil(avgNeededPerRemainingSlot),
-                maxLessonsInSlot
-              );
+              // ✅ CRÍTICO: B2C agrupa lecciones - si hay capacidad para 2+, asignar al menos 2
+              // Esto asegura que las lecciones se agrupen en lugar de separarse
+              let calculatedLessons = Math.ceil(avgNeededPerRemainingSlot);
+              
+              // Si el slot tiene capacidad para 2+ lecciones y quedan suficientes lecciones,
+              // asegurar que se agrupen al menos 2 (como B2C)
+              if (maxLessonsInSlot >= 2 && remainingLessons >= 2 && calculatedLessons < 2) {
+                calculatedLessons = 2; // Mínimo 2 lecciones por slot cuando hay capacidad
+              }
+              
+              // Limitar por capacidad física del slot
+              lessonsToAssign = Math.min(calculatedLessons, maxLessonsInSlot, remainingLessons);
             }
 
             console.log(`   Slot ${slotIndex + 1}: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - Duración: ${slotDurationMinutes}min - Lecciones que caben: ${maxLessonsInSlot} - Quedan ${remainingLessons} lecciones - A asignar: ${lessonsToAssign}`);
@@ -4430,6 +4947,22 @@ export function StudyPlannerLIA() {
               if (assignedLessonIds.has(lesson.lessonId)) {
                 console.warn(`⚠️ Lección duplicada detectada y omitida: ${lesson.lessonId} - ${lesson.lessonTitle}`);
                 currentLessonIndex++;
+                // ✅ IMPORTANTE: Buscar la siguiente lección NO asignada en lugar de continuar
+                // Esto evita bucles infinitos si hay muchas lecciones duplicadas
+                let foundNext = false;
+                while (currentLessonIndex < validPendingLessons.length && !foundNext) {
+                  const nextLesson = validPendingLessons[currentLessonIndex];
+                  if (nextLesson && !assignedLessonIds.has(nextLesson.lessonId)) {
+                    foundNext = true;
+                    // No incrementar currentLessonIndex aquí, se hará después
+                  } else {
+                    currentLessonIndex++;
+                  }
+                }
+                if (!foundNext) {
+                  // No hay más lecciones disponibles, salir del while
+                  break;
+                }
                 continue; // Saltar esta lección y pasar a la siguiente
               }
 
@@ -4597,10 +5130,212 @@ export function StudyPlannerLIA() {
             console.log(`✅ Redistribución completada: ${currentLessonIndex} de ${validPendingLessons.length} lecciones válidas asignadas`);
           }
           
-          // Verificar si aún quedan lecciones sin asignar después de la redistribución
+          // ✅ CRÍTICO PARA B2B: Si aún quedan lecciones sin asignar, usar TODOS los slots disponibles
           if (currentLessonIndex < validPendingLessons.length) {
             const stillRemaining = validPendingLessons.length - currentLessonIndex;
-            console.warn(`⚠️ Después de la redistribución, aún quedan ${stillRemaining} lecciones sin asignar de ${validPendingLessons.length} válidas`);
+            console.warn(`⚠️ Después de la redistribución, aún quedan ${stillRemaining} lecciones sin asignar. Usando TODOS los slots disponibles...`);
+            
+            // ✅ CRÍTICO: Obtener TODOS los slots disponibles (no solo slotsUntilTarget)
+            // Para B2B, necesitamos usar TODOS los slots hasta la fecha límite más lejana
+            const usedSlotDates = new Set(lessonDistribution.map(d => d.slot.dateStr + d.slot.start.toISOString()));
+            
+            // Obtener todos los slots disponibles desde sortedSlots (todos los slots válidos)
+            let allAvailableSlots = sortedSlots;
+            
+            // Si es B2B y hay fechas límite, filtrar hasta la más lejana
+            if (isB2B && userProfile?.courses && Array.isArray(userProfile.courses)) {
+              const allDueDates = userProfile.courses
+                .map((c: any) => c.dueDate)
+                .filter(Boolean)
+                .map((d: string) => new Date(d))
+                .sort((a, b) => b.getTime() - a.getTime());
+              
+              const furthestDueDate = allDueDates[0];
+              if (furthestDueDate) {
+                allAvailableSlots = sortedSlots.filter(slot => {
+                  const slotDateOnly = new Date(slot.date);
+                  slotDateOnly.setHours(0, 0, 0, 0);
+                  const dueDateOnly = new Date(furthestDueDate);
+                  dueDateOnly.setHours(0, 0, 0, 0);
+                  const isBeforeDeadline = slotDateOnly.getTime() < dueDateOnly.getTime();
+                  const isDeadlineDay = HolidayService.isSameDay(slotDateOnly, dueDateOnly);
+                  return isBeforeDeadline || isDeadlineDay;
+                });
+              }
+            }
+            
+            // Filtrar solo los que no se hayan usado
+            const allUnusedSlots = allAvailableSlots.filter(slot => {
+              const slotKey = slot.dateStr + slot.start.toISOString();
+              return !usedSlotDates.has(slotKey);
+            });
+            
+            console.log(`   Slots adicionales disponibles: ${allUnusedSlots.length}`);
+            
+            // Ordenar slots no usados por fecha y hora
+            allUnusedSlots.sort((a, b) => a.date.getTime() - b.date.getTime());
+            
+            // ✅ Usar EXACTAMENTE LA MISMA LÓGICA QUE B2C para agrupar lecciones
+            // Calcular cuántas lecciones quedan y cuántos slots hay
+            const remainingLessonsCount = validPendingLessons.length - currentLessonIndex;
+            const remainingSlotsCount = allUnusedSlots.length;
+            
+            console.log(`   📊 Redistribuyendo ${remainingLessonsCount} lecciones en ${remainingSlotsCount} slots adicionales`);
+            
+            for (let slotIdx = 0; slotIdx < allUnusedSlots.length; slotIdx++) {
+              if (currentLessonIndex >= validPendingLessons.length) break;
+              
+              const unusedSlot = allUnusedSlots[slotIdx];
+              const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / MINUTES_PER_LESSON));
+              
+              // Calcular cuántas lecciones asignar a este slot (misma lógica que B2C)
+              const remainingAfterThis = validPendingLessons.length - currentLessonIndex;
+              const slotsAfterThis = allUnusedSlots.length - slotIdx - 1;
+              
+              // ✅ USAR LÓGICA IDÉNTICA A B2C: Calcular promedio y agrupar
+              let lessonsToAssignInSlot: number;
+              
+              if (remainingAfterThis === 0) {
+                lessonsToAssignInSlot = 0;
+              } else if (slotsAfterThis === 0) {
+                // Último slot: asignar todas las lecciones restantes
+                lessonsToAssignInSlot = Math.min(remainingAfterThis, slotCapacity);
+              } else {
+                // ✅ USAR EXACTAMENTE LA MISMA LÓGICA QUE B2C: Agrupar lecciones
+                // Calcular promedio
+                const avgNeeded = remainingAfterThis / slotsAfterThis;
+                let calculatedLessons = Math.ceil(avgNeeded);
+                
+                // ✅ CRÍTICO: Si hay capacidad para 2+ lecciones y quedan suficientes,
+                // asegurar que se agrupen al menos 2 (como B2C)
+                if (slotCapacity >= 2 && remainingAfterThis >= 2 && calculatedLessons < 2) {
+                  calculatedLessons = 2; // Mínimo 2 lecciones por slot cuando hay capacidad
+                }
+                
+                lessonsToAssignInSlot = Math.min(
+                  calculatedLessons,
+                  slotCapacity,
+                  remainingAfterThis
+                );
+              }
+              
+              const lessonsForSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
+              
+              for (let i = 0; i < lessonsToAssignInSlot && currentLessonIndex < validPendingLessons.length; i++) {
+                // Buscar la siguiente lección NO asignada
+                while (currentLessonIndex < validPendingLessons.length) {
+                  const lesson = validPendingLessons[currentLessonIndex];
+                  
+                  if (!lesson || !lesson.lessonTitle) {
+                    currentLessonIndex++;
+                    continue;
+                  }
+                  
+                  // ✅ CRÍTICO: Verificar que no esté duplicada
+                  if (assignedLessonIds.has(lesson.lessonId)) {
+                    console.warn(`⚠️ Lección duplicada omitida en redistribución: ${lesson.lessonId} - ${lesson.lessonTitle}`);
+                    currentLessonIndex++;
+                    continue; // Buscar siguiente lección no duplicada
+                  }
+                  
+                  // Lección válida y no duplicada, asignarla
+                  const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                    ? lesson.lessonOrderIndex 
+                    : 0;
+                  
+                  lessonsForSlot.push({
+                    courseTitle: lesson.courseTitle || 'Curso',
+                    lessonTitle: lesson.lessonTitle.trim(),
+                    lessonOrderIndex: orderIndex
+                  });
+                  
+                  assignedLessonIds.add(lesson.lessonId);
+                  currentLessonIndex++;
+                  break; // Salir del while y continuar con la siguiente lección
+                }
+              }
+              
+              if (lessonsForSlot.length > 0) {
+                lessonDistribution.push({
+                  slot: unusedSlot,
+                  lessons: lessonsForSlot
+                });
+                console.log(`   ✅ Agregado slot adicional: ${unusedSlot.dayName} ${unusedSlot.date.toLocaleDateString('es-ES')} con ${lessonsForSlot.length} lecciones agrupadas`);
+              }
+            }
+            
+            // Si aún quedan lecciones, intentar agregar más lecciones a slots existentes
+            if (currentLessonIndex < validPendingLessons.length) {
+              const stillRemainingAfter = validPendingLessons.length - currentLessonIndex;
+              console.warn(`⚠️ Aún quedan ${stillRemainingAfter} lecciones. Intentando llenar slots existentes al máximo...`);
+              
+              // Ordenar slots por espacio disponible (mayor primero)
+              const allSlotsWithSpace = lessonDistribution
+                .map(dist => ({
+                  dist,
+                  availableSpace: Math.floor(dist.slot.durationMinutes / MINUTES_PER_LESSON) - dist.lessons.length
+                }))
+                .filter(item => item.availableSpace > 0)
+                .sort((a, b) => b.availableSpace - a.availableSpace);
+              
+              for (const { dist } of allSlotsWithSpace) {
+                if (currentLessonIndex >= validPendingLessons.length) break;
+                
+                const slotCapacity = Math.floor(dist.slot.durationMinutes / MINUTES_PER_LESSON);
+                const currentLessons = dist.lessons.length;
+                const availableSpace = slotCapacity - currentLessons;
+                
+                // ✅ Agrupar lecciones: llenar el slot al máximo cuando sea posible
+                for (let i = 0; i < availableSpace && currentLessonIndex < validPendingLessons.length; i++) {
+                  // Buscar la siguiente lección NO asignada
+                  let foundLesson = false;
+                  while (currentLessonIndex < validPendingLessons.length && !foundLesson) {
+                    const lesson = validPendingLessons[currentLessonIndex];
+                    
+                    if (!lesson || !lesson.lessonTitle) {
+                      currentLessonIndex++;
+                      continue;
+                    }
+                    
+                    // ✅ CRÍTICO: Verificar que no esté duplicada
+                    if (assignedLessonIds.has(lesson.lessonId)) {
+                      console.warn(`⚠️ Lección duplicada omitida al llenar slot: ${lesson.lessonId}`);
+                      currentLessonIndex++;
+                      continue; // Buscar siguiente lección no duplicada
+                    }
+                    
+                    // Lección válida y no duplicada, asignarla
+                    const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
+                      ? lesson.lessonOrderIndex 
+                      : 0;
+                    
+                    dist.lessons.push({
+                      courseTitle: lesson.courseTitle || 'Curso',
+                      lessonTitle: lesson.lessonTitle.trim(),
+                      lessonOrderIndex: orderIndex
+                    });
+                    
+                    // ✅ Marcar como asignada para evitar duplicados
+                    assignedLessonIds.add(lesson.lessonId);
+                    
+                    currentLessonIndex++;
+                    foundLesson = true;
+                  }
+                  
+                  if (!foundLesson) {
+                    // No hay más lecciones disponibles, salir
+                    break;
+                  }
+                }
+              }
+            }
+            
+            const finalRemaining = validPendingLessons.length - currentLessonIndex;
+            if (finalRemaining > 0) {
+              console.error(`❌ CRÍTICO: Aún quedan ${finalRemaining} lecciones sin asignar después de usar TODOS los slots disponibles`);
+            } else {
+              console.log(`✅ ÉXITO: Todas las ${validPendingLessons.length} lecciones han sido asignadas`);
+            }
           }
 
           // Guardar distribución en el estado para usar en el resumen final
@@ -4737,17 +5472,28 @@ export function StudyPlannerLIA() {
             calendarMessage += `\n**Nota:** He identificado ${slotsAfterTarget} espacios adicionales disponibles después de tu fecha objetivo (${targetDate}). Estos pueden ser útiles para repaso o actividades complementarias.`;
           }
           
-          // Verificar si se asignaron todas las lecciones
-          // Solo mostrar advertencia si el plazo es realmente insuficiente (menos de 5 días o similar)
-          if (currentLessonIndex < allPendingLessons.length) {
-            const remainingLessons = allPendingLessons.length - currentLessonIndex;
+          // ✅ CRÍTICO: Verificar si se asignaron todas las lecciones
+          // Para B2B, esto es OBLIGATORIO - todas las lecciones deben asignarse
+          const totalAssignedLessons = lessonDistribution.reduce((sum, dist) => sum + dist.lessons.length, 0);
+          const remainingLessons = validPendingLessons.length - currentLessonIndex;
+          
+          if (currentLessonIndex < validPendingLessons.length) {
             const daysUntilTarget = targetDateObj 
               ? Math.ceil((targetDateObj.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
               : 0;
             
-            // Solo mostrar advertencia si el plazo es muy corto (menos de 5 días) o si hay muchas lecciones sin asignar
+            // Para B2B, siempre mostrar advertencia si quedan lecciones sin asignar
+            if (isB2B) {
+              calendarMessage += `\n\n⚠️ **ALERTA IMPORTANTE:** Quedan ${remainingLessons} lecciones pendientes por asignar de ${validPendingLessons.length} totales. `;
+              calendarMessage += `Para cumplir con los plazos organizacionales, es necesario asignar TODAS las lecciones. `;
+              if (daysUntilTarget < 7) {
+                calendarMessage += `El plazo de ${daysUntilTarget} días es muy corto. `;
+              }
+              calendarMessage += `He intentado usar todos los slots disponibles. Si aún faltan lecciones, considera contactar a tu administrador para ajustar los plazos o aumentar la disponibilidad de horarios.`;
+            } else {
+              // Para B2C, solo mostrar advertencia si el plazo es muy corto o hay muchas sin asignar
             const isUnreasonableDeadline = daysUntilTarget < 5;
-            const hasManyUnassigned = remainingLessons > (allPendingLessons.length * 0.2); // Más del 20% sin asignar
+              const hasManyUnassigned = remainingLessons > (validPendingLessons.length * 0.2); // Más del 20% sin asignar
             
             if (isUnreasonableDeadline || hasManyUnassigned) {
               calendarMessage += `\n**Nota:** Quedan ${remainingLessons} lecciones pendientes por asignar. `;
@@ -4755,6 +5501,13 @@ export function StudyPlannerLIA() {
                 calendarMessage += `El plazo de ${daysUntilTarget} días es muy corto para completar todas las lecciones. `;
               }
               calendarMessage += `Considera agregar más horarios o extender la fecha objetivo para completar todas las lecciones.`;
+              }
+            }
+          } else {
+            // ✅ Todas las lecciones fueron asignadas
+            console.log(`✅ ÉXITO: Todas las ${validPendingLessons.length} lecciones han sido asignadas correctamente`);
+            if (isB2B) {
+              calendarMessage += `\n\n✅ **PLAN COMPLETO:** He asignado todas las ${validPendingLessons.length} lecciones pendientes en los horarios disponibles. El plan está diseñado para cumplir con los plazos organizacionales establecidos.`;
             }
           }
           
@@ -4763,8 +5516,8 @@ export function StudyPlannerLIA() {
             // Calcular metas automáticamente
             const lessonsPerWeekCalc = Math.ceil(totalLessonsNeeded / weeksUntilTarget);
             const hoursPerWeekCalc = Math.ceil(lessonsPerWeekCalc * 1.5);
-            const sessionDurationMinutes = studyApproach === 'rapido' ? 25 : studyApproach === 'normal' ? 45 : 60;
-            const breakMinutes = studyApproach === 'rapido' ? 5 : studyApproach === 'normal' ? 10 : 15;
+            const sessionDurationMinutes = effectiveApproach === 'rapido' ? 25 : effectiveApproach === 'normal' ? 45 : 60;
+            const breakMinutes = effectiveApproach === 'rapido' ? 5 : effectiveApproach === 'normal' ? 10 : 15;
             
             // Enviar datos en formato estructurado para LIA (sin instrucciones visibles)
             calendarMessage += `\n`;
@@ -6635,7 +7388,14 @@ Cuéntame:
       if (totalLessonsAssigned >= savedTotalLessons) {
         distributionSummary += `✅ Se completarán todas las ${savedTotalLessons} lecciones antes de ${savedTargetDate}.\n`;
       } else {
+        // ✅ Para B2B, esto es crítico - mostrar advertencia más fuerte
+        const isB2BSummary = userContext?.userType === 'b2b';
+        if (isB2BSummary) {
+          distributionSummary += `⚠️ **ALERTA CRÍTICA:** Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} por asignar.\n`;
+          distributionSummary += `Para cumplir con los plazos organizacionales, es necesario asignar TODAS las lecciones. Considera contactar a tu administrador.\n`;
+      } else {
         distributionSummary += `⚠️ Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} por asignar.\n`;
+        }
       }
 
       // Instrucciones importantes sobre qué lecciones incluir
@@ -8400,12 +9160,13 @@ Cuéntame:
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                 className="fixed inset-0 z-50 flex items-center justify-center p-4"
               >
-                {/* Overlay */}
+                {/* Overlay - Para B2B no debe cerrar el modal */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                  onClick={skipCalendarConnection}
+                  onClick={userContext?.userType === 'b2b' ? undefined : skipCalendarConnection}
+                  style={{ cursor: userContext?.userType === 'b2b' ? 'default' : 'pointer' }}
                 />
                 
                 {/* Modal */}
@@ -8428,7 +9189,9 @@ Cuéntame:
                       Conecta tu calendario
                     </h3>
                     <p className="text-slate-400 text-sm max-w-sm mx-auto">
-                      Analizo tu calendario para encontrar los mejores horarios para estudiar
+                      {userContext?.userType === 'b2b' 
+                        ? 'Como usuario empresarial, es necesario conectar tu calendario para adaptar el plan a tus horarios de trabajo y cumplir con los plazos asignados.'
+                        : 'Analizo tu calendario para encontrar los mejores horarios para estudiar'}
                     </p>
                   </div>
 
@@ -8647,7 +9410,8 @@ Cuéntame:
                     </div>
                   </div>
 
-                  {/* Botón para saltar */}
+                  {/* Botón para saltar - Solo para B2C */}
+                  {userContext?.userType !== 'b2b' && (
                   <div className="text-center pt-2">
                     <motion.button
                       onClick={skipCalendarConnection}
@@ -8658,8 +9422,10 @@ Cuéntame:
                       Omitir por ahora
                     </motion.button>
                   </div>
+                  )}
 
-                  {/* Botón cerrar mejorado */}
+                  {/* Botón cerrar - Solo para B2C */}
+                  {userContext?.userType !== 'b2b' && (
                   <motion.button
                     onClick={skipCalendarConnection}
                     whileHover={{ scale: 1.1, rotate: 90 }}
@@ -8670,6 +9436,16 @@ Cuéntame:
                   >
                     <X size={20} />
                   </motion.button>
+                  )}
+                  
+                  {/* Mensaje informativo para B2B */}
+                  {userContext?.userType === 'b2b' && (
+                    <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <p className="text-blue-400 text-xs text-center">
+                        ⚠️ La conexión del calendario es obligatoria para usuarios empresariales
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               </motion.div>
             )}

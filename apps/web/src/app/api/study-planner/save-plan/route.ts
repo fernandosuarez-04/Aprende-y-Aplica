@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { SessionService } from '../../../../features/auth/services/session.service';
+import { UserContextService } from '../../../../features/study-planner/services/user-context.service';
 import type { 
   StudyPlanConfig,
   StudySession,
@@ -91,6 +92,29 @@ export async function POST(request: NextRequest): Promise<NextResponse<SavePlanR
     // Usar cliente admin para bypass de RLS
     const supabase = createAdminClient();
     
+    // ✅ Detectar tipo de usuario y obtener organization_id si es B2B
+    // Usar el userType del config si está disponible, sino detectarlo desde la BD
+    let userType = body.config.userType;
+    let organizationId: string | null = null;
+    
+    if (!userType) {
+      // Si no viene en el config, detectarlo desde la BD
+      userType = await UserContextService.getUserType(user.id);
+    }
+    
+    // Si es B2B, obtener el organization_id del usuario
+    if (userType === 'b2b') {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (userData?.organization_id) {
+        organizationId = userData.organization_id;
+      }
+    }
+    
     // Convertir fechas ISO a formato date (YYYY-MM-DD)
     const formatDateOnly = (isoDate: string | undefined): string | null => {
       if (!isoDate) return null;
@@ -114,8 +138,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<SavePlanR
         generation_mode: body.config.generationMode,
         preferred_session_type: body.config.preferredSessionType,
         learning_route_id: body.config.learningRouteId,
+        // ✅ Guardar user_type directamente en la tabla
+        user_type: userType,
+        // ✅ Guardar organization_id si el usuario es B2B
+        organization_id: organizationId,
+        // También guardar en metadata para compatibilidad
         ai_generation_metadata: {
-          userType: body.config.userType,
+          userType: userType,
           courseIds: body.config.courseIds,
           minSessionMinutes: body.config.minSessionMinutes,
           maxSessionMinutes: body.config.maxSessionMinutes,
