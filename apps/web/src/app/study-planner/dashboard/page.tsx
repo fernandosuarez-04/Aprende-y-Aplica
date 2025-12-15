@@ -461,7 +461,6 @@ export default function StudyPlannerDashboardPage() {
       }, 2000);
     }
   };
->>>>>>> develop
 
   // Función para enviar mensaje
   const handleSendMessage = async () => {
@@ -863,8 +862,7 @@ export default function StudyPlannerDashboardPage() {
         <div className="flex-1 overflow-auto px-6 pb-6">
           {/* Calendario de Estudios */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 min-h-full">
-            <StudyPlannerCalendar showOnlyPlanEvents={showOnlyPlanEvents} />
->>>>>>> develop
+            <StudyPlannerCalendar showOnlyPlanEvents={showOnlyPlanEvents} />   
           </div>
         </div>
       </div>
