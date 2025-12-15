@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from './lib/supabase/types'
-import { QuestionnaireValidationService } from './features/auth/services/questionnaire-validation.service'
 
 // ✅ Sistema de logging condicional - solo en desarrollo
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -11,6 +10,54 @@ const logger = {
   error: console.error, // Siempre logguear errores
   warn: (...args: any[]) => isDevelopment && console.warn(...args),
 };
+
+async function isQuestionnaireCompleted(
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  userId: string
+): Promise<boolean> {
+  try {
+    // Verificar si tiene perfil
+    const { data: profile, error: profileError } = await supabase
+      .from('user_perfil')
+      .select('id')
+      .eq('user_id', userId)
+      .single()
+
+    if (profileError || !profile) {
+      return false
+    }
+
+    // Verificar si tiene al menos una respuesta
+    const { data: responses, error: responsesError } = await supabase
+      .from('respuestas')
+      .select('id')
+      .eq('user_perfil_id', profile.id)
+      .limit(1)
+
+    if (responsesError) {
+      logger.error('Error verificando respuestas (middleware):', responsesError)
+      return false
+    }
+
+    return (responses?.length || 0) > 0
+  } catch (error) {
+    logger.error('Error en isQuestionnaireCompleted (middleware):', error)
+    return false
+  }
+}
+
+async function requiresQuestionnaire(
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  userId: string
+): Promise<boolean> {
+  try {
+    const isCompleted = await isQuestionnaireCompleted(supabase, userId)
+    return !isCompleted
+  } catch (error) {
+    logger.error('Error en requiresQuestionnaire (middleware):', error)
+    return false
+  }
+}
 
 export async function middleware(request: NextRequest) {
   logger.log('🔍 Middleware ejecutándose para:', request.nextUrl.pathname)
@@ -202,9 +249,9 @@ export async function middleware(request: NextRequest) {
     // Esta validación se ejecuta ANTES de las validaciones de rol para asegurar que ningún usuario OAuth
     // pueda acceder sin completar el cuestionario, incluso si es administrador o instructor
     try {
-      const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(sessionData.user_id)
-      
-      if (requiresQuestionnaire) {
+      const needsQuestionnaire = await requiresQuestionnaire(supabase, sessionData.user_id)
+
+      if (needsQuestionnaire) {
         logger.log('📋 Usuario OAuth sin cuestionario detectado, redirigiendo a /statistics')
         // Redirigir a /statistics sin importar la ruta que intentó acceder
         return NextResponse.redirect(new URL('/statistics', request.url))
