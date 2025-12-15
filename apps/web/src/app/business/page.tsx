@@ -18,6 +18,7 @@ export default function BusinessHomePage() {
   const [content, setContent] = useState<BusinessPageContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [particles, setParticles] = useState<Array<{ left: number; top: number; xOffset: number; delay: number; duration: number }>>([]);
 
   useEffect(() => {
     async function loadContent() {
@@ -39,6 +40,21 @@ export default function BusinessHomePage() {
     }
 
     loadContent();
+  }, []);
+
+  // Generar partículas solo en el cliente para evitar errores de hidratación
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setParticles(
+        Array.from({ length: 6 }, () => ({
+          left: Math.random() * 100,
+          top: Math.random() * 100,
+          xOffset: Math.random() * 20 - 10,
+          delay: Math.random() * 2,
+          duration: 3 + Math.random() * 2,
+        }))
+      );
+    }
   }, []);
 
   if (loading) {
@@ -263,27 +279,27 @@ export default function BusinessHomePage() {
         </motion.div>
 
         {/* Floating Particles */}
-        {[...Array(6)].map((_, i) => (
+        {particles.map((particle, i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 rounded-full"
             style={{
               backgroundColor: 'var(--color-primary, rgb(59, 130, 246))',
               opacity: 0.3,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: `${particle.left}%`,
+              top: `${particle.top}%`,
             }}
             animate={{
               y: [0, -30, 0],
-              x: [0, Math.random() * 20 - 10, 0],
+              x: [0, particle.xOffset, 0],
               opacity: [0.3, 0.6, 0.3],
               scale: [1, 1.5, 1],
             }}
             transition={{
-              duration: 3 + Math.random() * 2,
+              duration: particle.duration,
               repeat: Infinity,
               ease: 'easeInOut',
-              delay: Math.random() * 2,
+              delay: particle.delay,
             }}
           />
         ))}
@@ -309,12 +325,12 @@ export default function BusinessHomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-carbon">
+    <main className="min-h-screen bg-white dark:bg-[#0F1419]">
       {/* Hero Section */}
       <HeroBusinessSection content={content.hero} />
       
       {/* Statistics Section */}
-      <section className="py-16 bg-carbon/50">
+      <section className="py-16 bg-white dark:bg-[#0F1419]">
         <div className="container mx-auto px-4">
           <motion.div
             className="grid grid-cols-3 gap-8 text-center"
@@ -336,14 +352,16 @@ export default function BusinessHomePage() {
                   className="relative"
                 >
                   <div className="flex justify-center mb-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-success/20 rounded-xl flex items-center justify-center">
-                      <IconComponent className="w-8 h-8 text-primary" />
+                    <div className="w-16 h-16 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#00D4B3' }}>
+                      <IconComponent className="w-8 h-8 text-white" strokeWidth={2.5} />
                     </div>
                   </div>
-                  <div className="text-4xl font-bold bg-gradient-to-r from-primary to-success bg-clip-text text-transparent mb-2">
+                  <div className="text-4xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
                     {stat.value}
                   </div>
-                  <div className="text-lg opacity-70">{stat.label}</div>
+                  <div className="text-lg text-[#6C757D] dark:text-white/70" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                    {stat.label}
+                  </div>
                 </motion.div>
               );
             })}
@@ -411,17 +429,17 @@ export default function BusinessHomePage() {
                   <Link href={useCase.link}>
                     <div className="bg-glass border border-glass-light rounded-2xl p-8 h-full hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10">
                       <div className="flex justify-center mb-6">
-                        <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-success/20 rounded-xl flex items-center justify-center group-hover:from-primary/40 group-hover:to-success/40 transition-all duration-300">
-                          <IconComponent className="w-8 h-8 text-primary" />
+                        <div className="w-16 h-16 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#00D4B3' }}>
+                          <IconComponent className="w-8 h-8 text-white" strokeWidth={2.5} />
                         </div>
                       </div>
-                      <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">
+                      <h3 className="text-xl font-bold mb-3 text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
                         {useCase.title}
                       </h3>
-                      <p className="text-text-secondary text-sm mb-4">
+                      <p className="text-[#6C757D] dark:text-white/70 text-sm mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                         {useCase.description}
                       </p>
-                      <div className="flex items-center text-primary text-sm font-medium group-hover:gap-2 transition-all">
+                      <div className="flex items-center text-[#00D4B3] text-sm font-medium group-hover:gap-2 transition-all" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                         Ver más
                         <ArrowRight className="w-4 h-4" />
                       </div>

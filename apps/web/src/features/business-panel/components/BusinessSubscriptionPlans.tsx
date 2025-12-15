@@ -465,13 +465,13 @@ export function BusinessSubscriptionPlans() {
   const getPlanColor = (planId: string) => {
     switch (planId) {
       case 'team':
-        return 'from-blue-500 to-blue-600';
+        return 'bg-[#0A2540]';
       case 'business':
-        return 'from-purple-500 to-purple-600';
+        return 'bg-[#00D4B3]';
       case 'enterprise':
-        return 'from-amber-500 to-amber-600';
+        return 'bg-[#F59E0B]';
       default:
-        return 'from-gray-500 to-gray-600';
+        return 'bg-[#6C757D]';
     }
   };
 
@@ -492,10 +492,10 @@ export function BusinessSubscriptionPlans() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 flex items-center gap-3"
+            className="bg-[#10B981]/10 dark:bg-[#10B981]/20 border border-[#10B981] dark:border-[#10B981] rounded-lg p-3 flex items-center gap-2.5"
           >
-            <CheckCircle2 className="w-5 h-5 text-green-400" />
-            <span className="text-green-400 font-medium">
+            <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
+            <span className="text-[#10B981] font-medium text-sm">
               Plan actualizado exitosamente
             </span>
           </motion.div>
@@ -505,10 +505,10 @@ export function BusinessSubscriptionPlans() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-center gap-3"
+            className="bg-red-500/10 dark:bg-red-500/20 border border-red-500 dark:border-red-500 rounded-lg p-3 flex items-center gap-2.5"
           >
-            <AlertCircle className="w-5 h-5 text-red-400" />
-            <span className="text-red-400 font-medium">
+            <AlertCircle className="w-4 h-4 text-red-500" />
+            <span className="text-red-500 font-medium text-sm">
               {changeError}
             </span>
           </motion.div>
@@ -517,17 +517,17 @@ export function BusinessSubscriptionPlans() {
 
       {/* Indicador del Plan Actual */}
       {currentPlan && (
-        <div className="bg-carbon-800/50 border border-carbon-700 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border border-[#0A2540]/20 dark:border-[#00D4B3]/20 rounded-lg p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm text-carbon-400 mb-1">Plan Actual</p>
-            <p className="text-lg font-semibold text-white capitalize">
+            <p className="text-xs text-[#6C757D] dark:text-gray-400 mb-1">Plan Actual</p>
+            <p className="text-base font-semibold text-[#0A2540] dark:text-white capitalize">
               {currentPlan} {currentBillingCycle === 'yearly' ? '(Anual)' : '(Mensual)'}
             </p>
           </div>
           {subscription?.end_date && (
             <div className="text-right">
-              <p className="text-sm text-carbon-400 mb-1">Próxima renovación</p>
-              <p className="text-sm font-medium text-white">
+              <p className="text-xs text-[#6C757D] dark:text-gray-400 mb-1">Próxima renovación</p>
+              <p className="text-xs font-medium text-[#0A2540] dark:text-white">
                 {new Date(subscription.end_date).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',
@@ -540,39 +540,65 @@ export function BusinessSubscriptionPlans() {
       )}
 
       {/* Toggle de Facturación */}
-      <div className="flex items-center justify-center gap-4 mb-8">
-        <button
-          onClick={() => setBillingCycle('monthly')}
-          className={`px-6 py-3 rounded-lg font-medium transition-all ${
-            billingCycle === 'monthly'
-              ? 'bg-primary text-white shadow-lg'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-          }`}
-        >
-          Mensual
-        </button>
-        <button
-          onClick={() => setBillingCycle('yearly')}
-          className={`px-6 py-3 rounded-lg font-medium transition-all relative ${
-            billingCycle === 'yearly'
-              ? 'bg-primary text-white shadow-lg'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-          }`}
-        >
-          Anual
-          <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-            Ahorra ~20%
-          </span>
-        </button>
+      <div className="flex items-center justify-center gap-3 mb-6">
+        <div className="inline-flex bg-[#E9ECEF]/50 dark:bg-[#0A2540]/10 rounded-lg p-1 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+          <motion.button
+            onClick={() => setBillingCycle('monthly')}
+            className={`relative px-4 py-2 font-medium transition-colors rounded-md text-sm ${
+              billingCycle === 'monthly'
+                ? 'text-[#0A2540] dark:text-white'
+                : 'text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white'
+            }`}
+          >
+            {billingCycle === 'monthly' && (
+              <motion.div
+                layoutId="businessBillingCycle"
+                className="absolute inset-0 bg-white dark:bg-[#1E2329] rounded-md shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <span className="relative z-10">Mensual</span>
+          </motion.button>
+          <motion.button
+            onClick={() => setBillingCycle('yearly')}
+            className={`relative px-4 py-2 font-medium transition-colors rounded-md text-sm ${
+              billingCycle === 'yearly'
+                ? 'text-[#0A2540] dark:text-white'
+                : 'text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white'
+            }`}
+          >
+            {billingCycle === 'yearly' && (
+              <motion.div
+                layoutId="businessBillingCycle"
+                className="absolute inset-0 bg-white dark:bg-[#1E2329] rounded-md shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-1.5">
+              Anual
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: billingCycle === 'yearly' ? 1 : 0 }}
+                className="inline-block bg-[#10B981] text-white text-xs px-1.5 py-0.5 rounded-full font-semibold"
+              >
+                Ahorra ~20%
+              </motion.span>
+            </span>
+          </motion.button>
+        </div>
       </div>
 
       {/* Cards de Planes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
         {plans.map((plan, index) => {
           const savings = calculateYearlySavings(plan);
           const monthlyEquivalent = billingCycle === 'yearly' 
             ? Math.round(plan.priceYearly / 12)
             : plan.priceMonthly;
+          const currentPlanNormalized = currentPlan?.toLowerCase()
+          const planIdNormalized = plan.id.toLowerCase()
+          const isCurrentPlan = currentPlanNormalized === planIdNormalized && 
+                               (currentBillingCycle === billingCycle || !currentBillingCycle)
 
           return (
             <motion.div
@@ -580,59 +606,85 @@ export function BusinessSubscriptionPlans() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`relative rounded-xl border-2 overflow-hidden transition-all flex flex-col h-full ${
+              className={`relative rounded-xl border overflow-hidden transition-all flex flex-col h-full ${
                 plan.isPopular
-                  ? 'border-primary shadow-xl scale-105'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
-              }`}
+                  ? 'border-[#0A2540] dark:border-[#00D4B3] shadow-lg scale-[1.02]'
+                  : 'border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50'
+              } ${isCurrentPlan ? 'ring-2 ring-[#10B981] ring-offset-2 dark:ring-offset-[#0F1419]' : ''}`}
             >
               {/* Popular Badge */}
               {plan.isPopular && (
-                <div className="absolute top-0 right-0 bg-primary text-white px-4 py-1 rounded-bl-lg text-sm font-semibold z-10 flex items-center gap-2">
-                  <Star className="w-4 h-4 fill-current" />
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', delay: index * 0.1 + 0.2 }}
+                  className="absolute top-0 right-0 bg-[#0A2540] dark:bg-[#00D4B3] text-white px-3 py-1 rounded-bl-lg text-xs font-semibold z-10 flex items-center gap-1.5"
+                >
+                  <Star className="w-3.5 h-3.5 fill-current" />
                   {plan.badge || 'Más Popular'}
-                </div>
+                </motion.div>
               )}
 
               {/* Badge de descuento */}
               {plan.badge && !plan.isPopular && (
-                <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold z-10">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-4 right-4 bg-[#10B981] text-white px-2.5 py-1 rounded-full text-xs font-semibold z-10"
+                >
                   {plan.badge}
-                </div>
+                </motion.div>
               )}
 
-              {/* Header con gradiente */}
-              <div className={`bg-gradient-to-br ${getPlanColor(plan.id)} p-6 text-white flex-shrink-0`}>
-                <div className="flex items-center gap-3 mb-2">
-                  {getPlanIcon(plan.id)}
-                  <h3 className="text-2xl font-bold">{plan.name}</h3>
+              {/* Current Plan Badge */}
+              {isCurrentPlan && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-0 left-0 bg-[#10B981] text-white px-3 py-1 rounded-br-lg text-xs font-semibold z-10"
+                >
+                  Plan Actual
+                </motion.div>
+              )}
+
+              {/* Header */}
+              <div className={`${getPlanColor(plan.id)} p-5 text-white flex-shrink-0`}>
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="p-1.5 bg-white/20 rounded-lg">
+                    {getPlanIcon(plan.id)}
+                  </div>
+                  <h3 className="text-xl font-bold">{plan.name}</h3>
                 </div>
-                <p className="text-white/80 text-sm mb-4 min-h-[20px]">{plan.tagline}</p>
-                <div className="flex items-baseline gap-2">
+                <p className="text-white/90 text-xs mb-3 min-h-[16px]">{plan.tagline}</p>
+                <div className="flex items-baseline gap-1.5">
                   {plan.price === 'Personalizado' ? (
-                    <span className="text-3xl font-bold">Personalizado</span>
+                    <span className="text-2xl font-bold">Personalizado</span>
                   ) : (
                     <>
-                      <span className="text-4xl font-bold">
+                      <span className="text-3xl font-bold">
                         ${billingCycle === 'yearly' 
                           ? plan.priceYearly.toLocaleString('es-MX')
                           : plan.priceMonthly.toLocaleString('es-MX')
                         }
                       </span>
-                      <span className="text-white/70">
+                      <span className="text-white/80 text-sm">
                         /{billingCycle === 'yearly' ? 'año' : 'mes'}
                       </span>
                     </>
                   )}
                 </div>
-                <div className="min-h-[40px] mt-2">
+                <div className="min-h-[32px] mt-2">
                   {plan.price !== 'Personalizado' && billingCycle === 'yearly' && savings > 0 && (
-                    <p className="text-white/80 text-sm">
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-white/90 text-xs font-medium"
+                    >
                       Ahorra {savings}% vs plan mensual
-                    </p>
+                    </motion.p>
                   )}
                   {plan.price !== 'Personalizado' && billingCycle === 'yearly' && (
-                    <p className="text-white/70 text-sm mt-1">
+                    <p className="text-white/80 text-xs mt-1">
                       ${monthlyEquivalent.toLocaleString('es-MX')}/mes facturado anualmente
                     </p>
                   )}
@@ -640,57 +692,52 @@ export function BusinessSubscriptionPlans() {
               </div>
 
               {/* Features */}
-              <div className="p-6 bg-white dark:bg-gray-800 flex flex-col flex-1">
-                <ul className="space-y-3 mb-6 flex-1">
+              <div className="p-5 bg-white dark:bg-[#1E2329] flex flex-col flex-1">
+                <ul className="space-y-2.5 mb-4 flex-1">
                   {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
-                    </li>
+                    <motion.li
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 + idx * 0.03 }}
+                      className="flex items-start gap-2.5"
+                    >
+                      <Check className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-0.5" />
+                      <span className="text-xs text-[#0A2540] dark:text-gray-300 leading-relaxed">{feature}</span>
+                    </motion.li>
                   ))}
                 </ul>
 
-                {(() => {
-                  // Verificar si es el plan actual comparando IDs (case-insensitive)
-                  const currentPlanNormalized = currentPlan?.toLowerCase()
-                  const planIdNormalized = plan.id.toLowerCase()
-                  const isCurrentPlan = currentPlanNormalized === planIdNormalized && 
-                                       (currentBillingCycle === billingCycle || !currentBillingCycle)
-                  const isDisabled = isCurrentPlan || planLoading || isChangingPlan
-                  
-                  return (
-                    <button
-                      onClick={() => !isDisabled && handleSelectPlan(plan.id)}
-                      disabled={isDisabled}
-                      className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                        isDisabled
-                          ? 'bg-carbon-700 text-carbon-400 cursor-not-allowed'
-                          : plan.isPopular
-                          ? 'bg-primary hover:bg-primary/90 text-white'
-                          : plan.id === 'enterprise'
-                          ? 'bg-carbon-800 hover:bg-carbon-700 text-white border border-carbon-600'
-                          : 'bg-carbon-800 hover:bg-carbon-700 text-white'
-                      }`}
-                    >
-                      {isCurrentPlan ? (
-                        <>
-                          Plan Actual
-                          <CheckCircle2 className="w-5 h-5" />
-                        </>
-                      ) : plan.id === 'enterprise' ? (
-                        <>
-                          Contactar Ventas
-                          <Mail className="w-5 h-5" />
-                        </>
-                      ) : (
-                        <>
-                          {currentPlan && currentPlanNormalized !== planIdNormalized ? 'Cambiar de plan' : 'Seleccionar plan'}
-                          <ArrowRight className="w-5 h-5" />
-                        </>
-                      )}
-                    </button>
-                  )
-                })()}
+                <button
+                  onClick={() => !isCurrentPlan && !planLoading && !isChangingPlan && handleSelectPlan(plan.id)}
+                  disabled={isCurrentPlan || planLoading || isChangingPlan}
+                  className={`w-full py-2.5 rounded-md font-medium transition-colors flex items-center justify-center gap-2 text-sm ${
+                    isCurrentPlan
+                      ? 'bg-[#10B981] text-white cursor-not-allowed'
+                      : plan.isPopular
+                      ? 'bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white'
+                      : plan.id === 'enterprise'
+                      ? 'bg-[#F59E0B] hover:bg-[#F59E0B]/90 text-white'
+                      : 'bg-[#E9ECEF] dark:bg-[#0A2540]/20 hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/30 text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                  }`}
+                >
+                  {isCurrentPlan ? (
+                    <>
+                      Plan Actual
+                      <CheckCircle2 className="w-4 h-4" />
+                    </>
+                  ) : plan.id === 'enterprise' ? (
+                    <>
+                      Contactar Ventas
+                      <Mail className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      {currentPlan && currentPlanNormalized !== planIdNormalized ? 'Cambiar de plan' : 'Seleccionar plan'}
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
               </div>
             </motion.div>
           );
@@ -698,71 +745,71 @@ export function BusinessSubscriptionPlans() {
       </div>
 
       {/* Comparación Detallada por Categorías */}
-      <div className="mt-12">
-        <h2 className="text-2xl font-bold text-text-primary mb-6 text-center">
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-[#0A2540] dark:text-white mb-4 text-center">
           Comparación Detallada de Características
         </h2>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {Object.entries(featuresByCategory).map(([category, features]) => (
             <div
               key={category}
-              className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"
+              className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm"
             >
-              <div className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-xl font-bold text-text-primary flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
+              <div className="bg-[#0A2540]/5 dark:bg-[#0A2540]/10 px-4 py-3 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+                <h3 className="text-base font-bold text-[#0A2540] dark:text-white flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
                   {category}
                 </h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                  <thead className="bg-[#E9ECEF]/30 dark:bg-[#0A2540]/10 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
                     <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary w-1/2">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#0A2540] dark:text-white w-1/2">
                         Característica
                       </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-[#0A2540] dark:text-white">
                         Team
                       </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-[#0A2540] dark:text-white">
                         Business
                       </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-[#0A2540] dark:text-white">
                         Enterprise
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="divide-y divide-[#E9ECEF] dark:divide-[#6C757D]/30">
                     {features.map((feature, idx) => (
                       <tr
                         key={idx}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                        className="hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/10 transition-colors"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3">
                           <div>
-                            <p className="text-text-primary font-medium">{feature.name}</p>
-                            <p className="text-text-tertiary text-sm mt-1">{feature.description}</p>
+                            <p className="text-[#0A2540] dark:text-white font-medium text-xs">{feature.name}</p>
+                            <p className="text-[#6C757D] dark:text-gray-400 text-xs mt-0.5">{feature.description}</p>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-4 py-3 text-center">
                           {feature.team ? (
-                            <Check className="w-6 h-6 text-green-500 mx-auto" />
+                            <Check className="w-5 h-5 text-[#10B981] mx-auto" />
                           ) : (
-                            <X className="w-6 h-6 text-gray-400 dark:text-gray-600 mx-auto" />
+                            <X className="w-5 h-5 text-[#6C757D] dark:text-gray-600 mx-auto" />
                           )}
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-4 py-3 text-center">
                           {feature.business ? (
-                            <Check className="w-6 h-6 text-green-500 mx-auto" />
+                            <Check className="w-5 h-5 text-[#10B981] mx-auto" />
                           ) : (
-                            <X className="w-6 h-6 text-gray-400 dark:text-gray-600 mx-auto" />
+                            <X className="w-5 h-5 text-[#6C757D] dark:text-gray-600 mx-auto" />
                           )}
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-4 py-3 text-center">
                           {feature.enterprise ? (
-                            <Check className="w-6 h-6 text-green-500 mx-auto" />
+                            <Check className="w-5 h-5 text-[#10B981] mx-auto" />
                           ) : (
-                            <X className="w-6 h-6 text-gray-400 dark:text-gray-600 mx-auto" />
+                            <X className="w-5 h-5 text-[#6C757D] dark:text-gray-600 mx-auto" />
                           )}
                         </td>
                       </tr>
@@ -776,8 +823,8 @@ export function BusinessSubscriptionPlans() {
       </div>
 
       {/* Nota de comparación */}
-      <div className="mt-8 text-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="mt-6 text-center">
+        <p className="text-xs text-[#6C757D] dark:text-gray-400">
           Todas las suscripciones incluyen cancelación en cualquier momento. Sin cargos ocultos.
         </p>
       </div>
@@ -801,79 +848,62 @@ export function BusinessSubscriptionPlans() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', duration: 0.3 }}
-              className="relative bg-carbon-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-carbon-700 w-full max-w-lg z-10"
+              className="relative bg-white dark:bg-[#1E2329] backdrop-blur-md rounded-xl shadow-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 w-full max-w-lg z-10"
             >
               {/* Header */}
-              <div 
-                className="flex items-center justify-between p-6 border-b"
-                style={{
-                  backgroundColor: '#1e293b',
-                  borderColor: '#334155'
-                }}
-              >
-                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                  <Info className="w-6 h-6 text-primary" />
+              <div className="flex items-center justify-between p-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
+                <h2 className="text-xl font-bold text-[#0A2540] dark:text-white flex items-center gap-2.5">
+                  <div className="p-1.5 bg-[#0A2540]/10 dark:bg-[#00D4B3]/20 rounded-lg">
+                    <Info className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                  </div>
                   Confirmar Cambio de Plan
                 </h2>
                 <button
                   onClick={handleCancelChange}
                   disabled={isChangingPlan}
-                  className="p-2 hover:bg-carbon-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: 'rgba(51, 65, 85, 0.5)' }}
+                  className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <X className="w-5 h-5 text-carbon-300 hover:text-white" />
+                  <X className="w-4 h-4 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white" />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="p-6 space-y-6" style={{ backgroundColor: '#0f172a' }}>
+              <div className="p-5 space-y-4 bg-white dark:bg-[#1E2329]">
                 {/* Resumen del Cambio */}
-                <div className="space-y-4">
-                  <div 
-                    className="flex items-center justify-between p-4 rounded-lg border"
-                    style={{
-                      backgroundColor: '#1e293b',
-                      borderColor: '#334155'
-                    }}
-                  >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#E9ECEF]/30 dark:bg-[#0A2540]/10">
                     <div>
-                      <p className="text-sm text-carbon-400 mb-1">Plan Actual</p>
-                      <p className="text-lg font-semibold text-white">{changeInfo.currentPlan}</p>
-                      <p className="text-sm text-carbon-400 mt-1">
+                      <p className="text-xs text-[#6C757D] dark:text-gray-400 mb-1">Plan Actual</p>
+                      <p className="text-base font-semibold text-[#0A2540] dark:text-white">{changeInfo.currentPlan}</p>
+                      <p className="text-xs text-[#6C757D] dark:text-gray-400 mt-0.5">
                         {changeInfo.currentPrice > 0 && changeInfo.currentPlanId
                           ? formatPlanPrice(changeInfo.currentPlanId.toLowerCase() as BusinessPlanId, changeInfo.currentBillingCycle)
                           : 'Sin plan activo'
                         }
                       </p>
                     </div>
-                    <ArrowRight className="w-5 h-5 text-carbon-500" />
+                    <ArrowRight className="w-4 h-4 text-[#6C757D] dark:text-gray-400" />
                     <div>
-                      <p className="text-sm text-carbon-400 mb-1">Plan Nuevo</p>
-                      <p className="text-lg font-semibold text-white">{changeInfo.newPlan}</p>
-                      <p className="text-sm text-carbon-400 mt-1">
+                      <p className="text-xs text-[#6C757D] dark:text-gray-400 mb-1">Plan Nuevo</p>
+                      <p className="text-base font-semibold text-[#0A2540] dark:text-white">{changeInfo.newPlan}</p>
+                      <p className="text-xs text-[#6C757D] dark:text-gray-400 mt-0.5">
                         {formatPlanPrice(changeInfo.newPlanId.toLowerCase() as BusinessPlanId, changeInfo.newBillingCycle)}
                       </p>
                     </div>
                   </div>
 
                   {/* Detalles */}
-                  <div 
-                    className="p-4 rounded-lg border space-y-2"
-                    style={{
-                      backgroundColor: '#1e293b',
-                      borderColor: '#334155'
-                    }}
-                  >
+                  <div className="p-3 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#E9ECEF]/30 dark:bg-[#0A2540]/10 space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-carbon-400">Ciclo de facturación:</span>
-                      <span className="text-sm font-medium text-white capitalize">{changeInfo.newBillingCycle}</span>
+                      <span className="text-xs text-[#6C757D] dark:text-gray-400">Ciclo de facturación:</span>
+                      <span className="text-xs font-medium text-[#0A2540] dark:text-white capitalize">{changeInfo.newBillingCycle}</span>
                     </div>
                     {changeInfo.priceDifference !== 0 && (
-                      <div className="flex justify-between items-center pt-2 border-t border-carbon-700">
-                        <span className="text-sm text-carbon-400">
+                      <div className="flex justify-between items-center pt-2 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
+                        <span className="text-xs text-[#6C757D] dark:text-gray-400">
                           {changeInfo.priceDifference > 0 ? 'Aumento' : 'Disminución'} de precio:
                         </span>
-                        <span className={`text-sm font-semibold ${changeInfo.priceDifference > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        <span className={`text-xs font-semibold ${changeInfo.priceDifference > 0 ? 'text-red-500' : 'text-[#10B981]'}`}>
                           {changeInfo.priceDifference > 0 ? '+' : ''}
                           ${Math.abs(changeInfo.priceDifference).toLocaleString('es-MX')}
                           /{changeInfo.newBillingCycle === 'yearly' ? 'año' : 'mes'}
@@ -884,30 +914,18 @@ export function BusinessSubscriptionPlans() {
                 </div>
 
                 {/* Mensaje informativo */}
-                <div 
-                  className="p-4 rounded-lg border"
-                  style={{
-                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                    borderColor: 'rgba(59, 130, 246, 0.3)'
-                  }}
-                >
-                  <p className="text-sm text-blue-300 flex items-start gap-2">
-                    <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div className="p-3 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30 bg-[#0A2540]/5 dark:bg-[#00D4B3]/10">
+                  <p className="text-xs text-[#0A2540] dark:text-[#00D4B3] flex items-start gap-2">
+                    <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                     <span>El cambio de plan será efectivo inmediatamente. Tu próxima facturación reflejará el nuevo plan seleccionado.</span>
                   </p>
                 </div>
 
                 {/* Error */}
                 {changeError && (
-                  <div 
-                    className="p-4 rounded-lg border"
-                    style={{
-                      backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                      borderColor: 'rgba(239, 68, 68, 0.3)'
-                    }}
-                  >
-                    <p className="text-sm text-red-300 flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 dark:bg-red-500/20">
+                    <p className="text-xs text-red-500 flex items-start gap-2">
+                      <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                       <span>{changeError}</span>
                     </p>
                   </div>
@@ -915,34 +933,28 @@ export function BusinessSubscriptionPlans() {
               </div>
 
               {/* Footer */}
-              <div 
-                className="flex items-center justify-end gap-3 p-6 border-t"
-                style={{
-                  backgroundColor: '#1e293b',
-                  borderColor: '#334155'
-                }}
-              >
+              <div className="flex items-center justify-end gap-2.5 p-5 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
                 <button
                   onClick={handleCancelChange}
                   disabled={isChangingPlan}
-                  className="px-4 py-2 text-sm font-medium text-carbon-300 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg hover:bg-carbon-700"
+                  className="px-4 py-2 text-xs font-medium text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-md hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleConfirmChange}
                   disabled={isChangingPlan}
-                  className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                  className="px-5 py-2 bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white rounded-md font-medium transition-colors flex items-center gap-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   {isChangingPlan ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       Cambiando...
                     </>
                   ) : (
                     <>
                       Confirmar Cambio
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </>
                   )}
                 </button>
@@ -969,58 +981,64 @@ export function BusinessSubscriptionPlans() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', duration: 0.3 }}
-              className="relative bg-carbon-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-carbon-700 w-full max-w-lg z-10"
+              className="relative bg-white dark:bg-[#1E2329] backdrop-blur-md rounded-xl shadow-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 w-full max-w-lg z-10"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-carbon-700">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                  <Crown className="w-6 h-6 text-amber-400" />
+              <div className="flex items-center justify-between p-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
+                <h2 className="text-xl font-bold text-[#0A2540] dark:text-white flex items-center gap-2.5">
+                  <div className="p-1.5 bg-[#F59E0B]/10 rounded-lg">
+                    <Crown className="w-4 h-4 text-[#F59E0B]" />
+                  </div>
                   Plan Enterprise
                 </h2>
                 <button
                   onClick={() => setSelectedPlan(null)}
-                  className="p-2 hover:bg-carbon-700 rounded-lg transition-colors"
+                  className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors"
                 >
-                  <X className="w-5 h-5 text-carbon-400 hover:text-white" />
+                  <X className="w-4 h-4 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white" />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="p-6 space-y-4">
-                <p className="text-carbon-300">
+              <div className="p-5 space-y-3 bg-white dark:bg-[#1E2329]">
+                <p className="text-sm text-[#6C757D] dark:text-gray-300">
                   El plan Enterprise es personalizado para grandes organizaciones. Por favor, contacta con nuestro equipo de ventas para conocer más detalles y obtener una cotización personalizada.
                 </p>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <a
-                    href="mailto:ventas@aprendey aplica.com"
-                    className="flex items-center gap-3 p-4 bg-carbon-800/50 rounded-lg border border-carbon-700 hover:bg-carbon-800 transition-colors"
+                    href="mailto:ventas@aprendeyaplica.com"
+                    className="flex items-center gap-3 p-3 bg-[#E9ECEF]/30 dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 transition-colors"
                   >
-                    <Mail className="w-5 h-5 text-primary" />
+                    <div className="p-1.5 bg-[#0A2540]/10 dark:bg-[#00D4B3]/20 rounded-lg">
+                      <Mail className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium text-white">Email</p>
-                      <p className="text-sm text-carbon-400">ventas@aprendeyaplica.com</p>
+                      <p className="text-xs font-medium text-[#0A2540] dark:text-white">Email</p>
+                      <p className="text-xs text-[#6C757D] dark:text-gray-400">ventas@aprendeyaplica.com</p>
                     </div>
                   </a>
                   
                   <a
                     href="tel:+525555555555"
-                    className="flex items-center gap-3 p-4 bg-carbon-800/50 rounded-lg border border-carbon-700 hover:bg-carbon-800 transition-colors"
+                    className="flex items-center gap-3 p-3 bg-[#E9ECEF]/30 dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 transition-colors"
                   >
-                    <Phone className="w-5 h-5 text-primary" />
+                    <div className="p-1.5 bg-[#0A2540]/10 dark:bg-[#00D4B3]/20 rounded-lg">
+                      <Phone className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium text-white">Teléfono</p>
-                      <p className="text-sm text-carbon-400">+52 55 5555 5555</p>
+                      <p className="text-xs font-medium text-[#0A2540] dark:text-white">Teléfono</p>
+                      <p className="text-xs text-[#6C757D] dark:text-gray-400">+52 55 5555 5555</p>
                     </div>
                   </a>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-end gap-3 p-6 border-t border-carbon-700">
+              <div className="flex items-center justify-end gap-2.5 p-5 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
                 <button
                   onClick={() => setSelectedPlan(null)}
-                  className="px-4 py-2 text-sm font-medium text-carbon-400 hover:text-white transition-colors"
+                  className="px-4 py-2 text-xs font-medium text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white transition-colors rounded-md hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
                 >
                   Cerrar
                 </button>

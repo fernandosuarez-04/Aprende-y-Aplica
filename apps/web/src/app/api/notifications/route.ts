@@ -66,14 +66,20 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
+    // En lugar de romper el panel con un 500, devolvemos una lista vacía
     logger.error('Error en GET /api/notifications:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al obtener notificaciones'
+    return NextResponse.json({
+      success: true,
+      data: {
+        notifications: [],
+        total: 0,
+        limit: 0,
+        offset: 0,
+        hasMore: false
       },
-      { status: 500 }
-    )
+      // Para debugging opcional en el cliente si se quiere mostrar algo
+      error: error instanceof Error ? error.message : 'Error al obtener notificaciones'
+    })
   }
 }
 

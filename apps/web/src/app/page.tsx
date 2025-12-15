@@ -15,7 +15,6 @@ export default function HomePage() {
   const [content, setContent] = useState<LandingPageContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     async function loadContent() {
       try {
@@ -259,34 +258,6 @@ export default function HomePage() {
           </motion.div>
         </motion.div>
 
-        {/* Floating Particles */}
-        {[...Array(6)].map((_, i) => {
-          const opacityValue = 0.3
-          return (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 rounded-full"
-              style={{
-                backgroundColor: 'var(--color-primary, rgb(59, 130, 246))',
-                opacity: opacityValue,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -30, 0],
-                x: [0, Math.random() * 20 - 10, 0],
-                opacity: [0.3, 0.6, 0.3],
-                scale: [1, 1.5, 1],
-              }}
-              transition={{
-                duration: 3 + Math.random() * 2,
-                repeat: Infinity,
-                ease: 'easeInOut',
-                delay: Math.random() * 2,
-              }}
-            />
-          )
-        })}
       </main>
     );
   }
@@ -309,7 +280,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
+    <main className="bg-[var(--color-bg-dark)] transition-colors duration-300">
       {/* Hero Section */}
       <HeroSection content={content.hero} />
       
@@ -323,18 +294,11 @@ export default function HomePage() {
       {/* Statistics Section */}
       <StatisticsSection statistics={content.statistics} />
       
-      {/* Testimonials Section */}
-      <TestimonialsSection 
-        title={content.testimonials.title}
-        items={content.testimonials.items}
-      />
+      {/* Platform Features Section */}
+      <TestimonialsSection />
       
       {/* CTA Section */}
-      <CTASection 
-        title={content.cta.title}
-        subtitle={content.cta.subtitle}
-        buttonText={content.cta.buttonText}
-      />
+      <CTASection />
       
       {/* PWA Install Prompt - Solo en inicio */}
       <PWAPrompt />

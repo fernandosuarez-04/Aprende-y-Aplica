@@ -7,15 +7,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@aprende-y-aplica/ui';
 import { useTranslation } from 'react-i18next';
-import { ThemeToggle } from '../ThemeToggle';
-import { LanguageSelector } from '../LanguageSelector';
 import { useLogoEasterEgg } from '../../hooks/useLogoEasterEgg';
-import { Menu, X } from 'lucide-react';
 import { fadeIn, slideUp } from '../../../shared/utils/animations';
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { clickCount, isActivated, handleLogoClick } = useLogoEasterEgg();
   const { t } = useTranslation('common');
@@ -53,7 +49,7 @@ export function Navbar() {
             whileTap={{ scale: 0.95 }}
           >
             <motion.div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden relative"
+              className="w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden relative"
               animate={isActivated ? { 
                 rotate: [0, 360, 0],
                 scale: [1, 1.2, 1]
@@ -61,10 +57,10 @@ export function Navbar() {
               transition={{ duration: 0.6 }}
             >
               <Image
-                src="/icono.png"
+                src="/Logo.png"
                 alt={t('navbar.logoAlt')}
-                width={40}
-                height={40}
+                width={56}
+                height={56}
                 className="w-full h-full object-contain logo-adaptive"
               />
               {/* Efecto visual cuando está activado */}
@@ -77,8 +73,15 @@ export function Navbar() {
                 />
               )}
             </motion.div>
-            <span className="font-bold text-xl hidden sm:block text-gray-900 dark:text-white navbar-logo-text">
-              {t('appName')}
+            <span 
+              className="font-bold text-xl hidden sm:block text-[#0A2540] dark:text-white uppercase tracking-tight" 
+              style={{ 
+                fontFamily: 'Inter, sans-serif', 
+                fontWeight: 800,
+                letterSpacing: '-0.02em'
+              }}
+            >
+              SOFIA
             </span>
             
             {/* Contador oculto - solo para debugging */}
@@ -89,92 +92,7 @@ export function Navbar() {
             )}
           </motion.div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-8">
-            {/* Navigation Links - Solo Inicio */}
-            <div className="flex items-center gap-6">
-              <Link href="/" className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                {t('navbar.home')}
-              </Link>
-            </div>
-            
-            <ThemeToggle />
-
-            <LanguageSelector />
-
-            <div className="flex items-center gap-4">
-              <Link href="/auth">
-                <Button variant="ghost" size="sm">
-                  {t('navbar.login')}
-                </Button>
-              </Link>
-              <Link href="/auth?tab=register">
-                <Button variant="primary" size="sm">
-                  {t('navbar.register')}
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <motion.button
-            className="lg:hidden w-10 h-10 rounded-lg backdrop-blur-sm border flex items-center justify-center transition-all duration-300 navbar-mobile-button text-gray-900 dark:text-white"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            whileTap={{ scale: 0.95 }}
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </motion.button>
         </div>
-
-        {/* Mobile Menu */}
-        <motion.div
-          className={`lg:hidden transition-all duration-300 ${
-            isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-          }`}
-          style={{ overflow: isMobileMenuOpen ? 'visible' : 'hidden' }}
-          initial="hidden"
-          animate={isMobileMenuOpen ? "visible" : "hidden"}
-          variants={{
-            hidden: { opacity: 0, height: 0 },
-            visible: { opacity: 1, height: "auto" }
-          }}
-        >
-          <div className="py-4 space-y-4 border-t navbar-mobile-menu">
-            {/* Mobile Navigation Links - Solo Inicio */}
-            <div className="space-y-3">
-              <Link 
-                href="/" 
-                className="block text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {t('navbar.home')}
-              </Link>
-            </div>
-            
-            <div className="flex items-center justify-between pt-4 border-t border-gray-700">
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
-                <LanguageSelector />
-              </div>
-              <div className="flex gap-3">
-                <Link href="/auth">
-                  <Button variant="ghost" size="sm">
-                    {t('navbar.login')}
-                  </Button>
-                </Link>
-                <Link href="/auth?tab=register">
-                  <Button variant="primary" size="sm">
-                    {t('navbar.register')}
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </motion.nav>
   );

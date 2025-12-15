@@ -151,10 +151,10 @@ export default function CertificateDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center p-6">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-          <p className="text-gray-600 dark:text-gray-400 text-lg">Cargando certificado...</p>
+          <Loader2 className="w-12 h-12 text-[#0A2540] dark:text-[#00D4B3] animate-spin" />
+          <p className="text-[#6C757D] dark:text-gray-400 text-lg">Cargando certificado...</p>
         </div>
       </div>
     )
@@ -162,14 +162,14 @@ export default function CertificateDetailPage() {
 
   if (error || !certificate) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center p-6">
         <div className="flex flex-col items-center gap-4 max-w-md text-center">
           <AlertCircle className="w-16 h-16 text-red-500" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Error</h2>
-          <p className="text-gray-600 dark:text-gray-400">{error || 'Certificado no encontrado'}</p>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">Error</h2>
+          <p className="text-[#6C757D] dark:text-gray-400">{error || 'Certificado no encontrado'}</p>
           <button
             onClick={() => router.push('/certificates')}
-            className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
+            className="px-6 py-3 bg-[#0A2540] dark:bg-[#0A2540] text-white rounded-lg font-medium hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] transition-colors"
           >
             Volver a Certificados
           </button>
@@ -179,12 +179,12 @@ export default function CertificateDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-white dark:bg-[#0F1419]">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Back Button */}
         <button
           onClick={() => router.push('/certificates')}
-          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors"
+          className="flex items-center gap-2 text-[#0A2540] dark:text-gray-400 hover:text-[#0d2f4d] dark:hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Volver a Certificados</span>
@@ -197,7 +197,7 @@ export default function CertificateDetailPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+              className="bg-white dark:bg-[#1E2329] rounded-xl shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden"
             >
               <div className="w-full bg-white p-8 flex items-center justify-center overflow-auto">
                 <div className="w-full max-w-4xl" style={{ maxWidth: '816px' }}>
@@ -216,25 +216,25 @@ export default function CertificateDetailPage() {
               </div>
 
               {/* Actions */}
-              <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleDownload}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0A2540] dark:bg-[#0A2540] text-white rounded-lg font-medium hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] transition-colors"
                   >
                     <Download className="w-5 h-5" />
                     Descargar
                   </button>
                   <button
                     onClick={handleVerify}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-[#E9ECEF] dark:bg-[#0F1419] text-[#0A2540] dark:text-gray-300 rounded-lg font-medium hover:bg-[#6C757D]/20 dark:hover:bg-[#0A2540]/30 transition-colors border border-[#E9ECEF] dark:border-[#6C757D]/30"
                   >
                     <Shield className="w-5 h-5" />
                     Verificar
                   </button>
                   <button
                     onClick={shareCertificate}
-                    className="col-span-2 flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                    className="col-span-2 flex items-center justify-center gap-2 px-4 py-3 bg-[#E9ECEF]/50 dark:bg-[#0A2540]/10 text-[#0A2540] dark:text-gray-300 rounded-lg font-medium hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 transition-colors border border-[#E9ECEF] dark:border-[#6C757D]/30"
                   >
                     <Share2 className="w-5 h-5" />
                     Compartir Certificado
@@ -250,16 +250,16 @@ export default function CertificateDetailPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 space-y-6"
+              className="bg-white dark:bg-[#1E2329] rounded-xl shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6 space-y-6"
             >
               {/* Status Badge */}
-              <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
-                <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div className="flex items-center gap-3 p-4 bg-[#10B981]/10 dark:bg-[#10B981]/20 rounded-lg border border-[#10B981] dark:border-[#10B981]">
+                <CheckCircle2 className="w-6 h-6 text-[#10B981] dark:text-[#10B981]" />
                 <div>
-                  <p className="text-sm font-semibold text-green-900 dark:text-green-100">
+                  <p className="text-sm font-semibold text-[#10B981] dark:text-[#10B981]">
                     Certificado Válido
                   </p>
-                  <p className="text-xs text-green-700 dark:text-green-300">
+                  <p className="text-xs text-[#0A2540] dark:text-gray-300">
                     Verificado y autenticado
                   </p>
                 </div>
@@ -267,26 +267,26 @@ export default function CertificateDetailPage() {
 
               {/* Course Info */}
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-4">
                   {certificate.course_title}
                 </h2>
                 
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <User className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <User className="w-5 h-5 text-[#6C757D] dark:text-gray-400 mt-0.5" />
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Instructor</p>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="text-sm text-[#6C757D] dark:text-gray-400">Instructor</p>
+                      <p className="font-medium text-[#0A2540] dark:text-white">
                         {certificate.instructor_name}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <Calendar className="w-5 h-5 text-[#6C757D] dark:text-gray-400 mt-0.5" />
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Fecha de Emisión</p>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="text-sm text-[#6C757D] dark:text-gray-400">Fecha de Emisión</p>
+                      <p className="font-medium text-[#0A2540] dark:text-white">
                         {formatDate(certificate.issued_at)}
                       </p>
                     </div>
@@ -294,10 +294,10 @@ export default function CertificateDetailPage() {
 
                   {certificate.expires_at && (
                     <div className="flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5" />
+                      <AlertCircle className="w-5 h-5 text-[#F59E0B] dark:text-[#F59E0B] mt-0.5" />
                       <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Fecha de Expiración</p>
-                        <p className="font-medium text-orange-600 dark:text-orange-400">
+                        <p className="text-sm text-[#6C757D] dark:text-gray-400">Fecha de Expiración</p>
+                        <p className="font-medium text-[#F59E0B] dark:text-[#F59E0B]">
                           {formatDate(certificate.expires_at)}
                         </p>
                       </div>
@@ -307,26 +307,26 @@ export default function CertificateDetailPage() {
               </div>
 
               {/* Hash Blockchain */}
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <Shield className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
+                    <p className="text-sm font-semibold text-[#0A2540] dark:text-white">
                       Hash Blockchain
                     </p>
                   </div>
                   <button
                     onClick={copyHash}
-                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                    className="p-1 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/20 rounded transition-colors"
                     title="Copiar hash"
                   >
-                    <Copy className="w-4 h-4 text-gray-400" />
+                    <Copy className="w-4 h-4 text-[#6C757D] dark:text-gray-400" />
                   </button>
                 </div>
-                <p className="text-xs font-mono text-gray-600 dark:text-gray-400 break-all bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs font-mono text-[#0A2540] dark:text-gray-400 break-all bg-[#E9ECEF]/30 dark:bg-[#0F1419] p-3 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
                   {certificate.certificate_hash}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-xs text-[#6C757D] dark:text-gray-400 mt-2">
                   Este hash único garantiza la autenticidad del certificado mediante tecnología blockchain
                 </p>
               </div>

@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Button, Card, CardContent, Badge } from '@aprende-y-aplica/ui';
+import { Button } from '@aprende-y-aplica/ui';
 import { PricingTier } from '@aprende-y-aplica/shared';
 import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, Sparkles } from 'lucide-react';
 
 interface PricingSectionProps {
   title: string;
@@ -33,25 +33,28 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
       annualPrice: `$${Math.round(annualPrice)}`
     };
   });
+
   return (
-    <section className="py-24 relative overflow-hidden bg-carbon/50">
+    <section className="py-12 relative overflow-hidden bg-white dark:bg-[#0F1419]">
       <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-12"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}
           variants={staggerContainer}
         >
           <motion.h2
-            className="text-4xl lg:text-5xl font-bold mb-6"
+            className="text-3xl lg:text-4xl font-bold mb-4 text-[#0A2540] dark:text-white"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
             variants={slideUp}
           >
             {title}
           </motion.h2>
           <motion.p
-            className="text-xl max-w-3xl mx-auto mb-8"
+            className="text-lg max-w-3xl mx-auto mb-8 text-[#6C757D] dark:text-white/70"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             variants={fadeIn}
           >
             {subtitle}
@@ -60,19 +63,23 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
           {/* Billing Toggle */}
           <motion.div
             variants={fadeIn}
-            className="flex items-center justify-center gap-4"
+            className="flex items-center justify-center gap-4 mb-8"
           >
-            <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-white' : 'text-text-secondary'}`}>
+            <span 
+              className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-[#0A2540] dark:text-white' : 'text-[#6C757D] dark:text-white/70'}`} 
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+            >
               Mensual
             </span>
             <motion.button
               onClick={() => setIsAnnual(!isAnnual)}
-              className="relative w-14 h-8 bg-carbon rounded-full p-1 cursor-pointer"
+              className="relative w-14 h-8 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-full p-1 cursor-pointer transition-colors"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <motion.div
-                className="w-6 h-6 bg-gradient-to-r from-primary to-success rounded-full absolute"
+                className="w-6 h-6 rounded-full absolute shadow-md"
+                style={{ backgroundColor: '#00D4B3' }}
                 animate={{
                   x: isAnnual ? 24 : 0
                 }}
@@ -80,22 +87,34 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
               />
               {isAnnual && (
                 <motion.div
-                  className="absolute -right-12 flex items-center gap-2"
+                  className="absolute -right-14 flex items-center gap-2"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                 >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-success flex items-center justify-center shadow-lg">
-                    <span className="text-xs font-bold text-white px-1">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" 
+                    style={{ backgroundColor: '#00D4B3' }}
+                  >
+                    <span 
+                      className="text-xs font-bold text-white px-1" 
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
+                    >
                       20%
                     </span>
                   </div>
-                  <span className="text-xs font-semibold text-success whitespace-nowrap">
+                  <span 
+                    className="text-xs font-semibold whitespace-nowrap" 
+                    style={{ color: '#00D4B3', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                  >
                     OFF
                   </span>
                 </motion.div>
               )}
             </motion.button>
-            <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-white' : 'text-text-secondary'}`}>
+            <span 
+              className={`text-sm font-medium transition-colors ${isAnnual ? 'text-[#0A2540] dark:text-white' : 'text-[#6C757D] dark:text-white/70'}`} 
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+            >
               Anual
             </span>
           </motion.div>
@@ -103,121 +122,270 @@ export function PricingSection({ title, subtitle, tiers }: PricingSectionProps) 
 
         {/* Pricing Tiers Grid */}
         <motion.div
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch"
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto items-stretch"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           variants={staggerContainer}
         >
-          {tiersWithAnnual.map((tier, index) => (
-            <motion.div
-              key={tier.id}
-              variants={staggerItem}
-              whileHover={{ y: -8, scale: 1.02 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-              className={`relative h-full flex flex-col ${tier.isPopular ? 'lg:-mt-8 lg:mb-8' : ''}`}
-            >
-              {tier.isPopular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30">
-                  <Badge variant="gradient" className="text-sm px-4 py-1 shadow-lg">
-                    Más Popular
-                  </Badge>
-                </div>
-              )}
-              <Card 
-                variant={tier.isPopular ? 'default' : 'glassmorphism'}
-                className={`h-full relative overflow-visible transition-all duration-300 flex flex-col ${
-                  tier.isPopular 
-                    ? 'border-primary border-2 shadow-2xl shadow-primary/20' 
-                    : 'hover:border-primary/50 hover:shadow-xl'
-                }`}
+          {tiersWithAnnual.map((tier, index) => {
+            const isPopular = tier.isPopular;
+            const isEnterprise = tier.id === 'enterprise';
+            
+            return (
+              <motion.div
+                key={tier.id}
+                variants={staggerItem}
+                whileHover={{ y: -4 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+                className={`relative h-full flex flex-col ${isPopular ? 'lg:scale-105 lg:z-10' : ''}`}
               >
-                {tier.isPopular && (
-                  <>
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-blue-600 to-success" />
-                    <motion.div
-                      className="absolute -top-2 left-4 bg-gradient-to-r from-primary to-blue-600 text-white text-xs px-3 py-1 rounded-full font-bold z-10"
-                      animate={{
-                        scale: [1, 1.05, 1],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                      }}
+                {/* Badge Más Popular */}
+                {isPopular && (
+                  <motion.div 
+                    className="absolute -top-4 left-1/2 -translate-x-1/2 z-30"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <div 
+                      className="px-4 py-1.5 rounded-full shadow-lg text-white text-xs font-semibold flex items-center gap-1.5"
+                      style={{ backgroundColor: '#00D4B3', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                     >
-                      ⭐ RECOMENDADO
-                    </motion.div>
-                  </>
-                )}
-                <CardContent className="p-8 flex flex-col flex-1 h-full min-h-0">
-                  {/* Header */}
-                  <div className="text-center mb-8">
-                    <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
-                    <p className="text-sm opacity-70 mb-6 min-h-[40px]">{tier.description}</p>
-                    <div className="mb-6 px-2">
-                      <motion.span 
-                        key={isAnnual ? 'annual' : 'monthly'}
-                        className={`font-bold block break-words whitespace-normal ${
-                          tier.price === 'Personalizado' || tier.annualPrice === 'Personalizado'
-                            ? 'text-3xl lg:text-4xl'
-                            : 'text-5xl'
-                        }`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        {isAnnual && tier.annualPrice ? tier.annualPrice : tier.price}
-                      </motion.span>
-                      {tier.period && (tier.price !== 'Personalizado' && tier.annualPrice !== 'Personalizado') && (
-                        <span className="text-lg opacity-70">{isAnnual ? '/año' : '/mes'}</span>
-                      )}
-                      {tier.price !== 'Personalizado' && (
-                        <div className="text-xs opacity-60 mt-2">
-                          {isAnnual ? `$${Math.round(parseFloat(tier.price.replace(/[^0-9.]/g, '')) * 12 * 0.8 / 12)}/mes facturado anualmente` : ''}
-                        </div>
-                      )}
+                      <Sparkles className="w-3 h-3" />
+                      Más Popular
                     </div>
-                  </div>
+                  </motion.div>
+                )}
 
-                  {/* Features - con flex-grow para ocupar el espacio disponible */}
-                  <ul className="space-y-4 mb-8 flex-grow">
-                    {tier.features.map((feature, idx) => (
-                      <motion.li 
-                        key={idx} 
-                        className="flex items-start gap-3"
-                        initial={{ opacity: 0, x: -10 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: idx * 0.05 }}
+                {/* Card Container */}
+                <div
+                  className={`h-full relative rounded-2xl transition-all duration-300 flex flex-col overflow-hidden ${
+                    isPopular
+                      ? 'bg-white dark:bg-[#1E2329] border-2 shadow-2xl'
+                      : 'bg-white dark:bg-[#1E2329]/95 border shadow-lg hover:shadow-xl'
+                  }`}
+                  style={{
+                    borderColor: isPopular ? '#00D4B3' : '#E9ECEF',
+                    ...(isPopular && {
+                      boxShadow: '0 20px 60px -12px rgba(0, 212, 179, 0.25)'
+                    })
+                  }}
+                >
+                  {/* Top Accent Bar for Popular Plan */}
+                  {isPopular && (
+                    <div 
+                      className="h-1.5 w-full"
+                      style={{ backgroundColor: '#00D4B3' }}
+                    />
+                  )}
+
+                  {/* Card Content */}
+                  <div className="p-8 flex flex-col flex-1 h-full min-h-0">
+                    {/* Plan Header */}
+                    <div className="mb-8">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 
+                          className="text-2xl font-bold text-[#0A2540] dark:text-white"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
+                        >
+                          {tier.name}
+                        </h3>
+                        {isPopular && (
+                          <motion.div
+                            className="px-2.5 py-1 rounded-md text-[10px] font-bold text-white uppercase tracking-wide"
+                            style={{ backgroundColor: '#0A2540', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
+                            animate={{
+                              scale: [1, 1.05, 1],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                            }}
+                          >
+                            ⭐ Recomendado
+                          </motion.div>
+                        )}
+                      </div>
+                      <p 
+                        className="text-sm text-[#6C757D] dark:text-white/70 mb-6"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                       >
-                        <motion.div whileHover={{ scale: 1.2, rotate: 5 }}>
-                          <Check className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
-                        </motion.div>
-                        <span className="text-sm">{feature}</span>
-                      </motion.li>
-                    ))}
-                  </ul>
+                        {tier.description}
+                      </p>
 
-                  {/* CTA - siempre al final gracias a flex-grow en features */}
-                  <Link href="/auth?type=business" className="block mt-auto">
-                    <Button
-                      variant={tier.isPopular ? 'gradient' : 'outline'}
-                      className="w-full group"
-                      size="lg"
-                    >
-                      <span className="flex items-center justify-center gap-2">
-                        {tier.ctaText}
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </span>
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                      {/* Price Display */}
+                      <div className="mb-6">
+                        <div className="flex items-baseline gap-2">
+                          <motion.span
+                            key={isAnnual ? 'annual' : 'monthly'}
+                            className={`font-bold text-[#0A2540] dark:text-white ${
+                              isEnterprise ? 'text-3xl lg:text-4xl' : 'text-4xl lg:text-5xl'
+                            }`}
+                            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            {isAnnual && tier.annualPrice ? tier.annualPrice : tier.price}
+                          </motion.span>
+                          {!isEnterprise && tier.period && (
+                            <span 
+                              className="text-lg text-[#6C757D] dark:text-white/70"
+                              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                            >
+                              {isAnnual ? '/año' : '/mes'}
+                            </span>
+                          )}
+                        </div>
+                        {!isEnterprise && tier.price !== 'Personalizado' && (
+                          <div 
+                            className="text-xs mt-2 text-[#6C757D] dark:text-white/60"
+                            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                          >
+                            {isAnnual 
+                              ? `$${Math.round(parseFloat(tier.price.replace(/[^0-9.]/g, '')) * 12 * 0.8 / 12)}/mes facturado anualmente` 
+                              : ''
+                            }
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Features List */}
+                    <div className="flex-grow mb-8">
+                      <ul className="space-y-3.5">
+                        {tier.features.map((feature, idx) => (
+                          <motion.li
+                            key={idx}
+                            className="flex items-start gap-3"
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: idx * 0.03 }}
+                          >
+                            <div 
+                              className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-full flex items-center justify-center"
+                              style={{ backgroundColor: '#00D4B3' }}
+                            >
+                              <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                            </div>
+                            <span 
+                              className="text-sm text-[#0A2540] dark:text-white/90 leading-relaxed"
+                              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                            >
+                              {feature}
+                            </span>
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* CTA Button */}
+                    <Link href="/auth?type=business" className="block mt-auto">
+                      <motion.div
+                        className="relative"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {/* Aura/Glow Effect */}
+                        {isPopular && (
+                          <motion.div
+                            className="absolute -inset-1 rounded-xl opacity-75 blur-xl"
+                            style={{ backgroundColor: '#00D4B3' }}
+                            animate={{
+                              opacity: [0.5, 0.75, 0.5],
+                              scale: [1, 1.05, 1],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                              ease: 'easeInOut',
+                            }}
+                          />
+                        )}
+                        
+                        {/* Button Container */}
+                        <motion.button
+                          className={`w-full group relative overflow-hidden rounded-xl py-4 px-6 font-semibold text-base transition-all duration-300 ${
+                            isPopular
+                              ? 'bg-[#0A2540] text-white'
+                              : 'bg-white dark:bg-[#1E2329] border-2 text-[#0A2540] dark:text-white'
+                          }`}
+                          style={{
+                            borderColor: isPopular ? 'transparent' : '#00D4B3',
+                            fontFamily: 'Inter, sans-serif',
+                            fontWeight: 600,
+                            boxShadow: isPopular 
+                              ? '0 10px 40px -10px rgba(0, 212, 179, 0.4)' 
+                              : '0 4px 12px rgba(0, 0, 0, 0.1)'
+                          }}
+                          whileHover={{
+                            boxShadow: isPopular
+                              ? '0 15px 50px -10px rgba(0, 212, 179, 0.6)'
+                              : '0 8px 20px rgba(0, 212, 179, 0.2)',
+                            backgroundColor: isPopular ? '#0d2f4d' : undefined,
+                            borderColor: isPopular ? undefined : '#00D4B3',
+                          }}
+                        >
+                          {/* Shimmer Effect for Popular Plan */}
+                          {isPopular && (
+                            <motion.div
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                              animate={{
+                                x: ['-100%', '100%'],
+                              }}
+                              transition={{
+                                duration: 2.5,
+                                repeat: Infinity,
+                                ease: 'linear',
+                                repeatDelay: 0.5,
+                              }}
+                            />
+                          )}
+
+                          {/* Button Content */}
+                          <span className="relative z-10 flex items-center justify-center gap-2">
+                            {tier.ctaText}
+                            <motion.div
+                              animate={{
+                                x: [0, 4, 0],
+                              }}
+                              transition={{
+                                duration: 1.5,
+                                repeat: Infinity,
+                                ease: 'easeInOut',
+                              }}
+                            >
+                              <ArrowRight className="w-4 h-4" />
+                            </motion.div>
+                          </span>
+
+                          {/* Pulsing Ring for Popular Plan */}
+                          {isPopular && (
+                            <motion.div
+                              className="absolute inset-0 rounded-xl border-2"
+                              style={{ borderColor: '#00D4B3' }}
+                              animate={{
+                                opacity: [0.3, 0.6, 0.3],
+                                scale: [1, 1.02, 1],
+                              }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: 'easeInOut',
+                              }}
+                            />
+                          )}
+                        </motion.button>
+                      </motion.div>
+                    </Link>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
         </motion.div>
       </div>
     </section>
   );
 }
-

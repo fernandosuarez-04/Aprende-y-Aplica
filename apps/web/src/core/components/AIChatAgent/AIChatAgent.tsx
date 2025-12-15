@@ -11,6 +11,7 @@ import {
   Loader2,
   User,
   ChevronUp,
+  ChevronDown,
   Bug,
   Wand2,
   Sparkles,
@@ -18,7 +19,8 @@ import {
   Target,
   MessageSquare,
   Brain,
-  Trash2
+  Trash2,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -1118,14 +1120,7 @@ export function AIChatAgent({
           diagram: 'Diagrama'
         };
         
-        const systemMessage: Message = {
-          id: `system-${Date.now()}`,
-          role: 'assistant',
-          content: `🎨 He activado el Modo NanoBanana para generación visual con JSON.\n\nDominio detectado: ${domainNames[detectedNanoBananaDomain]}\n\nDescríbeme en detalle lo que necesitas crear y generaré un JSON estructurado optimizado para NanoBanana Pro.`,
-          timestamp: new Date()
-        };
-        
-        setNanoBananaMessages(prev => [...prev, systemMessage]);
+        // No agregar mensaje automático - mostrar info en fondo vacío
         setIsNanoBananaMode(true);
         setNanoBananaDomain(detectedNanoBananaDomain);
         setNanoBananaFormat(detectedNanoBananaFormat);
@@ -1297,13 +1292,7 @@ export function AIChatAgent({
           setIsPromptMode(false);
           setIsNanoBananaMode(true);
           
-          const systemMessage: Message = {
-            id: `system-${Date.now()}`,
-            role: 'assistant',
-            content: "🎨 He cambiado al Modo NanoBanana para generación visual con JSON.\n\nDescríbeme lo que necesitas crear.",
-            timestamp: new Date()
-          };
-          setNanoBananaMessages(prev => [...prev, systemMessage]);
+          // No agregar mensaje automático - mostrar info en fondo vacío
         } else if (isExplicitExit) {
           console.log('[LIA Agent] 🔄 Petición explícita de salir. Desactivando Modo Prompts');
           shouldDeactivatePromptMode = true;
@@ -1967,41 +1956,41 @@ Fecha: ${new Date().toLocaleString()}
     switch (currentMode) {
       case 'nanobana':
         return {
-          header: 'from-amber-500 via-orange-500 to-amber-500',
+          header: 'bg-[#0A2540]',
           accent: 'amber',
-          bubbleUser: 'from-amber-500 to-orange-500',
+          bubbleUser: 'from-[#0A2540] to-[#00D4B3]',
           ring: 'focus:ring-amber-500',
-          borderUser: 'border-amber-500',
+          borderUser: 'border-[#00D4B3]',
           chipBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
           chipActive: 'bg-amber-500 text-white border-transparent'
         };
       case 'prompt':
         return {
-          header: 'from-purple-600 via-pink-600 to-purple-600',
+          header: 'bg-[#0A2540]',
           accent: 'purple',
-          bubbleUser: 'from-fuchsia-500 to-purple-500',
+          bubbleUser: 'from-[#0A2540] to-[#00D4B3]',
           ring: 'focus:ring-purple-500',
-          borderUser: 'border-purple-500',
+          borderUser: 'border-[#00D4B3]',
           chipBg: 'bg-purple-500/15 text-purple-400 border border-purple-500/30',
           chipActive: 'bg-purple-500 text-white border-transparent'
         };
       case 'analysis':
         return {
-          header: 'from-cyan-600 via-teal-600 to-cyan-600',
-          accent: 'teal',
-          bubbleUser: 'from-teal-500 to-cyan-500',
-          ring: 'focus:ring-emerald-500',
-          borderUser: 'border-teal-500',
-          chipBg: 'bg-teal-500/15 text-teal-400 border border-teal-500/30',
-          chipActive: 'bg-teal-500 text-white border-transparent'
+          header: 'bg-[#0A2540]',
+          accent: '[#00D4B3]',
+          bubbleUser: 'from-[#0A2540] to-[#00D4B3]',
+          ring: 'focus:ring-[#00D4B3]',
+          borderUser: 'border-[#00D4B3]',
+          chipBg: 'bg-[#00D4B3]/15 text-[#00D4B3] border border-[#00D4B3]/30',
+          chipActive: 'bg-[#00D4B3] text-white border-transparent'
         };
       default:
         return {
-          header: 'from-[#0A2540] via-[#0A2540] to-[#0A2540]', /* Azul Profundo */
+          header: 'bg-[#0A2540]', /* Azul Profundo SOFIA */
           accent: '[#00D4B3]', // Aqua
-          bubbleUser: 'from-[#0A2540] to-[#0A2540]', /* Azul Profundo */
+          bubbleUser: 'from-[#0A2540] to-[#00D4B3]', /* Gradiente SOFIA */
           ring: 'focus:ring-[#00D4B3]', /* Aqua para focus */
-          borderUser: 'border-[#0A2540]', /* Azul Profundo */
+          borderUser: 'border-[#00D4B3]', /* Aqua */
           chipBg: 'bg-[#00D4B3]/15 text-[#00D4B3] border border-[#00D4B3]/30', /* Aqua para chips de LIA */
           chipActive: 'bg-[#00D4B3] text-white border-transparent' /* Aqua activo */
         };
@@ -2284,26 +2273,13 @@ Fecha: ${new Date().toLocaleString()}
         <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-[#0A2540]/30 flex flex-col bg-white dark:bg-[#1E2329] h-full`}>
           {/* Header con gradiente - compacto */}
           <motion.div 
-            className={`bg-gradient-to-r ${theme.header} px-2 py-2 relative flex-shrink-0`}
+            className={`${theme.header} px-2 py-2 relative flex-shrink-0`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            {/* Efecto shimmer en el gradiente */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-              animate={{
-                x: ['-100%', '100%'],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-            />
-            
             <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-1 min-w-0" ref={modeMenuRef}>
                 {/* Avatar */}
                 <div className="relative w-8 h-8">
                   <Image
@@ -2315,7 +2291,7 @@ Fecha: ${new Date().toLocaleString()}
                   />
                   {/* Indicador de estado en línea */}
                   <motion.div
-                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full border border-white/70"
+                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#00D4B3] rounded-full border border-white/70"
                     animate={{
                       scale: [1, 1.2, 1],
                     }}
@@ -2327,33 +2303,138 @@ Fecha: ${new Date().toLocaleString()}
                   />
                 </div>
                 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 leading-none min-w-0">
+                {/* Botón clickeable para seleccionar modo (similar a ChatGPT) */}
+                <button
+                  onClick={() => setModeMenuOpen(!modeMenuOpen)}
+                  className="flex items-center gap-2 leading-none min-w-0 hover:opacity-80 transition-opacity group"
+                >
+                  <div className="flex items-center gap-2">
                     <h3 className="text-white font-semibold text-sm">{assistantName}</h3>
-                    <span className={`text-[11px] px-1.5 py-[2px] rounded-full border truncate max-w-[120px] ${
+                    <span className={`text-[11px] px-2 py-1 rounded-full border truncate max-w-[140px] font-medium ${
                       currentMode === 'nanobana' 
-                        ? 'text-amber-200 bg-amber-500/30 border-amber-400/50' 
+                        ? 'text-amber-100 bg-amber-500/40 border-amber-400/60' 
                         : currentMode === 'prompt'
-                        ? 'text-purple-200 bg-purple-500/30 border-purple-400/50'
+                        ? 'text-purple-100 bg-purple-500/40 border-purple-400/60'
                         : currentMode === 'analysis'
-                        ? 'text-teal-200 bg-teal-500/30 border-teal-400/50'
-                        : 'text-white/80 bg-white/15 border-white/25'
+                        ? 'text-white bg-white/25 border-white/40'
+                        : 'text-white bg-white/25 border-white/40'
                     }`}>
-                      {currentMode === 'nanobana' ? nanobanaTitle : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
+                      {currentMode === 'nanobana' ? 'Generador de Imágenes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
                     </span>
-                    <motion.div
-                      className="flex items-center gap-1 text-white/90"
-                      animate={{ opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <span className="w-2 h-2 rounded-full bg-green-400" />
-                      <span className="text-[11px]">{onlineLabel}</span>
-                    </motion.div>
+                    <ChevronDown className={`w-3.5 h-3.5 text-white/70 transition-transform ${modeMenuOpen ? 'rotate-180' : ''}`} />
                   </div>
-                </div>
+                </button>
+
+                {/* Menú desplegable - Ahora aparece debajo del nombre/tag */}
+                <AnimatePresence>
+                  {modeMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute left-0 top-12 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-xl overflow-hidden z-50 min-w-[280px]"
+                    >
+                      <div className="py-2">
+                        {/* Header del modal con X a la derecha */}
+                        <div className="px-4 py-2 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between">
+                          <div className="text-sm font-semibold text-[#0A2540] dark:text-white">LIA</div>
+                          <button
+                            onClick={() => setModeMenuOpen(false)}
+                            className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors text-[#6C757D] dark:text-white/60"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        
+                        <div className="py-1">
+                        {/* NANOBANA */}
+                        <button
+                            className={`w-full text-left px-4 py-3 hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors ${
+                              currentMode === 'nanobana' ? 'bg-[#F8F9FA] dark:bg-[#1E2329]/30' : ''
+                            }`}
+                          onClick={() => { 
+                            setIsNanoBananaMode(true); 
+                            setIsPromptMode(false); 
+                            setUseContextMode(false); 
+                            setModeMenuOpen(false);
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                              <div className="mt-0.5 w-2 h-2 rounded-full bg-amber-500"></div>
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className={`text-sm font-medium ${currentMode==='nanobana' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>
+                                    Generador de Imágenes
+                                </div>
+                                <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-full font-medium">
+                                  NEW
+                                </span>
+                                  {currentMode === 'nanobana' && (
+                                    <CheckCircle2 className="w-4 h-4 text-[#00D4B3] ml-auto" />
+                                  )}
+                              </div>
+                                <div className="text-xs text-[#6C757D] dark:text-white/60">{nanobanaDesc}</div>
+                            </div>
+                          </div>
+                        </button>
+                        {/* PROMPT */}
+                        <button
+                            className={`w-full text-left px-4 py-3 hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors ${
+                              currentMode === 'prompt' ? 'bg-[#F8F9FA] dark:bg-[#1E2329]/30' : ''
+                            }`}
+                          onClick={() => { setIsPromptMode(true); setIsNanoBananaMode(false); setUseContextMode(false); setModeMenuOpen(false); if (promptMessages.length===0) handleOpenPromptMode(); }}
+                        >
+                          <div className="flex items-start gap-3">
+                              <div className="mt-0.5 w-2 h-2 rounded-full bg-purple-500"></div>
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className={`text-sm font-medium ${currentMode==='prompt' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>{promptModeTitle}</div>
+                                  {currentMode === 'prompt' && (
+                                    <CheckCircle2 className="w-4 h-4 text-[#00D4B3] ml-auto" />
+                                  )}
+                                </div>
+                                <div className="text-xs text-[#6C757D] dark:text-white/60">{promptModeDesc}</div>
+                            </div>
+                          </div>
+                        </button>
+                        {/* CONTEXTO PERSISTENTE */}
+                        <button
+                            className={`w-full text-left px-4 py-3 hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors ${
+                              currentMode === 'analysis' ? 'bg-[#F8F9FA] dark:bg-[#1E2329]/30' : ''
+                            }`}
+                          onClick={() => { setUseContextMode(true); setIsPromptMode(false); setIsNanoBananaMode(false); setModeMenuOpen(false); }}
+                        >
+                          <div className="flex items-start gap-3">
+                              <div className="mt-0.5 w-2 h-2 rounded-full bg-[#00D4B3]"></div>
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className={`text-sm font-medium ${currentMode==='analysis' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>
+                                  {contextModeTitle}
+                                </div>
+                                {normalMessages.length > 0 && useContextMode && (
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-[#00D4B3]/20 text-[#00D4B3] rounded-full font-medium">
+                                    {normalMessages.length} msg
+                                  </span>
+                                )}
+                                  {currentMode === 'analysis' && (
+                                    <CheckCircle2 className="w-4 h-4 text-[#00D4B3] ml-auto" />
+                                  )}
+                              </div>
+                                <div className="text-xs text-[#6C757D] dark:text-white/60">
+                                {contextModeDesc}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               
-              <div className="flex items-center gap-1" ref={modeMenuRef}>
+              <div className="flex items-center gap-1">
                 {/* Botón limpiar conversación */}
                 <button
                   onClick={handleClearConversation}
@@ -2363,107 +2444,6 @@ Fecha: ${new Date().toLocaleString()}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-                {/* Botón menú de modos (hamburguesa) */}
-                <button
-                  onClick={() => setModeMenuOpen(!modeMenuOpen)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
-                  aria-label={changeModeLabel}
-                  title={changeModeLabel}
-                >
-                  {/* Icono de hamburguesa simple */}
-                  <div className="flex flex-col gap-[3px]">
-                    <span className="w-4 h-[2px] bg-white rounded"></span>
-                    <span className="w-4 h-[2px] bg-white rounded"></span>
-                    <span className="w-4 h-[2px] bg-white rounded"></span>
-                  </div>
-                </button>
-
-                {/* Menú desplegable */}
-                <AnimatePresence>
-                  {modeMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-9 top-8 bg-white/95 dark:bg-[#0d0d0d] backdrop-blur-md border border-white/30 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
-                    >
-                      <div className="min-w-[260px] py-2">
-                        {/* NANOBANA */}
-                        <button
-                          className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
-                          onClick={() => { 
-                            setIsNanoBananaMode(true); 
-                            setIsPromptMode(false); 
-                            setUseContextMode(false); 
-                            setModeMenuOpen(false);
-                            if (nanoBananaMessages.length === 0) {
-                              const welcomeMessage: Message = {
-                                id: `welcome-nanobana-${Date.now()}`,
-                                role: 'assistant',
-                                content: nanobanaWelcome,
-                                timestamp: new Date()
-                              };
-                              setNanoBananaMessages([welcomeMessage]);
-                            }
-                          }}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <div className={`text-sm font-semibold ${currentMode==='nanobana' ? 'text-amber-600 dark:text-amber-400' : ''}`}>
-                                  NanoBanana Pro
-                                </div>
-                                <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-full font-medium">
-                                  NEW
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">{nanobanaDesc}</div>
-                            </div>
-                          </div>
-                        </button>
-                        {/* PROMPT */}
-                        <button
-                          className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
-                          onClick={() => { setIsPromptMode(true); setIsNanoBananaMode(false); setUseContextMode(false); setModeMenuOpen(false); if (promptMessages.length===0) handleOpenPromptMode(); }}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-purple-500"></div>
-                            <div className="flex-1">
-                              <div className={`text-sm font-semibold ${currentMode==='prompt' ? 'text-purple-600 dark:text-purple-400' : ''}`}>{promptModeTitle}</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">{promptModeDesc}</div>
-                            </div>
-                          </div>
-                        </button>
-                        {/* CONTEXTO PERSISTENTE */}
-                        <button
-                          className={`w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/10 transition-colors`}
-                          onClick={() => { setUseContextMode(true); setIsPromptMode(false); setIsNanoBananaMode(false); setModeMenuOpen(false); }}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 w-2.5 h-2.5 rounded-full bg-teal-500"></div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <div className={`text-sm font-semibold ${currentMode==='analysis' ? 'text-teal-600 dark:text-teal-400' : ''}`}>
-                                  {contextModeTitle}
-                                </div>
-                                {normalMessages.length > 0 && useContextMode && (
-                                  <span className="text-[10px] px-1.5 py-0.5 bg-teal-500/20 text-teal-700 dark:text-teal-300 rounded-full font-medium">
-                                    {normalMessages.length} msg
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400">
-                                {contextModeDesc}
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 <button
                   onClick={handleClose}
@@ -2524,14 +2504,14 @@ Fecha: ${new Date().toLocaleString()}
                   <div className="max-w-sm text-center opacity-80">
                     <div className="mx-auto mb-3 w-16 h-16 rounded-full flex items-center justify-center shadow-lg overflow-hidden bg-transparent">
                       {/* Usa el logo/avatares reales si existen */}
-                      <img src="/icono.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
+                      <img src="/Logo.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
                     </div>
                     <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1 text-base">
-                      {currentMode === 'nanobana' ? nanobanaTitle : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
+                      {currentMode === 'nanobana' ? 'Generador de Imágenes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
                     </h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                       {currentMode === 'nanobana'
-                        ? nanobanaEmptyDesc
+                        ? nanobanaDesc
                         : currentMode === 'prompt'
                         ? promptModeEmptyDesc
                         : currentMode === 'analysis'
@@ -2581,8 +2561,8 @@ Fecha: ${new Date().toLocaleString()}
                   {/* Contenido del mensaje */}
                   <div className={`flex-1 rounded-2xl px-3.5 py-3 shadow-lg ${
                     message.role === 'user'
-                      ? `bg-gradient-to-r ${theme.bubbleUser} text-white`
-                      : 'bg-white dark:bg-[#1E2329] text-gray-900 dark:text-white border border-gray-200 dark:border-[#0A2540]/30'
+                      ? 'bg-[#10B981] text-white' // Verde Suave SOFIA para mensajes del usuario
+                      : 'bg-[#0A2540] text-white dark:bg-[#0A2540]' // Azul Profundo SOFIA para mensajes de LIA
                   }`}>
                     <p className="text-[13px] leading-relaxed whitespace-pre-wrap font-medium">
                       {renderTextWithLinks(message.content)}
@@ -2698,8 +2678,8 @@ Fecha: ${new Date().toLocaleString()}
                   rows={1}
                   className={`flex-1 px-3 py-2 border ${
                     useContextMode 
-                      ? 'bg-white/90 dark:bg-[#1E2329] border-emerald-400 dark:border-emerald-500 ring-2 ring-emerald-400/30' 
-                      : `bg-white/90 dark:bg-[#1E2329] ${currentMode==='prompt' ? 'border-purple-300 ring-2 ring-purple-300/30' : currentMode==='analysis' ? 'border-emerald-300 ring-2 ring-emerald-300/30' : 'border-[#00D4B3] ring-2 ring-[#00D4B3]/30'}`
+                      ? 'bg-white/90 dark:bg-[#1E2329] border-[#00D4B3] dark:border-[#00D4B3] ring-2 ring-[#00D4B3]/30' 
+                      : `bg-white/90 dark:bg-[#1E2329] ${currentMode==='prompt' ? 'border-purple-300 ring-2 ring-purple-300/30' : currentMode==='analysis' ? 'border-[#00D4B3] ring-2 ring-[#00D4B3]/30' : 'border-[#00D4B3] ring-2 ring-[#00D4B3]/30'}`
                   } rounded-lg focus:outline-none focus:ring-2 ${theme.ring} text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all resize-none`}
                   style={{
                     minHeight: '38px',
@@ -2727,11 +2707,11 @@ Fecha: ${new Date().toLocaleString()}
                   className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300 ${
                     inputMessage.trim()
                       ? useContextMode
-                        ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:opacity-90 shadow-lg'
+                        ? 'bg-gradient-to-r from-[#00D4B3] to-[#00b89a] text-white hover:opacity-90 shadow-lg'
                         : `bg-gradient-to-r ${theme.bubbleUser} text-white hover:opacity-90 shadow-lg`
                       : isRecording
                       ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/50'
-                      : `${currentMode==='prompt' ? 'bg-purple-100 text-purple-600' : currentMode==='analysis' ? 'bg-emerald-100 text-emerald-600' : 'bg-[#00D4B3]/20 text-[#00D4B3]'} hover:opacity-90` /* Aqua para botón de envío */
+                      : `${currentMode==='prompt' ? 'bg-purple-100 text-purple-600' : currentMode==='analysis' ? 'bg-[#00D4B3]/20 text-[#00D4B3]' : 'bg-[#00D4B3]/20 text-[#00D4B3]'} hover:opacity-90` /* Aqua para botón de envío */
                   } ${isTyping && !!inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {isTyping && inputMessage.trim() ? (
@@ -2779,7 +2759,7 @@ Fecha: ${new Date().toLocaleString()}
               className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-gray-200 dark:border-white/10"
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6">
+              <div className="bg-gradient-to-r from-[#0A2540] to-[#00D4B3] p-6">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                     <Trash2 className="w-6 h-6 text-white" />
@@ -2794,7 +2774,7 @@ Fecha: ${new Date().toLocaleString()}
               {/* Body */}
               <div className="p-6">
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                  Tienes <span className="font-semibold text-teal-600 dark:text-teal-400">{normalMessages.length} mensajes</span> guardados en el contexto persistente.
+                  Tienes <span className="font-semibold text-[#00D4B3] dark:text-[#00D4B3]">{normalMessages.length} mensajes</span> guardados en el contexto persistente.
                 </p>
                 <p className="text-gray-600 dark:text-gray-400 text-sm mt-3">
                   ¿Deseas borrar toda la conversación y el contexto guardado?

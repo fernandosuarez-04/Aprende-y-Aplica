@@ -12,7 +12,6 @@ import {
   Link, 
   List, 
   ListOrdered, 
-  Paperclip,
   Undo,
   Redo,
   Type,

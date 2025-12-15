@@ -45,10 +45,10 @@ export function AnimatedBackground({ className = '' }: AnimatedBackgroundProps) 
         className="absolute inset-0 opacity-5"
         animate={{
           background: [
-            'radial-gradient(circle at 20% 50%, rgba(0, 102, 204, 0.1) 0%, transparent 50%)',
-            'radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%)',
-            'radial-gradient(circle at 40% 80%, rgba(0, 102, 204, 0.1) 0%, transparent 50%)',
-            'radial-gradient(circle at 20% 50%, rgba(0, 102, 204, 0.1) 0%, transparent 50%)',
+            'radial-gradient(circle at 20% 50%, rgba(10, 37, 64, 0.1) 0%, transparent 50%)',
+            'radial-gradient(circle at 80% 20%, rgba(0, 212, 179, 0.1) 0%, transparent 50%)',
+            'radial-gradient(circle at 40% 80%, rgba(10, 37, 64, 0.1) 0%, transparent 50%)',
+            'radial-gradient(circle at 20% 50%, rgba(10, 37, 64, 0.1) 0%, transparent 50%)',
           ],
         }}
         transition={{
@@ -62,12 +62,13 @@ export function AnimatedBackground({ className = '' }: AnimatedBackgroundProps) 
       {floatingElements.map((element) => (
         <motion.div
           key={element.id}
-          className="absolute rounded-full bg-gradient-to-br from-primary/10 to-success/10 blur-sm"
+          className="absolute rounded-full blur-sm"
           style={{
             left: `${element.x}%`,
             top: `${element.y}%`,
             width: `${element.size}px`,
             height: `${element.size}px`,
+            background: 'linear-gradient(135deg, rgba(10, 37, 64, 0.1), rgba(0, 212, 179, 0.1))',
           }}
           animate={{
             y: [0, -20, 10, -15, 0],
@@ -86,7 +87,7 @@ export function AnimatedBackground({ className = '' }: AnimatedBackgroundProps) 
 
       {/* Líneas de acento decorativas */}
       <motion.div
-        className="absolute top-1/4 left-0 w-32 h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent"
+        className="absolute top-1/4 left-0 w-32 h-0.5 bg-gradient-to-r from-transparent via-[#0A2540]/30 to-transparent"
         animate={{
           x: ['-100px', '100vw'],
           opacity: [0, 0.5, 0],
@@ -100,7 +101,7 @@ export function AnimatedBackground({ className = '' }: AnimatedBackgroundProps) 
       />
       
       <motion.div
-        className="absolute bottom-1/3 left-0 w-24 h-0.5 bg-gradient-to-r from-transparent via-success/30 to-transparent"
+        className="absolute bottom-1/3 left-0 w-24 h-0.5 bg-gradient-to-r from-transparent via-[#00D4B3]/30 to-transparent"
         animate={{
           x: ['-100px', '100vw'],
           opacity: [0, 0.4, 0],
@@ -115,7 +116,8 @@ export function AnimatedBackground({ className = '' }: AnimatedBackgroundProps) 
 
       {/* Efectos de partículas sutiles */}
       <motion.div
-        className="absolute top-1/2 left-1/4 w-1 h-1 bg-primary/40 rounded-full"
+        className="absolute top-1/2 left-1/4 w-1 h-1 rounded-full"
+        style={{ backgroundColor: 'rgba(10, 37, 64, 0.4)' }}
         animate={{
           y: [-10, -50, -30, -40, -10],
           opacity: [0, 0.6, 0.3, 0.7, 0],
@@ -128,7 +130,8 @@ export function AnimatedBackground({ className = '' }: AnimatedBackgroundProps) 
       />
 
       <motion.div
-        className="absolute top-1/3 right-1/3 w-1 h-1 bg-success/40 rounded-full"
+        className="absolute top-1/3 right-1/3 w-1 h-1 rounded-full"
+        style={{ backgroundColor: 'rgba(0, 212, 179, 0.4)' }}
         animate={{
           y: [-15, -60, -20, -35, -15],
           opacity: [0, 0.5, 0.2, 0.6, 0],
@@ -146,10 +149,10 @@ export function AnimatedBackground({ className = '' }: AnimatedBackgroundProps) 
         className="absolute inset-0 opacity-3"
         animate={{
           background: [
-            'radial-gradient(circle at 30% 40%, rgba(0, 102, 204, 0.08) 0%, transparent 60%)',
-            'radial-gradient(circle at 70% 60%, rgba(16, 185, 129, 0.08) 0%, transparent 60%)',
-            'radial-gradient(circle at 50% 80%, rgba(0, 102, 204, 0.08) 0%, transparent 60%)',
-            'radial-gradient(circle at 30% 40%, rgba(0, 102, 204, 0.08) 0%, transparent 60%)',
+            'radial-gradient(circle at 30% 40%, rgba(10, 37, 64, 0.08) 0%, transparent 60%)',
+            'radial-gradient(circle at 70% 60%, rgba(0, 212, 179, 0.08) 0%, transparent 60%)',
+            'radial-gradient(circle at 50% 80%, rgba(10, 37, 64, 0.08) 0%, transparent 60%)',
+            'radial-gradient(circle at 30% 40%, rgba(10, 37, 64, 0.08) 0%, transparent 60%)',
           ],
         }}
         transition={{

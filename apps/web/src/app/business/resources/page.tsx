@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../shared/utils/animations';
-import { BookOpen, FileText, Video, Trophy, Download, ArrowRight } from 'lucide-react';
+import { BookOpen, FileText, Video, Trophy, ArrowRight } from 'lucide-react';
 
 export default function ResourcesPage() {
   const resourceCategories = [
@@ -143,36 +143,6 @@ export default function ResourcesPage() {
         </div>
       </section>
 
-      {/* Newsletter Signup */}
-      <section className="py-24">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="text-center max-w-3xl mx-auto bg-gradient-to-r from-primary/10 to-success/10 rounded-2xl p-12"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeIn}
-          >
-            <Download className="w-12 h-12 text-primary mx-auto mb-6" />
-            <h2 className="text-4xl font-bold mb-6">
-              Recibe recursos exclusivos
-            </h2>
-            <p className="text-xl mb-8 opacity-80">
-              Suscríbete a nuestro newsletter y accede a contenido premium mensual
-            </p>
-            <div className="flex gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Tu email"
-                className="flex-1 px-4 py-3 rounded-lg bg-carbon border border-glass-light focus:outline-none focus:border-primary"
-              />
-              <button className="px-8 py-3 bg-primary hover:bg-primary/80 rounded-lg font-semibold transition-colors">
-                Suscribirse
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
     </main>
   );
 }

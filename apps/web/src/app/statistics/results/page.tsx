@@ -172,11 +172,11 @@ const StatCard = ({
   delay?: number;
 }) => {
   const colorClasses = {
-    blue: "from-blue-500 to-blue-600",
-    green: "from-green-500 to-green-600", 
-    purple: "from-purple-500 to-purple-600",
-    orange: "from-orange-500 to-orange-600",
-    red: "from-red-500 to-red-600"
+    blue: "bg-[#0A2540] dark:bg-[#0A2540]",
+    green: "bg-[#10B981] dark:bg-[#10B981]", 
+    purple: "bg-[#00D4B3] dark:bg-[#00D4B3]",
+    orange: "bg-[#F59E0B] dark:bg-[#F59E0B]",
+    red: "bg-red-500 dark:bg-red-500"
   };
 
   return (
@@ -184,16 +184,16 @@ const StatCard = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.5 }}
-      className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-6 hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-300 shadow-lg dark:shadow-xl"
+      className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-4 hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/20 transition-all duration-300 shadow-sm"
     >
-      <div className="flex items-center gap-4">
-        <div className={`w-12 h-12 bg-gradient-to-r ${colorClasses[color as keyof typeof colorClasses]} rounded-xl flex items-center justify-center`}>
-          <Icon className="w-6 h-6 text-white" />
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 ${colorClasses[color as keyof typeof colorClasses]} rounded-lg flex items-center justify-center`}>
+          <Icon className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
-          <p className="text-2xl font-bold text-primary mb-2">{value}</p>
-          <p className="text-gray-700 dark:text-white/60 text-sm">{description}</p>
+          <h3 className="text-base font-bold text-[#0A2540] dark:text-white mb-1">{title}</h3>
+          <p className="text-xl font-bold text-[#0A2540] dark:text-[#00D4B3] mb-1.5">{value}</p>
+          <p className="text-[#6C757D] dark:text-gray-400 text-xs">{description}</p>
         </div>
       </div>
     </motion.div>
@@ -202,8 +202,10 @@ const StatCard = ({
 
 // Componente de gráfico de barras para países
 const CountryBarChart = ({ data, userCountry }: { data: any[], userCountry?: string }) => {
-  // Filtrar datos válidos y calcular máximo
-  const validData = data.filter(d => d && d.indice_aipi != null);
+  // Filtrar datos válidos, ordenar por indice_aipi descendente y calcular máximo
+  const validData = data
+    .filter(d => d && d.indice_aipi != null)
+    .sort((a, b) => (b.indice_aipi || 0) - (a.indice_aipi || 0));
   const maxValue = validData.length > 0 ? Math.max(...validData.map(d => d.indice_aipi)) : 1;
   
   // Encontrar el país del usuario en los datos (con normalización de acentos)
@@ -222,27 +224,27 @@ const CountryBarChart = ({ data, userCountry }: { data: any[], userCountry?: str
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05, duration: 0.5 }}
-            className={`group flex items-center gap-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 cursor-pointer ${
-              isUserCountry ? 'bg-yellow-500/20 dark:bg-yellow-500/20 border border-yellow-500/30 dark:border-yellow-500/30' : ''
+            className={`group flex items-center gap-4 p-2 rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/20 transition-all duration-300 cursor-pointer ${
+              isUserCountry ? 'bg-[#F59E0B]/20 dark:bg-[#F59E0B]/20 border border-[#F59E0B]/30 dark:border-[#F59E0B]/30' : ''
             }`}
           >
             <div className="w-24 text-right">
-              <span className={`text-sm font-medium truncate block group-hover:text-gray-900 dark:group-hover:text-white transition-colors ${
-                isUserCountry ? 'text-yellow-600 dark:text-yellow-300 font-bold' : 'text-gray-900 dark:text-white/80'
+              <span className={`text-sm font-medium truncate block group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors ${
+                isUserCountry ? 'text-[#F59E0B] dark:text-[#F59E0B] font-bold' : 'text-[#0A2540] dark:text-white/80'
               }`}>
                 {country.pais || 'N/A'}
-                {isUserCountry && <span className="ml-1 text-yellow-400">⭐</span>}
+                {isUserCountry && <span className="ml-1 text-[#F59E0B]">⭐</span>}
               </span>
             </div>
-              <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-6 overflow-hidden relative">
+              <div className="flex-1 bg-[#E9ECEF] dark:bg-[#0A2540]/20 rounded-full h-6 overflow-hidden relative">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${((country.indice_aipi || 0) / maxValue) * 100}%` }}
                   transition={{ delay: index * 0.05 + 0.5, duration: 1 }}
                   className={`h-full rounded-full relative overflow-hidden group-hover:brightness-125 transition-all duration-300 ${
                     isUserCountry 
-                      ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' 
-                      : 'bg-gradient-to-r from-primary to-purple-500'
+                      ? 'bg-gradient-to-r from-[#F59E0B] to-[#F59E0B]' 
+                      : 'bg-gradient-to-r from-[#0A2540] to-[#00D4B3]'
                   }`}
                 >
                   {/* Efecto de brillo en hover */}
@@ -260,8 +262,8 @@ const CountryBarChart = ({ data, userCountry }: { data: any[], userCountry?: str
                 </div>
               </div>
               <div className="w-16 text-left">
-                <span className={`text-sm font-bold group-hover:text-gray-900 dark:group-hover:text-white transition-colors ${
-                  isUserCountry ? 'text-yellow-600 dark:text-yellow-300' : 'text-gray-900 dark:text-white/80'
+                <span className={`text-sm font-bold group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors ${
+                  isUserCountry ? 'text-[#F59E0B] dark:text-[#F59E0B]' : 'text-[#0A2540] dark:text-white/80'
                 }`}>
                 {(country.indice_aipi || 0).toFixed(2)}
               </span>
@@ -966,7 +968,7 @@ export default function StatisticsResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+    <div className="min-h-screen bg-white dark:bg-[#0F1419]">
       {/* Modal de Dificultad */}
       <AnimatePresence>
         {showDifficultyModal && (
@@ -1082,15 +1084,15 @@ export default function StatisticsResultsPage() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 dark:bg-white/5 backdrop-blur-sm border-b border-gray-200 dark:border-white/10 pt-24"
+        className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 pt-16"
       >
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="w-20"></div>
 
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('header.title')}</h1>
-              <p className="text-gray-600 dark:text-white/60 text-sm">{t('header.subtitle')}</p>
+              <h1 className="text-xl font-bold text-[#0A2540] dark:text-white mb-1">{t('header.title')}</h1>
+              <p className="text-[#6C757D] dark:text-gray-400 text-xs">{t('header.subtitle')}</p>
             </div>
 
             <button
@@ -1108,10 +1110,10 @@ export default function StatisticsResultsPage() {
                 }
                 setShowDifficultyModal(true);
               }}
-              className="flex items-center px-4 py-2 bg-primary/20 dark:bg-primary/20 hover:bg-primary/30 dark:hover:bg-primary/30 border border-primary/30 dark:border-primary/30 hover:border-primary/50 dark:hover:border-primary/50 text-primary dark:text-primary hover:text-primary/90 rounded-lg transition-all duration-300 group"
+              className="flex items-center px-3 py-1.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 hover:bg-[#0A2540]/20 dark:hover:bg-[#0A2540]/30 border border-[#0A2540]/20 dark:border-[#0A2540]/30 hover:border-[#0A2540]/30 dark:hover:border-[#0A2540]/40 text-[#0A2540] dark:text-[#00D4B3] hover:text-[#0d2f4d] dark:hover:text-[#00C4A3] rounded-md transition-all duration-200 group"
             >
-              <RefreshCw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
-              <span className="text-sm font-medium">{t('header.newSurvey')}</span>
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5 group-hover:rotate-180 transition-transform duration-500" />
+              <span className="text-xs font-medium">{t('header.newSurvey')}</span>
             </button>
           </div>
         </div>
@@ -1122,28 +1124,28 @@ export default function StatisticsResultsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 mb-8 shadow-lg dark:shadow-xl"
+          className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-6 mb-8 shadow-sm"
         >
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
-                <Brain className="w-5 h-5 text-primary" />
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center gap-2.5 mb-3">
+              <div className="w-8 h-8 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg flex items-center justify-center">
+                <Brain className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('radar.title')}</h2>
+              <h2 className="text-xl font-bold text-[#0A2540] dark:text-white">{t('radar.title')}</h2>
             </div>
-            <p className="text-gray-700 dark:text-white/60 max-w-2xl mx-auto mb-4">
+            <p className="text-[#6C757D] dark:text-gray-400 max-w-2xl mx-auto mb-4 text-sm">
               {t('radar.description')}
             </p>
             {userProfile?.dificultad_id && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm text-blue-800 dark:text-blue-200">
+              <div className="bg-[#0A2540]/5 dark:bg-[#0A2540]/10 border border-[#0A2540]/20 dark:border-[#00D4B3]/20 rounded-lg p-3 max-w-2xl mx-auto">
+                <div className="flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3] mt-0.5 flex-shrink-0" />
+                  <div className="text-xs text-[#0A2540] dark:text-gray-300">
                     <p className="font-semibold mb-1">{t('radar.difficultyLevel')} {userProfile.dificultad_id}</p>
                     <p>
                       {t('radar.difficultyInfo', { max: userProfile.dificultad_id * 20 })}
                       {userProfile.dificultad_id < 5 && (
-                        <span className="block mt-1 text-blue-700 dark:text-blue-300">
+                        <span className="block mt-1 text-[#6C757D] dark:text-gray-400">
                           {t('radar.difficultyAdvance')}
                         </span>
                       )}
@@ -1163,56 +1165,56 @@ export default function StatisticsResultsPage() {
             </div>
             
             <div className="flex-1 space-y-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('radar.dimensionsTitle')}</h3>
+              <h3 className="text-base font-bold text-[#0A2540] dark:text-white mb-3">{t('radar.dimensionsTitle')}</h3>
 
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <Brain className="w-4 h-4 text-blue-400" />
+              <div className="space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Brain className="w-3.5 h-3.5 text-[#0A2540] dark:text-[#00D4B3]" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.knowledge.title')}</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.knowledge.description')}</p>
+                    <h4 className="text-[#0A2540] dark:text-white font-medium text-sm">{t('radar.dimensions.knowledge.title')}</h4>
+                    <p className="text-[#6C757D] dark:text-gray-400 text-xs">{t('radar.dimensions.knowledge.description')}</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <Target className="w-4 h-4 text-green-400" />
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 bg-[#10B981]/10 dark:bg-[#10B981]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Target className="w-3.5 h-3.5 text-[#10B981] dark:text-[#10B981]" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.application.title')}</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.application.description')}</p>
+                    <h4 className="text-[#0A2540] dark:text-white font-medium text-sm">{t('radar.dimensions.application.title')}</h4>
+                    <p className="text-[#6C757D] dark:text-gray-400 text-xs">{t('radar.dimensions.application.description')}</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <TrendingUp className="w-4 h-4 text-purple-400" />
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-[#00D4B3]" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.productivity.title')}</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.productivity.description')}</p>
+                    <h4 className="text-[#0A2540] dark:text-white font-medium text-sm">{t('radar.dimensions.productivity.title')}</h4>
+                    <p className="text-[#6C757D] dark:text-gray-400 text-xs">{t('radar.dimensions.productivity.description')}</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <Lightbulb className="w-4 h-4 text-orange-400" />
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Lightbulb className="w-3.5 h-3.5 text-[#F59E0B]" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.strategy.title')}</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.strategy.description')}</p>
+                    <h4 className="text-[#0A2540] dark:text-white font-medium text-sm">{t('radar.dimensions.strategy.title')}</h4>
+                    <p className="text-[#6C757D] dark:text-gray-400 text-xs">{t('radar.dimensions.strategy.description')}</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <DollarSign className="w-4 h-4 text-red-400" />
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <DollarSign className="w-3.5 h-3.5 text-[#0A2540] dark:text-[#00D4B3]" />
                   </div>
                   <div>
-                    <h4 className="text-gray-900 dark:text-white font-medium">{t('radar.dimensions.investment.title')}</h4>
-                    <p className="text-gray-700 dark:text-white/60 text-sm">{t('radar.dimensions.investment.description')}</p>
+                    <h4 className="text-[#0A2540] dark:text-white font-medium text-sm">{t('radar.dimensions.investment.title')}</h4>
+                    <p className="text-[#6C757D] dark:text-gray-400 text-xs">{t('radar.dimensions.investment.description')}</p>
                   </div>
                 </div>
               </div>
@@ -1249,35 +1251,35 @@ export default function StatisticsResultsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 mb-8 shadow-lg dark:shadow-xl"
+            className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-6 mb-8 shadow-sm"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
-                <Award className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg flex items-center justify-center">
+                <Award className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('recommendations.title')}</h2>
+              <h2 className="text-xl font-bold text-[#0A2540] dark:text-white">{t('recommendations.title')}</h2>
             </div>
             
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-3">
               {recommendations.map((rec, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.8 + index * 0.1 }}
-                  className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4"
+                  className="bg-[#E9ECEF]/30 dark:bg-[#0A2540]/10 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg p-3"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 ${
-                      rec.priority === 'high' ? 'bg-red-500/20' : 'bg-yellow-500/20'
+                  <div className="flex items-start gap-2.5">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      rec.priority === 'high' ? 'bg-red-500/20' : 'bg-[#F59E0B]/20'
                     }`}>
-                      <rec.icon className={`w-4 h-4 ${
-                        rec.priority === 'high' ? 'text-red-400' : 'text-yellow-400'
+                      <rec.icon className={`w-3.5 h-3.5 ${
+                        rec.priority === 'high' ? 'text-red-500' : 'text-[#F59E0B]'
                       }`} />
                     </div>
                     <div>
-                      <h3 className="text-gray-900 dark:text-white font-medium mb-2">{rec.title}</h3>
-                      <p className="text-gray-700 dark:text-white/60 text-sm">{rec.description}</p>
+                      <h3 className="text-[#0A2540] dark:text-white font-medium mb-1 text-sm">{rec.title}</h3>
+                      <p className="text-[#6C757D] dark:text-gray-400 text-xs">{rec.description}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -1292,40 +1294,40 @@ export default function StatisticsResultsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1 }}
-            className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-8 shadow-lg dark:shadow-xl"
+            className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-6 shadow-sm"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
-                <Globe className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg flex items-center justify-center">
+                <Globe className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('countries.title')}</h2>
+              <h2 className="text-xl font-bold text-[#0A2540] dark:text-white">{t('countries.title')}</h2>
             </div>
 
-            <p className="text-gray-700 dark:text-white/60 mb-6">
+            <p className="text-[#6C757D] dark:text-gray-400 mb-4 text-sm">
               {t('countries.description')}
             </p>
             
-            <div className="grid lg:grid-cols-2 gap-8">
+            <div className="grid lg:grid-cols-2 gap-6">
               <div>
                 <CountryBarChart data={countryData} userCountry={userProfile?.pais} />
               </div>
               
-              <div className="space-y-4">
-                <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                      <BarChart3 className="w-4 h-4 text-blue-400" />
+              <div className="space-y-3">
+                <div className="bg-[#E9ECEF]/30 dark:bg-[#0A2540]/10 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-7 h-7 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="w-3.5 h-3.5 text-[#0A2540] dark:text-[#00D4B3]" />
                     </div>
-                    <h3 className="text-gray-900 dark:text-white font-medium">{t('countries.stats.title')}</h3>
+                    <h3 className="text-[#0A2540] dark:text-white font-medium text-sm">{t('countries.stats.title')}</h3>
                   </div>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.countriesAnalyzed')}</span>
-                      <span className="text-gray-900 dark:text-white font-bold text-lg">{countryData.length}</span>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                      <span className="text-[#6C757D] dark:text-gray-400">{t('countries.stats.countriesAnalyzed')}</span>
+                      <span className="text-[#0A2540] dark:text-white font-bold">{countryData.length}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.averageAIPI')}</span>
-                      <span className="text-gray-900 dark:text-white font-bold text-lg">
+                    <div className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                      <span className="text-[#6C757D] dark:text-gray-400">{t('countries.stats.averageAIPI')}</span>
+                      <span className="text-[#0A2540] dark:text-white font-bold">
                         {countryData.length > 0 
                           ? (() => {
                               // Filtrar solo países con valores válidos (no null)
@@ -1339,10 +1341,10 @@ export default function StatisticsResultsPage() {
                         }
                       </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.maximum')}</span>
+                    <div className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                      <span className="text-[#6C757D] dark:text-gray-400">{t('countries.stats.maximum')}</span>
                       <div className="text-right">
-                        <div className="text-gray-900 dark:text-white font-bold text-lg">
+                        <div className="text-[#0A2540] dark:text-white font-bold">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -1353,7 +1355,7 @@ export default function StatisticsResultsPage() {
                             : '0.000'
                           }
                         </div>
-                        <div className="text-gray-600 dark:text-white/60 text-xs">
+                        <div className="text-[#6C757D] dark:text-gray-400 text-xs">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -1367,10 +1369,10 @@ export default function StatisticsResultsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.minimum')}</span>
+                    <div className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                      <span className="text-[#6C757D] dark:text-gray-400">{t('countries.stats.minimum')}</span>
                       <div className="text-right">
-                        <div className="text-gray-900 dark:text-white font-bold text-lg">
+                        <div className="text-[#0A2540] dark:text-white font-bold">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -1387,7 +1389,7 @@ export default function StatisticsResultsPage() {
                             : '0.000'
                           }
                         </div>
-                        <div className="text-gray-600 dark:text-white/60 text-xs">
+                        <div className="text-[#6C757D] dark:text-gray-400 text-xs">
                           {countryData.length > 0 
                             ? (() => {
                                 // Filtrar solo países con valores válidos (no null)
@@ -1406,9 +1408,9 @@ export default function StatisticsResultsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <span className="text-gray-700 dark:text-white/70">{t('countries.stats.range')}</span>
-                      <span className="text-gray-900 dark:text-white font-bold text-lg">
+                    <div className="flex justify-between items-center p-2.5 bg-white dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                      <span className="text-[#6C757D] dark:text-gray-400">{t('countries.stats.range')}</span>
+                      <span className="text-[#0A2540] dark:text-white font-bold">
                         {countryData.length > 0 
                           ? (() => {
                               // Filtrar solo países con valores válidos (no null)
@@ -1422,25 +1424,48 @@ export default function StatisticsResultsPage() {
                       </span>
                     </div>
                     {userProfile?.pais && (() => {
-                      const userCountryData = countryData.find(c => 
-                        c.pais && c.pais.toLowerCase().trim() === userProfile.pais.toLowerCase().trim()
+                      // Filtrar y ordenar países por indice_aipi descendente
+                      const validCountries = countryData
+                        .filter(c => c && c.indice_aipi != null)
+                        .sort((a, b) => (b.indice_aipi || 0) - (a.indice_aipi || 0));
+                      
+                      const userCountryData = validCountries.find(c => 
+                        c.pais && normalizeCountryName(c.pais) === normalizeCountryName(userProfile.pais)
                       );
-                      // console.log('🔍 Debug país usuario:', {
-                      //   userProfilePais: userProfile.pais,
-                      //   countryData: countryData.map(c => c.pais),
-                      //   userCountryData,
-                      //   countryDataLength: countryData.length
-                      // });
-                      return userCountryData;
+                      
+                      if (!userCountryData) return null;
+                      
+                      // Calcular posición basada en el orden descendente
+                      const userPosition = validCountries.findIndex(c => 
+                        c.pais && normalizeCountryName(c.pais) === normalizeCountryName(userProfile.pais)
+                      ) + 1;
+                      
+                      return { userCountryData, userPosition, totalCountries: validCountries.length };
                     })() && (
-                      <div className="flex justify-between items-center p-3 bg-yellow-500/10 dark:bg-yellow-500/10 border border-yellow-500/20 dark:border-yellow-500/20 rounded-lg">
-                        <span className="text-yellow-700 dark:text-yellow-300 font-medium">Tu país ({userProfile.pais}):</span>
+                      <div className="flex justify-between items-center p-2.5 bg-[#F59E0B]/10 dark:bg-[#F59E0B]/10 border border-[#F59E0B]/20 dark:border-[#F59E0B]/20 rounded-lg">
+                        <span className="text-[#F59E0B] dark:text-[#F59E0B] font-medium text-xs">Tu país ({userProfile.pais}):</span>
                         <div className="text-right">
-                          <div className="text-yellow-700 dark:text-yellow-300 font-bold text-lg">
-                            {countryData.find(c => c.pais && c.pais.toLowerCase().trim() === userProfile.pais.toLowerCase().trim())?.indice_aipi?.toFixed(3) || '0.000'}
+                          <div className="text-[#F59E0B] dark:text-[#F59E0B] font-bold">
+                            {(() => {
+                              const validCountries = countryData
+                                .filter(c => c && c.indice_aipi != null)
+                                .sort((a, b) => (b.indice_aipi || 0) - (a.indice_aipi || 0));
+                              const userCountry = validCountries.find(c => 
+                                c.pais && normalizeCountryName(c.pais) === normalizeCountryName(userProfile.pais)
+                              );
+                              return userCountry?.indice_aipi?.toFixed(3) || '0.000';
+                            })()}
                           </div>
-                          <div className="text-yellow-600 dark:text-yellow-400/70 text-xs">
-                            Posición #{countryData.findIndex(c => c.pais && c.pais.toLowerCase().trim() === userProfile.pais.toLowerCase().trim()) + 1} de {countryData.length}
+                          <div className="text-[#F59E0B] dark:text-[#F59E0B]/80 text-xs">
+                            Posición #{(() => {
+                              const validCountries = countryData
+                                .filter(c => c && c.indice_aipi != null)
+                                .sort((a, b) => (b.indice_aipi || 0) - (a.indice_aipi || 0));
+                              const position = validCountries.findIndex(c => 
+                                c.pais && normalizeCountryName(c.pais) === normalizeCountryName(userProfile.pais)
+                              ) + 1;
+                              return position;
+                            })()} de {countryData.filter(c => c && c.indice_aipi != null).length}
                           </div>
                         </div>
                       </div>
@@ -1448,29 +1473,29 @@ export default function StatisticsResultsPage() {
                   </div>
                 </div>
                 
-                <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
-                      <Info className="w-4 h-4 text-green-400" />
+                <div className="bg-[#E9ECEF]/30 dark:bg-[#0A2540]/10 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-7 h-7 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg flex items-center justify-center">
+                      <Info className="w-3.5 h-3.5 text-[#0A2540] dark:text-[#00D4B3]" />
                     </div>
-                    <h3 className="text-gray-900 dark:text-white font-medium">{t('countries.methodology.title')}</h3>
+                    <h3 className="text-[#0A2540] dark:text-white font-medium text-sm">{t('countries.methodology.title')}</h3>
                   </div>
-                  <div className="space-y-3 text-sm">
-                    <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">{t('countries.methodology.aipiTitle')}</h4>
-                      <p className="text-gray-700 dark:text-white/70 leading-relaxed">
+                  <div className="space-y-2 text-xs">
+                    <div className="p-2.5 bg-white dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                      <h4 className="text-[#0A2540] dark:text-white font-medium mb-1.5 text-xs">{t('countries.methodology.aipiTitle')}</h4>
+                      <p className="text-[#6C757D] dark:text-gray-400 leading-relaxed text-xs">
                         {t('countries.methodology.aipiDescription')}
                       </p>
                     </div>
-                    <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">{t('countries.methodology.sourcesTitle')}</h4>
-                      <p className="text-gray-700 dark:text-white/70 leading-relaxed whitespace-pre-line">
+                    <div className="p-2.5 bg-white dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                      <h4 className="text-[#0A2540] dark:text-white font-medium mb-1.5 text-xs">{t('countries.methodology.sourcesTitle')}</h4>
+                      <p className="text-[#6C757D] dark:text-gray-400 leading-relaxed whitespace-pre-line text-xs">
                         {t('countries.methodology.sourcesDescription')}
                       </p>
                     </div>
-                    <div className="p-3 bg-white dark:bg-white/5 rounded-lg">
-                      <h4 className="text-gray-900 dark:text-white font-medium mb-2">{t('countries.methodology.updateTitle')}</h4>
-                      <p className="text-gray-700 dark:text-white/70 leading-relaxed">
+                    <div className="p-2.5 bg-white dark:bg-[#0A2540]/10 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                      <h4 className="text-[#0A2540] dark:text-white font-medium mb-1.5 text-xs">{t('countries.methodology.updateTitle')}</h4>
+                      <p className="text-[#6C757D] dark:text-gray-400 leading-relaxed text-xs">
                         {t('countries.methodology.updateDescription')}
                       </p>
                     </div>

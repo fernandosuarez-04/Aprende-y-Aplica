@@ -252,6 +252,8 @@ export class ProfileService {
       }
 
       // Crear notificación de cambio de contraseña
+      // Solo en el servidor - usar API route para evitar problemas de build
+      if (typeof window === 'undefined') {
       try {
         const { AutoNotificationsService } = await import('@/features/notifications/services/auto-notifications.service')
         await AutoNotificationsService.notifyPasswordChanged(userId, {
@@ -260,6 +262,7 @@ export class ProfileService {
       } catch (notificationError) {
         // No lanzar error para no afectar el flujo principal
         // console.error('Error creando notificación de cambio de contraseña:', notificationError)
+        }
       }
     } catch (error) {
       // console.error('Error in ProfileService.changePassword:', error)

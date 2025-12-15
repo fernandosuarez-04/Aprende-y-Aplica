@@ -17,7 +17,8 @@ import {
   ArrowRight,
   Loader2,
   Video,
-  Play
+  Play,
+  X
 } from 'lucide-react'
 import { useNews, useNewsStats, useFeaturedNews } from '../../features/news/hooks/useNews'
 import { NewsWithMetrics } from '../../features/news/services/news.service'
@@ -390,20 +391,29 @@ const getCategoryLabel = (item: NewsWithMetrics) => {
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] mb-12" suppressHydrationWarning>
             {/* Search */}
             <motion.div 
-              className="flex-1 bg-white/80 dark:bg-gray-900/70 border border-white/40 dark:border-white/5 rounded-3xl shadow-[0_20px_60px_rgba(15,15,15,0.35)] backdrop-blur-xl p-1.5"
+              className="flex-1"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-300 w-5 h-5" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6C757D] dark:text-[#6C757D]" />
                 <input
                   type="text"
                   placeholder={t('search.placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none pl-12 pr-4 py-4 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-base font-medium"
+                  className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-sm font-normal text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] rounded-full transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5 text-[#6C757D] dark:text-[#6C757D]" />
+                  </button>
+                )}
               </div>
             </motion.div>
 

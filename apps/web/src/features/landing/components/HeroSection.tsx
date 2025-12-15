@@ -3,12 +3,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Card, CardContent, Button } from '@aprende-y-aplica/ui';
-import { ArrowRight, Check } from 'lucide-react';
+import Image from 'next/image';
+import { Button } from '@aprende-y-aplica/ui';
+import { ArrowRight } from 'lucide-react';
 import { HeroContent } from '@aprende-y-aplica/shared';
 import { fadeIn, slideUp, slideInFromLeft, slideInFromRight, staggerContainer, staggerItem } from '../../../shared/utils/animations';
-import { AnimatedBackground } from '../../../core/components/AnimatedBackground';
-import { useParallax } from '../../../shared/hooks/useParallax';
 
 interface HeroSectionProps {
   content: HeroContent;
@@ -16,47 +15,9 @@ interface HeroSectionProps {
 
 export function HeroSection({ content }: HeroSectionProps) {
   const { tag, title, highlightWord, description, ctaText, benefits } = content;
-  const parallaxOffset = useParallax(0.5);
 
   return (
-    <section className="min-h-screen flex items-center relative overflow-hidden hero-section">
-      {/* Animated Background */}
-      <AnimatedBackground />
-      
-      {/* Background Effects con parallax */}
-      <motion.div 
-        className="absolute inset-0 bg-gradient-to-r from-primary/5 to-success/5"
-        style={{ y: parallaxOffset * 0.3 }}
-      />
-      
-      <motion.div 
-        className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl"
-        animate={{
-          scale: [1, 1.1, 1],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        style={{ y: parallaxOffset * 0.2 }}
-      />
-      
-      <motion.div 
-        className="absolute bottom-20 right-20 w-96 h-96 bg-success/10 rounded-full blur-3xl"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.2, 0.5, 0.2],
-        }}
-        transition={{
-          duration: 12,
-          repeat: Infinity,
-          ease: 'easeInOut',
-          delay: 2,
-        }}
-        style={{ y: parallaxOffset * 0.4 }}
-      />
+    <section className="min-h-screen flex items-center relative overflow-x-hidden hero-section bg-white dark:bg-[#0F1419]">
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -69,24 +30,15 @@ export function HeroSection({ content }: HeroSectionProps) {
           >
             {/* Title */}
             <motion.h1
-              className="text-5xl lg:text-7xl font-bold leading-tight"
+              className="text-4xl lg:text-6xl xl:text-7xl font-bold leading-tight text-[#0A2540] dark:text-white"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
               variants={slideUp}
             >
-              <span className="hero-title-text">{title}</span>
+              <span className="text-[#0A2540] dark:text-white">{title}</span>
               <br />
               <motion.span 
-                className="bg-gradient-to-r from-primary via-blue-600 to-success bg-clip-text text-transparent"
-                animate={{
-                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                }}
-                transition={{
-                  duration: 6,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-                style={{
-                  backgroundSize: '200% 200%',
-                }}
+                className="text-[#00D4B3]"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
               >
                 {highlightWord}
               </motion.span>
@@ -94,23 +46,28 @@ export function HeroSection({ content }: HeroSectionProps) {
 
             {/* Description */}
             <motion.p
-              className="text-xl leading-relaxed max-w-2xl hero-description-text"
+              className="text-lg lg:text-xl leading-relaxed max-w-2xl text-[#6C757D] dark:text-white/90"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
               variants={fadeIn}
             >
               {description}
             </motion.p>
 
-            {/* CTA Button */}
+            {/* CTA Buttons */}
             <motion.div 
               variants={staggerItem}
+              className="flex flex-col sm:flex-row gap-4"
+            >
+              <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <Link href="/auth">
                 <Button
                   size="lg"
-                  variant="gradient"
-                  className="group shadow-lg shadow-primary/25 hover:shadow-primary/50 relative overflow-hidden"
+                  variant="primary"
+                    className="group shadow-lg shadow-[#0A2540]/25 hover:shadow-[#0A2540]/50 relative overflow-hidden bg-[#0A2540] hover:bg-[#0d2f4d] text-white w-full sm:w-auto"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                 >
                   <span className="relative z-10 flex items-center gap-2">
                     {ctaText}
@@ -118,78 +75,76 @@ export function HeroSection({ content }: HeroSectionProps) {
                       animate={{ x: [0, 4, 0] }}
                       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                     >
-                      <ArrowRight className="w-5 h-5" />
+                      <ArrowRight className="w-5 h-5 text-white" />
                     </motion.div>
                   </span>
                 </Button>
               </Link>
+              </motion.div>
+              
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link href="/conocer-lia">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="group shadow-lg shadow-[#00D4B3]/25 hover:shadow-[#00D4B3]/50 relative overflow-hidden border-2 border-[#00D4B3] bg-transparent hover:bg-[#00D4B3]/10 text-[#00D4B3] hover:text-[#00D4B3] dark:text-[#00D4B3] dark:hover:bg-[#00D4B3]/10 w-full sm:w-auto"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      Conoce a LIA
+                      <motion.div
+                        animate={{ rotate: [0, 15, -15, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <ArrowRight className="w-5 h-5" />
+                      </motion.div>
+                    </span>
+                  </Button>
+                </Link>
+              </motion.div>
             </motion.div>
           </motion.div>
 
-          {/* Right Column - Benefits Card */}
+          {/* Right Column - Logo with Floating Animation */}
           <motion.div
             initial="hidden"
             animate="visible"
             variants={slideInFromRight}
             transition={{ delay: 0.3 }}
-            style={{ y: parallaxOffset * 0.1 }}
+            className="flex items-center justify-center"
           >
+            <div className="relative w-full max-w-[360px] lg:max-w-[420px] mx-auto">
             <motion.div
-              whileHover={{ 
-                y: -8,
-                scale: 1.02,
-                transition: { duration: 0.3 }
-              }}
-            >
-              <Card variant="glassmorphism" className="h-fit relative overflow-hidden">
-                {/* Efecto shimmer en el borde */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
-                
-                <CardContent className="p-8 relative z-10">
-                  <motion.h3 
-                    className="text-2xl font-bold mb-6 hero-benefits-title"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    Lo que aprenderás
-                  </motion.h3>
-                  <div className="space-y-4">
-                    {benefits.map((benefit, index) => (
-                      <motion.div
-                        key={index}
-                        className="flex items-center gap-3 group hero-benefit-text"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.7 + index * 0.1 }}
-                        whileHover={{ x: 8 }}
-                      >
-                        <motion.div 
-                          className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-primary to-success rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                initial={{ scale: 0.8, opacity: 0 }}
                           animate={{
-                            boxShadow: [
-                              '0 0 0 rgba(0, 102, 204, 0.4)',
-                              '0 0 20px rgba(0, 102, 204, 0.6)',
-                              '0 0 0 rgba(0, 102, 204, 0.4)',
-                            ],
+                  scale: 1, 
+                  opacity: 1,
+                  y: [0, -20, 0],
                           }}
                           transition={{
+                  scale: { delay: 0.2, duration: 0.5 },
+                  opacity: { delay: 0.2, duration: 0.5 },
+                  y: {
+                    delay: 0.7,
                             duration: 3,
                             repeat: Infinity,
-                            delay: index * 0.5,
+                    ease: "easeInOut",
+                  }
                           }}
-                        >
-                          <Check className="w-4 h-4 text-white" />
-                        </motion.div>
-                        <span className="transition-colors hero-benefit-description">
-                          {benefit.replace('✓ ', '')}
-                        </span>
+                className="relative w-full aspect-square"
+              >
+                <Image
+                  src="/Logo.png"
+                  alt="SOFIA Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
                       </motion.div>
-                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
           </motion.div>
         </div>
       </div>

@@ -363,7 +363,7 @@ export function CustomVideoPlayer({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full bg-black rounded-xl overflow-hidden group ${className}`}
+      className={`relative w-full bg-[#0F1419] dark:bg-[#0F1419] rounded-xl overflow-hidden group ${className}`}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onMouseMove={() => setShowControls(true)}
@@ -379,15 +379,15 @@ export function CustomVideoPlayer({
 
       {/* Loading Indicator */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-30">
-          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0F1419]/80 backdrop-blur-sm z-30">
+          <div className="w-12 h-12 border-4 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full animate-spin" />
         </div>
       )}
 
       {/* Buffering Indicator */}
       {isBuffering && isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-20">
-          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0F1419]/50 z-20">
+          <div className="w-12 h-12 border-4 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full animate-spin" />
         </div>
       )}
 
@@ -526,7 +526,7 @@ export function CustomVideoPlayer({
                             style={{ userSelect: 'none' }}
                           >
                             <motion.div
-                              className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-500 to-purple-500 rounded-full"
+                              className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#00D4B3] to-[#00b89a] rounded-full"
                               style={{ height: `${(isMuted ? 0 : volume) * 100}%` }}
                               initial={false}
                             />
@@ -574,7 +574,7 @@ export function CustomVideoPlayer({
                                   onClick={() => changePlaybackRate(rate)}
                                   className={`w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-200 ${
                                     playbackRate === rate
-                                      ? 'bg-blue-500/20 text-blue-400 font-medium'
+                                      ? 'bg-[#00D4B3]/20 text-[#00D4B3] font-medium'
                                       : 'text-white/80 hover:bg-white/10'
                                   }`}
                                 >

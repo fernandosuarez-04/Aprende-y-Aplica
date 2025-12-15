@@ -323,14 +323,19 @@ export default function StatisticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-white/70 text-lg">Cargando...</p>
+          <div className="w-16 h-16 border-4 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full animate-spin mx-auto mb-4" />
+          <p 
+            className="text-[#0A2540] dark:text-white text-lg"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+          >
+            Cargando...
+          </p>
         </motion.div>
       </div>
     );

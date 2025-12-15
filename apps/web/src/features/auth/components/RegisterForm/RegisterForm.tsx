@@ -3,18 +3,20 @@
 import React, { useState, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
-import { User, Mail, Phone, Briefcase } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { Button } from '@aprende-y-aplica/ui';
+import { motion, AnimatePresence } from 'framer-motion';
+import { User, Mail, Phone, Loader2, UserPlus } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { RegisterFormData } from '../../types/auth.types';
 import { registerSchema } from './RegisterForm.schema';
-import { PasswordInput } from '../PasswordInput';
-import { CountrySelector } from '../CountrySelector';
 import { registerAction } from '../../actions/register';
-import { SocialLoginButtons } from '../SocialLoginButtons/SocialLoginButtons';
 import { ToastNotification } from '../../../../core/components/ToastNotification';
+import { TextInput } from '../TextInput';
+import { PasswordInput } from '../PasswordInput';
+import { SocialLoginButtons } from '../SocialLoginButtons';
+import { SelectField, SelectOption } from '../../../../core/components/SelectField/SelectField';
+import { COUNTRIES } from '../CountrySelector/CountrySelector.data';
+import { useAuthTab } from '../AuthTabs/AuthTabContext';
 
 const LegalDocumentsModal = dynamic(() => import('../LegalDocumentsModal').then(mod => ({ default: mod.LegalDocumentsModal })), {
   ssr: false
@@ -28,6 +30,7 @@ export function RegisterForm() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const { setActiveTab } = useAuthTab();
 
   const {
     register,
@@ -47,10 +50,26 @@ export function RegisterForm() {
       confirmEmail: '',
       password: '',
       confirmPassword: '',
-      cargo_titulo: '',
       acceptTerms: false,
     },
   });
+
+  const acceptTerms = watch('acceptTerms');
+
+  const countryOptions: SelectOption[] = COUNTRIES.map(country => ({
+    value: country.code,
+    label: `${country.flag} ${country.dialCode} ${country.name}`,
+    flag: country.flag,
+  }));
+
+  const handleCountryChange = (countryCode: string | number) => {
+    const country = COUNTRIES.find(c => c.code === countryCode);
+    if (country) {
+      setSelectedCountryCode(country.code);
+      setDialCode(country.dialCode);
+      setValue('countryCode', country.code);
+    }
+  };
 
   const onSubmit = async (data: RegisterFormData) => {
     setError(null);
@@ -59,7 +78,6 @@ export function RegisterForm() {
     startTransition(async () => {
       const formData = new FormData();
       
-      // Añadir todos los campos del formulario
       Object.entries(data).forEach(([key, value]) => {
         if (typeof value === 'boolean') {
           formData.append(key, value ? 'true' : 'false');
@@ -74,485 +92,339 @@ export function RegisterForm() {
         if (result?.error) {
           setError(result.error);
         } else if (result?.success) {
-          setSuccess(result.message);
+          setSuccess(result.message || 'Cuenta creada exitosamente');
         }
       } catch (error) {
-        // console.error('Register error:', error);
         setError('Error inesperado al crear la cuenta');
       }
     });
   };
 
-  // Redirigir al login cuando se cree exitosamente la cuenta
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => {
         router.push('/auth?tab=login');
-      }, 2000); // Esperar 2 segundos para que el usuario vea el mensaje de éxito
-
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [success, router]);
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Header */}
-        <motion.div 
-          className="text-center space-y-1"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-        >
-          <motion.h2 
-            className="text-2xl font-bold text-color-contrast"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1, duration: 0.4, ease: 'easeOut' }}
-          >
-            Crear cuenta
-          </motion.h2>
-          <motion.p 
-            className="text-text-secondary text-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-          >
-            Únete a la comunidad de aprendizaje IA
-          </motion.p>
-        </motion.div>
-
-        {/* Success Message */}
-        {success && (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full"
+      >
+        <div className="bg-white dark:bg-[#1E2329] rounded-2xl shadow-xl dark:shadow-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-5 sm:p-6 lg:p-8">
           <motion.div
-            className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+            className="text-center mb-5"
           >
-            {success}
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#0A2540] dark:text-white mb-1">
+              Crear cuenta
+            </h1>
+            <p className="text-xs sm:text-sm text-[#6C757D] dark:text-white/60">
+              Únete y comienza tu aprendizaje
+            </p>
           </motion.div>
-        )}
 
-        {/* Social Login Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-        >
-          <SocialLoginButtons />
-        </motion.div>
+          <AnimatePresence>
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4 p-3 rounded-xl bg-[#10B981]/10 dark:bg-[#10B981]/20 border border-[#10B981]/30 text-[#10B981] dark:text-[#10B981] text-sm font-medium"
+              >
+                {success}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {/* Divisor */}
-        <motion.div
-          className="relative my-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.4 }}
-        >
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-[#1E2329] text-gray-500 dark:text-gray-400">
-              O regístrate con email
-            </span>
-          </div>
-        </motion.div>
-
-        {/* Form Content - Single Column */}
-        <div className="space-y-4">
-          {/* Información Personal */}
-          <div className="space-y-4">
-            {/* Name Fields */}
-            <motion.div 
-              className="grid grid-cols-2 gap-3"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.4 }}
-            >
-              <div className="space-y-2">
-                <label htmlFor="firstName" className="auth-label">
-                  Nombre
-                </label>
-                <div className="relative">
-                  <input
-                    id="firstName"
-                    type="text"
-                    placeholder="Juan"
-                    {...register('firstName')}
-                    className={`auth-input pr-12 ${errors.firstName ? 'border-error' : ''}`}
-                  />
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
-                </div>
-                {errors.firstName && (
-                  <motion.p 
-                    className="auth-error"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {errors.firstName.message}
-                  </motion.p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="lastName" className="auth-label">
-                  Apellido
-                </label>
-                <div className="relative">
-                  <input
-                    id="lastName"
-                    type="text"
-                    placeholder="Pérez"
-                    {...register('lastName')}
-                    className={`auth-input pr-12 ${errors.lastName ? 'border-error' : ''}`}
-                  />
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
-                </div>
-                {errors.lastName && (
-                  <motion.p 
-                    className="auth-error"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {errors.lastName.message}
-                  </motion.p>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Username */}
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.4 }}
-            >
-              <label htmlFor="username" className="auth-label">
-                Usuario
-              </label>
-              <div className="relative">
-                <input
-                  id="username"
-                  type="text"
-                  placeholder="juanperez"
-                  {...register('username')}
-                  className={`auth-input pr-12 ${errors.username ? 'border-error' : ''}`}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+              >
+                <TextInput
+                  id="firstName"
+                  label="Nombre"
+                  placeholder="Juan"
+                  icon={User}
+                  error={errors.firstName?.message}
+                  {...register('firstName')}
                 />
-                <User className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
-              </div>
-              {errors.username && (
-                <motion.p 
-                  className="auth-error"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {errors.username.message}
-                </motion.p>
-              )}
-            </motion.div>
+              </motion.div>
 
-            {/* Cargo / Título */}
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.17, duration: 0.4 }}
-            >
-              <label htmlFor="cargo_titulo" className="auth-label">
-                Cargo / Título <span className="text-text-tertiary text-xs">(Opcional)</span>
-              </label>
-              <div className="relative">
-                <input
-                  id="cargo_titulo"
-                  type="text"
-                  placeholder="Ej: Desarrollador, Gerente, CEO, etc."
-                  {...register('cargo_titulo')}
-                  className={`auth-input pr-12 ${errors.cargo_titulo ? 'border-error' : ''}`}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.25, duration: 0.4 }}
+              >
+                <TextInput
+                  id="lastName"
+                  label="Apellido"
+                  placeholder="Pérez"
+                  icon={User}
+                  error={errors.lastName?.message}
+                  {...register('lastName')}
                 />
-                <Briefcase className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
-              </div>
-              {errors.cargo_titulo && (
-                <motion.p 
-                  className="auth-error"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {errors.cargo_titulo.message}
-                </motion.p>
-              )}
-            </motion.div>
-          </div>
+              </motion.div>
+            </div>
 
-          {/* Información de Contacto */}
-          <div className="space-y-4">
-            {/* Email Fields */}
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-            >
-              <label htmlFor="email" className="auth-label">
-                Correo electrónico
-              </label>
-              <div className="relative">
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="tu@email.com"
-                  {...register('email')}
-                  onPaste={(e) => e.preventDefault()}
-                  className={`auth-input pr-12 ${errors.email ? 'border-error' : ''}`}
-                />
-                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
-              </div>
-              {errors.email && (
-                <motion.p 
-                  className="auth-error"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {errors.email.message}
-                </motion.p>
-              )}
-            </motion.div>
-
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25, duration: 0.4 }}
-            >
-              <label htmlFor="confirmEmail" className="auth-label">
-                Confirmar correo
-              </label>
-              <div className="relative">
-                <input
-                  id="confirmEmail"
-                  type="email"
-                  placeholder="tu@email.com"
-                  {...register('confirmEmail')}
-                  onPaste={(e) => e.preventDefault()}
-                  className={`auth-input pr-12 ${errors.confirmEmail ? 'border-error' : ''}`}
-                />
-                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
-              </div>
-              {errors.confirmEmail && (
-                <motion.p 
-                  className="auth-error"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {errors.confirmEmail.message}
-                </motion.p>
-              )}
-            </motion.div>
-
-            {/* Phone */}
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
             >
-              <label htmlFor="phoneNumber" className="auth-label">
+              <TextInput
+                id="username"
+                label="Usuario"
+                placeholder="juanperez"
+                icon={User}
+                  error={errors.username?.message}
+                  {...register('username')}
+              />
+            </motion.div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35, duration: 0.4 }}
+              >
+                <TextInput
+                  id="email"
+                  label="Correo"
+                  placeholder="tu@email.com"
+                  icon={Mail}
+                  error={errors.email?.message}
+                  type="email"
+                  onPaste={(e) => e.preventDefault()}
+                  {...register('email')}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+              >
+                <TextInput
+                  id="confirmEmail"
+                  label="Confirmar"
+                  placeholder="tu@email.com"
+                  icon={Mail}
+                  error={errors.confirmEmail?.message}
+                  type="email"
+                  onPaste={(e) => e.preventDefault()}
+                  {...register('confirmEmail')}
+                />
+              </motion.div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45, duration: 0.4 }}
+            >
+              <label className="block text-sm font-medium mb-2 text-[#0A2540] dark:text-white/90">
                 Teléfono
               </label>
               <div className="flex gap-2">
-                <div className="flex-shrink-0 w-auto min-w-[120px]">
-                  <CountrySelector
+                <div className="w-36 flex-shrink-0">
+                  <SelectField
                     value={selectedCountryCode}
-                    onChange={(code, dial) => {
-                      setSelectedCountryCode(code);
-                      setDialCode(dial);
-                      setValue('countryCode', code);
-                    }}
+                    onChange={handleCountryChange}
+                    options={countryOptions}
+                    placeholder="País"
                     error={errors.countryCode?.message}
                   />
                 </div>
-                <div className="flex-1 relative">
-                  <input
+                <div className="flex-1">
+                  <TextInput
                     id="phoneNumber"
+                    placeholder="1234567890"
+                    icon={Phone}
+                    error={errors.phoneNumber?.message}
                     type="tel"
-                    placeholder="Número de teléfono"
                     {...register('phoneNumber')}
-                    className={`auth-input pr-12 ${errors.phoneNumber ? 'border-error' : ''}`}
                   />
-                  <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
                 </div>
               </div>
-              {errors.phoneNumber && (
-                <motion.p 
-                  className="auth-error"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {errors.phoneNumber.message}
-                </motion.p>
-              )}
             </motion.div>
-          </div>
 
-          {/* Contraseñas */}
-          <div className="space-y-4">
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.4 }}
+            <div className="grid grid-cols-2 gap-3">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.4 }}
+              >
+                <label className="block text-sm font-medium mb-2 text-[#0A2540] dark:text-white/90">
+                  Contraseña
+                </label>
+                <PasswordInput
+                  id="password"
+                  placeholder="••••••••"
+                  error={errors.password?.message}
+                  {...register('password')}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.55, duration: 0.4 }}
+              >
+                <label className="block text-sm font-medium mb-2 text-[#0A2540] dark:text-white/90">
+                  Confirmar
+                </label>
+                <PasswordInput
+                  id="confirmPassword"
+                  placeholder="••••••••"
+                  error={errors.confirmPassword?.message}
+                  {...register('confirmPassword')}
+                />
+              </motion.div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
+              className="flex items-start gap-2.5 pt-1"
             >
-              <label htmlFor="password" className="auth-label">
-                Contraseña
-              </label>
-              <PasswordInput
-                id="password"
-                placeholder="••••••••"
-                error={errors.password?.message}
-                {...register('password')}
-              />
-              {errors.password && (
-                <motion.p 
-                  className="auth-error"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {errors.password.message}
-                </motion.p>
-              )}
-            </motion.div>
-
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-            >
-              <label htmlFor="confirmPassword" className="auth-label">
-                Verificar contraseña
-              </label>
-              <PasswordInput
-                id="confirmPassword"
-                placeholder="••••••••"
-                error={errors.confirmPassword?.message}
-                {...register('confirmPassword')}
-              />
-              {errors.confirmPassword && (
-                <motion.p 
-                  className="auth-error"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {errors.confirmPassword.message}
-                </motion.p>
-              )}
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Bottom Section */}
-        <motion.div 
-          className="flex flex-col items-center space-y-4 pt-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45, duration: 0.4 }}
-        >
-          {/* Terms Checkbox */}
-          <motion.div 
-            className="w-full"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
-          >
-            <label className="flex items-start gap-2 cursor-pointer">
               <input
                 type="checkbox"
+                id="acceptTerms"
                 {...register('acceptTerms')}
-                className="auth-checkbox mt-0.5 flex-shrink-0"
+                className="sr-only"
               />
-              <span className="text-xs text-text-secondary leading-relaxed">
-                Acepto los{' '}
-                <button
-                  type="button"
-                  onClick={() => setShowLegalModal(true)}
-                  className="text-primary hover:underline font-medium transition-colors"
+              <label htmlFor="acceptTerms" className="flex items-start gap-2.5 cursor-pointer group">
+                <motion.div
+                  className={`relative w-5 h-5 rounded-lg border-2 transition-all duration-200 flex-shrink-0 mt-0.5 ${
+                    acceptTerms
+                      ? 'bg-[#00D4B3] border-[#00D4B3]'
+                      : 'bg-white dark:bg-[#1E2329] border-[#6C757D] dark:border-[#6C757D]/50'
+                  }`}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                 >
-                  Términos y Condiciones
-                </button>
-                , las{' '}
-                <button
-                  type="button"
-                  onClick={() => setShowLegalModal(true)}
-                  className="text-primary hover:underline font-medium transition-colors"
-                >
-                  Políticas de Privacidad
-                </button>{' '}
-                y el{' '}
-                <button
-                  type="button"
-                  onClick={() => setShowLegalModal(true)}
-                  className="text-primary hover:underline font-medium transition-colors"
-                >
-                  Código de Conducta
-                </button>
-              </span>
-            </label>
+                  <AnimatePresence>
+                    {acceptTerms && (
+                      <motion.svg
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute inset-0 w-full h-full text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </motion.svg>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+                <span className="text-xs sm:text-sm text-[#0A2540] dark:text-white/80 leading-relaxed">
+                  Acepto los{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowLegalModal(true)}
+                    className="text-[#00D4B3] hover:text-[#00D4B3]/80 dark:text-[#00D4B3] dark:hover:text-[#00D4B3]/70 font-medium transition-colors"
+                  >
+                    términos y condiciones
+                  </button>
+                  {' '}y la{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowLegalModal(true)}
+                    className="text-[#00D4B3] hover:text-[#00D4B3]/80 dark:text-[#00D4B3] dark:hover:text-[#00D4B3]/70 font-medium transition-colors"
+                  >
+                    política de privacidad
+                  </button>
+                </span>
+              </label>
+            </motion.div>
             {errors.acceptTerms && (
-              <motion.p 
-                className="auth-error text-center mt-1"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.2 }}
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-xs text-red-500 dark:text-red-400 font-medium -mt-2"
               >
                 {errors.acceptTerms.message}
               </motion.p>
             )}
-          </motion.div>
 
-          {/* Submit Button */}
-          <motion.div
-            className="w-full flex justify-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.4 }}
-          >
-            <Button
+            <motion.button
               type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full max-w-full sm:max-w-md relative overflow-hidden group shadow-lg hover:shadow-xl transition-all duration-300"
               disabled={isPending}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.65, duration: 0.4 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
             >
-              <span className="relative z-10 font-semibold">
-                {isPending ? 'Creando cuenta...' : 'Crear cuenta'}
-              </span>
-              {/* Efecto de brillo mejorado */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out" />
-              {/* Efecto de glow */}
-              <div className="absolute inset-0 bg-primary/20 rounded-lg blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </Button>
+              {isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Creando cuenta...</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-5 h-5" />
+                  <span>Crear cuenta</span>
+                </>
+              )}
+            </motion.button>
+          </form>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.4 }}
+            className="mt-5"
+          >
+            <SocialLoginButtons />
           </motion.div>
-        </motion.div>
-      </form>
 
-      {/* Legal Modal */}
-      <LegalDocumentsModal
-        isOpen={showLegalModal}
-        onClose={() => setShowLegalModal(false)}
-        onAccept={() => setValue('acceptTerms', true)}
-      />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.75, duration: 0.4 }}
+            className="mt-5 text-center"
+          >
+            <p className="text-xs sm:text-sm text-[#6C757D] dark:text-white/60">
+              ¿Ya tienes cuenta?{' '}
+              <button
+                type="button"
+                onClick={() => setActiveTab('login')}
+                className="font-semibold text-[#00D4B3] hover:text-[#00D4B3]/80 dark:text-[#00D4B3] dark:hover:text-[#00D4B3]/70 transition-colors"
+              >
+                Inicia sesión aquí
+              </button>
+            </p>
+          </motion.div>
+        </div>
+      </motion.div>
 
-      {/* Toast Notification para errores */}
+      {showLegalModal && (
+        <LegalDocumentsModal isOpen={showLegalModal} onClose={() => setShowLegalModal(false)} />
+      )}
+
       <ToastNotification
         isOpen={!!error}
         onClose={() => setError(null)}

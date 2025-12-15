@@ -166,15 +166,15 @@ export function NotificationBell({
   const getPriorityBg = (priority: string, isUnread: boolean) => {
     const baseColors = {
       critical: 'hover:bg-red-500/10',
-      high: 'hover:bg-orange-500/10',
-      medium: 'hover:bg-yellow-500/10',
-      low: 'hover:bg-blue-500/10',
-      default: 'hover:bg-gray-500/10'
+      high: 'hover:bg-[#F59E0B]/10',
+      medium: 'hover:bg-[#00D4B3]/10',
+      low: 'hover:bg-[#0A2540]/10',
+      default: 'hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/20'
     }
     
     const unreadBg = isUnread 
-      ? 'bg-gray-50 dark:bg-gray-800' 
-      : 'bg-white dark:bg-gray-900'
+      ? 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/10' 
+      : 'bg-white dark:bg-[#1E2329]'
     return `${unreadBg} ${baseColors[priority as keyof typeof baseColors] || baseColors.default}`
   }
 
@@ -240,17 +240,17 @@ export function NotificationBell({
       <motion.button
         ref={buttonRef}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="relative p-3 text-text-secondary dark:text-text-secondary hover:text-primary dark:hover:text-primary transition-colors rounded-xl hover:bg-carbon-700/50 dark:hover:bg-carbon-700/50"
+        className="relative p-2.5 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-[#00D4B3] transition-colors rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Notificaciones"
       >
-        <Bell className={`${iconSizes[iconSize]} text-text-secondary dark:text-text-secondary`} />
+        <Bell className={`${iconSizes[iconSize]}`} />
         
         {/* Badge de contador */}
         {unreadCount > 0 && (
           <motion.span
-            className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 bg-gradient-to-r from-red-500 to-red-600 rounded-full text-xs flex items-center justify-center text-white font-bold z-10 shadow-lg shadow-red-500/50 border border-red-400/30"
+            className="absolute -top-1 -right-1 min-w-[18px] h-4 px-1 bg-[#0A2540] dark:bg-[#00D4B3] rounded-full text-xs flex items-center justify-center text-white font-semibold z-10 shadow-sm"
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
@@ -262,10 +262,10 @@ export function NotificationBell({
         {/* Animación de pulso para notificaciones críticas */}
         {showPulse && criticalCount > 0 && (
           <motion.div
-            className="absolute inset-0 bg-primary/20 rounded-full"
+            className="absolute inset-0 bg-[#0A2540]/20 dark:bg-[#00D4B3]/20 rounded-lg"
             animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.6, 0.3]
+              scale: [1, 1.1, 1],
+              opacity: [0.3, 0.5, 0.3]
             }}
             transition={{
               duration: 2,
@@ -307,7 +307,7 @@ export function NotificationBell({
               isMobile 
                 ? 'fixed left-4 right-4 w-auto' 
                 : 'absolute right-0 w-80 sm:w-96'
-            } ${isMobile ? '' : 'mt-2'} bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-[100] ${
+            } ${isMobile ? '' : 'mt-2'} bg-white dark:bg-[#1E2329] rounded-xl shadow-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 py-2 z-[100] ${
               isMobile 
                 ? '' 
                 : 'max-h-[calc(100vh-8rem)]'
@@ -317,29 +317,29 @@ export function NotificationBell({
               maxHeight: `${dropdownPosition.maxHeight}px`
             } : {}}
           >
-            {/* Header con gradiente */}
-            <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            {/* Header minimalista */}
+            <div className="px-4 py-3 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <div className="relative flex-shrink-0">
-                  <div className="relative bg-gray-100 dark:bg-gray-700 p-1.5 sm:p-2 rounded-lg border border-blue-500/20">
-                    <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+                  <div className="relative bg-[#0A2540]/10 dark:bg-[#0A2540]/20 p-1.5 rounded-lg">
+                    <Bell className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
+                  <h3 className="text-sm font-semibold text-[#0A2540] dark:text-white flex items-center gap-2">
                     <span className="truncate">Notificaciones</span>
                     {unreadCount > 0 && (
                       <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="px-1.5 sm:px-2 py-0.5 bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold rounded-full border border-red-500/30 flex-shrink-0"
+                        className="px-2 py-0.5 bg-[#0A2540]/10 dark:bg-[#00D4B3]/20 text-[#0A2540] dark:text-[#00D4B3] text-xs font-semibold rounded-md flex-shrink-0"
                       >
                         {unreadCount}
                       </motion.span>
                     )}
                   </h3>
                   {unreadCount > 0 && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                    <p className="text-xs text-[#6C757D] dark:text-gray-400 mt-0.5 truncate">
                       {unreadCount === 1 ? '1 sin leer' : `${unreadCount} sin leer`}
                     </p>
                   )}
@@ -348,26 +348,26 @@ export function NotificationBell({
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:bg-blue-500/10 border border-blue-500/20 flex-shrink-0"
+                  className="text-xs text-[#0A2540] dark:text-[#00D4B3] hover:text-[#0d2f4d] dark:hover:text-[#00C4A3] transition-all duration-200 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/20 flex-shrink-0"
                   disabled={isLoading}
                 >
-                  <CheckCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <CheckCheck className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Marcar todas</span>
                 </button>
               )}
             </div>
 
             {/* Lista de Notificaciones */}
-            <div className="max-h-[calc(100vh-16rem)] sm:max-h-[20rem] overflow-y-auto scrollbar-thin-dark bg-white dark:bg-gray-900">
+            <div className="max-h-[calc(100vh-16rem)] sm:max-h-[20rem] overflow-y-auto scrollbar-thin-dark bg-white dark:bg-[#1E2329]">
               {isLoading && notifications.length === 0 ? (
                 <div className="px-6 py-12 text-center">
                   <motion.div
                     initial={{ rotate: 0 }}
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-10 h-10 border-[3px] border-blue-600/30 dark:border-blue-400/30 border-t-blue-600 dark:border-t-blue-400 rounded-full mx-auto mb-4"
+                    className="w-10 h-10 border-[3px] border-[#0A2540]/20 dark:border-[#00D4B3]/20 border-t-[#0A2540] dark:border-t-[#00D4B3] rounded-full mx-auto mb-4"
                   />
-                  <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Cargando notificaciones...</p>
+                  <p className="text-[#6C757D] dark:text-gray-400 text-sm font-medium">Cargando notificaciones...</p>
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="px-6 py-12 text-center">
@@ -375,14 +375,14 @@ export function NotificationBell({
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.3 }}
-                    className="relative mx-auto mb-4 w-16 h-16"
+                    className="relative mx-auto mb-4 w-14 h-14"
                   >
-                    <div className="relative bg-gray-100 dark:bg-gray-800 p-4 rounded-full border border-gray-300 dark:border-gray-700">
-                      <Bell className="w-8 h-8 text-gray-500 dark:text-gray-400 mx-auto" />
+                    <div className="relative bg-[#E9ECEF]/50 dark:bg-[#0A2540]/20 p-3 rounded-full">
+                      <Bell className="w-7 h-7 text-[#6C757D] dark:text-gray-400 mx-auto" />
                     </div>
                   </motion.div>
-                  <p className="text-gray-900 dark:text-gray-300 text-sm font-medium mb-1">No hay notificaciones</p>
-                  <p className="text-gray-600 dark:text-gray-500 text-xs">Recibirás notificaciones cuando haya actividad</p>
+                  <p className="text-[#0A2540] dark:text-white text-sm font-semibold mb-1">No hay notificaciones</p>
+                  <p className="text-[#6C757D] dark:text-gray-400 text-xs">Recibirás notificaciones cuando haya actividad</p>
                 </div>
               ) : (
                 <div className="py-2">
@@ -400,7 +400,7 @@ export function NotificationBell({
                         <motion.div
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full -ml-1.5"
+                          className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#0A2540] dark:bg-[#00D4B3] rounded-full -ml-1"
                         />
                       )}
                       
@@ -419,8 +419,8 @@ export function NotificationBell({
                                   <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
                                     <p className={`text-xs sm:text-sm font-semibold ${
                                       notification.status === 'unread' 
-                                        ? 'text-gray-900 dark:text-white' 
-                                        : 'text-gray-700 dark:text-gray-300'
+                                        ? 'text-[#0A2540] dark:text-white' 
+                                        : 'text-[#0A2540] dark:text-gray-300'
                                     } truncate`}>
                                       {notification.title}
                                     </p>
@@ -428,17 +428,17 @@ export function NotificationBell({
                                       <motion.div
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
-                                        className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-600 dark:bg-blue-400 rounded-full flex-shrink-0"
+                                        className="w-1.5 h-1.5 bg-[#0A2540] dark:bg-[#00D4B3] rounded-full flex-shrink-0"
                                       />
                                     )}
                                   </div>
                                   
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 sm:mt-1.5 line-clamp-2 sm:line-clamp-2 leading-relaxed">
+                                  <p className="text-xs text-[#6C757D] dark:text-gray-400 mt-1 sm:mt-1.5 line-clamp-2 sm:line-clamp-2 leading-relaxed">
                                     {notification.message}
                                   </p>
                                   
                                   <div className="flex items-center gap-2 mt-1.5 sm:mt-2">
-                                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                                    <p className="text-xs text-[#6C757D] dark:text-gray-500">
                                       {formatDistanceToNow(new Date(notification.created_at), { 
                                         addSuffix: true, 
                                         locale: es 
@@ -452,28 +452,28 @@ export function NotificationBell({
                                   {notification.status === 'unread' && (
                                     <button
                                       onClick={(e) => handleMarkAsRead(e, notification.notification_id)}
-                                      className="p-1 sm:p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-500/10 transition-all duration-200 active:scale-95"
+                                      className="p-1.5 rounded-md text-[#6C757D] dark:text-gray-400 hover:text-[#10B981] dark:hover:text-[#10B981] hover:bg-[#10B981]/10 transition-all duration-200 active:scale-95"
                                       title="Marcar como leída"
                                       aria-label="Marcar como leída"
                                     >
-                                      <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                      <Check className="w-3.5 h-3.5" />
                                     </button>
                                   )}
                                   <button
                                     onClick={(e) => handleArchive(e, notification.notification_id)}
-                                    className="p-1 sm:p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200 active:scale-95"
+                                    className="p-1.5 rounded-md text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-[#00D4B3] hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/20 transition-all duration-200 active:scale-95"
                                     title="Archivar"
                                     aria-label="Archivar notificación"
                                   >
-                                    <Archive className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    <Archive className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={(e) => handleDelete(e, notification.notification_id)}
-                                    className="p-1 sm:p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 active:scale-95"
+                                    className="p-1.5 rounded-md text-[#6C757D] dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 active:scale-95"
                                     title="Eliminar"
                                     aria-label="Eliminar notificación"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </div>
@@ -487,11 +487,11 @@ export function NotificationBell({
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <div className="px-4 py-2.5 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
                 <Link
                   href="/dashboard/notifications"
                   onClick={() => setIsDropdownOpen(false)}
-                  className="w-full text-center text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 font-medium group"
+                  className="w-full text-center text-xs sm:text-sm text-[#0A2540] dark:text-[#00D4B3] hover:text-[#0d2f4d] dark:hover:text-[#00C4A3] transition-all duration-200 flex items-center justify-center gap-2 font-medium group"
                 >
                   <span className="truncate">Ver todas las notificaciones</span>
                   <motion.div
@@ -499,7 +499,7 @@ export function NotificationBell({
                     transition={{ duration: 1.5, repeat: Infinity }}
                     className="flex-shrink-0"
                   >
-                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#0A2540] dark:text-[#00D4B3] group-hover:text-[#0d2f4d] dark:group-hover:text-[#00C4A3]" />
                   </motion.div>
                 </Link>
               </div>

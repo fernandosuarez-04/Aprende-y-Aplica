@@ -446,7 +446,7 @@ export default function StudyPlannerDashboardPage() {
   const expandedWidth = 'w-[520px]';
 
   return (
-    <div className="min-h-screen flex overflow-hidden bg-gray-50 dark:bg-slate-900">
+    <div className="min-h-screen flex overflow-hidden bg-white dark:bg-[#0F1419]">
       {/* Panel Central - Calendario */}
       <div 
         className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
@@ -477,7 +477,7 @@ export default function StudyPlannerDashboardPage() {
               onMouseEnter={() => setHoveredButton('dashboard')}
               onMouseLeave={() => setHoveredButton(null)}
               whileTap={{ scale: 0.95 }}
-              className="rounded-lg bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 transition-colors flex items-center overflow-hidden"
+              className="rounded-lg bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 border border-[#E9ECEF] dark:border-[#6C757D]/30 transition-colors flex items-center overflow-hidden"
               title="Ir al Dashboard"
               aria-label="Ir al Dashboard"
             >
@@ -526,8 +526,8 @@ export default function StudyPlannerDashboardPage() {
               className={`
                 rounded-lg transition-colors flex items-center overflow-hidden
                 ${isGoogleConnected
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-800/50'
-                  : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
+                  ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] hover:bg-[#10B981]/20 dark:hover:bg-[#10B981]/30 border border-[#10B981]/30 dark:border-[#10B981]/40'
+                  : 'bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 border border-[#E9ECEF] dark:border-[#6C757D]/30'
                 }
               `}
             >
@@ -586,7 +586,7 @@ export default function StudyPlannerDashboardPage() {
               onMouseEnter={() => setHoveredButton('recreate')}
               onMouseLeave={() => setHoveredButton(null)}
               whileTap={{ scale: 0.95 }}
-              className="rounded-lg bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700 border border-blue-600 dark:border-blue-700 transition-colors flex items-center overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] border border-[#0A2540] dark:border-[#0A2540] transition-colors flex items-center overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <motion.div 
                 className="p-2.5 flex-shrink-0 flex items-center justify-center"
@@ -680,7 +680,7 @@ export default function StudyPlannerDashboardPage() {
               onMouseEnter={() => setHoveredButton('settings')}
               onMouseLeave={() => setHoveredButton(null)}
               whileTap={{ scale: 0.95 }}
-              className="rounded-lg bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 transition-colors flex items-center overflow-hidden"
+              className="rounded-lg bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 border border-[#E9ECEF] dark:border-[#6C757D]/30 transition-colors flex items-center overflow-hidden"
             >
               <motion.div 
                 className="p-2.5 flex-shrink-0"
@@ -718,12 +718,12 @@ export default function StudyPlannerDashboardPage() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50 overflow-hidden"
+                  className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-[#1E2329] rounded-xl shadow-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 z-50 overflow-hidden"
                 >
                   <div className="p-2 space-y-1">
                     {/* Filtro de eventos */}
-                    <div className="px-3 py-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors">
-                      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                    <div className="px-3 py-2 flex items-center justify-between hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors">
+                      <span className="text-sm text-[#0A2540] dark:text-white font-medium">
                         Solo eventos del plan
                       </span>
                       <motion.button
@@ -732,10 +732,10 @@ export default function StudyPlannerDashboardPage() {
                           setShowOnlyPlanEvents(!showOnlyPlanEvents);
                         }}
                         className={`
-                          relative inline-flex h-6 w-11 items-center rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer
+                          relative inline-flex h-6 w-11 items-center rounded-full focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:ring-offset-2 cursor-pointer
                           ${showOnlyPlanEvents 
-                            ? 'bg-blue-600 dark:bg-blue-500' 
-                            : 'bg-gray-200 dark:bg-slate-600'
+                            ? 'bg-[#0A2540] dark:bg-[#0A2540]' 
+                            : 'bg-[#E9ECEF] dark:bg-[#6C757D]'
                           }
                         `}
                         role="switch"
@@ -756,18 +756,18 @@ export default function StudyPlannerDashboardPage() {
                         />
                       </motion.button>
                     </div>
-                    <div className="border-t border-gray-200 dark:border-slate-700 my-1"></div>
-                    <button className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <div className="border-t border-[#E9ECEF] dark:border-[#6C757D]/30 my-1"></div>
+                    <button className="w-full px-3 py-2 text-sm text-left text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors">
                       Preferencias de vista
                     </button>
-                    <button className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <button className="w-full px-3 py-2 text-sm text-left text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors">
                       Notificaciones
                     </button>
-                    <button className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <button className="w-full px-3 py-2 text-sm text-left text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors">
                       Sincronización
                     </button>
-                    <div className="border-t border-gray-200 dark:border-slate-700 my-1"></div>
-                    <button className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                    <div className="border-t border-[#E9ECEF] dark:border-[#6C757D]/30 my-1"></div>
+                    <button className="w-full px-3 py-2 text-sm text-left text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors">
                       Ayuda
                     </button>
                   </div>
@@ -779,7 +779,7 @@ export default function StudyPlannerDashboardPage() {
 
         <div className="flex-1 overflow-auto px-6 pb-6">
           {/* Calendario de Estudios */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 min-h-full">
+          <div className="bg-white dark:bg-[#1E2329] rounded-xl shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6 min-h-full">
             <StudyPlannerCalendar showOnlyPlanEvents={showOnlyPlanEvents} />
           </div>
         </div>
@@ -794,14 +794,14 @@ export default function StudyPlannerDashboardPage() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`fixed right-0 top-0 h-full z-40 bg-white dark:bg-slate-800 shadow-2xl flex flex-col ${expandedWidth} transition-all duration-300 ease-in-out`}
+            className={`fixed right-0 top-0 h-full z-40 bg-white dark:bg-[#1E2329] shadow-2xl flex flex-col ${expandedWidth} transition-all duration-300 ease-in-out`}
           >
             {/* Header del Panel de LIA - Flotante */}
             <div className="absolute top-0 left-0 right-0 z-10 px-4 pt-3 pb-2">
               <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl shadow-lg border border-gray-200/50 dark:border-slate-700/50"
+                className="flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl shadow-lg border border-[#E9ECEF]/50 dark:border-[#6C757D]/30"
               >
                 <motion.div
                   initial={{ opacity: 0, x: -10 }}
@@ -809,7 +809,7 @@ export default function StudyPlannerDashboardPage() {
                   className="flex items-center gap-3 flex-1"
                 >
                   {/* Avatar de LIA */}
-                  <div className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/20 dark:ring-purple-400/30 flex-shrink-0">
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#0A2540]/20 dark:ring-[#00D4B3]/30 flex-shrink-0">
                     <Image
                       src="/lia-avatar.png"
                       alt="LIA"
@@ -819,13 +819,13 @@ export default function StudyPlannerDashboardPage() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-gray-900 dark:text-white font-semibold text-sm truncate">LIA Coach</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate">Tu asistente de estudio</p>
+                    <h3 className="text-[#0A2540] dark:text-white font-semibold text-sm truncate">LIA Coach</h3>
+                    <p className="text-[#6C757D] dark:text-gray-400 text-xs truncate">Tu asistente de estudio</p>
                   </div>
                 </motion.div>
                 <button
                   onClick={() => setIsLiaCollapsed(true)}
-                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors flex-shrink-0 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white"
                   title="Colapsar"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -834,11 +834,11 @@ export default function StudyPlannerDashboardPage() {
             </div>
 
             {/* Contenido del Panel de LIA - Chat */}
-            <div className="flex-1 overflow-hidden flex flex-col bg-gray-50/50 dark:bg-slate-900/30 pt-20">
+            <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-[#0F1419] pt-20">
               {/* Área de mensajes de LIA */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                 {/* Los mensajes aparecerán aquí */}
-                <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">
+                <div className="text-center text-[#6C757D] dark:text-gray-400 text-sm py-8">
                   <p>LIA te enviará mensajes proactivos aquí</p>
                 </div>
               </div>
@@ -851,7 +851,7 @@ export default function StudyPlannerDashboardPage() {
                   className="flex items-end gap-3"
                 >
                   {/* Campo de texto - Separado del botón */}
-                  <div className="flex-1 bg-white dark:bg-slate-800 rounded-full px-4 py-2.5 shadow-lg border border-gray-200 dark:border-slate-700/50 backdrop-blur-sm">
+                  <div className="flex-1 bg-white dark:bg-[#1E2329] rounded-full px-4 py-2.5 shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 backdrop-blur-sm">
                     <textarea
                       ref={messageInputRef}
                       value={message}
@@ -873,7 +873,7 @@ export default function StudyPlannerDashboardPage() {
                       }}
                       placeholder="Escribe un mensaje..."
                       rows={1}
-                      className="w-full resize-none bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm focus:outline-none max-h-[60px] overflow-y-auto leading-5 py-0.5"
+                      className="w-full resize-none bg-transparent text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-gray-500 text-sm focus:outline-none max-h-[60px] overflow-y-auto leading-5 py-0.5"
                       style={{ 
                         minHeight: '20px',
                         textAlign: message ? 'left' : 'center',
@@ -896,10 +896,10 @@ export default function StudyPlannerDashboardPage() {
                     }}
                     className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
                       message.trim()
-                        ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                        ? 'bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-sm'
                         : isRecording
-                        ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30'
-                        : 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 text-gray-600 dark:text-gray-300'
+                        ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
+                        : 'bg-[#E9ECEF] dark:bg-[#6C757D] hover:bg-[#6C757D]/20 dark:hover:bg-[#6C757D]/80 text-[#6C757D] dark:text-gray-300'
                     }`}
                     title={message.trim() ? 'Enviar mensaje' : isRecording ? 'Detener grabación' : 'Grabar audio'}
                   >
@@ -930,7 +930,7 @@ export default function StudyPlannerDashboardPage() {
               setIsLiaPanelOpen(true);
               setIsLiaCollapsed(false);
             }}
-            className="fixed right-4 bottom-4 z-50 w-16 h-16 rounded-full shadow-2xl hover:shadow-purple-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden ring-4 ring-purple-500/20 dark:ring-purple-400/30"
+            className="fixed right-4 bottom-4 z-50 w-16 h-16 rounded-full shadow-2xl hover:shadow-[#0A2540]/50 dark:hover:shadow-[#00D4B3]/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden ring-4 ring-[#0A2540]/20 dark:ring-[#00D4B3]/30"
             title="Abrir LIA Coach"
           >
             {/* Avatar de LIA en la burbuja */}
@@ -981,32 +981,32 @@ export default function StudyPlannerDashboardPage() {
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="bg-white dark:bg-[#1E2329] rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30">
         {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <div className="flex items-center justify-between p-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+                  <h2 className="text-lg font-semibold text-[#0A2540] dark:text-white">
                     Conectar Calendario
                   </h2>
                   <button
                     onClick={() => setIsCalendarModalOpen(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    className="p-2 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors"
                   >
-                    <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <X className="w-5 h-5 text-[#6C757D] dark:text-gray-400" />
                   </button>
                 </div>
 
                 {/* Contenido */}
                 <div className="p-6">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
+                  <p className="text-xs text-[#6C757D] dark:text-gray-400 text-center mb-4">
                     {isGoogleConnected ? 'Gestiona tus calendarios conectados:' : 'Selecciona tu proveedor de calendario:'}
                   </p>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {/* Google Calendar */}
-                    <div className={`relative flex flex-col items-center gap-3 p-5 rounded-xl transition-all ${
+                    <div className={`relative flex flex-col items-center gap-3 p-4 rounded-xl transition-all ${
                       connectedProvider === 'google'
-                        ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-500 dark:border-green-500 shadow-lg shadow-green-500/20'
-                        : 'bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500'
+                        ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 border-2 border-[#10B981]/30 shadow-sm'
+                        : 'bg-white dark:bg-[#1E2329] border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540] dark:hover:border-[#00D4B3]'
                     }`}>
                       {connectedProvider === 'google' && (
                         <button
@@ -1037,15 +1037,15 @@ export default function StudyPlannerDashboardPage() {
                             </svg>
                           </div>
                         )}
-                        <span className={`text-sm font-medium ${
+                        <span className={`text-xs font-medium ${
                           connectedProvider === 'google'
-                            ? 'text-green-800 dark:text-green-200'
-                            : 'text-gray-800 dark:text-gray-200'
+                            ? 'text-[#10B981] dark:text-[#10B981]'
+                            : 'text-[#0A2540] dark:text-white'
                         }`}>
                           Google Calendar
                         </span>
                         {connectedProvider === 'google' && (
-                          <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                          <span className="text-xs text-[#10B981] dark:text-[#10B981] font-medium">
                             Conectado
                           </span>
                         )}
@@ -1053,10 +1053,10 @@ export default function StudyPlannerDashboardPage() {
                     </div>
                     
                     {/* Microsoft Calendar */}
-                    <div className={`relative flex flex-col items-center gap-3 p-5 rounded-xl transition-all ${
+                    <div className={`relative flex flex-col items-center gap-3 p-4 rounded-xl transition-all ${
                       connectedProvider === 'microsoft'
-                        ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-500 dark:border-green-500 shadow-lg shadow-green-500/20'
-                        : 'bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500'
+                        ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 border-2 border-[#10B981]/30 shadow-sm'
+                        : 'bg-white dark:bg-[#1E2329] border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540] dark:hover:border-[#00D4B3]'
                     }`}>
                       {connectedProvider === 'microsoft' && (
                         <button
@@ -1087,15 +1087,15 @@ export default function StudyPlannerDashboardPage() {
                             </svg>
                           </div>
                         )}
-                        <span className={`text-sm font-medium ${
+                        <span className={`text-xs font-medium ${
                           connectedProvider === 'microsoft'
-                            ? 'text-green-800 dark:text-green-200'
-                            : 'text-gray-800 dark:text-gray-200'
+                            ? 'text-[#10B981] dark:text-[#10B981]'
+                            : 'text-[#0A2540] dark:text-white'
                         }`}>
                           Microsoft
                         </span>
                         {connectedProvider === 'microsoft' && (
-                          <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                          <span className="text-xs text-[#10B981] dark:text-[#10B981] font-medium">
                             Conectado
                           </span>
                         )}
@@ -1104,7 +1104,7 @@ export default function StudyPlannerDashboardPage() {
                   </div>
                   
                   {!isGoogleConnected && (
-                    <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
+                    <p className="text-xs text-center text-[#6C757D] dark:text-gray-400 mt-4">
                       Conecta tu calendario para sincronizar tus eventos
                     </p>
                   )}
@@ -1117,7 +1117,7 @@ export default function StudyPlannerDashboardPage() {
                       className="mt-4 flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg"
                     >
                       <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                      <p className="text-sm text-red-600 dark:text-red-400">{calendarError}</p>
+                      <p className="text-xs text-red-600 dark:text-red-400">{calendarError}</p>
         </motion.div>
                   )}
       </div>
@@ -1156,28 +1156,28 @@ export default function StudyPlannerDashboardPage() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: 'spring', damping: 20, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-slate-700"
+              className="bg-white dark:bg-[#1E2329] rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30"
             >
               {/* Header */}
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <div className="px-5 py-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+                <h3 className="text-base font-semibold text-[#0A2540] dark:text-white">
                   Confirmar acción
                 </h3>
               </div>
 
               {/* Contenido */}
-              <div className="px-6 py-5">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="px-5 py-4">
+                <p className="text-sm text-[#6C757D] dark:text-gray-400">
                   {confirmDialog.message}
                 </p>
               </div>
 
               {/* Botones */}
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-end gap-3">
+              <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-end gap-3">
                 <button
                   onClick={confirmDialog.onCancel}
                   disabled={isDeletingPlan || isRecreatingPlan}
-                  className="px-6 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2 text-xs font-semibold text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancelar
                 </button>

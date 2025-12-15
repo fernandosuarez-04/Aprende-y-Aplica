@@ -1,179 +1,310 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent } from '@aprende-y-aplica/ui';
-import { ChevronLeft, ChevronRight, Quote } from 'lucide-react';
-import { Testimonial } from '@aprende-y-aplica/shared';
-import { fadeIn, slideUp } from '../../../shared/utils/animations';
+import React, { useRef, useState } from 'react';
+import { motion, useInView, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { Newspaper, Video, Users, Calendar } from 'lucide-react';
 
-interface TestimonialsSectionProps {
+interface PlatformFeature {
+  id: string;
+  icon: React.ElementType;
   title: string;
-  items: Testimonial[];
+  description: string;
+  link: string;
+  color: string;
+  gradient: string;
 }
 
-export function TestimonialsSection({ title, items }: TestimonialsSectionProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+const platformFeatures: PlatformFeature[] = [
+  {
+    id: 'news',
+    icon: Newspaper,
+    title: 'Noticias',
+    description: 'Mantente actualizado con las últimas tendencias y noticias del mundo de la IA.',
+    link: '/news',
+    color: '#00D4B3',
+    gradient: 'from-[#00D4B3] to-[#00D4B3]/80'
+  },
+  {
+    id: 'reels',
+    icon: Video,
+    title: 'Reels',
+    description: 'Contenido en video corto para aprender de forma rápida y entretenida.',
+    link: '/reels',
+    color: '#10B981',
+    gradient: 'from-[#10B981] to-[#10B981]/80'
+  },
+  {
+    id: 'communities',
+    icon: Users,
+    title: 'Comunidades',
+    description: 'Conecta con otros estudiantes y profesionales en comunidades especializadas.',
+    link: '/communities',
+    color: '#0A2540',
+    gradient: 'from-[#0A2540] to-[#0A2540]/80'
+  },
+  {
+    id: 'study-planner',
+    icon: Calendar,
+    title: 'Planificador de Estudios',
+    description: 'Organiza tu tiempo y optimiza tu aprendizaje con un planificador inteligente.',
+    link: '/study-planner',
+    color: '#F59E0B',
+    gradient: 'from-[#F59E0B] to-[#F59E0B]/80'
+  }
+];
 
-  const currentTestimonial = items[currentIndex];
+export function TestimonialsSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const isInView = useInView(sectionRef, { once: false, amount: 0.1 });
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start end', 'end start']
+  });
 
-  // Auto-play functionality
-  useEffect(() => {
-    if (!isAutoPlaying || items.length <= 1) return;
-
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % items.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isAutoPlaying, items.length]);
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % items.length);
-  };
-
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
-  };
-
-  const goToSlide = (index: number) => {
-    setCurrentIndex(index);
-  };
+  // Parallax effects
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, -150]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, 150]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.3]);
 
   return (
-    <section className="py-24 relative overflow-hidden testimonials-section">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-transparent" />
+    <section 
+      ref={sectionRef}
+      className="py-32 relative bg-white dark:bg-[#0F1419]"
+    >
+      {/* Animated Background Effects */}
+      <motion.div 
+        className="absolute inset-0"
+        style={{ opacity: opacity as any }}
+      >
+        {/* Gradient Orbs - Extended beyond section bounds */}
+        <motion.div
+          className="absolute -top-[200px] -left-[200px] w-[700px] h-[700px] bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full blur-3xl"
+          style={{ y: y1 }}
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: 'easeInOut'
+          }}
+        />
+        <motion.div
+          className="absolute -bottom-[200px] -right-[200px] w-[700px] h-[700px] bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-full blur-3xl"
+          style={{ y: y2 }}
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: 1
+          }}
+        />
+        
+        {/* Grid Pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(#0A2540 1px, transparent 1px), linear-gradient(90deg, #0A2540 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+          }}
+        />
+      </motion.div>
       
       <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
         <motion.div
-          className="text-center mb-16"
-          initial="hidden"
-          whileInView="visible"
+          className="text-center mb-24"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
-          variants={fadeIn}
+          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6 testimonials-title">
-            {title}
-          </h2>
+          <motion.h2 
+            className="text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 text-[#0A2540] dark:text-white"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800 }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ 
+              duration: 0.8,
+              type: 'spring',
+              stiffness: 100
+            }}
+          >
+            Explora la Plataforma
+          </motion.h2>
+          <motion.p 
+            className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80 leading-relaxed"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+          >
+            Descubre todas las herramientas y recursos que tenemos para ti
+          </motion.p>
         </motion.div>
 
-        {/* Testimonial Card */}
-        <motion.div
-          className="max-w-4xl mx-auto"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.3 }}
-          variants={slideUp}
-        >
-          <Card 
-            variant="glassmorphism" 
-            className="relative overflow-hidden"
-          >
-            {/* Quote Icon - Posicionado completamente fuera del contenido */}
-            <div className="absolute top-6 left-6 z-10">
-              <Quote className="w-8 h-8 testimonials-quote-icon" />
-            </div>
+        {/* Features Grid */}
+        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+          {platformFeatures.map((feature, index) => {
+            const IconComponent = feature.icon;
+            const isHovered = hoveredIndex === index;
+            const isEven = index % 2 === 0;
             
-            <CardContent className="p-4 sm:p-8 lg:p-12 pt-16 pl-14 sm:pl-16 lg:pl-12 pr-14 sm:pr-16 lg:pr-12">
-              <AnimatePresence mode="wait">
+            return (
+        <motion.div
+                key={feature.id}
+                className="relative group"
+                initial={{ opacity: 0, y: 100, rotateX: -15 }}
+                whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ 
+                  delay: index * 0.2,
+                  duration: 0.8,
+                  type: 'spring',
+                  stiffness: 100
+                }}
+                style={{ transformStyle: 'preserve-3d' }}
+                onHoverStart={() => setHoveredIndex(index)}
+                onHoverEnd={() => setHoveredIndex(null)}
+              >
+                <Link href={feature.link}>
+                  <div className={`flex flex-col ${isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-8 lg:gap-12 h-full`}>
+                    {/* Icon/Visual Side */}
                 <motion.div
-                  key={currentIndex}
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
-                  transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  onMouseEnter={() => setIsAutoPlaying(false)}
-                  onMouseLeave={() => setIsAutoPlaying(true)}
-                >
-                  {/* Quote sin comillas manuales */}
-                  <blockquote className="text-xl lg:text-2xl leading-relaxed mb-8 font-light italic testimonials-quote-text">
-                    {currentTestimonial.quote}
-                  </blockquote>
+                      className="flex-1 w-full lg:w-auto"
+                      animate={isHovered ? {
+                        scale: 1.1,
+                        rotate: [0, 5, -5, 0],
+                      } : {
+                        scale: 1,
+                        rotate: 0
+                      }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <div className="relative">
+                        {/* Glowing background */}
+                        <motion.div
+                          className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-3xl blur-2xl opacity-30`}
+                          animate={isHovered ? {
+                            scale: [1, 1.4, 1],
+                            opacity: [0.3, 0.6, 0.3]
+                          } : {}}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
 
-                  {/* Author */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      {/* Avatar */}
-                      <div className="w-16 h-16 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold text-xl">
-                        {currentTestimonial.author.split(' ').map(name => name[0]).join('')}
+                        {/* Main icon container */}
+                        <div className={`relative w-32 h-32 lg:w-40 lg:h-40 bg-gradient-to-br ${feature.gradient} rounded-3xl flex items-center justify-center border-2 border-white/20 shadow-2xl backdrop-blur-sm`}>
+                          <IconComponent className="w-16 h-16 lg:w-20 lg:h-20 text-white" />
                       </div>
                       
-                      {/* Author Info */}
-                      <div>
-                        <h4 className="font-semibold text-lg testimonials-author-name">
-                          {currentTestimonial.author}
-                        </h4>
-                        <p className="text-sm testimonials-author-role">
-                          {currentTestimonial.role}
-                        </p>
+                        {/* Floating particles */}
+                        <AnimatePresence>
+                          {isHovered && (
+                            <>
+                              {[...Array(8)].map((_, i) => (
+                                <motion.div
+                                  key={i}
+                                  className="absolute w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: feature.color }}
+                                  initial={{ 
+                                    x: '50%', 
+                                    y: '50%', 
+                                    opacity: 0,
+                                    scale: 0
+                                  }}
+                                  animate={{
+                                    x: `${50 + (Math.cos(i * 45 * Math.PI / 180) * 80)}%`,
+                                    y: `${50 + (Math.sin(i * 45 * Math.PI / 180) * 80)}%`,
+                                    opacity: [0, 1, 0],
+                                    scale: [0, 1, 0]
+                                  }}
+                                  exit={{ opacity: 0, scale: 0 }}
+                                  transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    delay: i * 0.15
+                                  }}
+                                />
+                              ))}
+                            </>
+                          )}
+                        </AnimatePresence>
                       </div>
-                    </div>
+                    </motion.div>
 
-                    {/* Mobile Navigation Controls - Only shown on very small screens */}
-                    <div className="flex items-center gap-2 sm:hidden">
-                      <button
-                        onClick={goToPrevious}
-                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 testimonials-nav-button-mobile"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={goToNext}
-                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 testimonials-nav-button-mobile"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
+                    {/* Content Side */}
+                    <motion.div
+                      className="flex-1 w-full lg:w-auto"
+                      animate={isHovered ? { x: isEven ? 10 : -10 } : { x: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="space-y-4">
+                        <motion.h3
+                          className={`text-3xl lg:text-4xl xl:text-5xl font-bold`}
+                          style={{ 
+                            fontFamily: 'Inter, sans-serif', 
+                            fontWeight: 800,
+                            color: feature.color
+                          }}
+                          animate={isHovered ? { scale: 1.05 } : { scale: 1 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          {feature.title}
+                        </motion.h3>
+                        
+                        <motion.p
+                          className="text-lg lg:text-xl text-[#6C757D] dark:text-white/70 leading-relaxed"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                          animate={isHovered ? { opacity: 1 } : { opacity: 0.8 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          {feature.description}
+                        </motion.p>
+
+                        {/* Progress bar indicator */}
+                        <motion.div
+                          className="h-1 bg-[#E9ECEF] dark:bg-[#6C757D]/30 rounded-full overflow-hidden mt-6"
+                          initial={{ width: 0 }}
+                          whileInView={{ width: '100%' }}
+                          viewport={{ once: true }}
+                          transition={{ delay: index * 0.2 + 0.5, duration: 1 }}
+                        >
+                          <motion.div
+                            className={`h-full bg-gradient-to-r ${feature.gradient}`}
+                            initial={{ width: 0 }}
+                            whileInView={{ width: '100%' }}
+                            viewport={{ once: true }}
+                            transition={{ delay: index * 0.2 + 0.7, duration: 0.8 }}
+                          />
+                        </motion.div>
                     </div>
+                    </motion.div>
                   </div>
-                </motion.div>
-              </AnimatePresence>
-            </CardContent>
+                </Link>
 
-            {/* Navigation Arrows - Hidden on very small screens to prevent overlap */}
-            {items.length > 1 && (
-              <>
-                <button
-                  onClick={goToPrevious}
-                  className="hidden sm:flex absolute -left-2 sm:left-2 md:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 backdrop-blur-sm rounded-full items-center justify-center transition-all duration-300 group z-20 hover:scale-110 testimonials-nav-button"
-                >
-                  <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6 group-hover:-translate-x-0.5 transition-transform" />
-                </button>
-                <button
-                  onClick={goToNext}
-                  className="hidden sm:flex absolute -right-2 sm:right-2 md:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 backdrop-blur-sm rounded-full items-center justify-center transition-all duration-300 group z-20 hover:scale-110 testimonials-nav-button"
-                >
-                  <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              </>
-            )}
-          </Card>
-
-          {/* Pagination Dots */}
-          {items.length > 1 && (
+                {/* Connecting line (only visible on desktop) */}
+                {index < platformFeatures.length - 1 && (
             <motion.div
-              className="flex justify-center gap-3 mt-8"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+                    className="hidden lg:block absolute left-1/2 -translate-x-1/2 w-0.5 h-16 bg-gradient-to-b from-[#00D4B3]/30 to-transparent"
+                    initial={{ height: 0 }}
+                    whileInView={{ height: 64 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-            >
-              {items.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    index === currentIndex
-                      ? 'testimonials-pagination-dot active scale-125'
-                      : 'testimonials-pagination-dot backdrop-blur-sm'
-                  }`}
+                    transition={{ delay: index * 0.2 + 0.8, duration: 0.6 }}
                 />
-              ))}
-            </motion.div>
           )}
         </motion.div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

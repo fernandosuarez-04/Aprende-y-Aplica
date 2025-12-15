@@ -33,23 +33,23 @@ export function MicrosoftLoginButton() {
       onClick={handleLogin}
       disabled={isLoading}
       className="
-        w-12 h-12 sm:w-14 sm:h-14
-        rounded-full
-        bg-white dark:bg-gray-800
-        border border-gray-300 dark:border-gray-600
-        hover:bg-gray-50 dark:hover:bg-gray-700
-        hover:border-gray-400 dark:hover:border-gray-500
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+        w-14 h-14
+        rounded-xl
+        bg-white dark:bg-[#1E2329]
+        border border-[#E9ECEF] dark:border-[#6C757D]/30
+        hover:bg-gray-50 dark:hover:bg-[#2A2F35]
+        hover:border-[#00D4B3] dark:hover:border-[#00D4B3]
+        focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:ring-opacity-20
         disabled:opacity-50 disabled:cursor-not-allowed
-        transition-all duration-200
+        transition-all duration-300
         flex items-center justify-center
-        shadow-sm hover:shadow-md
+        shadow-md hover:shadow-lg hover:shadow-[#00D4B3]/10
       "
-      whileHover={{ scale: 1.05 }}
+      whileHover={{ scale: 1.05, y: -2 }}
       whileTap={{ scale: 0.95 }}
     >
       {isLoading ? (
-        <Loader2 className="h-5 w-5 animate-spin text-gray-600 dark:text-gray-300" />
+        <Loader2 className="h-5 w-5 animate-spin text-[#0A2540] dark:text-white" />
       ) : (
         <MicrosoftIcon />
       )}

@@ -11,7 +11,7 @@ const mockLandingPageContent: LandingPageContent = {
     benefits: [
       "✓ Fundamentos de IA sin complicarte",
       "✓ Herramientas que realmente importan",
-      "✓ Aplicación en proyectos reales",
+      "✓ Experiencia personalizada a tu perfil",
       "✓ Hábitos de aprendizaje continuo"
     ]
   },
@@ -32,10 +32,10 @@ const mockLandingPageContent: LandingPageContent = {
         description: "Utiliza las herramientas que realmente importan en el mercado laboral."
       },
       {
-        id: "proyectos",
-        icon: "Briefcase",
-        title: "Proyectos Reales",
-        description: "Aplica tus conocimientos en proyectos del mundo real."
+        id: "personalizada",
+        icon: "User",
+        title: "Experiencia Personalizada",
+        description: "La plataforma adapta el contenido y el ritmo de aprendizaje según tu perfil profesional y objetivos."
       },
       {
         id: "crecimiento",
@@ -47,7 +47,7 @@ const mockLandingPageContent: LandingPageContent = {
   },
   statistics: [
     { value: "1000", label: "Estudiantes Activos" },
-    { value: "50", label: "Proyectos Completados" },
+    { value: "50", label: "Cursos en la Plataforma" },
     { value: "95", label: "% de Satisfacción" },
     { value: "24", label: "Horas de Contenido" }
   ],
@@ -209,7 +209,7 @@ const mockBusinessPageContent: BusinessPageContent = {
             "Soporte por email"
           ],
           isPopular: false,
-          ctaText: "Comenzar Prueba Gratis"
+          ctaText: "Contratar Plan"
         },
         {
           id: "business",
@@ -227,7 +227,7 @@ const mockBusinessPageContent: BusinessPageContent = {
             "Contenido personalizado"
           ],
           isPopular: true,
-          ctaText: "Comenzar Prueba Gratis"
+          ctaText: "Empezar Ahora"
         },
         {
           id: "enterprise",

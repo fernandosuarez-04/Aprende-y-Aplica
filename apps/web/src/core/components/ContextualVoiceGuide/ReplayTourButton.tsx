@@ -50,12 +50,13 @@ export function ReplayTourButton({
   return (
     <button
       onClick={handleReplayTour}
-      className="fixed bottom-20 left-4 z-[10000] px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs rounded-lg shadow-lg transition-all duration-200 font-semibold flex items-center gap-2 hover:scale-105"
+      className="fixed bottom-20 left-4 z-[10000] px-3 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white text-xs rounded-lg shadow-lg transition-all duration-200 font-semibold flex items-center gap-2 hover:scale-105"
       title={displayLabel}
+      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
     >
       <div className="relative w-6 h-6">
-        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 p-0.5 animate-pulse-slow">
-          <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden">
+        <div className="w-6 h-6 rounded-full bg-[#00D4B3] p-0.5 animate-pulse-slow">
+          <div className="w-full h-full rounded-full bg-[#0A2540] flex items-center justify-center overflow-hidden">
             <Image
               src="/lia-avatar.png"
               alt="LIA"

@@ -1,18 +1,17 @@
 import { logger } from '@/lib/utils/logger';
 
-// Import dinámico de createClient para evitar problemas en build
-// Solo se importa cuando se necesita usar (server-side)
+// Función helper para obtener el cliente del servidor
+// Este servicio solo debe usarse en API routes o Server Components
 async function getServerClient() {
   // Verificar que estamos en el servidor
   if (typeof window !== 'undefined') {
     throw new Error('getServerClient can only be used on the server')
   }
   
-  // Usar import dinámico con una ruta construida en tiempo de ejecución
-  // Esto evita que webpack analice el módulo durante el build
-  const serverModulePath = ['@', 'lib', 'supabase', 'server'].join('/')
-  const module = await import(serverModulePath)
-  return await module.createClient()
+  // Usar Function constructor para evitar análisis estático de Next.js/Turbopack
+  const importServer = new Function('path', 'return import(path)')
+  const serverModule = await importServer('@/lib/supabase/server')
+  return await serverModule.createClient()
 }
 
 /**

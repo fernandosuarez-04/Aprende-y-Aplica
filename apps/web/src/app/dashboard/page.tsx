@@ -244,26 +244,27 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-white dark:bg-[#0F1419]">
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Barra de Búsqueda - Primero */}
         <div className="mb-6 flex justify-center">
           <div className="relative w-full max-w-2xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6C757D] dark:text-[#6C757D]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar cursos, instructores..."
-              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#1E2329] border border-gray-200 dark:border-[#0A2540]/30 rounded-xl text-sm font-normal text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-sm font-normal text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+              style={{ fontFamily: 'Inter, sans-serif' }}
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] rounded-full transition-colors"
               >
-                <X className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
+                <X className="w-3.5 h-3.5 text-[#6C757D] dark:text-[#6C757D]" />
               </button>
             )}
           </div>
@@ -312,7 +313,7 @@ export default function DashboardPage() {
                   className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
                     activeFilter === category.id
                       ? 'bg-[#0A2540] text-white shadow-md shadow-[#0A2540]/30' /* Azul Profundo */
-                      : 'bg-white dark:bg-[#1E2329] text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#1E2329]/80 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-[#0A2540]/30 hover:border-gray-300 dark:hover:border-[#0A2540]/50 shadow-sm hover:shadow-md'
+                      : 'bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-white/80 hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329]/80 hover:text-[#0A2540] dark:hover:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md'
                   }`}
                 >
                   {getCategoryLabel(category.id, category.name)}
@@ -389,7 +390,7 @@ export default function DashboardPage() {
                   <React.Fragment key={workshop.id}>
                     <motion.div
                       ref={cardRef}
-                      className="group flex flex-col bg-white dark:bg-[#1E2329] rounded-2xl overflow-hidden border border-gray-100 dark:border-[#0A2540]/30 hover:border-gray-200 dark:hover:border-[#0A2540]/50 transition-all duration-300 shadow-sm hover:shadow-2xl h-full w-full"
+                      className="group flex flex-col bg-white dark:bg-[#1E2329] rounded-2xl overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 transition-all duration-300 shadow-sm hover:shadow-2xl h-full w-full"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -464,7 +465,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Workshop Info - Texto Completo Visible */}
-                  <div className="flex flex-col flex-1 p-5 bg-white dark:bg-slate-900">
+                  <div className="flex flex-col flex-1 p-5 bg-white dark:bg-[#1E2329]">
                     {/* Título - Tamaño Reducido, Texto Completo Visible */}
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2.5 leading-snug tracking-tight line-clamp-2 min-h-[2.5rem]">
                       {workshop.title}
@@ -498,7 +499,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Botones - Tamaños Reducidos */}
-                    <div className="mt-auto pt-3 border-t border-gray-100 dark:border-slate-800">
+                    <div className="mt-auto pt-3 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                       {workshop.status === 'Adquirido' ? (
                         <motion.button
                           whileHover={{ scale: 1.02 }}
@@ -525,7 +526,7 @@ export default function DashboardPage() {
                                 router.push(`/courses/${course.slug}`);
                               }
                             }}
-                            className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:border-[#0A2540] dark:hover:border-[#0A2540] text-gray-700 dark:text-slate-300 font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540] dark:hover:border-[#0A2540] text-[#0A2540] dark:text-white font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>{t('courses.viewDetails')}</span>
@@ -558,9 +559,9 @@ export default function DashboardPage() {
                               <ShoppingCart className="w-4 h-4" />
                             </motion.button>
                             {/* Tooltip - Texto Completo, Mejorado */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-2 bg-gray-900 dark:bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover/cart:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-xl z-[60] min-w-max">
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-2 bg-[#0A2540] dark:bg-[#1E2329] text-white text-xs font-medium rounded-lg opacity-0 group-hover/cart:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-xl z-[60] min-w-max">
                               <span className="block">Agregar al carrito</span>
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-gray-900 dark:bg-slate-800 rotate-45" />
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-[#0A2540] dark:bg-[#1E2329] rotate-45" />
                             </div>
                           </motion.div>
                         </div>
@@ -608,7 +609,7 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
               >
-                <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-full flex items-center justify-center mx-auto mb-4">
                   <BookOpen className="w-8 h-8 text-gray-400 dark:text-slate-500" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 tracking-tight">

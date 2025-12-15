@@ -10,14 +10,12 @@ import {
   Award,
   TrendingUp,
   CheckCircle2,
-  AlertCircle,
-  Search,
-  Filter,
-  Sparkles,
+  BarChart3,
   Target,
-  TrendingDown
+  Lightbulb,
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
-import { Button } from '@aprende-y-aplica/ui';
 import { useTranslation } from 'react-i18next';
 import { useTranslatedContent } from '../../core/hoc/withContentTranslation';
 
@@ -59,13 +57,10 @@ export default function MyCoursesPage() {
     average_progress: 0
   });
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
   const router = useRouter();
   const { t } = useTranslation('my-courses');
 
   // Traducir contenido de cursos desde la BD
-  // Necesitamos adaptar los datos para el hook que espera 'id' y campos específicos
   const coursesForTranslation = useMemo(() => {
     return courses.map(course => ({
       id: course.course_id,
@@ -81,10 +76,8 @@ export default function MyCoursesPage() {
     ['title', 'description']
   );
 
-  // Mapear traducciones de vuelta a los cursos
   const translatedCourses = useMemo(() => {
     if (translatedCoursesData.length === 0) return courses;
-
     return courses.map(course => {
       const translated = translatedCoursesData.find(t => t.id === course.course_id);
       if (translated) {
@@ -127,17 +120,21 @@ export default function MyCoursesPage() {
     }
   };
 
-  const filteredCourses = translatedCourses.filter(course => {
-    const matchesSearch = course.course_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.instructor_name.toLowerCase().includes(searchTerm.toLowerCase());
+  // Encontrar el próximo curso recomendado (el que está en progreso o el primero sin comenzar)
+  const recommendedCourse = useMemo(() => {
+    const inProgress = translatedCourses.find(c => c.progress_percentage > 0 && c.progress_percentage < 100);
+    if (inProgress) return inProgress;
+    return translatedCourses.find(c => c.progress_percentage === 0) || translatedCourses[0];
+  }, [translatedCourses]);
 
-    if (filterStatus === 'all') return matchesSearch;
-    if (filterStatus === 'completed') return matchesSearch && course.progress_percentage >= 100;
-    if (filterStatus === 'in_progress') return matchesSearch && course.progress_percentage > 0 && course.progress_percentage < 100;
-    if (filterStatus === 'not_started') return matchesSearch && course.progress_percentage === 0;
-
-    return matchesSearch;
-  });
+  const getDifficultyLabel = (difficulty?: string) => {
+    if (!difficulty) return 'Intermedio';
+    const key = difficulty.toLowerCase();
+    if (key === 'beginner') return 'Principiante';
+    if (key === 'intermediate') return 'Intermedio';
+    if (key === 'advanced') return 'Avanzado';
+    return difficulty;
+  };
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -148,47 +145,32 @@ export default function MyCoursesPage() {
     return `${mins}m`;
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty?.toLowerCase()) {
-      case 'beginner': return 'text-green-400 bg-green-400/10 border-green-400/30';
-      case 'intermediate': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30';
-      case 'advanced': return 'text-red-400 bg-red-400/10 border-red-400/30';
-      default: return 'text-[#00D4B3] bg-[#00D4B3]/10 border-[#00D4B3]/30';
-    }
-  };
-
-  const getProgressColor = (progress: number) => {
-    if (progress >= 100) return 'from-green-500 to-emerald-500';
-    if (progress >= 50) return 'from-[#00D4B3] to-[#00b89a]';
-    if (progress > 0) return 'from-[#0A2540] to-[#00D4B3]';
-    return 'from-gray-500 to-gray-600';
-  };
-
-  const getDifficultyLabel = (difficulty: string) => {
-    const key = difficulty?.toLowerCase();
-    if (key === 'beginner') return t('difficulty.beginner');
-    if (key === 'intermediate') return t('difficulty.intermediate');
-    if (key === 'advanced') return t('difficulty.advanced');
-    return difficulty;
-  };
+  // Calcular progreso semanal (simplificado - usar promedio de progreso)
+  const weeklyProgress = Math.round(stats.average_progress || 0);
+  
+  // Capacidades en foco = cursos en progreso
+  const capabilitiesInFocus = stats.in_progress_courses;
+  
+  // Puntos de habilidad (simplificado - basado en cursos completados * 100)
+  const skillPoints = stats.completed_courses * 150 + Math.round(stats.average_progress * stats.in_progress_courses);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-white via-[#F8F9FA] to-white dark:from-[#0F1419] dark:via-[#0A0D12] dark:to-[#0F1419] flex items-center justify-center">
         <div className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             className="w-16 h-16 border-4 border-[#00D4B3]/30 border-t-[#00D4B3] rounded-full mx-auto mb-4"
           />
-          <p className="text-gray-700 dark:text-white/70 text-lg">{t('loading')}</p>
+          <p className="text-[#6C757D] dark:text-white/70 text-lg">{t('loading')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-white via-[#F8F9FA] to-white dark:from-[#0F1419] dark:via-[#0A0D12] dark:to-[#0F1419]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -196,237 +178,216 @@ export default function MyCoursesPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3]">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{t('header.title')}</h1>
-            </div>
-          </div>
-          <p className="text-gray-600 dark:text-slate-400 text-lg">{t('header.subtitle')}</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-[#0A2540] dark:text-white mb-2">
+            {t('header.title')}
+          </h1>
+          <p className="text-[#6C757D] dark:text-white/60 text-lg">
+            {t('header.subtitle')}
+          </p>
         </motion.div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Columna izquierda - KPIs y Próximo Paso */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* KPIs Clave */}
+            <div>
+              <h2 className="text-xl font-semibold text-[#0A2540] dark:text-white mb-4">
+                KPIs Clave
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Progreso Semanal - Verde claro difuminado */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-[#0A2540]/50 dark:hover:border-[#0A2540]/50 transition-colors shadow-lg dark:shadow-xl"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-blue-500/20">
-                <Target className="w-5 h-5 text-blue-400" />
+                  className="bg-gradient-to-br from-green-100/60 via-green-50/40 to-white rounded-2xl p-6 border border-green-200/30 dark:from-green-900/20 dark:via-green-800/10 dark:to-[#0F1419] dark:border-green-700/20"
+                >
+                  <h3 className="text-sm font-medium text-[#0A2540] dark:text-white/80 mb-4">
+                    Progreso Semanal
+                  </h3>
+                  <div className="relative w-24 h-24 mx-auto mb-4">
+                    <svg className="w-24 h-24 transform -rotate-90">
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="40"
+                        stroke="#E9ECEF"
+                        strokeWidth="8"
+                        fill="none"
+                      />
+                      <motion.circle
+                        cx="48"
+                        cy="48"
+                        r="40"
+                        stroke="#10B981"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeDasharray={`${2 * Math.PI * 40}`}
+                        initial={{ strokeDashoffset: 2 * Math.PI * 40 }}
+                        animate={{ strokeDashoffset: 2 * Math.PI * 40 * (1 - weeklyProgress / 100) }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-[#10B981]">{weeklyProgress}%</span>
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('stats.totalCourses')}</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total_courses}</p>
           </motion.div>
 
+                {/* Capacidades en Foco - Azul claro difuminado */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-green-500/50 dark:hover:border-green-500/50 transition-colors shadow-lg dark:shadow-xl"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-green-500/20">
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  className="bg-gradient-to-br from-blue-100/60 via-blue-50/40 to-white rounded-2xl p-6 border border-blue-200/30 dark:from-blue-900/20 dark:via-blue-800/10 dark:to-[#0F1419] dark:border-blue-700/20"
+                >
+                  <h3 className="text-sm font-medium text-[#0A2540] dark:text-white/80 mb-4">
+                    Capacidades en Foco
+                  </h3>
+                  <div className="text-center">
+                    <span className="text-5xl font-bold text-blue-500 dark:text-blue-400">
+                      {capabilitiesInFocus}
+                    </span>
+                    <div className="flex justify-center gap-2 mt-4">
+                      <div className="w-8 h-8 rounded-full bg-blue-400/30 flex items-center justify-center">
+                        <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-blue-400/30 flex items-center justify-center">
+                        <Lightbulb className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-blue-400/30 flex items-center justify-center">
+                        <HelpCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      </div>
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('stats.completed')}</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.completed_courses}</p>
           </motion.div>
 
+                {/* Puntos de Habilidad - Gris claro */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-[#0A2540]/50 dark:hover:border-[#0A2540]/50 transition-colors shadow-lg dark:shadow-xl"
+                  className="bg-gradient-to-br from-[#E9ECEF] to-gray-100/50 dark:from-[#1E2329] dark:to-[#0F1419] rounded-2xl p-6 border border-[#E9ECEF] dark:border-[#6C757D]/30"
           >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-[#00D4B3]/20">
-                <TrendingUp className="w-5 h-5 text-[#00D4B3]" />
+                  <h3 className="text-sm font-medium text-[#0A2540] dark:text-white/80 mb-4">
+                    Puntos de Habilidad
+                  </h3>
+                  <div className="text-center">
+                    <span className="text-5xl font-bold text-[#0A2540] dark:text-white">
+                      {skillPoints}
+                    </span>
+                  </div>
+                </motion.div>
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('stats.inProgress')}</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.in_progress_courses}</p>
-          </motion.div>
 
+            {/* Tu Próximo Paso Recomendado */}
+            {recommendedCourse && (
+              <div>
+                <h2 className="text-xl font-semibold text-[#0A2540] dark:text-white mb-4">
+                  Tu Próximo Paso Recomendado
+                </h2>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-cyan-500/50 dark:hover:border-cyan-500/50 transition-colors shadow-lg dark:shadow-xl"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-cyan-500/20">
-                <Clock className="w-5 h-5 text-cyan-400" />
+                  className="relative bg-white dark:bg-[#1E2329] rounded-2xl p-8 border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-xl overflow-hidden"
+                >
+                  {/* Fondo con patrones abstractos */}
+                  <div className="absolute inset-0 opacity-5 dark:opacity-10">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#00D4B3] rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#0A2540] rounded-full blur-3xl"></div>
+                  </div>
+
+                  <div className="relative z-10">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-4">
+                          {recommendedCourse.course_title}
+                        </h3>
+                        
+                        <div className="flex flex-wrap items-center gap-4 mb-4">
+                          <div className="flex items-center gap-2 text-[#6C757D] dark:text-white/60">
+                            <Clock className="w-5 h-5" />
+                            <span className="font-medium">
+                              {formatDuration(recommendedCourse.course_duration_minutes)}
+                            </span>
               </div>
-              <span className="text-gray-600 dark:text-slate-400 text-sm">{t('stats.totalTime')}</span>
+                          <div className="flex items-center gap-2 text-[#6C757D] dark:text-white/60">
+                            <BarChart3 className="w-5 h-5" />
+                            <span className="font-medium">
+                              {getDifficultyLabel(recommendedCourse.difficulty)}
+                            </span>
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatDuration(stats.total_time_minutes)}</p>
-          </motion.div>
         </div>
 
-        {/* Search and Filter */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="flex flex-col sm:flex-row gap-4 mb-8"
-        >
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-slate-400" />
-            <input
-              type="text"
-              placeholder={t('search.placeholder')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50 dark:focus:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
-            />
+                        <p className="text-[#6C757D] dark:text-white/70 mb-6">
+                          <strong className="text-[#0A2540] dark:text-white">Objetivo:</strong>{' '}
+                          {recommendedCourse.course_description || 'Mejorar tus habilidades en este tema.'}
+                        </p>
           </div>
 
-          <label htmlFor="filter-status" className="sr-only">
-            {t('filters.all')}
-          </label>
-          <select
-            id="filter-status"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            title={t('filters.all')}
-            aria-label={t('filters.all')}
-            className="px-4 py-3 bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-blue-500/50 dark:focus:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
-          >
-            <option value="all">{t('filters.all')}</option>
-            <option value="in_progress">{t('filters.inProgress')}</option>
-            <option value="completed">{t('filters.completed')}</option>
-            <option value="not_started">{t('filters.notStarted')}</option>
-          </select>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => router.push(`/courses/${recommendedCourse.course_slug}`)}
+                        className="px-8 py-4 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold rounded-xl shadow-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+                      >
+                        <Play className="w-5 h-5" />
+                        Comenzar
+                      </motion.button>
+                    </div>
+                  </div>
         </motion.div>
-
-        {/* Courses Grid */}
-        <AnimatePresence mode="wait">
-          {filteredCourses.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center py-20"
-            >
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-12 h-12 text-gray-400 dark:text-slate-400" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('empty.title')}</h3>
-              <p className="text-gray-600 dark:text-slate-400 mb-6">{t('empty.subtitle')}</p>
-              <Button
-                onClick={() => router.push('/dashboard')}
-                variant="gradient"
-              >
-                {t('empty.exploreButton')}
-              </Button>
-            </motion.div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 justify-items-center">
-              {filteredCourses.map((course, index) => (
+            )}
+          </div>
+
+          {/* Columna derecha - Lista de cursos (opcional o puede ser sidebar) */}
+          <div className="lg:col-span-1">
+            <h2 className="text-xl font-semibold text-[#0A2540] dark:text-white mb-4">
+              Mis Cursos
+            </h2>
+            <div className="space-y-4">
+              {translatedCourses.slice(0, 5).map((course, index) => (
                 <motion.div
                   key={course.purchase_id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ y: -4 }}
-                  className="bg-white dark:bg-slate-800/60 border border-gray-100/70 dark:border-slate-700/60 rounded-[1.5rem] overflow-hidden hover:border-blue-400/60 dark:hover:border-blue-500/50 transition-all duration-300 group shadow-[0_20px_60px_rgba(15,20,40,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)] flex flex-col h-full w-full max-w-[420px]"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                  onClick={() => router.push(`/courses/${course.course_slug}`)}
+                  className="bg-white dark:bg-[#1E2329] rounded-xl p-4 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3] cursor-pointer transition-colors"
                 >
-                  {/* Course Thumbnail */}
-                  <div className="relative h-40 bg-gradient-to-br from-[#0A2540]/15 to-[#00D4B3]/15 overflow-hidden">
+                  <div className="flex items-start gap-3">
                     {course.course_thumbnail ? (
                       <img
                         src={course.course_thumbnail}
                         alt={course.course_title}
-                        className="w-full h-full object-cover"
+                        className="w-16 h-16 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="text-center">
-                          <BookOpen className="w-16 h-16 text-blue-400/50 mx-auto mb-2" />
-                          <p className="text-gray-600 dark:text-slate-500">{t('course.imagePlaceholder')}</p>
-                        </div>
+                      <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center">
+                        <BookOpen className="w-8 h-8 text-[#00D4B3]" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-slate-900 via-transparent to-transparent" />
-
-                    {/* Progress Overlay */}
-                    {course.progress_percentage > 0 && (
-                      <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/50 dark:bg-black/50 backdrop-blur-sm text-white text-sm font-medium">
-                        {t('course.completedBadge', { percentage: course.progress_percentage })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Course Content */}
-                  <div className="p-5 flex-1 flex flex-col gap-3">
-                    {/* Category & Difficulty */}
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                        {course.course_category}
-                      </span>
-                      {course.difficulty && (
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(course.difficulty)}`}>
-                          {getDifficultyLabel(course.difficulty)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-[#0A2540] dark:text-white text-sm mb-1 truncate">
                       {course.course_title}
-                    </h3>
-
-                    {/* Instructor */}
-                    <p className="text-gray-600 dark:text-slate-400 text-sm">
-                      {t('course.instructor', { name: course.instructor_name })}
-                    </p>
-
-                    {/* Progress Bar */}
+                      </h4>
                     {course.progress_percentage > 0 && (
-                      <div className="mb-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-gray-600 dark:text-slate-400">{t('course.progress')}</span>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{course.progress_percentage}%</span>
-                        </div>
-                        <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="mt-2">
+                          <div className="h-1.5 bg-[#E9ECEF] dark:bg-[#6C757D]/30 rounded-full overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${course.progress_percentage}%` }}
-                            transition={{ duration: 1, ease: 'easeOut' }}
-                            className={`h-full bg-gradient-to-r ${getProgressColor(course.progress_percentage)}`}
+                              transition={{ duration: 1 }}
+                              className="h-full bg-[#00D4B3]"
                           />
                         </div>
-                      </div>
-                    )}
-
-                    {/* Duration */}
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400 text-sm">
-                      <Clock className="w-4 h-4" />
-                      <span>{formatDuration(course.course_duration_minutes)}</span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-3 mt-auto pt-1">
-                      <Button
-                        onClick={() => router.push(`/courses/${course.course_slug}`)}
-                        variant="gradient"
-                        className="flex-1 group/btn h-12 rounded-xl shadow-[0_10px_25px_rgba(37,99,235,0.25)]"
-                      >
-                        <Play className="w-4 h-4 mr-2 group-hover/btn:translate-x-1 transition-transform" />
-                        {course.progress_percentage > 0 ? t('course.continueButton') : t('course.startButton')}
-                      </Button>
-
-                      {course.progress_percentage === 100 && (
-                        <div className="px-4 py-2 rounded-xl bg-green-500/15 border border-green-500/30 flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="w-5 h-5 text-green-400" />
-                          <span className="text-green-400 font-medium">{t('course.completedStatus')}</span>
+                          <span className="text-xs text-[#6C757D] dark:text-white/60 mt-1 block">
+                            {course.progress_percentage}% completado
+                          </span>
                         </div>
                       )}
                     </div>
@@ -434,10 +395,9 @@ export default function MyCoursesPage() {
                 </motion.div>
               ))}
             </div>
-          )}
-        </AnimatePresence>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

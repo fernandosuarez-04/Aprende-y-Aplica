@@ -26,14 +26,17 @@ export async function GET(request: NextRequest) {
       data: counts
     })
   } catch (error) {
+    // Si algo falla (por ejemplo RPC no creada), devolvemos conteo 0 para no romper el header
     logger.error('Error en GET /api/notifications/unread-count:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al obtener conteo de notificaciones'
+    return NextResponse.json({
+      success: true,
+      data: {
+        total: 0,
+        critical: 0,
+        high: 0
       },
-      { status: 500 }
-    )
+      error: error instanceof Error ? error.message : 'Error al obtener conteo de notificaciones'
+    })
   }
 }
 

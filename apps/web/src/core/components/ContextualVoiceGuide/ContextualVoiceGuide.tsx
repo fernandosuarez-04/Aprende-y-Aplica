@@ -772,16 +772,16 @@ export function ContextualVoiceGuide({
                 <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 mb-1.5 sm:mb-2 md:mb-3">
                   {/* Esfera central con foto de LIA - Más compacta */}
                   <motion.div
-                    className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1 overflow-hidden"
+                    className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-[#0A2540] via-[#00D4B3] to-[#0A2540] p-1 overflow-hidden"
                     animate={{ 
                       scale: isSpeaking ? [1, 1.08, 1] : 1,
                       boxShadow: isSpeaking 
                         ? [
-                            '0 0 30px rgba(59, 130, 246, 0.6)',
-                            '0 0 80px rgba(168, 85, 247, 0.9)',
-                            '0 0 30px rgba(59, 130, 246, 0.6)',
+                            '0 0 30px rgba(10, 37, 64, 0.6)',
+                            '0 0 80px rgba(0, 212, 179, 0.9)',
+                            '0 0 30px rgba(10, 37, 64, 0.6)',
                           ]
-                        : '0 0 50px rgba(139, 92, 246, 0.7)'
+                        : '0 0 50px rgba(0, 212, 179, 0.7)'
                     }}
                     transition={{ 
                       scale: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' },
@@ -864,7 +864,7 @@ export function ContextualVoiceGuide({
                   <motion.div
                     className="absolute inset-0 rounded-3xl opacity-30"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 50%, rgba(59, 130, 246, 0.1) 100%)',
+                      background: 'linear-gradient(135deg, rgba(10, 37, 64, 0.1) 0%, rgba(0, 212, 179, 0.1) 50%, rgba(10, 37, 64, 0.1) 100%)',
                     }}
                     animate={{
                       backgroundPosition: ['0% 0%', '100% 100%'],
@@ -893,7 +893,7 @@ export function ContextualVoiceGuide({
                         whileHover={{ 
                           scale: 1.15,
                           rotate: [0, -10, 10, -10, 0],
-                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                          boxShadow: '0 4px 12px rgba(0, 212, 179, 0.3)'
                         }}
                         whileTap={{ scale: 0.85 }}
                         transition={{ 
@@ -902,10 +902,10 @@ export function ContextualVoiceGuide({
                           damping: 17,
                           rotate: { duration: 0.5 }
                         }}
-                        className="relative p-1.5 sm:p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-700/80 transition-colors text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 shadow-lg overflow-hidden group"
+                        className="relative p-1.5 sm:p-2 rounded-full bg-white/80 dark:bg-[#1E2329]/80 backdrop-blur-sm border border-[#E9ECEF]/50 dark:border-[#6C757D]/30 hover:bg-white dark:hover:bg-[#0A2540]/30 transition-colors text-[#6C757D] dark:text-white/60 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] shadow-lg overflow-hidden group"
                       >
                         <motion.div
-                          className="absolute inset-0 bg-blue-500/10 rounded-full"
+                          className="absolute inset-0 bg-[#00D4B3]/10 rounded-full"
                           initial={{ scale: 0, opacity: 0 }}
                           whileHover={{ scale: 1.5, opacity: 1 }}
                           transition={{ duration: 0.3 }}
@@ -963,17 +963,17 @@ export function ContextualVoiceGuide({
                           <motion.div
                             className={`h-1 sm:h-1.5 rounded-full transition-all ${
                               idx === currentStep 
-                                ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 shadow-lg shadow-blue-500/50' 
+                                ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-[#0A2540] via-[#00D4B3] to-[#0A2540] shadow-lg shadow-[#00D4B3]/50' 
                                 : idx < currentStep 
-                                ? 'w-4 sm:w-5 md:w-6 bg-gradient-to-r from-green-500 to-emerald-500' 
-                                : 'w-4 sm:w-5 md:w-6 bg-gray-300 dark:bg-gray-600'
+                                ? 'w-4 sm:w-5 md:w-6 bg-gradient-to-r from-[#10B981] to-[#10B981]' 
+                                : 'w-4 sm:w-5 md:w-6 bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                             }`}
                             animate={idx === currentStep ? {
                               scale: [1, 1.15, 1],
                               boxShadow: [
-                                '0 0 0px rgba(59, 130, 246, 0.5)',
-                                '0 0 20px rgba(168, 85, 247, 0.8)',
-                                '0 0 0px rgba(59, 130, 246, 0.5)',
+                                '0 0 0px rgba(0, 212, 179, 0.5)',
+                                '0 0 20px rgba(0, 212, 179, 0.8)',
+                                '0 0 0px rgba(0, 212, 179, 0.5)',
                               ]
                             } : {}}
                             transition={{
@@ -984,7 +984,7 @@ export function ContextualVoiceGuide({
                           />
                           {idx === currentStep && (
                             <motion.div
-                              className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 blur-md opacity-50"
+                              className="absolute inset-0 rounded-full bg-gradient-to-r from-[#0A2540] to-[#00D4B3] blur-md opacity-50"
                               animate={{
                                 opacity: [0.3, 0.6, 0.3],
                               }}
@@ -1005,7 +1005,8 @@ export function ContextualVoiceGuide({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1, duration: 0.4 }}
-                        className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 dark:from-blue-400 dark:via-purple-400 dark:to-cyan-400 bg-clip-text text-transparent leading-tight px-2"
+                        className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-[#0A2540] via-[#00D4B3] to-[#0A2540] dark:from-[#00D4B3] dark:via-[#00D4B3] dark:to-[#00D4B3] bg-clip-text text-transparent leading-tight px-2"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                       >
                         {step.title}
                       </motion.h2>
@@ -1015,7 +1016,8 @@ export function ContextualVoiceGuide({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2, duration: 0.4 }}
-                        className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm md:text-base leading-relaxed max-w-2xl mx-auto font-light px-2"
+                        className="text-[#0A2540] dark:text-white text-xs sm:text-sm md:text-base leading-relaxed max-w-2xl mx-auto font-light px-2"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                       >
                         {step.description}
                       </motion.p>
@@ -1038,10 +1040,11 @@ export function ContextualVoiceGuide({
                             stiffness: 400, 
                             damping: 17 
                           }}
-                          className="relative w-full sm:w-auto px-4 sm:px-5 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium transition-colors shadow-md border border-gray-200 dark:border-gray-600 text-xs sm:text-sm overflow-hidden group"
+                          className="relative w-full sm:w-auto px-4 sm:px-5 py-2 rounded-lg bg-[#E9ECEF] dark:bg-[#1E2329] hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/30 text-[#0A2540] dark:text-white font-medium transition-colors shadow-md border border-[#E9ECEF] dark:border-[#6C757D]/30 text-xs sm:text-sm overflow-hidden group"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                         >
                           <motion.div
-                            className="absolute inset-0 bg-gradient-to-r from-gray-200/0 via-gray-200/50 to-gray-200/0 dark:from-gray-600/0 dark:via-gray-600/50 dark:to-gray-600/0"
+                            className="absolute inset-0 bg-gradient-to-r from-[#E9ECEF]/0 via-[#E9ECEF]/50 to-[#E9ECEF]/0 dark:from-[#0A2540]/0 dark:via-[#0A2540]/50 dark:to-[#0A2540]/0"
                             initial={{ x: '-100%' }}
                             whileHover={{ x: '100%' }}
                             transition={{ duration: 0.6, ease: 'easeInOut' }}
@@ -1056,7 +1059,7 @@ export function ContextualVoiceGuide({
                           onClick={handleActionClick}
                           whileHover={{ 
                             scale: 1.08,
-                            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)',
+                            boxShadow: '0 8px 24px rgba(0, 212, 179, 0.4)',
                           }}
                           whileTap={{ scale: 0.92 }}
                           transition={{ 
@@ -1064,7 +1067,8 @@ export function ContextualVoiceGuide({
                             stiffness: 400, 
                             damping: 17 
                           }}
-                          className="relative w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-blue-500/30 dark:shadow-blue-500/20 text-xs sm:text-sm overflow-hidden group"
+                          className="relative w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-[#0A2540]/30 dark:shadow-[#0A2540]/20 text-xs sm:text-sm overflow-hidden group"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                         >
                           <motion.div
                             className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
@@ -1088,7 +1092,7 @@ export function ContextualVoiceGuide({
                           onClick={handleNext}
                           whileHover={{ 
                             scale: 1.08,
-                            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)',
+                            boxShadow: '0 8px 24px rgba(0, 212, 179, 0.4)',
                           }}
                           whileTap={{ scale: 0.92 }}
                           transition={{ 
@@ -1096,7 +1100,8 @@ export function ContextualVoiceGuide({
                             stiffness: 400, 
                             damping: 17 
                           }}
-                          className="relative w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-blue-500/30 dark:shadow-blue-500/20 text-xs sm:text-sm overflow-hidden group"
+                          className="relative w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-[#0A2540]/30 dark:shadow-[#0A2540]/20 text-xs sm:text-sm overflow-hidden group"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                         >
                           <motion.div
                             className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"

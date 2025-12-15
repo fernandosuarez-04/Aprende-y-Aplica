@@ -177,10 +177,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
       className="group"
     >
       {/* Comentario Principal */}
-      <div className="flex space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors">
+      <div className="flex gap-3 p-3 hover:bg-[#E9ECEF]/30 dark:hover:bg-[#1E2329]/50 rounded-xl transition-colors">
         {/* Avatar */}
         <div className="flex-shrink-0">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center ring-2 ring-white dark:ring-gray-800 shadow-lg">
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-[#00D4B3]/20 dark:bg-[#00D4B3]/20 flex items-center justify-center border border-[#00D4B3]/30">
             {comment.users.profile_picture_url ? (
               <img
                 src={comment.users.profile_picture_url}
@@ -188,29 +188,35 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
                 className="w-full h-full object-cover"
               />
             ) : (
-              <User className="w-5 h-5 text-white" />
+              <User className="w-4 h-4 text-[#00D4B3]" />
             )}
           </div>
         </div>
 
         {/* Contenido del comentario */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="font-semibold text-sm text-gray-900 dark:text-white">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span 
+              className="font-semibold text-sm text-[#0A2540] dark:text-white"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+            >
               {comment.users.username}
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span 
+              className="text-xs text-[#6C757D] dark:text-white/60"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+            >
               {formatDate(comment.created_at)}
             </span>
-            <div className="relative" ref={menuRef}>
+            <div className="relative ml-auto" ref={menuRef}>
               <button
                 onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] rounded-lg"
               >
-                <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                <MoreHorizontal className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
               </button>
 
-              {/* Menú de opciones */}
+              {/* Menú de opciones - SOFIA */}
               <AnimatePresence>
                 {showOptionsMenu && (
                   <motion.div
@@ -218,28 +224,31 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+                    className="absolute right-0 mt-2 w-44 bg-white dark:bg-[#1E2329] rounded-xl shadow-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 z-50 overflow-hidden"
                   >
                     <div className="py-1">
                       <button
                         onClick={handleEdit}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center w-full px-4 py-2 text-sm text-[#0A2540] dark:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                       >
-                        <Edit3 className="w-4 h-4 mr-3" />
+                        <Edit3 className="w-4 h-4 mr-3 text-[#6C757D] dark:text-white/60" />
                         Editar
                       </button>
                       <button
                         onClick={handleDelete}
                         className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                       >
                         <Trash2 className="w-4 h-4 mr-3" />
                         Eliminar
                       </button>
                       <button
                         onClick={handleReport}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center w-full px-4 py-2 text-sm text-[#0A2540] dark:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                       >
-                        <Flag className="w-4 h-4 mr-3" />
+                        <Flag className="w-4 h-4 mr-3 text-[#6C757D] dark:text-white/60" />
                         Reportar
                       </button>
                     </div>
@@ -250,22 +259,24 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
           </div>
           
           <p 
-            className="text-sm text-gray-800 dark:text-gray-200 mb-3 leading-relaxed"
+            className="text-sm text-[#0A2540] dark:text-white mb-2.5 leading-relaxed"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             dangerouslySetInnerHTML={{ __html: sanitizeComment(comment.content) }}
           />
           
           {/* Botones de acción */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4">
             <button 
               onClick={() => setShowReplyInput(!showReplyInput)}
-              className="flex items-center space-x-1 text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors group"
+              className="flex items-center gap-1.5 text-[#6C757D] dark:text-white/60 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-colors group"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
             >
-              <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-medium">Responder</span>
+              <MessageCircle className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+              <span className="text-xs">Responder</span>
             </button>
           </div>
 
-          {/* Input de respuesta */}
+          {/* Input de respuesta - SOFIA */}
           <AnimatePresence>
             {showReplyInput && (
               <motion.div
@@ -275,14 +286,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
                 transition={{ duration: 0.2 }}
                 className="mt-3"
               >
-                <form onSubmit={handleSubmitReply} className="flex space-x-2">
+                <form onSubmit={handleSubmitReply} className="flex gap-2">
                   <div className="flex-1">
                     <input
                       type="text"
                       value={newReply}
                       onChange={(e) => setNewReply(e.target.value)}
                       placeholder="Escribe una respuesta..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      className="w-full px-3 py-2 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl bg-white dark:bg-[#1E2329] text-sm font-normal text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all duration-200"
+                      style={{ fontFamily: 'Inter, sans-serif' }}
                       disabled={isSubmittingReply}
                       autoFocus
                     />
@@ -290,12 +302,13 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
                   <button
                     type="submit"
                     disabled={!newReply.trim() || isSubmittingReply}
-                    className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
+                    className="p-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                   >
                     {isSubmittingReply ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></div>
                     ) : (
-                      <Send className="w-4 h-4" />
+                      <Send className="w-3.5 h-3.5" />
                     )}
                   </button>
                 </form>
@@ -307,16 +320,17 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
           {replies.length > 0 && (
             <button
               onClick={() => setShowReplies(!showReplies)}
-              className="flex items-center space-x-1 text-blue-500 hover:text-blue-600 transition-colors mt-2 text-sm font-medium"
+              className="flex items-center gap-1.5 text-[#00D4B3] hover:text-[#00D4B3]/80 transition-colors mt-2 text-xs font-medium"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
             >
               {showReplies ? (
                 <>
-                  <ChevronUp className="w-4 h-4" />
+                  <ChevronUp className="w-3.5 h-3.5" />
                   <span>Ocultar {replies.length} respuesta{replies.length !== 1 ? 's' : ''}</span>
                 </>
               ) : (
                 <>
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-3.5 h-3.5" />
                   <span>Ver {replies.length} respuesta{replies.length !== 1 ? 's' : ''}</span>
                 </>
               )}
@@ -325,7 +339,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
         </div>
       </div>
 
-      {/* Respuestas */}
+      {/* Respuestas - SOFIA */}
       <AnimatePresence>
         {showReplies && (
           <motion.div
@@ -333,11 +347,11 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="ml-8 border-l-2 border-gray-200 dark:border-gray-700 pl-4 space-y-3"
+            className="ml-7 border-l-2 border-[#E9ECEF] dark:border-[#6C757D]/30 pl-4 space-y-2 mt-2"
           >
             {isLoadingReplies ? (
               <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#00D4B3] border-t-transparent"></div>
               </div>
             ) : (
               replies.map((reply) => (
@@ -346,11 +360,11 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="flex space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800/30 rounded-lg transition-colors"
+                  className="flex gap-2.5 p-2 hover:bg-[#E9ECEF]/30 dark:hover:bg-[#1E2329]/50 rounded-lg transition-colors"
                 >
                   {/* Avatar de respuesta */}
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center ring-1 ring-white dark:ring-gray-800">
+                    <div className="w-7 h-7 rounded-full overflow-hidden bg-[#00D4B3]/20 dark:bg-[#00D4B3]/20 flex items-center justify-center border border-[#00D4B3]/30">
                       {reply.users.profile_picture_url ? (
                         <img
                           src={reply.users.profile_picture_url}
@@ -358,23 +372,30 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <User className="w-4 h-4 text-white" />
+                        <User className="w-3.5 h-3.5 text-[#00D4B3]" />
                       )}
                     </div>
                   </div>
 
                   {/* Contenido de la respuesta */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-white">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span 
+                        className="font-semibold text-xs text-[#0A2540] dark:text-white"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                      >
                         {reply.users.username}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span 
+                        className="text-xs text-[#6C757D] dark:text-white/60"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                      >
                         {formatDate(reply.created_at)}
                       </span>
                     </div>
                     <p 
-                      className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed"
+                      className="text-xs text-[#0A2540] dark:text-white leading-relaxed"
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                       dangerouslySetInnerHTML={{ __html: sanitizeComment(reply.content) }}
                     />
                   </div>

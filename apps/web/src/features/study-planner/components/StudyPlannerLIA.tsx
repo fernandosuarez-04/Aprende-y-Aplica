@@ -1430,24 +1430,24 @@ export function StudyPlannerLIA() {
           const data = await response.json();
           if (data.isConnected && data.provider) {
             console.log('✅ [Calendar] Calendario conectado y verificado:', data.provider);
-            
-            // Actualizar estado
-            setIsConnectingCalendar(false);
+        
+        // Actualizar estado
+        setIsConnectingCalendar(false);
             setConnectedCalendar(data.provider as 'google' | 'microsoft');
-            
+        
             // Notificar
             const successMsg = `¡Calendario de ${data.provider === 'google' ? 'Google' : 'Microsoft'} conectado exitosamente! Déjame analizar tu disponibilidad...`;
-            setConversationHistory(prev => {
-              const lastMessage = prev[prev.length - 1];
-              if (lastMessage && lastMessage.content === successMsg) {
+        setConversationHistory(prev => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage && lastMessage.content === successMsg) {
                 return prev;
-              }
-              return [...prev, { role: 'assistant', content: successMsg }];
-            });
-            
+          }
+          return [...prev, { role: 'assistant', content: successMsg }];
+        });
+        
             // Continuar con el análisis
             checkAndAskStudyPreferences(data.provider as 'google' | 'microsoft').then(canProceed => {
-              if (canProceed) {
+          if (canProceed) {
                 analyzeCalendarAndSuggest(data.provider as 'google' | 'microsoft');
               }
             });
@@ -1490,9 +1490,9 @@ export function StudyPlannerLIA() {
           setTimeout(() => {
             checkCalendarAndContinue('google');
           }, 1500); // 1.5 segundos de delay para dar tiempo al servidor
-        }
-      } catch (e) {
-        // Ignorar errores de COOP
+            }
+          } catch (e) {
+            // Ignorar errores de COOP
       }
     }, 1000); // Verificar cada segundo
     
@@ -1654,20 +1654,20 @@ export function StudyPlannerLIA() {
           if (data.isConnected && data.provider) {
             console.log('✅ [Calendar] Calendario conectado y verificado:', data.provider);
             
-            setIsConnectingCalendar(false);
+        setIsConnectingCalendar(false);
             setConnectedCalendar(data.provider as 'google' | 'microsoft');
-            
+        
             const successMsg = `¡Calendario de ${data.provider === 'google' ? 'Google' : 'Microsoft'} conectado exitosamente! Déjame analizar tu disponibilidad...`;
-            setConversationHistory(prev => {
-              const lastMessage = prev[prev.length - 1];
-              if (lastMessage && lastMessage.content === successMsg) {
+        setConversationHistory(prev => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage && lastMessage.content === successMsg) {
                 return prev;
-              }
-              return [...prev, { role: 'assistant', content: successMsg }];
-            });
-            
+          }
+          return [...prev, { role: 'assistant', content: successMsg }];
+        });
+        
             checkAndAskStudyPreferences(data.provider as 'google' | 'microsoft').then(canProceed => {
-              if (canProceed) {
+          if (canProceed) {
                 analyzeCalendarAndSuggest(data.provider as 'google' | 'microsoft');
               }
             });
@@ -1691,7 +1691,7 @@ export function StudyPlannerLIA() {
         let isClosed = false;
         try {
           isClosed = popup.closed === true;
-        } catch (e) {
+          } catch (e) {
           const timeSinceOpen = Date.now() - popupOpenTime;
           if (timeSinceOpen > 10000) {
             isClosed = true;
@@ -1749,7 +1749,7 @@ export function StudyPlannerLIA() {
         }
         
         window.removeEventListener('message', messageListener);
-        setIsConnectingCalendar(false);
+          setIsConnectingCalendar(false);
         
         let errorType = event.data.errorType || '';
         if (!errorType && event.data.error) {
@@ -2584,7 +2584,7 @@ export function StudyPlannerLIA() {
           } catch (jsonError) {
             // Si no se puede parsear como JSON, intentar obtener como texto
             try {
-              const errorText = await eventsResponse.text();
+          const errorText = await eventsResponse.text();
               errorData = { error: errorText };
             } catch (textError) {
               errorData = { error: 'Error desconocido al obtener respuesta' };
@@ -2755,11 +2755,11 @@ export function StudyPlannerLIA() {
         const dayData = daySlots[dateStr];
         if (!dayData) return;
         
-        // Marcar el día siguiente también para evitar estudio
-        const nextDay = new Date(dayData.date);
-        nextDay.setDate(nextDay.getDate() + 1);
-        const nextDayStr = nextDay.toISOString().split('T')[0];
-        
+          // Marcar el día siguiente también para evitar estudio
+          const nextDay = new Date(dayData.date);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const nextDayStr = nextDay.toISOString().split('T')[0];
+          
         if (daySlots[nextDayStr]) {
           // Solo marcar si no tiene eventos pesados propios (para evitar doble marcado)
           // Si el día siguiente ya tiene eventos pesados propios, ya está marcado correctamente
@@ -4042,20 +4042,20 @@ export function StudyPlannerLIA() {
               
               const moduleOrderIndex = (lesson as any).moduleOrderIndex || 0;
               
-              allPendingLessons.push({
-                courseId,
-                courseTitle,
-                lessonId: lesson.lessonId,
-                lessonTitle: lesson.lessonTitle.trim(), // Asegurar que no tenga espacios extra
+                allPendingLessons.push({
+                  courseId,
+                  courseTitle,
+                  lessonId: lesson.lessonId,
+                  lessonTitle: lesson.lessonTitle.trim(), // Asegurar que no tenga espacios extra
                 lessonOrderIndex: orderIndex,
                 moduleOrderIndex: moduleOrderIndex,
-                durationSeconds: lesson.durationSeconds || 0
-              });
+                  durationSeconds: lesson.durationSeconds || 0
+                });
               
               // ✅ Marcar como agregada para evitar duplicados
               addedLessonIds.add(lesson.lessonId);
               
-              pendingCount++;
+                pendingCount++;
             });
             
             console.log(`   ✅ Lecciones pendientes: ${pendingCount}, completadas: ${completedCount}, omitidas: ${skippedCount}, duplicadas: ${duplicateCount}`);
@@ -4282,7 +4282,7 @@ export function StudyPlannerLIA() {
               const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) 
                 ? lesson.lessonOrderIndex 
                 : 0;
-              
+
               lessonsForSlot.push({
                 courseTitle: lesson.courseTitle || 'Curso',
                 lessonTitle: lesson.lessonTitle.trim(),
@@ -4470,8 +4470,8 @@ export function StudyPlannerLIA() {
                   : 0;
                 
                 return {
-                  courseTitle: lesson.courseTitle || 'Curso',
-                  lessonTitle: lesson.lessonTitle.trim(), // Asegurar sin espacios extra
+                courseTitle: lesson.courseTitle || 'Curso',
+                lessonTitle: lesson.lessonTitle.trim(), // Asegurar sin espacios extra
                   lessonOrderIndex: orderIndex
                 };
               });
@@ -5258,10 +5258,10 @@ Cuéntame:
         
         const startTimeParsed = parseTime(slot.startTime);
         const endTimeParsed = parseTime(slot.endTime);
-        
-        let startTime = new Date(date);
-        let endTime = new Date(date);
-        
+          
+          let startTime = new Date(date);
+          let endTime = new Date(date);
+          
         startTime.setHours(startTimeParsed.hours, startTimeParsed.minutes, 0, 0);
         endTime.setHours(endTimeParsed.hours, endTimeParsed.minutes, 0, 0);
         
@@ -5271,23 +5271,23 @@ Cuéntame:
           // Ajustar automáticamente: agregar 1 hora al final si es necesario
           endTime = new Date(startTime);
           endTime.setHours(endTime.getHours() + 1);
-        }
-        
-        const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
-        
+          }
+          
+          const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+          
         // ✅ CORRECCIÓN CRÍTICA: Obtener la primera lección del slot para el título y courseId
         // IMPORTANTE: La estructura usa lessonTitle (camelCase), NO lesson_title (snake_case)
-        const firstLesson = slot.lessons && slot.lessons.length > 0 ? slot.lessons[0] : null;
-        const courseTitle = firstLesson?.courseTitle || 'Curso';
-        const lessonTitle = firstLesson?.lessonTitle || 'Sesión de estudio';
-        
-        // Buscar el courseId del curso seleccionado
-        const course = availableCourses.find(c => c.title === courseTitle || selectedCourseIds.includes(c.id));
-        const courseId = course?.id || selectedCourseIds[0] || '';
-        
+          const firstLesson = slot.lessons && slot.lessons.length > 0 ? slot.lessons[0] : null;
+          const courseTitle = firstLesson?.courseTitle || 'Curso';
+          const lessonTitle = firstLesson?.lessonTitle || 'Sesión de estudio';
+          
+          // Buscar el courseId del curso seleccionado
+          const course = availableCourses.find(c => c.title === courseTitle || selectedCourseIds.includes(c.id));
+          const courseId = course?.id || selectedCourseIds[0] || '';
+          
         // ✅ CORRECCIÓN CRÍTICA: Crear título de la sesión usando lessonTitle (camelCase)
-        let sessionTitle = 'Sesión de estudio';
-        if (slot.lessons && slot.lessons.length > 0) {
+          let sessionTitle = 'Sesión de estudio';
+          if (slot.lessons && slot.lessons.length > 0) {
           // Validar que las lecciones tengan títulos válidos
           const validLessons = slot.lessons.filter(l => l.lessonTitle && l.lessonTitle.trim() !== '');
           
@@ -5295,44 +5295,44 @@ Cuéntame:
             console.warn(`⚠️ Slot sin lecciones válidas: ${slot.dateStr} ${slot.startTime}`);
             sessionTitle = 'Sesión de estudio';
           } else if (validLessons.length === 1) {
-            // Una sola lección: usar el título completo
+              // Una sola lección: usar el título completo
             sessionTitle = validLessons[0].lessonTitle.trim();
           } else if (validLessons.length === 2) {
-            // Dos lecciones: mostrar ambas en el título (limitado a 100 caracteres)
+              // Dos lecciones: mostrar ambas en el título (limitado a 100 caracteres)
             const title1 = validLessons[0].lessonTitle.trim();
             const title2 = validLessons[1].lessonTitle.trim();
-            const combinedTitle = `${title1} y ${title2}`;
-            sessionTitle = combinedTitle.length > 100 
-              ? `${title1.substring(0, 50)}... y ${title2.substring(0, 40)}...`
-              : combinedTitle;
-          } else {
-            // Más de dos lecciones: mostrar primera y cantidad restante
+              const combinedTitle = `${title1} y ${title2}`;
+              sessionTitle = combinedTitle.length > 100 
+                ? `${title1.substring(0, 50)}... y ${title2.substring(0, 40)}...`
+                : combinedTitle;
+            } else {
+              // Más de dos lecciones: mostrar primera y cantidad restante
             const firstTitle = validLessons[0].lessonTitle.trim();
-            sessionTitle = firstTitle.length > 60
+              sessionTitle = firstTitle.length > 60
               ? `${firstTitle.substring(0, 60)}... y ${validLessons.length - 1} más`
               : `${firstTitle} y ${validLessons.length - 1} más`;
           }
         }
         
         // ✅ CORRECCIÓN CRÍTICA: Crear descripción con todas las lecciones usando lessonTitle (camelCase)
-        const description = slot.lessons && slot.lessons.length > 0
+          const description = slot.lessons && slot.lessons.length > 0
           ? slot.lessons
               .filter(l => l.lessonTitle && l.lessonTitle.trim() !== '')
               .map((l, idx) => `${idx + 1}. ${l.lessonTitle.trim()}`)
               .join('\n')
-          : 'Sesión de estudio programada';
-        
-        return {
-          title: sessionTitle,
-          description,
-          courseId,
-          lessonId: undefined, // No tenemos el lessonId directamente, se puede buscar después si es necesario
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          durationMinutes,
-          isAiGenerated: true,
-          sessionType: preferredSessionType,
-        };
+            : 'Sesión de estudio programada';
+          
+          return {
+            title: sessionTitle,
+            description,
+            courseId,
+            lessonId: undefined, // No tenemos el lessonId directamente, se puede buscar después si es necesario
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            durationMinutes,
+            isAiGenerated: true,
+            sessionType: preferredSessionType,
+          };
       });
       
       // Crear configuración del plan
@@ -6785,11 +6785,11 @@ Cuéntame:
 
     {/* Interfaz de conversación con LIA */}
     {showConversation && (
-      <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col overflow-hidden" suppressHydrationWarning>
+      <div className="h-screen bg-white dark:bg-[#0F1419] flex flex-col overflow-hidden" suppressHydrationWarning>
         {/* Header */}
-        <div className="flex-shrink-0 z-10 bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50 px-4 py-4">
+        <div className="flex-shrink-0 z-10 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
           <div className="max-w-4xl mx-auto flex items-center gap-4">
-            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-purple-500/50">
+            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#0A2540]/20 dark:border-[#00D4B3]/30">
               <Image
                 src="/lia-avatar.png"
                 alt="LIA"
@@ -6799,8 +6799,8 @@ Cuéntame:
               />
             </div>
             <div className="flex-1">
-              <h1 className="text-lg font-bold text-white">LIA - Planificador de Estudios</h1>
-              <p className="text-sm text-slate-400">Tu asistente para crear planes personalizados</p>
+              <h1 className="text-lg font-bold text-[#0A2540] dark:text-white">LIA - Planificador de Estudios</h1>
+              <p className="text-sm text-[#6C757D] dark:text-gray-400">Tu asistente para crear planes personalizados</p>
             </div>
             
             {/* Botones de acción como iconos que se expanden con texto */}
@@ -6845,8 +6845,8 @@ Cuéntame:
                   whileTap={{ scale: 0.95 }}
                   className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${
                     isProcessing || showCalendarModal
-                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                      : 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30'
+                      ? 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
+                      : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 hover:bg-[#0A2540]/20 dark:hover:bg-[#0A2540]/30 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/20 dark:border-[#00D4B3]/30'
                   }`}
                 >
                   <div className="p-2.5 flex-shrink-0">
@@ -6876,11 +6876,11 @@ Cuéntame:
                 onMouseEnter={() => setHoveredButton('help')}
                 onMouseLeave={() => setHoveredButton(null)}
                 whileTap={{ scale: 0.95 }}
-                className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${
-                  isProcessing
-                    ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
-                }`}
+                    className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${
+                      isProcessing
+                        ? 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
+                        : 'bg-[#E9ECEF] dark:bg-[#0A2540]/10 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/20 text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                    }`}
               >
                 <div className="p-2.5 flex-shrink-0">
                   <HelpCircle size={20} />
@@ -6908,8 +6908,8 @@ Cuéntame:
                 whileTap={{ scale: 0.95 }}
                 className={`p-2.5 rounded-lg transition-colors ${
                   isAudioEnabled 
-                    ? 'bg-purple-600 text-white hover:bg-purple-700' 
-                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                    ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]' 
+                    : 'bg-[#E9ECEF] dark:bg-[#6C757D] text-[#6C757D] dark:text-gray-400 hover:bg-[#6C757D]/20 dark:hover:bg-[#6C757D]/80'
                 }`}
               >
                 {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
@@ -6944,7 +6944,7 @@ Cuéntame:
                         stiffness: 200,
                         damping: 15
                       }}
-                      className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-purple-500/40 flex-shrink-0 shadow-lg shadow-purple-500/20"
+                      className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20"
                     >
                       <Image
                         src="/lia-avatar.png"
@@ -6966,18 +6966,18 @@ Cuéntame:
                     }}
                     className={`relative ${
                       msg.role === 'user'
-                        ? 'bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 text-white'
-                        : 'bg-gradient-to-br from-slate-800/95 via-slate-700/95 to-slate-800/95 text-slate-100 border border-slate-600/50'
-                    } px-4 py-2.5 sm:px-5 sm:py-3 rounded-[20px] sm:rounded-[22px] shadow-lg ${
+                        ? 'bg-[#10B981] text-white'
+                        : 'bg-[#0A2540]/10 dark:bg-[#1E2329] text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                    } px-4 py-2.5 sm:px-5 sm:py-3 rounded-[20px] sm:rounded-[22px] shadow-sm ${
                       msg.role === 'user' 
-                        ? 'shadow-purple-500/25 rounded-br-[6px]' 
-                        : 'shadow-black/30 rounded-bl-[6px]'
+                        ? 'shadow-[#10B981]/25 rounded-br-[6px]' 
+                        : 'shadow-[#0A2540]/10 dark:shadow-[#00D4B3]/10 rounded-bl-[6px]'
                     } overflow-hidden`}
                   >
                     {/* Cola de burbuja estilo WhatsApp/Messenger mejorada */}
                     {msg.role === 'user' ? (
                       <svg
-                        className="absolute -right-[8px] bottom-0 h-[20px] w-[8px] text-purple-600"
+                        className="absolute -right-[8px] bottom-0 h-[20px] w-[8px] text-[#10B981]"
                         viewBox="0 0 8 20"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
@@ -6990,7 +6990,7 @@ Cuéntame:
                       </svg>
                     ) : (
                       <svg
-                        className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-slate-800"
+                        className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-[#0A2540]/10 dark:text-[#1E2329]"
                         viewBox="0 0 8 20"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
@@ -7024,11 +7024,11 @@ Cuéntame:
                     {/* Contenido del mensaje */}
                     <div className="relative z-10">
                       {msg.role === 'assistant' ? (
-                        <div className="font-body text-[15px] sm:text-[16px] leading-[1.75] text-slate-50 tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+                        <div className="font-body text-[15px] sm:text-[16px] leading-[1.75] text-[#0A2540] dark:text-white tracking-wide">
                           {formatLIAMessage(msg.content)}
                         </div>
                       ) : (
-                        <p className="font-body text-[15px] sm:text-[16px] leading-[1.75] font-medium whitespace-pre-wrap text-white tracking-wide [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">{msg.content}</p>
+                        <p className="font-body text-[15px] sm:text-[16px] leading-[1.75] font-medium whitespace-pre-wrap text-white tracking-wide">{msg.content}</p>
                       )}
                     </div>
                     
@@ -7053,13 +7053,13 @@ Cuéntame:
               >
                 <div className="flex items-end gap-2.5">
                   <motion.div 
-                    className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-purple-500/40 shadow-lg shadow-purple-500/20"
+                    className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20"
                     animate={{ 
                       scale: [1, 1.05, 1],
                       boxShadow: [
-                        '0 0 0px rgba(168, 85, 247, 0.2)',
-                        '0 0 20px rgba(168, 85, 247, 0.4)',
-                        '0 0 0px rgba(168, 85, 247, 0.2)'
+                        '0 0 0px rgba(10, 37, 64, 0.2)',
+                        '0 0 20px rgba(10, 37, 64, 0.4)',
+                        '0 0 0px rgba(10, 37, 64, 0.2)'
                       ]
                     }}
                     transition={{ duration: 2, repeat: Infinity }}
@@ -7073,14 +7073,14 @@ Cuéntame:
                     />
                   </motion.div>
                   <motion.div 
-                    className="relative bg-gradient-to-br from-slate-800/95 via-slate-700/95 to-slate-800/95 px-4 py-3 sm:px-5 sm:py-3.5 rounded-[20px] sm:rounded-[22px] shadow-lg shadow-black/30 border border-slate-600/50 rounded-bl-[6px] overflow-hidden"
+                    className="relative bg-[#0A2540]/10 dark:bg-[#1E2329] px-4 py-3 sm:px-5 sm:py-3.5 rounded-[20px] sm:rounded-[22px] shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-bl-[6px] overflow-hidden"
                     initial={{ scale: 0.9 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
                     {/* Cola de burbuja */}
                     <svg
-                      className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-slate-800"
+                        className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-[#0A2540]/10 dark:text-[#1E2329]"
                       viewBox="0 0 8 20"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
@@ -7103,7 +7103,7 @@ Cuéntame:
                           y: [0, -4, 0]
                         }}
                         transition={{ duration: 0.6, repeat: Infinity, delay: 0, ease: 'easeInOut' }}
-                        className="w-2.5 h-2.5 bg-purple-400 rounded-full shadow-lg shadow-purple-400/50"
+                        className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
                       />
                       <motion.div
                         animate={{ 
@@ -7111,7 +7111,7 @@ Cuéntame:
                           y: [0, -4, 0]
                         }}
                         transition={{ duration: 0.6, repeat: Infinity, delay: 0.2, ease: 'easeInOut' }}
-                        className="w-2.5 h-2.5 bg-purple-400 rounded-full shadow-lg shadow-purple-400/50"
+                        className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
                       />
                       <motion.div
                         animate={{ 
@@ -7119,7 +7119,7 @@ Cuéntame:
                           y: [0, -4, 0]
                         }}
                         transition={{ duration: 0.6, repeat: Infinity, delay: 0.4, ease: 'easeInOut' }}
-                        className="w-2.5 h-2.5 bg-purple-400 rounded-full shadow-lg shadow-purple-400/50"
+                        className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
                       />
                     </div>
                   </motion.div>
@@ -7134,13 +7134,13 @@ Cuéntame:
                 animate={{ opacity: 1 }}
                 className="flex justify-center"
               >
-                <div className="bg-green-600/20 border border-green-500/30 px-4 py-2 rounded-full flex items-center gap-2">
+                <div className="bg-[#10B981]/10 dark:bg-[#10B981]/20 border border-[#10B981]/30 px-4 py-2 rounded-full flex items-center gap-2">
                   <motion.div
                     animate={{ scale: [1, 1.3, 1] }}
                     transition={{ duration: 1, repeat: Infinity }}
-                    className="w-3 h-3 bg-green-500 rounded-full"
+                    className="w-3 h-3 bg-[#10B981] rounded-full"
                   />
-                  <span className="text-green-400 text-sm">Escuchando...</span>
+                  <span className="text-[#10B981] text-sm">Escuchando...</span>
                 </div>
               </motion.div>
             )}
@@ -7167,17 +7167,17 @@ Cuéntame:
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 20, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  className="relative bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+                  className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
                 >
                   {/* Header mejorado */}
-                  <div className="relative p-6 pb-4 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-purple-600/10">
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="p-3 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-500/30">
-                        <BookOpen className="w-6 h-6 text-purple-400" />
+                  <div className="relative p-5 pb-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30">
+                        <BookOpen className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                   </div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-white mb-1">Selecciona tus cursos</h3>
-                        <p className="text-slate-400 text-sm">Elige los cursos que quieres incluir en tu plan de estudios</p>
+                        <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona tus cursos</h3>
+                        <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige los cursos que quieres incluir en tu plan de estudios</p>
                   </div>
                 </div>
 
@@ -7188,21 +7188,21 @@ Cuéntame:
                         animate={{ opacity: 1, y: 0 }}
                         className="relative mt-4"
                       >
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6C757D]" />
                         <input
                           type="text"
                           suppressHydrationWarning
                           value={courseSearchQuery}
                           onChange={(e) => setCourseSearchQuery(e.target.value)}
                           placeholder="Buscar cursos..."
-                          className="w-full pl-10 pr-10 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                          className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 transition-all"
                         />
                         {courseSearchQuery && (
                           <motion.button
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             onClick={() => setCourseSearchQuery('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white transition-colors rounded hover:bg-slate-600/50"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#6C757D] hover:text-[#0A2540] dark:hover:text-white transition-colors rounded hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
                             title="Limpiar búsqueda"
                           >
                             <X size={16} />
@@ -7220,17 +7220,17 @@ Cuéntame:
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                         >
-                          <Loader2 className="w-12 h-12 text-purple-500" />
+                          <Loader2 className="w-12 h-12 text-[#0A2540] dark:text-[#00D4B3]" />
                         </motion.div>
-                        <p className="text-slate-400 mt-4 text-sm">Cargando tus cursos...</p>
+                        <p className="text-[#6C757D] dark:text-gray-400 mt-4 text-sm">Cargando tus cursos...</p>
                   </div>
                 ) : availableCourses.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 px-6">
-                        <div className="w-20 h-20 rounded-full bg-slate-700/50 flex items-center justify-center mb-4">
-                          <BookOpen className="w-10 h-10 text-slate-500" />
+                        <div className="w-20 h-20 rounded-full bg-[#E9ECEF] dark:bg-[#0A2540]/20 flex items-center justify-center mb-4">
+                          <BookOpen className="w-10 h-10 text-[#6C757D] dark:text-gray-400" />
                         </div>
-                        <h4 className="text-white font-semibold mb-2">No tienes cursos disponibles</h4>
-                        <p className="text-slate-400 text-sm text-center max-w-sm">
+                        <h4 className="text-[#0A2540] dark:text-white font-semibold mb-2">No tienes cursos disponibles</h4>
+                        <p className="text-[#6C757D] dark:text-gray-400 text-sm text-center max-w-sm">
                           Adquiere cursos para poder crear tu plan de estudios personalizado
                         </p>
                   </div>
@@ -7247,9 +7247,9 @@ Cuéntame:
                             if (filteredCourses.length === 0 && courseSearchQuery) {
                               return (
                                 <div className="flex flex-col items-center justify-center py-12">
-                                  <Search className="w-12 h-12 text-slate-500 mb-3" />
-                                  <p className="text-slate-400 text-sm">No se encontraron cursos</p>
-                                  <p className="text-slate-500 text-xs mt-1">Intenta con otro término de búsqueda</p>
+                                  <Search className="w-12 h-12 text-[#6C757D] dark:text-gray-400 mb-3" />
+                                  <p className="text-[#6C757D] dark:text-gray-400 text-sm">No se encontraron cursos</p>
+                                  <p className="text-[#6C757D] dark:text-gray-500 text-xs mt-1">Intenta con otro término de búsqueda</p>
                                 </div>
                               );
                             }
@@ -7269,8 +7269,8 @@ Cuéntame:
                                     whileTap={{ scale: 0.98 }}
                                     className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all relative overflow-hidden group ${
                                       isSelected
-                                        ? 'bg-gradient-to-r from-purple-600/30 via-purple-600/20 to-blue-600/20 border-2 border-purple-500/50 shadow-lg shadow-purple-500/20'
-                                        : 'bg-slate-700/30 border-2 border-slate-700/50 hover:border-slate-600/50 hover:bg-slate-700/50'
+                                        ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
+                                        : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
                                     }`}
                                   >
                                     {/* Efecto de brillo en hover */}
@@ -7282,8 +7282,8 @@ Cuéntame:
                                     <motion.div
                                       className={`relative w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
                                         isSelected
-                                          ? 'bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg shadow-purple-500/50'
-                                          : 'bg-slate-600 border-2 border-slate-500'
+                                          ? 'bg-[#0A2540] dark:bg-[#0A2540] shadow-sm'
+                                          : 'bg-[#E9ECEF] dark:bg-[#6C757D] border-2 border-[#6C757D]/30'
                                       }`}
                                       animate={isSelected ? { scale: [1, 1.1, 1] } : {}}
                                       transition={{ duration: 0.3 }}
@@ -7301,23 +7301,23 @@ Cuéntame:
 
                                     {/* Información del curso */}
                                     <div className="flex-1 text-left min-w-0">
-                                      <p className={`font-semibold text-base mb-1 line-clamp-2 ${
-                                        isSelected ? 'text-white' : 'text-slate-200'
+                                      <p className={`font-semibold text-sm mb-1 line-clamp-2 ${
+                                        isSelected ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-gray-200'
                                       }`}>
                                         {course.title}
                                       </p>
                                       {course.progress > 0 && (
                                         <div className="flex items-center gap-2 mt-1">
-                                          <div className="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                                          <div className="w-20 h-1.5 bg-[#E9ECEF] dark:bg-[#6C757D]/30 rounded-full overflow-hidden">
                                             <motion.div
-                                              className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
+                                              className="h-full bg-[#0A2540] dark:bg-[#00D4B3]"
                                               initial={{ width: 0 }}
                                               animate={{ width: `${course.progress}%` }}
                                               transition={{ duration: 0.5, delay: index * 0.1 }}
                                             />
                             </div>
                                           <span className={`text-xs font-medium ${
-                                            isSelected ? 'text-purple-300' : 'text-slate-400'
+                                            isSelected ? 'text-[#0A2540] dark:text-[#00D4B3]' : 'text-[#6C757D] dark:text-gray-400'
                                           }`}>
                                             {course.progress}% completado
                                           </span>
@@ -7330,7 +7330,7 @@ Cuéntame:
                                       <motion.div
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
-                                        className="w-2 h-2 rounded-full bg-green-400 shadow-lg shadow-green-400/50"
+                                        className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
                                       />
                                     )}
                         </motion.button>
@@ -7341,22 +7341,22 @@ Cuéntame:
                     </div>
 
                         {/* Footer mejorado */}
-                        <div className="px-6 py-4 border-t border-slate-700/50 bg-slate-800/50">
+                        <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
                           <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                                 selectedCourseIds.length > 0
-                                  ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30'
-                                  : 'bg-slate-700/50'
+                                  ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border border-[#0A2540]/20 dark:border-[#00D4B3]/30'
+                                  : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                               }`}>
                                 <span className={`text-sm font-bold ${
-                                  selectedCourseIds.length > 0 ? 'text-purple-400' : 'text-slate-500'
+                                  selectedCourseIds.length > 0 ? 'text-[#0A2540] dark:text-[#00D4B3]' : 'text-[#6C757D]'
                                 }`}>
                                   {selectedCourseIds.length}
                       </span>
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-white">
+                                <p className="text-sm font-medium text-[#0A2540] dark:text-white">
                                   {selectedCourseIds.length === 0 
                                     ? 'Ningún curso seleccionado'
                                     : selectedCourseIds.length === 1
@@ -7364,7 +7364,7 @@ Cuéntame:
                                     : `${selectedCourseIds.length} cursos seleccionados`
                                   }
                                 </p>
-                                <p className="text-xs text-slate-400">
+                                <p className="text-xs text-[#6C757D] dark:text-gray-400">
                                   {selectedCourseIds.length > 0 
                                     ? 'Listo para crear tu plan'
                                     : 'Selecciona al menos un curso'
@@ -7378,10 +7378,10 @@ Cuéntame:
                                 disabled={selectedCourseIds.length === 0}
                                 whileHover={selectedCourseIds.length > 0 ? { scale: 1.05 } : {}}
                                 whileTap={selectedCourseIds.length > 0 ? { scale: 0.95 } : {}}
-                                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                                className={`px-5 py-2.5 rounded-md text-sm font-semibold transition-all ${
                                   selectedCourseIds.length > 0
-                                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg shadow-purple-500/30'
-                                    : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                                    ? 'bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white shadow-sm'
+                                    : 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
                                 }`}
                         >
                           Aceptar
@@ -7417,22 +7417,22 @@ Cuéntame:
                 <motion.div
                   initial={{ y: 20 }}
                   animate={{ y: 0 }}
-                  className="relative bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl p-6 max-w-md w-full shadow-2xl"
+                  className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-5 max-w-md w-full shadow-2xl"
                 >
                   {/* Header */}
-                  <div className="text-center mb-6">
+                  <div className="text-center mb-5">
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                      className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-blue-600/30 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-500/20"
+                      className="w-16 h-16 mx-auto mb-3 rounded-xl bg-[#0A2540]/10 dark:bg-[#0A2540]/20 flex items-center justify-center shadow-sm border border-[#0A2540]/20 dark:border-[#00D4B3]/30"
                     >
-                      <Calendar className="w-10 h-10 text-blue-400" />
+                      <Calendar className="w-8 h-8 text-[#0A2540] dark:text-[#00D4B3]" />
                     </motion.div>
-                    <h3 className="text-2xl font-bold text-white mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    <h3 className="text-xl font-bold text-[#0A2540] dark:text-white mb-2">
                       Conecta tu calendario
                     </h3>
-                    <p className="text-slate-400 text-sm max-w-sm mx-auto">
+                    <p className="text-[#6C757D] dark:text-gray-400 text-xs max-w-sm mx-auto">
                       Analizo tu calendario para encontrar los mejores horarios para estudiar
                     </p>
                   </div>
@@ -7460,10 +7460,10 @@ Cuéntame:
                         disabled={isConnectingCalendar}
                         whileHover={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
                         whileTap={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 0.98 }}
-                        className={`w-full flex items-center gap-4 p-5 rounded-2xl transition-all relative overflow-hidden ${
+                        className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden ${
                           connectedCalendar === 'google' 
-                            ? 'bg-gradient-to-r from-green-500/20 via-green-500/15 to-green-500/20 border-2 border-green-500/60 shadow-lg shadow-green-500/20' 
-                            : 'bg-gradient-to-r from-slate-700/50 to-slate-800/50 hover:from-slate-700/70 hover:to-slate-800/70 border border-slate-600/50 hover:border-slate-500/50'
+                            ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 border-2 border-[#10B981]/30 shadow-sm' 
+                            : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
                         } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         {/* Efecto de brillo en hover */}
@@ -7492,38 +7492,38 @@ Cuéntame:
                         {/* Contenido del botón */}
                         <div className="flex-1 text-left min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="text-white font-semibold text-base">Google Calendar</p>
+                            <p className="text-[#0A2540] dark:text-white font-semibold text-sm">Google Calendar</p>
                             {connectedCalendar === 'google' && (
                               <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
-                                className="w-2 h-2 rounded-full bg-green-400 shadow-lg shadow-green-400/50"
+                                className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
                               />
                             )}
                           </div>
                           {connectedCalendar === 'google' ? (
-                            <div className="text-green-400 text-sm flex items-center gap-2 font-medium">
+                            <div className="text-[#10B981] text-xs flex items-center gap-2 font-medium">
                               <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ type: 'spring', stiffness: 500 }}
                               >
-                                <Check className="w-4 h-4" />
+                                <Check className="w-3.5 h-3.5" />
                               </motion.div>
                               <span>Conectado exitosamente</span>
                             </div>
                           ) : (
-                          <p className="text-slate-400 text-sm">Conecta tu cuenta de Google</p>
+                          <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Google</p>
                           )}
                         </div>
                         
                         {/* Icono de acción */}
                         {connectedCalendar !== 'google' && (
                           <motion.div
-                            className="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center group-hover:bg-slate-600/50 transition-colors"
+                            className="w-8 h-8 rounded-full bg-[#E9ECEF] dark:bg-[#6C757D]/30 flex items-center justify-center group-hover:bg-[#6C757D]/20 dark:group-hover:bg-[#6C757D]/50 transition-colors"
                             whileHover={{ rotate: 45 }}
                           >
-                            <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-slate-300 transition-colors" />
+                            <ExternalLink className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" />
                           </motion.div>
                         )}
                       </motion.button>
@@ -7598,38 +7598,38 @@ Cuéntame:
                         {/* Contenido del botón */}
                         <div className="flex-1 text-left min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="text-white font-semibold text-base">Microsoft Outlook</p>
+                            <p className="text-[#0A2540] dark:text-white font-semibold text-sm">Microsoft Outlook</p>
                             {connectedCalendar === 'microsoft' && (
                               <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
-                                className="w-2 h-2 rounded-full bg-green-400 shadow-lg shadow-green-400/50"
+                                className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
                               />
                             )}
                           </div>
                           {connectedCalendar === 'microsoft' ? (
-                            <div className="text-green-400 text-sm flex items-center gap-2 font-medium">
+                            <div className="text-[#10B981] text-xs flex items-center gap-2 font-medium">
                               <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ type: 'spring', stiffness: 500 }}
                               >
-                                <Check className="w-4 h-4" />
+                                <Check className="w-3.5 h-3.5" />
                               </motion.div>
                               <span>Conectado exitosamente</span>
                             </div>
                           ) : (
-                          <p className="text-slate-400 text-sm">Conecta tu cuenta de Microsoft</p>
+                          <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Microsoft</p>
                           )}
                         </div>
                         
                         {/* Icono de acción */}
                         {connectedCalendar !== 'microsoft' && (
                           <motion.div
-                            className="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center group-hover:bg-slate-600/50 transition-colors"
+                            className="w-8 h-8 rounded-full bg-[#E9ECEF] dark:bg-[#6C757D]/30 flex items-center justify-center group-hover:bg-[#6C757D]/20 dark:group-hover:bg-[#6C757D]/50 transition-colors"
                             whileHover={{ rotate: 45 }}
                           >
-                            <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-slate-300 transition-colors" />
+                            <ExternalLink className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" />
                           </motion.div>
                         )}
                       </motion.button>
@@ -7658,7 +7658,7 @@ Cuéntame:
                       onClick={skipCalendarConnection}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="text-slate-400 hover:text-slate-300 text-sm font-medium transition-colors px-4 py-2 rounded-lg hover:bg-slate-700/30"
+                      className="text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white text-xs font-medium transition-colors px-4 py-2 rounded-md hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
                     >
                       Omitir por ahora
                     </motion.button>
@@ -7669,7 +7669,7 @@ Cuéntame:
                     onClick={skipCalendarConnection}
                     whileHover={{ scale: 1.1, rotate: 90 }}
                     whileTap={{ scale: 0.9 }}
-                    className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all backdrop-blur-sm"
+                    className="absolute top-4 right-4 p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
                     title="Cerrar modal de calendario"
                     aria-label="Cerrar"
                   >
@@ -7702,17 +7702,17 @@ Cuéntame:
                 className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
               >
                 <motion.div
-                  className="relative bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden pointer-events-auto"
+                  className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden pointer-events-auto"
                 >
                   {/* Header */}
-                  <div className="relative p-6 pb-4 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-purple-600/10">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-500/30">
-                        <BookOpen className="w-6 h-6 text-purple-400" />
+                  <div className="relative p-5 pb-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30">
+                        <BookOpen className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-white mb-1">Selecciona tu enfoque de estudio</h3>
-                        <p className="text-slate-400 text-sm">Elige el tipo de sesiones que prefieres para tu plan de estudios</p>
+                        <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona tu enfoque de estudio</h3>
+                        <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige el tipo de sesiones que prefieres para tu plan de estudios</p>
                       </div>
                     </div>
                   </div>
@@ -7724,28 +7724,28 @@ Cuéntame:
                       onClick={() => handleApproachSelection('rapido')}
                       whileHover={{ scale: 1.02, x: 4 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                      className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
                         studyApproach === 'rapido'
-                          ? 'bg-gradient-to-r from-purple-600/30 to-blue-600/30 border-purple-500 shadow-lg shadow-purple-500/20'
-                          : 'bg-slate-700/30 border-slate-600/50 hover:border-purple-500/50 hover:bg-slate-700/50'
+                          ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
+                          : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
                       }`}
                     >
                       <div className="flex items-start gap-4">
                         <div className={`p-2 rounded-lg ${
                           studyApproach === 'rapido'
-                            ? 'bg-purple-500/20'
-                            : 'bg-slate-600/30'
+                            ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
+                            : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                         }`}>
                           <ChevronRight className={`w-5 h-5 ${
                             studyApproach === 'rapido'
-                              ? 'text-purple-400'
-                              : 'text-slate-400'
+                              ? 'text-[#0A2540] dark:text-[#00D4B3]'
+                              : 'text-[#6C757D] dark:text-gray-400'
                           }`} />
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-white mb-1">Sesiones rápidas</h4>
-                          <p className="text-sm text-slate-300">Sesiones cortas e intensas para avanzar rápido en los cursos</p>
-                          <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                          <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones rápidas</h4>
+                          <p className="text-xs text-[#6C757D] dark:text-gray-300">Sesiones cortas e intensas para avanzar rápido en los cursos</p>
+                          <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
                             <span>• 25 minutos por sesión</span>
                             <span>• Descansos de 5 minutos</span>
                           </div>
@@ -7754,7 +7754,7 @@ Cuéntame:
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center"
+                            className="w-6 h-6 rounded-full bg-[#0A2540] dark:bg-[#0A2540] flex items-center justify-center"
                           >
                             <Check className="w-4 h-4 text-white" />
                           </motion.div>
@@ -7786,9 +7786,9 @@ Cuéntame:
                           }`} />
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-white mb-1">Sesiones normales</h4>
-                          <p className="text-sm text-slate-300">Un ritmo equilibrado entre estudio y descanso</p>
-                          <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                          <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones normales</h4>
+                          <p className="text-xs text-[#6C757D] dark:text-gray-300">Un ritmo equilibrado entre estudio y descanso</p>
+                          <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
                             <span>• 30 minutos por sesión</span>
                             <span>• Descansos de 10 minutos</span>
                           </div>
@@ -7797,7 +7797,7 @@ Cuéntame:
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center"
+                            className="w-6 h-6 rounded-full bg-[#0A2540] dark:bg-[#0A2540] flex items-center justify-center"
                           >
                             <Check className="w-4 h-4 text-white" />
                           </motion.div>
@@ -7829,9 +7829,9 @@ Cuéntame:
                           }`} />
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-white mb-1">Sesiones largas</h4>
-                          <p className="text-sm text-slate-300">Sesiones más extensas para profundizar en el contenido</p>
-                          <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                          <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones largas</h4>
+                          <p className="text-xs text-[#6C757D] dark:text-gray-300">Sesiones más extensas para profundizar en el contenido</p>
+                          <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
                             <span>• 60 minutos por sesión</span>
                             <span>• Descansos de 15 minutos</span>
                           </div>
@@ -7840,7 +7840,7 @@ Cuéntame:
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center"
+                            className="w-6 h-6 rounded-full bg-[#0A2540] dark:bg-[#0A2540] flex items-center justify-center"
                           >
                             <Check className="w-4 h-4 text-white" />
                           </motion.div>
@@ -7850,8 +7850,8 @@ Cuéntame:
                   </div>
 
                   {/* Footer */}
-                  <div className="px-6 py-4 border-t border-slate-700/50 bg-slate-800/50">
-                    <p className="text-xs text-slate-400 text-center">
+                  <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
+                    <p className="text-xs text-[#6C757D] dark:text-gray-400 text-center">
                       Esta selección ayudará a calcular cuánto tiempo necesitarás para completar tus cursos
                     </p>
                   </div>
@@ -7882,17 +7882,17 @@ Cuéntame:
                 className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
               >
                 <motion.div
-                  className="relative bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden pointer-events-auto"
+                  className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-2xl w-full max-w-md overflow-hidden pointer-events-auto"
                 >
                   {/* Header */}
-                  <div className="relative p-6 pb-4 border-b border-slate-700/50 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-purple-600/10">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-500/30">
-                        <Calendar className="w-6 h-6 text-purple-400" />
+                  <div className="relative p-5 pb-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30">
+                        <Calendar className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-white mb-1">Selecciona fecha estimada</h3>
-                        <p className="text-slate-400 text-sm">Elige cuándo quieres terminar tus cursos</p>
+                        <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona fecha estimada</h3>
+                        <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige cuándo quieres terminar tus cursos</p>
                       </div>
                     </div>
                   </div>
@@ -7912,11 +7912,11 @@ Cuéntame:
                         }}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
+                        className="p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
                       >
                         <ChevronLeft size={20} />
                       </motion.button>
-                      <h4 className="text-lg font-semibold text-white">
+                      <h4 className="text-base font-semibold text-[#0A2540] dark:text-white">
                         {currentMonth ? currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) : 'Cargando...'}
                       </h4>
                       <motion.button
@@ -7930,7 +7930,7 @@ Cuéntame:
                         }}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
+                        className="p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
                       >
                         <ChevronRight size={20} />
                       </motion.button>
@@ -7939,7 +7939,7 @@ Cuéntame:
                     {/* Días de la semana */}
                     <div className="grid grid-cols-7 gap-1 mb-2">
                       {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, idx) => (
-                        <div key={idx} className="text-center text-xs font-semibold text-slate-400 py-2">
+                        <div key={idx} className="text-center text-xs font-semibold text-[#6C757D] dark:text-gray-400 py-2">
                           {day}
                         </div>
                       ))}
@@ -7950,7 +7950,7 @@ Cuéntame:
                       {(() => {
                         // ✅ CORRECCIÓN: Verificar que currentMonth no sea null
                         if (!currentMonth) {
-                          return <div className="col-span-7 text-center text-slate-400 py-4">Cargando calendario...</div>;
+                          return <div className="col-span-7 text-center text-[#6C757D] dark:text-gray-400 py-4">Cargando calendario...</div>;
                         }
                         
                         // Obtener año y mes directamente de currentMonth
@@ -8055,10 +8055,10 @@ Cuéntame:
                               whileTap={!isPast ? { scale: 0.9 } : {}}
                               className={`p-2 rounded-lg text-sm font-medium transition-all ${
                                 isPast
-                                  ? 'text-slate-600 cursor-not-allowed'
+                                  ? 'text-[#6C757D] cursor-not-allowed'
                                   : isSelected
-                                  ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg'
-                                  : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                                  ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white shadow-sm'
+                                  : 'text-[#0A2540] dark:text-gray-300 hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/20 hover:text-[#0A2540] dark:hover:text-white'
                               }`}
                             >
                               {day}
@@ -8082,10 +8082,10 @@ Cuéntame:
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mt-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg"
+                        className="mt-4 p-3 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border border-[#0A2540]/20 dark:border-[#00D4B3]/30 rounded-lg"
                       >
-                        <p className="text-sm text-slate-300">
-                          <span className="text-purple-400 font-semibold">Fecha seleccionada:</span>{' '}
+                        <p className="text-sm text-[#0A2540] dark:text-gray-300">
+                          <span className="text-[#0A2540] dark:text-[#00D4B3] font-semibold">Fecha seleccionada:</span>{' '}
                           {selectedDate.toLocaleDateString('es-ES', { 
                             weekday: 'long', 
                             year: 'numeric', 
@@ -8098,12 +8098,12 @@ Cuéntame:
                   </div>
 
                   {/* Footer con botones */}
-                  <div className="px-6 py-4 border-t border-slate-700/50 bg-slate-800/50 flex items-center justify-between gap-3">
+                  <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] flex items-center justify-between gap-3">
                     <motion.button
                       onClick={() => handleDateSelection(null, true)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                      className="px-4 py-2 text-xs text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white transition-colors"
                     >
                       Sin fecha específica
                     </motion.button>
@@ -8112,10 +8112,10 @@ Cuéntame:
                       disabled={!selectedDate}
                       whileHover={selectedDate ? { scale: 1.05 } : {}}
                       whileTap={selectedDate ? { scale: 0.95 } : {}}
-                      className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      className={`px-5 py-2 rounded-md text-xs font-semibold transition-all ${
                         selectedDate
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/30'
-                          : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                          ? 'bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white shadow-sm'
+                          : 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
                       }`}
                     >
                       Confirmar
@@ -8128,7 +8128,7 @@ Cuéntame:
         </AnimatePresence>
 
         {/* Área de input */}
-        <div className="flex-shrink-0 bg-slate-900/80 backdrop-blur-xl border-t border-slate-700/50 px-4 py-4">
+        <div className="flex-shrink-0 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-t border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-3">
               {/* Input de texto */}
@@ -8145,7 +8145,7 @@ Cuéntame:
                 }}
                 placeholder="Escribe tu mensaje o usa el micrófono..."
                 disabled={isProcessing || isListening}
-                className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 disabled:opacity-50 shadow-sm"
               />
 
               {/* Botón dinámico fusionado: micrófono cuando está vacío, enviar cuando hay texto */}
@@ -8163,12 +8163,12 @@ Cuéntame:
                 disabled={isProcessing || (isListening && !!userMessage.trim())}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg ${
+                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm ${
                   userMessage.trim()
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 shadow-purple-500/30'
+                    ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
                     : isListening
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-green-500/50'
-                    : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 shadow-purple-500/30'
+                    ? 'bg-[#10B981] text-white hover:bg-[#10B981]/90'
+                    : 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
                 } ${isProcessing || (isListening && userMessage.trim()) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <AnimatePresence mode="wait">

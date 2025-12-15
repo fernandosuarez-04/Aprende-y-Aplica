@@ -2,8 +2,9 @@
 
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
-import Typewriter from 'typewriter-effect';
 
 // ⚡ OPTIMIZACIÓN: Lazy load de AuthTabs (contiene RegisterForm pesado)
 const AuthTabs = dynamic(
@@ -12,88 +13,132 @@ const AuthTabs = dynamic(
     ssr: false,
     loading: () => (
       <div className="w-full h-64 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[#0A2540]/30 dark:border-[#00D4B3]/30 border-t-[#0A2540] dark:border-t-[#00D4B3] rounded-full animate-spin"></div>
       </div>
     )
   }
 );
 
-// ⚡ OPTIMIZACIÓN: Lazy load de motion para animaciones (reducir bundle inicial)
-const MotionDiv = dynamic(
-  () => import('framer-motion').then(mod => ({ default: mod.motion.div })),
-  {
-    ssr: false,
-    loading: () => <div className="opacity-0" />
-  }
-);
-
-export default function AuthPage() {
-  // ⚡ OPTIMIZACIÓN CRÍTICA: Eliminado fetch bloqueante a /api/auth/me
-  // La verificación de organización se hace después del login si es necesaria
-  // Esto reduce el tiempo de carga de 17s a 2-3s
+function AuthPageContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const isLogin = !tabParam || tabParam === 'login';
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 relative overflow-hidden auth-page-enhanced">
-      {/* Efectos de Gradiente - Simplificados */}
-      <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent z-0" />
+    <div className="min-h-screen flex items-center justify-center p-0 relative overflow-hidden bg-gradient-to-br from-white via-[#F8F9FA] to-white dark:from-[#0F1419] dark:via-[#0A0D12] dark:to-[#0F1419]">
+      {/* Fondo animado con formas geométricas */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Círculos animados de fondo */}
+        <motion.div
+          className="absolute top-20 left-10 w-72 h-72 bg-[#00D4B3]/5 dark:bg-[#00D4B3]/10 rounded-full blur-3xl"
+          animate={{
+            x: [0, 100, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute bottom-20 right-10 w-96 h-96 bg-[#0A2540]/5 dark:bg-[#0A2540]/10 rounded-full blur-3xl"
+          animate={{
+            x: [0, -80, 0],
+            y: [0, -60, 0],
+            scale: [1, 1.3, 1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#00D4B3]/3 dark:bg-[#00D4B3]/5 rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.5, 1],
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
 
-      {/* Card Principal - Animación simplificada */}
-      <div className="auth-card-enhanced w-full max-w-md lg:max-w-lg xl:max-w-xl relative z-10 animate-fade-in">
-        {/* Efecto de Brillo en el Borde - Mejorado */}
-        <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-r from-primary/20 via-success/20 to-primary/20 blur-xl opacity-50 animate-pulse" />
-
+        {/* Patrón de grid sutil */}
         <div 
-          className="relative backdrop-blur-2xl p-3 sm:p-5 lg:p-7 xl:p-9 shadow-2xl rounded-3xl border overflow-hidden transition-all duration-500 dark:bg-slate-900/85 bg-white/95 dark:border-slate-700/50 border-gray-200/50 dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(71,85,105,0.2)] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15),0_0_0_1px_rgba(0,0,0,0.1)]" 
-        >
-          {/* Logo - Optimizado para mobile */}
-          <div className="flex flex-col items-center gap-1.5 sm:gap-2.5 mb-2.5 sm:mb-4">
-            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl overflow-hidden shadow-lg bg-gray-100/50 dark:bg-transparent transition-transform hover:scale-110">
-              <Image
-                src="/icono.png"
-                alt="Aprende y Aplica"
-                width={56}
-                height={56}
-                priority={true}
-                className="w-full h-full object-contain"
-              />
-            </div>
+          className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03] bg-[linear-gradient(#0A2540_1px,transparent_1px),linear-gradient(90deg,#0A2540_1px,transparent_1px)] bg-[length:50px_50px]"
+        />
+      </div>
 
-            <div className="text-center space-y-0.5 sm:space-y-1">
-              <h1 className="text-base sm:text-lg lg:text-xl font-bold text-color-contrast">
-                Aprende y Aplica
-              </h1>
-              {/* Typewriter Effect Restaurado */}
-              <div className="text-xs sm:text-xs lg:text-sm text-primary font-medium h-4 sm:h-5 flex items-center justify-center">
-                <Typewriter
-                  options={{
-                    strings: [
-                      'Inteligencia Artificial',
-                      'Machine Learning',
-                      'Deep Learning',
-                      'Data Science',
-                      'Automatización',
-                    ],
-                    autoStart: true,
-                    loop: true,
-                    delay: 75,
-                    deleteSpeed: 50,
-                    cursor: '|',
-                  }}
+      {/* Contenido principal */}
+      <div className="relative z-10 w-full min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-y-auto">
+        <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          {/* Logo - Izquierda en desktop, arriba en móvil */}
+          <motion.div
+            initial={{ opacity: 0, x: -50, y: 0 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="flex items-center justify-center lg:block"
+          >
+            <div className="relative w-full max-w-[280px] sm:max-w-md mx-auto lg:mx-0">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ 
+                  scale: 1, 
+                  opacity: 1,
+                  y: [0, -20, 0],
+                }}
+                transition={{ 
+                  scale: { delay: 0.2, duration: 0.5 },
+                  opacity: { delay: 0.2, duration: 0.5 },
+                  y: {
+                    delay: 0.7,
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }
+                }}
+                className="relative w-full aspect-square"
+              >
+                <Image
+                  src="/logo.png"
+                  alt="Aprende y Aplica Logo"
+                  fill
+                  className="object-contain"
+                  priority
                 />
-              </div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Auth Tabs - Con lazy loading y Suspense para useSearchParams */}
+          {/* Formulario a la derecha en desktop, abajo en móvil */}
+          <div className="w-full max-w-md mx-auto lg:max-w-lg">
           <Suspense fallback={
             <div className="w-full h-40 sm:h-56 flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-[#0A2540]/30 dark:border-[#00D4B3]/30 border-t-[#0A2540] dark:border-t-[#00D4B3] rounded-full animate-spin"></div>
             </div>
           }>
             <AuthTabs />
           </Suspense>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-[#F8F9FA] to-white dark:from-[#0F1419] dark:via-[#0A0D12] dark:to-[#0F1419]">
+        <div className="w-8 h-8 border-4 border-[#0A2540]/30 dark:border-[#00D4B3]/30 border-t-[#0A2540] dark:border-t-[#00D4B3] rounded-full animate-spin"></div>
+      </div>
+    }>
+      <AuthPageContent />
+    </Suspense>
   );
 }

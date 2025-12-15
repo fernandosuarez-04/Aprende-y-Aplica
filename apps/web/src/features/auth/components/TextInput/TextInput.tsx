@@ -1,29 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Eye, EyeOff, Lock } from 'lucide-react';
+import React from 'react';
 import { motion } from 'framer-motion';
+import { LucideIcon } from 'lucide-react';
 
-interface PasswordInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'focusedField'> {
+interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'focusedField'> {
   id: string;
+  label?: string;
   placeholder?: string;
   error?: string;
+  icon?: LucideIcon;
   className?: string;
   focusedField?: string | null;
 }
 
-export function PasswordInput({
+export function TextInput({
   id,
-  placeholder = '••••••••',
+  label,
+  placeholder,
   error,
+  icon: Icon,
   className = '',
   focusedField: _focusedField, // Renombrar para evitar que se pase al DOM
   onFocus,
   onBlur,
   ...props
-}: PasswordInputProps) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [localFocused, setLocalFocused] = useState(false);
+}: TextInputProps) {
+  const [localFocused, setLocalFocused] = React.useState(false);
   const isFocused = _focusedField === id || localFocused;
   
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -38,9 +41,17 @@ export function PasswordInput({
 
   // Filtrar explícitamente focusedField de props para evitar que se pase al DOM
   const { focusedField, ...inputProps } = props as any;
-
+  
   return (
     <div className="w-full">
+      {label && (
+        <label
+          htmlFor={id}
+          className="block text-sm font-medium mb-2 text-[#0A2540] dark:text-white/90 transition-colors"
+        >
+          {label}
+        </label>
+      )}
       <motion.div
         className={`relative rounded-xl border transition-all duration-300 overflow-hidden ${
           isFocused
@@ -55,37 +66,25 @@ export function PasswordInput({
         transition={{ duration: 0.2 }}
       >
         <div className="flex items-center px-4 py-3.5">
-          <Lock 
-            className={`w-5 h-5 flex-shrink-0 mr-3 transition-colors duration-200 ${
-              isFocused 
-                ? 'text-[#00D4B3]' 
-                : error
-                  ? 'text-red-500'
-                : 'text-[#6C757D] dark:text-white/50'
-            }`}
-          />
+          {Icon && (
+            <Icon
+              className={`w-5 h-5 flex-shrink-0 mr-3 transition-colors duration-200 ${
+                isFocused
+                  ? 'text-[#00D4B3]'
+                  : error
+                    ? 'text-red-500'
+                    : 'text-[#6C757D] dark:text-white/50'
+              }`}
+            />
+          )}
           <input
             id={id}
-            type={showPassword ? 'text' : 'password'}
             placeholder={placeholder}
             className={`flex-1 w-full bg-transparent outline-none placeholder:opacity-50 transition-colors text-sm font-normal font-sans text-[#0A2540] dark:text-white placeholder:text-[#6C757D] dark:placeholder:text-white/50 ${className}`}
             onFocus={handleFocus}
             onBlur={handleBlur}
             {...inputProps}
           />
-          <motion.button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className={`ml-2 transition-colors p-1 rounded-lg ${
-              isFocused 
-                ? 'text-[#00D4B3]' 
-                : 'text-[#6C757D] dark:text-white/50 hover:text-[#00D4B3] dark:hover:text-[#00D4B3]'
-            }`}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-          </motion.button>
         </div>
       </motion.div>
       {error && (

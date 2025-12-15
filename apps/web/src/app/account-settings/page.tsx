@@ -94,17 +94,17 @@ export default function AccountSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-carbon dark:bg-carbon-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-text-primary">Cargando configuración...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-[#0A2540] dark:text-[#00D4B3] mx-auto mb-4" />
+          <p className="text-[#0A2540] dark:text-white">Cargando configuración...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-carbon dark:bg-carbon-900">
+    <div className="min-h-screen bg-white dark:bg-[#0F1419]">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -113,10 +113,10 @@ export default function AccountSettingsPage() {
         >
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-text-primary mb-2">
+            <h1 className="text-3xl font-bold text-[#0A2540] dark:text-white mb-2">
               Configuración de la cuenta
             </h1>
-            <p className="text-text-tertiary">
+            <p className="text-[#6C757D] dark:text-gray-400">
               Gestiona tu privacidad y preferencias de notificaciones
             </p>
           </div>
@@ -142,18 +142,18 @@ export default function AccountSettingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-6"
+            className="bg-white dark:bg-[#1E2329] rounded-xl p-6 mb-6 border border-[#E9ECEF] dark:border-[#6C757D]/30"
           >
             <div className="flex items-center gap-3 mb-6">
-              <Shield className="w-6 h-6 text-primary" />
-              <h2 className="text-xl font-semibold text-text-primary">
+              <Shield className="w-6 h-6 text-[#0A2540] dark:text-[#00D4B3]" />
+              <h2 className="text-xl font-semibold text-[#0A2540] dark:text-white">
                 Privacidad
               </h2>
             </div>
 
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
+                <label className="block text-sm font-medium text-[#0A2540] dark:text-white mb-2">
                   Visibilidad del perfil
                 </label>
                 <select
@@ -164,12 +164,12 @@ export default function AccountSettingsPage() {
                       profileVisibility: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-text-primary"
+                  className="w-full px-4 py-2 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg bg-white dark:bg-[#0F1419] text-[#0A2540] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#0A2540]/50 focus:border-[#0A2540]/50"
                 >
                   <option value="public">Público</option>
                   <option value="self">Yo</option>
                 </select>
-                <p className="text-xs text-text-tertiary mt-1">
+                <p className="text-xs text-[#6C757D] dark:text-gray-400 mt-1">
                   {privacy.profileVisibility === 'public'
                     ? 'Tu perfil será visible para todos los miembros de la comunidad'
                     : 'Solo tú podrás ver la información completa de tu perfil'}
@@ -178,10 +178,10 @@ export default function AccountSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">
+                  <p className="text-sm font-medium text-[#0A2540] dark:text-white">
                     Mostrar email en perfil
                   </p>
-                  <p className="text-xs text-text-tertiary">
+                  <p className="text-xs text-[#6C757D] dark:text-gray-400">
                     Permite que otros usuarios vean tu email
                   </p>
                 </div>
@@ -194,16 +194,16 @@ export default function AccountSettingsPage() {
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                  <div className="w-11 h-6 bg-[#E9ECEF] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0A2540]/20 dark:peer-focus:ring-[#0A2540]/40 rounded-full peer dark:bg-[#0F1419] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#E9ECEF] after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-[#6C757D]/30 peer-checked:bg-[#0A2540] dark:peer-checked:bg-[#0A2540]"></div>
                 </label>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">
+                  <p className="text-sm font-medium text-[#0A2540] dark:text-white">
                     Mostrar actividad
                   </p>
-                  <p className="text-xs text-text-tertiary">
+                  <p className="text-xs text-[#6C757D] dark:text-gray-400">
                     Muestra tu actividad reciente en tu perfil
                   </p>
                 </div>
@@ -216,7 +216,7 @@ export default function AccountSettingsPage() {
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                  <div className="w-11 h-6 bg-[#E9ECEF] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0A2540]/20 dark:peer-focus:ring-[#0A2540]/40 rounded-full peer dark:bg-[#0F1419] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#E9ECEF] after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-[#6C757D]/30 peer-checked:bg-[#0A2540] dark:peer-checked:bg-[#0A2540]"></div>
                 </label>
               </div>
             </div>
@@ -227,11 +227,11 @@ export default function AccountSettingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-6"
+            className="bg-white dark:bg-[#1E2329] rounded-xl p-6 mb-6 border border-[#E9ECEF] dark:border-[#6C757D]/30"
           >
             <div className="flex items-center gap-3 mb-6">
-              <Bell className="w-6 h-6 text-primary" />
-              <h2 className="text-xl font-semibold text-text-primary">
+              <Bell className="w-6 h-6 text-[#0A2540] dark:text-[#00D4B3]" />
+              <h2 className="text-xl font-semibold text-[#0A2540] dark:text-white">
                 Notificaciones
               </h2>
             </div>
@@ -239,10 +239,10 @@ export default function AccountSettingsPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">
+                  <p className="text-sm font-medium text-[#0A2540] dark:text-white">
                     Notificaciones por email
                   </p>
-                  <p className="text-xs text-text-tertiary">
+                  <p className="text-xs text-[#6C757D] dark:text-gray-400">
                     Recibe notificaciones importantes por correo electrónico
                   </p>
                 </div>
@@ -255,16 +255,16 @@ export default function AccountSettingsPage() {
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                  <div className="w-11 h-6 bg-[#E9ECEF] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0A2540]/20 dark:peer-focus:ring-[#0A2540]/40 rounded-full peer dark:bg-[#0F1419] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#E9ECEF] after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-[#6C757D]/30 peer-checked:bg-[#0A2540] dark:peer-checked:bg-[#0A2540]"></div>
                 </label>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">
+                  <p className="text-sm font-medium text-[#0A2540] dark:text-white">
                     Notificaciones push
                   </p>
-                  <p className="text-xs text-text-tertiary">
+                  <p className="text-xs text-[#6C757D] dark:text-gray-400">
                     Recibe notificaciones en tiempo real en tu dispositivo
                   </p>
                 </div>
@@ -277,16 +277,16 @@ export default function AccountSettingsPage() {
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                  <div className="w-11 h-6 bg-[#E9ECEF] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0A2540]/20 dark:peer-focus:ring-[#0A2540]/40 rounded-full peer dark:bg-[#0F1419] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#E9ECEF] after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-[#6C757D]/30 peer-checked:bg-[#0A2540] dark:peer-checked:bg-[#0A2540]"></div>
                 </label>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">
+                  <p className="text-sm font-medium text-[#0A2540] dark:text-white">
                     Email de marketing
                   </p>
-                  <p className="text-xs text-text-tertiary">
+                  <p className="text-xs text-[#6C757D] dark:text-gray-400">
                     Recibe ofertas especiales y novedades
                   </p>
                 </div>
@@ -302,16 +302,16 @@ export default function AccountSettingsPage() {
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                  <div className="w-11 h-6 bg-[#E9ECEF] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0A2540]/20 dark:peer-focus:ring-[#0A2540]/40 rounded-full peer dark:bg-[#0F1419] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#E9ECEF] after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-[#6C757D]/30 peer-checked:bg-[#0A2540] dark:peer-checked:bg-[#0A2540]"></div>
                 </label>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">
+                  <p className="text-sm font-medium text-[#0A2540] dark:text-white">
                     Actualizaciones de cursos
                   </p>
-                  <p className="text-xs text-text-tertiary">
+                  <p className="text-xs text-[#6C757D] dark:text-gray-400">
                     Notificaciones cuando tus cursos se actualicen
                   </p>
                 </div>
@@ -327,16 +327,16 @@ export default function AccountSettingsPage() {
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                  <div className="w-11 h-6 bg-[#E9ECEF] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0A2540]/20 dark:peer-focus:ring-[#0A2540]/40 rounded-full peer dark:bg-[#0F1419] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#E9ECEF] after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-[#6C757D]/30 peer-checked:bg-[#0A2540] dark:peer-checked:bg-[#0A2540]"></div>
                 </label>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">
+                  <p className="text-sm font-medium text-[#0A2540] dark:text-white">
                     Actualizaciones de comunidad
                   </p>
-                  <p className="text-xs text-text-tertiary">
+                  <p className="text-xs text-[#6C757D] dark:text-gray-400">
                     Notificaciones sobre actividades en tus comunidades
                   </p>
                 </div>
@@ -352,7 +352,7 @@ export default function AccountSettingsPage() {
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 dark:peer-focus:ring-primary/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                  <div className="w-11 h-6 bg-[#E9ECEF] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0A2540]/20 dark:peer-focus:ring-[#0A2540]/40 rounded-full peer dark:bg-[#0F1419] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#E9ECEF] after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-[#6C757D]/30 peer-checked:bg-[#0A2540] dark:peer-checked:bg-[#0A2540]"></div>
                 </label>
               </div>
             </div>
@@ -368,7 +368,7 @@ export default function AccountSettingsPage() {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-[#0A2540] hover:bg-[#0d2f4d] disabled:bg-[#6C757D] disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-lg transition-colors shadow-sm hover:shadow-md"
             >
               {isSaving ? (
                 <>

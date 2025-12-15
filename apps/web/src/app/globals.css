@@ -172,14 +172,20 @@
   margin: 0;
 }
 
-html,
-body {
+html {
   max-width: 100vw;
   overflow-x: hidden;
+  overflow-y: auto;
   scroll-behavior: smooth;
+  height: 100%;
 }
 
 body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  height: 100%;
   color: var(--color-contrast);
   background: var(--color-bg-dark);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -264,26 +270,26 @@ a {
 
 /* Navbar styles */
 .dark .navbar-scrolled {
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(15, 20, 25, 0.8); /* #0F1419 con opacidad */
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+  border-bottom: 1px solid rgba(108, 117, 125, 0.3); /* #6C757D con opacidad */
 }
 
 .light .navbar-scrolled {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(233, 236, 239, 0.8); /* #E9ECEF con opacidad */
 }
 
 .navbar-logo-text {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  background: linear-gradient(135deg, #0A2540 0%, #0A2540 100%); /* SOFIA Deep Blue */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .dark .navbar-logo-text {
-  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%); /* Blanco en modo oscuro */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

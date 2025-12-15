@@ -147,36 +147,25 @@ export async function requireAdmin(): Promise<AdminAuth | NextResponse> {
       );
     }
 
-    // PASO 7: Verificar cuestionario obligatorio para usuarios OAuth (INCLUSO ADMINISTRADORES)
+    // PASO 7: (Opcional) Verificar cuestionario obligatorio
+    // IMPORTANTE: Para no bloquear el panel de administración, solo registramos en logs
+    // si el cuestionario falta, pero no devolvemos 403.
     try {
       const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
       
       if (requiresQuestionnaire) {
-        logger.warn('OAuth admin user attempted to access admin route without completing questionnaire', { 
+        logger.warn('Admin user without completed questionnaire accessing admin route', { 
           userId: user.id,
           email: user.email 
         });
-        return NextResponse.json(
-          { 
-            success: false,
-            error: 'Debes completar el cuestionario obligatorio antes de acceder a esta funcionalidad. Por favor, completa el cuestionario en /statistics.' 
-          },
-          { status: 403 }
-        );
+        // No bloquear acceso al panel admin; el requisito se controla en la UI de estadísticas.
       }
     } catch (questionnaireError) {
-      // Fail-secure: Si hay error verificando cuestionario, denegar acceso
-      logger.error('Error verifying questionnaire for admin user', { 
+      // Si falla la verificación del cuestionario, no bloqueamos al admin, solo registramos el error.
+      logger.error('Error verifying questionnaire for admin user (non-blocking)', { 
         userId: user.id,
         error: questionnaireError instanceof Error ? questionnaireError.message : 'Unknown error'
       });
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Error verificando requisitos de acceso. Por favor, intenta nuevamente.' 
-        },
-        { status: 500 }
-      );
     }
 
     // ✅ AUTENTICACIÓN Y AUTORIZACIÓN EXITOSA

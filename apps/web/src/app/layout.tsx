@@ -11,7 +11,6 @@ import { GlobalRecorderProvider } from '../core/components/GlobalRecorderProvide
 import { I18nProvider } from '../core/providers/I18nProvider';
 import { ShareModalProvider } from '../core/providers/ShareModalProvider';
 import { OnboardingAgent } from '../core/components/OnboardingAgent';
-import { DevResetButton } from '../core/components/OnboardingAgent/DevResetButton';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,10 +25,10 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: 'Aprende y Aplica',
+  title: 'SOFIA',
   description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA. Capacitación, comunidad y adopción de IA en el entorno laboral.',
   keywords: ['educación', 'inteligencia artificial', 'chatbot', 'capacitación', 'IA', 'LIA'],
-  authors: [{ name: 'Equipo Aprende y Aplica' }],
+  authors: [{ name: 'Equipo SOFIA' }],
   robots: 'index, follow',
   icons: {
     icon: '/icono.ico',
@@ -39,10 +38,10 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Aprende y Aplica',
+    title: 'SOFIA',
   },
   openGraph: {
-    title: 'Aprende y Aplica',
+    title: 'SOFIA',
     description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA',
     type: 'website',
     locale: 'es_ES',
@@ -190,10 +189,10 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
         
         {/* 📱 PWA Meta Tags */}
-        <meta name="application-name" content="Aprende y Aplica" />
+        <meta name="application-name" content="SOFIA" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Aprende y Aplica" />
+        <meta name="apple-mobile-web-app-title" content="SOFIA" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#3b82f6" />
@@ -209,7 +208,7 @@ export default function RootLayout({
                 <ShareModalProvider>
                   <NotificationProvider pollingInterval={60000}>
                     <PrefetchManager />
-                    <div className="min-h-screen bg-[var(--color-bg-dark)] transition-colors duration-300">
+                    <div className="bg-[var(--color-bg-dark)] transition-colors duration-300 min-h-full">
                       <ConditionalNavbar>
                         {children}
                       </ConditionalNavbar>
@@ -218,8 +217,6 @@ export default function RootLayout({
                     <ConditionalAIChatAgent />
                     {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
                     <OnboardingAgent />
-                    {/* Botón de desarrollo para resetear onboarding */}
-                    <DevResetButton />
                   </NotificationProvider>
                 </ShareModalProvider>
               </ThemeProvider>

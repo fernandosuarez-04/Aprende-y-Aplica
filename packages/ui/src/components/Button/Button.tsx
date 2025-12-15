@@ -37,7 +37,7 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size, asChild = false, ...props }, ref) => {
+  ({ className, variant = 'primary', size, asChild = false, onClick, ...props }, ref) => {
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       // Crear efecto ripple solo si no es botón ghost
       if (variant !== 'ghost') {
@@ -70,7 +70,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       }
       
       // Llamar al onClick original si existe
-      props.onClick?.(e);
+      onClick?.(e);
     };
 
     // Clase CSS específica para cada variante
@@ -97,7 +97,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         {...props}
         onClick={handleClick}
-        style={props.style}
       >
         {/* Efectos de animación - solo para botones que no sean ghost */}
         {variant !== 'ghost' && (

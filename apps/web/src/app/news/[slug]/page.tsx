@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { 
   ArrowLeft, 
@@ -34,6 +34,7 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
   const resolvedParams = React.use(params)
   const { news, loading, error } = useNewsDetail(resolvedParams.slug)
   const [imageError, setImageError] = useState(false)
+  const [hoveredButton, setHoveredButton] = useState<string | null>(null)
 
   // Scroll al top cuando se carga la página o cambia el slug
   useEffect(() => {
@@ -42,10 +43,15 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-carbon-950 dark:via-carbon-900 dark:to-carbon-800 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Cargando noticia...</p>
+          <div className="w-16 h-16 border-4 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full animate-spin mx-auto mb-4"></div>
+          <p 
+            className="text-[#0A2540] dark:text-white"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+          >
+            Cargando noticia...
+          </p>
         </div>
       </div>
     )
@@ -89,8 +95,13 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
         <div className="space-y-2.5">
           {tldr.map((item, index) => (
             <div key={index} className="flex items-start gap-2.5">
-              <CheckCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-              <span className="text-sm text-gray-900 dark:text-white leading-relaxed">{item}</span>
+              <CheckCircle className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3] mt-0.5 flex-shrink-0" />
+              <span 
+                className="text-sm text-[#0A2540] dark:text-white leading-relaxed"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+              >
+                {item}
+              </span>
             </div>
           ))}
         </div>
@@ -102,17 +113,32 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
         <div className="space-y-3">
           {Object.entries(tldr).map(([key, value]) => (
             <div key={key}>
-              <h4 className="text-sm font-semibold text-primary mb-2">{key}</h4>
+              <h4 
+                className="text-sm font-semibold text-[#0A2540] dark:text-white mb-2"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+              >
+                {key}
+              </h4>
               <div className="space-y-2">
                 {Array.isArray(value) ? (
                   value.map((item, index) => (
                     <div key={index} className="flex items-start gap-2.5">
-                      <CheckCircle className="w-3.5 h-3.5 text-primary mt-1 flex-shrink-0" />
-                      <span className="text-xs text-gray-900 dark:text-white leading-relaxed">{item}</span>
+                      <CheckCircle className="w-3.5 h-3.5 text-[#00D4B3] dark:text-[#00D4B3] mt-1 flex-shrink-0" />
+                      <span 
+                        className="text-xs text-[#0A2540] dark:text-white leading-relaxed"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                      >
+                        {item}
+                      </span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-gray-900 dark:text-white leading-relaxed">{String(value)}</p>
+                  <p 
+                    className="text-xs text-[#0A2540] dark:text-white leading-relaxed"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                  >
+                    {String(value)}
+                  </p>
                 )}
               </div>
             </div>
@@ -121,7 +147,14 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
       )
     }
 
-    return <p className="text-sm text-gray-900 dark:text-white leading-relaxed">{String(tldr)}</p>
+    return (
+      <p 
+        className="text-sm text-[#0A2540] dark:text-white leading-relaxed"
+        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+      >
+        {String(tldr)}
+      </p>
+    )
   }
 
   const renderSections = (sections: any) => {
@@ -157,13 +190,23 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
     return (
       <div className="space-y-5">
         {sections.map((section, index) => (
-          <div key={index} className="space-y-3 pb-5 border-b border-gray-200 dark:border-gray-700 last:border-0 last:pb-0">
+          <div key={index} className="space-y-3 pb-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 last:border-0 last:pb-0">
             {section.title && (
-              <h3 className="text-lg sm:text-xl font-semibold text-primary">{section.title}</h3>
+              <h3 
+                className="text-lg sm:text-xl font-semibold text-[#0A2540] dark:text-white"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+              >
+                {section.title}
+              </h3>
             )}
             {section.content && (
               <div className="prose dark:prose-invert max-w-none">
-                <p className="text-base text-gray-900 dark:text-white leading-relaxed text-justify">{section.content}</p>
+                <p 
+                  className="text-base text-[#0A2540] dark:text-white leading-relaxed text-justify"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                >
+                  {section.content}
+                </p>
               </div>
             )}
           </div>
@@ -178,16 +221,26 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
     return (
       <div className="space-y-5">
         {sections.map((section, index) => (
-          <div key={index} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+          <div key={index} className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-4">
             {section.title && (
-              <h3 className="text-sm font-semibold text-primary mb-3">{section.title}</h3>
+              <h3 
+                className="text-sm font-semibold text-[#0A2540] dark:text-white mb-3"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+              >
+                {section.title}
+              </h3>
             )}
             {section.items && (
               <div className="space-y-2">
                 {section.items.map((item: string, itemIndex: number) => (
                   <div key={itemIndex} className="flex items-start gap-2.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-xs text-gray-900 dark:text-white leading-relaxed">{item}</span>
+                    <TrendingUp className="w-3.5 h-3.5 text-[#00D4B3] dark:text-[#00D4B3] mt-0.5 flex-shrink-0" />
+                    <span 
+                      className="text-xs text-[#0A2540] dark:text-white leading-relaxed"
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                    >
+                      {item}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -247,11 +300,14 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
                   }
                 }}
               >
-                <LinkIcon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform flex-shrink-0" />
-                <span className="text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
+                <LinkIcon className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3] group-hover:scale-110 transition-transform flex-shrink-0" />
+                <span 
+                  className="text-sm text-[#0A2540] dark:text-white group-hover:text-[#00D4B3] transition-colors truncate"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                >
                   {title}
                 </span>
-                <ExternalLink className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 ml-auto flex-shrink-0" />
+                <ExternalLink className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/60 ml-auto flex-shrink-0" />
               </a>
             )
           })}
@@ -283,11 +339,16 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
               href={String(value)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 p-2.5 bg-gray-100 dark:bg-carbon-800/50 rounded-lg hover:bg-gray-200 dark:hover:bg-carbon-700/50 transition-colors group"
+              className="flex items-center gap-2.5 p-2.5 bg-[#E9ECEF]/30 dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors group"
             >
-              <LinkIcon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform flex-shrink-0" />
-              <span className="text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">{key}</span>
-              <ExternalLink className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 ml-auto flex-shrink-0" />
+              <LinkIcon className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3] group-hover:scale-110 transition-transform flex-shrink-0" />
+              <span 
+                className="text-sm text-[#0A2540] dark:text-white group-hover:text-[#00D4B3] transition-colors truncate"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+              >
+                {key}
+              </span>
+              <ExternalLink className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/60 ml-auto flex-shrink-0" />
             </a>
           ))}
         </div>
@@ -310,11 +371,16 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
         href={linkUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-2.5 p-2.5 bg-gray-100 dark:bg-carbon-800/50 rounded-lg hover:bg-gray-200 dark:hover:bg-carbon-700/50 transition-colors group"
+        className="flex items-center gap-2.5 p-2.5 bg-[#E9ECEF]/30 dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors group"
       >
-        <LinkIcon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform flex-shrink-0" />
-        <span className="text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors">Enlace</span>
-        <ExternalLink className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 ml-auto flex-shrink-0" />
+        <LinkIcon className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3] group-hover:scale-110 transition-transform flex-shrink-0" />
+        <span 
+          className="text-sm text-[#0A2540] dark:text-white group-hover:text-[#00D4B3] transition-colors"
+          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+        >
+          Enlace
+        </span>
+        <ExternalLink className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/60 ml-auto flex-shrink-0" />
       </a>
     )
   }
@@ -349,37 +415,77 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-carbon-950 dark:via-carbon-900 dark:to-carbon-800">
-      {/* Header */}
-      <motion.div 
-        className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700"
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
+      {/* Botones flotantes expandibles */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="fixed top-24 left-6 z-50 flex items-center gap-3"
       >
-        <div className="px-6 py-4 lg:px-8">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Volver</span>
-            </button>
-            
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleShare}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                <Share2 className="w-5 h-5" />
-              </button>
-            </div>
+        <motion.button
+          layout
+          onClick={handleBack}
+          onMouseEnter={() => setHoveredButton('back')}
+          onMouseLeave={() => setHoveredButton(null)}
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all duration-200 shadow-lg hover:shadow-xl overflow-hidden"
+          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+        >
+          <div className="p-2.5 flex-shrink-0 flex items-center justify-center">
+            <ArrowLeft className="w-5 h-5" />
           </div>
-        </div>
+          <AnimatePresence>
+            {hoveredButton === 'back' && (
+              <motion.span
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 80, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+              >
+                Volver
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="fixed top-24 right-6 z-40"
+      >
+        <motion.button
+          layout
+          onClick={handleShare}
+          onMouseEnter={() => setHoveredButton('share')}
+          onMouseLeave={() => setHoveredButton(null)}
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all duration-200 shadow-lg hover:shadow-xl overflow-hidden"
+          aria-label="Compartir noticia"
+        >
+          <div className="p-2.5 flex-shrink-0 flex items-center justify-center">
+            <Share2 className="w-5 h-5" />
+          </div>
+          <AnimatePresence>
+            {hoveredButton === 'share' && (
+              <motion.span
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 100, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+              >
+                Compartir
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </motion.div>
 
       {/* Main Content */}
-      <div className="px-4 py-6 sm:px-6 lg:px-8">
+      <div className="px-4 py-6 sm:px-6 lg:px-8 pt-20">
         <div className="mx-auto max-w-7xl">
           <motion.article
             initial={{ opacity: 0, y: 20 }}
@@ -388,7 +494,7 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
             className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8"
           >
             {/* Main Content Column */}
-            <div className="lg:col-span-8 space-y-6 bg-white dark:bg-gray-900 rounded-2xl p-6 sm:p-8 border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-lg">
+            <div className="lg:col-span-8 space-y-6 bg-white dark:bg-[#1E2329] rounded-xl p-6 sm:p-8 border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
               {/* Hero Image - Más compacta */}
               {news.hero_image_url && !imageError && (
                 <motion.div
@@ -429,26 +535,43 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="space-y-4 -mt-2"
               >
-                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                  <span className="px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary rounded-full font-medium">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-[#6C757D] dark:text-white/60">
+                  <span 
+                    className="px-3 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] rounded-full font-medium"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                  >
                     {news.language}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4" />
-                    <span>{formatDate(news.published_at || news.created_at)}</span>
+                    <Calendar className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                    <span 
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                    >
+                      {formatDate(news.published_at || news.created_at)}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Eye className="w-4 h-4" />
-                    <span>{news.view_count || 0} vistas</span>
+                    <Eye className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                    <span 
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                    >
+                      {news.view_count || 0} vistas
+                    </span>
                   </div>
                 </div>
 
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white leading-tight">
+                <h1 
+                  className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0A2540] dark:text-white leading-tight"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
+                >
                   {news.title}
                 </h1>
 
                 {news.subtitle && (
-                  <p className="text-lg sm:text-xl text-gray-700 dark:text-gray-300 leading-relaxed">
+                  <p 
+                    className="text-lg sm:text-xl text-[#6C757D] dark:text-white/80 leading-relaxed"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                  >
                     {news.subtitle}
                   </p>
                 )}
@@ -462,7 +585,10 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
                   transition={{ duration: 0.6, delay: 0.3 }}
                   className="prose dark:prose-invert max-w-none"
                 >
-                  <p className="text-base sm:text-lg text-gray-900 dark:text-white leading-relaxed text-justify">
+                  <p 
+                    className="text-base sm:text-lg text-[#0A2540] dark:text-white leading-relaxed text-justify"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                  >
                     {news.intro}
                   </p>
                 </motion.section>
@@ -491,8 +617,11 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
                   transition={{ duration: 0.6, delay: 0.5 }}
                   className="space-y-3"
                 >
-                  <h2 className="text-lg sm:text-xl font-semibold text-primary flex items-center gap-2">
-                    <LinkIcon className="w-5 h-5" />
+                  <h2 
+                    className="text-lg sm:text-xl font-semibold text-[#0A2540] dark:text-white flex items-center gap-2"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                  >
+                    <LinkIcon className="w-5 h-5 text-[#00D4B3]" />
                     Recursos y Enlaces
                   </h2>
                   {renderLinks(news.links)}
@@ -522,9 +651,12 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
                   transition={{ duration: 0.6, delay: 0.3 }}
                   className="lg:sticky lg:top-24 space-y-6"
                 >
-                  <div className="bg-blue-50 dark:bg-gray-800 border border-blue-200 dark:border-gray-700 rounded-xl p-5">
-                    <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-                      <Info className="w-5 h-5" />
+                  <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-5">
+                    <h2 
+                      className="text-lg font-semibold text-[#0A2540] dark:text-white mb-4 flex items-center gap-2"
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
+                    >
+                      <Info className="w-5 h-5 text-[#00D4B3]" />
                       TL;DR
                     </h2>
                     <div className="text-sm">
@@ -533,24 +665,55 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
                   </div>
 
                   {/* Información adicional */}
-                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">
+                  <div className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-5 space-y-4">
+                    <h3 
+                      className="text-sm font-semibold text-[#0A2540] dark:text-white uppercase tracking-wide"
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                    >
                       Información
                     </h3>
                     <div className="space-y-3 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Idioma</span>
-                        <span className="font-medium text-gray-900 dark:text-white">{news.language}</span>
+                        <span 
+                          className="text-[#6C757D] dark:text-white/60"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                        >
+                          Idioma
+                        </span>
+                        <span 
+                          className="font-medium text-[#0A2540] dark:text-white"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                        >
+                          {news.language}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Publicado</span>
-                        <span className="font-medium text-gray-900 dark:text-white">
+                        <span 
+                          className="text-[#6C757D] dark:text-white/60"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                        >
+                          Publicado
+                        </span>
+                        <span 
+                          className="font-medium text-[#0A2540] dark:text-white"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                        >
                           {formatDate(news.published_at || news.created_at)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Visualizaciones</span>
-                        <span className="font-medium text-gray-900 dark:text-white">{news.view_count || 0}</span>
+                        <span 
+                          className="text-[#6C757D] dark:text-white/60"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                        >
+                          Visualizaciones
+                        </span>
+                        <span 
+                          className="font-medium text-[#0A2540] dark:text-white"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                        >
+                          {news.view_count || 0}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -578,25 +741,56 @@ export default function NewsDetailPage({ params }: NewsDetailPageProps) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.3 }}
-                    className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4"
+                    className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-5 space-y-4"
                   >
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">
+                    <h3 
+                      className="text-sm font-semibold text-[#0A2540] dark:text-white uppercase tracking-wide"
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                    >
                       Información
                     </h3>
                     <div className="space-y-3 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Idioma</span>
-                        <span className="font-medium text-gray-900 dark:text-white">{news.language}</span>
+                        <span 
+                          className="text-[#6C757D] dark:text-white/60"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                        >
+                          Idioma
+                        </span>
+                        <span 
+                          className="font-medium text-[#0A2540] dark:text-white"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                        >
+                          {news.language}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Publicado</span>
-                        <span className="font-medium text-gray-900 dark:text-white">
+                        <span 
+                          className="text-[#6C757D] dark:text-white/60"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                        >
+                          Publicado
+                        </span>
+                        <span 
+                          className="font-medium text-[#0A2540] dark:text-white"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                        >
                           {formatDate(news.published_at || news.created_at)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Visualizaciones</span>
-                        <span className="font-medium text-gray-900 dark:text-white">{news.view_count || 0}</span>
+                        <span 
+                          className="text-[#6C757D] dark:text-white/60"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                        >
+                          Visualizaciones
+                        </span>
+                        <span 
+                          className="font-medium text-[#0A2540] dark:text-white"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                        >
+                          {news.view_count || 0}
+                        </span>
                       </div>
                     </div>
                   </motion.div>

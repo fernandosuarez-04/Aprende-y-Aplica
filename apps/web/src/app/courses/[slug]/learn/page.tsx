@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -56,6 +56,7 @@ import {
   Sparkles,
   Brain,
   Palette,
+  Compass,
 } from 'lucide-react';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
@@ -64,7 +65,7 @@ import { useLiaChat } from '../../../../core/hooks';
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
 import { WorkshopLearningProvider } from '../../../../components/WorkshopLearningProvider';
 import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
-import { ContextualVoiceGuide, ReplayTourButton } from '../../../../core/components/ContextualVoiceGuide';
+import { ContextualVoiceGuide } from '../../../../core/components/ContextualVoiceGuide';
 import { useCourseLearnTourSteps } from '../../../../features/courses/config/course-learn-tour';
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
@@ -72,7 +73,6 @@ import { useSwipe } from '../../../../hooks/useSwipe';
 import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 import { useLanguage } from '../../../../core/providers/I18nProvider';
-import { LanguageSelector } from '../../../../core/components/LanguageSelector';
 // ✨ Nuevos imports para integración de modos
 import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
 import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/NanoBananaPreviewPanel';
@@ -80,7 +80,7 @@ import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
 const VideoPlayer = dynamic(() => import('../../../../core/components/VideoPlayer').then(mod => ({ default: mod.VideoPlayer })), {
-  loading: () => <div className="flex items-center justify-center aspect-video bg-gray-900 rounded-lg">Cargando video...</div>,
+  loading: () => <div className="flex items-center justify-center aspect-video bg-[#0F1419] dark:bg-[#0F1419] rounded-xl">Cargando video...</div>,
   ssr: false
 });
 
@@ -2611,10 +2611,10 @@ Antes de cada respuesta, pregúntate:
   // Mostrar loading mientras i18n no esté listo o mientras se cargan los datos
   if (!ready || loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 dark:text-gray-300 text-lg">
+          <div className="w-16 h-16 border-4 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[#0A2540] dark:text-white text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             {mounted && ready ? t('loading.general') : 'Cargando...'}
           </p>
         </div>
@@ -2624,10 +2624,10 @@ Antes de cada respuesta, pregúntate:
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{t('errors.courseNotFound')}</h1>
-          <p className="text-gray-700 dark:text-gray-300 mb-8">{t('errors.courseNotFoundMessage')}</p>
+          <h1 className="text-3xl font-bold text-[#0A2540] dark:text-white mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{t('errors.courseNotFound')}</h1>
+          <p className="text-[#6C757D] dark:text-white/80 mb-8" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('errors.courseNotFoundMessage')}</p>
           <button 
             onClick={() => router.push('/my-courses')} 
             className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-colors"
@@ -2856,7 +2856,7 @@ Antes de cada respuesta, pregúntate:
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
+        className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
       >
         <div className="flex items-center justify-between w-full gap-2">
           {/* Sección izquierda: Botón regresar | Nombre del taller */}
@@ -2864,7 +2864,7 @@ Antes de cada respuesta, pregúntate:
             {/* Botón de regreso */}
             <button
               onClick={() => router.back()}
-              className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+              className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
               aria-label={t('header.backButton')}
               title={t('header.backButton')}
             >
@@ -2873,10 +2873,10 @@ Antes de cada respuesta, pregúntate:
 
             {/* Nombre del taller */}
             <div className="min-w-0 flex-1">
-              <h1 className="text-sm md:text-base font-bold text-gray-900 dark:text-white truncate">
+              <h1 className="text-sm md:text-base font-bold text-[#0A2540] dark:text-white truncate" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
                 {course.title || course.course_title}
               </h1>
-              <p className="hidden md:block text-xs text-gray-600 dark:text-slate-400">{t('header.workshop')}</p>
+              <p className="hidden md:block text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('header.workshop')}</p>
             </div>
           </div>
 
@@ -2884,7 +2884,7 @@ Antes de cada respuesta, pregúntate:
           <div className="flex items-center gap-2 shrink-0">
             {/* Barra de progreso - Oculto en móviles */}
             <div className="hidden md:flex items-center gap-2">
-              <div className="w-32 lg:w-40 h-1.5 bg-gray-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+              <div className="w-32 lg:w-40 h-1.5 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${courseProgress}%` }}
@@ -2894,14 +2894,25 @@ Antes de cada respuesta, pregúntate:
               </div>
             </div>
             {/* Porcentaje compacto - Visible siempre */}
-            <span className="text-xs text-gray-900 dark:text-white/80 font-medium bg-gray-100 dark:bg-slate-700/30 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0">
+            <span className="text-xs text-[#0A2540] dark:text-white font-medium bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
               {courseProgress}%
             </span>
           </div>
 
-          {/* Sección derecha: Selector de idioma */}
+          {/* Sección derecha: Botón de Tour */}
           <div className="flex items-center gap-2 shrink-0">
-            <LanguageSelector className="z-[1000]" />
+            <button
+              onClick={() => {
+                // Disparar evento personalizado para abrir el tour manualmente
+                const eventName = 'open-tour-course-learn';
+                window.dispatchEvent(new CustomEvent(eventName));
+              }}
+              className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
+              title={t('tour.replayLabel')}
+              aria-label={t('tour.replayLabel')}
+            >
+              <Compass className="w-5 h-5 text-[#0A2540] dark:text-white" />
+            </button>
           </div>
         </div>
       </motion.div>
@@ -2909,7 +2920,7 @@ Antes de cada respuesta, pregúntate:
       {/* Contenido principal - 3 paneles - Responsive */}
       <div 
         ref={swipeRef}
-        className="flex-1 flex flex-col md:flex-row overflow-hidden bg-gray-100 dark:bg-slate-900/50 backdrop-blur-sm relative z-10"
+        className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white dark:bg-[#0F1419] relative z-10"
       >
         {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
         <AnimatePresence>
@@ -2936,14 +2947,14 @@ Antes de cada respuesta, pregúntate:
                     ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none' 
                     : 'relative h-full'
                   }
-                  bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col overflow-hidden shadow-xl 
+                  bg-white dark:bg-[#1E2329] rounded-xl md:rounded-xl flex flex-col overflow-hidden shadow-sm
                   ${isMobile ? 'my-0 ml-0 md:my-2 md:ml-2' : 'my-2 ml-2'}
-                  border border-gray-200 dark:border-slate-700/50
+                  border border-[#E9ECEF] dark:border-[#6C757D]/30
                 `}
               >
                 {/* Header con línea separadora alineada con panel central */}
-                <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
-                  <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <div className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between p-3 rounded-t-xl shrink-0 h-[56px]">
+                  <h2 className="text-base font-semibold text-[#0A2540] dark:text-white flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                     <BookOpen className="w-4 h-4 text-[#00D4B3]" />
                     {t('leftPanel.title')}
                   </h2>
@@ -2952,9 +2963,9 @@ Antes de cada respuesta, pregúntate:
                     className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                   >
                     {isMobile ? (
-                      <X className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                      <X className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                     ) : (
-                      <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                      <ChevronLeft className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                     )}
                   </button>
                 </div>
@@ -2965,19 +2976,19 @@ Antes de cada respuesta, pregúntate:
                 <div className="mb-8">
                   {/* Header de Contenido con botón de colapsar */}
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[#0A2540] dark:text-white flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
                       <Layers className="w-5 h-5 text-[#00D4B3]" />
                       {t('leftPanel.content')}
                     </h3>
                     <button
                       onClick={() => setIsMaterialCollapsed(!isMaterialCollapsed)}
-                      className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
                       title={isMaterialCollapsed ? t('leftPanel.expandContent') : t('leftPanel.collapseContent')}
                     >
                       {isMaterialCollapsed ? (
-                        <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                        <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                       ) : (
-                        <ChevronUp className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                        <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                       )}
                     </button>
                   </div>
@@ -3041,17 +3052,17 @@ Antes de cada respuesta, pregúntate:
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center flex-shrink-0">
                             <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
                           </div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{module.module_title}</h3>
+                          <h3 className="font-semibold text-[#0A2540] dark:text-white text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{module.module_title}</h3>
                         </div>
                         <button
                           onClick={() => toggleModuleExpand(module.module_id)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
+                          className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
                           title={isModuleExpanded ? t('leftPanel.collapseModule') : t('leftPanel.expandModule')}
                         >
                           {isModuleExpanded ? (
-                            <ChevronUp className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                            <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
                           ) : (
-                            <ChevronDown className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                            <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
                           )}
                         </button>
                       </div>
@@ -3068,7 +3079,7 @@ Antes de cada respuesta, pregúntate:
                           >
                             {/* Estadísticas del módulo mejoradas */}
                             <div className="flex gap-3 mb-4">
-                              <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 font-medium">
+                              <span className="px-3 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] text-xs rounded-full border border-[#10B981]/30 font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                                 {completedLessons}/{totalLessons} {t('leftPanel.completed')}
                               </span>
                               <span className="px-3 py-1 bg-[#00D4B3]/20 text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 font-medium">
@@ -3096,7 +3107,7 @@ Antes de cada respuesta, pregúntate:
                                 onClick={() => handleLessonChange(lesson)}
                                 className={`flex-1 flex items-start gap-3 p-3 rounded-lg transition-all duration-200 ${
                                   isActive
-                                    ? 'bg-blue-500/10 dark:bg-blue-500/15 border-l-2 border-blue-500'
+                                    ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-l-2 border-[#00D4B3]'
                                     : 'hover:bg-gray-50/50 dark:hover:bg-slate-700/30 border-l-2 border-transparent'
                                 }`}
                               >
@@ -3104,8 +3115,8 @@ Antes de cada respuesta, pregúntate:
                                   isCompleted 
                                     ? 'text-green-500 dark:text-green-400' 
                                     : isActive 
-                                      ? 'text-blue-500 dark:text-blue-400' 
-                                      : 'text-gray-400 dark:text-slate-500'
+                                      ? 'text-[#00D4B3] dark:text-[#00D4B3]' 
+                                      : 'text-[#6C757D] dark:text-white/50'
                                 }`}>
                                   {isCompleted ? (
                                     <CheckCircle2 className="w-5 h-5" />
@@ -3115,12 +3126,12 @@ Antes de cada respuesta, pregúntate:
                                 </div>
                                 
                                 <div className="flex-1 text-left min-w-0">
-                                  <p className={`text-sm leading-relaxed line-clamp-3 ${isActive ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-700 dark:text-slate-300'}`}>
+                                  <p className={`text-sm leading-relaxed line-clamp-3 ${isActive ? 'text-[#0A2540] dark:text-white font-medium' : 'text-[#0A2540] dark:text-white/80'}`} style={{ fontFamily: 'Inter, sans-serif', fontWeight: isActive ? 500 : 400 }}>
                                     {lesson.lesson_title}
                                   </p>
                                   <div className="flex items-center gap-1.5 mt-2">
-                                    <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 flex-shrink-0" />
-                                    <span className="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">{formatDuration(lesson.duration_seconds)}</span>
+                                    <Clock className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/50 flex-shrink-0" />
+                                    <span className="text-xs text-[#6C757D] dark:text-white/60 whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{formatDuration(lesson.duration_seconds)}</span>
                                   </div>
                                 </div>
                               </motion.button>
@@ -3135,13 +3146,13 @@ Antes de cada respuesta, pregúntate:
                                   }
                                   toggleLessonExpand(lesson.lesson_id);
                                 }}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex-shrink-0"
+                                className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
                                 title={isExpanded ? t('activities.collapse') : t('activities.expandCollapse')}
                               >
                                 {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                                  <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
                                 ) : (
-                                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                                  <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
                                 )}
                               </button>
                             </div>
@@ -3157,18 +3168,18 @@ Antes de cada respuesta, pregúntate:
                                   transition={{ duration: 0.2 }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-blue-200/50 dark:border-blue-800/30">
+                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
                                     {/* Skeleton items */}
                                     {[1, 2].map((i) => (
                                       <div
                                         key={i}
-                                        className="bg-white/50 dark:bg-slate-800/30 border border-gray-200/50 dark:border-slate-700/50 rounded-lg p-3 animate-pulse"
+                                        className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-3 animate-pulse"
                                       >
                                         <div className="flex items-start gap-3">
-                                          <div className="w-8 h-8 bg-gray-200 dark:bg-slate-700 rounded-lg flex-shrink-0"></div>
+                                          <div className="w-8 h-8 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg flex-shrink-0"></div>
                                           <div className="flex-1 space-y-2">
-                                            <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-3/4"></div>
-                                            <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/4"></div>
+                                            <div className="h-4 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-3/4"></div>
+                                            <div className="h-3 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-1/4"></div>
                                           </div>
                                         </div>
                                       </div>
@@ -3186,7 +3197,7 @@ Antes de cada respuesta, pregúntate:
                                   transition={{ duration: 0.2 }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-blue-200/50 dark:border-blue-800/30">
+                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
                                     {/* Actividades */}
                                     {activities.length > 0 && (
                                       <div className="space-y-2">
@@ -3197,14 +3208,14 @@ Antes de cada respuesta, pregúntate:
                                           return (
                                             <div
                                               key={activity.activity_id}
-                                              className="group relative bg-white/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800/50 border border-gray-200/50 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700 rounded-lg p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="group relative bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 rounded-xl p-3 transition-all duration-200 shadow-sm hover:shadow-md"
                                             >
                                               <div className="flex items-start gap-3">
                                                 {/* Icono mejorado con fondo */}
                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
                                                   isQuiz 
-                                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' 
-                                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                    ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]' 
+                                                    : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]'
                                                 }`}>
                                                   {isQuiz ? (
                                                     <FileText className="w-4 h-4" />
@@ -3224,8 +3235,8 @@ Antes de cada respuesta, pregúntate:
                                                     {/* Badge de tipo */}
                                                     <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors ${
                                                       isQuiz
-                                                        ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
-                                                        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] border border-[#00D4B3]/20'
+                                                        : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/20'
                                                     }`}>
                                                       {activity.activity_type}
                                                     </span>
@@ -3245,7 +3256,7 @@ Antes de cada respuesta, pregúntate:
                                                 const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
                                                 if (quizInfo) {
                                                   return (
-                                                    <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
+                                                    <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
                                                       {quizInfo.isPassed ? (
                                                         <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
                                                           <CheckCircle className="w-3.5 h-3.5" />
@@ -3284,16 +3295,16 @@ Antes de cada respuesta, pregúntate:
                                           return (
                                             <div
                                               key={material.material_id}
-                                              className="group relative bg-white/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800/50 border border-gray-200/50 dark:border-slate-700/50 hover:border-green-300 dark:hover:border-green-700 rounded-lg p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="group relative bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#10B981] dark:hover:border-[#10B981]/50 rounded-xl p-3 transition-all duration-200 shadow-sm hover:shadow-md"
                                             >
                                               <div className="flex items-start gap-3">
                                                 {/* Icono mejorado con fondo según tipo */}
                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
                                                   isQuiz
-                                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                                                    ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
                                                     : isReading
-                                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                                    ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981]'
+                                                    : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60'
                                                 }`}>
                                                   {isQuiz ? (
                                                     <FileText className="w-4 h-4" />
@@ -3322,11 +3333,11 @@ Antes de cada respuesta, pregúntate:
                                                     {/* Badge de tipo */}
                                                     <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors whitespace-nowrap ${
                                                       isQuiz
-                                                        ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] border border-[#00D4B3]/20'
                                                         : isReading
-                                                        ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
-                                                        : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border border-gray-500/20'
-                                                    }`}>
+                                                        ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border border-[#10B981]/20'
+                                                        : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                                                    }`} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                                                       {material.material_type}
                                                     </span>
                                                   </div>
@@ -3338,7 +3349,7 @@ Antes de cada respuesta, pregúntate:
                                                 const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
                                                 if (quizInfo) {
                                                   return (
-                                                    <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50">
+                                                    <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
                                                       {quizInfo.isPassed ? (
                                                         <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
                                                           <CheckCircle className="w-3.5 h-3.5" />
@@ -3389,21 +3400,21 @@ Antes de cada respuesta, pregúntate:
           </div>
 
                 {/* Línea separadora entre Material y Notas */}
-                <div className="border-b border-gray-200 dark:border-slate-700/50 mb-6"></div>
+                <div className="border-b border-[#E9ECEF] dark:border-[#6C757D]/30 mb-6"></div>
 
                 {/* Sección de Notas */}
                 <div className="space-y-4">
                   {/* Header de Notas con botones de colapsar y nueva nota */}
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-lg">
-                      <FileText className="w-5 h-5 text-blue-400" />
+                    <h3 className="font-bold text-[#0A2540] dark:text-white flex items-center gap-2 text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                      <FileText className="w-5 h-5 text-[#00D4B3]" />
                       {t('leftPanel.notesSection.myNotes')}
                     </h3>
                     <div className="flex items-center gap-2">
                       {!isNotesCollapsed && (
                         <button
                           onClick={openNewNoteModal}
-                          className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
+                          className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
                           title={t('leftPanel.notesSection.newNote')}
                         >
                           <span className="text-sm font-bold text-gray-700 dark:text-white/70">+</span>
@@ -3411,7 +3422,7 @@ Antes de cada respuesta, pregúntate:
                       )}
                       <button
                         onClick={() => setIsNotesCollapsed(!isNotesCollapsed)}
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
+                        className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
                         title={isNotesCollapsed ? t('leftPanel.notesSection.expandNotes') : t('leftPanel.notesSection.collapseNotes')}
                       >
                         {isNotesCollapsed ? (
@@ -3436,30 +3447,30 @@ Antes de cada respuesta, pregúntate:
 
             {/* Notas guardadas */}
             <div className="space-y-3 mb-6">
-              <h3 className="text-gray-900 dark:text-white font-semibold text-sm">{t('leftPanel.notesSection.savedNotes')}</h3>
+              <h3 className="text-[#0A2540] dark:text-white font-semibold text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('leftPanel.notesSection.savedNotes')}</h3>
               <div className="space-y-2">
                 {savedNotes.length === 0 ? (
-                  <div className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-4 border border-gray-200 dark:border-slate-600/30 text-center">
-                    <p className="text-sm text-gray-600 dark:text-slate-400">{t('leftPanel.notesSection.noSavedNotes')}</p>
-                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">{t('leftPanel.notesSection.saveFirstNote')}</p>
+                  <div className="bg-white dark:bg-[#1E2329] rounded-xl p-4 border border-[#E9ECEF] dark:border-[#6C757D]/30 text-center">
+                    <p className="text-sm text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('leftPanel.notesSection.noSavedNotes')}</p>
+                    <p className="text-xs text-[#6C757D] dark:text-white/60 mt-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('leftPanel.notesSection.saveFirstNote')}</p>
                   </div>
                 ) : (
                   savedNotes.map((note) => (
                     <div 
                       key={note.id} 
-                            className="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-3 border border-gray-200 dark:border-slate-600/30 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors group"
+                            className="bg-white dark:bg-[#1E2329] rounded-xl p-3 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 transition-colors group"
                     >
                         <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{note.title}</span>
+                        <span className="text-sm text-[#0A2540] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{note.title}</span>
                               <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600 dark:text-slate-400">{note.timestamp}</span>
+                        <span className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{note.timestamp}</span>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openEditNoteModal(note);
                                     }}
-                                    className="p-1 hover:bg-blue-500/20 rounded text-blue-400 hover:text-blue-300 transition-colors"
+                                    className="p-1 hover:bg-[#00D4B3]/20 rounded text-[#00D4B3] hover:text-[#00D4B3] transition-colors"
                                     title={t('leftPanel.notesSection.editNote')}
                                   >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3489,7 +3500,7 @@ Antes de cada respuesta, pregúntate:
                           {note.tags.map((tag) => (
                             <span
                               key={tag}
-                              className="inline-block px-2 py-0.5 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs rounded border border-blue-500/30"
+                              className="inline-block px-2 py-0.5 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs rounded border border-[#00D4B3]/30"
                             >
                               {tag}
                             </span>
@@ -3503,7 +3514,7 @@ Antes de cada respuesta, pregúntate:
                   </div>
 
             {/* Progreso de Notas */}
-                  <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-xl p-4">
+                  <div className="bg-gradient-to-r from-[#10B981]/10 to-[#00D4B3]/10 border border-[#10B981]/30 rounded-xl p-4">
               <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
                       <TrendingUp className="w-4 h-4 text-green-400" />
                       {t('leftPanel.notesSection.notesProgress')}
@@ -3515,11 +3526,11 @@ Antes de cada respuesta, pregúntate:
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lessonsWithNotes')}</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">{notesStats.lessonsWithNotes}</span>
+                  <span className="text-[#00D4B3] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{notesStats.lessonsWithNotes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lastUpdate')}</span>
-                  <span className="text-gray-600 dark:text-slate-400">{notesStats.lastUpdate}</span>
+                  <span className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{notesStats.lastUpdate}</span>
                     </div>
                     </div>
                   </div>
@@ -3535,8 +3546,8 @@ Antes de cada respuesta, pregúntate:
 
         {/* Barra vertical para abrir panel izquierdo - Oculto en móviles */}
         {!isLeftPanelOpen && (
-          <div className="hidden md:flex w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 ml-2 z-10 border border-gray-200 dark:border-slate-700/50">
-            <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
+          <div className="hidden md:flex w-12 bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 ml-2 z-10 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+            <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
               <button
                 onClick={() => {
                   setIsLeftPanelOpen(true);
@@ -3547,10 +3558,10 @@ Antes de cada respuesta, pregúntate:
                     setIsLiaExpanded(false);
                   }
                 }}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-lg transition-colors"
+                className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
                 title="Mostrar material del curso"
               >
-                <ChevronRight className="w-5 h-5 text-gray-700 dark:text-white" />
+                <ChevronRight className="w-5 h-5 text-[#6C757D] dark:text-white" />
               </button>
             </div>
 
@@ -3567,10 +3578,10 @@ Antes de cada respuesta, pregúntate:
                     setIsLiaExpanded(false);
                   }
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
                 title="Ver lecciones"
               >
-                <Layers className="w-4 h-4 text-gray-700 dark:text-white/80" />
+                <Layers className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
               </button>
 
               {/* Abrir notas y cerrar lecciones */}
@@ -3584,10 +3595,10 @@ Antes de cada respuesta, pregúntate:
                     setIsLiaExpanded(false);
                   }
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
                 title={t('leftPanel.notesSection.viewNotes')}
               >
-                <FileText className="w-4 h-4 text-gray-700 dark:text-white/80" />
+                <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
               </button>
 
               {/* Abrir notas, cerrar lecciones y abrir modal de nueva nota */}
@@ -3602,7 +3613,7 @@ Antes de cada respuesta, pregúntate:
                     setIsLiaExpanded(false);
                   }
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-colors shadow-lg shadow-blue-500/25"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#00D4B3] hover:bg-[#00b8a0] transition-colors shadow-lg shadow-[#00D4B3]/25"
                 title={t('leftPanel.notesSection.newNote')}
               >
                 <Plus className="w-4 h-4 text-white" />
@@ -3612,7 +3623,7 @@ Antes de cada respuesta, pregúntate:
         )}
 
         {/* Panel Central - Contenido del video */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-xl my-0 md:my-2 mx-0 md:mx-2 border-2 border-gray-300 dark:border-slate-700/50">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg shadow-xl my-0 md:my-2 mx-0 md:mx-2 border-2 border-[#E9ECEF] dark:border-[#6C757D]/30">
           {modules.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -3620,13 +3631,13 @@ Antes de cada respuesta, pregúntate:
                   <BookOpen className="w-10 h-10 text-[#00D4B3]" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Este curso aún no tiene contenido</h3>
-                <p className="text-gray-600 dark:text-slate-400">Los módulos y lecciones se agregarán pronto</p>
+                <p className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Los módulos y lecciones se agregarán pronto</p>
               </div>
             </div>
           ) : currentLesson ? (
             <>
               {/* Tabs mejorados - Responsive */}
-              <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-lg h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth" style={{ scrollPaddingLeft: '0.5rem', scrollPaddingRight: '0.5rem', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+              <div className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-xl h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth" style={{ scrollPaddingLeft: '0.5rem', scrollPaddingRight: '0.5rem', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
                 <div className="flex gap-1 md:gap-2 items-center min-w-max">
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
@@ -3644,9 +3655,10 @@ Antes de cada respuesta, pregúntate:
                             : 'px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit'
                         } ${
                           isActive
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25'
-                            : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50'
+                            ? 'bg-[#0A2540] text-white shadow-lg shadow-[#0A2540]/25'
+                            : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
                         }`}
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: isActive ? 600 : 500 }}
                         style={{ scrollSnapAlign: 'start' }}
                       >
                         <Icon className="w-4 h-4 shrink-0" />
@@ -3726,7 +3738,7 @@ Antes de cada respuesta, pregúntate:
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-slate-400">{t('loading.lesson')}</p>
+                <p className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.lesson')}</p>
               </div>
             </div>
           )}
@@ -3761,9 +3773,9 @@ Antes de cada respuesta, pregúntate:
                     ? 'fixed top-0 right-0 bottom-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
                     : 'relative h-full'
                   }
-                  bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
+                  bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
                   ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
-                  border border-gray-200 dark:border-slate-700/50
+                  border border-[#E9ECEF] dark:border-[#6C757D]/30
                 `}
                 style={
                   isMobile
@@ -3780,7 +3792,7 @@ Antes de cada respuesta, pregúntate:
                 }
               >
                 {/* Header Lia con línea separadora alineada con panel central */}
-                <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+                <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
                   <div className="flex items-center gap-2">
                     <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg shrink-0">
                       <Image
@@ -3792,18 +3804,18 @@ Antes de cada respuesta, pregúntate:
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{t('lia.title')}</h3>
+                      <h3 className="font-semibold text-[#0A2540] dark:text-white text-sm leading-tight" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.title')}</h3>
                       <div className="flex items-center gap-2">
-                        <p className="text-xs text-gray-600 dark:text-slate-400 leading-tight">{t('lia.subtitle')}</p>
+                        <p className="text-xs text-[#6C757D] dark:text-white/60 leading-tight" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.subtitle')}</p>
                         {/* ✨ Badge de Modo Actual - MÁS VISIBLE */}
                         <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-sm transition-all ${
                           currentMode === 'course' 
-                            ? 'bg-blue-500/90 text-white' 
+                            ? 'bg-[#0A2540] text-white' 
                             : currentMode === 'prompts'
-                            ? 'bg-purple-500/90 text-white animate-pulse'
+                            ? 'bg-[#00D4B3] text-white animate-pulse'
                             : currentMode === 'nanobana'
-                            ? 'bg-amber-500/90 text-white animate-pulse'
-                            : 'bg-teal-500/90 text-white'
+                            ? 'bg-[#F59E0B] text-white animate-pulse'
+                            : 'bg-[#00D4B3] text-white'
                         }`}>
                           {currentMode === 'course' ? 'Curso' 
                             : currentMode === 'prompts' ? 'Prompts'
@@ -3819,10 +3831,10 @@ Antes de cada respuesta, pregúntate:
                       <button
                         ref={liaMenuButtonRef}
                         onClick={() => setShowLiaMenu(!showLiaMenu)}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                        className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
                         title={t('lia.moreOptions')}
                       >
-                        <MoreVertical className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                        <MoreVertical className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                       </button>
                       
                       {/* Menú dropdown - Renderizado con portal fuera del stacking context */}
@@ -3834,7 +3846,7 @@ Antes de cada respuesta, pregúntate:
                             onClick={() => setShowLiaMenu(false)}
                           />
                           <div 
-                            className="fixed w-48 rounded-lg shadow-2xl z-[200] overflow-hidden border border-gray-200 dark:border-slate-700"
+                            className="fixed w-48 rounded-lg shadow-2xl z-[200] overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30"
                             style={{ 
                               top: `${liaMenuPosition.top}px`,
                               right: `${liaMenuPosition.right}px`,
@@ -3844,12 +3856,12 @@ Antes de cada respuesta, pregúntate:
                           >
                             <div 
                               className="hidden dark:block absolute inset-0 rounded-lg"
-                              style={{ backgroundColor: 'rgb(30, 41, 59)' }}
+                              style={{ backgroundColor: 'rgb(30, 35, 41)' }}
                             />
                             <div className="relative">
                               {/* ✨ Sección: Modos de LIA */}
-                              <div className="px-3 py-2 border-b border-gray-200 dark:border-slate-700">
-                                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">
+                              <div className="px-3 py-2 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+                                <p className="text-xs font-semibold text-[#6C757D] dark:text-white/60 uppercase tracking-wide" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                                   Modo de Chat
                                 </p>
                               </div>
@@ -3862,8 +3874,8 @@ Antes de cada respuesta, pregúntate:
                                 }}
                                 className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
                                   currentMode === 'course'
-                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
-                                    : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                    ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/30 text-[#0A2540] dark:text-[#00D4B3] font-medium'
+                                    : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
                                 }`}
                               >
                                 <BookOpen className="w-4 h-4" />
@@ -3879,8 +3891,8 @@ Antes de cada respuesta, pregúntate:
                                 }}
                                 className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
                                   currentMode === 'prompts'
-                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium'
-                                    : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                    ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/30 text-[#00D4B3] dark:text-[#00D4B3] font-medium'
+                                    : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
                                 }`}
                               >
                                 <Sparkles className="w-4 h-4" />
@@ -3897,7 +3909,7 @@ Antes de cada respuesta, pregúntate:
                                 className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
                                   currentMode === 'context'
                                     ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 font-medium'
-                                    : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                    : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
                                 }`}
                               >
                                 <Brain className="w-4 h-4" />
@@ -3914,7 +3926,7 @@ Antes de cada respuesta, pregúntate:
                                 className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
                                   currentMode === 'nanobana'
                                     ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium'
-                                    : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                    : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
                                 }`}
                               >
                                 <Palette className="w-4 h-4" />
@@ -3923,7 +3935,7 @@ Antes de cada respuesta, pregúntate:
                               </button>
 
                               {/* Separador */}
-                              <div className="border-t border-gray-200 dark:border-slate-700 my-1"></div>
+                              <div className="border-t border-[#E9ECEF] dark:border-[#6C757D]/30 my-1"></div>
 
                               {/* Opciones Originales */}
                               <button
@@ -3933,7 +3945,7 @@ Antes de cada respuesta, pregúntate:
                                   loadConversations();
                                   setShowLiaMenu(false);
                                 }}
-                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                                className="w-full px-4 py-2.5 text-left text-sm text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
                               >
                                 <Plus className="w-4 h-4" />
                                 Nueva conversación
@@ -3946,7 +3958,7 @@ Antes de cada respuesta, pregúntate:
                                   }
                                   setShowLiaMenu(false);
                                 }}
-                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                                className="w-full px-4 py-2.5 text-left text-sm text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
                               >
                                 <History className="w-4 h-4" />
                                 Ver historial
@@ -3956,7 +3968,7 @@ Antes de cada respuesta, pregúntate:
                                   handleOpenClearHistoryModal();
                                   setShowLiaMenu(false);
                                 }}
-                                className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 relative z-10"
+                                className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
                               >
                                 <Trash2 className="w-4 h-4" />
                                 Reiniciar conversación
@@ -3972,7 +3984,7 @@ Antes de cada respuesta, pregúntate:
                     {!isMobile && (
                       <button
                         onClick={handleToggleLiaExpanded}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                        className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
                         title={isLiaExpanded ? t('lia.minimize') : t('lia.expand')}
                       >
                         {isLiaExpanded ? (
@@ -3986,7 +3998,7 @@ Antes de cada respuesta, pregúntate:
                     {/* Botón de cerrar */}
                     <button
                       onClick={() => setIsRightPanelOpen(false)}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors shrink-0"
+                      className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
                     >
                       {isMobile ? (
                         <X className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -3999,33 +4011,33 @@ Antes de cada respuesta, pregúntate:
 
                 {/* Panel de historial de conversaciones */}
                 {showHistory && (
-                  <div className="absolute top-14 right-0 w-80 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
-                    <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{t('lia.conversationHistory')}</h3>
+                  <div className="absolute top-14 right-0 w-80 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
+                    <div className="p-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between shrink-0">
+                      <h3 className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.conversationHistory')}</h3>
                       <button
                         onClick={() => setShowHistory(false)}
-                        className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        className="p-1 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded transition-colors"
                         title={t('lia.closeHistory')}
                       >
-                        <X className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                        <X className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
                       </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2">
                       {loadingConversations ? (
-                        <div className="p-4 text-center text-gray-500 dark:text-slate-400">
-                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                          <p className="text-sm">{t('loading.conversations')}</p>
+                        <div className="p-4 text-center text-[#6C757D] dark:text-white/60">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#00D4B3]" />
+                          <p className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.conversations')}</p>
                         </div>
                       ) : conversations.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500 dark:text-slate-400">
-                          <p className="text-sm">{t('lia.noConversations')}</p>
+                        <div className="p-4 text-center text-[#6C757D] dark:text-white/60">
+                          <p className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.noConversations')}</p>
                         </div>
                       ) : (
                         conversations.map((conv) => (
                           <div
                             key={conv.conversation_id}
-                            className={`group relative bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg p-3 mb-2 transition-colors ${
-                              currentConversationId === conv.conversation_id ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
+                            className={`group relative bg-[#E9ECEF]/30 dark:bg-[#0F1419] hover:bg-[#E9ECEF]/50 dark:hover:bg-[#1E2329] rounded-lg p-3 mb-2 transition-colors ${
+                              currentConversationId === conv.conversation_id ? 'ring-2 ring-[#00D4B3] dark:ring-[#00D4B3]' : ''
                             }`}
                           >
                             <div className="flex items-start justify-between gap-2">
@@ -4048,7 +4060,8 @@ Antes de cada respuesta, pregúntate:
                                             setEditingTitle('');
                                           }
                                         }}
-                                        className="flex-1 px-2 py-1 text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded text-gray-900 dark:text-white"
+                                        className="flex-1 px-2 py-1 text-sm bg-white dark:bg-[#0F1419] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded text-[#0A2540] dark:text-white"
+                                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                                         autoFocus
                                         onClick={(e) => e.stopPropagation()}
                                       />
@@ -4069,15 +4082,15 @@ Antes de cada respuesta, pregúntate:
                                         }}
                                         className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors"
                                       >
-                                        <X className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+                                        <X className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
                                       </button>
                                     </div>
                                   ) : (
                                     <>
-                                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
+                                      <p className="text-sm font-medium text-[#0A2540] dark:text-white truncate mb-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                                         {conv.conversation_title || conv.course?.title || t('lia.generalConversation')}
                                       </p>
-                                      <p className="text-xs text-gray-500 dark:text-slate-400 mb-1">
+                                      <p className="text-xs text-[#6C757D] dark:text-white/60 mb-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                                         {new Date(conv.started_at).toLocaleDateString('es-ES', {
                                           day: 'numeric',
                                           month: 'short',
@@ -4085,7 +4098,7 @@ Antes de cada respuesta, pregúntate:
                                           minute: '2-digit'
                                         })}
                                       </p>
-                                      <p className="text-xs text-gray-400 dark:text-slate-500">
+                                      <p className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                                         {conv.total_messages} {conv.total_messages !== 1 ? t('lia.messagesPlural') : t('lia.messages')}
                                       </p>
                                     </>
@@ -4100,10 +4113,10 @@ Antes de cada respuesta, pregúntate:
                                       setEditingConversationId(conv.conversation_id);
                                       setEditingTitle(conv.conversation_title || '');
                                     }}
-                                    className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                    className="p-1 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded transition-colors opacity-0 group-hover:opacity-100"
                                     title={t('lia.editName')}
                                   >
-                                    <Edit2 className="w-3.5 h-3.5 text-gray-600 dark:text-slate-400" />
+                                    <Edit2 className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/60" />
                                   </button>
                                   <button
                                     onClick={(e) => {
@@ -4128,23 +4141,24 @@ Antes de cada respuesta, pregúntate:
                 {/* Modal de confirmación para eliminar conversación */}
                 {deletingConversationId && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-6 max-w-md w-full">
+                    <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6 max-w-md w-full">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
                           <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{t('lia.deleteConfirmTitle')}</h3>
-                          <p className="text-sm text-gray-600 dark:text-slate-400">{t('lia.deleteConfirmSubtitle')}</p>
+                          <h3 className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.deleteConfirmTitle')}</h3>
+                          <p className="text-sm text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.deleteConfirmSubtitle')}</p>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-700 dark:text-slate-300 mb-6">
+                      <p className="text-sm text-[#0A2540] dark:text-white mb-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                         {t('lia.deleteConfirmMessage')}
                       </p>
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setDeletingConversationId(null)}
-                          className="flex-1 px-4 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium"
+                          className="flex-1 px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-colors font-medium shadow-sm hover:shadow-md"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                         >
                           {t('lia.cancel')}
                         </button>
@@ -4182,8 +4196,8 @@ Antes de cada respuesta, pregúntate:
                       <div
                         className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 relative group ${
                           message.role === 'user'
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                            : 'bg-gray-100 dark:bg-slate-700/50 text-gray-900 dark:text-white/90 border border-gray-200 dark:border-slate-600/50'
+                            ? 'bg-[#0A2540] text-white'
+                            : 'bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white/90 border border-[#E9ECEF] dark:border-[#6C757D]/30'
                         }`}
                       >
                         <div className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">
@@ -4198,7 +4212,7 @@ Antes de cada respuesta, pregúntate:
                                   className={`${
                                     message.role === 'user'
                                       ? 'text-white underline hover:text-white/80 font-semibold'
-                                      : 'text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-300 font-semibold'
+                                      : 'text-[#00D4B3] dark:text-[#00D4B3] underline hover:text-[#00b8a0] dark:hover:text-[#00b8a0] font-semibold'
                                   } transition-colors`}
                                   onClick={(e) => {
                                     // Si es una ruta interna, usar router de Next.js
@@ -4250,7 +4264,7 @@ Antes de cada respuesta, pregúntate:
                                 {copiedMessageId === message.id ? (
                                   <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                                 ) : (
-                                  <Copy className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                  <Copy className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
                                 )}
                               </button>
                               <button
@@ -4268,7 +4282,7 @@ Antes de cada respuesta, pregúntate:
                                 className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
                                 title={t('lia.createNote')}
                               >
-                                <FileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
                               </button>
                             </div>
                           )}
@@ -4298,9 +4312,9 @@ Antes de cada respuesta, pregúntate:
                   {/* Indicador de carga */}
                   {isLiaLoading && (
                     <div className="flex justify-start">
-                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gray-100 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50">
+                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] border border-[#E9ECEF] dark:border-[#6C757D]/30">
                         <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-[#00D4B3] dark:bg-[#00D4B3] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                           <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                           <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                         </div>
@@ -4341,7 +4355,7 @@ Antes de cada respuesta, pregúntate:
                         >
                           <button
                             onClick={() => setIsPromptsCollapsed(false)}
-                            className="w-full flex items-center justify-between hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg px-2 py-1.5 transition-colors group"
+                            className="w-full flex items-center justify-between hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg px-2 py-1.5 transition-colors group"
                           >
                             <div className="flex items-center gap-1.5">
                               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center shadow-md shrink-0">
@@ -4352,7 +4366,7 @@ Antes de cada respuesta, pregúntate:
                                 <p className="text-[10px] text-gray-600 dark:text-slate-400 truncate">{currentActivityPrompts.length} {currentActivityPrompts.length === 1 ? 'disponible' : 'disponibles'}</p>
                               </div>
                             </div>
-                            <ChevronUp className="w-4 h-4 text-gray-700 dark:text-gray-300 group-hover:text-[#0A2540] dark:group-hover:text-[#0A2540] transition-colors shrink-0 ml-2" />
+                            <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/80 group-hover:text-[#0A2540] dark:group-hover:text-[#00D4B3] transition-colors shrink-0 ml-2" />
                           </button>
                         </motion.div>
                       ) : (
@@ -4361,11 +4375,11 @@ Antes de cada respuesta, pregúntate:
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-200/50 dark:border-purple-500/30 max-h-[300px]"
+                          className="bg-gradient-to-br from-[#00D4B3]/10 to-[#0A2540]/10 dark:from-[#00D4B3]/20 dark:to-[#0A2540]/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 max-h-[300px]"
                         >
                           <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/40 dark:border-white/10 bg-white/20 dark:bg-white/5 rounded-t-2xl">
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
+                              <div className="w-8 h-8 rounded-lg bg-[#00D4B3] flex items-center justify-center shadow-lg">
                                 <HelpCircle className="w-4 h-4 text-white" />
                               </div>
                               <div>
@@ -4375,10 +4389,10 @@ Antes de cada respuesta, pregúntate:
                             </div>
                             <button
                               onClick={() => setIsPromptsCollapsed(true)}
-                              className="p-1.5 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
+                              className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
                               title="Minimizar prompts"
                             >
-                              <ChevronDown className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                              <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
                             </button>
                           </div>
                           <div className="space-y-2 p-4 overflow-y-auto max-h-[210px] pr-2 custom-scroll">
@@ -4395,18 +4409,18 @@ Antes de cada respuesta, pregúntate:
                                     setIsPromptsCollapsed(true);
                                   }, 100);
                                 }}
-                                className="w-full text-left px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 border border-purple-200/50 dark:border-purple-500/30 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
+                                className="w-full text-left px-4 py-3 bg-white/80 dark:bg-[#1E2329]/80 hover:bg-white dark:hover:bg-[#0A2540]/30 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-200 dark:group-hover:bg-purple-500/30 transition-colors">
-                                    <span className="text-purple-600 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
+                                  <div className="w-6 h-6 rounded-full bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-[#00D4B3]/20 dark:group-hover:bg-[#00D4B3]/30 transition-colors">
+                                    <span className="text-[#00D4B3] dark:text-[#00D4B3] text-xs font-bold" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{index + 1}</span>
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                                       {prompt}
                                     </p>
                                   </div>
-                                  <Send className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                                  <Send className="w-4 h-4 text-[#00D4B3] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
                                 </div>
                               </motion.button>
                             ))}
@@ -4419,7 +4433,7 @@ Antes de cada respuesta, pregúntate:
 
                 {/* Área de entrada - Similar a LIA general con mejor manejo de altura */}
                 <div
-                  className={`border-t border-gray-200 dark:border-slate-700/50 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
+                  className={`border-t border-[#E9ECEF] dark:border-[#6C757D]/30 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
                   style={isMobile ? {
                     // Asegurar padding suficiente para safe area y evitar que se corte
                     // El padding bottom debe incluir el safe area para dispositivos con notch
@@ -4454,7 +4468,8 @@ Antes de cada respuesta, pregúntate:
                         }
                       }}
                       disabled={isLiaLoading}
-                      className="flex-1 min-w-0 bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600/50 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none lia-textarea-scrollbar"
+                      className="flex-1 min-w-0 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl px-4 py-2.5 text-sm text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent resize-none lia-textarea-scrollbar shadow-sm hover:shadow-md"
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                       style={{ fontSize: '14px', lineHeight: '1.5', minHeight: '48px', maxHeight: '87px', height: '48px', overflowY: 'hidden' }}
                     />
                     <button
@@ -4470,10 +4485,10 @@ Antes de cada respuesta, pregúntate:
                       disabled={isLiaLoading && !!liaMessage.trim()}
                       className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 shrink-0 ${
                         liaMessage.trim()
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-blue-500/50'
+                          ? 'bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg hover:shadow-[#0A2540]/50'
                           : isLiaRecording
                           ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/50'
-                          : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-slate-600'
+                          : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/30'
                       } ${isLiaLoading && liaMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {isLiaLoading && liaMessage.trim() ? (
@@ -4561,17 +4576,17 @@ Antes de cada respuesta, pregúntate:
 
         {/* Barra vertical para abrir panel derecho - Oculto en móviles */}
         {!isRightPanelOpen && (
-          <div className="hidden md:flex w-12 bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 mr-2 z-10 border border-gray-200 dark:border-slate-700/50">
-            <div className="bg-white dark:bg-slate-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
+          <div className="hidden md:flex w-12 bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 mr-2 z-10 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+            <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
             <button
               onClick={() => {
                 setIsRightPanelOpen(true);
                 setIsLiaExpanded(false);
               }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-lg transition-colors"
+              className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
               title="Mostrar Lia"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-900 dark:text-white" />
+              <ChevronLeft className="w-5 h-5 text-[#6C757D] dark:text-white" />
             </button>
             </div>
           </div>
@@ -4583,7 +4598,7 @@ Antes de cada respuesta, pregúntate:
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-lg border-t border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl"
           style={{
             paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
             height: 'calc(70px + max(env(safe-area-inset-bottom), 8px))'
@@ -4598,8 +4613,8 @@ Antes de cada respuesta, pregúntate:
               }}
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
                 isLeftPanelOpen
-                  ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                  ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]'
+                  : 'text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
               }`}
             >
               <BookOpen className="w-5 h-5" />
@@ -4610,7 +4625,7 @@ Antes de cada respuesta, pregúntate:
             {getPreviousLesson() && (
               <button
                 onClick={navigateToPreviousLesson}
-                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
+                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
               >
                 <ChevronLeft className="w-5 h-5" />
                 <span className="text-xs font-medium">Anterior</span>
@@ -4621,7 +4636,7 @@ Antes de cada respuesta, pregúntate:
             {getNextLesson() && (
               <button
                 onClick={navigateToNextLesson}
-                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
+                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
               >
                 <ChevronRight className="w-5 h-5" />
                 <span className="text-xs font-medium">Siguiente</span>
@@ -4636,8 +4651,8 @@ Antes de cada respuesta, pregúntate:
               }}
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
                 isRightPanelOpen
-                  ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                  ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
+                  : 'text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
               }`}
             >
               <MessageSquare className="w-5 h-5" />
@@ -4682,7 +4697,7 @@ Antes de cada respuesta, pregúntate:
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+              className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
             >
               {/* Icono de éxito */}
               <div className="flex justify-center mb-4">
@@ -4702,8 +4717,8 @@ Antes de cada respuesta, pregúntate:
               </p>
 
               {/* Mensaje informativo sobre certificado */}
-              <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-3 mb-6">
-                <p className="text-blue-700 dark:text-blue-300 text-center text-sm">
+              <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-3 mb-6">
+                <p className="text-[#0A2540] dark:text-white text-center text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                   📜 A continuación, completa una breve encuesta para acceder a tu certificado
                 </p>
               </div>
@@ -4730,7 +4745,8 @@ Antes de cada respuesta, pregúntate:
                     }
                   }
                 }}
-                className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
               >
                 Aceptar
               </button>
@@ -4763,29 +4779,30 @@ Antes de cada respuesta, pregúntate:
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+              className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
             >
               {/* Icono de advertencia */}
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/25">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] flex items-center justify-center shadow-lg shadow-[#F59E0B]/25">
                   <HelpCircle className="w-10 h-10 text-white" />
                 </div>
               </div>
 
               {/* Título */}
-              <h3 className="text-2xl font-bold text-white text-center mb-2">
+              <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
                 No puedes completar esta lección
               </h3>
 
               {/* Mensaje */}
-              <p className="text-slate-300 text-center mb-6">
+              <p className="text-[#6C757D] dark:text-white/80 text-center mb-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                 Tienes lecciones pendientes que debes completar antes de terminar el curso. Completa todas las lecciones anteriores en orden.
               </p>
 
               {/* Botón de cerrar */}
               <button
                 onClick={() => setIsCannotCompleteModalOpen(false)}
-                className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
               >
                 Entendido
               </button>
@@ -4818,7 +4835,7 @@ Antes de cada respuesta, pregúntate:
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+              className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
             >
               {/* Icono según el tipo de validación */}
               <div className="flex justify-center mb-4">
@@ -4826,8 +4843,8 @@ Antes de cada respuesta, pregúntate:
                   validationModal.type === 'activity' || validationModal.type === 'quiz'
                     ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/25'
                     : validationModal.type === 'video'
-                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500 shadow-blue-500/25'
-                    : 'bg-gradient-to-br from-yellow-500 to-orange-500 shadow-yellow-500/25'
+                    ? 'bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-[#0A2540]/25'
+                    : 'bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] shadow-[#F59E0B]/25'
                 }`}>
                   {validationModal.type === 'activity' || validationModal.type === 'quiz' ? (
                     <AlertCircle className="w-10 h-10 text-white" />
@@ -4840,19 +4857,19 @@ Antes de cada respuesta, pregúntate:
               </div>
 
               {/* Título */}
-              <h3 className="text-2xl font-bold text-white text-center mb-2">
+              <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
                 {validationModal.title}
               </h3>
 
               {/* Mensaje */}
-              <p className="text-slate-300 text-center mb-4">
+              <p className="text-[#6C757D] dark:text-white/80 text-center mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                 {validationModal.message}
               </p>
 
               {/* Detalles adicionales si existen */}
               {validationModal.details && (
-                <div className="mb-6 p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
-                  <p className="text-slate-200 text-sm text-center font-medium">
+                <div className="mb-6 p-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                  <p className="text-[#0A2540] dark:text-white text-sm text-center font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                     {validationModal.details}
                   </p>
                 </div>
@@ -4882,7 +4899,8 @@ Antes de cada respuesta, pregúntate:
                     }
                   }
                 }}
-                className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
               >
                 Entendido
               </button>
@@ -4915,7 +4933,7 @@ Antes de cada respuesta, pregúntate:
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-slate-700/50 shadow-2xl max-w-md w-full p-6"
+              className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
             >
               {/* Avatar */}
               <div className="flex justify-center mb-4">
@@ -4944,13 +4962,15 @@ Antes de cada respuesta, pregúntate:
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsClearHistoryModalOpen(false)}
-                  className="flex-1 px-6 py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white font-medium rounded-xl transition-all duration-200"
+                  className="flex-1 px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                 >
                   {t('modals.resetConversation.cancel')}
                 </button>
                 <button
                   onClick={handleConfirmClearHistory}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                  className="flex-1 px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                 >
                   {t('modals.resetConversation.confirm')}
                 </button>
@@ -4985,13 +5005,6 @@ Antes de cada respuesta, pregúntate:
         requireAuth={true}
       />
 
-      {/* Botón para volver a ver el tour */}
-      <ReplayTourButton
-        tourId="course-learn"
-        label={t('tour.replayLabel')}
-        allowedPaths={['/courses']}
-        requireAuth={true}
-      />
     </div>
     </WorkshopLearningProvider>
   );
@@ -5055,7 +5068,7 @@ function VideoContent({
     <div className="space-y-6 pb-16 md:pb-6">
       <div className="relative w-full">
         {hasVideo ? (
-          <div className="aspect-video rounded-xl overflow-hidden border border-carbon-600 relative bg-black">
+          <div className="aspect-video rounded-xl overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30 relative bg-[#0F1419] dark:bg-[#0F1419]">
             <VideoPlayer
               videoProvider={lesson.video_provider!}
               videoProviderId={lesson.video_provider_id!}
@@ -5069,7 +5082,7 @@ function VideoContent({
               {hasPreviousVideo && (
                 <button
                   onClick={onNavigatePrevious}
-                  className="pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3"
+                  className="pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3"
                 >
                   <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
@@ -5098,8 +5111,8 @@ function VideoContent({
                       onCannotComplete();
                     }
                   } : onNavigateNext}
-                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
-                    isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
+                    isLastLesson ? 'bg-[#10B981]/50 hover:bg-[#10B981]/70' : ''
                   }`}
                 >
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
@@ -5115,10 +5128,10 @@ function VideoContent({
             </div>
           </div>
         ) : (
-          <div className="aspect-video bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-xl flex items-center justify-center border border-carbon-600 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse" />
+          <div className="aspect-video bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 rounded-xl flex items-center justify-center border border-[#E9ECEF] dark:border-[#6C757D]/30 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0A2540]/10 via-[#00D4B3]/10 to-[#00D4B3]/10 animate-pulse" />
             <div className="text-center relative z-10">
-              <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-blue-600 transition-all transform group-hover:scale-110">
+              <div className="w-20 h-20 bg-[#0A2540] rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-[#0d2f4d] transition-all transform group-hover:scale-110">
                 <Play className="w-10 h-10 text-white ml-1" />
               </div>
               <p className="text-gray-700 dark:text-white/70">Video no disponible</p>
@@ -5130,7 +5143,7 @@ function VideoContent({
               {hasPreviousVideo && (
                 <button
                   onClick={onNavigatePrevious}
-                  className="pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3"
+                  className="pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-start overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3"
                 >
                   <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:mr-2" />
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden">
@@ -5159,8 +5172,8 @@ function VideoContent({
                       onCannotComplete();
                     }
                   } : onNavigateNext}
-                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-slate-800/50 hover:bg-slate-700/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-slate-600/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
-                    isLastLesson ? 'bg-green-500/50 hover:bg-green-600/70' : ''
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
+                    isLastLesson ? 'bg-[#10B981]/50 hover:bg-[#10B981]/70' : ''
                   }`}
                 >
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
@@ -5178,8 +5191,8 @@ function VideoContent({
         )}
       </div>
 
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{lesson.lesson_title}</h2>
+      <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6">
+        <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{lesson.lesson_title}</h2>
         {lesson.lesson_description && (
           <ExpandableText 
             text={lesson.lesson_description} 
@@ -5353,14 +5366,14 @@ function TranscriptContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Transcripción del Video</h2>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Transcripción del Video</h2>
         </div>
-        <div className="bg-carbon-600 rounded-xl border border-carbon-500 p-8 text-center">
-          <div className="w-16 h-16 bg-carbon-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-slate-400" />
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
+          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-[#00D4B3]" />
           </div>
-          <h3 className="text-white text-lg font-semibold mb-2">Selecciona una lección</h3>
-          <p className="text-slate-400">
+          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Selecciona una lección</h3>
+          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             Selecciona una lección del panel izquierdo para ver su transcripción
           </p>
         </div>
@@ -5372,14 +5385,14 @@ function TranscriptContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
-          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Transcripción del Video</h2>
+          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30 p-8 text-center">
-          <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-indigo-500 dark:text-indigo-400 animate-pulse" />
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-[#00D4B3] animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-300">{t('loading.transcript')}</p>
+          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.transcript')}</p>
         </div>
       </div>
     );
@@ -5393,55 +5406,55 @@ function TranscriptContent({
       </div>
       
       {hasTranscript ? (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30">
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
           {/* Header de la transcripción mejorado */}
-          <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 dark:from-slate-800 dark:via-slate-800/90 dark:to-slate-800 px-6 py-5 border-b border-gray-200 dark:border-slate-700">
+          <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-lg">
-                  <ScrollText className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                <div className="p-2 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-lg">
+                  <ScrollText className="w-5 h-5 text-[#00D4B3]" />
                 </div>
                 <div>
-                  <h3 className="text-gray-900 dark:text-white font-bold text-lg">Transcripción Completa</h3>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Texto completo del video</p>
+                  <h3 className="text-[#0A2540] dark:text-white font-bold text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Transcripción Completa</h3>
+                  <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Texto completo del video</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
-                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{transcriptContent?.length || 0}</span>
-                  <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">caracteres</span>
+                <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
+                  <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{transcriptContent?.length || 0}</span>
+                  <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>caracteres</span>
                 </div>
-                <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
-                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{estimatedReadingTime}</span>
-                  <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">min lectura</span>
+                <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
+                  <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{estimatedReadingTime}</span>
+                  <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>min lectura</span>
                 </div>
               </div>
             </div>
           </div>
           
           {/* Contenido de la transcripción */}
-          <div className="p-6 bg-gray-50/50 dark:bg-slate-900/40">
+          <div className="p-6 bg-white dark:bg-[#0F1419]">
             <div className="prose dark:prose-invert max-w-none">
-              <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
+              <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap text-sm md:text-base" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                 {transcriptContent}
               </div>
             </div>
           </div>
           
           {/* Footer con acciones mejorado */}
-          <div className="bg-gray-50 dark:bg-slate-800/50 px-6 py-4 border-t border-gray-200 dark:border-slate-700">
+          <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center space-x-3 flex-wrap">
                 <button 
                   onClick={handleCopyToClipboard}
-                  className="flex items-center space-x-2 text-gray-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 shadow-sm hover:shadow-md transition-all"
+                  className="flex items-center space-x-2 text-[#0A2540] dark:text-white/80 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-4 py-2 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md transition-all"
                 >
                   {isCopied ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4" />}
                   <span className="text-sm font-medium">{isCopied ? 'Copiado!' : 'Copiar'}</span>
                 </button>
                 <button 
                   onClick={handleDownloadTranscript}
-                  className="flex items-center space-x-2 text-gray-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 shadow-sm hover:shadow-md transition-all"
+                  className="flex items-center space-x-2 text-[#0A2540] dark:text-white/80 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-4 py-2 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md transition-all"
                 >
                   <FileDown className="w-4 h-4" />
                   <span className="text-sm font-medium">Descargar</span>
@@ -5449,28 +5462,29 @@ function TranscriptContent({
                 <button 
                   onClick={handleSaveToNotes}
                   disabled={isSaving}
-                  className="flex items-center space-x-2 text-gray-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center space-x-2 text-[#0A2540] dark:text-white/80 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-colors hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-4 py-2 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                 >
                   <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
                   <span className="text-sm font-medium">{isSaving ? 'Guardando...' : 'Guardar en notas'}</span>
                 </button>
               </div>
-              <div className="text-xs text-gray-500 dark:text-slate-500">
+              <div className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                 Última actualización: {new Date().toLocaleDateString()}
               </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30 p-8 text-center">
-          <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ScrollText className="w-8 h-8 text-[#00D4B3]" />
           </div>
-          <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Transcripción no disponible</h3>
-          <p className="text-gray-600 dark:text-slate-400 mb-4">
+          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Transcripción no disponible</h3>
+          <p className="text-[#6C757D] dark:text-white/80 mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             Esta lección aún no tiene transcripción disponible. La transcripción se agregará próximamente.
           </p>
-          <div className="text-sm text-gray-500 dark:text-slate-500 space-y-1">
+          <div className="text-sm text-[#6C757D] dark:text-white/60 space-y-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             <p>• Verifica que el video tenga audio</p>
             <p>• La transcripción se genera automáticamente</p>
             <p>• Contacta al instructor si necesitas ayuda</p>
@@ -5527,14 +5541,14 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
-          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Resumen del Video</h2>
+          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30 p-8 text-center">
-          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-amber-500 dark:text-amber-400 animate-pulse" />
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-[#F59E0B] animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-slate-300">{t('loading.summary')}</p>
+          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.summary')}</p>
         </div>
       </div>
     );
@@ -5544,19 +5558,19 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
-          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Resumen del Video</h2>
+          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
         </div>
         
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30 p-8 text-center">
-          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-amber-500 dark:text-amber-400" />
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-[#F59E0B]" />
           </div>
-          <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Resumen no disponible</h3>
-          <p className="text-gray-600 dark:text-slate-400 mb-4">
+          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Resumen no disponible</h3>
+          <p className="text-[#6C757D] dark:text-white/80 mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             Esta lección aún no tiene resumen disponible. El resumen se agregará próximamente.
           </p>
-          <div className="text-sm text-gray-500 dark:text-slate-500 space-y-1">
+          <div className="text-sm text-[#6C757D] dark:text-white/60 space-y-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             <p>• El resumen se genera o agrega manualmente</p>
             <p>• Contacta al instructor si necesitas ayuda</p>
           </div>
@@ -5572,36 +5586,36 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
       </div>
       
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30">
+      <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
         {/* Header del resumen mejorado */}
-        <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-slate-800 dark:via-slate-800/90 dark:to-slate-800 px-6 py-5 border-b border-gray-200 dark:border-slate-700">
+        <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-amber-500/10 dark:bg-amber-500/20 rounded-lg">
-                <FileText className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+              <div className="p-2 bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 rounded-lg">
+                <FileText className="w-5 h-5 text-[#F59E0B]" />
               </div>
               <div>
-                <h3 className="text-gray-900 dark:text-white font-bold text-lg">Resumen Completo</h3>
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Puntos clave del video</p>
+                <h3 className="text-[#0A2540] dark:text-white font-bold text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Resumen Completo</h3>
+                <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Puntos clave del video</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
-                <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{summaryContent?.split(/\s+/).length || 0}</span>
-                <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">palabras</span>
+              <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
+                <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{summaryContent?.split(/\s+/).length || 0}</span>
+                <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>palabras</span>
               </div>
-              <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
-                <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{estimatedReadingTime}</span>
-                <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">min lectura</span>
+              <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
+                <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{estimatedReadingTime}</span>
+                <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>min lectura</span>
               </div>
             </div>
           </div>
         </div>
         
         {/* Contenido del resumen */}
-        <div className="p-6 bg-gray-50/50 dark:bg-slate-900/40">
+        <div className="p-6 bg-white dark:bg-[#0F1419]">
           <div className="prose dark:prose-invert max-w-none">
-            <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
+            <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap text-sm md:text-base" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
               {summaryContent}
             </div>
           </div>
@@ -5861,18 +5875,18 @@ function QuizRenderer({
   return (
     <div className="space-y-6">
       {/* Instrucciones */}
-      <div className="bg-blue-50 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/40 rounded-lg p-4 mb-4">
-        <p className="text-gray-800 dark:text-slate-100 text-sm mb-2">
-          <strong>Instrucciones:</strong> Responde las siguientes {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para verificar tu comprensión.
+      <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-4 mb-4">
+        <p className="text-[#0A2540] dark:text-white text-sm mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+          <strong style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Instrucciones:</strong> Responde las siguientes {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para verificar tu comprensión.
         </p>
         {totalPoints !== undefined && (
-          <p className="text-gray-800 dark:text-slate-100 text-sm mb-2">
-            <strong>Puntos totales:</strong> {totalPoints}
+          <p className="text-[#0A2540] dark:text-white text-sm mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+            <strong style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Puntos totales:</strong> {totalPoints}
           </p>
         )}
-        <p className="text-gray-700 dark:text-slate-200 text-sm">
+        <p className="text-[#0A2540] dark:text-white text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
           Debes obtener al menos un {passingThreshold}% para aprobar ({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} correctas).
-          <span className="block mt-1"><strong>Umbral de aprobación:</strong> {passingThreshold}%</span>
+          <span className="block mt-1"><strong style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Umbral de aprobación:</strong> {passingThreshold}%</span>
         </p>
       </div>
 
@@ -5886,31 +5900,31 @@ function QuizRenderer({
           return (
             <div
               key={question.id}
-              className={`bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border-2 ${
+              className={`bg-white dark:bg-[#1E2329] rounded-lg p-5 border-2 ${
                 showResults
                   ? isCorrect
-                    ? 'border-green-500/50 bg-green-50 dark:bg-green-500/20 dark:border-green-500/50'
+                    ? 'border-[#10B981]/50 bg-[#10B981]/10 dark:bg-[#10B981]/20 dark:border-[#10B981]/50'
                     : 'border-red-500/50 bg-red-50 dark:bg-red-500/20 dark:border-red-500/50'
-                  : 'border-gray-200 dark:border-gray-700'
+                  : 'border-[#E9ECEF] dark:border-[#6C757D]/30'
               }`}
             >
               <div className="flex items-start gap-3 mb-4">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${
                   showResults
                     ? isCorrect
-                      ? 'bg-green-500/20 dark:bg-green-500/30 text-green-600 dark:text-green-400 border border-green-500/30 dark:border-green-500/50'
+                      ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border border-[#10B981]/30 dark:border-[#10B981]/50'
                       : 'bg-red-500/20 dark:bg-red-500/30 text-red-600 dark:text-red-400 border border-red-500/30 dark:border-red-500/50'
-                    : 'bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 border border-blue-500/30 dark:border-blue-500/50'
+                    : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/30 dark:border-[#0A2540]/50'
                 }`}>
                   {index + 1}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-start justify-between gap-3 mb-4">
-                    <h4 className="text-gray-900 dark:text-slate-100 font-semibold leading-relaxed flex-1">
+                    <h4 className="text-[#0A2540] dark:text-white font-semibold leading-relaxed flex-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                       {question.question}
                     </h4>
                     {question.points && (
-                      <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 text-xs rounded-full border border-purple-300 dark:border-purple-500/50 shrink-0">
+                      <span className="px-2 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 dark:border-[#00D4B3]/50 shrink-0" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                         {question.points} {question.points === 1 ? 'punto' : 'puntos'}
                       </span>
                     )}
@@ -5949,10 +5963,10 @@ function QuizRenderer({
                                 ? 'bg-green-50 dark:bg-green-500/20 border-green-300 dark:border-green-500/60'
                                 : isSelected && !isCorrectOption
                                 ? 'bg-red-50 dark:bg-red-500/20 border-red-300 dark:border-red-500/60'
-                                : 'bg-gray-100 dark:bg-gray-700/80 border-gray-200 dark:border-gray-600'
+                                : 'bg-[#E9ECEF]/30 dark:bg-[#0F1419] border-[#E9ECEF] dark:border-[#6C757D]/30'
                               : isSelected
-                              ? 'bg-blue-50 dark:bg-blue-500/20 border-blue-300 dark:border-blue-500/60'
-                              : 'bg-gray-100 dark:bg-gray-700/80 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                              ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-[#00D4B3] dark:border-[#00D4B3]/60'
+                              : 'bg-white dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50'
                           }`}
                         >
                           <input
@@ -5962,13 +5976,13 @@ function QuizRenderer({
                             checked={isSelected}
                             onChange={() => handleAnswerSelect(question.id, optIndex)}
                             disabled={showResults}
-                            className="mt-1 w-4 h-4 text-blue-500 border-gray-300 dark:border-gray-500 focus:ring-blue-500 focus:ring-2 dark:bg-gray-800"
+                            className="mt-1 w-4 h-4 text-[#00D4B3] border-[#E9ECEF] dark:border-[#6C757D]/30 focus:ring-[#00D4B3] focus:ring-2 dark:bg-[#1E2329]"
                           />
                           <div className="flex-1">
-                            <span className="font-semibold text-gray-700 dark:text-slate-200 mr-2">
+                            <span className="font-semibold text-[#0A2540] dark:text-white mr-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                               ({optionLetter})
                             </span>
-                            <span className="text-gray-900 dark:text-slate-100">{option}</span>
+                            <span className="text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{option}</span>
                           </div>
                           {showResults && isCorrectOption && (
                             <CheckCircle className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
@@ -6016,7 +6030,8 @@ function QuizRenderer({
           <button
             onClick={handleSubmit}
             disabled={Object.keys(selectedAnswers).length < totalQuestions || isSubmitting}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center gap-2"
+            className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center gap-2"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
           >
             {isSubmitting ? (
               <>
@@ -6046,7 +6061,7 @@ function QuizRenderer({
                     ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
                     : passed
                     ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
-                    : 'bg-blue-50 dark:bg-blue-500/20 border-blue-200 dark:border-blue-500/50'
+                    : 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-[#00D4B3]/30 dark:border-[#00D4B3]/40'
                 }`}>
                   <p className={`text-sm ${
                     serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
@@ -6144,7 +6159,7 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
   }
 
   return (
-    <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-lg p-4">
+    <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-lg p-4">
       <div className="space-y-2">
         {promptsList.map((prompt, index) => {
           // Limpiar el prompt (remover comillas si las tiene)
@@ -6162,16 +6177,16 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
                   // console.log('Prompt:', cleanPrompt);
                 });
               }}
-              className="w-full text-left px-4 py-3 bg-white dark:bg-purple-500/20 hover:bg-purple-100 dark:hover:bg-purple-500/30 border border-purple-200 dark:border-purple-500/40 rounded-lg transition-all hover:border-purple-300 dark:hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 group"
+              className="w-full text-left px-4 py-3 bg-white dark:bg-[#1E2329] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-lg transition-all hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/60 hover:shadow-lg hover:shadow-[#00D4B3]/20 group"
             >
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-purple-200 dark:bg-purple-500/30 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-purple-300 dark:group-hover:bg-purple-500/50 transition-colors">
-                  <span className="text-purple-700 dark:text-purple-300 text-xs font-bold">{index + 1}</span>
+                <div className="w-6 h-6 rounded-full bg-[#00D4B3]/20 dark:bg-[#00D4B3]/30 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-[#00D4B3]/30 dark:group-hover:bg-[#00D4B3]/50 transition-colors">
+                  <span className="text-[#00D4B3] text-xs font-bold" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{index + 1}</span>
                 </div>
-                <p className="text-gray-900 dark:text-slate-200 text-sm leading-relaxed flex-1 group-hover:text-purple-900 dark:group-hover:text-white transition-colors">
+                <p className="text-[#0A2540] dark:text-white text-sm leading-relaxed flex-1 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                   {cleanPrompt}
                 </p>
-                <Copy className="w-4 h-4 text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                <Copy className="w-4 h-4 text-[#00D4B3] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
               </div>
             </button>
           );
@@ -6218,9 +6233,9 @@ function ReadingContentRenderer({ content }: { content: any }) {
   const lines = readingContent.split('\n');
   
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 md:p-8 border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-[#1E2329] rounded-lg p-6 md:p-8 border border-[#E9ECEF] dark:border-[#6C757D]/30">
       <div className="prose prose-lg dark:prose-invert max-w-none">
-        <div className="text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">
+        <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
           {lines.map((line: string, index: number) => {
             const trimmedLine = line.trim();
             
@@ -6235,7 +6250,8 @@ function ReadingContentRenderer({ content }: { content: any }) {
               return (
                 <h1 
                   key={`line-${index}`} 
-                  className="text-gray-900 dark:text-white font-bold text-3xl mb-4 mt-8 first:mt-0 border-b-2 border-purple-500/40 dark:border-purple-400/40 pb-3"
+                  className="text-[#0A2540] dark:text-white font-bold text-3xl mb-4 mt-8 first:mt-0 border-b-2 border-[#00D4B3]/40 pb-3"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                 >
                   {mainSectionMatch[1]}
                 </h1>
@@ -6249,9 +6265,10 @@ function ReadingContentRenderer({ content }: { content: any }) {
               return (
                 <h2 
                   key={`line-${index}`} 
-                  className="text-gray-900 dark:text-white font-semibold text-2xl mb-3 mt-6 border-b border-purple-500/20 dark:border-purple-400/30 pb-2"
+                  className="text-[#0A2540] dark:text-white font-semibold text-2xl mb-3 mt-6 border-b border-[#00D4B3]/20 pb-2"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                 >
-                  <span className="text-purple-600 dark:text-purple-400">{number}.</span> {title}
+                  <span className="text-[#00D4B3]">{number}.</span> {title}
                 </h2>
               );
             }
@@ -6263,9 +6280,10 @@ function ReadingContentRenderer({ content }: { content: any }) {
               return (
                 <h3 
                   key={`line-${index}`} 
-                  className="text-gray-900 dark:text-white font-semibold text-xl mb-3 mt-5"
+                  className="text-[#0A2540] dark:text-white font-semibold text-xl mb-3 mt-5"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                 >
-                  <span className="text-purple-600 dark:text-purple-400">{number}</span> - {title}
+                  <span className="text-[#00D4B3]">{number}</span> - {title}
                 </h3>
               );
             }
@@ -6275,7 +6293,8 @@ function ReadingContentRenderer({ content }: { content: any }) {
               return (
                 <h3 
                   key={`line-${index}`} 
-                  className="text-gray-900 dark:text-white font-semibold text-xl mb-3 mt-5"
+                  className="text-[#0A2540] dark:text-white font-semibold text-xl mb-3 mt-5"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                 >
                   {trimmedLine}
                 </h3>
@@ -6286,8 +6305,8 @@ function ReadingContentRenderer({ content }: { content: any }) {
             return (
               <p 
                 key={`line-${index}`} 
-                className="text-gray-800 dark:text-gray-200 leading-relaxed mb-4 text-base"
-                style={{ lineHeight: '1.8' }}
+                className="text-[#0A2540] dark:text-white leading-relaxed mb-4 text-base"
+                style={{ lineHeight: '1.8', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
               >
                 {line}
               </p>
@@ -6335,10 +6354,10 @@ function ChecklistItem({
         className={`
           mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200
           ${checked 
-            ? 'bg-blue-500 border-blue-500 dark:bg-blue-600 dark:border-blue-600' 
-            : 'bg-white dark:bg-carbon-800 border-gray-300 dark:border-carbon-600 hover:border-blue-400 dark:hover:border-blue-500'
+            ? 'bg-[#00D4B3] border-[#00D4B3] dark:bg-[#00D4B3] dark:border-[#00D4B3]' 
+            : 'bg-white dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]'
           }
-          focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1
+          focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:ring-offset-1
         `}
         aria-checked={checked}
         role="checkbox"
@@ -6488,15 +6507,15 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
   });
 
   return (
-    <div className="bg-gray-100 dark:bg-carbon-800 rounded-lg p-8 md:p-10 border border-gray-200 dark:border-carbon-600 shadow-lg">
+    <div className="bg-white dark:bg-[#1E2329] rounded-lg p-8 md:p-10 border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-lg">
       <article className="prose dark:prose-invert max-w-none">
-        <div className="text-gray-800 dark:text-slate-200 leading-relaxed space-y-6">
+        <div className="text-[#0A2540] dark:text-white leading-relaxed space-y-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
           {formattedContent.map((item, index) => {
             // Título principal (Introducción, Cuerpo, Cierre)
             if (item.type === 'main-title') {
               return (
                 <div key={`item-${index}`} className="mt-10 mb-6 first:mt-0">
-                  <h1 className="text-gray-900 dark:text-white font-bold text-3xl mb-2 border-b-2 border-purple-500/40 pb-3">
+                  <h1 className="text-[#0A2540] dark:text-white font-bold text-3xl mb-2 border-b-2 border-[#00D4B3]/40 pb-3" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
                     {item.content}
                   </h1>
                 </div>
@@ -6508,7 +6527,8 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
               return (
                 <h2 
                   key={`item-${index}`} 
-                  className="text-gray-900 dark:text-white font-bold text-2xl mb-4 mt-8 border-b border-purple-500/20 pb-2"
+                  className="text-[#0A2540] dark:text-white font-bold text-2xl mb-4 mt-8 border-b border-[#00D4B3]/20 pb-2"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                 >
                   {item.content}
                 </h2>
@@ -6522,8 +6542,8 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 const [, number, title] = numberMatch;
                 return (
                   <div key={`item-${index}`} className="mt-8 mb-4">
-                    <h3 className="text-purple-300 font-semibold text-xl mb-3 flex items-center gap-3">
-                      <span className="w-10 h-10 rounded-full bg-purple-500/20 border-2 border-purple-500/40 flex items-center justify-center text-purple-300 font-bold text-lg">
+                    <h3 className="text-[#00D4B3] font-semibold text-xl mb-3 flex items-center gap-3" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                      <span className="w-10 h-10 rounded-full bg-[#00D4B3]/20 border-2 border-[#00D4B3]/40 flex items-center justify-center text-[#00D4B3] font-bold text-lg">
                         {number}
                       </span>
                       <span>{title}</span>
@@ -6534,7 +6554,8 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
               return (
                 <h3 
                   key={`item-${index}`} 
-                  className="text-purple-300 font-semibold text-xl mb-3 mt-6"
+                  className="text-[#00D4B3] font-semibold text-xl mb-3 mt-6"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                 >
                   {item.content}
                 </h3>
@@ -6544,8 +6565,8 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
             // Ejemplos
             if (item.type === 'example') {
               return (
-                <div key={`item-${index}`} className="bg-blue-500/10 border-l-4 border-blue-500/50 rounded-r-lg p-4 my-4">
-                  <p className="text-blue-300 font-semibold mb-2 text-sm uppercase tracking-wide">
+                <div key={`item-${index}`} className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-l-4 border-[#00D4B3]/50 rounded-r-lg p-4 my-4">
+                  <p className="text-[#00D4B3] dark:text-[#00D4B3] font-semibold mb-2 text-sm uppercase tracking-wide" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                     {item.content.match(/^Ejemplos?[:]?/i) ? item.content : 'Ejemplo'}
                   </p>
                 </div>
@@ -6581,8 +6602,8 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
               const cleanedContent = item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
               return (
                 <div key={`item-${index}`} className="flex items-start gap-3 my-3 pl-2">
-                  <span className="text-purple-400 mt-1.5 text-lg font-bold">•</span>
-                  <p className="text-gray-800 dark:text-slate-200 leading-relaxed flex-1 text-base">{cleanedContent}</p>
+                  <span className="text-[#00D4B3] mt-1.5 text-lg font-bold">•</span>
+                  <p className="text-[#0A2540] dark:text-white leading-relaxed flex-1 text-base" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{cleanedContent}</p>
                 </div>
               );
             }
@@ -6596,11 +6617,11 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
               // Párrafo con ejemplos entre comillas
               const parts = item.content.split(/(["'][^"']+["'])/g);
               return (
-                <p key={`item-${index}`} className="text-gray-800 dark:text-slate-200 leading-relaxed mb-6 text-base" style={{ lineHeight: '1.9' }}>
+                <p key={`item-${index}`} className="text-[#0A2540] dark:text-white leading-relaxed mb-6 text-base" style={{ lineHeight: '1.9', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                   {parts.map((part, partIndex) => {
                     if (part.match(/^["']/)) {
                       return (
-                        <span key={partIndex} className="bg-blue-500/10 px-2 py-1 rounded text-blue-600 dark:text-blue-200 font-medium">
+                        <span key={partIndex} className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-1 rounded text-[#00D4B3] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                           {part.replace(/^["']|["']$/g, '')}
                         </span>
                       );
@@ -6614,8 +6635,8 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
             return (
               <p 
                 key={`item-${index}`} 
-                className="text-gray-800 dark:text-slate-200 leading-relaxed mb-6 text-base"
-                style={{ lineHeight: '1.9' }}
+                className="text-[#0A2540] dark:text-white leading-relaxed mb-6 text-base"
+                style={{ lineHeight: '1.9', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
               >
                 {item.content}
               </p>
@@ -7005,14 +7026,14 @@ function ActivitiesContent({
   return (
     <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
-          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Actividades</h2>
+          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Activity className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
+          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-[#00D4B3] animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">{t('loading.activities')}</p>
+          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.activities')}</p>
         </div>
       </div>
     );
@@ -7022,19 +7043,19 @@ function ActivitiesContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
-          <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Actividades</h2>
+          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
         </div>
         
-        <div className="bg-white dark:bg-carbon-700 rounded-xl border-2 border-gray-300 dark:border-carbon-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-carbon-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Activity className="w-8 h-8 text-gray-400 dark:text-slate-400" />
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
+          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-8 h-8 text-[#00D4B3]" />
       </div>
-          <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Actividades no disponibles</h3>
-          <p className="text-gray-600 dark:text-slate-400 mb-4">
+          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Actividades no disponibles</h3>
+          <p className="text-[#6C757D] dark:text-white/80 mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             Esta lección aún no tiene actividades disponibles. Las actividades se agregarán próximamente.
           </p>
-          <div className="text-sm text-gray-500 dark:text-slate-500">
+          <div className="text-sm text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             <p>• Las actividades se agregan manualmente</p>
             <p>• Contacta al instructor si necesitas ayuda</p>
           </div>
@@ -7052,37 +7073,37 @@ function ActivitiesContent({
 
       {/* Actividades */}
       {hasActivities && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30">
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
           {/* Header de actividades mejorado */}
-          <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 dark:from-slate-800 dark:via-slate-800/90 dark:to-slate-800 px-6 py-5 border-b border-gray-200 dark:border-slate-700">
+          <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-500/10 dark:bg-blue-500/20 rounded-lg">
-                  <Activity className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <div className="p-2 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-lg">
+                  <Activity className="w-5 h-5 text-[#00D4B3]" />
                 </div>
                 <div>
-                  <h3 className="text-gray-900 dark:text-white font-bold text-lg">Actividades</h3>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Ejercicios y prácticas interactivas</p>
+                  <h3 className="text-[#0A2540] dark:text-white font-bold text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Actividades</h3>
+                  <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Ejercicios y prácticas interactivas</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
-                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{activities.length}</span>
-                  <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">actividad{activities.length !== 1 ? 'es' : ''}</span>
+                <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
+                  <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{activities.length}</span>
+                  <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>actividad{activities.length !== 1 ? 'es' : ''}</span>
                 </div>
               </div>
             </div>
           </div>
           
           {/* Contenido de actividades */}
-          <div className="p-6 space-y-4 bg-gray-50/50 dark:bg-slate-900/30">
+          <div className="p-6 space-y-4 bg-white dark:bg-[#0F1419]">
             {activities.map((activity) => {
               const isCollapsed = collapsedActivities.has(activity.activity_id);
               
               return (
               <div
                 key={activity.activity_id}
-                className="group bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-xl transition-all duration-300 hover:border-blue-400 dark:hover:border-blue-500"
+                className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50"
               >
                 {/* Header de la actividad mejorado */}
                 <button
@@ -7098,17 +7119,17 @@ function ActivitiesContent({
                       return newSet;
                     });
                   }}
-                  className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+                  className="w-full flex items-center justify-between p-5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
                 >
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{activity.activity_title}</h4>
+                      <h4 className="text-[#0A2540] dark:text-white font-semibold text-lg group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{activity.activity_title}</h4>
                       {activity.is_required && (
                         <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm">
                           Requerida
                         </span>
                       )}
-                      <span className="px-2.5 py-1 bg-blue-500/15 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-full border border-blue-500/30 shadow-sm capitalize">
+                      <span className="px-2.5 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs font-medium rounded-full border border-[#00D4B3]/30 shadow-sm capitalize" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                         {activity.activity_type}
                       </span>
                       {/* Indicador de quiz obligatorio */}
@@ -7142,20 +7163,20 @@ function ActivitiesContent({
                       })()}
                     </div>
                     {activity.activity_description && !isCollapsed && (
-                      <p className="text-gray-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">{activity.activity_description}</p>
+                      <p className="text-[#6C757D] dark:text-white/80 text-sm mt-2 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{activity.activity_description}</p>
                     )}
                   </div>
                   
                   {/* Botón de colapsar/expandir mejorado */}
                   <div className="ml-4 flex-shrink-0 flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-600 dark:text-slate-400 hidden sm:inline transition-opacity">
+                    <span className="text-xs font-medium text-[#6C757D] dark:text-white/60 hidden sm:inline transition-opacity" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                       {isCollapsed ? 'Expandir' : 'Colapsar'}
                     </span>
-                    <div className="p-2 bg-gray-100 dark:bg-slate-700 rounded-lg group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition-colors">
+                    <div className="p-2 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg group-hover:bg-[#00D4B3]/10 dark:group-hover:bg-[#00D4B3]/20 transition-colors">
                       {isCollapsed ? (
-                        <ChevronDown className="w-5 h-5 text-gray-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                        <ChevronDown className="w-5 h-5 text-[#0A2540] dark:text-white/80 group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" />
                       ) : (
-                        <ChevronUp className="w-5 h-5 text-gray-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                        <ChevronUp className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" />
                       )}
                     </div>
                   </div>
@@ -7174,9 +7195,9 @@ function ActivitiesContent({
                       <div className="px-6 py-6 bg-gray-50 dark:bg-slate-900/40">
                 {/* Botón especial para actividades ai_chat */}
                 {activity.activity_type === 'ai_chat' ? (
-                  <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-500/10 dark:to-blue-500/10 backdrop-blur-sm rounded-xl p-8 border-2 border-purple-500/30 dark:border-purple-500/30 text-center">
+                  <div className="bg-gradient-to-br from-[#00D4B3]/10 to-[#0A2540]/10 dark:from-[#00D4B3]/20 dark:to-[#0A2540]/20 backdrop-blur-sm rounded-xl p-8 border-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-purple-500/50 dark:shadow-purple-500/50">
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-[#00D4B3]/50 dark:shadow-[#00D4B3]/50">
                         <Image
                           src="/lia-avatar.png"
                           alt="Lia"
@@ -7187,10 +7208,10 @@ function ActivitiesContent({
                       </div>
 
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        <h3 className="text-xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
                           Actividad Interactiva con Lia
                         </h3>
-                        <p className="text-gray-700 dark:text-slate-300 text-sm mb-6 max-w-md mx-auto">
+                        <p className="text-[#0A2540] dark:text-white text-sm mb-6 max-w-md mx-auto" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                           Esta es una actividad guiada por Lia, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
                         </p>
                       </div>
@@ -7201,7 +7222,8 @@ function ActivitiesContent({
                             onStartInteraction(activity.activity_content, activity.activity_title);
                           }
                         }}
-                        className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 dark:from-purple-500 dark:to-blue-500 dark:hover:from-purple-600 dark:hover:to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-purple-500/50 dark:hover:shadow-purple-500/50 hover:scale-105"
+                        className="group relative px-8 py-4 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#0A2540]/50 dark:hover:shadow-[#0A2540]/50 hover:scale-105"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                       >
                         <span className="flex items-center gap-3">
                           <div className="relative w-5 h-5">
@@ -7218,13 +7240,13 @@ function ActivitiesContent({
                         </span>
                       </button>
 
-                      <p className="text-xs text-gray-600 dark:text-slate-400 mt-2">
+                      <p className="text-xs text-[#6C757D] dark:text-white/60 mt-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                         Lia te guiará a través de {activity.activity_title.toLowerCase()}
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-carbon-800/50 dark:bg-carbon-800 rounded-lg p-4 mb-3">
+                  <div className="bg-white dark:bg-[#1E2329] rounded-lg p-4 mb-3 border border-[#E9ECEF] dark:border-[#6C757D]/30">
                   {activity.activity_type === 'quiz' && (() => {
                     try {
                       // Intentar parsear el contenido como JSON si es un quiz
@@ -7239,7 +7261,7 @@ function ActivitiesContent({
                           return (
                             <div className="prose dark:prose-invert max-w-none">
                               <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
-                              <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                              <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                                 {activity.activity_content}
                               </div>
                             </div>
@@ -7285,7 +7307,7 @@ function ActivitiesContent({
                           <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
                           <details className="mb-4">
                             <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
-                            <pre className="text-xs text-gray-600 dark:text-slate-400 mt-2 p-2 bg-gray-200 dark:bg-carbon-800 rounded overflow-auto">
+                            <pre className="text-xs text-[#6C757D] dark:text-white/80 mt-2 p-2 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded overflow-auto border border-[#E9ECEF] dark:border-[#6C757D]/30" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                               {typeof activity.activity_content === 'string'
                                 ? activity.activity_content
                                 : JSON.stringify(activity.activity_content, null, 2)}
@@ -7298,7 +7320,7 @@ function ActivitiesContent({
                       return (
                         <div className="prose prose-invert dark:prose-invert max-w-none">
                           <p className="text-red-600 dark:text-red-400 mb-2">❌ Error al procesar el quiz</p>
-                          <div className="text-gray-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                          <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                             {activity.activity_content}
                           </div>
                         </div>
@@ -7312,10 +7334,10 @@ function ActivitiesContent({
                 )}
 
                 {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
-                  <div className="mt-4 pt-4 border-t border-carbon-600/50">
+                  <div className="mt-4 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                     <div className="flex items-center gap-2 mb-4">
-                      <HelpCircle className="w-4 h-4 text-purple-400" />
-                      <h5 className="text-purple-400 font-semibold text-sm">Prompts y Ejercicios</h5>
+                      <HelpCircle className="w-4 h-4 text-[#00D4B3]" />
+                      <h5 className="text-[#00D4B3] font-semibold text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Prompts y Ejercicios</h5>
                     </div>
                     <PromptsRenderer prompts={activity.ai_prompts} />
                   </div>
@@ -7333,37 +7355,37 @@ function ActivitiesContent({
 
       {/* Materiales */}
       {hasMaterials && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-lg shadow-gray-200/50 dark:shadow-black/30">
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
           {/* Header de materiales mejorado */}
-          <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 dark:from-slate-800 dark:via-slate-800/90 dark:to-slate-800 px-6 py-5 border-b border-gray-200 dark:border-slate-700">
+          <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-500/10 dark:bg-green-500/20 rounded-lg">
-                  <FileText className="w-5 h-5 text-green-500 dark:text-green-400" />
+                <div className="p-2 bg-[#10B981]/10 dark:bg-[#10B981]/20 rounded-lg">
+                  <FileText className="w-5 h-5 text-[#10B981]" />
                 </div>
                 <div>
-                  <h3 className="text-gray-900 dark:text-white font-bold text-lg">Materiales</h3>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Recursos y documentos complementarios</p>
+                  <h3 className="text-[#0A2540] dark:text-white font-bold text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Materiales</h3>
+                  <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Recursos y documentos complementarios</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="px-3 py-1.5 bg-white dark:bg-slate-700/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-600 shadow-sm">
-                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{materials.length}</span>
-                  <span className="text-xs text-gray-600 dark:text-slate-400 ml-1">material{materials.length !== 1 ? 'es' : ''}</span>
+                <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
+                  <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{materials.length}</span>
+                  <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>material{materials.length !== 1 ? 'es' : ''}</span>
                 </div>
               </div>
             </div>
           </div>
           
           {/* Contenido de materiales */}
-          <div className="p-6 space-y-4 bg-gray-50/50 dark:bg-slate-900/30">
+          <div className="p-6 space-y-4 bg-white dark:bg-[#0F1419]">
             {materials.map((material) => {
               const isCollapsed = collapsedMaterials.has(material.material_id);
               
               return (
               <div
                 key={material.material_id}
-                className="group bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-xl transition-all duration-300 hover:border-green-400 dark:hover:border-green-500"
+                className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:border-[#10B981] dark:hover:border-[#10B981]/50"
               >
                 {/* Header del material mejorado */}
                 <button
@@ -7379,16 +7401,16 @@ function ActivitiesContent({
                       return newSet;
                     });
                   }}
-                  className="w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+                  className="w-full flex items-center justify-between p-5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
                 >
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h4 className="text-gray-900 dark:text-white font-semibold text-lg group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">{material.material_title}</h4>
-                      <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm capitalize">
+                      <h4 className="text-[#0A2540] dark:text-white font-semibold text-lg group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{material.material_title}</h4>
+                      <span className="px-2.5 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] text-xs font-medium rounded-full border border-[#10B981]/30 shadow-sm capitalize" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                         {material.material_type}
                       </span>
                       {material.is_downloadable && (
-                        <span className="px-2.5 py-1 bg-blue-500/15 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-full border border-blue-500/30 shadow-sm">
+                        <span className="px-2.5 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs font-medium rounded-full border border-[#00D4B3]/30 shadow-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                           Descargable
                         </span>
                       )}
@@ -7423,20 +7445,20 @@ function ActivitiesContent({
                       })()}
                     </div>
                     {material.material_description && material.material_type !== 'reading' && !isCollapsed && (
-                      <p className="text-gray-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">{material.material_description}</p>
+                      <p className="text-[#6C757D] dark:text-white/80 text-sm mt-2 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{material.material_description}</p>
                     )}
                   </div>
                   
                   {/* Botón de colapsar/expandir mejorado */}
                   <div className="ml-4 flex-shrink-0 flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-600 dark:text-slate-400 hidden sm:inline transition-opacity">
+                    <span className="text-xs font-medium text-[#6C757D] dark:text-white/60 hidden sm:inline transition-opacity" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                       {isCollapsed ? 'Expandir' : 'Colapsar'}
                     </span>
-                    <div className="p-2 bg-gray-100 dark:bg-slate-700 rounded-lg group-hover:bg-green-100 dark:group-hover:bg-green-500/20 transition-colors">
+                    <div className="p-2 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg group-hover:bg-[#10B981]/10 dark:group-hover:bg-[#10B981]/20 transition-colors">
                       {isCollapsed ? (
-                        <ChevronDown className="w-5 h-5 text-gray-700 dark:text-slate-300 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors" />
+                        <ChevronDown className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" />
                       ) : (
-                        <ChevronUp className="w-5 h-5 text-gray-700 dark:text-slate-300 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors" />
+                        <ChevronUp className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" />
                       )}
                     </div>
                   </div>
@@ -7450,9 +7472,9 @@ function ActivitiesContent({
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden border-t border-gray-100 dark:border-slate-700"
+                      className="overflow-hidden border-t border-[#E9ECEF] dark:border-[#6C757D]/30"
                     >
-                      <div className="px-6 py-6 bg-gray-50 dark:bg-slate-900/40">
+                      <div className="px-6 py-6 bg-white dark:bg-[#0F1419]">
                 {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
                           <div className="w-full">
                     {material.material_type === 'quiz' && (() => {
@@ -7517,13 +7539,14 @@ function ActivitiesContent({
 
                 {/* Enlaces y acciones */}
                 {(material.external_url || material.file_url) && (
-                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-carbon-600/50">
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                     {material.external_url && (
                       <a
                         href={material.external_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors border border-blue-500/30"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-colors border border-[#0A2540] shadow-sm hover:shadow-md"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                       >
                         <FileDown className="w-4 h-4" />
                         <span className="text-sm">Abrir enlace</span>
@@ -7534,7 +7557,8 @@ function ActivitiesContent({
                         href={material.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors border border-green-500/30"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl transition-colors border border-[#10B981] shadow-sm hover:shadow-md"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                       >
                         <FileDown className="w-4 h-4" />
                         <span className="text-sm">Ver archivo</span>
@@ -7555,11 +7579,11 @@ function ActivitiesContent({
 
       {/* Leyenda informativa sobre requisitos para avanzar */}
       {(hasActivities || hasMaterials) && (
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl">
+        <div className="mt-6 p-4 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-[#00D4B3] dark:text-[#00D4B3] flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed">
+              <p className="text-sm text-[#0A2540] dark:text-white leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                 {t('activities.completionRequirement')}
               </p>
             </div>
@@ -7571,7 +7595,7 @@ function ActivitiesContent({
       {lesson && (
         <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
-            <span className="text-sm font-semibold text-gray-800 dark:text-slate-100">
+            <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
               ¿Qué te pareció esta lección?
             </span>
             <div className="flex items-center gap-3">
@@ -7580,8 +7604,8 @@ function ActivitiesContent({
                 disabled={feedbackLoading}
                 className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${
                   lessonFeedback === 'like'
-                    ? 'bg-green-500/20 text-green-400 border-2 border-green-500/50 shadow-lg shadow-green-500/20'
-                    : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
+                    ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border-2 border-[#10B981]/50 shadow-lg shadow-[#10B981]/20'
+                    : 'bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50'
                 } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                 title="Me gustó la lección"
               >
@@ -7615,7 +7639,8 @@ function ActivitiesContent({
           {hasNextLesson && onNavigateNext && (
             <button
               onClick={onNavigateNext}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 dark:from-blue-600 dark:to-purple-600 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+              className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
             >
               <ChevronRight className="w-5 h-5" />
               Avanzar al Siguiente Video
@@ -8140,13 +8165,13 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Preguntas y Respuestas</h2>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-700 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="w-8 h-8 text-gray-400 dark:text-gray-400 animate-pulse" />
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
+          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-[#00D4B3] animate-pulse" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300">{t('loading.questions')}</p>
+          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.questions')}</p>
         </div>
       </div>
     );
@@ -8156,10 +8181,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     <div className="space-y-6 pb-24 md:pb-6">
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Preguntas y Respuestas</h2>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Preguntas y Respuestas</h2>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
+            className="px-6 py-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-[#0A2540]/25"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
           >
             <Plus className="w-5 h-5" />
             Hacer Pregunta
@@ -8176,7 +8202,8 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800/50 border-2 border-gray-300 dark:border-slate-700/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                className="w-full px-4 py-2.5 pr-10 bg-white dark:bg-[#1E2329] border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all shadow-sm hover:shadow-md"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
               />
               {searchQuery && (
                 <button
@@ -8191,7 +8218,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
             <button
               onClick={handleSearch}
               disabled={loading}
-              className="p-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-blue-500/25"
+              className="p-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] disabled:bg-[#6C757D] disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-[#0A2540]/25"
               aria-label="Buscar"
             >
               {loading ? (
@@ -8205,18 +8232,19 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
       </div>
 
       {questions.length === 0 ? (
-        <div className="bg-white dark:bg-slate-700 rounded-xl border-2 border-gray-300 dark:border-slate-600 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="w-8 h-8 text-gray-400 dark:text-slate-400" />
+        <div className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
+          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MessageCircle className="w-8 h-8 text-[#00D4B3]" />
           </div>
-          <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">No hay preguntas</h3>
-          <p className="text-gray-600 dark:text-slate-400 mb-4">
+          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>No hay preguntas</h3>
+          <p className="text-[#6C757D] dark:text-white/80 mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             {activeSearchQuery ? 'No se encontraron preguntas con tu búsqueda' : 'Aún no hay preguntas en este curso'}
           </p>
           {!activeSearchQuery && (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl transition-all duration-200 inline-flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
+              className="px-6 py-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-all duration-200 inline-flex items-center gap-2 shadow-lg hover:shadow-[#0A2540]/25"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
             >
               <Plus className="w-5 h-5" />
               Hacer Primera Pregunta
@@ -8230,14 +8258,14 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
               key={question.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-gray-300 dark:border-slate-700/50 overflow-hidden hover:border-gray-400 dark:hover:border-slate-600/50 transition-all duration-300 shadow-lg hover:shadow-xl"
+              className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               {/* Post Header - Estilo Facebook/Comunidad */}
               <div className="p-6 pb-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-[#0A2540] flex items-center justify-center shadow-lg">
                       {question.user?.profile_picture_url ? (
                         <Image
                           src={question.user.profile_picture_url}
@@ -8263,7 +8291,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                           </span>
                         )}
                         {question.is_resolved && (
-                          <span className="px-2 py-0.5 bg-green-500/20 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs rounded-full border border-green-500/30 dark:border-green-500/30 flex items-center gap-1">
+                          <span className="px-2 py-0.5 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] text-xs rounded-full border border-[#10B981]/30 dark:border-[#10B981]/30 flex items-center gap-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                             <CheckCircle className="w-3 h-3" />
                             Resuelta
                           </span>
@@ -8290,16 +8318,16 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                     )}
                   </p>
                   {question.content.length > 200 && selectedQuestion !== question.id && (
-                    <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm mt-2">
+                    <button className="text-[#00D4B3] dark:text-[#00D4B3] hover:text-[#00b89a] dark:hover:text-[#00b89a] text-sm mt-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                       Ver más
                     </button>
                   )}
                 </div>
 
                 {/* Stats Bar - Estilo Facebook */}
-                <div className="flex items-center justify-between py-2 px-0 text-sm text-gray-600 dark:text-slate-400 border-t-2 border-gray-300 dark:border-slate-700/50">
+                <div className="flex items-center justify-between py-2 px-0 text-sm text-[#6C757D] dark:text-white/60 border-t-2 border-[#E9ECEF] dark:border-[#6C757D]/30">
                   <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-1 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <button className="flex items-center gap-1 text-[#6C757D] dark:text-white/60 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                       <MessageSquare className="w-4 h-4" />
                       <span>{question.response_count}</span>
                     </button>
@@ -8315,14 +8343,15 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                 </div>
 
                 {/* Action Buttons - Estilo Facebook */}
-                <div className="flex items-center justify-around py-2 border-t-2 border-gray-300 dark:border-slate-700/50 mt-2">
+                <div className="flex items-center justify-around py-2 border-t-2 border-[#E9ECEF] dark:border-[#6C757D]/30 mt-2">
                   <button 
                     onClick={(e) => handleReaction(question.id, e)}
-                    className={`flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30 font-medium ${
+                    className={`flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 font-medium ${
                       userReactions[question.id] === 'like'
                         ? 'text-red-600 dark:text-red-400'
-                        : 'text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'
+                        : 'text-[#6C757D] dark:text-white/60 hover:text-red-600 dark:hover:text-red-400'
                     }`}
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                   >
                     <Heart className={`w-5 h-5 ${userReactions[question.id] === 'like' ? 'fill-current' : ''}`} />
                     <span>Me gusta</span>
@@ -8357,7 +8386,8 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
               <button
                 onClick={loadMoreQuestions}
                 disabled={loadingMore}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/25"
+                className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] disabled:bg-[#6C757D] disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-[#0A2540]/25"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
               >
                 {loadingMore ? (
                   <>
@@ -8948,7 +8978,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         className="mb-4 bg-white dark:bg-slate-800/90 rounded-xl p-3 border-2 border-gray-300 dark:border-slate-700/50 backdrop-blur-sm"
       >
         <div className="flex gap-3 items-end">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-lg flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-xs font-semibold shadow-lg flex-shrink-0">
             U
           </div>
           <div className="flex-1 min-w-0">
@@ -8968,7 +8998,8 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
               <motion.button
                 onClick={handleSubmitResponse}
                 disabled={!newResponse.trim() || isSubmitting}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-blue-500/25"
+                className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-[#0A2540]/25"
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -9030,7 +9061,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
             >
               <div className="flex gap-4">
                 {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center text-white text-sm font-semibold overflow-hidden shadow-lg flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-[#10B981] flex items-center justify-center text-white text-sm font-semibold overflow-hidden shadow-lg flex-shrink-0">
                   {response.user?.profile_picture_url ? (
                     <Image
                       src={response.user.profile_picture_url}
@@ -9045,11 +9076,11 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3 flex-wrap">
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                    <span className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                       {getUserDisplayName(response.user)}
                     </span>
                     {response.is_instructor_answer && (
-                      <span className="px-2 py-0.5 bg-purple-500/20 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-xs rounded-full border border-purple-500/30 dark:border-purple-500/30">
+                      <span className="px-2 py-0.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] text-xs rounded-full border border-[#0A2540]/30 dark:border-[#0A2540]/30" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                         Instructor
                       </span>
                     )}
@@ -9059,21 +9090,22 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                         Respuesta Aprobada
                       </span>
                     )}
-                    <span className="text-xs text-gray-600 dark:text-slate-400 bg-gray-100 dark:bg-slate-700/50 px-2 py-1 rounded-full">
+                    <span className="text-xs text-[#6C757D] dark:text-white/60 bg-[#E9ECEF]/30 dark:bg-[#0F1419] px-2 py-1 rounded-full" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                       {formatTimeAgo(response.created_at)}
                     </span>
                   </div>
-                  <p className="text-gray-800 dark:text-slate-300 mb-4 leading-relaxed whitespace-pre-wrap">{response.content}</p>
+                  <p className="text-[#0A2540] dark:text-white mb-4 leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{response.content}</p>
                   
                   {/* Botones de acción - Me gusta y Responder */}
                   <div className="flex items-center gap-4 mt-3">
                     <button
                       onClick={(e) => handleResponseReaction(response.id, e)}
-                      className={`flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30 ${
+                      className={`flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 ${
                         responseReactions[response.id] === 'like'
                           ? 'text-red-600 dark:text-red-400'
-                          : 'text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'
+                          : 'text-[#6C757D] dark:text-white/60 hover:text-red-600 dark:hover:text-red-400'
                       }`}
+                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                     >
                       <Heart className={`w-4 h-4 ${responseReactions[response.id] === 'like' ? 'fill-current' : ''}`} />
                       <span className="text-sm font-medium">
@@ -9082,7 +9114,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                     </button>
                     <button
                       onClick={() => setReplyingTo(replyingTo === response.id ? null : response.id)}
-                      className="group flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 hover:bg-blue-500/10 dark:hover:bg-blue-500/10 px-3 py-1.5 rounded-lg"
+                      className="group flex items-center gap-2 text-[#6C757D] dark:text-white/60 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-all duration-200 hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-3 py-1.5 rounded-lg"
                     >
                       <Reply className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
                       <span className="text-sm font-medium">Responder</span>
@@ -9109,7 +9141,8 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                           <motion.button
                             onClick={() => handleSubmitReply(response.id)}
                             disabled={!replyContent.trim() || isSubmitting}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                            className="px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                           >
@@ -9137,7 +9170,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                       {response.replies.map((reply: any) => (
                         <div key={reply.id} className="bg-gray-100 dark:bg-slate-800/90 rounded-lg p-3 border-2 border-gray-300 dark:border-slate-700/50">
                           <div className="flex gap-2">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
+                            <div className="w-6 h-6 rounded-full bg-[#10B981] flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
                               {reply.user?.profile_picture_url ? (
                                 <Image
                                   src={reply.user.profile_picture_url}
@@ -9152,19 +9185,19 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="font-semibold text-gray-900 dark:text-white text-sm">
+                                <span className="font-semibold text-[#0A2540] dark:text-white text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                                   {getUserDisplayName(reply.user)}
                                 </span>
                                 {reply.is_instructor_answer && (
-                                  <span className="px-1.5 py-0.5 bg-purple-500/20 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-xs rounded border border-purple-500/30 dark:border-purple-500/30">
+                                  <span className="px-1.5 py-0.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] text-xs rounded border border-[#0A2540]/30 dark:border-[#0A2540]/30" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                                     Instructor
                                   </span>
                                 )}
-                                <span className="text-gray-600 dark:text-slate-400 text-xs">
+                                <span className="text-[#6C757D] dark:text-white/60 text-xs" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                                   {formatTimeAgo(reply.created_at)}
                                 </span>
                               </div>
-                              <p className="text-gray-800 dark:text-slate-200 text-sm whitespace-pre-wrap mb-2">{reply.content}</p>
+                              <p className="text-[#0A2540] dark:text-white text-sm whitespace-pre-wrap mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{reply.content}</p>
                               
                               {/* Botones de acción para comentarios anidados */}
                               <div className="flex items-center gap-3 mt-2">
@@ -9210,7 +9243,8 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                       <motion.button
                                         onClick={() => handleSubmitReplyToReply(reply.id, response.id)}
                                         disabled={!replyToReplyContent.trim() || isSubmitting}
-                                        className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-sm"
+                                        className="px-3 py-1.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-sm"
+                                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                       >
@@ -9238,7 +9272,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                   {reply.replies.map((nestedReply: any) => (
                                     <div key={nestedReply.id} className="bg-gray-100 dark:bg-slate-800/90 rounded-lg p-2 border-2 border-gray-300 dark:border-slate-700/50">
                                       <div className="flex gap-2">
-                                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-green-400 to-blue-400 flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
+                                        <div className="w-5 h-5 rounded-full bg-[#10B981] flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
                                           {nestedReply.user?.profile_picture_url ? (
                                             <Image
                                               src={nestedReply.user.profile_picture_url}
@@ -9369,7 +9403,8 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
             <button
               type="submit"
               disabled={isSubmitting || !content.trim()}
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25"
+              className="px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-[#0A2540]/25"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
             >
               {isSubmitting ? 'Enviando...' : 'Publicar Pregunta'}
             </button>

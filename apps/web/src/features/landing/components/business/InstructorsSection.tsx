@@ -26,13 +26,15 @@ export function InstructorsSection({ title, subtitle, instructors }: Instructors
           variants={staggerContainer}
         >
           <motion.h2
-            className="text-4xl lg:text-5xl font-bold mb-6"
+            className="text-4xl lg:text-5xl font-bold mb-6 text-[#0A2540] dark:text-white"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
             variants={slideUp}
           >
             {title}
           </motion.h2>
           <motion.p
-            className="text-xl max-w-3xl mx-auto"
+            className="text-xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/70"
+            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             variants={fadeIn}
           >
             {subtitle}
@@ -54,12 +56,12 @@ export function InstructorsSection({ title, subtitle, instructors }: Instructors
               whileHover={{ y: -8 }}
               transition={{ type: 'spring', stiffness: 300 }}
             >
-              <Card variant="glassmorphism" className="h-full cursor-pointer group">
+              <Card variant="glassmorphism" className="h-full cursor-pointer group bg-white dark:bg-[#1E2329]/95 border border-[#E9ECEF] dark:border-[#6C757D]/30">
                 <CardContent className="p-8">
                   {/* Avatar */}
                   <div className="flex justify-center mb-6">
                     <div className="relative">
-                      <div className="w-24 h-24 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center text-white font-bold text-3xl">
+                      <div className="w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-3xl" style={{ backgroundColor: '#00D4B3', fontFamily: 'Inter, sans-serif' }}>
                         {instructor.avatar ? (
                           <img
                             src={instructor.avatar}
@@ -70,34 +72,46 @@ export function InstructorsSection({ title, subtitle, instructors }: Instructors
                           instructor.name.split(' ').map(name => name[0]).join('')
                         )}
                       </div>
-                      <div className="absolute -bottom-2 -right-2 bg-primary rounded-full p-2">
-                        <GraduationCap className="w-4 h-4 text-white" />
+                      <div className="absolute -bottom-2 -right-2 rounded-full p-2" style={{ backgroundColor: '#0A2540' }}>
+                        <GraduationCap className="w-4 h-4 text-white" strokeWidth={2.5} />
                       </div>
                     </div>
                   </div>
 
                   {/* Name & Role */}
                   <div className="text-center mb-4">
-                    <h3 className="text-2xl font-bold mb-1">{instructor.name}</h3>
-                    <p className="text-sm opacity-70">{instructor.role}</p>
+                    <h3 className="text-2xl font-bold mb-1 text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                      {instructor.name}
+                    </h3>
+                    <p className="text-sm text-[#6C757D] dark:text-white/70" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                      {instructor.role}
+                    </p>
                   </div>
 
                   {/* Bio */}
-                  <p className="text-center mb-6 min-h-[60px]">{instructor.bio}</p>
+                  <p className="text-center mb-6 min-h-[60px] text-[#6C757D] dark:text-white/70" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                    {instructor.bio}
+                  </p>
 
                   {/* Stats */}
                   <div className="flex justify-center gap-6 mb-6">
                     <div className="flex items-center gap-2">
-                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                      <span className="font-semibold">{instructor.rating.toFixed(1)}</span>
+                      <Star className="w-4 h-4" style={{ color: '#F59E0B' }} fill="#F59E0B" strokeWidth={2.5} />
+                      <span className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                        {instructor.rating.toFixed(1)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      <span className="font-semibold">{instructor.students.toLocaleString()}</span>
+                      <Users className="w-4 h-4" style={{ color: '#00D4B3' }} strokeWidth={2.5} />
+                      <span className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                        {instructor.students.toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <GraduationCap className="w-4 h-4" />
-                      <span className="font-semibold">{instructor.courses}</span>
+                      <GraduationCap className="w-4 h-4" style={{ color: '#00D4B3' }} strokeWidth={2.5} />
+                      <span className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                        {instructor.courses}
+                      </span>
                     </div>
                   </div>
 
@@ -107,7 +121,8 @@ export function InstructorsSection({ title, subtitle, instructors }: Instructors
                       <Badge
                         key={idx}
                         variant="outline"
-                        className="text-xs"
+                        className="text-xs bg-[#E9ECEF] dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 text-[#0A2540] dark:text-white/90"
+                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                       >
                         {skill}
                       </Badge>

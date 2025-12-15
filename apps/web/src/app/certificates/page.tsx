@@ -16,7 +16,8 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
-  FileText
+  FileText,
+  X
 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -138,10 +139,10 @@ export default function CertificatesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center p-6">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-          <p className="text-gray-600 dark:text-gray-400 text-lg">Cargando certificados...</p>
+          <Loader2 className="w-12 h-12 text-[#0A2540] dark:text-[#00D4B3] animate-spin" />
+          <p className="text-[#6C757D] dark:text-gray-400 text-lg">Cargando certificados...</p>
         </div>
       </div>
     )
@@ -149,14 +150,14 @@ export default function CertificatesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center p-6">
         <div className="flex flex-col items-center gap-4 max-w-md text-center">
           <AlertCircle className="w-16 h-16 text-red-500" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Error</h2>
-          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">Error</h2>
+          <p className="text-[#6C757D] dark:text-gray-400">{error}</p>
           <button
             onClick={fetchCertificates}
-            className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
+            className="px-6 py-3 bg-[#0A2540] dark:bg-[#0A2540] text-white rounded-lg font-medium hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] transition-colors"
           >
             Reintentar
           </button>
@@ -166,19 +167,19 @@ export default function CertificatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-white dark:bg-[#0F1419]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-br from-primary to-blue-600 rounded-xl shadow-lg">
-              <Award className="w-8 h-8 text-white" />
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg">
+              <Award className="w-6 h-6 text-[#0A2540] dark:text-[#00D4B3]" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-[#0A2540] dark:text-white">
                 Mis Certificados
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-[#6C757D] dark:text-gray-400 mt-1 text-sm">
                 {certificates.length} {certificates.length === 1 ? 'certificado' : 'certificados'} obtenidos
               </p>
             </div>
@@ -187,16 +188,25 @@ export default function CertificatesPage() {
 
         {/* Search Bar */}
         {certificates.length > 0 && (
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <div className="mb-6 flex justify-center">
+            <div className="relative w-full max-w-2xl">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6C757D] dark:text-[#6C757D]" />
               <input
                 type="text"
                 placeholder="Buscar por curso o instructor..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-sm font-normal text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+                style={{ fontFamily: 'Inter, sans-serif' }}
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] rounded-full transition-colors"
+                >
+                  <X className="w-3.5 h-3.5 text-[#6C757D] dark:text-[#6C757D]" />
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -205,14 +215,14 @@ export default function CertificatesPage() {
         {filteredCertificates.length === 0 ? (
           <div className="text-center py-16">
             <div className="flex flex-col items-center gap-4">
-              <div className="p-6 bg-gray-200 dark:bg-gray-700 rounded-full">
-                <Award className="w-12 h-12 text-gray-400" />
+              <div className="p-6 bg-[#E9ECEF]/50 dark:bg-[#0A2540]/20 rounded-full">
+                <Award className="w-12 h-12 text-[#6C757D] dark:text-gray-400" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2">
                   {certificates.length === 0 ? 'No tienes certificados aún' : 'No se encontraron certificados'}
                 </h2>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-[#6C757D] dark:text-gray-400">
                   {certificates.length === 0 
                     ? 'Completa cursos para obtener certificados'
                     : 'Intenta con otros términos de búsqueda'}
@@ -230,10 +240,10 @@ export default function CertificatesPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-shadow"
+                  className="bg-white dark:bg-[#1E2329] rounded-xl shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden hover:shadow-md transition-shadow"
                 >
                   {/* Certificate Image/Thumbnail */}
-                  <div className="relative h-48 bg-gradient-to-br from-primary/10 to-blue-600/10 dark:from-primary/20 dark:to-blue-600/20 flex items-center justify-center">
+                  <div className="relative h-48 bg-[#0A2540]/5 dark:bg-[#0A2540]/10 flex items-center justify-center">
                     {certificate.course_thumbnail ? (
                       <Image
                         src={certificate.course_thumbnail}
@@ -243,33 +253,33 @@ export default function CertificatesPage() {
                       />
                     ) : (
                       <div className="p-8">
-                        <Award className="w-20 h-20 text-primary" />
+                        <Award className="w-20 h-20 text-[#0A2540] dark:text-[#00D4B3]" />
                       </div>
                     )}
                     <div className="absolute top-4 right-4">
-                      <div className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg">
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <div className="bg-white dark:bg-[#1E2329] rounded-full p-2 shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                        <CheckCircle2 className="w-5 h-5 text-[#10B981]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Certificate Info */}
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                  <div className="p-5">
+                    <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-3 line-clamp-2">
                       {certificate.course_title}
                     </h3>
                     
                     <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-2 text-sm text-[#6C757D] dark:text-gray-400">
                         <User className="w-4 h-4" />
                         <span>{certificate.instructor_name}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-2 text-sm text-[#6C757D] dark:text-gray-400">
                         <Calendar className="w-4 h-4" />
                         <span>Emitido el {formatDate(certificate.issued_at)}</span>
                       </div>
                       {certificate.expires_at && (
-                        <div className="flex items-center gap-2 text-sm text-orange-600 dark:text-orange-400">
+                        <div className="flex items-center gap-2 text-sm text-[#F59E0B] dark:text-[#F59E0B]">
                           <AlertCircle className="w-4 h-4" />
                           <span>Expira el {formatDate(certificate.expires_at)}</span>
                         </div>
@@ -280,21 +290,21 @@ export default function CertificatesPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleViewCertificate(certificate.certificate_id)}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm"
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-[#0A2540] dark:bg-[#0A2540] text-white rounded-lg font-medium hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] transition-colors text-sm"
                       >
                         <Eye className="w-4 h-4" />
                         Ver
                       </button>
                       <button
                         onClick={() => handleDownload(certificate.certificate_id, certificate.course_title)}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm"
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-[#E9ECEF] dark:bg-[#0F1419] text-[#0A2540] dark:text-gray-300 rounded-lg font-medium hover:bg-[#6C757D]/20 dark:hover:bg-[#0A2540]/30 transition-colors text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30"
                       >
                         <Download className="w-4 h-4" />
                         Descargar
                       </button>
                       <button
                         onClick={() => handleVerify(certificate.certificate_hash)}
-                        className="col-span-2 flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm border border-gray-200 dark:border-gray-700"
+                        className="col-span-2 flex items-center justify-center gap-2 px-3 py-2 bg-[#E9ECEF]/50 dark:bg-[#0A2540]/10 text-[#0A2540] dark:text-gray-300 rounded-lg font-medium hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 transition-colors text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30"
                       >
                         <Shield className="w-4 h-4" />
                         Verificar Certificado

@@ -6,8 +6,6 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@aprende-y-aplica/ui';
 import { BusinessLogo } from '../BusinessLogo';
-import { ThemeToggle } from '../ThemeToggle';
-import { LanguageSelector } from '../LanguageSelector';
 import { Menu, X, ChevronDown } from 'lucide-react';
 
 export function BusinessNavbar() {
@@ -36,8 +34,8 @@ export function BusinessNavbar() {
     <motion.nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? 'backdrop-blur-md border-b bg-carbon/90'
-          : 'bg-carbon/50'
+          ? 'backdrop-blur-md border-b bg-white/90 dark:bg-[#0F1419]/90 border-[#E9ECEF] dark:border-[#6C757D]/30'
+          : 'bg-white/50 dark:bg-[#0F1419]/50'
       }`}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
@@ -59,15 +57,17 @@ export function BusinessNavbar() {
                   href={link.href}
                   className={`text-sm font-medium transition-colors relative whitespace-nowrap ${
                     pathname === link.href
-                      ? 'text-primary'
-                      : 'text-text-secondary hover:text-primary'
+                      ? 'text-[#0A2540] dark:text-[#00D4B3]'
+                      : 'text-[#6C757D] dark:text-white/70 hover:text-[#0A2540] dark:hover:text-[#00D4B3]'
                   }`}
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                 >
                   {link.label}
                   {pathname === link.href && (
                     <motion.div
                       layoutId="navbarIndicator"
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5"
+                      style={{ backgroundColor: '#00D4B3' }}
                       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                     />
                   )}
@@ -78,15 +78,8 @@ export function BusinessNavbar() {
 
           {/* Right Actions */}
           <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
-            <ThemeToggle />
-            <LanguageSelector />
-            <Link href="/auth">
-              <Button variant="outline" size="sm" className="hover:bg-primary/10">
-                Iniciar Sesión
-              </Button>
-            </Link>
             <Link href="/auth?tab=register">
-              <Button variant="gradient" size="sm" className="shadow-lg whitespace-nowrap">
+              <Button variant="primary" size="sm" className="bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                 Comenzar
               </Button>
             </Link>
@@ -117,23 +110,19 @@ export function BusinessNavbar() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`text-sm font-medium hover:text-primary transition-colors ${
-                      pathname === link.href ? 'text-primary' : 'text-text-secondary'
+                    className={`text-sm font-medium transition-colors ${
+                      pathname === link.href ? 'text-[#0A2540] dark:text-[#00D4B3]' : 'text-[#6C757D] dark:text-white/70'
                     }`}
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                   >
                     {link.label}
                   </Link>
                 ))}
                 <div className="flex flex-col gap-2 pt-4 border-t">
-                  <div className="flex items-center gap-2 mb-2">
-                    <ThemeToggle />
-                    <LanguageSelector />
-                  </div>
-                  <Link href="/auth" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full">Iniciar Sesión</Button>
-                  </Link>
                   <Link href="/auth?tab=register" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="gradient" className="w-full">Comenzar</Button>
+                    <Button variant="primary" className="w-full bg-[#0A2540] hover:bg-[#0d2f4d] text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                      Comenzar
+                    </Button>
                   </Link>
                 </div>
               </div>

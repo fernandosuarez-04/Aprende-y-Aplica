@@ -73,7 +73,7 @@ export function ConditionalNavbar({ children }: ConditionalNavbarProps) {
       {/* Mostrar Navbar regular para páginas que no son del dashboard */}
       {shouldShowRegularNavbar && <Navbar />}
       
-      <main className={shouldShowDashboardNavbar || shouldShowBusinessNavbar || isProfilePage || isAdminPage || isInstructorPage || isCreditsPage || isReelsPage || isAuthPage || isBusinessPanelPage || isBusinessUserPage || shouldHideNavbarForBusiness || isBusinessRole || isCartPage || isSubscriptionsPage || isPaymentMethodsPage || isPurchaseHistoryPage || isAccountSettingsPage || isCertificatesPage || isStudyPlannerCreatePage || isStudyPlannerDashboardPage ? '' : 'pt-16 lg:pt-20'}>
+      <main className={shouldShowDashboardNavbar || shouldShowBusinessNavbar || isProfilePage || isAdminPage || isInstructorPage || isCreditsPage || isReelsPage || isAuthPage || isBusinessPanelPage || isBusinessUserPage || shouldHideNavbarForBusiness || isBusinessRole || isCartPage || isSubscriptionsPage || isPaymentMethodsPage || isPurchaseHistoryPage || isAccountSettingsPage || isCertificatesPage || isStudyPlannerCreatePage || isStudyPlannerDashboardPage ? '' : 'pt-16 lg:pt-20'} style={{ overflow: 'visible' }}>
         {children}
       </main>
     </>

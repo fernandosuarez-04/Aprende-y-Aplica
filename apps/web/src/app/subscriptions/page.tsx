@@ -19,60 +19,80 @@ export default function SubscriptionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-carbon dark:bg-carbon-900">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="min-h-screen bg-white dark:bg-[#0F1419]">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-text-primary mb-2">
-              Suscripciones
-            </h1>
-            <p className="text-text-tertiary">
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg">
+                <CreditCard className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
+              </div>
+              <h1 className="text-2xl font-bold text-[#0A2540] dark:text-white">
+                Suscripciones
+              </h1>
+            </div>
+            <p className="text-xs text-[#6C757D] dark:text-gray-400 ml-12">
               Elige el plan perfecto para tu aprendizaje
             </p>
           </div>
 
           {/* Tabs */}
-          <div className="mb-8">
-            <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700">
-              <button
+          <div className="mb-6">
+            <div className="inline-flex bg-[#E9ECEF]/50 dark:bg-[#0A2540]/10 rounded-lg p-1 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+              <motion.button
                 onClick={() => setActiveTab('personal')}
-                className={`px-6 py-4 font-medium transition-colors relative ${
+                className={`relative px-4 py-2 font-medium transition-colors rounded-md text-sm ${
                   activeTab === 'personal'
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary'
+                    ? 'text-[#0A2540] dark:text-white'
+                    : 'text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
+                {activeTab === 'personal' && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-white dark:bg-[#1E2329] rounded-md shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <div className="relative flex items-center gap-2 z-10">
+                  <User className="w-4 h-4" />
                   Suscripciones Personales
                 </div>
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={() => setActiveTab('business')}
-                className={`px-6 py-4 font-medium transition-colors relative ${
+                className={`relative px-4 py-2 font-medium transition-colors rounded-md text-sm ${
                   activeTab === 'business'
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary'
+                    ? 'text-[#0A2540] dark:text-white'
+                    : 'text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
+                {activeTab === 'business' && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-white dark:bg-[#1E2329] rounded-md shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <div className="relative flex items-center gap-2 z-10">
+                  <Building2 className="w-4 h-4" />
                   Suscripciones Business
                 </div>
-              </button>
+              </motion.button>
             </div>
           </div>
 
           {/* Content */}
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
             {activeTab === 'personal' ? (

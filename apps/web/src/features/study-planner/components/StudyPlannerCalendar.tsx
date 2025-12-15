@@ -55,7 +55,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     end: '',
     location: '',
     isAllDay: false,
-    color: '#0066CC', // Color por defecto
+    color: '#0A2540', // Color por defecto (Azul Profundo SOFIA)
   });
   
   // Estado para notificaciones toast
@@ -82,18 +82,18 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     onCancel: () => {},
   });
 
-  // Colores predefinidos para eventos (similar a Google Calendar)
+  // Colores predefinidos para eventos (usando paleta SOFIA)
   const eventColors = [
-    { name: 'Azul', value: '#0066CC' },
+    { name: 'Azul Profundo', value: '#0A2540' },
+    { name: 'Aqua', value: '#00D4B3' },
+    { name: 'Verde Suave', value: '#10B981' },
+    { name: 'Ámbar', value: '#F59E0B' },
+    { name: 'Azul Claro', value: '#0066CC' },
     { name: 'Verde', value: '#0B8043' },
     { name: 'Lavanda', value: '#8E24AA' },
     { name: 'Rosa', value: '#E67C73' },
     { name: 'Amarillo', value: '#F6BF26' },
     { name: 'Naranja', value: '#F4511E' },
-    { name: 'Turquesa', value: '#039BE5' },
-    { name: 'Gris', value: '#616161' },
-    { name: 'Rojo', value: '#D32F2F' },
-    { name: 'Verde azulado', value: '#0097A7' },
   ];
 
   // Fecha de hoy (declarada una sola vez)
@@ -508,7 +508,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           end: '',
           location: '',
           isAllDay: false,
-          color: '#0066CC',
+          color: '#0A2540',
         });
         setToast({
           isOpen: true,
@@ -561,7 +561,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       end: defaultEnd.toISOString(),
       location: '',
       isAllDay: false,
-      color: '#0066CC',
+      color: '#0A2540',
     });
     setIsEventModalOpen(true);
   };
@@ -629,9 +629,9 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
   return (
     <div className="h-full w-full flex flex-col">
       {/* Header del Calendario - Estilo Google Calendar */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-slate-700">
+      <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
         {/* Título del mes/año, rango de semana o día */}
-        <h2 className="text-2xl font-normal text-gray-900 dark:text-gray-100">
+        <h2 className="text-xl font-semibold text-[#0A2540] dark:text-white">
           {view === 'month' 
             ? currentDate.format('MMMM YYYY')
             : view === 'week'
@@ -652,33 +652,33 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           </button>
           
           {/* Selector de vista */}
-          <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-[#E9ECEF]/50 dark:bg-[#0A2540]/5 rounded-lg p-1">
             <button
               onClick={() => setView('month')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 view === 'month'
-                  ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white shadow-sm'
+                  : 'text-[#0A2540] dark:text-[#00D4B3] hover:text-white hover:bg-[#0A2540]/80 dark:hover:bg-[#00D4B3]/80'
               }`}
             >
               Mes
             </button>
             <button
               onClick={() => setView('week')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 view === 'week'
-                  ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white shadow-sm'
+                  : 'text-[#0A2540] dark:text-[#00D4B3] hover:text-white hover:bg-[#0A2540]/80 dark:hover:bg-[#00D4B3]/80'
               }`}
             >
               Semana
             </button>
             <button
               onClick={() => setView('day')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 view === 'day'
-                  ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white shadow-sm'
+                  : 'text-[#0A2540] dark:text-[#00D4B3] hover:text-white hover:bg-[#0A2540]/80 dark:hover:bg-[#00D4B3]/80'
               }`}
             >
               Día
@@ -694,7 +694,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
               onMouseEnter={() => setHoveredRefreshButton(true)}
               onMouseLeave={() => setHoveredRefreshButton(false)}
               whileTap={{ scale: 0.95 }}
-              className="rounded-lg bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 transition-colors flex items-center overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 border border-[#E9ECEF] dark:border-[#6C757D]/30 transition-colors flex items-center overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Recargar calendario"
               title="Recargar calendario"
             >
@@ -729,7 +729,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
             </motion.button>
             <button
               onClick={goToToday}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+              className="px-3 py-1.5 text-xs font-medium text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-md transition-colors"
             >
               Hoy
             </button>
@@ -742,7 +742,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                     ? goToPreviousWeek
                     : goToPreviousDay
                 }
-                className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                className="p-2 text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-md transition-colors"
                 aria-label={
                   view === 'month' 
                     ? 'Mes anterior' 
@@ -761,7 +761,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                     ? goToNextWeek
                     : goToNextDay
                 }
-                className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                className="p-2 text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-md transition-colors"
                 aria-label={
                   view === 'month' 
                     ? 'Mes siguiente' 
@@ -780,13 +780,13 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       {/* Contenido del Calendario según la vista */}
       {view === 'month' ? (
         /* Vista de Mes */
-        <div className="flex-1 flex flex-col border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-800">
+        <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329]">
           {/* Headers de días de la semana */}
-          <div className="grid grid-cols-7 border-b border-gray-200 dark:border-slate-700">
+          <div className="grid grid-cols-7 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             {weekDayNames.map((day, index) => (
               <div
                 key={index}
-                className="px-3 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center border-r border-gray-200 dark:border-slate-700 last:border-r-0"
+                className="px-3 py-3 text-xs font-medium text-[#6C757D] dark:text-gray-400 uppercase tracking-wider text-center border-r border-[#E9ECEF] dark:border-[#6C757D]/30 last:border-r-0"
               >
                 {day}
               </div>
@@ -802,20 +802,20 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                 <div
                   key={index}
                   className={`
-                    min-h-[100px] border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0
-                    ${day.isCurrentMonth ? 'bg-white dark:bg-[#1E2329]' : 'bg-gray-50 dark:bg-[#0F1419]/50'}
+                    min-h-[100px] border-r border-b border-[#E9ECEF] dark:border-[#6C757D]/30 last:border-r-0
+                    ${day.isCurrentMonth ? 'bg-white dark:bg-[#1E2329]' : 'bg-[#E9ECEF]/30 dark:bg-[#0F1419]/50'}
                     ${day.isToday ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20' : ''}
-                    ${isWeekend && day.isCurrentMonth ? 'bg-gray-50/50 dark:bg-[#0F1419]/30' : ''}
+                    ${isWeekend && day.isCurrentMonth ? 'bg-[#E9ECEF]/30 dark:bg-[#0F1419]/30' : ''}
                     p-2 relative
-                    hover:bg-gray-50 dark:hover:bg-[#1E2329]/50 transition-colors
+                    hover:bg-[#E9ECEF]/50 dark:hover:bg-[#1E2329]/50 transition-colors
                   `}
                 >
                   {/* Número del día */}
                   <div
                     className={`
                       text-right mb-1
-                      ${day.isCurrentMonth ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-600'}
-                      ${day.isToday ? 'font-bold text-blue-600 dark:text-blue-400' : 'font-normal'}
+                      ${day.isCurrentMonth ? 'text-[#0A2540] dark:text-white' : 'text-[#6C757D] dark:text-gray-600'}
+                      ${day.isToday ? 'font-bold text-[#0A2540] dark:text-[#00D4B3]' : 'font-normal'}
                       text-sm
                     `}
                   >
@@ -836,11 +836,11 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                             const isGoogle = event.provider === 'google';
                             const isMicrosoft = event.provider === 'microsoft';
                             
-                            // Usar color personalizado si existe, sino usar colores por defecto
+                            // Usar color personalizado si existe, sino usar colores SOFIA
                             const eventColor = event.color || 
-                              (isStudySession ? '#8E24AA' : 
+                              (isStudySession ? '#0A2540' : 
                                isGoogle ? '#0066CC' : 
-                               isMicrosoft ? '#0078D4' : '#0066CC');
+                               isMicrosoft ? '#0078D4' : '#0A2540');
                             
                             return (
                               <div
@@ -862,7 +862,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                             );
                           })}
                           {moreCount > 0 && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 px-2 py-0.5">
+                            <div className="text-xs text-[#6C757D] dark:text-gray-400 px-2 py-0.5">
                               +{moreCount} más
                             </div>
                           )}
@@ -877,11 +877,11 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         </div>
       ) : view === 'week' ? (
         /* Vista de Semana - Estilo Google Calendar */
-        <div className="flex-1 flex flex-col border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-800">
+        <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329]">
           {/* Headers de días de la semana */}
-          <div className="flex border-b border-gray-200 dark:border-slate-700">
+          <div className="flex border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             {/* Celda vacía para la columna de horas - Ancho fijo estrecho */}
-            <div className="w-16 border-r border-gray-200 dark:border-slate-700 flex-shrink-0"></div>
+            <div className="w-16 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 flex-shrink-0"></div>
             
             {/* Headers de días - Flex para distribuir el espacio restante */}
             <div className="flex flex-1">
@@ -892,10 +892,10 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                 return (
                   <div
                     key={index}
-                    className="flex-1 px-3 py-3 border-r border-gray-200 dark:border-slate-700 last:border-r-0"
+                    className="flex-1 px-3 py-3 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 last:border-r-0"
                   >
                     <div className="text-center">
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                      <div className="text-xs font-medium text-[#6C757D] dark:text-gray-400 uppercase tracking-wider mb-1">
                         {dayDate.format('ddd')}
                       </div>
                       <div
@@ -903,7 +903,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                           w-8 h-8 mx-auto rounded-full flex items-center justify-center text-sm font-medium
                           ${isToday 
                             ? 'bg-[#0A2540] text-white' /* Azul Profundo */ 
-                            : 'text-gray-900 dark:text-gray-100'
+                            : 'text-[#0A2540] dark:text-white'
                           }
                         `}
                       >
@@ -920,13 +920,13 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           <div className="flex-1 overflow-y-auto">
             <div className="flex">
               {/* Columna de horas - Ancho fijo estrecho */}
-              <div className="w-16 border-r border-gray-200 dark:border-slate-700 flex-shrink-0">
+              <div className="w-16 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 flex-shrink-0">
                 {hours.map((hour) => (
                   <div
                     key={hour}
-                    className="h-16 border-b border-gray-200 dark:border-slate-700 px-1.5 flex items-start justify-end pt-1"
+                    className="h-16 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-1.5 flex items-start justify-end pt-1"
                   >
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-[#6C757D] dark:text-gray-400">
                       {hour.toString().padStart(2, '0')}:00
                     </span>
                   </div>
@@ -943,15 +943,15 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                     <div
                       key={dayIndex}
                       className={`
-                        flex-1 border-r border-gray-200 dark:border-slate-700 last:border-r-0 relative
-                        ${isToday ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}
+                        flex-1 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 last:border-r-0 relative
+                        ${isToday ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20' : ''}
                       `}
                     >
                       {/* Grid de horas para estructura */}
                       {hours.map((hour) => (
                         <div
                           key={hour}
-                          className="h-16 border-b border-gray-200 dark:border-slate-700 relative hover:bg-gray-50 dark:hover:bg-slate-700/20 transition-colors"
+                          className="h-16 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 relative hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/10 transition-colors"
                         />
                       ))}
                       
@@ -1027,17 +1027,17 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         </div>
       ) : (
         /* Vista de Día - Estilo Google Calendar */
-        <div className="flex-1 flex flex-col border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-800">
+        <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329]">
           {/* Header del día */}
-          <div className="flex border-b border-gray-200 dark:border-slate-700">
+          <div className="flex border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             {/* Celda vacía para la columna de horas - Ancho fijo estrecho */}
-            <div className="w-16 border-r border-gray-200 dark:border-slate-700 flex-shrink-0"></div>
+            <div className="w-16 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 flex-shrink-0"></div>
             
             {/* Header del día - Ocupa todo el espacio restante */}
             <div className="flex-1 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                  <div className="text-xs font-medium text-[#6C757D] dark:text-gray-400 uppercase tracking-wider mb-1">
                     {currentDate.format('dddd')}
                   </div>
                   <div className="flex items-center gap-2">
@@ -1045,14 +1045,14 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                       className={`
                         w-10 h-10 rounded-full flex items-center justify-center text-base font-medium
                         ${currentDate.isSame(today, 'day')
-                          ? 'bg-blue-600 text-white' 
-                          : 'text-gray-900 dark:text-gray-100'
+                          ? 'bg-[#0A2540] text-white' 
+                          : 'text-[#0A2540] dark:text-white'
                         }
                       `}
                     >
                       {currentDate.format('D')}
                     </div>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="text-sm text-[#6C757D] dark:text-gray-400">
                       {currentDate.format('MMMM YYYY')}
                     </span>
                   </div>
@@ -1065,13 +1065,13 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           <div className="flex-1 overflow-y-auto">
             <div className="flex">
               {/* Columna de horas - Ancho fijo estrecho */}
-              <div className="w-16 border-r border-gray-200 dark:border-slate-700 flex-shrink-0">
+              <div className="w-16 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 flex-shrink-0">
                 {hours.map((hour) => (
                   <div
                     key={hour}
-                    className="h-16 border-b border-gray-200 dark:border-slate-700 px-1.5 flex items-start justify-end pt-1"
+                    className="h-16 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-1.5 flex items-start justify-end pt-1"
                   >
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-[#6C757D] dark:text-gray-400">
                       {hour.toString().padStart(2, '0')}:00
                     </span>
                   </div>
@@ -1082,14 +1082,14 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
               <div
                 className={`
                   flex-1 relative
-                  ${currentDate.isSame(today, 'day') ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}
+                  ${currentDate.isSame(today, 'day') ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20' : ''}
                 `}
               >
                 {/* Grid de horas para estructura */}
                 {hours.map((hour) => (
                   <div
                     key={hour}
-                    className="h-16 border-b border-gray-200 dark:border-slate-700 relative hover:bg-gray-50 dark:hover:bg-slate-700/20 transition-colors"
+                    className="h-16 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 relative hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/10 transition-colors"
                   />
                 ))}
                 
@@ -1195,18 +1195,18 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
               onClick={(e) => e.stopPropagation()}
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
             >
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden">
+              <div className="bg-white dark:bg-[#1E2329] rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30">
                 {/* Header mejorado - Estilo Google Calendar */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {!isEditMode && !isCreatingEvent && selectedEvent && (
                       <>
                         <button
                           onClick={handleEditEvent}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          className="p-2 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors"
                           aria-label="Editar"
                         >
-                          <Edit2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                          <Edit2 className="w-5 h-5 text-[#6C757D] dark:text-gray-400" />
                         </button>
                         <button
                           onClick={handleDeleteEvent}
@@ -1218,7 +1218,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                         </button>
                       </>
                     )}
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex-1 truncate">
+                    <h2 className="text-lg font-semibold text-[#0A2540] dark:text-white flex-1 truncate">
                       {isCreatingEvent ? 'Nuevo evento' : selectedEvent?.title || ''}
                     </h2>
                   </div>
@@ -1235,18 +1235,18 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                         end: '',
                         location: '',
                         isAllDay: false,
-                        color: '#0066CC',
+                        color: '#0A2540',
                       });
                     }}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    className="p-2 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors"
                     aria-label="Cerrar"
                   >
-                    <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <X className="w-5 h-5 text-[#6C757D] dark:text-gray-400" />
                   </button>
                 </div>
 
                 {/* Contenido del Modal - Mejorado */}
-                <div className="px-6 py-5 space-y-5 max-h-[75vh] overflow-y-auto">
+                <div className="px-5 py-4 space-y-4 max-h-[75vh] overflow-y-auto">
                   {isEditMode || isCreatingEvent ? (
                     /* Formulario de Edición/Creación - Mejorado */
                     <form
@@ -1263,7 +1263,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                           value={eventForm.title}
                           onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
                           placeholder="Añadir título"
-                          className="w-full px-4 py-3 text-lg font-medium bg-gray-50 dark:bg-[#1E2329] border border-gray-300 dark:border-[#0A2540]/30 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all"
+                          className="w-full px-4 py-2.5 text-base font-medium bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all"
                           required
                           autoFocus
                         />
@@ -1272,12 +1272,12 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                       {/* Fecha y Hora - Mejorado */}
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
-                          <Clock className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                          <Clock className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0" />
                           <div className="flex-1 grid grid-cols-2 gap-3">
                             {!eventForm.isAllDay ? (
                               <>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                                  <label className="block text-xs font-medium text-[#6C757D] dark:text-gray-400 mb-1.5">
                                     Inicio
                                   </label>
                                   <input
@@ -1287,12 +1287,12 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                                       const newStart = moment(e.target.value).toISOString();
                                       setEventForm({ ...eventForm, start: newStart });
                                     }}
-                                    className="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    className="w-full px-3 py-2 text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all"
                                     required
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                                  <label className="block text-xs font-medium text-[#6C757D] dark:text-gray-400 mb-1.5">
                                     Fin
                                   </label>
                                   <input
@@ -1302,7 +1302,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                                       const newEnd = moment(e.target.value).toISOString();
                                       setEventForm({ ...eventForm, end: newEnd });
                                     }}
-                                    className="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    className="w-full px-3 py-2 text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all"
                                     required
                                   />
                                 </div>
@@ -1310,7 +1310,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                             ) : (
                               <>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                                  <label className="block text-xs font-medium text-[#6C757D] dark:text-gray-400 mb-1.5">
                                     Fecha inicio
                                   </label>
                                   <input
@@ -1320,12 +1320,12 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                                       const newStart = moment(e.target.value).startOf('day').toISOString();
                                       setEventForm({ ...eventForm, start: newStart });
                                     }}
-                                    className="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    className="w-full px-3 py-2 text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all"
                                     required
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                                  <label className="block text-xs font-medium text-[#6C757D] dark:text-gray-400 mb-1.5">
                                     Fecha fin
                                   </label>
                                   <input
@@ -1335,7 +1335,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                                       const newEnd = moment(e.target.value).endOf('day').toISOString();
                                       setEventForm({ ...eventForm, end: newEnd });
                                     }}
-                                    className="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    className="w-full px-3 py-2 text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all"
                                     required
                                   />
                                 </div>
@@ -1351,9 +1351,9 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                             id="isAllDay"
                             checked={eventForm.isAllDay}
                             onChange={(e) => setEventForm({ ...eventForm, isAllDay: e.target.checked })}
-                            className="w-5 h-5 text-blue-600 border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700"
+                            className="w-5 h-5 text-[#0A2540] border-[#E9ECEF] dark:border-[#6C757D] rounded-lg focus:ring-2 focus:ring-[#00D4B3] bg-white dark:bg-[#1E2329]"
                           />
-                          <label htmlFor="isAllDay" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                          <label htmlFor="isAllDay" className="text-sm font-medium text-[#0A2540] dark:text-white cursor-pointer">
                             Todo el día
                           </label>
                         </div>
@@ -1361,9 +1361,9 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
 
                       {/* Ubicación - Mejorado */}
                       <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-2.5" />
+                        <MapPin className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0 mt-2.5" />
                         <div className="flex-1">
-                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                          <label className="block text-xs font-medium text-[#6C757D] dark:text-gray-400 mb-1.5">
                             Ubicación
                           </label>
                           <input
@@ -1371,16 +1371,16 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                             value={eventForm.location}
                             onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
                             placeholder="Añadir ubicación"
-                            className="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            className="w-full px-3 py-2 text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all"
                           />
                         </div>
                       </div>
 
                       {/* Descripción - Mejorado */}
                       <div className="flex items-start gap-3">
-                        <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-2.5" />
+                        <CalendarIcon className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0 mt-2.5" />
                         <div className="flex-1">
-                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                          <label className="block text-xs font-medium text-[#6C757D] dark:text-gray-400 mb-1.5">
                             Descripción
                           </label>
                           <textarea
@@ -1388,7 +1388,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                             onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
                             placeholder="Añadir descripción"
                             rows={4}
-                            className="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                            className="w-full px-3 py-2 text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all resize-none"
                           />
                         </div>
                       </div>
@@ -1402,7 +1402,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                          <label className="block text-xs font-medium text-[#6C757D] dark:text-gray-400 mb-2">
                             Color
                           </label>
                           <div className="flex items-center gap-2.5 flex-wrap">
@@ -1412,9 +1412,9 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                                 type="button"
                                 onClick={() => setEventForm({ ...eventForm, color: color.value })}
                                 className={`
-                                  w-10 h-10 rounded-lg transition-all shadow-sm
+                                  w-9 h-9 rounded-lg transition-all shadow-sm
                                   ${eventForm.color === color.value 
-                                    ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-gray-500 scale-110 shadow-md' 
+                                    ? 'ring-2 ring-offset-2 ring-[#0A2540] dark:ring-[#00D4B3] scale-110 shadow-md' 
                                     : 'hover:scale-105 hover:shadow-md'
                                   }
                                 `}
@@ -1428,7 +1428,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           </div>
 
                       {/* Botones de acción - Mejorados */}
-                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                         <button
                           type="button"
                           onClick={() => {
@@ -1441,13 +1441,13 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                               end: '',
                               location: '',
                               isAllDay: false,
-                              color: '#0066CC',
+                              color: '#0A2540',
                             });
                             if (!selectedEvent) {
                               setIsEventModalOpen(false);
                             }
                           }}
-                          className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          className="px-5 py-2 text-xs font-medium text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-md transition-colors"
                         >
                           Cancelar
                         </button>
@@ -1470,17 +1470,17 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                           className="w-5 h-5 rounded-lg flex-shrink-0 mt-0.5 shadow-sm"
                           style={{ 
                             backgroundColor: selectedEvent?.color || 
-                            (selectedEvent?.source === 'study_session' ? '#8E24AA' : 
+                            (selectedEvent?.source === 'study_session' ? '#0A2540' : 
                              selectedEvent?.provider === 'google' ? '#0066CC' : 
-                             selectedEvent?.provider === 'microsoft' ? '#0078D4' : '#0066CC')
+                             selectedEvent?.provider === 'microsoft' ? '#0078D4' : '#0A2540')
                           }}
                         />
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                          <h3 className="text-lg font-semibold text-[#0A2540] dark:text-white mb-1">
                             {selectedEvent?.title}
                           </h3>
                           {selectedEvent?.source === 'study_session' && (
-                            <span className="inline-block px-2.5 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30 rounded-md">
+                            <span className="inline-block px-2 py-0.5 text-xs font-medium text-[#0A2540] dark:text-[#00D4B3] bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-md">
                               Sesión de estudio
                             </span>
                           )}
@@ -1489,26 +1489,26 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
 
                       {/* Fecha y Hora - Mejorado */}
                       {selectedEvent && (
-                        <div className="flex items-start gap-4">
-                          <Clock className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-3">
+                          <Clock className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0 mt-0.5" />
                           <div className="flex-1">
                             {selectedEvent.isAllDay ? (
-                              <div className="text-sm text-gray-700 dark:text-gray-300">
+                              <div className="text-sm text-[#0A2540] dark:text-white">
                                 <div className="font-semibold mb-1">Todo el día</div>
-                                <div className="text-gray-600 dark:text-gray-400">
+                                <div className="text-[#6C757D] dark:text-gray-400">
                                   {moment(selectedEvent.start).format('dddd, D [de] MMMM [de] YYYY')}
                                 </div>
                               </div>
                             ) : (
-                              <div className="text-sm text-gray-700 dark:text-gray-300">
+                              <div className="text-sm text-[#0A2540] dark:text-white">
                                 <div className="font-semibold mb-1">
                                   {moment(selectedEvent.start).format('dddd, D [de] MMMM [de] YYYY')}
                                 </div>
-                                <div className="text-gray-600 dark:text-gray-400">
+                                <div className="text-[#6C757D] dark:text-gray-400">
                                   {moment(selectedEvent.start).format('h:mm A')} - {moment(selectedEvent.end).format('h:mm A')}
                                 </div>
                                 {moment(selectedEvent.start).format('YYYY-MM-DD') !== moment(selectedEvent.end).format('YYYY-MM-DD') && (
-                                  <div className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                                  <div className="text-[#6C757D] dark:text-gray-400 text-xs mt-1">
                                     Hasta {moment(selectedEvent.end).format('dddd, D [de] MMMM [de] YYYY')}
                                   </div>
                                 )}
@@ -1520,10 +1520,10 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
 
                       {/* Ubicación - Mejorado */}
                       {selectedEvent?.location && (
-                        <div className="flex items-start gap-4">
-                          <MapPin className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-3">
+                          <MapPin className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0 mt-0.5" />
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <div className="text-sm font-medium text-[#0A2540] dark:text-white">
                               {selectedEvent.location}
                             </div>
                           </div>
@@ -1532,10 +1532,10 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
 
                       {/* Descripción - Mejorado */}
                       {selectedEvent?.description && (
-                        <div className="flex items-start gap-4">
-                          <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-3">
+                          <CalendarIcon className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0 mt-0.5" />
                           <div className="flex-1">
-                            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            <div className="text-sm text-[#0A2540] dark:text-white whitespace-pre-wrap leading-relaxed">
                               {selectedEvent.description}
                             </div>
                           </div>
@@ -1544,8 +1544,8 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
 
                       {/* Información del proveedor - Mejorado */}
                       {selectedEvent && (
-                        <div className="pt-4 border-t border-gray-200 dark:border-slate-700">
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <div className="pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
+                          <div className="text-xs font-medium text-[#6C757D] dark:text-gray-400">
                             {selectedEvent.provider === 'google' && 'Sincronizado desde Google Calendar'}
                             {selectedEvent.provider === 'microsoft' && 'Sincronizado desde Microsoft Calendar'}
                             {selectedEvent.provider === 'study' && 'Sesión de estudio planificada'}
@@ -1591,27 +1591,27 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: 'spring', damping: 20, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-slate-700"
+              className="bg-white dark:bg-[#1E2329] rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30"
             >
               {/* Header */}
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <div className="px-5 py-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+                <h3 className="text-base font-semibold text-[#0A2540] dark:text-white">
                   Confirmar eliminación
                 </h3>
               </div>
 
               {/* Contenido */}
-              <div className="px-6 py-5">
-                <p className="text-base text-gray-700 dark:text-gray-300">
+              <div className="px-5 py-4">
+                <p className="text-sm text-[#6C757D] dark:text-gray-300">
                   {confirmDialog.message}
                 </p>
               </div>
 
               {/* Botones */}
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-end gap-3">
+              <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-end gap-3">
                 <button
                   onClick={confirmDialog.onCancel}
-                  className="px-6 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200"
+                  className="px-5 py-2 text-xs font-semibold text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-md transition-colors duration-200"
                 >
                   Cancelar
                 </button>

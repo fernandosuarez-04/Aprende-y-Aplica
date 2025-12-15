@@ -196,10 +196,11 @@ export function CourseHoverPopover({
       {isVisible && (
         <motion.div
           ref={popoverRef}
-          className="fixed z-50 w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden"
+          className="fixed z-50 w-96 bg-white dark:bg-[#1E2329] rounded-xl shadow-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden"
           style={{
             top: `${position.top}px`,
             left: `${position.left}px`,
+            fontFamily: 'Inter, sans-serif'
           }}
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -216,28 +217,28 @@ export function CourseHoverPopover({
           {/* Botón de cerrar */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 z-10 p-1.5 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full transition-colors duration-200 shadow-sm"
+            className="absolute top-3 right-3 z-10 p-1.5 bg-[#E9ECEF] dark:bg-[#0F1419] hover:bg-[#6C757D]/20 dark:hover:bg-[#6C757D]/30 rounded-full transition-colors duration-200 shadow-sm"
             aria-label="Cerrar"
           >
-            <X className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+            <X className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
           </button>
 
           {/* Contenido */}
-          <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto">
+          <div className="p-5 space-y-4">
               {/* Título - Sin fondo degradado */}
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight line-clamp-2 mb-2">
+              <h3 className="text-lg font-bold text-[#0A2540] dark:text-white leading-tight line-clamp-2 mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                 {course.title}
               </h3>
               {/* Badges */}
               <div className="flex flex-wrap gap-2">
                 {course.status === 'Adquirido' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] rounded-full text-xs font-semibold border border-[#00D4B3]/20">
                     <Award className="w-3.5 h-3.5" />
                     Premium
                   </span>
                 )}
                 {course.student_count && course.student_count > 100 && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] rounded-full text-xs font-semibold border border-[#10B981]/20">
                     <TrendingUp className="w-3.5 h-3.5" />
                     Lo más vendido
                   </span>
@@ -245,27 +246,27 @@ export function CourseHoverPopover({
               </div>
 
               {/* Información de actualización */}
-              <p className="text-xs font-medium text-green-600 dark:text-green-400">
+              <p className="text-xs font-medium text-[#10B981] dark:text-[#10B981]" style={{ fontFamily: 'Inter, sans-serif' }}>
                 {getUpdateDate()}
               </p>
 
               {/* Estadísticas del curso */}
-              <div className="grid grid-cols-3 gap-3 py-3 border-t border-b border-gray-200 dark:border-slate-700">
+              <div className="grid grid-cols-3 gap-3 py-3 border-t border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
                 <div className="flex flex-col items-center text-center">
-                  <Clock className="w-4 h-4 text-gray-500 dark:text-slate-400 mb-1" />
-                  <span className="text-xs font-medium text-gray-700 dark:text-slate-300">
+                  <Clock className="w-4 h-4 text-[#6C757D] dark:text-white/60 mb-1" />
+                  <span className="text-xs font-medium text-[#0A2540] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif' }}>
                     {formatDuration(course.estimatedDuration)}
                   </span>
                 </div>
                 <div className="flex flex-col items-center text-center">
-                  <BookOpen className="w-4 h-4 text-gray-500 dark:text-slate-400 mb-1" />
-                  <span className="text-xs font-medium text-gray-700 dark:text-slate-300">
+                  <BookOpen className="w-4 h-4 text-[#6C757D] dark:text-white/60 mb-1" />
+                  <span className="text-xs font-medium text-[#0A2540] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif' }}>
                     {formatLevel(course.difficulty)}
                   </span>
                 </div>
                 <div className="flex flex-col items-center text-center">
-                  <BarChart3 className="w-4 h-4 text-gray-500 dark:text-slate-400 mb-1" />
-                  <span className="text-xs font-medium text-gray-700 dark:text-slate-300">
+                  <BarChart3 className="w-4 h-4 text-[#6C757D] dark:text-white/60 mb-1" />
+                  <span className="text-xs font-medium text-[#0A2540] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif' }}>
                     Subtítulos
                   </span>
                 </div>
@@ -273,7 +274,7 @@ export function CourseHoverPopover({
 
               {/* Descripción */}
               <div>
-                <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed">
+                <p className="text-sm text-[#6C757D] dark:text-white/80 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif' }}>
                   {truncateDescription(course.description)}
                 </p>
               </div>
@@ -281,14 +282,14 @@ export function CourseHoverPopover({
               {/* Objetivos de aprendizaje */}
               {course.learning_objectives && Array.isArray(course.learning_objectives) && course.learning_objectives.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <h4 className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif' }}>
                     Lo que aprenderás:
                   </h4>
                   <ul className="space-y-2">
                     {course.learning_objectives.slice(0, 3).map((objective, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-xs text-gray-600 dark:text-slate-400 leading-relaxed">
+                        <CheckCircle2 className="w-4 h-4 text-[#10B981] dark:text-[#10B981] mt-0.5 flex-shrink-0" />
+                        <span className="text-xs text-[#6C757D] dark:text-white/70 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif' }}>
                           {typeof objective === 'string' ? objective : JSON.stringify(objective)}
                         </span>
                       </li>
@@ -298,21 +299,21 @@ export function CourseHoverPopover({
               )}
 
               {/* Estadísticas adicionales */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
+              <div className="flex items-center justify-between pt-3 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                 <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <Star className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
+                  <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif' }}>
                     {course.rating?.toFixed(1) || '0.0'}
                   </span>
                   {course.review_count && course.review_count > 0 && (
-                    <span className="text-xs text-gray-500 dark:text-slate-400">
+                    <span className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif' }}>
                       ({course.review_count.toLocaleString()})
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4 text-gray-500 dark:text-slate-400" />
-                  <span className="text-xs text-gray-600 dark:text-slate-400">
+                  <Users className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                  <span className="text-xs text-[#6C757D] dark:text-white/70" style={{ fontFamily: 'Inter, sans-serif' }}>
                     {course.student_count?.toLocaleString() || 0} estudiantes
                   </span>
                 </div>

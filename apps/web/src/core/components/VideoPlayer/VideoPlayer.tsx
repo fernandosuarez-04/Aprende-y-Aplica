@@ -161,11 +161,11 @@ export function VideoPlayer({
   const renderVideoContent = () => {
     if (error) {
       return (
-        <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+        <div className="flex items-center justify-center h-64 bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30">
           <div className="text-center">
             <div className="text-red-500 mb-2">⚠️</div>
-            <p className="text-gray-600 mb-2">{error}</p>
-            <p className="text-sm text-gray-500">
+            <p className="text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{error}</p>
+            <p className="text-sm text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
               Proveedor: {videoProvider} | ID: {videoProviderId}
             </p>
           </div>
@@ -218,8 +218,8 @@ export function VideoPlayer({
     return (
       <div className="relative w-full h-full">
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <div className="absolute inset-0 flex items-center justify-center bg-[#0F1419] dark:bg-[#0F1419] rounded-xl">
+            <Loader2 className="w-8 h-8 animate-spin text-[#00D4B3]" />
           </div>
         )}
         

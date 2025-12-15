@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { PersonalSubscriptionService } from '../services/personal-subscription.service';
 import { PersonalPlan, BillingCycle } from '../types/subscription.types';
-import { Button } from '@aprende-y-aplica/ui';
 import { useShoppingCartStore } from '@/core/stores/shoppingCartStore';
 
 interface PersonalSubscriptionPlansProps {
@@ -74,47 +73,69 @@ export function PersonalSubscriptionPlans({
   const getPlanColor = (planId: string) => {
     switch (planId) {
       case 'basic':
-        return 'from-blue-500 to-blue-600';
+        return 'bg-[#0A2540]';
       case 'premium':
-        return 'from-purple-500 to-purple-600';
+        return 'bg-[#00D4B3]';
       case 'pro':
-        return 'from-amber-500 to-amber-600';
+        return 'bg-[#F59E0B]';
       default:
-        return 'from-gray-500 to-gray-600';
+        return 'bg-[#6C757D]';
     }
   };
 
   return (
     <div className="w-full">
       {/* Billing Cycle Toggle */}
-      <div className="flex items-center justify-center gap-4 mb-8">
-        <button
-          onClick={() => setBillingCycle('monthly')}
-          className={`px-6 py-3 rounded-lg font-medium transition-all ${
-            billingCycle === 'monthly'
-              ? 'bg-primary text-white shadow-lg'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          Mensual
-        </button>
-        <button
-          onClick={() => setBillingCycle('yearly')}
-          className={`px-6 py-3 rounded-lg font-medium transition-all relative ${
-            billingCycle === 'yearly'
-              ? 'bg-primary text-white shadow-lg'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          Anual
-          <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-            Ahorra ~17%
-          </span>
-        </button>
+      <div className="flex items-center justify-center gap-3 mb-6">
+        <div className="inline-flex bg-[#E9ECEF]/50 dark:bg-[#0A2540]/10 rounded-lg p-1 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+          <motion.button
+            onClick={() => setBillingCycle('monthly')}
+            className={`relative px-4 py-2 font-medium transition-colors rounded-md text-sm ${
+              billingCycle === 'monthly'
+                ? 'text-[#0A2540] dark:text-white'
+                : 'text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white'
+            }`}
+          >
+            {billingCycle === 'monthly' && (
+              <motion.div
+                layoutId="billingCycle"
+                className="absolute inset-0 bg-white dark:bg-[#1E2329] rounded-md shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <span className="relative z-10">Mensual</span>
+          </motion.button>
+          <motion.button
+            onClick={() => setBillingCycle('yearly')}
+            className={`relative px-4 py-2 font-medium transition-colors rounded-md text-sm ${
+              billingCycle === 'yearly'
+                ? 'text-[#0A2540] dark:text-white'
+                : 'text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white'
+            }`}
+          >
+            {billingCycle === 'yearly' && (
+              <motion.div
+                layoutId="billingCycle"
+                className="absolute inset-0 bg-white dark:bg-[#1E2329] rounded-md shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-1.5">
+              Anual
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: billingCycle === 'yearly' ? 1 : 0 }}
+                className="inline-block bg-[#10B981] text-white text-xs px-1.5 py-0.5 rounded-full font-semibold"
+              >
+                Ahorra ~17%
+              </motion.span>
+            </span>
+          </motion.button>
+        </div>
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
         {plans.map((plan, index) => {
           const price = PersonalSubscriptionService.calculatePrice(plan, billingCycle);
           const formattedPrice = PersonalSubscriptionService.formatPrice(price, plan.currency);
@@ -127,88 +148,111 @@ export function PersonalSubscriptionPlans({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`relative rounded-xl border-2 overflow-hidden transition-all flex flex-col h-full ${
+              className={`relative rounded-xl border overflow-hidden transition-all flex flex-col h-full ${
                 plan.isPopular
-                  ? 'border-primary shadow-xl scale-105'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
-              } ${isCurrentPlan ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                  ? 'border-[#0A2540] dark:border-[#00D4B3] shadow-lg scale-[1.02]'
+                  : 'border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50'
+              } ${isCurrentPlan ? 'ring-2 ring-[#10B981] ring-offset-2 dark:ring-offset-[#0F1419]' : ''}`}
             >
               {/* Popular Badge */}
               {plan.isPopular && (
-                <div className="absolute top-0 right-0 bg-primary text-white px-4 py-1 rounded-bl-lg text-sm font-semibold z-10">
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', delay: index * 0.1 + 0.2 }}
+                  className="absolute top-0 right-0 bg-[#0A2540] dark:bg-[#00D4B3] text-white px-3 py-1 rounded-bl-lg text-xs font-semibold z-10"
+                >
                   {plan.badge || 'Más Popular'}
-                </div>
+                </motion.div>
               )}
 
               {/* Current Plan Badge */}
               {isCurrentPlan && (
-                <div className="absolute top-0 left-0 bg-green-500 text-white px-4 py-1 rounded-br-lg text-sm font-semibold z-10">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-0 left-0 bg-[#10B981] text-white px-3 py-1 rounded-br-lg text-xs font-semibold z-10"
+                >
                   Plan Actual
-                </div>
+                </motion.div>
               )}
 
               {/* Header */}
-              <div className={`bg-gradient-to-br ${getPlanColor(plan.id)} p-6 text-white`}>
-                <div className="flex items-center gap-3 mb-2">
-                  {getPlanIcon(plan.id)}
-                  <h3 className="text-2xl font-bold">{plan.name}</h3>
+              <div className={`${getPlanColor(plan.id)} p-5 text-white`}>
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="p-1.5 bg-white/20 rounded-lg">
+                    {getPlanIcon(plan.id)}
+                  </div>
+                  <h3 className="text-xl font-bold">{plan.name}</h3>
                 </div>
-                <p className="text-white/80 text-sm mb-4">{plan.tagline}</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">{formattedPrice}</span>
-                  <span className="text-white/70">
+                <p className="text-white/90 text-xs mb-3">{plan.tagline}</p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-bold">{formattedPrice}</span>
+                  <span className="text-white/80 text-sm">
                     /{billingCycle === 'monthly' ? 'mes' : 'año'}
                   </span>
                 </div>
                 {billingCycle === 'yearly' && savings > 0 && (
-                  <p className="text-white/80 text-sm mt-2">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-white/90 text-xs mt-2 font-medium"
+                  >
                     Ahorra {savings}% vs plan mensual
-                  </p>
+                  </motion.p>
                 )}
               </div>
 
               {/* Features */}
-              <div className="p-6 bg-white dark:bg-gray-800 flex flex-col flex-1 min-h-0">
-                <ul className="space-y-3 flex-grow min-h-0">
+              <div className="p-5 bg-white dark:bg-[#1E2329] flex flex-col flex-1 min-h-0">
+                <ul className="space-y-2.5 flex-grow min-h-0 mb-4">
                   {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
-                    </li>
+                    <motion.li
+                      key={featureIndex}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 + featureIndex * 0.03 }}
+                      className="flex items-start gap-2.5"
+                    >
+                      <Check className="w-4 h-4 text-[#10B981] flex-shrink-0 mt-0.5" />
+                      <span className="text-xs text-[#0A2540] dark:text-gray-300 leading-relaxed">{feature}</span>
+                    </motion.li>
                   ))}
                 </ul>
 
                 {/* CTA Buttons */}
-                <div className="flex gap-3 mt-auto flex-shrink-0">
-                  <Button
-                    variant={plan.isPopular ? 'primary' : 'secondary'}
-                    size="lg"
-                    className="flex-1"
-                    onClick={() => handleSubscribe(plan)}
+                <div className="flex gap-2 mt-auto flex-shrink-0">
+                  <button
+                    onClick={() => !isCurrentPlan && handleSubscribe(plan)}
                     disabled={isCurrentPlan}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md font-medium text-sm transition-colors ${
+                      isCurrentPlan
+                        ? 'bg-[#10B981] text-white cursor-not-allowed'
+                        : plan.isPopular
+                        ? 'bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white'
+                        : 'bg-[#E9ECEF] dark:bg-[#0A2540]/20 hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/30 text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                    }`}
                   >
                     {isCurrentPlan ? (
                       <>
-                        <Check className="w-5 h-5 mr-2" />
+                        <Check className="w-4 h-4" />
                         Plan Activo
                       </>
                     ) : (
                       <>
                         Suscribirse ahora
-                        <ArrowRight className="w-5 h-5 ml-2" />
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     )}
-                  </Button>
+                  </button>
                   {!isCurrentPlan && (
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="px-4 flex items-center justify-center"
+                    <button
                       onClick={() => handleAddToCart(plan, price)}
+                      className="px-3 py-2.5 bg-[#E9ECEF]/50 dark:bg-[#0A2540]/10 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 text-[#0A2540] dark:text-white rounded-md transition-colors border border-[#E9ECEF] dark:border-[#6C757D]/30"
                       title="Agregar al carrito"
                     >
-                      <ShoppingCart className="w-5 h-5" />
-                    </Button>
+                      <ShoppingCart className="w-4 h-4" />
+                    </button>
                   )}
                 </div>
               </div>
@@ -218,8 +262,8 @@ export function PersonalSubscriptionPlans({
       </div>
 
       {/* Comparison Note */}
-      <div className="mt-8 text-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="mt-6 text-center">
+        <p className="text-xs text-[#6C757D] dark:text-gray-400">
           Todas las suscripciones incluyen cancelación en cualquier momento. Sin cargos ocultos.
         </p>
       </div>

@@ -29,13 +29,13 @@ interface ReporteProblemProps {
 type Categoria = 'bug' | 'sugerencia' | 'contenido' | 'performance' | 'ui-ux' | 'otro';
 type Prioridad = 'baja' | 'media' | 'alta' | 'critica';
 
-const categorias: { value: Categoria; label: string; icon: any; color: string }[] = [
-  { value: 'bug', label: 'Bug / Error', icon: AlertCircle, color: 'text-red-500' },
-  { value: 'sugerencia', label: 'Sugerencia', icon: Lightbulb, color: 'text-yellow-500' },
-  { value: 'contenido', label: 'Problema de Contenido', icon: FileText, color: 'text-blue-500' },
-  { value: 'performance', label: 'Performance', icon: Zap, color: 'text-purple-500' },
-  { value: 'ui-ux', label: 'Diseño / UX', icon: Palette, color: 'text-pink-500' },
-  { value: 'otro', label: 'Otro', icon: HelpCircle, color: 'text-gray-500' }
+const categorias: { value: Categoria; label: string; icon: any; color: string; bgColor: string; borderColor: string }[] = [
+  { value: 'bug', label: 'Bug / Error', icon: AlertCircle, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-50 dark:bg-red-900/20', borderColor: 'border-red-500' },
+  { value: 'sugerencia', label: 'Sugerencia', icon: Lightbulb, color: 'text-[#F59E0B] dark:text-[#F59E0B]', bgColor: 'bg-amber-50 dark:bg-amber-900/20', borderColor: 'border-[#F59E0B]' },
+  { value: 'contenido', label: 'Problema de Contenido', icon: FileText, color: 'text-[#0A2540] dark:text-[#00D4B3]', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-[#0A2540] dark:border-[#00D4B3]' },
+  { value: 'performance', label: 'Performance', icon: Zap, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/20', borderColor: 'border-purple-500' },
+  { value: 'ui-ux', label: 'Diseño / UX', icon: Palette, color: 'text-pink-600 dark:text-pink-400', bgColor: 'bg-pink-50 dark:bg-pink-900/20', borderColor: 'border-pink-500' },
+  { value: 'otro', label: 'Otro', icon: HelpCircle, color: 'text-[#6C757D] dark:text-[#6C757D]', bgColor: 'bg-gray-50 dark:bg-gray-800/50', borderColor: 'border-[#6C757D]' }
 ];
 
 const prioridades: { value: Prioridad; label: string }[] = [
@@ -246,21 +246,21 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-[#1E2329] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 text-white relative">
+          <div className="bg-[#0A2540] p-6 text-white relative">
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"
+              className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-xl transition-colors"
               disabled={isSubmitting}
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-2xl font-bold mb-2">
+            <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
               {step === 'form' ? 'Reportar un Problema' : '¡Reporte Enviado!'}
             </h2>
-            <p className="text-blue-100">
+            <p className="text-white/80 text-base" style={{ fontFamily: 'Inter, sans-serif' }}>
               {step === 'form' 
                 ? 'Ayúdanos a mejorar reportando problemas o sugerencias'
                 : 'Gracias por tu reporte. Lo revisaremos pronto.'
@@ -272,10 +272,10 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-500/20 border border-blue-300/30 rounded-lg backdrop-blur-sm"
+                className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl backdrop-blur-sm"
               >
-                <Video className="w-4 h-4 text-blue-300" />
-                <span className="text-sm font-medium text-blue-100">
+                <Video className="w-4 h-4 text-white/90" />
+                <span className="text-sm font-medium text-white/90" style={{ fontFamily: 'Inter, sans-serif' }}>
                   Se incluirá grabación de los últimos 60 segundos
                 </span>
               </motion.div>
@@ -288,25 +288,26 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Categoría */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                  <label className="block text-sm font-medium text-[#0A2540] dark:text-white mb-3" style={{ fontFamily: 'Inter, sans-serif' }}>
                     Categoría *
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {categorias.map((cat) => {
                       const Icon = cat.icon;
+                      const isSelected = categoria === cat.value;
                       return (
                         <button
                           key={cat.value}
                           type="button"
                           onClick={() => setCategoria(cat.value)}
-                          className={`p-3 rounded-lg border-2 transition-all bg-white dark:bg-slate-700/50 ${
-                            categoria === cat.value
-                              ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20'
-                              : 'border-gray-300 dark:border-slate-600 hover:border-blue-500/50 dark:hover:border-blue-500/50'
+                          className={`p-3 rounded-xl border-2 transition-all ${
+                            isSelected
+                              ? `${cat.borderColor} ${cat.bgColor} shadow-sm`
+                              : 'border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] hover:border-[#00D4B3]/50 dark:hover:border-[#00D4B3]/50'
                           }`}
                         >
-                          <Icon className={`w-5 h-5 mx-auto mb-1 ${cat.color}`} />
-                          <span className="text-xs font-medium text-gray-900 dark:text-white">
+                          <Icon className={`w-5 h-5 mx-auto mb-1.5 ${cat.color}`} />
+                          <span className={`text-xs font-medium ${isSelected ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white/80'}`} style={{ fontFamily: 'Inter, sans-serif' }}>
                             {cat.label}
                           </span>
                         </button>
@@ -317,13 +318,14 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
 
                 {/* Prioridad */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  <label className="block text-sm font-medium text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                     Prioridad
                   </label>
                   <select
                     value={prioridad}
                     onChange={(e) => setPrioridad(e.target.value as Prioridad)}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-[#00D4B3] transition-all"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
                   >
                     {prioridades.map((p) => (
                       <option key={p.value} value={p.value}>
@@ -335,7 +337,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
 
                 {/* Título */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  <label className="block text-sm font-medium text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                     Título *
                   </label>
                   <input
@@ -344,14 +346,15 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     onChange={(e) => setTitulo(e.target.value)}
                     placeholder="Resumen breve del problema"
                     maxLength={200}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-[#00D4B3] transition-all"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
                     required
                   />
                 </div>
 
                 {/* Descripción */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  <label className="block text-sm font-medium text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                     Descripción *
                   </label>
                   <textarea
@@ -359,14 +362,15 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     onChange={(e) => setDescripcion(e.target.value)}
                     placeholder="Describe el problema en detalle..."
                     rows={4}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-[#00D4B3] resize-none transition-all"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
                     required
                   />
                 </div>
 
                 {/* Pasos para reproducir (opcional) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  <label className="block text-sm font-medium text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                     Pasos para reproducir (opcional)
                   </label>
                   <textarea
@@ -374,13 +378,14 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     onChange={(e) => setPasosReproducir(e.target.value)}
                     placeholder="1. Haz clic en...&#10;2. Navega a...&#10;3. El error ocurre cuando..."
                     rows={3}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-[#00D4B3] resize-none transition-all"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
                   />
                 </div>
 
                 {/* Comportamiento esperado (opcional) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  <label className="block text-sm font-medium text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                     Comportamiento esperado (opcional)
                   </label>
                   <textarea
@@ -388,13 +393,14 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     onChange={(e) => setComportamientoEsperado(e.target.value)}
                     placeholder="¿Qué esperabas que sucediera?"
                     rows={2}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-[#00D4B3] resize-none transition-all"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
                   />
                 </div>
 
                 {/* Captura de pantalla */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  <label className="block text-sm font-medium text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                     Captura de pantalla (opcional)
                   </label>
                   {screenshotPreview ? (
@@ -402,12 +408,12 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                       <img 
                         src={screenshotPreview} 
                         alt="Screenshot preview" 
-                        className="w-full rounded-lg border border-gray-300 dark:border-slate-600 max-h-64 object-contain"
+                        className="w-full rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 max-h-64 object-contain"
                       />
                       <button
                         type="button"
                         onClick={handleRemoveScreenshot}
-                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors shadow-lg"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -424,12 +430,13 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                       />
                       <label
                         htmlFor="screenshot-upload"
-                        className="w-full py-3 px-4 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors flex items-center justify-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 bg-white dark:bg-slate-700/50 cursor-pointer"
+                        className="w-full py-3 px-4 border-2 border-dashed border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl hover:border-[#00D4B3] dark:hover:border-[#00D4B3] transition-colors flex items-center justify-center gap-2 text-[#6C757D] dark:text-[#6C757D] hover:text-[#00D4B3] dark:hover:text-[#00D4B3] bg-white dark:bg-[#1E2329] cursor-pointer"
+                        style={{ fontFamily: 'Inter, sans-serif' }}
                       >
                         <Upload className="w-5 h-5" />
                         Subir Imagen
                       </label>
-                      <p className="text-xs text-gray-500 dark:text-slate-400 mt-2 text-center">
+                      <p className="text-xs text-[#6C757D] dark:text-[#6C757D] mt-2 text-center" style={{ fontFamily: 'Inter, sans-serif' }}>
                         Máximo 10MB. Formatos: JPG, PNG, GIF
                       </p>
                     </div>
@@ -438,7 +445,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
 
                 {/* Error message */}
                 {error && (
-                  <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-500 text-sm">
+                  <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-600 dark:text-red-400 text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
                     {error}
                   </div>
                 )}
@@ -449,14 +456,16 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
                     type="button"
                     onClick={onClose}
                     disabled={isSubmitting}
-                    className="flex-1 px-6 py-3 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white bg-white dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    className="flex-1 px-6 py-3 rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 text-[#0A2540] dark:text-white bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF] dark:hover:bg-[#0F1419] transition-colors disabled:opacity-50 font-medium"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting || !titulo.trim() || !descripcion.trim()}
-                    className="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 px-6 py-3 rounded-xl bg-[#0A2540] dark:bg-[#0A2540] text-white font-semibold hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
                   >
                     {isSubmitting ? (
                       <>
@@ -475,18 +484,19 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
             ) : (
               /* Success Screen */
               <div className="text-center py-8">
-                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle className="w-10 h-10 text-green-500" />
+                <div className="w-20 h-20 bg-[#10B981]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle className="w-10 h-10 text-[#10B981]" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-3" style={{ fontFamily: 'Inter, sans-serif' }}>
                   ¡Reporte Enviado con Éxito!
                 </h3>
-                <p className="text-gray-600 dark:text-slate-400 mb-6">
+                <p className="text-[#6C757D] dark:text-[#6C757D] mb-6" style={{ fontFamily: 'Inter, sans-serif' }}>
                   Gracias por ayudarnos a mejorar. Revisaremos tu reporte pronto.
                 </p>
                 <button
                   onClick={onClose}
-                  className="px-8 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
+                  className="px-8 py-3 rounded-xl bg-[#0A2540] dark:bg-[#0A2540] text-white font-semibold hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] hover:shadow-lg transition-all"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
                 >
                   Cerrar
                 </button>

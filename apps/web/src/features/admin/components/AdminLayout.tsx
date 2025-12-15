@@ -90,8 +90,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   // Mostrar loading spinner si isLoading es true
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#0F1419]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-full"></div>
+            <div className="w-16 h-16 border-4 border-t-[#0A2540] dark:border-t-[#00D4B3] rounded-full animate-spin absolute top-0 left-0"></div>
+          </div>
+          <p className="text-sm text-[#6C757D] dark:text-gray-400">Cargando...</p>
+        </div>
       </div>
     )
   }
@@ -102,21 +108,21 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-800">
-          {/* Sidebar Global */}
-          <AdminSidebar 
-            isOpen={sidebarOpen} 
-            onClose={() => setSidebarOpen(false)}
-            activeSection={activeSection}
-            onSectionChange={setActiveSection}
-            isCollapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-            isPinned={sidebarPinned}
-            onTogglePin={() => setSidebarPinned(!sidebarPinned)}
-          />
+    <div className="min-h-screen bg-white dark:bg-[#0F1419]">
+      {/* Sidebar Global */}
+      <AdminSidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        isPinned={sidebarPinned}
+        onTogglePin={() => setSidebarPinned(!sidebarPinned)}
+      />
 
       {/* Main Content Area */}
-      <div className={`bg-gray-50 dark:bg-gray-800 min-h-screen transition-all duration-300 ease-in-out ${
+      <div className={`bg-white dark:bg-[#0F1419] min-h-screen transition-all duration-300 ease-in-out ${
         sidebarCollapsed && !sidebarPinned ? 'lg:ml-16' : 'lg:ml-64'
       }`}>
         {/* Header Global */}
@@ -128,7 +134,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         />
 
         {/* Page Content */}
-        <main className="bg-gray-50 dark:bg-gray-800 min-h-screen">
+        <main className="bg-white dark:bg-[#0F1419] min-h-screen">
           {children}
         </main>
       </div>
