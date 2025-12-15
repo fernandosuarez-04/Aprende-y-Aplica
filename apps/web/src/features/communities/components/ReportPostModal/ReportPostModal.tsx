@@ -138,7 +138,7 @@ export function ReportPostModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleBackdropClick}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100000]"
+            className="fixed inset-0 bg-[#0F1419]/80 backdrop-blur-sm z-[100000]"
             style={{ pointerEvents: isSubmitting || success ? 'none' : 'auto' }}
           />
 

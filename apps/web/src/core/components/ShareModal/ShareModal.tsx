@@ -108,7 +108,7 @@ export function ShareModal({ isOpen, onClose, shareData }: ShareModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+            className="fixed inset-0 bg-[#0F1419]/80 backdrop-blur-sm z-[9998]"
             onClick={onClose}
           />
 
@@ -123,7 +123,7 @@ export function ShareModal({ isOpen, onClose, shareData }: ShareModalProps) {
                 stiffness: 300,
                 damping: 30,
               }}
-              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full pointer-events-auto relative overflow-hidden border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-[#1E2329] rounded-2xl shadow-2xl max-w-md w-full pointer-events-auto relative overflow-hidden border border-gray-200 dark:border-[#0A2540]/30"
             >
               {/* Contenido */}
               <div className="relative p-6 sm:p-8">

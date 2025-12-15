@@ -372,7 +372,7 @@ export function StudyPlannerLIA() {
         const title = trimmed.replace(/^[🎯📈📚💡🗓️⏰📋✅❌⚠️]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
         let titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/40 tracking-tight';
         if (trimmed.includes('METAS SEMANALES')) {
-          titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-blue-400 via-blue-300 to-blue-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-blue-500/40 tracking-tight';
+          titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#0A2540] bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-[#0A2540]/40 tracking-tight'; /* Azul Profundo */
         } else if (trimmed.includes('HE REVISADO TU PERFIL')) {
           titleClass = 'font-heading font-bold text-[20px] sm:text-[22px] bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/40 tracking-tight';
         }
@@ -6320,7 +6320,7 @@ Cuéntame:
               <div className="relative flex flex-col items-center flex-shrink-0">
                 <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 mb-1.5 sm:mb-2 md:mb-3">
                   <motion.div
-                    className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1 overflow-hidden"
+                    className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-[#00D4B3] via-[#00D4B3] to-[#00b89a] p-1 overflow-hidden" /* Aqua para LIA */
                     animate={{ 
                       scale: isSpeaking ? [1, 1.08, 1] : 1,
                       boxShadow: isSpeaking 
@@ -6489,7 +6489,7 @@ Cuéntame:
                           <motion.div
                             className={`h-1 sm:h-1.5 rounded-full transition-all ${
                               idx === currentStep 
-                                ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 shadow-lg shadow-blue-500/50' 
+                                ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-[#00D4B3] via-[#00D4B3] to-[#00b89a] shadow-lg shadow-[#00D4B3]/50' /* Aqua */ 
                                 : idx < currentStep 
                                 ? 'w-4 sm:w-5 md:w-6 bg-gradient-to-r from-green-500 to-emerald-500' 
                                 : 'w-4 sm:w-5 md:w-6 bg-gray-300 dark:bg-gray-600'
@@ -6519,7 +6519,7 @@ Cuéntame:
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1, duration: 0.4 }}
-                        className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 dark:from-blue-400 dark:via-purple-400 dark:to-cyan-400 bg-clip-text text-transparent leading-tight px-2"
+                        className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] dark:from-[#0A2540] dark:via-[#0A2540] dark:to-[#00D4B3] bg-clip-text text-transparent leading-tight px-2" /* Azul Profundo a Aqua */
                       >
                         {step.title}
                       </motion.h2>

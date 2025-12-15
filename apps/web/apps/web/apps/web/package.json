@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "cookie": "^1.1.1",
     "i18next": "^23.12.1",
     "next-i18next": "^15.4.2",
     "react-i18next": "^15.1.1"

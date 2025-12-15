@@ -256,7 +256,7 @@ export default function DashboardPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar cursos, instructores..."
-              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-sm font-normal text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#1E2329] border border-gray-200 dark:border-[#0A2540]/30 rounded-xl text-sm font-normal text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
             />
             {searchQuery && (
               <button
@@ -311,8 +311,8 @@ export default function DashboardPage() {
                   whileTap={{ scale: 0.95 }}
                   className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
                     activeFilter === category.id
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                      : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 shadow-sm hover:shadow-md'
+                      ? 'bg-[#0A2540] text-white shadow-md shadow-[#0A2540]/30' /* Azul Profundo */
+                      : 'bg-white dark:bg-[#1E2329] text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#1E2329]/80 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-[#0A2540]/30 hover:border-gray-300 dark:hover:border-[#0A2540]/50 shadow-sm hover:shadow-md'
                   }`}
                 >
                   {getCategoryLabel(category.id, category.name)}
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                   <React.Fragment key={workshop.id}>
                     <motion.div
                       ref={cardRef}
-                      className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700 transition-all duration-300 shadow-sm hover:shadow-2xl h-full w-full"
+                      className="group flex flex-col bg-white dark:bg-[#1E2329] rounded-2xl overflow-hidden border border-gray-100 dark:border-[#0A2540]/30 hover:border-gray-200 dark:hover:border-[#0A2540]/50 transition-all duration-300 shadow-sm hover:shadow-2xl h-full w-full"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -449,7 +449,7 @@ export default function DashboardPage() {
                     <motion.button
                       onClick={() => handleToggleFavorite(workshop.id)}
                       disabled={togglingFavorite === workshop.id}
-                      className={`absolute top-2.5 right-2.5 p-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-full hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 z-10 shadow-lg ${
+                      className={`absolute top-2.5 right-2.5 p-1.5 bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-md rounded-full hover:bg-white dark:hover:bg-[#1E2329]/80 transition-all duration-200 z-10 shadow-lg ${
                         togglingFavorite === workshop.id ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                       whileHover={{ scale: 1.15, rotate: 5 }}
@@ -509,7 +509,7 @@ export default function DashboardPage() {
                               router.push(`/courses/${course.slug}/learn`);
                             }
                           }}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
+                          className="w-full bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
                         >
                           <BookOpen className="w-3.5 h-3.5" />
                           {t('courses.goToCourse')}
@@ -525,7 +525,7 @@ export default function DashboardPage() {
                                 router.push(`/courses/${course.slug}`);
                               }
                             }}
-                            className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 text-gray-700 dark:text-slate-300 font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
+                            className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:border-[#0A2540] dark:hover:border-[#0A2540] text-gray-700 dark:text-slate-300 font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>{t('courses.viewDetails')}</span>
@@ -552,7 +552,7 @@ export default function DashboardPage() {
                                   });
                                 }
                               }}
-                              className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center"
+                              className="p-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center"
                               title="Agregar al carrito"
                             >
                               <ShoppingCart className="w-4 h-4" />

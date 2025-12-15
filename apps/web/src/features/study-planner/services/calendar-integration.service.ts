@@ -59,11 +59,12 @@ function createAdminClient() {
 export class CalendarIntegrationService {
   /**
    * Genera la URL de autorización para Google Calendar
+   * Usa calendar.events.owned para permitir crear, modificar y eliminar eventos
    */
   static getGoogleAuthUrl(userId: string): string {
+    // calendar.events.owned permite: consultar, crear, modificar y borrar eventos en calendarios propios
     const scopes = [
-      'https://www.googleapis.com/auth/calendar.readonly',
-      'https://www.googleapis.com/auth/calendar.events.readonly',
+      'https://www.googleapis.com/auth/calendar.events.owned',
     ].join(' ');
     
     const params = new URLSearchParams({

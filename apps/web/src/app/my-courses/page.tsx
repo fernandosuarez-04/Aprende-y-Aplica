@@ -153,14 +153,14 @@ export default function MyCoursesPage() {
       case 'beginner': return 'text-green-400 bg-green-400/10 border-green-400/30';
       case 'intermediate': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30';
       case 'advanced': return 'text-red-400 bg-red-400/10 border-red-400/30';
-      default: return 'text-blue-400 bg-blue-400/10 border-blue-400/30';
+      default: return 'text-[#00D4B3] bg-[#00D4B3]/10 border-[#00D4B3]/30';
     }
   };
 
   const getProgressColor = (progress: number) => {
     if (progress >= 100) return 'from-green-500 to-emerald-500';
-    if (progress >= 50) return 'from-blue-500 to-cyan-500';
-    if (progress > 0) return 'from-purple-500 to-pink-500';
+    if (progress >= 50) return 'from-[#00D4B3] to-[#00b89a]';
+    if (progress > 0) return 'from-[#0A2540] to-[#00D4B3]';
     return 'from-gray-500 to-gray-600';
   };
 
@@ -174,12 +174,12 @@ export default function MyCoursesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full mx-auto mb-4"
+            className="w-16 h-16 border-4 border-[#00D4B3]/30 border-t-[#00D4B3] rounded-full mx-auto mb-4"
           />
           <p className="text-gray-700 dark:text-white/70 text-lg">{t('loading')}</p>
         </div>
@@ -188,7 +188,7 @@ export default function MyCoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -198,7 +198,7 @@ export default function MyCoursesPage() {
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3]">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{t('header.title')}</h1>
@@ -213,7 +213,7 @@ export default function MyCoursesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-colors shadow-lg dark:shadow-xl"
+            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-[#0A2540]/50 dark:hover:border-[#0A2540]/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-blue-500/20">
@@ -243,11 +243,11 @@ export default function MyCoursesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-purple-500/50 dark:hover:border-purple-500/50 transition-colors shadow-lg dark:shadow-xl"
+            className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-700/50 rounded-2xl p-6 hover:border-[#0A2540]/50 dark:hover:border-[#0A2540]/50 transition-colors shadow-lg dark:shadow-xl"
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-purple-500/20">
-                <TrendingUp className="w-5 h-5 text-purple-400" />
+              <div className="p-2 rounded-lg bg-[#00D4B3]/20">
+                <TrendingUp className="w-5 h-5 text-[#00D4B3]" />
               </div>
               <span className="text-gray-600 dark:text-slate-400 text-sm">{t('stats.inProgress')}</span>
             </div>
@@ -315,7 +315,7 @@ export default function MyCoursesPage() {
               exit={{ opacity: 0 }}
               className="text-center py-20"
             >
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="w-12 h-12 text-gray-400 dark:text-slate-400" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('empty.title')}</h3>
@@ -339,7 +339,7 @@ export default function MyCoursesPage() {
                   className="bg-white dark:bg-slate-800/60 border border-gray-100/70 dark:border-slate-700/60 rounded-[1.5rem] overflow-hidden hover:border-blue-400/60 dark:hover:border-blue-500/50 transition-all duration-300 group shadow-[0_20px_60px_rgba(15,20,40,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)] flex flex-col h-full w-full max-w-[420px]"
                 >
                   {/* Course Thumbnail */}
-                  <div className="relative h-40 bg-gradient-to-br from-blue-600/15 to-purple-600/15 overflow-hidden">
+                  <div className="relative h-40 bg-gradient-to-br from-[#0A2540]/15 to-[#00D4B3]/15 overflow-hidden">
                     {course.course_thumbnail ? (
                       <img
                         src={course.course_thumbnail}

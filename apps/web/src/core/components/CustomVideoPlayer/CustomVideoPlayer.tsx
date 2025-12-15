@@ -459,7 +459,7 @@ export function CustomVideoPlayer({
                 style={{ userSelect: 'none' }}
               >
                 <motion.div
-                  className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full relative"
+                  className="h-full bg-gradient-to-r from-[#00D4B3] to-[#00b89a] rounded-full relative" /* Aqua para barra de progreso */
                   style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                   initial={false}
                 >

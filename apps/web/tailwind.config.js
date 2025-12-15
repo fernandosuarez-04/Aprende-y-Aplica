@@ -35,16 +35,20 @@ module.exports = {
         'status-completed': 'var(--status-completed)',
       },
       fontFamily: {
-        heading: ['Montserrat', 'Arial', 'Helvetica', 'sans-serif'],
+        heading: ['Inter', 'Arial', 'Helvetica', 'sans-serif'], /* Inter como principal */
         body: ['Inter', 'Arial', 'Helvetica', 'sans-serif'],
         sans: ['Inter', 'Arial', 'Helvetica', 'sans-serif'],
       },
       fontSize: {
-        'h1': ['32px', { lineHeight: '1.5', letterSpacing: '0.3px' }],
-        'h2': ['24px', { lineHeight: '1.5', letterSpacing: '0.3px' }],
-        'body': ['16px', { lineHeight: '1.5' }],
-        'body-large': ['18px', { lineHeight: '1.5' }],
-        'small': ['14px', { lineHeight: '1.5' }],
+        'h1': ['40px', { lineHeight: '1.5', letterSpacing: '0.02em', fontWeight: '700' }], /* 32-40px, Bold, tracking abierto */
+        'h2': ['28px', { lineHeight: '1.5', letterSpacing: '0.01em', fontWeight: '700' }], /* 24-28px, Bold/Semibold */
+        'subtitle': ['20px', { lineHeight: '1.5', fontWeight: '500' }], /* 18-20px, Medium */
+        'body': ['16px', { lineHeight: '1.5', fontWeight: '400' }], /* 14-16px, Regular */
+        'body-small': ['14px', { lineHeight: '1.5', fontWeight: '400' }], /* 14px, Regular */
+        'ui': ['14px', { lineHeight: '1.5', fontWeight: '500' }], /* 12-14px, Medium */
+        'ui-small': ['12px', { lineHeight: '1.5', fontWeight: '400' }], /* 12px, Regular */
+        'body-large': ['18px', { lineHeight: '1.5', fontWeight: '400' }], /* Mantener para compatibilidad */
+        'small': ['14px', { lineHeight: '1.5', fontWeight: '400' }], /* Mantener para compatibilidad */
       },
       spacing: {
         'xs': '8px',
@@ -63,8 +67,10 @@ module.exports = {
       },
       boxShadow: {
         'glass': '0 2px 8px rgba(0, 0, 0, 0.12)',
-        'glass-hover': '0 4px 16px rgba(0, 102, 204, 0.2)',
-        'glow': '0 0 20px rgba(0, 102, 204, 0.5)',
+        'glass-hover': '0 4px 16px rgba(10, 37, 64, 0.2)', /* Azul Profundo */
+        'glow': '0 0 20px rgba(0, 212, 179, 0.5)', /* Aqua para efectos glow */
+        'glow-primary': '0 0 20px rgba(10, 37, 64, 0.3)', /* Azul Profundo */
+        'glow-accent': '0 0 20px rgba(0, 212, 179, 0.4)', /* Aqua */
       },
       backdropBlur: {
         'glass': '8px',
@@ -115,8 +121,8 @@ module.exports = {
           '60%': { transform: 'translateY(-2px)' },
         },
         buttonGlow: {
-          '0%, 100%': { boxShadow: '0 0 5px rgba(0, 102, 204, 0.5)' },
-          '50%': { boxShadow: '0 0 20px rgba(0, 102, 204, 0.8), 0 0 30px rgba(0, 102, 204, 0.6)' },
+          '0%, 100%': { boxShadow: '0 0 5px rgba(0, 212, 179, 0.5)' }, /* Aqua */
+          '50%': { boxShadow: '0 0 20px rgba(0, 212, 179, 0.8), 0 0 30px rgba(0, 212, 179, 0.6)' },
         },
         gradientShift: {
           '0%': { backgroundPosition: '0% 50%' },
@@ -134,9 +140,9 @@ module.exports = {
           '100%': { transform: 'translateY(0px) translateX(0px)' },
         },
         borderGlow: {
-          '0%': { borderColor: 'rgba(0, 102, 204, 0.3)', boxShadow: '0 0 5px rgba(0, 102, 204, 0.2)' },
-          '50%': { borderColor: 'rgba(0, 102, 204, 0.6)', boxShadow: '0 0 15px rgba(0, 102, 204, 0.4)' },
-          '100%': { borderColor: 'rgba(0, 102, 204, 0.3)', boxShadow: '0 0 5px rgba(0, 102, 204, 0.2)' },
+          '0%': { borderColor: 'rgba(0, 212, 179, 0.3)', boxShadow: '0 0 5px rgba(0, 212, 179, 0.2)' }, /* Aqua */
+          '50%': { borderColor: 'rgba(0, 212, 179, 0.6)', boxShadow: '0 0 15px rgba(0, 212, 179, 0.4)' },
+          '100%': { borderColor: 'rgba(0, 212, 179, 0.3)', boxShadow: '0 0 5px rgba(0, 212, 179, 0.2)' },
         },
         shimmerGradient: {
           '0%': { backgroundPosition: '-200% 0' },
@@ -155,8 +161,8 @@ module.exports = {
           '100%': { transform: 'scale(2)', opacity: '0' },
         },
         pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 5px rgba(0, 102, 204, 0.3)' },
-          '50%': { boxShadow: '0 0 20px rgba(0, 102, 204, 0.6), 0 0 30px rgba(0, 102, 204, 0.4)' },
+          '0%, 100%': { boxShadow: '0 0 5px rgba(0, 212, 179, 0.3)' }, /* Aqua */
+          '50%': { boxShadow: '0 0 20px rgba(0, 212, 179, 0.6), 0 0 30px rgba(0, 212, 179, 0.4)' },
         },
       },
     },

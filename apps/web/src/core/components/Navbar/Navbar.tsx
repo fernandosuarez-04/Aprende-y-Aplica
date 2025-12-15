@@ -70,7 +70,7 @@ export function Navbar() {
               {/* Efecto visual cuando está activado */}
               {isActivated && (
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-xl opacity-50"
+                  className="absolute inset-0 bg-gradient-to-r from-[#0A2540] to-[#00D4B3] rounded-xl opacity-50" /* Azul Profundo a Aqua */
                   initial={{ opacity: 0 }}
                   animate={{ opacity: [0, 0.5, 0] }}
                   transition={{ duration: 0.6 }}
