@@ -246,12 +246,73 @@ Para ejecutar una acción:
 {
   "type": "TIPO_DE_ACCION",
   "data": { ... datos necesarios ... },
-  "confirmationNeeded": true/false,
-  "confirmationMessage": "mensaje de confirmación si es necesario"
+  "confirmationNeeded": false
 }
 </action>
 
 Después del tag de acción, incluye tu mensaje para el usuario.
+
+## ⚠️ REGLAS CRÍTICAS SOBRE ACCIONES
+
+### CUÁNDO INCLUIR EL TAG <action>:
+1. **Para MOVE_SESSION, RESIZE_SESSION, CREATE_SESSION**: Incluye el tag inmediatamente cuando el usuario lo pida. NO pidas confirmación, solo hazlo.
+2. **Para DELETE_SESSION**: Pide confirmación verbal primero. Cuando el usuario confirme, ENTONCES incluye el tag <action>.
+3. **Después de que el usuario confirme algo**: Si ya propusiste opciones y el usuario eligió una (ej: "la opción 1", "sí", "confirmo", "hazlo", "a las 6"), DEBES incluir el tag <action> inmediatamente.
+
+### ERRORES COMUNES QUE DEBES EVITAR:
+- ❌ NO digas "Voy a mover la sesión..." sin incluir el tag <action>
+- ❌ NO pidas confirmación para mover sesiones (no es destructivo)
+- ❌ NO olvides el tag cuando el usuario confirma algo
+- ✅ SÍ incluye el tag <action> cada vez que hagas un cambio real
+
+**Sin el tag <action>, el cambio NO se ejecutará - esto es un error técnico que frustra al usuario.**
+
+### IMPORTANTE:
+- Los timestamps DEBEN incluir la zona horaria correcta (ej: -05:00 para Colombia, -06:00 para México)
+- El sessionId DEBE ser un UUID válido del CONTEXTO ACTUAL
+
+### MÚLTIPLES ACCIONES EN UN SOLO MENSAJE
+Cuando el usuario pida hacer múltiples cambios (ej: "mueve las 2 sesiones"), usa **REBALANCE_PLAN** para mover varias sesiones a la vez:
+
+<action>
+{
+  "type": "REBALANCE_PLAN",
+  "data": {
+    "sessionsToMove": [
+      {"sessionId": "uuid-1", "newStartTime": "2025-12-16T18:00:00-05:00", "newEndTime": "2025-12-16T20:00:00-05:00"},
+      {"sessionId": "uuid-2", "newStartTime": "2025-12-23T18:00:00-05:00", "newEndTime": "2025-12-23T20:00:00-05:00"}
+    ]
+  },
+  "confirmationNeeded": false
+}
+</action>
+
+### EJEMPLO DE MOVE_SESSION (una sola sesión) - COPIA EXACTAMENTE ESTE FORMATO
+Cuando el usuario diga "mueve la sesión del martes a las 6", TU RESPUESTA DEBE SER:
+
+<action>
+{
+  "type": "MOVE_SESSION",
+  "data": {
+    "sessionId": "COPIA-EL-UUID-REAL-DEL-CONTEXTO",
+    "newStartTime": "2025-12-16T18:00:00-06:00",
+    "newEndTime": "2025-12-16T20:00:00-06:00"
+  },
+  "confirmationNeeded": false
+}
+</action>
+
+¡Listo! He movido tu sesión a las 6:00 p.m. 😊
+
+---
+
+## ⛔ ERROR COMÚN QUE DEBES EVITAR
+Si respondes algo como:
+"Perfecto, voy a mover la sesión... ¡Listo!"
+
+**SIN incluir el tag <action>, ES UN ERROR GRAVE.** El usuario verá "Error en la acción" porque no hay acción que ejecutar.
+
+**SIEMPRE** incluye el tag <action> ANTES de tu mensaje cuando hagas cambios.
 
 ## REGLAS IMPORTANTES
 1. NUNCA ejecutes acciones sin estar seguro de los datos
@@ -267,6 +328,8 @@ Después del tag de acción, incluye tu mensaje para el usuario.
    - INMEDIATAMENTE menciona cualquier conflicto, alerta o problema detectado en el análisis proactivo
    - Si todo está bien, menciona qué sesión tiene próximamente
    - NO repitas toda la lista de capacidades, sé conciso y útil
+10. **⛔ REGLA CRÍTICA: SIEMPRE incluye el tag <action> cuando vayas a hacer un cambio** - sin él, nada se ejecuta y el usuario ve un error
+11. **Usa los IDs de sesión del CONTEXTO ACTUAL** - están listados como "ID: uuid..."
 
 ## CONTEXTO ACTUAL (FUENTE DE VERDAD - SIEMPRE USAR ESTO)
 {{PLAN_CONTEXT}}
@@ -307,18 +370,17 @@ async function syncSessionsWithCalendar(
   
   logger.info('🔄 Iniciando sincronización bidireccional con calendario...');
   
-  // Obtener TODAS las sesiones de estudio del plan (próximas 2 semanas)
+  // Obtener TODAS las sesiones de estudio del plan (últimos 7 días + próximos 30 días)
   const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
-  const twoWeeksLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   
   const { data: allSessions, error } = await supabase
     .from('study_sessions')
     .select('id, title, external_event_id, start_time, end_time')
     .eq('plan_id', planId)
-    .gte('start_time', todayStart.toISOString())
-    .lte('start_time', twoWeeksLater.toISOString());
+    .gte('start_time', oneWeekAgo.toISOString())
+    .lte('start_time', thirtyDaysLater.toISOString());
   
   if (error || !allSessions || allSessions.length === 0) {
     logger.info('ℹ️ No hay sesiones de estudio para sincronizar');
@@ -397,13 +459,35 @@ async function syncSessionsWithCalendar(
   
   // IMPORTANTE: Solo eliminar sesiones que tienen external_event_id y ese evento ya no existe
   // Las sesiones sin external_event_id las dejamos intactas (pueden no haberse sincronizado aún)
+  // NOTA: Verificar que la sesión esté dentro del rango de eventos consultados antes de eliminar
   for (const session of allSessions) {
+    const sessionTime = new Date(session.start_time).getTime();
+    const now = new Date().getTime();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    
+    // Solo procesar sesiones que están dentro del rango de eventos que consultamos
+    const sessionInCalendarRange = sessionTime >= (now - 7 * 24 * 60 * 60 * 1000) && 
+                                    sessionTime <= (now + thirtyDaysMs);
+    
     // Si tiene external_event_id, verificar que el evento exista
     if (session.external_event_id) {
+      console.log(`📋 [SYNC] Verificando sesión "${session.title}" con external_event_id: ${session.external_event_id}`);
+      console.log(`📋 [SYNC] - Sesión en rango: ${sessionInCalendarRange} (start: ${session.start_time})`);
+      console.log(`📋 [SYNC] - Evento existe en calendario: ${calendarEventIds.has(session.external_event_id)}`);
+      
       if (!calendarEventIds.has(session.external_event_id)) {
-        // El evento fue eliminado del calendario - eliminar de la BD
-        logger.warn(`⚠️ Evento "${session.title}" (ID: ${session.external_event_id}) no existe en calendario - eliminando de BD`);
+        if (!sessionInCalendarRange) {
+          // La sesión está fuera del rango de calendario consultado, NO eliminar
+          console.log(`⚠️ [SYNC] Sesión "${session.title}" está fuera del rango de calendario - NO se elimina`);
+          continue;
+        }
         
+        // DESHABILITADO TEMPORALMENTE para diagnóstico
+        // El evento fue eliminado del calendario - eliminar de la BD
+        console.warn(`⚠️ [SYNC] Evento "${session.title}" (ID: ${session.external_event_id}) no existe en calendario`);
+        console.warn(`⚠️ [SYNC] ELIMINACIÓN DESHABILITADA - la sesión se mantiene para diagnóstico`);
+        
+        /*
         const { error: deleteError } = await supabase
           .from('study_sessions')
           .delete()
@@ -415,8 +499,9 @@ async function syncSessionsWithCalendar(
         } else {
           logger.error(`❌ Error eliminando sesión: ${deleteError.message}`);
         }
+        */
       } else {
-        logger.info(`✅ Sesión "${session.title}" verificada (external_event_id existe)`);
+        console.log(`✅ [SYNC] Sesión "${session.title}" verificada (external_event_id existe)`);
       }
     } else {
       // No tiene external_event_id - intentar encontrar un match y vincularlo
@@ -551,6 +636,11 @@ async function analyzeProactively(
   for (const session of sessions) {
     const sessionStart = new Date(session.start_time).getTime();
     const sessionEnd = new Date(session.end_time).getTime();
+    
+    // Logging para debug de horas
+    logger.info(`🔍 Sesión "${session.title}": start_time raw = ${session.start_time}`);
+    logger.info(`   -> Parsed Date: ${new Date(session.start_time).toISOString()}`);
+    logger.info(`   -> formatTime: ${formatTime(new Date(session.start_time))}`);
     
     // Solo analizar sesiones futuras
     if (sessionStart < now.getTime()) continue;
@@ -857,7 +947,7 @@ function formatDateTime(date: Date): string {
 // Función para obtener el contexto del plan y eventos del calendario
 // ============================================================================
 
-async function getPlanContext(userId: string, planId?: string): Promise<{ context: string; syncResult?: SyncResult }> {
+async function getPlanContext(userId: string, planId?: string): Promise<{ context: string; syncResult?: SyncResult; timezone: string }> {
   const supabase = createAdminClient();
   
   logger.info(`🔍 getPlanContext - userId: ${userId}, planId: ${planId || 'no especificado'}`);
@@ -878,13 +968,16 @@ async function getPlanContext(userId: string, planId?: string): Promise<{ contex
 
   if (planId) {
     planQuery = planQuery.eq('id', planId);
+  } else {
+    // Si no hay planId específico, ordenar por fecha de creación y tomar el más reciente
+    planQuery = planQuery.order('created_at', { ascending: false }).limit(1);
   }
 
   const { data: plan, error: planError } = await planQuery.single();
   
-  logger.info(`📋 Plan obtenido: ${plan?.id || 'ninguno'}, error: ${planError?.message || 'ninguno'}`);
+  console.log(`📋 [CHAT] Plan obtenido: ${plan?.id || 'ninguno'}, error: ${planError?.message || 'ninguno'}`);
   
-  const timezone = plan?.timezone || 'America/Bogota';
+  const timezone = plan?.timezone || 'America/Mexico_City';
 
   // Obtener fechas para consultas
   const now = new Date();
@@ -894,7 +987,11 @@ async function getPlanContext(userId: string, planId?: string): Promise<{ contex
   const todayEnd = new Date(todayStart);
   todayEnd.setHours(23, 59, 59, 999);
   
-  const twoWeeksLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  // Ampliar rango: 7 días atrás y 30 días adelante para capturar más sesiones
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  
+  console.log(`📋 [CHAT] Rango de fechas: ${oneWeekAgo.toISOString()} - ${thirtyDaysLater.toISOString()}`);
 
   // Obtener eventos del calendario
   let calendarEventsToday: CalendarEvent[] = [];
@@ -917,9 +1014,9 @@ async function getPlanContext(userId: string, planId?: string): Promise<{ contex
     calendarEventsWeek = await listGoogleCalendarEvents(accessToken, todayStart, weekEnd, timezone);
     logger.info(`📅 Eventos de la semana encontrados: ${calendarEventsWeek.length}`);
     
-    // Eventos de 2 semanas (para sincronización)
-    calendarEventsTwoWeeks = await listGoogleCalendarEvents(accessToken, todayStart, twoWeeksLater, timezone);
-    logger.info(`📅 Eventos de 2 semanas encontrados: ${calendarEventsTwoWeeks.length}`);
+    // Eventos de 30 días (para sincronización)
+    calendarEventsTwoWeeks = await listGoogleCalendarEvents(accessToken, todayStart, thirtyDaysLater, timezone);
+    logger.info(`📅 Eventos de 30 días encontrados: ${calendarEventsTwoWeeks.length}`);
     
     // AHORA: Sincronizar sesiones con el calendario (detectar eliminaciones)
     if (plan) {
@@ -963,11 +1060,27 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
 
   if (!plan) {
     context += '\n⚠️ El usuario NO tiene un plan de estudios activo.';
-    return { context, syncResult: undefined };
+    return { context, syncResult: undefined, timezone: 'America/Mexico_City' };
   }
 
   // Obtener sesiones del plan - CONSULTA DIRECTA A LA BD (sin caché)
-  logger.info(`📋 Consultando sesiones del plan ${plan.id} desde ${todayStart.toISOString()} hasta ${twoWeeksLater.toISOString()}`);
+  console.log(`📋 [CHAT] Consultando sesiones del plan ${plan.id} desde ${oneWeekAgo.toISOString()} hasta ${thirtyDaysLater.toISOString()}`);
+  
+  // Primero: Consultar TODAS las sesiones del plan para diagnóstico
+  const { data: allSessions, error: allSessionsError } = await supabase
+    .from('study_sessions')
+    .select('id, title, start_time, status, external_event_id')
+    .eq('plan_id', plan.id);
+  
+  console.log(`📋 [CHAT DEBUG] TODAS las sesiones del plan (sin filtro de fecha): ${allSessions?.length || 0}`);
+  if (allSessions && allSessions.length > 0) {
+    console.log(`📋 [CHAT DEBUG] Sesiones existentes:`);
+    allSessions.forEach(s => {
+      console.log(`   - ${s.title} | start: ${s.start_time} | status: ${s.status} | gcal_id: ${s.external_event_id || 'NO VINCULADA'}`);
+    });
+  } else {
+    console.warn(`⚠️ [CHAT DEBUG] No hay NINGUNA sesión en el plan ${plan.id}`);
+  }
   
   const { data: sessions, error: sessionsError } = await supabase
     .from('study_sessions')
@@ -983,14 +1096,16 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
       lesson_id
     `)
     .eq('plan_id', plan.id)
-    .gte('start_time', todayStart.toISOString())
-    .lte('start_time', twoWeeksLater.toISOString())
+    .gte('start_time', oneWeekAgo.toISOString())
+    .lte('start_time', thirtyDaysLater.toISOString())
     .order('start_time', { ascending: true });
 
-  logger.info(`📋 Sesiones encontradas: ${sessions?.length || 0}, error: ${sessionsError?.message || 'ninguno'}`);
+  console.log(`📋 [CHAT] Sesiones con filtro de fecha: ${sessions?.length || 0}, error: ${sessionsError?.message || 'ninguno'}`);
   
   if (sessions && sessions.length > 0) {
-    logger.info(`📋 IDs de sesiones: ${sessions.map(s => s.id).join(', ')}`);
+    console.log(`📋 [CHAT] IDs de sesiones filtradas: ${sessions.map(s => s.id).join(', ')}`);
+  } else if (allSessions && allSessions.length > 0) {
+    logger.warn(`⚠️ Hay sesiones pero están fuera del rango de fechas ${oneWeekAgo.toISOString()} - ${thirtyDaysLater.toISOString()}`);
   }
 
   // Formatear contexto del plan
@@ -1179,7 +1294,35 @@ Se han detectado **${proactiveAnalysis.conflicts.length} conflicto(s)** entre se
 `;
   }
 
-  return { context, syncResult };
+  return { context, syncResult, timezone };
+}
+
+// Variable para almacenar el timezone del usuario actual (se establece en cada request)
+let currentTimezone = 'America/Mexico_City'; // Default: México
+
+// Función para establecer el timezone del request actual
+function setCurrentTimezone(tz: string) {
+  currentTimezone = tz || 'America/Mexico_City';
+}
+
+// Función para obtener el offset de zona horaria (ej: "-06:00" para México, "-05:00" para Colombia)
+function getTimezoneOffset(timezone: string): string {
+  const timezoneOffsets: Record<string, string> = {
+    'America/Mexico_City': '-06:00',
+    'America/Bogota': '-05:00',
+    'America/New_York': '-05:00',
+    'America/Los_Angeles': '-08:00',
+    'America/Chicago': '-06:00',
+    'America/Denver': '-07:00',
+    'America/Sao_Paulo': '-03:00',
+    'America/Buenos_Aires': '-03:00',
+    'America/Lima': '-05:00',
+    'America/Santiago': '-03:00',
+    'Europe/Madrid': '+01:00',
+    'Europe/London': '+00:00',
+    'UTC': '+00:00',
+  };
+  return timezoneOffsets[timezone] || '-06:00'; // Default México
 }
 
 // Funciones helper de formateo
@@ -1188,18 +1331,25 @@ function formatPreferredDays(days: number[]): string {
   return days.map(d => dayNames[d]).join(', ');
 }
 
-function formatDate(date: Date): string {
+function formatDate(date: Date, timezone?: string): string {
+  const tz = timezone || currentTimezone;
   const options: Intl.DateTimeFormatOptions = { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
-    day: 'numeric' 
+    day: 'numeric',
+    timeZone: tz
   };
-  return date.toLocaleDateString('es-ES', options);
+  return date.toLocaleDateString('es-MX', options);
 }
 
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+function formatTime(date: Date, timezone?: string): string {
+  const tz = timezone || currentTimezone;
+  return date.toLocaleTimeString('es-MX', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    timeZone: tz
+  });
 }
 
 function translateStatus(status: string): string {
@@ -1215,14 +1365,22 @@ function translateStatus(status: string): string {
 
 // Función para extraer acción del mensaje de LIA
 function extractAction(response: string): { action: ActionResult | null; cleanResponse: string } {
+  logger.info(`🔍 Buscando tag <action> en respuesta...`);
+  logger.info(`📝 Respuesta recibida (primeros 500 chars): ${response.substring(0, 500)}`);
+  
   const actionMatch = response.match(/<action>([\s\S]*?)<\/action>/);
   
   if (!actionMatch) {
+    logger.warn(`⚠️ NO se encontró tag <action> en la respuesta de LIA`);
+    logger.warn(`📝 Respuesta completa sin action: ${response}`);
     return { action: null, cleanResponse: response };
   }
 
+  logger.info(`✅ Tag <action> encontrado: ${actionMatch[1].substring(0, 200)}...`);
+
   try {
     const actionData = JSON.parse(actionMatch[1]);
+    logger.info(`✅ JSON parseado correctamente: type=${actionData.type}, data=${JSON.stringify(actionData.data)}`);
     const cleanResponse = response.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
     
     return {
@@ -1657,14 +1815,14 @@ async function syncSessionWithCalendar(
   }
 
   // Obtener zona horaria del plan
-  let timezone = 'America/Bogota';
+  let timezone = currentTimezone || 'America/Mexico_City';
   if (session.plan_id) {
     const { data: plan } = await supabase
       .from('study_plans')
       .select('timezone')
       .eq('id', session.plan_id)
       .single();
-    timezone = plan?.timezone || 'America/Bogota';
+    timezone = plan?.timezone || currentTimezone || 'America/Mexico_City';
   }
 
   // Obtener token de acceso
@@ -1767,10 +1925,31 @@ async function executeAction(
       
       logger.info(`📅 Moviendo sesión ${sessionId} a ${newStartTime} - ${newEndTime}`);
       
+      // Función para verificar si un timestamp ya tiene offset de timezone
+      const hasTimezoneOffset = (timestamp: string): boolean => {
+        // Patrones válidos de offset: +HH:MM, -HH:MM, Z
+        return /[+-]\d{2}:\d{2}$/.test(timestamp) || timestamp.endsWith('Z');
+      };
+      
+      // Solo añadir offset si no tiene uno
+      let startTimeISO = newStartTime;
+      let endTimeISO = newEndTime;
+      
+      const tzOffset = getTimezoneOffset(currentTimezone);
+      
+      if (!hasTimezoneOffset(newStartTime)) {
+        startTimeISO = newStartTime + tzOffset;
+      }
+      if (!hasTimezoneOffset(newEndTime)) {
+        endTimeISO = newEndTime + tzOffset;
+      }
+      
+      logger.info(`📅 Timestamps ajustados: ${startTimeISO} -> ${endTimeISO}`);
+      
       // Primero sincronizar con el calendario externo (antes de actualizar BD)
       const calendarSync = await syncSessionWithCalendar(userId, sessionId, 'update', {
-        start_time: newStartTime,
-        end_time: newEndTime,
+        start_time: startTimeISO,
+        end_time: endTimeISO,
       });
       
       logger.info(`📅 Resultado sincronización calendario: ${JSON.stringify(calendarSync)}`);
@@ -1778,8 +1957,8 @@ async function executeAction(
       const { error } = await supabase
         .from('study_sessions')
         .update({
-          start_time: newStartTime,
-          end_time: newEndTime,
+          start_time: startTimeISO,
+          end_time: endTimeISO,
           was_rescheduled: true,
           rescheduled_from: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -1923,7 +2102,7 @@ async function executeAction(
       const end = endDate ? new Date(endDate) : new Date(start);
       end.setHours(23, 59, 59, 999);
       
-      const events = await listGoogleCalendarEvents(accessToken, start, end, 'America/Bogota');
+      const events = await listGoogleCalendarEvents(accessToken, start, end, currentTimezone || 'America/Mexico_City');
       
       if (events.length === 0) {
         return { 
@@ -1968,7 +2147,7 @@ async function executeAction(
       const eventId = await createGoogleCalendarEvent(
         accessToken,
         { title, start_time: startTime, end_time: endTime, description },
-        'America/Bogota'
+        currentTimezone || 'America/Mexico_City'
       );
       
       if (!eventId) {
@@ -1997,7 +2176,7 @@ async function executeAction(
         eventId,
         newStartTime,
         newEndTime,
-        'America/Bogota'
+        currentTimezone || 'America/Mexico_City'
       );
       
       if (!success) {
@@ -2079,7 +2258,7 @@ async function executeAction(
             end_time: endTime, 
             description: session.description || '' 
           },
-          'America/Bogota'
+          currentTimezone || 'America/Mexico_City'
         );
         
         // Guardar el external_event_id
@@ -2153,7 +2332,7 @@ async function executeAction(
               end_time: newEndTime,
               description: originalSession.description || ''
             },
-            'America/Bogota'
+            currentTimezone || 'America/Mexico_City'
           );
           
           if (eventId) {
@@ -2180,13 +2359,31 @@ async function executeAction(
         return { ...action, status: 'error', message: '❌ No se especificaron sesiones para rebalancear.' };
       }
       
+      logger.info(`📋 REBALANCE_PLAN - Sesiones a mover: ${JSON.stringify(sessionsToMove)}`);
+      
       const results: Array<{ sessionId: string; success: boolean }> = [];
       
       for (const sessionMove of sessionsToMove) {
         const { sessionId: moveSessionId, newStartTime, newEndTime } = sessionMove;
         
-        const start = new Date(newStartTime);
-        const end = new Date(newEndTime);
+        logger.info(`🔄 Moviendo sesión ${moveSessionId}: ${newStartTime} -> ${newEndTime}`);
+        
+        // Asegurar que los timestamps tengan zona horaria de Colombia si no la tienen
+        let startTimeISO = newStartTime;
+        let endTimeISO = newEndTime;
+        
+        // Si el timestamp no tiene zona horaria (formato: 2025-12-16T18:00:00), agregar -05:00 para Colombia
+        if (!newStartTime.includes('+') && !newStartTime.includes('Z') && !newStartTime.includes('-05')) {
+          startTimeISO = newStartTime + '-05:00';
+        }
+        if (!newEndTime.includes('+') && !newEndTime.includes('Z') && !newEndTime.includes('-05')) {
+          endTimeISO = newEndTime + '-05:00';
+        }
+        
+        logger.info(`📅 Timestamps ajustados: ${startTimeISO} -> ${endTimeISO}`);
+        
+        const start = new Date(startTimeISO);
+        const end = new Date(endTimeISO);
         const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
         
         const { error } = await supabase
@@ -2351,8 +2548,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
       );
     }
 
-    // Obtener contexto del plan (incluye sincronización con calendario)
-    const { context: planContext, syncResult } = await getPlanContext(user.id, activePlanId);
+    // Obtener contexto del plan (incluye sincronización con calendario y timezone)
+    const { context: planContext, syncResult, timezone } = await getPlanContext(user.id, activePlanId);
+    
+    // Establecer el timezone para este request
+    setCurrentTimezone(timezone);
+    const tzOffset = getTimezoneOffset(timezone);
 
     // Preparar historial de conversación
     const historyText = conversationHistory
@@ -2360,7 +2561,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
       .map(m => `${m.role === 'user' ? 'Usuario' : 'LIA'}: ${m.content}`)
       .join('\n') || '';
 
-    // Obtener fecha y hora actual formateada
+    // Obtener fecha y hora actual formateada con el timezone del usuario
     const now = new Date();
     const options: Intl.DateTimeFormatOptions = {
       weekday: 'long',
@@ -2369,15 +2570,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: 'America/Bogota', // Zona horaria de Colombia
+      timeZone: timezone,
     };
-    const currentDateTime = now.toLocaleDateString('es-CO', options);
+    const currentDateTime = now.toLocaleDateString('es-MX', options);
 
     // Construir prompt del sistema
     const systemPrompt = SYSTEM_PROMPT
-      .replace('{{CURRENT_DATE_TIME}}', `Hoy es ${currentDateTime} (hora de Colombia).`)
+      .replace('{{CURRENT_DATE_TIME}}', `Hoy es ${currentDateTime} (zona horaria: ${timezone}).`)
       .replace('{{PLAN_CONTEXT}}', planContext)
-      .replace('{{CONVERSATION_HISTORY}}', historyText);
+      .replace('{{CONVERSATION_HISTORY}}', historyText)
+      .replace(/\-05:00/g, tzOffset); // Reemplazar offsets de ejemplo con el del usuario
 
     // Llamar a OpenAI
     const completion = await openai.chat.completions.create({
@@ -2386,21 +2588,31 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message },
       ],
-      temperature: 0.7,
-      max_tokens: 1000,
+      temperature: 0.4, // Reducido para que siga instrucciones más fielmente
+      max_tokens: 1500,
     });
 
     const liaResponse = completion.choices[0]?.message?.content || 'Lo siento, no pude procesar tu solicitud.';
+    
+    console.log(`📝 [LIA] Respuesta completa de LIA:\n${liaResponse}`);
 
     // Extraer acción si existe
     const { action, cleanResponse } = extractAction(liaResponse);
+    
+    console.log(`🎯 [LIA] Acción extraída: ${action ? JSON.stringify(action) : 'NINGUNA - ESTO ES UN ERROR SI LIA DIJO QUE HARÍA ALGO'}`);
+    console.log(`🕐 [LIA] Timezone del usuario: ${timezone} (offset: ${tzOffset})`);
 
     // Si hay una acción y no necesita confirmación, ejecutarla
     let executedAction: ActionResult | undefined;
     if (action && action.status === 'pending' && activePlanId) {
+      console.log(`⚡ [LIA] Ejecutando acción: ${action.type}`);
       executedAction = await executeAction(user.id, activePlanId, action);
+      console.log(`✅ [LIA] Resultado de ejecución: ${JSON.stringify(executedAction)}`);
     } else if (action) {
       executedAction = action;
+      console.log(`⏸️ [LIA] Acción requiere confirmación: ${action.type}`);
+    } else {
+      console.log(`ℹ️ [LIA] No se detectó ninguna acción en la respuesta - el usuario verá 'Error en la acción'`);
     }
 
     return NextResponse.json({
