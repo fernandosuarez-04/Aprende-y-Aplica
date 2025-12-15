@@ -19,6 +19,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import Image from 'next/image';
+import ReactMarkdown from 'react-markdown';
 import { useRouter } from 'next/navigation';
 import { StudyPlannerCalendar } from '@/features/study-planner/components/StudyPlannerCalendar';
 import { ToastNotification } from '@/core/components/ToastNotification';
@@ -503,7 +504,50 @@ export default function StudyPlannerDashboardPage() {
               : 'bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 shadow-sm rounded-bl-sm'
           }`}
         >
-          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+          {isUser ? (
+            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+          ) : (
+            <div className="text-sm prose prose-sm prose-slate dark:prose-invert max-w-none">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className="text-base font-semibold mb-1">{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="text-sm font-semibold mb-1 mt-1.5">{children}</h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-sm font-semibold mb-1 mt-1.5">{children}</h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="mb-1.5 leading-relaxed">{children}</p>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold">{children}</strong>
+                  ),
+                  em: ({ children }) => (
+                    <em className="italic">{children}</em>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="list-disc list-inside mb-1.5 space-y-0.5">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal list-inside mb-1.5 space-y-0.5">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => (
+                    <li className="leading-relaxed">{children}</li>
+                  ),
+                  br: () => <br />,
+                }}
+              >
+                {msg.content}
+              </ReactMarkdown>
+            </div>
+          )}
           {msg.actionStatus === 'success' && (
             <div className="flex items-center gap-1 mt-2 text-xs text-green-500">
               <CheckCircle className="w-3 h-3" />
