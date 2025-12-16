@@ -310,7 +310,7 @@ Después del tag de acción, incluye tu mensaje para el usuario.
 - El sessionId DEBE ser un UUID válido del CONTEXTO ACTUAL
 
 ### MÚLTIPLES ACCIONES EN UN SOLO MENSAJE
-Cuando el usuario pida hacer múltiples cambios (ej: "mueve las 2 sesiones"), usa **REBALANCE_PLAN** para mover varias sesiones a la vez:
+Cuando el usuario pida hacer múltiples cambios, puedes incluir MÚLTIPLES tags <action> en tu respuesta. Cada acción se ejecutará en orden:
 
 <action>
 {
@@ -324,6 +324,31 @@ Cuando el usuario pida hacer múltiples cambios (ej: "mueve las 2 sesiones"), us
   "confirmationNeeded": false
 }
 </action>
+
+<action>
+{
+  "type": "CREATE_CALENDAR_EVENT",
+  "data": {
+    "title": "Yoga o Meditación",
+    "startTime": "2025-12-17T09:00:00-05:00",
+    "endTime": "2025-12-17T10:00:00-05:00",
+    "description": "Tiempo personal para relajación"
+  },
+  "confirmationNeeded": false
+}
+</action>
+
+### CÓMO LIBERAR UN DÍA COMPLETO
+Cuando el usuario pida "liberar un día" o "hacer un día libre", debes:
+1. Identificar TODAS las sesiones de estudio de ese día en el CONTEXTO ACTUAL
+2. Moverlas a otros días usando REBALANCE_PLAN
+3. Si el usuario también pide crear un evento personal (yoga, meditación, etc.), incluye también CREATE_CALENDAR_EVENT
+
+Ejemplo: Usuario dice "Sí, me parece bien el miércoles 17. Además quiero algo de tiempo para actividades personales. ¿Puedes crear un bloque de yoga o meditación?"
+
+Tu respuesta DEBE incluir:
+1. Un tag <action> con REBALANCE_PLAN moviendo todas las sesiones del miércoles 17 a otros días
+2. Un tag <action> con CREATE_CALENDAR_EVENT creando el evento de yoga/meditación para el miércoles 17
 
 ### EJEMPLO DE MOVE_SESSION (una sola sesión) - COPIA EXACTAMENTE ESTE FORMATO
 Cuando el usuario diga "mueve la sesión del martes a las 6", TU RESPUESTA DEBE SER:
@@ -351,6 +376,12 @@ Si respondes algo como:
 **SIN incluir el tag <action>, ES UN ERROR GRAVE.** El usuario verá "Error en la acción" porque no hay acción que ejecutar.
 
 **SIEMPRE** incluye el tag <action> ANTES de tu mensaje cuando hagas cambios.
+
+### REGLA DE ORO: SI DICES QUE VAS A HACER ALGO, DEBES INCLUIR EL TAG <action>
+- Si dices "Voy a mover...", DEBES incluir <action> con MOVE_SESSION o REBALANCE_PLAN
+- Si dices "Voy a crear...", DEBES incluir <action> con CREATE_SESSION o CREATE_CALENDAR_EVENT
+- Si dices "Voy a ajustar...", DEBES incluir <action> con la acción correspondiente
+- Si dices "He movido..." o "He creado..." sin el tag, el usuario verá "Error en la acción"
 
 ## REGLAS IMPORTANTES
 1. NUNCA ejecutes acciones sin estar seguro de los datos
@@ -1401,39 +1432,47 @@ function translateStatus(status: string): string {
   return statusMap[status] || status;
 }
 
-// Función para extraer acción del mensaje de LIA
-function extractAction(response: string): { action: ActionResult | null; cleanResponse: string } {
-  logger.info(`🔍 Buscando tag <action> en respuesta...`);
+// Función para extraer acción(es) del mensaje de LIA
+function extractAction(response: string): { action: ActionResult | null; actions: ActionResult[]; cleanResponse: string } {
+  logger.info(`🔍 Buscando tag(s) <action> en respuesta...`);
   logger.info(`📝 Respuesta recibida (primeros 500 chars): ${response.substring(0, 500)}`);
   
-  const actionMatch = response.match(/<action>([\s\S]*?)<\/action>/);
+  // Buscar todas las acciones (soporte para múltiples)
+  const actionMatches = response.matchAll(/<action>([\s\S]*?)<\/action>/g);
+  const actions: ActionResult[] = [];
   
-  if (!actionMatch) {
-    logger.warn(`⚠️ NO se encontró tag <action> en la respuesta de LIA`);
-    logger.warn(`📝 Respuesta completa sin action: ${response}`);
-    return { action: null, cleanResponse: response };
-  }
-
-  logger.info(`✅ Tag <action> encontrado: ${actionMatch[1].substring(0, 200)}...`);
-
-  try {
-    const actionData = JSON.parse(actionMatch[1]);
-    logger.info(`✅ JSON parseado correctamente: type=${actionData.type}, data=${JSON.stringify(actionData.data)}`);
-    const cleanResponse = response.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
-    
-    return {
-      action: {
+  for (const actionMatch of actionMatches) {
+    try {
+      const actionData = JSON.parse(actionMatch[1]);
+      logger.info(`✅ Acción encontrada: type=${actionData.type}, data=${JSON.stringify(actionData.data)}`);
+      
+      actions.push({
         type: actionData.type?.toLowerCase() as ActionType,
         data: actionData.data,
         status: actionData.confirmationNeeded ? 'confirmation_needed' : 'pending',
         message: actionData.confirmationMessage,
-      },
-      cleanResponse,
-    };
-  } catch (error) {
-    logger.error('Error parsing action:', error);
-    return { action: null, cleanResponse: response };
+      });
+    } catch (error) {
+      logger.error('Error parsing action:', error);
+    }
   }
+  
+  if (actions.length === 0) {
+    logger.warn(`⚠️ NO se encontró ningún tag <action> en la respuesta de LIA`);
+    logger.warn(`📝 Respuesta completa sin action: ${response}`);
+    return { action: null, actions: [], cleanResponse: response };
+  }
+
+  logger.info(`✅ ${actions.length} acción(es) encontrada(s)`);
+  const cleanResponse = response.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
+  
+  // Para compatibilidad con código existente, retornar la primera acción como 'action'
+  // pero también retornar todas en 'actions'
+  return {
+    action: actions[0],
+    actions,
+    cleanResponse,
+  };
 }
 
 // ============================================================================
@@ -2634,18 +2673,40 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
     
     console.log(`📝 [LIA] Respuesta completa de LIA:\n${liaResponse}`);
 
-    // Extraer acción si existe
-    const { action, cleanResponse } = extractAction(liaResponse);
+    // Extraer acción(es) si existe(n)
+    const { action, actions, cleanResponse } = extractAction(liaResponse);
     
-    console.log(`🎯 [LIA] Acción extraída: ${action ? JSON.stringify(action) : 'NINGUNA - ESTO ES UN ERROR SI LIA DIJO QUE HARÍA ALGO'}`);
+    console.log(`🎯 [LIA] ${actions.length} acción(es) extraída(s): ${actions.length > 0 ? JSON.stringify(actions.map(a => a.type)) : 'NINGUNA - ESTO ES UN ERROR SI LIA DIJO QUE HARÍA ALGO'}`);
     console.log(`🕐 [LIA] Timezone del usuario: ${timezone} (offset: ${tzOffset})`);
 
-    // Si hay una acción y no necesita confirmación, ejecutarla
+    // Si hay acciones y no necesitan confirmación, ejecutarlas
     let executedAction: ActionResult | undefined;
-    if (action && action.status === 'pending' && activePlanId) {
-      console.log(`⚡ [LIA] Ejecutando acción: ${action.type}`);
-      executedAction = await executeAction(user.id, activePlanId, action);
-      console.log(`✅ [LIA] Resultado de ejecución: ${JSON.stringify(executedAction)}`);
+    if (actions.length > 0 && activePlanId) {
+      // Ejecutar todas las acciones que no requieren confirmación
+      const pendingActions = actions.filter(a => a.status === 'pending');
+      const confirmationNeededActions = actions.filter(a => a.status === 'confirmation_needed');
+      
+      if (pendingActions.length > 0) {
+        console.log(`⚡ [LIA] Ejecutando ${pendingActions.length} acción(es): ${pendingActions.map(a => a.type).join(', ')}`);
+        
+        // Ejecutar todas las acciones en secuencia
+        const executionResults = await Promise.all(
+          pendingActions.map(a => executeAction(user.id, activePlanId, a))
+        );
+        
+        // Usar la última acción ejecutada como resultado principal
+        // Si alguna falló, usar la primera que falló
+        const failedAction = executionResults.find(r => r.status === 'error');
+        executedAction = failedAction || executionResults[executionResults.length - 1];
+        
+        console.log(`✅ [LIA] Resultado de ejecución: ${JSON.stringify(executedAction)}`);
+      }
+      
+      // Si hay acciones que requieren confirmación, usar la primera
+      if (confirmationNeededActions.length > 0 && !executedAction) {
+        executedAction = confirmationNeededActions[0];
+        console.log(`⏸️ [LIA] Acción requiere confirmación: ${executedAction.type}`);
+      }
     } else if (action) {
       executedAction = action;
       console.log(`⏸️ [LIA] Acción requiere confirmación: ${action.type}`);
