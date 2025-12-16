@@ -506,7 +506,7 @@ export function StudyPlannerLIA() {
           
           // Si el usuario cambió, limpiar todo el estado
           if (currentUserId && userId && currentUserId !== userId) {
-            console.log('🔄 Usuario cambió, limpiando estado del calendario');
+
             setConnectedCalendar(null);
             setUserContext(null);
             setConversationHistory([]);
@@ -527,7 +527,7 @@ export function StudyPlannerLIA() {
         if (response.ok) {
           const data = await response.json();
           if (data.isConnected && data.provider) {
-            console.log('📅 Calendario ya conectado:', data.provider);
+
             // Solo guardar el estado, NO saltar el flujo
             setConnectedCalendar(data.provider as 'google' | 'microsoft');
           } else {
@@ -809,7 +809,7 @@ export function StudyPlannerLIA() {
 
       const audioBlob = await response.blob();
       if (ttsAbortRef.current && ttsAbortRef.current.signal.aborted) {
-        console.log('TTS request aborted, skipping playback');
+
         ttsAbortRef.current = null;
         return;
       }
@@ -838,7 +838,7 @@ export function StudyPlannerLIA() {
       }
     } catch (error: any) {
       if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
-        console.log('TTS aborted:', error.message || error);
+
       } else {
         console.error('Error en síntesis de voz con ElevenLabs:', error);
       }
@@ -1016,7 +1016,6 @@ export function StudyPlannerLIA() {
     }
     
     try {
-      console.log('🤖 Enviando pregunta a LIA:', question);
 
       // Validación de seguridad: detectar intentos de prompt injection
       const promptInjectionPatterns = [
@@ -1138,8 +1137,6 @@ export function StudyPlannerLIA() {
         console.warn('🚫 Prompt del sistema detectado en respuesta, filtrando...');
         liaResponse = 'Hola! 😊 Estoy aquí para ayudarte con tu plan de estudios. ¿En qué te puedo asistir?';
       }
-
-      console.log('💬 Respuesta de LIA:', liaResponse);
 
       setConversationHistory(prev => {
         const last = prev[prev.length - 1];
@@ -1369,8 +1366,7 @@ export function StudyPlannerLIA() {
     
     // ✅ CORRECCIÓN: Cerrar el modal INMEDIATAMENTE cuando se abre el popup
     setShowCalendarModal(false);
-    console.log('✅ [Calendar] Modal cerrado - popup abierto');
-    
+
     // Usar NEXT_PUBLIC_APP_URL si está disponible, sino usar window.location.origin
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const redirectUri = `${baseUrl}/api/study-planner/calendar/callback`;
@@ -1421,16 +1417,13 @@ export function StudyPlannerLIA() {
         clearInterval(popupCheckInterval);
         popupCheckInterval = null;
       }
-      
-      console.log('🔍 [Calendar] Verificando estado del calendario después de cerrar popup...');
-      
+
       try {
         const response = await fetch('/api/study-planner/calendar/status');
         if (response.ok) {
           const data = await response.json();
           if (data.isConnected && data.provider) {
-            console.log('✅ [Calendar] Calendario conectado y verificado:', data.provider);
-            
+
             // Actualizar estado
             setIsConnectingCalendar(false);
             setConnectedCalendar(data.provider as 'google' | 'microsoft');
@@ -1479,13 +1472,12 @@ export function StudyPlannerLIA() {
           const timeSinceOpen = Date.now() - popupOpenTime;
           if (timeSinceOpen > 10000) {
             isClosed = true;
-            console.log('⏰ [Calendar] Han pasado más de 10 segundos, asumiendo que el popup se cerró');
+
           }
         }
         
         if (isClosed && !hasCheckedAfterClose) {
-          console.log('✅ [Calendar] Popup detectado como cerrado, verificando calendario...');
-          
+
           // Esperar un momento para asegurar que el callback se procesó en el servidor
           setTimeout(() => {
             checkCalendarAndContinue('google');
@@ -1503,7 +1495,6 @@ export function StudyPlannerLIA() {
         popupCheckInterval = null;
       }
       if (!hasCheckedAfterClose) {
-        console.log('⏰ [Calendar] Timeout de seguridad (60s): verificando calendario...');
         checkCalendarAndContinue('google');
       }
     }, 60 * 1000); // 60 segundos
@@ -1513,8 +1504,7 @@ export function StudyPlannerLIA() {
     const messageListener = (event: MessageEvent) => {
       // ✅ FALLBACK: Si llega un mensaje postMessage, procesarlo inmediatamente
       if (event.data && event.data.type === 'calendar-connected') {
-        console.log('📨 [Calendar] Mensaje postMessage recibido - procesando inmediatamente');
-        
+
         // Limpiar interval de polling
         if (popupCheckInterval) {
           clearInterval(popupCheckInterval);
@@ -1576,8 +1566,7 @@ export function StudyPlannerLIA() {
     
     // Registrar listener de mensajes (como fallback)
     window.addEventListener('message', messageListener);
-    
-    console.log('✅ [Calendar] Polling iniciado - verificando cada segundo si el popup se cierra...');
+
   };
 
   // Conectar calendario de Microsoft
@@ -1598,7 +1587,6 @@ export function StudyPlannerLIA() {
     
     // ✅ CORRECCIÓN: Cerrar el modal INMEDIATAMENTE cuando se abre el popup
     setShowCalendarModal(false);
-    console.log('✅ [Calendar] Modal cerrado - popup abierto (Microsoft)');
     
     // Usar NEXT_PUBLIC_APP_URL si está disponible, sino usar window.location.origin
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
@@ -1645,15 +1633,13 @@ export function StudyPlannerLIA() {
         popupCheckInterval = null;
       }
       
-      console.log('🔍 [Calendar] Verificando estado del calendario después de cerrar popup (Microsoft)...');
       
       try {
         const response = await fetch('/api/study-planner/calendar/status');
         if (response.ok) {
           const data = await response.json();
           if (data.isConnected && data.provider) {
-            console.log('✅ [Calendar] Calendario conectado y verificado:', data.provider);
-            
+
             setIsConnectingCalendar(false);
             setConnectedCalendar(data.provider as 'google' | 'microsoft');
             
@@ -1695,12 +1681,12 @@ export function StudyPlannerLIA() {
           const timeSinceOpen = Date.now() - popupOpenTime;
           if (timeSinceOpen > 10000) {
             isClosed = true;
-            console.log('⏰ [Calendar] Han pasado más de 10 segundos, asumiendo que el popup se cerró');
+
           }
         }
         
         if (isClosed && !hasCheckedAfterClose) {
-          console.log('✅ [Calendar] Popup detectado como cerrado, verificando calendario...');
+
           setTimeout(() => {
             checkCalendarAndContinue('microsoft');
           }, 1500);
@@ -1717,7 +1703,6 @@ export function StudyPlannerLIA() {
         popupCheckInterval = null;
       }
       if (!hasCheckedAfterClose) {
-        console.log('⏰ [Calendar] Timeout de seguridad (60s): verificando calendario...');
         checkCalendarAndContinue('microsoft');
       }
     }, 60 * 1000);
@@ -1725,7 +1710,6 @@ export function StudyPlannerLIA() {
     // ✅ ESCUCHAR MENSAJES POSTMESSAGE COMO FALLBACK
     const messageListener = (event: MessageEvent) => {
       if (event.data && event.data.type === 'calendar-connected') {
-        console.log('📨 [Calendar] Mensaje postMessage recibido - procesando inmediatamente (Microsoft)');
         
         if (popupCheckInterval) {
           clearInterval(popupCheckInterval);
@@ -1776,7 +1760,6 @@ export function StudyPlannerLIA() {
     };
     
     window.addEventListener('message', messageListener);
-    console.log('✅ [Calendar] Polling iniciado - verificando cada segundo si el popup se cierra... (Microsoft)');
   };
 
   // Calcular tiempo disponible estimado según perfil profesional
@@ -2144,26 +2127,16 @@ export function StudyPlannerLIA() {
       const totalLessons = totalLessonsNeeded > 0 
         ? totalLessonsNeeded 
         : validCourses.reduce((sum, course) => sum + course.totalLessons, 0);
-      
-      console.log(`📊 calculateWeeklyGoals - Parámetros recibidos:`);
-      console.log(`   weeksUntilTarget: ${weeksUntilTarget}`);
-      console.log(`   totalLessonsNeeded (parámetro): ${totalLessonsNeeded}`);
-      console.log(`   totalLessons (usado en cálculo): ${totalLessons}`);
-      console.log(`   validCourses.length: ${validCourses.length}`);
+
       validCourses.forEach(course => {
-        console.log(`   - ${course.courseTitle}: ${course.totalLessons} lecciones`);
+
       });
       
       if (weeksUntilTarget > 0 && totalLessons > 0) {
         // Calcular lecciones por semana necesarias para completar antes de la fecha objetivo
         // Usar Math.ceil para asegurar que se complete a tiempo
         const lessonsPerWeekNeeded = Math.ceil(totalLessons / weeksUntilTarget);
-        
-        console.log(`📊 Cálculo de metas semanales:`);
-        console.log(`   Total de lecciones: ${totalLessons}`);
-        console.log(`   Semanas hasta objetivo: ${weeksUntilTarget}`);
-        console.log(`   Lecciones por semana necesarias: ${lessonsPerWeekNeeded}`);
-        
+
         // Distribuir las lecciones proporcionalmente entre los cursos
         coursesInfo = coursesWithLessonTime.map(course => {
           const courseProportion = totalLessons > 0 ? (course.totalLessons / totalLessons) : (1 / validCourses.length);
@@ -2173,7 +2146,6 @@ export function StudyPlannerLIA() {
             course.totalLessons || 999 // Máximo las lecciones disponibles del curso
           );
           
-          console.log(`   Curso ${course.courseTitle}: ${lessonsToComplete} lecciones/semana (de ${course.totalLessons} total)`);
           
           return {
             courseId: course.courseId,
@@ -2445,7 +2417,7 @@ export function StudyPlannerLIA() {
   const analyzeCalendarAndSuggest = async (provider: string, targetDateParam?: string) => {
     // Evitar múltiples llamadas simultáneas
     if (isProcessing) {
-      console.log('Análisis de calendario ya en curso, ignorando llamada duplicada');
+
       return;
     }
     
@@ -2454,12 +2426,12 @@ export function StudyPlannerLIA() {
     
     // Verificar que se tengan los datos necesarios antes de analizar
     if (!studyApproach) {
-      console.log('⚠️ No se puede analizar: falta enfoque de estudio');
+
       return;
     }
     
     if (!effectiveTargetDate || effectiveTargetDate === 'No tengo fecha específica') {
-      console.log('⚠️ No se puede analizar: falta fecha objetivo');
+
       return;
     }
     
@@ -2491,13 +2463,7 @@ export function StudyPlannerLIA() {
       // 2. OBTENER EVENTOS DEL CALENDARIO (hasta la fecha objetivo del usuario, sin límite mínimo)
       // Primero necesitamos calcular la fecha objetivo ANTES de obtener eventos
       let targetDateObjForEvents: Date | null = null;
-      
-      console.log(`🔍 [DEBUG] Estado al inicio de analyzeCalendarAndSuggest:`);
-      console.log(`   targetDate (estado): "${targetDate}"`);
-      console.log(`   targetDateParam (parámetro): "${targetDateParam}"`);
-      console.log(`   effectiveTargetDate (usado): "${effectiveTargetDate}"`);
-      console.log(`   studyApproach: "${studyApproach}"`);
-      
+
       if (effectiveTargetDate && studyApproach && effectiveTargetDate !== 'No tengo fecha específica') {
         try {
           // Intentar parsear la fecha objetivo - múltiples formatos posibles
@@ -2515,7 +2481,6 @@ export function StudyPlannerLIA() {
             
             if (month >= 0 && day > 0 && day <= 31 && year >= 2020) {
               targetDateObjForEvents = new Date(year, month, day);
-              console.log(`✅ Fecha objetivo parseada: ${targetDateObjForEvents.toLocaleDateString('es-ES')} (desde: "${effectiveTargetDate}")`);
             }
           }
           
@@ -2524,7 +2489,6 @@ export function StudyPlannerLIA() {
             const standardDate = new Date(effectiveTargetDate);
             if (!isNaN(standardDate.getTime()) && standardDate.getFullYear() >= 2020) {
               targetDateObjForEvents = standardDate;
-              console.log(`✅ Fecha objetivo parseada como estándar: ${targetDateObjForEvents.toLocaleDateString('es-ES')}`);
             }
           }
           
@@ -2544,16 +2508,11 @@ export function StudyPlannerLIA() {
       if (targetDateObjForEvents) {
         endDate = new Date(targetDateObjForEvents);
         endDate.setHours(23, 59, 59, 999); // Incluir todo el día objetivo
-        console.log(`✅ Usando fecha objetivo para rango: ${targetDateObjForEvents.toLocaleDateString('es-ES')} -> ${endDate.toLocaleDateString('es-ES')}`);
       } else {
         endDate.setDate(endDate.getDate() + 30);
-        console.log(`⚠️ No hay fecha objetivo, usando 30 días por defecto`);
+
       }
-      
-      console.log(`📅 Rango de análisis del calendario:`);
-      console.log(`   Fecha inicio: ${startDate.toLocaleDateString('es-ES')}`);
-      console.log(`   Fecha fin: ${endDate.toLocaleDateString('es-ES')}`);
-      console.log(`   Días a analizar: ${Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))}`);
+
       
       let calendarEvents: any[] = [];
       let calendarAnalysis = '';
@@ -2566,16 +2525,6 @@ export function StudyPlannerLIA() {
         if (eventsResponse.ok) {
           const eventsData = await eventsResponse.json();
           calendarEvents = eventsData.events || [];
-          console.log(`📅 Eventos obtenidos del calendario: ${calendarEvents.length}`, {
-            provider: eventsData.provider,
-            sample: calendarEvents.slice(0, 2).map((e: any) => ({
-              title: e.title,
-              start: e.start,
-              end: e.end,
-              startTime: e.startTime,
-              endTime: e.endTime
-            }))
-          });
         } else {
           // ✅ CORRECCIÓN: Manejar error de token expirado y requerir reconexión
           let errorData: any = {};
@@ -2657,11 +2606,8 @@ export function StudyPlannerLIA() {
       const daysToAnalyze = targetDateObjForEvents 
         ? Math.ceil((targetDateObjForEvents.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
         : 30; // Solo usar 30 días como fallback si no hay fecha objetivo
-      
-      console.log(`📊 Inicializando análisis para ${daysToAnalyze} días`);
-      console.log(`   Fecha inicio: ${startDate.toLocaleDateString('es-ES')}`);
+
       if (targetDateObjForEvents) {
-        console.log(`   Fecha objetivo para eventos (targetDateObjForEvents): ${targetDateObjForEvents.toLocaleDateString('es-ES')}`);
       } else {
         console.warn(`   ⚠️ targetDateObjForEvents es NULL - usando 30 días por defecto`);
       }
@@ -2695,11 +2641,9 @@ export function StudyPlannerLIA() {
         };
       }
 
-      console.log(`📊 daySlots inicializados: ${Object.keys(daySlots).length} días`);
       if (Object.keys(daySlots).length > 0) {
         const sortedKeys = Object.keys(daySlots).sort();
-        console.log(`   Primer día en daySlots: ${sortedKeys[0]}`);
-        console.log(`   Último día en daySlots: ${sortedKeys[sortedKeys.length - 1]}`);
+
       }
 
       // Procesar eventos con análisis contextual
@@ -2746,9 +2690,7 @@ export function StudyPlannerLIA() {
           });
         }
       });
-      
-      console.log(`📅 Días con eventos pesados propios que requieren descanso: ${daysWithHeavyEvents.length}`);
-      
+
       // Ahora marcar SOLO el día siguiente de cada día con evento pesado
       // Esto evita propagación en cascada si hay eventos pesados en días consecutivos
       daysWithHeavyEvents.forEach(({ dateStr, restReason }) => {
@@ -2766,20 +2708,19 @@ export function StudyPlannerLIA() {
           if (!daySlots[nextDayStr].requiresRestAfter) {
             daySlots[nextDayStr].requiresRestAfter = true;
             daySlots[nextDayStr].restReason = `día después de ${restReason}`;
-            console.log(`   📌 Marcado día siguiente para descanso: ${nextDayStr} (después de ${dateStr})`);
           } else if (daySlots[nextDayStr].heavyEvents && daySlots[nextDayStr].heavyEvents.length > 0) {
             // El día siguiente ya tiene eventos pesados propios, no necesita marcado adicional
-            console.log(`   ℹ️ Día siguiente ${nextDayStr} ya tiene eventos pesados propios, no se marca adicionalmente`);
+
           }
         }
       });
 
       // 🔍 DEBUG: Verificar cuántos días requieren descanso después de marcar el día siguiente
       const daysWithRestAfterMarking = Object.values(daySlots).filter(d => d.requiresRestAfter);
-      console.log(`📅 Días marcados para descanso después de eventos pesados: ${daysWithRestAfterMarking.length}`);
+
       if (daysWithRestAfterMarking.length > 0 && daysWithRestAfterMarking.length <= 10) {
         daysWithRestAfterMarking.forEach(d => {
-          console.log(`   - ${d.dateStr}: ${d.restReason}`);
+
         });
       }
 
@@ -2836,7 +2777,6 @@ export function StudyPlannerLIA() {
 
         if (dayData.busySlots.length === 0) {
           // ✅ DÍA COMPLETAMENTE LIBRE - Dividir en bloques de estudio realistas
-          console.log(`📅 Día completamente libre detectado: ${dayData.dayName} ${dayData.date.toLocaleDateString('es-ES')}`);
 
           // Crear bloques de estudio en horarios convenientes: mañana, tarde, noche
           // Mañana: 7 AM - 12 PM
@@ -2878,7 +2818,6 @@ export function StudyPlannerLIA() {
             durationMinutes: 240, // 4 horas
           });
 
-          console.log(`   ✅ 3 bloques creados: Mañana (5h), Tarde (6h), Noche (4h) = 15h totales`);
         } else {
           // Día con eventos - encontrar huecos entre eventos
           // Asegurar que lastEnd no sea antes de las 7 AM
@@ -2951,16 +2890,12 @@ export function StudyPlannerLIA() {
       });
 
       // 🔍 DEBUG: Resumen de daysAnalysis después de procesar todos los días
-      console.log(`📊 Resumen de daysAnalysis después de generar slots:`);
-      console.log(`   Total días analizados: ${daysAnalysis.length}`);
+
       const daysWithFreeSlotsGenerated = daysAnalysis.filter(d => d.freeSlots.length > 0);
       const daysWithoutFreeSlots = daysAnalysis.filter(d => d.freeSlots.length === 0);
       const daysCompletelyFree = daysAnalysis.filter(d => d.busySlots.length === 0);
-      console.log(`   Días con slots libres generados: ${daysWithFreeSlotsGenerated.length}`);
-      console.log(`   Días SIN slots libres: ${daysWithoutFreeSlots.length}`);
-      console.log(`   Días completamente libres (sin eventos): ${daysCompletelyFree.length}`);
+
       if (daysWithoutFreeSlots.length > 0 && daysWithoutFreeSlots.length <= 10) {
-        console.log(`   Días sin slots:`, daysWithoutFreeSlots.map(d => `${d.dateStr} (busy:${d.busySlots.length}, rest:${d.requiresRestAfter})`));
       }
 
       // Guardar los datos del calendario para validar conflictos después
@@ -2979,7 +2914,6 @@ export function StudyPlannerLIA() {
         };
       });
       setSavedCalendarData(calendarDataToSave);
-      console.log(`💾 Datos del calendario guardados para validación: ${Object.keys(calendarDataToSave).length} días`);
       
       // Calcular estadísticas correctas
       const totalBusyMinutes = daysAnalysis.reduce((sum, day) => sum + day.totalBusyMinutes, 0);
@@ -3032,19 +2966,15 @@ export function StudyPlannerLIA() {
       const minSessionDuration = profileAvailability?.recommendedSessionLength || 30;
       
       // 🔍 DEBUG: Verificar qué días están en daysAnalysis y su estado
-      console.log(`🔍 DEBUG - Total días en daysAnalysis: ${daysAnalysis.length}`);
+
       const daysWithRest = daysAnalysis.filter(d => d.requiresRestAfter);
       const daysWithoutRest = daysAnalysis.filter(d => !d.requiresRestAfter);
       const daysWithSlots = daysAnalysis.filter(d => d.freeSlots.length > 0);
-      console.log(`   Días que requieren descanso: ${daysWithRest.length}`);
-      console.log(`   Días SIN descanso: ${daysWithoutRest.length}`);
-      console.log(`   Días con slots libres: ${daysWithSlots.length}`);
+
       if (daysWithRest.length > 0) {
-        console.log(`   Días con descanso:`, daysWithRest.map(d => `${d.dateStr} (${d.restReason})`).slice(0, 5));
       }
       if (daysAnalysis.length > 0) {
-        console.log(`   Primer día: ${daysAnalysis[0].dateStr}`);
-        console.log(`   Último día: ${daysAnalysis[daysAnalysis.length - 1].dateStr}`);
+
       }
       
       // ✅ CORRECCIÓN: Agrupar slots por día primero, para distribuir a lo largo del período completo
@@ -3054,7 +2984,6 @@ export function StudyPlannerLIA() {
         // Excluir días que requieren descanso después de eventos pesados
         // IMPORTANTE: Solo excluir el día específico marcado, NO afectar días posteriores
         if (day.requiresRestAfter) {
-          console.log(`   ⏭️ Excluyendo día con descanso: ${day.dateStr} (${day.restReason})`);
           // ✅ CRÍTICO: Usar 'return' aquí para saltar SOLO este día, no afectar días posteriores
           return;
         }
@@ -3108,8 +3037,6 @@ export function StudyPlannerLIA() {
         }
       });
 
-      console.log(`📊 Días con slots disponibles: ${slotsByDayInitial.size} días`);
-
       // Tomar los mejores slots de cada día (máximo 3 por día) para distribuir a lo largo del período
       const bestFreeSlots: FreeSlotWithDay[] = [];
       Array.from(slotsByDayInitial.entries())
@@ -3120,12 +3047,9 @@ export function StudyPlannerLIA() {
           bestFreeSlots.push(...slotsToTake);
         });
 
-      console.log(`📊 Total de slots seleccionados: ${bestFreeSlots.length}`);
       if (bestFreeSlots.length > 0) {
         const firstSlot = bestFreeSlots[0];
         const lastSlot = bestFreeSlots[bestFreeSlots.length - 1];
-        console.log(`   Primer slot: ${firstSlot.dayName} ${firstSlot.date.toLocaleDateString('es-ES')}`);
-        console.log(`   Último slot: ${lastSlot.dayName} ${lastSlot.date.toLocaleDateString('es-ES')}`);
       }
 
       const limitedBestSlots = bestFreeSlots;
@@ -3231,20 +3155,12 @@ export function StudyPlannerLIA() {
 
           // Log para debugging
           if (selectedSlots.length > 1) {
-            console.log(`📅 ${dateStr}: ${selectedSlots.length} slots seleccionados (${totalFreeMinutes}min libres total)`);
           }
         }
       });
 
-      console.log(`📊 Resumen de slots seleccionados:`);
-      console.log(`   Total de días analizados: ${sortedDates.length}`);
-      console.log(`   Total de slots seleccionados: ${uniqueDateSlots.length}`);
-      console.log(`   Promedio de slots por día: ${(uniqueDateSlots.length / sortedDates.length).toFixed(2)}`);
-
       if (uniqueDateSlots.length > 0) {
         const sortedForLog = [...uniqueDateSlots].sort((a, b) => a.date.getTime() - b.date.getTime());
-        console.log(`   Primer slot generado: ${sortedForLog[0].dayName} ${sortedForLog[0].date.toLocaleDateString('es-ES')}`);
-        console.log(`   Último slot generado: ${sortedForLog[sortedForLog.length - 1].dayName} ${sortedForLog[sortedForLog.length - 1].date.toLocaleDateString('es-ES')}`);
       }
 
       // Obtener país del usuario (default: México)
@@ -3256,15 +3172,9 @@ export function StudyPlannerLIA() {
         const isHolidayDate = HolidayService.isHoliday(slot.date, userCountry);
         if (isHolidayDate) {
           const holidayName = HolidayService.getHolidayName(slot.date, userCountry);
-          console.log(`🎉 Slot excluido por festivo: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - ${holidayName}`);
         }
         return !isHolidayDate;
       });
-
-      console.log(`📅 Filtrado de festivos:`);
-      console.log(`   Slots antes de filtrar festivos: ${uniqueDateSlots.length}`);
-      console.log(`   Slots después de filtrar festivos: ${slotsWithoutHolidays.length}`);
-      console.log(`   Festivos excluidos: ${uniqueDateSlots.length - slotsWithoutHolidays.length}`);
 
       // Calcular tiempo disponible hasta la fecha objetivo
       let targetDateObj: Date | null = null;
@@ -3313,12 +3223,7 @@ export function StudyPlannerLIA() {
               console.warn(`⚠️ weeksUntilTarget es mayor a 52 semanas, ajustando a 52`);
               weeksUntilTarget = 52;
             }
-            
-            console.log(`📅 Cálculo de fecha objetivo:`);
-            console.log(`   Fecha objetivo parseada: ${targetDateObj.toLocaleDateString('es-ES')}`);
-            console.log(`   Fecha hoy: ${today.toLocaleDateString('es-ES')}`);
-            console.log(`   Días hasta objetivo: ${daysDiff}`);
-            console.log(`   Semanas hasta objetivo: ${weeksUntilTarget}`);
+
           } else {
             console.warn(`⚠️ No se pudo parsear la fecha objetivo: ${targetDate}`);
             // Fallback: usar 4 semanas si no se puede parsear
@@ -3349,9 +3254,6 @@ export function StudyPlannerLIA() {
         adjustedTargetDate = new Date(targetDateObj);
         adjustedTargetDate.setDate(adjustedTargetDate.getDate() - bufferDays);
 
-        console.log(`📅 Buffer de días: ${bufferDays}`);
-        console.log(`📅 Fecha objetivo original: ${targetDateObj.toLocaleDateString('es-ES')}`);
-        console.log(`📅 Fecha objetivo ajustada (con buffer): ${adjustedTargetDate.toLocaleDateString('es-ES')}`);
       }
 
       // Calcular cuántas lecciones totales se necesitan para completar los cursos
@@ -3418,7 +3320,7 @@ export function StudyPlannerLIA() {
                             if (progressResponse.ok) {
                               const progressData = await progressResponse.json();
                               completedLessonIds = progressData.completedLessonIds || [];
-                              console.log(`   Curso ${courseTitle}: ${completedLessonIds.length} lecciones completadas de ${totalLessons} totales`);
+
                             } else {
                               const errorData = await progressResponse.json();
                               console.warn(`   ⚠️ Error obteniendo progreso del curso ${courseId}: ${errorData.error || progressResponse.status}`);
@@ -3450,7 +3352,6 @@ export function StudyPlannerLIA() {
                           const effectiveLessonTime = Math.max(avgLessonDuration * 1.5, profileAvailability.recommendedSessionLength);
                           const sessionsForCourse = Math.ceil(totalDurationMinutes / profileAvailability.recommendedSessionLength);
                           
-                          console.log(`   Curso ${courseTitle}: ${remainingLessons} lecciones pendientes (${completedLessonIds.length} completadas, ${totalLessons} totales)`);
                           
                           return {
                             courseId,
@@ -3489,13 +3390,9 @@ export function StudyPlannerLIA() {
           totalLessonsNeeded = coursesInfoForCalculation.reduce((sum, course) => sum + course.totalLessons, 0);
           totalSessionsNeeded = coursesInfoForCalculation.reduce((sum, course) => sum + course.sessionsNeeded, 0);
           totalMinutesNeeded = coursesInfoForCalculation.reduce((sum, course) => sum + course.totalMinutes, 0);
-          
-          console.log(`📚 Cálculo de lecciones necesarias:`);
-          console.log(`   Total de lecciones: ${totalLessonsNeeded}`);
-          console.log(`   Total de sesiones necesarias: ${totalSessionsNeeded}`);
-          console.log(`   Total de minutos necesarios: ${totalMinutesNeeded}`);
+
           coursesInfoForCalculation.forEach(course => {
-            console.log(`   - ${course.courseId}: ${course.totalLessons} lecciones`);
+
           });
           
           // Si totalLessonsNeeded es 0, usar estimación conservadora basada en el número de cursos
@@ -3544,11 +3441,6 @@ export function StudyPlannerLIA() {
             return !shouldExclude;
           })
         : slotsWithoutHolidays;
-      
-      console.log(`📅 Filtrado de slots hasta fecha objetivo:`);
-      console.log(`   Fecha objetivo: ${targetDateObj?.toLocaleDateString('es-ES')}`);
-      console.log(`   Slots totales disponibles: ${uniqueDateSlots.length}`);
-      console.log(`   Slots válidos hasta objetivo: ${validDateSlots.length}`);
 
       // ✅ SIMPLIFICADO: Usar TODOS los slots disponibles hasta la fecha objetivo
       // Filtrar solo por duración mínima (25 minutos para que quepa al menos 1 lección)
@@ -3556,8 +3448,6 @@ export function StudyPlannerLIA() {
       const finalSlots: FreeSlotWithDay[] = validDateSlots
         .filter(slot => slot.durationMinutes >= MIN_SLOT_DURATION)
         .sort((a, b) => a.date.getTime() - b.date.getTime()); // Ordenar cronológicamente
-
-      console.log(`   Slots con duración mínima (${MIN_SLOT_DURATION} min): ${finalSlots.length}`);
 
       // ✅ SIMPLIFICADO: Dividir slots largos según el máximo de sesión del usuario
       const dividedSlots: FreeSlotWithDay[] = [];
@@ -3574,8 +3464,6 @@ export function StudyPlannerLIA() {
       } else {
         maxSlotDuration = cycleLength * 2; // 2 ciclos máximo (ej: 80 min) - normal
       }
-
-      console.log(`🔪 Dividiendo slots largos (duración máxima: ${maxSlotDuration} min):`);
 
       finalSlots.forEach((slot, index) => {
         if (slot.durationMinutes <= maxSlotDuration) {
@@ -3603,8 +3491,6 @@ export function StudyPlannerLIA() {
         }
       });
 
-      console.log(`   Slots después de dividir: ${dividedSlots.length}`);
-
       // ✅ LIMITAR A MÁXIMO 2 SLOTS POR DÍA (requisito del usuario)
       // Agrupar slots por día y seleccionar los 2 mejores por día
       const slotsByDay = new Map<string, FreeSlotWithDay[]>();
@@ -3616,7 +3502,6 @@ export function StudyPlannerLIA() {
         slotsByDay.get(dayKey)!.push(slot);
       });
 
-      console.log(`📅 Limitando a máximo 2 slots por día:`);
       const limitedSlots: FreeSlotWithDay[] = [];
 
       slotsByDay.forEach((daySlots, dayKey) => {
@@ -3638,11 +3523,9 @@ export function StudyPlannerLIA() {
 
         // Tomar máximo 2 slots por día
         const selectedDaySlots = daySlots.slice(0, 2);
-        console.log(`   ${dayKey}: ${daySlots.length} slots → ${selectedDaySlots.length} seleccionados`);
+
         limitedSlots.push(...selectedDaySlots);
       });
-
-      console.log(`   Total slots después de limitar a 2 por día: ${limitedSlots.length}`);
 
       // ✅ DISTRIBUIR EQUIDISTANTEMENTE A LO LARGO DE TODO EL PERÍODO
       // No usar todos los slots consecutivamente - distribuir a lo largo del tiempo
@@ -3655,13 +3538,6 @@ export function StudyPlannerLIA() {
       const estimatedLessons = Math.max(totalLessonsNeeded, 30); // Mínimo 30 lecciones
       const avgLessonsPerSlot = 2; // Estimación conservadora
       const slotsNeeded = Math.ceil(estimatedLessons / avgLessonsPerSlot);
-
-      console.log(`📊 Distribución equidistante:`);
-      console.log(`   Lecciones estimadas inicialmente (totalLessonsNeeded): ${totalLessonsNeeded}`);
-      console.log(`   Lecciones usadas para cálculo (máximo de 30): ${estimatedLessons}`);
-      console.log(`   Promedio estimado por slot: ${avgLessonsPerSlot}`);
-      console.log(`   Slots disponibles (limitados a 2/día): ${limitedSlots.length}`);
-      console.log(`   Slots necesarios (estimado): ${slotsNeeded}`);
 
       // Seleccionar slots distribuidos equidistantemente
       const equidistantSlots: FreeSlotWithDay[] = [];
@@ -3682,10 +3558,7 @@ export function StudyPlannerLIA() {
         }
       }
 
-      console.log(`   Slots distribuidos equidistantemente: ${equidistantSlots.length}`);
       if (equidistantSlots.length > 0) {
-        console.log(`   Primer slot: ${equidistantSlots[0].dayName} ${equidistantSlots[0].date.toLocaleDateString('es-ES')}`);
-        console.log(`   Último slot: ${equidistantSlots[equidistantSlots.length - 1].dayName} ${equidistantSlots[equidistantSlots.length - 1].date.toLocaleDateString('es-ES')}`);
       }
 
       // Usar los slots distribuidos equidistantemente
@@ -3714,13 +3587,7 @@ export function StudyPlannerLIA() {
       }
 
       // 5. Calcular metas semanales basadas en cursos seleccionados y fecha objetivo
-      console.log(`🎯 Preparando cálculo de metas semanales:`);
-      console.log(`   selectedCourseIds.length: ${selectedCourseIds.length}`);
-      console.log(`   weeklyAvailableMinutes: ${weeklyAvailableMinutes}`);
-      console.log(`   studyApproach: ${studyApproach}`);
-      console.log(`   weeksUntilTarget: ${weeksUntilTarget}`);
-      console.log(`   totalLessonsNeeded: ${totalLessonsNeeded}`);
-      
+
       const weeklyGoals = selectedCourseIds.length > 0 && weeklyAvailableMinutes > 0 && studyApproach && weeksUntilTarget > 0 && totalLessonsNeeded > 0
         ? await calculateWeeklyGoals(
             selectedCourseIds,
@@ -3735,7 +3602,7 @@ export function StudyPlannerLIA() {
         console.warn('⚠️ No se pudieron calcular las metas semanales. Verificar condiciones.');
         console.warn(`   Condiciones: selectedCourseIds=${selectedCourseIds.length > 0}, weeklyAvailableMinutes=${weeklyAvailableMinutes > 0}, studyApproach=${!!studyApproach}, weeksUntilTarget=${weeksUntilTarget > 0}, totalLessonsNeeded=${totalLessonsNeeded > 0}`);
       } else {
-        console.log(`✅ Metas semanales calculadas:`, weeklyGoals);
+
       }
 
       // 6. Construir información del perfil
@@ -3812,10 +3679,7 @@ export function StudyPlannerLIA() {
           // Obtener lecciones de los cursos seleccionados para distribuir por horarios
           let allLessonsByCourse: Map<string, Array<{ lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number }>> = new Map();
           let completedLessonIdsByCourse: Map<string, string[]> = new Map();
-          
-          console.log(`📚 Obteniendo lecciones para distribución:`);
-          console.log(`   Cursos seleccionados: ${selectedCourseIds.length}`);
-          
+
           if (selectedCourseIds.length > 0) {
             try {
               const myCoursesResponse = await fetch('/api/my-courses');
@@ -3828,9 +3692,7 @@ export function StudyPlannerLIA() {
                   if (courseData) {
                     const courseSlug = courseData.courses?.slug || courseData.slug || null;
                     const enrollmentId = courseData.enrollment_id || null;
-                    
-                    console.log(`   Curso ${courseId}: slug=${courseSlug}, enrollmentId=${enrollmentId}`);
-                    
+
                     // Usar el endpoint de metadata que funciona con courseId (no requiere slug)
                     try {
                       // ✅ Usar /api/workshops/${courseId}/metadata en lugar de /api/courses/${slug}/modules
@@ -3906,16 +3768,6 @@ export function StudyPlannerLIA() {
                                 return (a.lessonOrderIndex || 0) - (b.lessonOrderIndex || 0);
                               });
                             
-                            console.log(`   Curso ${courseId}: ${publishedLessons.length} lecciones válidas obtenidas (${allLessons.length} totales, ${allLessons.length - publishedLessons.length} duplicadas/inválidas eliminadas)`);
-                            if (publishedLessons.length > 0) {
-                              console.log(`   Primeras 5 lecciones:`, publishedLessons.slice(0, 5).map((l: any) => ({
-                                index: l.lessonOrderIndex,
-                                id: l.lessonId,
-                                title: l.lessonTitle
-                              })));
-                            } else {
-                              console.warn(`   ⚠️ NO se encontraron lecciones válidas para el curso ${courseId}`);
-                            }
                             allLessonsByCourse.set(courseId, publishedLessons);
                             
                             // Obtener lecciones completadas directamente de la BD usando el mismo método que LiaContextService
@@ -3926,22 +3778,20 @@ export function StudyPlannerLIA() {
                               if (userResponse.ok) {
                                 const userData = await userResponse.json();
                                 const userId = userData?.user?.id;
-                                console.log(`   ✅ Usuario obtenido: ${userId}`);
 
                                 if (userId) {
                                   // Obtener lecciones completadas filtrando por enrollment_id si está disponible
                                   // Esto es crítico para obtener solo las lecciones del curso específico
-                                  console.log(`   🔍 Consultando progreso: /api/study-planner/course-progress?enrollmentId=${enrollmentId || ''}&courseId=${courseId}&userId=${userId}`);
+
                                   const progressResponse = await fetch(
                                     `/api/study-planner/course-progress?enrollmentId=${enrollmentId || ''}&courseId=${courseId}&userId=${userId}`
                                   );
                                   if (progressResponse.ok) {
                                     const progressData = await progressResponse.json();
-                                    console.log(`   📥 Respuesta del endpoint:`, progressData);
+
                                     const completedIds = progressData.completedLessonIds || [];
-                                    console.log(`   Curso ${courseId}: ${completedIds.length} lecciones completadas (enrollmentId: ${enrollmentId || 'N/A'})`);
                                     if (completedIds.length > 0) {
-                                      console.log(`   IDs de lecciones completadas:`, completedIds);
+
                                     }
                                     completedLessonIdsByCourse.set(courseId, completedIds);
                                   } else {
@@ -3996,11 +3846,9 @@ export function StudyPlannerLIA() {
             const lessons = allLessonsByCourse.get(courseId) || [];
             const completedIds = completedLessonIdsByCourse.get(courseId) || [];
             
-            console.log(`📚 Curso ${courseId} (${courseTitle}):`);
-            console.log(`   Total lecciones disponibles: ${lessons.length}`);
-            console.log(`   Lecciones completadas: ${completedIds.length}`);
+
             if (completedIds.length > 0) {
-              console.log(`   IDs completados:`, completedIds);
+
             }
             
             let pendingCount = 0;
@@ -4057,8 +3905,7 @@ export function StudyPlannerLIA() {
               
               pendingCount++;
             });
-            
-            console.log(`   ✅ Lecciones pendientes: ${pendingCount}, completadas: ${completedCount}, omitidas: ${skippedCount}, duplicadas: ${duplicateCount}`);
+
           });
 
           // ✅ PASO 3: Ordenar todas las lecciones para mantener la continuidad del taller
@@ -4080,18 +3927,7 @@ export function StudyPlannerLIA() {
             return a.lessonOrderIndex - b.lessonOrderIndex;
           });
 
-          console.log(`📚 Lecciones pendientes totales (ordenadas): ${allPendingLessons.length}`);
           if (allPendingLessons.length > 0) {
-            console.log(`   ✅ Orden de lecciones verificado:`);
-            console.log(`   Primeras 10 lecciones (ordenadas):`, allPendingLessons.slice(0, 10).map((l, idx) => ({
-              posición: idx + 1,
-              curso: l.courseTitle,
-              módulo: l.moduleOrderIndex,
-              lección: l.lessonOrderIndex,
-              título: l.lessonTitle.substring(0, 50) + (l.lessonTitle.length > 50 ? '...' : ''),
-              id: l.lessonId
-            })));
-            
             // Verificar que el orden es correcto
             let orderIsCorrect = true;
             for (let i = 1; i < allPendingLessons.length; i++) {
@@ -4111,7 +3947,7 @@ export function StudyPlannerLIA() {
             }
             
             if (orderIsCorrect) {
-              console.log(`   ✅ Orden de lecciones verificado correctamente`);
+
             }
           }
 
@@ -4138,8 +3974,6 @@ export function StudyPlannerLIA() {
           if (invalidLessonsCount > 0) {
             console.warn(`⚠️ ${invalidLessonsCount} lecciones inválidas filtradas antes de la distribución`);
           }
-
-          console.log(`📚 Lecciones válidas para distribuir: ${validPendingLessons.length} de ${allPendingLessons.length} totales`);
 
           // Guardar distribución de lecciones para el resumen final (no mostrar en recomendaciones iniciales)
           type LessonDistribution = {
@@ -4181,24 +4015,16 @@ export function StudyPlannerLIA() {
 
                 // Log para debugging
                 if (!shouldInclude) {
-                  console.log(`❌ Slot excluido: ${slot.dayName} ${slotDateOnly.toLocaleDateString('es-ES')} - Después de fecha objetivo (${targetDateOnly.toLocaleDateString('es-ES')})`);
                 }
 
                 return shouldInclude;
               })
             : sortedSlots;
 
-          console.log(`📅 Slots después de filtrar por fecha objetivo:`);
-          console.log(`   Fecha objetivo: ${targetDateObj?.toLocaleDateString('es-ES')}`);
-          console.log(`   Slots totales antes del filtro: ${sortedSlots.length}`);
-          console.log(`   Slots después del filtro: ${slotsUntilTarget.length}`);
           if (slotsUntilTarget.length > 0) {
-            console.log(`   Primer slot: ${slotsUntilTarget[0].dayName} ${slotsUntilTarget[0].date.toLocaleDateString('es-ES')}`);
-            console.log(`   Último slot: ${slotsUntilTarget[slotsUntilTarget.length - 1].dayName} ${slotsUntilTarget[slotsUntilTarget.length - 1].date.toLocaleDateString('es-ES')}`);
           }
           
           // ✅ CORRECCIÓN: Usar solo lecciones válidas para la distribución
-          console.log(`📊 Distribuyendo ${validPendingLessons.length} lecciones válidas en ${slotsUntilTarget.length} slots`);
 
           const MINUTES_PER_LESSON = 25; // Asumir 25 minutos por lección como solicita el usuario
 
@@ -4213,16 +4039,8 @@ export function StudyPlannerLIA() {
             totalCapacity += maxLessonsInSlot;
           });
 
-          console.log(`   Total lecciones: ${totalLessons}`);
-          console.log(`   Total slots: ${totalSlotsAvailable}`);
-          console.log(`   Capacidad total: ${totalCapacity} lecciones`);
-          console.log(`   Minutos por lección: ${MINUTES_PER_LESSON}`);
-
           // ✅ SIMPLIFICADO: Distribuir uniformemente a lo largo del periodo
           const hasEnoughCapacity = totalCapacity >= totalLessons;
-
-          console.log(`📐 Estrategia de distribución:`);
-          console.log(`   ¿Hay suficiente capacidad? ${hasEnoughCapacity ? 'Sí' : 'No'}`);
 
           slotsUntilTarget.forEach((slot, slotIndex) => {
             const slotDurationMinutes = slot.durationMinutes;
@@ -4253,8 +4071,6 @@ export function StudyPlannerLIA() {
                 maxLessonsInSlot
               );
             }
-
-            console.log(`   Slot ${slotIndex + 1}: ${slot.dayName} ${slot.date.toLocaleDateString('es-ES')} - Duración: ${slotDurationMinutes}min - Lecciones que caben: ${maxLessonsInSlot} - Quedan ${remainingLessons} lecciones - A asignar: ${lessonsToAssign}`);
 
             // Asignar lecciones a este slot (solo lecciones válidas)
             const lessonsForSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
@@ -4294,7 +4110,7 @@ export function StudyPlannerLIA() {
 
               // Log para las primeras asignaciones
               if (slotIndex < 3 && assignedInSlot < 2) {
-                console.log(`   Slot ${slotIndex}, Sesión ${assignedInSlot}: Lección ${lesson.lessonOrderIndex} - ${lesson.lessonTitle}`);
+
               }
 
               currentLessonIndex++;
@@ -4311,21 +4127,16 @@ export function StudyPlannerLIA() {
               console.warn(`⚠️ Slot ${slotIndex} no tiene lecciones asignadas`);
             }
           });
-          
-          console.log(`✅ Distribución completada: ${lessonDistribution.length} slots con lecciones, ${currentLessonIndex} lecciones asignadas de ${validPendingLessons.length} válidas`);
 
           // Si quedan lecciones sin asignar, redistribuir en los slots con más espacio
           // Primero intentar usar slots que no se usaron, luego redistribuir en los existentes
           if (currentLessonIndex < validPendingLessons.length) {
             const remainingLessons = validPendingLessons.length - currentLessonIndex;
-            console.log(`⚠️ Quedan ${remainingLessons} lecciones sin asignar. Redistribuyendo...`);
 
             // Primero, intentar usar slots que no se usaron (si hay slots sin lecciones)
             const usedSlotDates = new Set(lessonDistribution.map(d => d.slot.dateStr));
             const unusedSlots = slotsUntilTarget.filter(slot => !usedSlotDates.has(slot.dateStr));
-            
-            console.log(`   Slots no usados disponibles: ${unusedSlots.length}`);
-            
+
             // ✅ CORRECCIÓN: Usar solo lecciones válidas en la redistribución
             for (const unusedSlot of unusedSlots) {
               if (currentLessonIndex >= validPendingLessons.length) break;
@@ -4373,7 +4184,6 @@ export function StudyPlannerLIA() {
                   slot: unusedSlot,
                   lessons: lessonsForUnusedSlot
                 });
-                console.log(`   ✅ Agregado slot no usado: ${unusedSlot.dayName} ${unusedSlot.date.toLocaleDateString('es-ES')} con ${lessonsForUnusedSlot.length} lecciones`);
               }
             }
 
@@ -4390,8 +4200,6 @@ export function StudyPlannerLIA() {
                   const spaceB = Math.floor(b.slot.durationMinutes / MINUTES_PER_LESSON) - b.lessons.length;
                   return spaceB - spaceA;
                 });
-
-              console.log(`   Slots con espacio disponible: ${slotsWithSpace.length}`);
 
               // Redistribuir lecciones pendientes
               for (const slotDist of slotsWithSpace) {
@@ -4439,7 +4247,6 @@ export function StudyPlannerLIA() {
               }
             }
 
-            console.log(`✅ Redistribución completada: ${currentLessonIndex} de ${validPendingLessons.length} lecciones válidas asignadas`);
           }
           
           // Verificar si aún quedan lecciones sin asignar después de la redistribución
@@ -4503,23 +4310,16 @@ export function StudyPlannerLIA() {
           setSavedTargetDate(targetDate);
           // ✅ CORRECCIÓN: Usar el número de lecciones válidas, no el total (que incluye inválidas)
           setSavedTotalLessons(validPendingLessons.length);
-          
-          console.log(`📦 Distribución de lecciones guardada: ${distributionToSave.length} slots`);
+
           // Log detallado para debugging
           if (distributionToSave.length > 0) {
-            console.log(`📦 Primera distribución:`, JSON.stringify(distributionToSave[0], null, 2));
             const allSavedLessons = distributionToSave.flatMap(d => d.lessons);
-            console.log(`📦 Total lecciones en distribución: ${allSavedLessons.length}`);
-            console.log(`📦 Primeras 5 lecciones:`, allSavedLessons.slice(0, 5).map(l => `${l.lessonOrderIndex}: ${l.lessonTitle}`));
+
           }
           
           // ✅ MOSTRAR SOLO LOS SLOTS QUE TIENEN LECCIONES ASIGNADAS
           // No mostrar todos los slots disponibles, solo los que realmente se van a usar
           const slotsWithLessons = lessonDistribution.map(dist => dist.slot);
-
-          console.log(`📅 Mostrando recomendaciones:`);
-          console.log(`   Slots disponibles (slotsUntilTarget): ${slotsUntilTarget.length}`);
-          console.log(`   Slots con lecciones asignadas: ${slotsWithLessons.length}`);
 
           // Agrupar por fecha para mostrar los slots con lecciones
           const slotsByDay = new Map<string, FreeSlotWithDay[]>();
@@ -4536,18 +4336,12 @@ export function StudyPlannerLIA() {
             return new Date(a).getTime() - new Date(b).getTime();
           });
 
-          console.log(`   Días con sesiones: ${sortedDays.length}`);
-          console.log(`   Primer día: ${sortedDays[0]}`);
-          console.log(`   Último día: ${sortedDays[sortedDays.length - 1]}`);
-
           // Mostrar todos los días con sus horarios (solo slots con lecciones asignadas)
           sortedDays.forEach(dateStr => {
             const slots = slotsByDay.get(dateStr)!;
 
             // Ordenar slots del día por hora de inicio
             slots.sort((a, b) => a.start.getTime() - b.start.getTime());
-
-            console.log(`   ${dateStr}: ${slots.length} slots`);
 
             // Mostrar cada slot del día
             slots.forEach(slot => {
@@ -4798,7 +4592,7 @@ export function StudyPlannerLIA() {
         );
         
         if (hasRecommendations && calendarMessage.includes('MIS RECOMENDACIONES')) {
-          console.log('Mensaje de recomendaciones ya existe, no agregando duplicado');
+
           return prev;
         }
         
@@ -5251,7 +5045,6 @@ Cuéntame:
             return { hours: 9, minutes: 0 };
           }
           
-          console.log(`🕐 Parseado: "${timeStr}" → ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} (${isAM ? 'AM' : isPM ? 'PM' : '24h'})`);
           
           return { hours, minutes };
         };
@@ -5370,15 +5163,7 @@ Cuéntame:
       }
       
       // Guardar el plan
-      console.log('📤 Enviando plan a guardar:', {
-        config: {
-          ...planConfig,
-          preferredDays,
-          preferredTimeBlocks,
-        },
-        sessionsCount: sessions.length,
-      });
-      
+
       const saveResponse = await fetch('/api/study-planner/save-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -5441,8 +5226,7 @@ Cuéntame:
       // ✅ CORRECCIÓN: Si hay calendario conectado, sincronizar las sesiones con mejor manejo de errores
       if (connectedCalendar && saveData.data?.planId && saveData.data?.sessionIds && saveData.data.sessionIds.length > 0) {
         try {
-          console.log(`📅 Iniciando sincronización de ${saveData.data.sessionIds.length} sesiones con ${connectedCalendar} Calendar...`);
-          
+
           const syncResponse = await fetch('/api/study-planner/calendar/sync-sessions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -5454,7 +5238,7 @@ Cuéntame:
           if (syncResponse.ok) {
             const syncData = await syncResponse.json();
             if (syncData.success && syncData.data) {
-              console.log(`✅ ${syncData.data.syncedCount} sesiones sincronizadas con el calendario`);
+
               if (syncData.data.failedCount > 0) {
                 console.warn(`⚠️ ${syncData.data.failedCount} sesiones fallaron al sincronizar`);
                 if (syncData.data.errors) {
@@ -5488,12 +5272,7 @@ Cuéntame:
           }]);
         }
       } else {
-        console.log('ℹ️ No se sincronizó con calendario:', {
-          hasCalendar: !!connectedCalendar,
-          hasPlanId: !!saveData.data?.planId,
-          hasSessionIds: !!saveData.data?.sessionIds,
-          sessionIdsCount: saveData.data?.sessionIds?.length || 0
-        });
+
       }
       
       // Mostrar mensaje de éxito
@@ -5520,26 +5299,22 @@ Cuéntame:
       }
       
       // Configurar redirección ANTES del audio para asegurar que se ejecute
-      console.log('✅ Plan guardado exitosamente. Redirigiendo al dashboard en 3 segundos...');
-      console.log('📍 Router disponible:', !!router);
-      console.log('📍 Ruta objetivo: /study-planner/dashboard');
-      
+
       const targetUrl = '/study-planner/dashboard';
       redirectTimerRef.current = setTimeout(() => {
-        console.log('🔄 Ejecutando redirección al dashboard del planificador...');
+
         redirectTimerRef.current = null;
         
         // Usar window.location.href como método principal (más confiable)
         // Esto asegura que la redirección funcione incluso si hay problemas con el router
-        console.log('📍 Redirigiendo a:', targetUrl);
-        
+
         try {
           // Intentar con router primero
           if (router && typeof router.replace === 'function') {
-            console.log('✅ Usando router.replace');
+
             router.replace(targetUrl);
           } else {
-            console.log('⚠️ Router no disponible, usando window.location');
+
             window.location.href = targetUrl;
           }
         } catch (redirectError) {
@@ -5812,8 +5587,6 @@ Cuéntame:
       }
 
       let totalLessonsAssigned = 0;
-      console.log('📋 Preparando distribución para LIA:');
-      console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
 
       // Contar total de lecciones
       savedLessonDistribution.forEach((item) => {
@@ -5851,7 +5624,7 @@ Cuéntame:
 
               // Log para debugging de las primeras sesiones
               if (idx < 3 && lessonIndex < 3) {
-                console.log(`   Slot ${idx}, Lección ${lessonIndex}: ${lesson.lessonOrderIndex || lessonIndex + 1} - ${lessonTitle}`);
+
               }
             }
           });
@@ -5883,10 +5656,7 @@ Cuéntame:
       distributionSummary += `*Genera un resumen completo con TODOS los horarios, usando EXACTAMENTE las lecciones que están asignadas arriba en cada horario. NO inventes lecciones.*`;
       
       enrichedMessage = message + distributionSummary;
-      console.log('📋 Usuario confirmó horarios, enviando distribución detallada a LIA para generar resumen final');
-      console.log(`   Total de horarios: ${savedLessonDistribution.length}`);
-      console.log(`   Total de lecciones asignadas: ${totalLessonsAssigned}`);
-      
+
       // Marcar que vamos a mostrar el resumen final después de que LIA responda
       // Esto se marcará como true cuando LIA responda con el resumen
     } else if (isAddingSchedules) {
@@ -5982,9 +5752,7 @@ Cuéntame:
       addScheduleContext += `9. Distribuye las lecciones pendientes (de tu contexto) en los nuevos horarios agregados\n\n`;
       
       enrichedMessage = message + addScheduleContext;
-      console.log('➕ Usuario solicitó agregar horarios, enviando contexto de horarios existentes a LIA');
-      console.log(`   Total de horarios existentes: ${savedLessonDistribution.length}`);
-      console.log(`   Total de lecciones asignadas: ${totalLessonsAssigned}`);
+
     } else if (isChangingTargetDate) {
       // Función para formatear la fecha de forma legible
       const formatDateForDisplay = (dateStr: string, dayName: string): string => {
@@ -6065,9 +5833,7 @@ Cuéntame:
       changeDateContext += `10. Distribuye las lecciones pendientes (de tu contexto) en los nuevos horarios si se agregaron\n\n`;
       
       enrichedMessage = message + changeDateContext;
-      console.log('📅 Usuario solicitó cambiar fecha límite, enviando contexto de horarios existentes a LIA');
-      console.log(`   Total de horarios existentes: ${savedLessonDistribution.length}`);
-      console.log(`   Total de lecciones asignadas: ${totalLessonsAssigned}`);
+
     }
     
     // Agregar mensaje del usuario (sin el enriquecimiento visible)
@@ -6165,7 +5931,6 @@ Cuéntame:
       // ✅ Guardar conversationId para analytics (sendMessage)
       if (data.conversationId && !liaConversationId) {
         setLiaConversationId(data.conversationId);
-        console.log('[Study Planner LIA] Nueva conversación iniciada (sendMessage):', data.conversationId);
       }
 
       // Filtro adicional de seguridad: eliminar cualquier rastro del prompt del sistema
@@ -6211,15 +5976,13 @@ Cuéntame:
         liaResponse.includes('DISTRIBUCIÓN')
       )) {
         setHasShownFinalSummary(true);
-        console.log('✅ Resumen final mostrado por LIA, esperando confirmación del usuario para guardar');
+
       }
       
       // Si fue una solicitud de agregar horarios, la respuesta de LIA ya incluye todos los horarios (existentes + nuevos)
       // Cuando el usuario confirme, handleConfirmSchedules parseará la respuesta completa
       if (isAddingSchedules) {
-        console.log('✅ LIA respondió a solicitud de agregar horarios');
-        console.log('   La respuesta incluye todos los horarios (existentes + nuevos)');
-        console.log('   Cuando el usuario confirme, se actualizará savedLessonDistribution');
+
       }
       
       // Detectar si LIA está pidiendo seleccionar cursos y abrir el modal automáticamente
@@ -7973,32 +7736,6 @@ Cuéntame:
                           console.error('❌ ERROR: startingDayOfWeek fuera de rango:', startingDayOfWeek);
                         }
                         
-                        // Debug temporal para verificar
-                        const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-                        console.log(`📅 Calendario ${year}-${month + 1}:`, {
-                          primerDia: dayNames[startingDayOfWeek],
-                          startingDayOfWeek,
-                          totalDias: daysInMonth,
-                          firstDayOfMonthISO: firstDayOfMonth.toISOString(),
-                          firstDayOfMonthLocal: firstDayOfMonth.toLocaleDateString('es-ES'),
-                          currentMonthValue: currentMonth.toLocaleDateString('es-ES'),
-                          currentMonthISO: currentMonth.toISOString()
-                        });
-                        
-                        // Verificar cálculo para fechas específicas
-                        if (year === 2026 && month === 0) {
-                          const testDate1 = new Date(2026, 0, 1);
-                          const testDate24 = new Date(2026, 0, 24);
-                          console.log(`📅 Enero 2026 - Día 1: ${dayNames[testDate1.getDay()]} (debería ser jueves, getDay=${testDate1.getDay()})`);
-                          console.log(`📅 Enero 2026 - Día 24: ${dayNames[testDate24.getDay()]} (debería ser sábado)`);
-                        }
-                        if (year === 2025 && month === 11) {
-                          const testDate1 = new Date(2025, 11, 1);
-                          const testDate11 = new Date(2025, 11, 11);
-                          console.log(`📅 Diciembre 2025 - Día 1: ${dayNames[testDate1.getDay()]} (debería ser lunes, getDay=${testDate1.getDay()})`);
-                          console.log(`📅 Diciembre 2025 - Día 11: ${dayNames[testDate11.getDay()]} (debería ser jueves)`);
-                        }
-                        
                         const today = new Date();
                         const todayYear = today.getFullYear();
                         const todayMonth = today.getMonth();
@@ -8007,8 +7744,7 @@ Cuéntame:
                         const days = [];
                         
                         // Debug: Verificar el valor de startingDayOfWeek antes de crear días vacíos
-                        console.log(`🔍 DEBUG Render: startingDayOfWeek=${startingDayOfWeek}, año=${year}, mes=${month + 1}`);
-                        
+
                         // Días vacíos al inicio (domingo = 0, lunes = 1, etc.)
                         // IMPORTANTE: Usar un div vacío en lugar de null para que React lo renderice correctamente
                         for (let i = 0; i < startingDayOfWeek; i++) {
@@ -8016,8 +7752,7 @@ Cuéntame:
                         }
                         
                         // Debug: Verificar cuántos días vacíos se agregaron
-                        console.log(`🔍 DEBUG Render: Se agregaron ${startingDayOfWeek} días vacíos, total elementos antes de días del mes: ${days.length}`);
-                        
+
                         // Días del mes
                         for (let day = 1; day <= daysInMonth; day++) {
                           // Crear fecha para comparación y selección (usar mediodía para consistencia)
@@ -8065,13 +7800,6 @@ Cuéntame:
                             </motion.button>
                           );
                         }
-                        
-                        // Debug: Verificar el array final antes de renderizar
-                        console.log(`🔍 DEBUG Render: Total elementos en days array: ${days.length}, primeros 7 elementos:`, days.slice(0, 7).map((d, i) => {
-                          if (!d || !d.props) return `empty[${i}]`;
-                          if (d.props.children === undefined) return `empty-div[${i}]`;
-                          return `día ${d.props.children}[${i}]`;
-                        }));
                         
                         return days;
                       })()}

@@ -56,7 +56,7 @@ export class FavoritesService {
       if (existing) {
         // Ya existe, no hacer nada
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Favorito ya existe: userId=${userId}, courseId=${normalizedCourseId}`)
+
         }
         return
       }
@@ -83,7 +83,7 @@ export class FavoritesService {
       }
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Favorito agregado exitosamente: userId=${userId}, courseId=${normalizedCourseId}`)
+
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -141,7 +141,7 @@ export class FavoritesService {
         // No lanzar error, pero registrar la advertencia
       } else {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Favorito eliminado exitosamente: userId=${userId}, courseId=${normalizedCourseId}`)
+
         }
       }
     } catch (error) {
@@ -180,7 +180,7 @@ export class FavoritesService {
       const result = !!data
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`isFavorite check: userId=${userId}, courseId=${normalizedCourseId}, result=${result}`)
+
       }
       
       return result
@@ -211,7 +211,7 @@ export class FavoritesService {
       const isCurrentlyFavorite = await this.isFavorite(userId, courseId)
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Toggle favorite: userId=${userId}, courseId=${courseId}, isCurrentlyFavorite=${isCurrentlyFavorite}`)
+
       }
       
       if (isCurrentlyFavorite) {

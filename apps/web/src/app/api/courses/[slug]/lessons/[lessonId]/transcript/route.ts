@@ -88,8 +88,6 @@ export async function GET(
 
     const transcriptContent = lessonData?.transcript_content || null;
 
-    console.log(`[transcript/route] ✅ Transcripción obtenida de ${lessonsTableName} para ${lessonId}`);
-
     // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos estáticos - 1 hora)
     return withCacheHeaders(
       NextResponse.json({

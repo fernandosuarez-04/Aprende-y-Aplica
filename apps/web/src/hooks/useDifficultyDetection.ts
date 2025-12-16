@@ -98,12 +98,7 @@ export function useDifficultyDetection(
     if (enabled) {
       detectorRef.current = new DifficultyPatternDetector(thresholds);
       setIsActive(true);
-      console.log('🔍 Detector de dificultad inicializado', {
-        workshopId,
-        activityId,
-        checkInterval,
-        thresholds
-      });
+
     } else {
       setIsActive(false);
     }
@@ -124,57 +119,26 @@ export function useDifficultyDetection(
       const snapshot = sessionRecorder.captureSnapshot();
       
       if (!snapshot || snapshot.events.length === 0) {
-        console.log('⚠️ No hay eventos para analizar');
+
         return;
       }
 
       // Analizar patrones de dificultad
       const currentAnalysis = detectorRef.current.detect(snapshot.events);
-      
-      console.log('📊 Análisis de dificultad:', {
-        score: currentAnalysis.overallScore.toFixed(2),
-        patterns: currentAnalysis.patterns.length,
-        shouldIntervene: currentAnalysis.shouldIntervene,
-        totalEvents: snapshot.events.length,
-        patternDetails: currentAnalysis.patterns.map(p => ({
-          type: p.type,
-          severity: p.severity,
-          description: p.description,
-          metadata: p.metadata
-        }))
-      });
 
-      // Si se debe intervenir y han pasado al menos 2 minutos desde última intervención (reducido para testing)
+      // Si se debe intervenir y han pasado al menos 2 minutos desde última intervención
       const timeSinceLastIntervention = Date.now() - lastInterventionTimeRef.current;
-      const minTimeBetweenInterventions = 2 * 60 * 1000; // 2 minutos (reducido de 5 para testing)
+      const minTimeBetweenInterventions = 2 * 60 * 1000; // 2 minutos
 
       if (currentAnalysis.shouldIntervene && timeSinceLastIntervention > minTimeBetweenInterventions) {
-        console.log('🚨 Dificultad detectada! Ofreciendo ayuda proactiva', {
-          score: currentAnalysis.overallScore,
-          patterns: currentAnalysis.patterns,
-          timeSinceLastIntervention: `${Math.floor(timeSinceLastIntervention / 1000)}s`
-        });
         setAnalysis(currentAnalysis);
         setShouldShowHelp(true);
         lastInterventionTimeRef.current = Date.now();
-        
+
         // Llamar callback si existe
         if (onDifficultyDetected) {
           onDifficultyDetected(currentAnalysis);
         }
-      } else if (currentAnalysis.shouldIntervene) {
-        console.log('⏳ Dificultad detectada pero esperando cooldown de intervención', {
-          score: currentAnalysis.overallScore,
-          patternsCount: currentAnalysis.patterns.length,
-          timeSinceLastIntervention: `${Math.floor(timeSinceLastIntervention / 1000)}s`,
-          cooldownRemaining: `${Math.floor((minTimeBetweenInterventions - timeSinceLastIntervention) / 1000)}s`
-        });
-      } else {
-        console.log('✅ Sesión normal - sin patrones de dificultad significativos', {
-          score: currentAnalysis.overallScore,
-          patternsCount: currentAnalysis.patterns.length,
-          threshold: 0.5
-        });
       }
     } catch (error) {
       console.error('❌ Error al analizar sesión:', error);
@@ -205,7 +169,7 @@ export function useDifficultyDetection(
 
   // Función para aceptar ayuda
   const acceptHelp = useCallback(() => {
-    console.log('✅ Usuario aceptó ayuda proactiva');
+
     setShouldShowHelp(false);
     
     if (analysis && onHelpAccepted) {
@@ -215,7 +179,7 @@ export function useDifficultyDetection(
 
   // Función para rechazar ayuda
   const dismissHelp = useCallback(() => {
-    console.log('❌ Usuario rechazó ayuda proactiva');
+
     setShouldShowHelp(false);
     setAnalysis(null);
     
@@ -226,7 +190,7 @@ export function useDifficultyDetection(
 
   // Función para resetear detector
   const reset = useCallback(() => {
-    console.log('🔄 Reseteando detector de dificultad');
+
     if (detectorRef.current) {
       detectorRef.current.reset();
     }

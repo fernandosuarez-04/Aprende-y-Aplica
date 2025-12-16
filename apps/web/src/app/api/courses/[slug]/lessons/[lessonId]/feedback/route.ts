@@ -77,24 +77,19 @@ export async function POST(
 ) {
   try {
     const { slug, lessonId } = await params;
-    console.log('[FEEDBACK API] POST request recibido:', { slug, lessonId });
+
     const supabase = await createClient();
 
     const user = await SessionService.getCurrentUser();
     if (!user) {
-      console.log('[FEEDBACK API] Usuario no autenticado');
+
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-    console.log('[FEEDBACK API] Usuario autenticado:', user.id);
 
     const courseResult = await getCourseBySlug(supabase, slug);
-    console.log('[FEEDBACK API] Resultado curso:', { 
-      error: courseResult.error?.message, 
-      hasData: !!courseResult.data,
-      courseId: courseResult.data?.id 
-    });
+
     if (courseResult.error || !courseResult.data) {
-      console.log('[FEEDBACK API] Curso no encontrado para slug:', slug);
+
       return NextResponse.json({ error: 'Curso no encontrado' }, { status: 404 });
     }
 
@@ -103,12 +98,9 @@ export async function POST(
       lessonId,
       courseResult.data.id
     );
-    console.log('[FEEDBACK API] Resultado lección:', { 
-      error: lessonResult.error?.message, 
-      hasData: !!lessonResult.data 
-    });
+
     if (lessonResult.error || !lessonResult.data) {
-      console.log('[FEEDBACK API] Lección no encontrada:', { lessonId, courseId: courseResult.data.id });
+
       return NextResponse.json({ error: 'Lección no encontrada' }, { status: 404 });
     }
 
@@ -182,7 +174,6 @@ export async function POST(
       );
     }
 
-    console.log('[FEEDBACK API] Feedback creado exitosamente');
     return NextResponse.json({ feedback_type, action: 'created' });
   } catch (error) {
     return NextResponse.json(

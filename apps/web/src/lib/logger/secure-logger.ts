@@ -260,7 +260,7 @@ class SecureLogger {
    */
   info(message: string, metadata?: LogMetadata, options?: LoggerOptions): void {
     const logMessage = this.formatLog(LogLevel.INFO, message, metadata, options);
-    console.log(logMessage);
+
   }
 
   /**
@@ -271,7 +271,7 @@ class SecureLogger {
 
     // Solo loggear HTTP en desarrollo o si está habilitado
     if (process.env.NODE_ENV === 'development' || process.env.LOG_HTTP === 'true') {
-      console.log(logMessage);
+
     }
   }
 
@@ -282,7 +282,7 @@ class SecureLogger {
     // Solo loggear DEBUG en desarrollo
     if (process.env.NODE_ENV === 'development') {
       const logMessage = this.formatLog(LogLevel.DEBUG, message, metadata, options);
-      console.debug(logMessage);
+
     }
   }
 

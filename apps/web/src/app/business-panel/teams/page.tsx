@@ -46,7 +46,7 @@ function TeamIcon({
             setImageError(true)
           }}
           onLoad={() => {
-            console.log('Imagen cargada exitosamente para:', teamName)
+
           }}
         />
       </div>
@@ -303,9 +303,7 @@ export default function BusinessPanelTeamsPage() {
           {filteredTeams.map((team, index) => {
             // Debug temporal - verificar datos del equipo
             if (index === 0) {
-              console.log('Primer equipo - Datos completos:', team)
-              console.log('image_url:', team.image_url)
-              console.log('metadata:', team.metadata)
+
             }
             
             return (
@@ -384,6 +382,4 @@ export default function BusinessPanelTeamsPage() {
     </div>
   )
 }
-
-
 

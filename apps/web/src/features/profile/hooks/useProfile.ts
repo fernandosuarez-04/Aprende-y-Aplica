@@ -265,8 +265,6 @@ export function useProfile(): UseProfileReturn {
       const formData = new FormData()
       formData.append('file', file)
 
-      console.log('📤 Subiendo archivo vía API REST...')
-
       const response = await fetch('/api/profile/upload-picture', {
         method: 'POST',
         body: formData,
@@ -283,8 +281,6 @@ export function useProfile(): UseProfileReturn {
       if (!imageUrl) {
         throw new Error('No se recibió la URL de la imagen')
       }
-
-      console.log('✅ Upload exitoso vía API REST:', imageUrl)
 
       // Actualizar perfil local con nueva URL
       setProfile(prev => prev ? { ...prev, profile_picture_url: imageUrl } : null)

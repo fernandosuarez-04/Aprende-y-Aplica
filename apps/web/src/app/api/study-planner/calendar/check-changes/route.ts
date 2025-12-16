@@ -268,8 +268,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckChan
           updated_at: new Date().toISOString()
         })
         .in('id', deletedSessionIds);
-      
-      console.log(`✅ ${deletedSessionIds.length} sesiones marcadas como eliminadas del calendario`);
+
     }
     
     const deletedCount = changes.filter(c => c.type === 'deleted_event').length;

@@ -1389,14 +1389,13 @@ export default function CommunityDetailPage() {
   useEffect(() => {
     if (slug) {
       // console.log('🚀 Loading community in parallel mode');
-      console.time('Total Community Load');
-      
+
       // ✅ Ejecutar ambas llamadas en PARALELO en lugar de secuencial
       Promise.all([
         fetchCommunityDetail(),
         fetchPosts()
       ]).then(() => {
-        console.timeEnd('Total Community Load');
+
         // console.log('✅ Community fully loaded');
       }).catch(error => {
         // console.error('❌ Error loading community:', error);
@@ -1512,7 +1511,6 @@ export default function CommunityDetailPage() {
       const postIds = posts.map(post => post.id);
       
       // console.log(`🚀 Loading reactions for ${postIds.length} posts using batch endpoint`);
-      console.time('Batch Reactions Load');
 
       // ✅ 1 SOLA LLAMADA HTTP para obtener todas las reacciones
       const response = await fetch(`/api/communities/${slug}/posts/reactions/batch`, {
@@ -1529,7 +1527,7 @@ export default function CommunityDetailPage() {
       }
 
       const data = await response.json();
-      console.timeEnd('Batch Reactions Load');
+
       // console.log(`✅ Batch reactions loaded successfully for ${data.totalPosts} posts`);
 
       // Mapear los datos recibidos al formato esperado
@@ -1904,7 +1902,6 @@ export default function CommunityDetailPage() {
       setIsJoining(false);
     }
   };
-
 
   const getAccessButton = () => {
     if (!community) return null;

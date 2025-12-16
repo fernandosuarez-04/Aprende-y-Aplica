@@ -189,8 +189,7 @@ async function syncDeletedEvents(
 
     // Eliminar eventos que fueron eliminados en el calendario externo
     if (eventsToDelete.length > 0) {
-      console.log(`🗑️ Sincronizando: eliminando ${eventsToDelete.length} eventos que fueron eliminados en ${integration.provider} Calendar`);
-      
+
       const eventIdsToDelete = eventsToDelete.map((e: any) => e.id);
       
       const { error: deleteError } = await supabase
@@ -202,7 +201,7 @@ async function syncDeletedEvents(
       if (deleteError) {
         console.error('Error eliminando eventos sincronizados:', deleteError);
       } else {
-        console.log(`✅ ${eventsToDelete.length} eventos eliminados exitosamente`);
+
       }
     }
   } catch (error) {

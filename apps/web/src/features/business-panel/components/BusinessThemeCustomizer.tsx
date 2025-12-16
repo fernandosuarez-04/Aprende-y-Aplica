@@ -54,13 +54,6 @@ export function BusinessThemeCustomizer() {
   // IMPORTANTE: No usar condicional 'if (styles)' para que siempre se sincronice,
   // incluso cuando styles pasa de null a un objeto cargado desde la BD
   useEffect(() => {
-    console.log('🎨 [BusinessThemeCustomizer] Sincronizando estilos desde contexto:', {
-      hasStyles: !!styles,
-      selectedTheme: styles?.selectedTheme,
-      panelPrimaryColor: styles?.panel?.primary_button_color,
-      userDashboardPrimaryColor: styles?.userDashboard?.primary_button_color,
-      loginPrimaryColor: styles?.login?.primary_button_color
-    });
 
     // Siempre actualizar el estado local cuando el contexto cambie
     // Esto asegura que los valores de la BD se carguen correctamente
@@ -1023,5 +1016,4 @@ export function BusinessThemeCustomizer() {
     </div>
   );
 }
-
 

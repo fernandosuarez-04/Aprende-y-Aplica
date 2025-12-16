@@ -540,14 +540,12 @@ async function syncSessionsWithCalendar(
     
     // Si tiene external_event_id, verificar que el evento exista
     if (session.external_event_id) {
-      console.log(`📋 [SYNC] Verificando sesión "${session.title}" con external_event_id: ${session.external_event_id}`);
-      console.log(`📋 [SYNC] - Sesión en rango: ${sessionInCalendarRange} (start: ${session.start_time})`);
-      console.log(`📋 [SYNC] - Evento existe en calendario: ${calendarEventIds.has(session.external_event_id)}`);
+
       
       if (!calendarEventIds.has(session.external_event_id)) {
         if (!sessionInCalendarRange) {
           // La sesión está fuera del rango de calendario consultado, NO eliminar
-          console.log(`⚠️ [SYNC] Sesión "${session.title}" está fuera del rango de calendario - NO se elimina`);
+
           continue;
         }
         
@@ -570,7 +568,6 @@ async function syncSessionsWithCalendar(
         }
         */
       } else {
-        console.log(`✅ [SYNC] Sesión "${session.title}" verificada (external_event_id existe)`);
       }
     } else {
       // No tiene external_event_id - intentar encontrar un match y vincularlo
@@ -1043,9 +1040,7 @@ async function getPlanContext(userId: string, planId?: string): Promise<{ contex
   }
 
   const { data: plan, error: planError } = await planQuery.single();
-  
-  console.log(`📋 [CHAT] Plan obtenido: ${plan?.id || 'ninguno'}, error: ${planError?.message || 'ninguno'}`);
-  
+
   const timezone = plan?.timezone || 'America/Mexico_City';
 
   // Obtener fechas para consultas
@@ -1060,7 +1055,6 @@ async function getPlanContext(userId: string, planId?: string): Promise<{ contex
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   
-  console.log(`📋 [CHAT] Rango de fechas: ${oneWeekAgo.toISOString()} - ${thirtyDaysLater.toISOString()}`);
 
   // Obtener eventos del calendario
   let calendarEventsToday: CalendarEvent[] = [];
@@ -1133,7 +1127,6 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
   }
 
   // Obtener sesiones del plan - CONSULTA DIRECTA A LA BD (sin caché)
-  console.log(`📋 [CHAT] Consultando sesiones del plan ${plan.id} desde ${oneWeekAgo.toISOString()} hasta ${thirtyDaysLater.toISOString()}`);
   
   // Primero: Consultar TODAS las sesiones del plan para diagnóstico
   const { data: allSessions, error: allSessionsError } = await supabase
@@ -1141,11 +1134,10 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
     .select('id, title, start_time, status, external_event_id')
     .eq('plan_id', plan.id);
   
-  console.log(`📋 [CHAT DEBUG] TODAS las sesiones del plan (sin filtro de fecha): ${allSessions?.length || 0}`);
   if (allSessions && allSessions.length > 0) {
-    console.log(`📋 [CHAT DEBUG] Sesiones existentes:`);
+
     allSessions.forEach(s => {
-      console.log(`   - ${s.title} | start: ${s.start_time} | status: ${s.status} | gcal_id: ${s.external_event_id || 'NO VINCULADA'}`);
+
     });
   } else {
     console.warn(`⚠️ [CHAT DEBUG] No hay NINGUNA sesión en el plan ${plan.id}`);
@@ -1169,10 +1161,7 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
     .lte('start_time', thirtyDaysLater.toISOString())
     .order('start_time', { ascending: true });
 
-  console.log(`📋 [CHAT] Sesiones con filtro de fecha: ${sessions?.length || 0}, error: ${sessionsError?.message || 'ninguno'}`);
-  
   if (sessions && sessions.length > 0) {
-    console.log(`📋 [CHAT] IDs de sesiones filtradas: ${sessions.map(s => s.id).join(', ')}`);
   } else if (allSessions && allSessions.length > 0) {
     logger.warn(`⚠️ Hay sesiones pero están fuera del rango de fechas ${oneWeekAgo.toISOString()} - ${thirtyDaysLater.toISOString()}`);
   }
@@ -2670,14 +2659,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
     });
 
     const liaResponse = completion.choices[0]?.message?.content || 'Lo siento, no pude procesar tu solicitud.';
-    
-    console.log(`📝 [LIA] Respuesta completa de LIA:\n${liaResponse}`);
 
     // Extraer acción(es) si existe(n)
     const { action, actions, cleanResponse } = extractAction(liaResponse);
     
-    console.log(`🎯 [LIA] ${actions.length} acción(es) extraída(s): ${actions.length > 0 ? JSON.stringify(actions.map(a => a.type)) : 'NINGUNA - ESTO ES UN ERROR SI LIA DIJO QUE HARÍA ALGO'}`);
-    console.log(`🕐 [LIA] Timezone del usuario: ${timezone} (offset: ${tzOffset})`);
 
     // Si hay acciones y no necesitan confirmación, ejecutarlas
     let executedAction: ActionResult | undefined;
@@ -2687,7 +2672,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
       const confirmationNeededActions = actions.filter(a => a.status === 'confirmation_needed');
       
       if (pendingActions.length > 0) {
-        console.log(`⚡ [LIA] Ejecutando ${pendingActions.length} acción(es): ${pendingActions.map(a => a.type).join(', ')}`);
         
         // Ejecutar todas las acciones en secuencia
         const executionResults = await Promise.all(
@@ -2699,19 +2683,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
         const failedAction = executionResults.find(r => r.status === 'error');
         executedAction = failedAction || executionResults[executionResults.length - 1];
         
-        console.log(`✅ [LIA] Resultado de ejecución: ${JSON.stringify(executedAction)}`);
       }
       
       // Si hay acciones que requieren confirmación, usar la primera
       if (confirmationNeededActions.length > 0 && !executedAction) {
         executedAction = confirmationNeededActions[0];
-        console.log(`⏸️ [LIA] Acción requiere confirmación: ${executedAction.type}`);
+
       }
     } else if (action) {
       executedAction = action;
-      console.log(`⏸️ [LIA] Acción requiere confirmación: ${action.type}`);
+
     } else {
-      console.log(`ℹ️ [LIA] No se detectó ninguna acción en la respuesta - el usuario verá 'Error en la acción'`);
+
     }
 
     return NextResponse.json({

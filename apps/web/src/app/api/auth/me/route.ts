@@ -12,13 +12,6 @@ export async function GET() {
   try {
     const user = await SessionService.getCurrentUser();
 
-    console.log('🔐 [API /auth/me] Usuario obtenido:', {
-      userId: user?.id,
-      email: user?.email,
-      organizationId: user?.organization_id,
-      hasOrganizationId: !!user?.organization_id
-    });
-
     if (!user) {
       return NextResponse.json({
         success: false,

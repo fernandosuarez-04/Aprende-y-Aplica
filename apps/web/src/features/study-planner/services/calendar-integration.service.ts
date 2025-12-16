@@ -157,8 +157,7 @@ export class CalendarIntegrationService {
       const calendarUserEmail = await this.getGoogleUserEmail(tokens.access_token);
       
       if (calendarUserEmail) {
-        console.log('[Calendar Integration] Email del calendario:', calendarUserEmail);
-        
+
         // Si tenemos email esperado, verificar que coincida
         if (expectedEmail && expectedEmail.toLowerCase() !== calendarUserEmail.toLowerCase()) {
           console.warn('[Calendar Integration] ⚠️ El email del calendario no coincide con el usuario de la app:', {
@@ -284,8 +283,7 @@ export class CalendarIntegrationService {
       const calendarUserEmail = await this.getMicrosoftUserEmail(tokens.access_token);
       
       if (calendarUserEmail) {
-        console.log('[Calendar Integration] Email del calendario Microsoft:', calendarUserEmail);
-        
+
         // Si tenemos email esperado, verificar que coincida
         if (expectedEmail && expectedEmail.toLowerCase() !== calendarUserEmail.toLowerCase()) {
           console.warn('[Calendar Integration] ⚠️ El email del calendario Microsoft no coincide con el usuario de la app:', {
@@ -588,8 +586,6 @@ export class CalendarIntegrationService {
 
       const calendarsData = await calendarsResponse.json();
       const calendars = calendarsData.items || [];
-      
-      console.log(`📅 Calendarios encontrados: ${calendars.length}`);
 
       // Obtener eventos de todos los calendarios del propietario
       const allEvents: CalendarEvent[] = [];
@@ -601,8 +597,6 @@ export class CalendarIntegrationService {
         }
       }
 
-      console.log(`📅 Total de eventos obtenidos: ${allEvents.length}`);
-      
       // Ordenar por fecha de inicio
       allEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
       

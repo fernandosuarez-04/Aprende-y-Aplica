@@ -66,7 +66,7 @@ export class ContentTranslationService {
         .single();
 
       if (error || !data) {
-        console.log(`[ContentTranslationService] No translations found for ${entityType}:${entityId}:${language}`, error);
+
         // No hay traducciones, guardar objeto vacío en caché
         this.cache.set(cacheKey, {});
         return {};
@@ -74,7 +74,6 @@ export class ContentTranslationService {
 
       // Guardar en caché
       const translations = data.translations as ContentTranslations;
-      console.log(`[ContentTranslationService] ✅ Traducciones obtenidas para ${entityType}:${entityId}:${language}:`, Object.keys(translations));
       this.cache.set(cacheKey, translations);
       return translations;
     } catch (error) {
@@ -156,9 +155,7 @@ export class ContentTranslationService {
     try {
       // Obtener todos los IDs
       const entityIds = array.map(item => item.id).filter(Boolean);
-      
-      console.log(`[translateArray] Translating ${entityIds.length} ${entityType}s to ${language}`, entityIds);
-      
+
       if (entityIds.length === 0) {
         return array;
       }
@@ -174,8 +171,6 @@ export class ContentTranslationService {
         .eq('language_code', language)
         .in('entity_id', entityIds);
 
-      console.log('[translateArray] Query result:', { data, error, count: data?.length });
-
       if (error || !data) {
         console.warn('[translateArray] No translations found or error:', error);
         return array;
@@ -190,33 +185,24 @@ export class ContentTranslationService {
         this.cache.set(cacheKey, item.translations as ContentTranslations);
       });
 
-      console.log(`[translateArray] Loaded ${translationsMap.size} translation sets`);
-
       // Aplicar traducciones
       return array.map(item => {
         if (!item.id) {
-          console.log(`[translateArray] ⚠️ Item sin ID:`, item);
+
           return item;
         }
         
         const translations = translationsMap.get(item.id);
         if (!translations) {
-          console.log(`[translateArray] ⚠️ No translation found for entity ${item.id} (${entityType}) in language ${language}`);
-          console.log(`[translateArray] Available translations in map:`, Array.from(translationsMap.keys()));
           return item;
         }
-
-        console.log(`[translateArray] ✅ Applying translations for ${entityType}:${item.id} (${language}):`, {
-          fields: Object.keys(translations),
-          sample: translations[fields[0]]
-        });
 
         const translated = { ...item } as any;
         fields.forEach(field => {
           if (translations[field]) {
             const originalValue = translated[field];
             translated[field] = translations[field];
-            console.log(`[translateArray]   ${field}: "${originalValue}" → "${translations[field]}"`);
+
           }
         });
         return translated;
@@ -243,7 +229,6 @@ export class ContentTranslationService {
     // La lógica de "no traducir a español" se maneja en las funciones de traducción
     // cuando el contenido original ya está en español. Pero si el contenido original
     // está en inglés o portugués, SÍ necesitamos guardar la traducción a español.
-    console.log(`[ContentTranslationService] Guardando traducción para ${entityType}:${entityId}:${language}`);
 
     try {
       // Validar que tenemos traducciones para guardar
@@ -276,7 +261,7 @@ export class ContentTranslationService {
 
       // IMPORTANTE: Siempre usar SERVICE_ROLE_KEY para guardar traducciones
       // Esto bypassa RLS y permite escribir independientemente de los permisos del usuario
-      console.log('[ContentTranslationService] Creando cliente con SERVICE_ROLE_KEY para bypass RLS...');
+
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       
@@ -297,7 +282,6 @@ export class ContentTranslationService {
           persistSession: false
         }
       });
-      console.log('[ContentTranslationService] ✅ Cliente con SERVICE_ROLE_KEY creado exitosamente');
 
       const upsertData = {
         entity_type: entityType,
@@ -316,9 +300,6 @@ export class ContentTranslationService {
         created_by: upsertData.created_by
       });
 
-      console.log(`[ContentTranslationService] Ejecutando upsert en Supabase...`);
-      console.log(`[ContentTranslationService] Tabla: content_translations`);
-      console.log(`[ContentTranslationService] Datos completos:`, JSON.stringify(upsertData, null, 2));
       
       const { data, error } = await supabase
         .from('content_translations')
@@ -326,14 +307,6 @@ export class ContentTranslationService {
           onConflict: 'entity_type,entity_id,language_code'
         })
         .select();
-
-      console.log(`[ContentTranslationService] Respuesta de Supabase:`, {
-        hasData: !!data,
-        dataLength: data?.length || 0,
-        hasError: !!error,
-        errorMessage: error?.message,
-        errorCode: error?.code
-      });
 
       if (error) {
         console.error(`[ContentTranslationService] ❌ Error guardando traducción para ${entityType}:${entityId}:${language}:`, error);
@@ -346,9 +319,6 @@ export class ContentTranslationService {
         console.error(`[ContentTranslationService] Stack completo del error:`, JSON.stringify(error, null, 2));
         return false;
       }
-
-      console.log(`[ContentTranslationService] ✅ Traducción guardada exitosamente para ${entityType}:${entityId}:${language}`);
-      console.log(`[ContentTranslationService] Datos guardados:`, JSON.stringify(data, null, 2));
 
       // Limpiar caché
       const cacheKey = this.getCacheKey(entityType, entityId, language);

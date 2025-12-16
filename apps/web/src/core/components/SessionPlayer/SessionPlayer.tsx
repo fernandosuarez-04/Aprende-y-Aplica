@@ -34,8 +34,7 @@ export function SessionPlayer({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('🎬 useEffect ejecutado');
-    
+
     if (!session.events.length) {
       console.warn('⚠️ SessionPlayer: No hay eventos para reproducir')
       setError('No hay eventos para reproducir');
@@ -57,17 +56,15 @@ export function SessionPlayer({
           setIsLoading(false);
           return;
         }
-        console.log(`⏳ Intento ${attemptCount}/${maxAttempts}: Ref no disponible aún, reintentando...`);
+
         requestAnimationFrame(() => initializePlayer());
         return;
       }
 
       const container = containerRef.current;
-      console.log('✅ Contenedor encontrado después de', attemptCount, 'intentos');
 
       try {
-        console.log('🎬 PASO 1: Cargando módulo rrweb-player...');
-        
+
         // Cargar rrweb-player dinámicamente
         const RrwebPlayer = await loadRrwebPlayer();
         
@@ -75,9 +72,6 @@ export function SessionPlayer({
           throw new Error('No se pudo cargar rrweb-player');
         }
 
-        console.log('🎬 PASO 2: Preparando datos...');
-        console.log('   - Total eventos:', session.events.length);
-        
         // Validar que tenemos eventos válidos
         if (!session.events || session.events.length === 0) {
           throw new Error('No hay eventos válidos para reproducir');
@@ -89,8 +83,6 @@ export function SessionPlayer({
           console.warn('⚠️ No se encontró snapshot inicial en los eventos');
         }
 
-        console.log('🎬 PASO 3: Limpiando player anterior si existe...');
-        
         // Limpiar player anterior si existe
         if (playerRef.current) {
           try {
@@ -104,8 +96,6 @@ export function SessionPlayer({
           container.innerHTML = '';
         }
 
-        console.log('🎬 PASO 4: Creando instancia de rrwebPlayer...');
-        
         // Crear nuevo player usando el módulo cargado dinámicamente
         const PlayerClass = RrwebPlayer.default || RrwebPlayer;
         playerRef.current = new PlayerClass({
@@ -122,11 +112,6 @@ export function SessionPlayer({
           },
         });
 
-        console.log('🎬 PASO 5: Player creado, verificando...');
-        console.log('   - Player ref:', !!playerRef.current);
-        console.log('   - Container children:', container.children.length);
-        
-        console.log('✅ Player inicializado correctamente');
         setIsLoading(false);
         setError(null);
       } catch (err) {

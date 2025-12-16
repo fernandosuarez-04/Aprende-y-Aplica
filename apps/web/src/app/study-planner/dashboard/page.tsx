@@ -184,12 +184,7 @@ export default function StudyPlannerDashboardPage() {
             // Codificar el state actualizado (sin doble codificación)
             url.searchParams.set('state', JSON.stringify(stateData));
             authUrl = url.toString();
-            
-            console.log('✅ URL modificada con usePopup:', {
-              original: data.data.authUrl,
-              modified: authUrl,
-              stateData
-            });
+
           } catch (e) {
             console.error('❌ Error modificando la URL:', e);
             // Si falla, intentar construir la URL manualmente
@@ -200,7 +195,7 @@ export default function StudyPlannerDashboardPage() {
               usePopup: true
             };
             authUrl = `${authUrl}${separator}state=${encodeURIComponent(JSON.stringify(stateData))}`;
-            console.log('✅ URL construida manualmente:', authUrl);
+
           }
           
           // Abrir popup
@@ -239,14 +234,13 @@ export default function StudyPlannerDashboardPage() {
             
             if (event.data && event.data.type === 'calendar-connected') {
               if (messageProcessed) {
-                console.log('Mensaje ya procesado, ignorando duplicado');
+
                 return;
               }
               messageProcessed = true;
               
               const connectedProvider = event.data.provider || provider;
-              console.log('Calendario conectado exitosamente:', connectedProvider);
-              
+
               // Limpiar listeners
               window.removeEventListener('message', messageListener);
               if (checkClosed) {
@@ -287,7 +281,7 @@ export default function StudyPlannerDashboardPage() {
                     popup.close();
                   }
                 } catch (e) {
-                  console.log('No se pudo verificar/cerrar el popup');
+
                 }
               }
               

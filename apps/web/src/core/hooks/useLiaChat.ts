@@ -97,8 +97,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           timeSpentSeconds
         }),
       });
-      
-      console.log('[LIA Analytics] ✅ Actividad completada:', activityType);
+
       activityStartTimeRef.current = null;
     } catch (error) {
       console.error('[LIA Analytics] Error registrando actividad:', error);
@@ -134,8 +133,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     // ✨ DETECCIÓN BIDIRECCIONAL DE INTENCIONES (solo si no es mensaje del sistema)
     if (!isSystemMessage) {
       try {
-        console.log('[LIA] 🔍 Detectando intención para:', message.trim());
-        console.log('[LIA] 📍 Modo actual:', currentMode);
+
         const intentResult = await IntentDetectionService.detectIntent(message.trim());
         console.log('[LIA] 📊 Resultado de detección:', {
           intent: intentResult.intent,
@@ -173,7 +171,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         const isNanoBananaIntent = nanoBananaPatterns.some(p => p.test(message));
         
         if (isNanoBananaIntent && currentMode !== 'nanobana') {
-          console.log('[LIA] 🎨 Activando Modo NanoBanana automáticamente');
+
           modeForThisMessage = 'nanobana';
           shouldNotifyModeChange = true;
           shouldWaitForNextMessage = true; // Esperar descripción de lo que quiere crear
@@ -182,7 +180,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         }
         // CASO 1: Si NO estamos en modo prompts y detectamos intención de crear prompts
         else if (currentMode !== 'prompts' && currentMode !== 'nanobana' && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
-          console.log('[LIA] ✅ Activando Modo Prompts automáticamente');
+
           modeForThisMessage = 'prompts';
           shouldNotifyModeChange = true;
           shouldWaitForNextMessage = true; // Esperar descripción de qué prompt quiere
@@ -195,7 +193,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           
           // 🎯 Detectar si quiere cambiar a MODO PROMPTS
           if (intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
-            console.log('[LIA] 🔄 Cambiando de NanoBanana a Modo Prompts');
+
             modeForThisMessage = 'prompts';
             shouldNotifyModeChange = true;
             modeChangeMessage = "✨ He cambiado al Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?";
@@ -231,7 +229,6 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
                                      courseQuestionPatterns.some(p => p.test(messageLower));
             
             if (isCourseQuestion && intentResult.intent !== 'nanobana') {
-              console.log('[LIA] 🔄 Cambiando de NanoBanana a Modo Curso (pregunta sobre el curso detectada)');
               modeForThisMessage = 'course';
               shouldNotifyModeChange = true;
               modeChangeMessage = "📚 He cambiado al Modo Curso para ayudarte con el contenido.";
@@ -258,7 +255,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
               const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
               
               if (isExplicitExit || isPlatformQuestion || intentResult.intent === 'navigate') {
-                console.log('[LIA] 🔄 Cambiando de NanoBanana a Modo Contexto');
+
                 modeForThisMessage = 'context';
                 shouldNotifyModeChange = true;
                 modeChangeMessage = intentResult.intent === 'navigate' 
@@ -266,10 +263,10 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
                   : "🧠 He cambiado al Modo Contexto para responder tu pregunta.";
                 setCurrentMode('context');
               } else {
-                console.log('[LIA] 🎨 Manteniendo Modo NanoBanana');
+
               }
             } else {
-              console.log('[LIA] 🎨 Manteniendo Modo NanoBanana');
+
             }
           }
         }
@@ -300,36 +297,26 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           ];
           
           const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
-          
-          console.log('[LIA] 📊 Análisis en Modo Prompts:', {
-            message: messageLower,
-            detectedIntent: intentResult.intent,
-            isExplicitExit,
-            wantsNanoBanana,
-            action: wantsNanoBanana ? 'CAMBIAR a NanoBanana' : isExplicitExit ? 'SALIR del modo prompts' : 'MANTENER modo prompts'
-          });
-          
+
           if (wantsNanoBanana) {
-            console.log('[LIA] 🔄 Cambiando de Prompts a Modo NanoBanana');
+
             modeForThisMessage = 'nanobana';
             shouldNotifyModeChange = true;
             modeChangeMessage = "🎨 He cambiado al Modo NanoBanana para generación visual con JSON.\n\nDescríbeme lo que necesitas crear.";
             setCurrentMode('nanobana');
           } else if (intentResult.intent === 'navigate') {
-            console.log('[LIA] 🔄 Cambiando de Prompts a Modo Contexto (navegación)');
             modeForThisMessage = 'context';
             shouldNotifyModeChange = true;
             modeChangeMessage = "🧠 He cambiado al Modo Contexto para ayudarte con la navegación.";
             setCurrentMode('context');
           } else if (isExplicitExit) {
-            console.log('[LIA] 🔄 Petición explícita de salir. Cambiando a Modo Contexto');
+
             modeForThisMessage = 'context';
             shouldNotifyModeChange = true;
             modeChangeMessage = "🧠 He cambiado al Modo Contexto para ayudarte.";
             setCurrentMode('context');
           } else {
             // MANTENER el modo prompts - cualquier otra cosa se considera parte de la conversación
-            console.log('[LIA] ✅ Manteniendo Modo Prompts (continuando conversación de creación de prompts)');
           }
         }
         // CASO 3: Si ESTAMOS en modo curso, detectar intenciones para cambiar a otros modos
@@ -348,7 +335,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           const wantsNanoBanana = nanoBananaKeywords.some(p => p.test(messageLower));
           
           if (wantsNanoBanana) {
-            console.log('[LIA] 🔄 Cambiando de Curso a Modo NanoBanana');
+
             modeForThisMessage = 'nanobana';
             shouldNotifyModeChange = true;
             modeChangeMessage = "🎨 He cambiado al Modo NanoBanana para generación visual con JSON.\n\nDescríbeme lo que necesitas crear.";
@@ -356,7 +343,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           }
           // 🎯 Detectar navegación
           else if (intentResult.intent === 'navigate') {
-            console.log('[LIA] 🔄 Pregunta de navegación detectada desde Curso. Cambiando a Modo Contexto');
+
             modeForThisMessage = 'context';
             shouldNotifyModeChange = true;
             modeChangeMessage = "🧠 He cambiado al Modo Contexto para ayudarte con la navegación.";
@@ -374,7 +361,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
             const isPlatformQuestion = platformKeywords.some(keyword => messageLower.includes(keyword));
             
             if (isPlatformQuestion) {
-              console.log('[LIA] 🔄 Pregunta sobre la plataforma detectada desde Curso. Cambiando a Modo Contexto');
+
               modeForThisMessage = 'context';
               shouldNotifyModeChange = true;
               modeChangeMessage = "🧠 He cambiado al Modo Contexto para responder tu pregunta sobre la plataforma.";
@@ -413,13 +400,13 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         // 🎯 IMPORTANTE: Solo esperar sin responder si se ACTIVÓ un modo especial (NanoBanana/Prompts)
         // Si se cambió a curso/contexto CON una pregunta, debe continuar y responder
         if (shouldWaitForNextMessage) {
-          console.log('[LIA] ⏸️ Modo especial activado. Esperando descripción del usuario...');
+
           // ✅ ACTIVIDADES: Iniciar tracking de tiempo
           activityStartTimeRef.current = Date.now();
           setIsLoading(false);
           return;
         } else {
-          console.log('[LIA] 🔄 Modo cambiado. Continuando para responder la pregunta...');
+
         }
       }
     }
@@ -451,18 +438,9 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         shouldSendCourseContext = false; // NO enviar contexto del curso en modo contexto
       }
 
-      console.log('[LIA] 📤 Enviando al API:', {
-        mode: modeForThisMessage,
-        context: effectiveContext,
-        isPromptMode: modeForThisMessage === 'prompts',
-        isNanoBananaMode: modeForThisMessage === 'nanobana',
-        sendingCourseContext: shouldSendCourseContext,
-        sendingWorkshopContext: shouldSendWorkshopContext
-      });
-
       // 🎨 Si estamos en modo NanoBanana, usar API diferente
       if (modeForThisMessage === 'nanobana') {
-        console.log('[LIA] 🎨 Llamando API NanoBanana');
+
         const nanoBananaResponse = await fetch('/api/ai-directory/generate-nanobana', {
           method: 'POST',
           headers: {
@@ -483,7 +461,6 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
         }
 
         const nanoBananaData = await nanoBananaResponse.json();
-        console.log('[LIA] 🎨 NanoBanana respuesta:', nanoBananaData);
 
         // Guardar el schema generado
         if (nanoBananaData.generatedSchema) {

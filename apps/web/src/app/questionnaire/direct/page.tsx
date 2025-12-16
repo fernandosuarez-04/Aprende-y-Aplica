@@ -231,12 +231,6 @@ export default function DirectQuestionnairePage() {
         return;
       }
 
-      console.log('Perfil del usuario:', {
-        dificultad_id: userProfileComplete.dificultad_id,
-        area_id: userProfileComplete.area_id,
-        rol_id: userProfileComplete.rol_id
-      });
-
       // Obtener preguntas filtradas por dificultad, área y rol
       // Necesitamos 6 preguntas de Adopción y 6 de Conocimiento
       const { data: allQuestionsByDifficulty, error: difficultyError } = await supabase
@@ -291,16 +285,6 @@ export default function DirectQuestionnairePage() {
 
       // Combinar las preguntas: primero adopción, luego conocimiento
       const questions = [...adopcionFiltered, ...conocimientoFiltered];
-      
-      console.log('Preguntas encontradas:', {
-        total: questions.length,
-        adopcion: adopcionFiltered.length,
-        conocimiento: conocimientoFiltered.length,
-        dificultad_id: userProfileComplete.dificultad_id,
-        area_id: userProfileComplete.area_id,
-        rol_id: userProfileComplete.rol_id,
-        total_disponibles: allQuestionsByDifficulty?.length || 0
-      });
 
       if (questions.length === 0) {
         const errorMsg = `No se encontraron preguntas para tu perfil. Dificultad: ${userProfileComplete.dificultad_id}, Área: ${userProfileComplete.area_id}, Rol: ${userProfileComplete.rol_id}. Por favor verifica que tu perfil esté completo o contacta al administrador.`;
@@ -462,7 +446,7 @@ export default function DirectQuestionnairePage() {
 
       // Debug: Ver todos los bloques únicos en las preguntas
       const uniqueBlocks = [...new Set(questionsWithAnswers.map(q => q.bloque))];
-      console.log('Bloques únicos encontrados:', uniqueBlocks);
+
       console.log('Preguntas con respuestas:', questionsWithAnswers.map(q => ({ 
         id: q.id, 
         section: q.section, 
@@ -492,8 +476,7 @@ export default function DirectQuestionnairePage() {
         
         // Inicializar respuestas existentes
         setAnswers(answersMap);
-        
-        console.log('✅ Datos establecidos correctamente');
+
       } catch (setDataError) {
         console.error('Error al establecer datos:', setDataError);
         throw setDataError;

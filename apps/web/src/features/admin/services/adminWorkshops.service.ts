@@ -154,16 +154,8 @@ export class AdminWorkshopsService {
   }
 
   static async createWorkshop(workshopData: Partial<AdminWorkshop>, adminUserId: string, requestInfo?: { ip?: string, userAgent?: string }): Promise<AdminWorkshop> {
-    console.log('[AdminWorkshopsService.createWorkshop] ========== MÉTODO LLAMADO ==========');
-    console.log('[AdminWorkshopsService.createWorkshop] Parámetros:', {
-      title: workshopData.title,
-      hasDescription: !!workshopData.description,
-      adminUserId,
-      hasRequestInfo: !!requestInfo
-    });
-    
+
     const supabase = await createClient()
-    console.log('[AdminWorkshopsService.createWorkshop] Cliente de Supabase creado');
 
     try {
       // ✅ SEGURIDAD: Sanitizar y generar slug único
@@ -233,13 +225,8 @@ export class AdminWorkshopsService {
         throw error
       }
 
-      console.log('[AdminWorkshopsService.createWorkshop] ✅ Curso insertado en BD exitosamente:', {
-        id: data.id,
-        title: data.title
-      });
-
       // Registrar en el log de auditoría
-      console.log('[AdminWorkshopsService.createWorkshop] Registrando en log de auditoría...');
+
       await AuditLogService.logAction({
         user_id: adminUserId, // En este caso, el admin es quien crea
         admin_user_id: adminUserId,
@@ -251,45 +238,24 @@ export class AdminWorkshopsService {
         ip_address: requestInfo?.ip,
         user_agent: requestInfo?.userAgent
       })
-      console.log('[AdminWorkshopsService.createWorkshop] ✅ Log de auditoría registrado');
 
       // Traducir automáticamente el curso a inglés y portugués
       // IMPORTANTE: Esta operación debe completarse ANTES de devolver la respuesta
       // para evitar que se interrumpa cuando la página se refresca
-      console.log('[AdminWorkshopsService] ========== INICIANDO TRADUCCIÓN AUTOMÁTICA ==========');
-      console.log('[AdminWorkshopsService] Curso creado exitosamente:', {
-        id: data.id,
-        title: data.title,
-        hasDescription: !!data.description,
-        hasLearningObjectives: !!data.learning_objectives,
-        adminUserId
-      });
-      
+
       // EJECUTAR TRADUCCIÓN DE FORMA SÍNCRONA - NO CONTINUAR HASTA QUE TERMINE
-      console.log('[AdminWorkshopsService] ========== EJECUTANDO TRADUCCIÓN (BLOQUEANTE) ==========');
       
       try {
-        console.log('[AdminWorkshopsService] Paso 1: Importando servicio de traducción...');
+
         const translationModule = await import('@/core/services/courseTranslation.service');
         const { translateCourseOnCreate } = translationModule;
-        console.log('[AdminWorkshopsService] ✅ Paso 1 completado: Servicio importado');
-        
-        console.log('[AdminWorkshopsService] Paso 2: Preparando datos para traducción...');
+
         const courseDataForTranslation = {
           title: data.title || '',
           description: data.description || null,
           learning_objectives: data.learning_objectives || null
         };
-        console.log('[AdminWorkshopsService] Datos preparados:', {
-          hasTitle: !!courseDataForTranslation.title,
-          titleLength: courseDataForTranslation.title.length,
-          hasDescription: !!courseDataForTranslation.description,
-          hasLearningObjectives: !!courseDataForTranslation.learning_objectives
-        });
-        
-        console.log('[AdminWorkshopsService] Paso 3: Llamando translateCourseOnCreate (ESPERANDO RESPUESTA)...');
-        console.log('[AdminWorkshopsService] ⏳ INICIO DE TRADUCCIÓN - ESTO PUEDE TOMAR VARIOS SEGUNDOS...');
-        
+
         // AWAIT aquí es crítico: debe completarse antes de devolver la respuesta
         const translationResult = await translateCourseOnCreate(
           data.id,
@@ -297,19 +263,15 @@ export class AdminWorkshopsService {
           adminUserId,
           supabase // Pasar el cliente de Supabase existente
         );
-        
-        console.log('[AdminWorkshopsService] ✅ Paso 3 completado: translateCourseOnCreate retornó');
-        console.log('[AdminWorkshopsService] ========== RESULTADO DE TRADUCCIÓN ==========');
-        console.log('[AdminWorkshopsService] Resultado completo:', JSON.stringify(translationResult, null, 2));
+
         
         if (!translationResult.success) {
           console.error('[AdminWorkshopsService] ❌ La traducción NO fue exitosa');
           console.error('[AdminWorkshopsService] Errores:', translationResult.errors);
         } else {
-          console.log('[AdminWorkshopsService] ✅ Traducción completada exitosamente para todos los idiomas');
+
         }
-        
-        console.log('[AdminWorkshopsService] ========== FIN DE TRADUCCIÓN AUTOMÁTICA ==========');
+
       } catch (translationError) {
         // No fallar la creación del curso si falla la traducción
         console.error('[AdminWorkshopsService] ========== ERROR EN TRADUCCIÓN ==========');
@@ -321,11 +283,8 @@ export class AdminWorkshopsService {
         } else {
           console.error('[AdminWorkshopsService] Error (no es instancia de Error):', JSON.stringify(translationError, null, 2));
         }
-        console.log('[AdminWorkshopsService] ========== FIN DE TRADUCCIÓN AUTOMÁTICA (CON ERROR) ==========');
         // No lanzar el error para que la creación del curso se complete exitosamente
       }
-      
-      console.log('[AdminWorkshopsService] ========== CONTINUANDO DESPUÉS DE TRADUCCIÓN ==========');
 
       return data
     } catch (error) {

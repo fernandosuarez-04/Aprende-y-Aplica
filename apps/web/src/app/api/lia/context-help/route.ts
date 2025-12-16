@@ -44,11 +44,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Analizar la sesión
-    console.log(`🔍 Analizando ${sessionEvents.length} eventos de sesión...`);
+
     const context = sessionAnalyzer.analyzeSession(sessionEvents, analysisWindow);
     const contextSummary = sessionAnalyzer.generateContextSummary(context);
-
-    console.log('📊 Contexto extraído:', contextSummary);
 
     // 2. Construir prompt contextual para LIA
     const contextualPrompt = buildContextualPrompt(

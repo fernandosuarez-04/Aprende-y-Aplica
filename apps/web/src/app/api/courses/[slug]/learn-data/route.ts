@@ -368,11 +368,6 @@ async function loadModulesWithProgress(
         supabase
       );
 
-      console.log(`[learn-data] Módulo ${module.module_id}:`, {
-        originalTitle: module.module_title,
-        translatedTitle: translatedModule.module_title || module.module_title
-      });
-
       const moduleLessons = lessonsByModule.get(module.module_id) || []
 
       // Filtrar solo las lecciones publicadas si hay alguna publicada, sino mostrar todas

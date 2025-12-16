@@ -21,9 +21,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[TEST-TRANSLATION] ========== INICIANDO PRUEBA DE TRADUCCIÓN ==========')
-    console.log('[TEST-TRANSLATION] Course ID:', courseId)
-
     // Obtener datos del curso
     const supabase = await createClient()
     const { data: course, error: courseError } = await supabase
@@ -39,19 +36,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[TEST-TRANSLATION] Curso encontrado:', {
-      id: course.id,
-      title: course.title,
-      hasDescription: !!course.description
-    })
-
     // Verificar variables de entorno
-    console.log('[TEST-TRANSLATION] Verificando variables de entorno:')
+
     console.log('[TEST-TRANSLATION] - OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? `${process.env.OPENAI_API_KEY.substring(0, 7)}...` : 'NO CONFIGURADA')
     console.log('[TEST-TRANSLATION] - OPENAI_MODEL:', process.env.OPENAI_MODEL || 'gpt-4o-mini (default)')
 
     // Verificar permisos del cliente de Supabase
-    console.log('[TEST-TRANSLATION] Verificando permisos del cliente de Supabase...')
+
     const { data: testInsert, error: testError } = await supabase
       .from('content_translations')
       .insert({
@@ -61,16 +52,6 @@ export async function GET(request: NextRequest) {
         translations: { test: 'test' }
       })
       .select()
-
-    console.log('[TEST-TRANSLATION] Test de inserción directa:', {
-      success: !testError,
-      error: testError ? {
-        message: testError.message,
-        code: testError.code,
-        details: testError.details,
-        hint: testError.hint
-      } : null
-    })
 
     // Si el test falla, limpiar el registro de prueba
     if (!testError && testInsert) {
@@ -94,16 +75,14 @@ export async function GET(request: NextRequest) {
       supabase
     )
 
-    console.log('[TEST-TRANSLATION] ========== RESULTADO DE PRUEBA ==========')
     console.log('[TEST-TRANSLATION] Resultado:', JSON.stringify(result, null, 2))
 
     // PASO 1: Detectar idioma del contenido original
-    console.log('[TEST-TRANSLATION] ========== DETECTANDO IDIOMA ==========')
+
     const textsToAnalyze: string[] = [course.title]
     if (course.description) textsToAnalyze.push(course.description)
     
     const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze)
-    console.log('[TEST-TRANSLATION] Idioma detectado:', detectedLanguage)
 
     // PASO 2: Verificar traducciones guardadas
     const { data: translations, error: translationsError } = await supabase
@@ -112,14 +91,8 @@ export async function GET(request: NextRequest) {
       .eq('entity_type', 'course')
       .eq('entity_id', courseId)
 
-    console.log('[TEST-TRANSLATION] Traducciones en BD:', {
-      count: translations?.length || 0,
-      translations: translations,
-      error: translationsError
-    })
-
     // PASO 3: Probar carga de traducciones para cada idioma
-    console.log('[TEST-TRANSLATION] ========== PROBANDO CARGA DE TRADUCCIONES ==========')
+
     const translationTests: Record<string, any> = {}
     
     for (const lang of ['es', 'en', 'pt'] as SupportedLanguage[]) {
@@ -136,7 +109,7 @@ export async function GET(request: NextRequest) {
           translationKeys: Object.keys(loadedTranslations),
           sampleTranslation: loadedTranslations.title || loadedTranslations.description || 'N/A'
         }
-        console.log(`[TEST-TRANSLATION] Traducciones para ${lang}:`, translationTests[lang])
+
       } catch (error) {
         translationTests[lang] = {
           success: false,

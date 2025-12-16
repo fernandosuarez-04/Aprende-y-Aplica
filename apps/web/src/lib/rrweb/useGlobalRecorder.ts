@@ -40,8 +40,6 @@ export function useGlobalRecorder() {
         return;
       }
 
-      console.log('🎬 [Global] Iniciando grabación automática en background...');
-      
       // Iniciar grabación automática con 3 MINUTOS de buffer
       // Se reiniciará automáticamente cada 3 minutos
       recorder.startRecording(180000).catch((error) => {
@@ -52,13 +50,12 @@ export function useGlobalRecorder() {
       // Usar reinicio seguro para evitar race conditions y pérdida de eventos
       restartInterval = setInterval(async () => {
         try {
-          console.log('🔄 [Global] Reiniciando grabación automáticamente (ciclo de 3 min)...');
           
           // Detener grabación actual de forma segura
           const stoppedSession = recorder.stop();
           
           if (stoppedSession) {
-            console.log(`✅ [Global] Grabación detenida: ${stoppedSession.events.length} eventos capturados`);
+
           }
           
           // Esperar un tiempo suficiente para asegurar que la limpieza se complete
@@ -73,14 +70,14 @@ export function useGlobalRecorder() {
           
           // Iniciar nueva grabación
           await recorder.startRecording(180000);
-          console.log('✅ [Global] Nueva grabación iniciada correctamente');
+
         } catch (error) {
           console.error('❌ [Global] Error al reiniciar grabación:', error);
           // Intentar reiniciar después de un delay más largo en caso de error
           setTimeout(async () => {
             try {
               await recorder.startRecording(180000);
-              console.log('✅ [Global] Grabación reiniciada después de error');
+
             } catch (retryError) {
               console.error('❌ [Global] Error en reintento de grabación:', retryError);
             }
@@ -93,7 +90,7 @@ export function useGlobalRecorder() {
 
     // Cleanup al desmontar (aunque normalmente no se desmonta)
     return () => {
-      console.log('🛑 [Global] Deteniendo grabación global');
+
       if (restartInterval) {
         clearInterval(restartInterval);
       }

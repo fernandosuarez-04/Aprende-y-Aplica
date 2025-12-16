@@ -81,7 +81,7 @@ export async function GET(
           language,
           supabase // Pasar el cliente del servidor
         );
-        console.log(`[activities/route] ✅ Traducciones aplicadas para ${translatedActivities.length} actividades en ${language}`);
+
       } catch (translationError) {
         console.error(`[activities/route] Error aplicando traducciones:`, translationError);
         // Continuar con actividades originales si falla la traducción

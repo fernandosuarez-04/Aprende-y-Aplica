@@ -551,7 +551,6 @@ export function AIChatAgent({
     }
   }, []);
 
-
   // Estado para almacenar el contenido extraído del DOM
   const [pageContent, setPageContent] = useState<{
     title: string;
@@ -686,7 +685,7 @@ export function AIChatAgent({
       const { url } = event.detail;
       if (url) {
         // Actualizar contexto antes de navegar
-        console.log('🔗 Navegando desde LIA a:', url);
+
         router.push(url);
       }
     };
@@ -707,19 +706,13 @@ export function AIChatAgent({
       
       // Cargar mensajes guardados
       const savedMessages = loadContextMessages();
-      
-      console.log('🔄 Cargando contexto:', {
-        contextModeEnabled,
-        savedMessagesCount: savedMessages.length,
-        savedMessages: savedMessages
-      });
-      
+
       // Si hay mensajes guardados O el modo estaba activado, restaurar
       if (savedMessages.length > 0 || contextModeEnabled) {
         setUseContextMode(true);
         if (savedMessages.length > 0) {
           setNormalMessages(savedMessages);
-          console.log('✅ Contexto restaurado:', savedMessages.length, 'mensajes');
+
         }
         localStorage.setItem(STORAGE_KEY_CONTEXT_MODE, 'true');
       }
@@ -751,7 +744,7 @@ export function AIChatAgent({
     if (useContextMode && !isPromptMode && normalMessages.length > 0) {
       // Guardar inmediatamente sin debounce
       saveContextMessages(normalMessages);
-      console.log('💾 Guardando contexto:', normalMessages.length, 'mensajes');
+
     }
   }, [normalMessages, useContextMode, isPromptMode, saveContextMessages]);
 
@@ -760,7 +753,7 @@ export function AIChatAgent({
     const handleBeforeUnload = () => {
       if (useContextMode && !isPromptMode && normalMessages.length > 0) {
         saveContextMessages(normalMessages);
-        console.log('💾 Guardando antes de beforeunload:', normalMessages.length, 'mensajes');
+
       }
     };
 
@@ -768,7 +761,7 @@ export function AIChatAgent({
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && useContextMode && !isPromptMode && normalMessages.length > 0) {
         saveContextMessages(normalMessages);
-        console.log('💾 Guardando en visibilitychange:', normalMessages.length, 'mensajes');
+
       }
     };
 
@@ -790,7 +783,7 @@ export function AIChatAgent({
             timestamp: msg.timestamp.toISOString()
           })));
           localStorage.setItem(STORAGE_KEY_CONTEXT_MESSAGES, serialized);
-          console.log('💾 Guardando al desmontar componente:', recentMessages.length, 'mensajes');
+
         } catch (error) {
           console.error('Error guardando al desmontar:', error);
         }
@@ -1101,7 +1094,7 @@ export function AIChatAgent({
       
       // CASO 0: Detectar intención de NanoBanana (prioridad alta)
       if (!isNanoBananaMode && !isPromptMode && intentResult.intent === 'nanobana' && intentResult.confidence >= 0.65) {
-        console.log('[LIA Agent] 🎨 Activando Modo NanoBanana');
+
         shouldActivateNanoBananaMode = true;
         
         // Usar dominio y formato detectados si están disponibles
@@ -1136,7 +1129,6 @@ export function AIChatAgent({
         
         // 🎯 Detectar si quiere cambiar a MODO PROMPTS
         if (intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
-          console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a Modo Prompts (detección automática)');
           shouldDeactivateNanoBananaMode = true;
           shouldActivatePromptMode = true;
           setIsNanoBananaMode(false);
@@ -1152,7 +1144,6 @@ export function AIChatAgent({
         }
         // 🎯 Detectar navegación → Modo normal con contexto
         else if (intentResult.intent === 'navigate') {
-          console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a modo normal (navegación detectada)');
           shouldDeactivateNanoBananaMode = true;
           setIsNanoBananaMode(false);
           
@@ -1194,7 +1185,6 @@ export function AIChatAgent({
                                           generalQuestionPatterns.some(p => p.test(messageLower));
           
           if (isNonNanoBananaQuestion) {
-            console.log('[LIA Agent] 🔄 Cambiando de NanoBanana a modo normal (pregunta detectada)');
             shouldDeactivateNanoBananaMode = true;
             setIsNanoBananaMode(false);
             
@@ -1206,7 +1196,7 @@ export function AIChatAgent({
             };
             setNormalMessages(prev => [...prev, systemMessage]);
           } else {
-            console.log('[LIA Agent] ✅ Manteniendo Modo NanoBanana');
+
           }
         }
         // 🎯 Patrones explícitos de salida
@@ -1223,7 +1213,6 @@ export function AIChatAgent({
           const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
           
           if (isExplicitExit) {
-            console.log('[LIA Agent] 🔄 Saliendo del Modo NanoBanana (salida explícita)');
             shouldDeactivateNanoBananaMode = true;
             setIsNanoBananaMode(false);
             
@@ -1235,13 +1224,13 @@ export function AIChatAgent({
             };
             setNormalMessages(prev => [...prev, systemMessage]);
           } else {
-            console.log('[LIA Agent] ✅ Manteniendo Modo NanoBanana');
+
           }
         }
       }
       // CASO 1: Si NO estamos en modo prompts y detectamos intención de crear prompts
       else if (!isPromptMode && !isNanoBananaMode && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
-        console.log('[LIA Agent] ✅ Activando Modo Prompts');
+
         shouldActivatePromptMode = true;
         
         // Agregar mensaje del sistema notificando el cambio
@@ -1281,17 +1270,9 @@ export function AIChatAgent({
         ];
         const wantsNanoBanana = nanoBananaKeywords.some(p => p.test(messageLower));
         const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
-        
-        console.log('[LIA Agent] 📊 Análisis en Modo Prompts:', {
-          message: messageLower,
-          detectedIntent: intentResult.intent,
-          isExplicitExit,
-          wantsNanoBanana,
-          action: wantsNanoBanana ? 'CAMBIAR a NanoBanana' : isExplicitExit ? 'SALIR del modo prompts' : 'MANTENER modo prompts'
-        });
-        
+
         if (wantsNanoBanana) {
-          console.log('[LIA Agent] 🔄 Cambiando de Prompts a Modo NanoBanana');
+
           shouldDeactivatePromptMode = true;
           shouldActivateNanoBananaMode = true;
           setIsPromptMode(false);
@@ -1305,7 +1286,7 @@ export function AIChatAgent({
           };
           setNanoBananaMessages(prev => [...prev, systemMessage]);
         } else if (isExplicitExit) {
-          console.log('[LIA Agent] 🔄 Petición explícita de salir. Desactivando Modo Prompts');
+
           shouldDeactivatePromptMode = true;
           
           const systemMessage: Message = {
@@ -1319,7 +1300,6 @@ export function AIChatAgent({
           setIsPromptMode(false);
         } else {
           // MANTENER el modo prompts - cualquier otra cosa se considera parte de la conversación de prompts
-          console.log('[LIA Agent] ✅ Manteniendo Modo Prompts (continuando conversación de creación de prompts)');
         }
       }
     } catch (error) {
@@ -1343,7 +1323,7 @@ export function AIChatAgent({
     const shouldWaitForDescription = shouldActivateNanoBananaMode || shouldActivatePromptMode;
     
     if (shouldWaitForDescription) {
-      console.log('[LIA Agent] ⏸️ Modo especial activado. Esperando descripción del usuario...');
+
       // Agregar el mensaje del usuario al historial correspondiente
       if (effectiveNanoBananaMode) {
         setNanoBananaMessages(prev => [...prev, userMessage]);
@@ -1365,7 +1345,7 @@ export function AIChatAgent({
     
     // Si se DESACTIVÓ un modo especial, continuar para responder la pregunta
     if (shouldDeactivateNanoBananaMode || shouldDeactivatePromptMode) {
-      console.log('[LIA Agent] 🔄 Modo especial desactivado. Continuando para responder la pregunta...');
+
     }
 
     // Usar el setter correcto según el modo efectivo
@@ -1776,18 +1756,11 @@ export function AIChatAgent({
     if (prevPathnameRef.current !== pathname) {
       const wasOpen = isOpen;
       const previousPathname = prevPathnameRef.current;
-      
-      console.log('🔀 Cambio de página detectado:', {
-        from: previousPathname,
-        to: pathname,
-        useContextMode,
-        messagesCount: normalMessages.length
-      });
-      
+
       // ✅ PERSISTENCIA: Guardar mensajes antes de cambiar de página si el modo de contexto está activo
       if (useContextMode && !isPromptMode && normalMessages.length > 0) {
         saveContextMessages(normalMessages);
-        console.log('💾 Guardando contexto antes de cambiar de página:', normalMessages.length, 'mensajes');
+
       }
       
       // ✅ PERSISTENCIA: NO limpiar mensajes si el modo de contexto está activo
@@ -1796,9 +1769,7 @@ export function AIChatAgent({
       // Esto evita usar contenido de la página anterior
       if (!isPromptMode && !useContextMode) {
         setNormalMessages([]);
-        console.log('🧹 Limpiando mensajes (modo contexto desactivado)');
       } else if (useContextMode) {
-        console.log('🔒 Manteniendo mensajes (modo contexto activado)');
       }
       setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
       prevPathnameRef.current = pathname;
@@ -2609,17 +2580,13 @@ Fecha: ${new Date().toLocaleString()}
                     {message.role === 'assistant' && message.generatedNanoBanana && (
                       <motion.button
                         onClick={() => {
-                          console.log('[NanoBanana] 🎨 Reabriendo panel con datos:', {
-                            schema: message.generatedNanoBanana!.schema,
-                            domain: message.generatedNanoBanana!.domain,
-                            format: message.generatedNanoBanana!.outputFormat
-                          });
+
                           setNanoBananaSchema(message.generatedNanoBanana!.schema);
                           setNanoBananaJsonString(message.generatedNanoBanana!.jsonString);
                           setNanoBananaDomain(message.generatedNanoBanana!.domain);
                           setNanoBananaFormat(message.generatedNanoBanana!.outputFormat);
                           setIsNanoBananaPanelOpen(true);
-                          console.log('[NanoBanana] ✅ Estados actualizados, isNanoBananaPanelOpen = true');
+
                         }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -2852,14 +2819,14 @@ Fecha: ${new Date().toLocaleString()}
             outputFormat={nanoBananaFormat}
             isOpen={isNanoBananaPanelOpen}
             onClose={() => {
-              console.log('[LIA Agent] ❌ Cerrando panel NanoBanana');
+
               setIsNanoBananaPanelOpen(false);
             }}
             onCopy={() => {
-              console.log('[LIA Agent] 📋 JSON NanoBanana copiado');
+
             }}
             onDownload={() => {
-              console.log('[LIA Agent] 📥 JSON NanoBanana descargado');
+
             }}
             onRegenerate={() => {
               // Regenerar con el último mensaje

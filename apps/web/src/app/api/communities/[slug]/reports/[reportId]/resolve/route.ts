@@ -24,10 +24,10 @@ export async function PATCH(
   { params }: { params: Promise<{ slug: string; reportId: string }> }
 ) {
   try {
-    console.log('📥 PATCH /api/communities/[slug]/reports/[reportId]/resolve - Request received')
+
     const supabase = await createClient()
     const { slug, reportId } = await params
-    console.log('📋 Route params:', { slug, reportId })
+
     const user = await SessionService.getCurrentUser()
 
     if (!user) {
@@ -35,11 +35,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    console.log('✅ User authenticated:', user.id)
-
     // Validar body
     const body = await request.json()
-    console.log('📦 Request body:', body)
+
     const validationResult = resolveSchema.safeParse(body)
 
     if (!validationResult.success) {
@@ -51,7 +49,6 @@ export async function PATCH(
     }
 
     const { status, resolution_action, resolution_notes } = validationResult.data
-    console.log('✅ Validated data:', { status, resolution_action, resolution_notes })
 
     // Usar cliente admin para bypass RLS
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -92,8 +89,6 @@ export async function PATCH(
       )
     }
 
-    console.log('✅ Report found:', { reportId: report.id, communityId: report.community_id, postId: report.post_id })
-
     // Obtener la comunidad para verificar el slug
     const { data: community, error: communityError } = await adminSupabase
       .from('communities')
@@ -131,7 +126,7 @@ export async function PATCH(
         console.error('❌ Error fetching post:', postError)
       } else {
         post = postData
-        console.log('✅ Post found:', { postId: post.id })
+
       }
     }
 
@@ -157,7 +152,7 @@ export async function PATCH(
 
     // Ejecutar acción según resolution_action
     if (resolution_action === 'delete_post' && post) {
-      console.log('🗑️ Deleting post:', post.id)
+
       // Eliminar el post
       const { error: deleteError } = await adminSupabase
         .from('community_posts')
@@ -171,9 +166,9 @@ export async function PATCH(
           { status: 500 }
         )
       }
-      console.log('✅ Post deleted successfully')
+
     } else if (resolution_action === 'hide_post' && post) {
-      console.log('👁️ Hiding post:', post.id)
+
       // Ocultar el post
       const { error: hideError } = await adminSupabase
         .from('community_posts')
@@ -187,7 +182,7 @@ export async function PATCH(
           { status: 500 }
         )
       }
-      console.log('✅ Post hidden successfully')
+
     }
 
     // Actualizar el reporte
@@ -204,8 +199,6 @@ export async function PATCH(
     if (resolution_notes) {
       updateData.resolution_notes = resolution_notes.trim()
     }
-
-    console.log('📝 Updating report with data:', updateData)
 
     const { data: updatedReport, error: updateError } = await adminSupabase
       .from('community_post_reports')
@@ -231,8 +224,6 @@ export async function PATCH(
         { status: 500 }
       )
     }
-
-    console.log('✅ Report updated successfully:', { reportId, status })
 
     // Enriquecer el reporte con información relacionada
     const enrichedReport: any = { ...updatedReport }

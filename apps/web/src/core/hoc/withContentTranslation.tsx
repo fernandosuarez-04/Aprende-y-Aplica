@@ -26,24 +26,20 @@ export function useTranslatedContent<T extends Record<string, any>>(
       return;
     }
 
-    console.log(`[useTranslatedContent] Language: ${language}, EntityType: ${entityType}, Data count: ${data.length}`);
-
     // IMPORTANTE: Ahora siempre intentamos traducir, incluso para español
     // Si el contenido original está en inglés/portugués, necesitamos la traducción a español
     let isCancelled = false;
 
     const translateData = async () => {
       try {
-        console.log(`[useTranslatedContent] Starting translation for ${entityType} to ${language}`);
+
         const translated = await ContentTranslationService.translateArray(
           entityType,
           data,
           fields,
           language
         );
-        
-        console.log('[useTranslatedContent] Translation complete:', translated.length, 'items');
-        
+
         if (!isCancelled) {
           setTranslatedData(translated);
         }

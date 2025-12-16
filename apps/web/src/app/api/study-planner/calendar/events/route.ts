@@ -24,12 +24,11 @@ function createAdminClient() {
  * Obtiene los eventos del calendario del usuario
  */
 export async function GET(request: NextRequest) {
-  console.log('🚀 [Calendar Events API] Iniciando request...');
-  
+
   try {
     // Verificar autenticación
     const user = await SessionService.getCurrentUser();
-    console.log('👤 [Calendar Events API] Usuario:', user?.id);
+
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -53,7 +52,7 @@ export async function GET(request: NextRequest) {
       .limit(1);
 
     if (integrationError || !integrations || integrations.length === 0) {
-      console.log('❌ [Calendar Events API] No hay integración:', integrationError?.message);
+
       return NextResponse.json({ 
         events: [],
         message: 'No hay calendario conectado'
@@ -61,12 +60,6 @@ export async function GET(request: NextRequest) {
     }
     
     const integration = integrations[0];
-
-    console.log('✅ [Calendar Events API] Integración encontrada:', {
-      provider: integration.provider,
-      hasToken: !!integration.access_token,
-      expiresAt: integration.expires_at
-    });
 
     // ✅ CORRECCIÓN: Verificar si el token ha expirado con manejo seguro de null
     let accessToken = integration.access_token;
@@ -85,8 +78,7 @@ export async function GET(request: NextRequest) {
     const needsRefresh = !tokenExpiry || !integration.expires_at || tokenExpiry <= new Date();
     
     if (needsRefresh) {
-      console.log('⏰ [Calendar Events API] Token expirado o sin fecha de expiración, refrescando...');
-      
+
       // Verificar que haya refresh_token disponible
       if (!integration.refresh_token) {
         console.error('❌ [Calendar Events API] No hay refresh_token disponible');
@@ -108,16 +100,13 @@ export async function GET(request: NextRequest) {
         }, { status: 401 });
       }
       accessToken = refreshResult.accessToken;
-      console.log('✅ [Calendar Events API] Token refrescado exitosamente');
+
     } else {
-      console.log('✅ [Calendar Events API] Token válido hasta:', tokenExpiry.toISOString());
     }
 
     // Obtener eventos según el proveedor
     let events: any[] = [];
-    
-    console.log(`📅 [API Events] Obteniendo eventos para provider: ${integration.provider}`);
-    console.log(`📅 [API Events] Rango de fechas: ${startDate.toISOString()} - ${endDate.toISOString()}`);
+
     
     if (integration.provider === 'google') {
       events = await getGoogleCalendarEvents(accessToken, startDate, endDate);
@@ -125,9 +114,7 @@ export async function GET(request: NextRequest) {
       events = await getMicrosoftCalendarEvents(accessToken, startDate, endDate);
     }
 
-    console.log(`📅 [API Events] Total eventos obtenidos: ${events.length}`);
     if (events.length > 0) {
-      console.log(`📅 [API Events] Primeros 3 eventos:`, events.slice(0, 3).map(e => ({ title: e.title, start: e.start })));
     }
 
     return NextResponse.json({ 
@@ -181,8 +168,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
         console.error('❌ [Refresh Token] No hay refresh_token en la integración');
         return { success: false };
       }
-      
-      console.log('🔄 [Refresh Token] Refrescando token de Google...');
+
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -227,7 +213,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
         console.error('❌ [Refresh Token] Error actualizando token en BD:', updateError);
         // Aún así retornar el token si se obtuvo correctamente
       } else {
-        console.log('✅ [Refresh Token] Token actualizado en BD exitosamente');
+
       }
 
       return { success: true, accessToken: tokens.access_token };
@@ -242,8 +228,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
         console.error('❌ [Refresh Token] No hay refresh_token en la integración');
         return { success: false };
       }
-      
-      console.log('🔄 [Refresh Token] Refrescando token de Microsoft...');
+
       const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -284,7 +269,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
       if (updateError) {
         console.error('❌ [Refresh Token] Error actualizando token en BD:', updateError);
       } else {
-        console.log('✅ [Refresh Token] Token actualizado en BD exitosamente');
+
       }
 
       return { success: true, accessToken: tokens.access_token };
@@ -302,8 +287,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
  */
 async function getGoogleCalendarEvents(accessToken: string, startDate: Date, endDate: Date): Promise<any[]> {
   try {
-    console.log('📅 [Google] Iniciando obtención de calendarios...');
-    
+
     // Primero, obtener la lista de calendarios del usuario
     const calendarsResponse = await fetch(
       'https://www.googleapis.com/calendar/v3/users/me/calendarList',
@@ -314,22 +298,18 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
       }
     );
 
-    console.log(`📅 [Google] Respuesta de calendarList: ${calendarsResponse.status}`);
-
     if (!calendarsResponse.ok) {
       const errorText = await calendarsResponse.text();
       console.error('❌ [Google] Error obteniendo lista de calendarios:', calendarsResponse.status, errorText);
       // Fallback: intentar solo con primary
-      console.log('📅 [Google] Fallback: intentando solo con calendario primary...');
+
       return await getEventsFromCalendar(accessToken, 'primary', startDate, endDate);
     }
 
     const calendarsData = await calendarsResponse.json();
     const calendars = calendarsData.items || [];
-    
-    console.log(`📅 [Google] Calendarios encontrados: ${calendars.length}`);
+
     calendars.forEach((c: any) => {
-      console.log(`   - ${c.summary} (id: ${c.id.substring(0, 30)}..., accessRole: ${c.accessRole}, primary: ${c.primary})`);
     });
 
     // SOLO obtener eventos del calendario PROPIO del usuario
@@ -341,17 +321,14 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
       // CRITERIO ESTRICTO: Solo el calendario principal (primary=true)
       // Esto excluye calendarios de otros usuarios que el usuario administra
       if (calendar.primary === true) {
-        console.log(`📅 [Google] Obteniendo eventos de calendario PRINCIPAL: "${calendar.summary}"`);
+
         const events = await getEventsFromCalendar(accessToken, calendar.id, startDate, endDate);
-        console.log(`   → ${events.length} eventos encontrados`);
+
         allEvents.push(...events);
       } else {
-        console.log(`⏭️ [Google] Saltando calendario "${calendar.summary}" (no es el principal, accessRole: ${calendar.accessRole})`);
       }
     }
 
-    console.log(`📅 [Google] TOTAL de eventos obtenidos: ${allEvents.length}`);
-    
     // Ordenar por fecha de inicio
     allEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
     

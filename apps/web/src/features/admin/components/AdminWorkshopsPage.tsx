@@ -57,7 +57,7 @@ export function AdminWorkshopsPage() {
 
   // Debug: Log cuando cambia el estado del modal
   useEffect(() => {
-    console.log('[AdminWorkshopsPage] Estado workshopToDelete cambió:', workshopToDelete);
+
   }, [workshopToDelete]);
 
   const filteredWorkshops = workshops.filter(workshop => {
@@ -423,7 +423,7 @@ export function AdminWorkshopsPage() {
         <DeleteWorkshopModal
           isOpen={true}
           onClose={() => {
-            console.log('[AdminWorkshopsPage] Cerrando modal');
+
             setWorkshopToDelete(null);
           }}
           workshop={workshopToDelete}

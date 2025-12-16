@@ -50,7 +50,8 @@
       "Bash(tasklist:*)",
       "Bash(del \"C:\\Users\\Gael\\Desktop\\Ecos de Liderazgo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\.next\\dev\\lock\")",
       "Bash(if exist \"C:\\Users\\Gael\\Desktop\\Ecos de Liderazgo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\.next\\dev\\lock\" del \"C:\\Users\\Gael\\Desktop\\Ecos de Liderazgo\\Aprende y Aplica\\Aprende-y-Aplica\\apps\\web\\.next\\dev\\lock\")",
-      "Bash(if exist \"apps\\web\\.next\" rmdir /s /q \"apps\\web\\.next\")"
+      "Bash(if exist \"apps\\web\\.next\" rmdir /s /q \"apps\\web\\.next\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File scripts/remove-console-logs.ps1)"
     ],
     "deny": [],
     "ask": []

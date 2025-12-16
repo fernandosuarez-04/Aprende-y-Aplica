@@ -66,8 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     const supabase = createAdminClient();
     
     // ✅ CORRECCIÓN URGENTE: Obtener las sesiones con el plan para obtener la zona horaria
-    console.log(`📋 Obteniendo ${body.sessionIds.length} sesiones para sincronizar...`);
-    
+
     const { data: sessions, error: sessionsError } = await supabase
       .from('study_sessions')
       .select('*')
@@ -89,9 +88,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         { status: 404 }
       );
     }
-    
-    console.log(`✅ Se obtuvieron ${sessions.length} sesiones`);
-    
+
     // ✅ CORRECCIÓN: Obtener la zona horaria del plan directamente
     // Todas las sesiones deben pertenecer al mismo plan
     let planTimezone = 'UTC';
@@ -101,8 +98,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     if (!planId) {
       console.warn('⚠️ La sesión no tiene plan_id, usando UTC como zona horaria por defecto');
     } else {
-      console.log(`📋 Obteniendo zona horaria del plan: ${planId}`);
-      
+
       const { data: planData, error: planError } = await supabase
         .from('study_plans')
         .select('timezone')
@@ -115,14 +111,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         console.warn('⚠️ Usando UTC como zona horaria por defecto');
       } else if (planData && planData.timezone) {
         planTimezone = planData.timezone;
-        console.log(`✅ Zona horaria obtenida del plan: ${planTimezone}`);
+
       } else {
         console.warn('⚠️ El plan no tiene zona horaria configurada, usando UTC');
       }
     }
-    
-    console.log(`🌍 Zona horaria final del plan: ${planTimezone}`);
-    
+
     // Obtener integración de calendario del usuario
     const { data: integrations, error: integrationError } = await supabase
       .from('calendar_integrations')
@@ -157,8 +151,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     const needsRefresh = !tokenExpiry || !integration.expires_at || tokenExpiry <= new Date();
     
     if (needsRefresh) {
-      console.log('⏰ [Sync Sessions] Token expirado o sin fecha de expiración, refrescando...');
-      
+
       // Verificar que haya refresh_token disponible
       if (!integration.refresh_token) {
         console.error('❌ [Sync Sessions] No hay refresh_token disponible');
@@ -177,25 +170,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         );
       }
       accessToken = refreshResult.accessToken;
-      console.log('✅ [Sync Sessions] Token refrescado exitosamente');
+
     } else {
-      console.log('✅ [Sync Sessions] Token válido hasta:', tokenExpiry?.toISOString() || 'desconocido');
     }
     
     // ✅ CORRECCIÓN: Sincronizar sesiones según el proveedor con mejor logging
     let syncedCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
-    
-    console.log(`📅 Iniciando sincronización de ${sessions.length} sesiones con ${integration.provider} Calendar`);
-    
+
     for (let i = 0; i < sessions.length; i++) {
       const session = sessions[i];
       try {
-        console.log(`📅 [${i + 1}/${sessions.length}] Sincronizando sesión: "${session.title}"`);
-        console.log(`   Inicio: ${session.start_time}`);
-        console.log(`   Fin: ${session.end_time}`);
-        
+
         let eventId: string | null = null;
         
         if (integration.provider === 'google') {
@@ -210,8 +197,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         }
         
         if (eventId) {
-          console.log(`✅ [${i + 1}/${sessions.length}] Evento creado con ID: ${eventId}`);
-          
+
           // Actualizar la sesión con el ID del evento del calendario
           const { error: updateError } = await supabase
             .from('study_sessions')
@@ -241,9 +227,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         console.error(`❌ [${i + 1}/${sessions.length}] ${errorMsg}`, error);
       }
     }
-    
-    console.log(`📅 Sincronización completada: ${syncedCount} exitosas, ${failedCount} fallidas`);
-    
+
     return NextResponse.json({
       success: true,
       data: {
@@ -465,17 +449,7 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
         ],
       },
     };
-    
-    console.log(`📅 Creando evento en Google Calendar con zona horaria: ${timezone}`);
-    console.log(`   Fecha original inicio: ${session.start_time}`);
-    console.log(`   Fecha original fin: ${session.end_time}`);
-    console.log(`   Fecha formateada inicio: ${startDateTime} (${timezone})`);
-    console.log(`   Fecha formateada fin: ${endDateTime} (${timezone})`);
 
-    console.log(`📤 [Google Calendar] Enviando request para crear evento...`);
-    console.log(`   Título: ${event.summary}`);
-    console.log(`   Inicio: ${event.start.dateTime} (${event.start.timeZone})`);
-    console.log(`   Fin: ${event.end.dateTime} (${event.end.timeZone})`);
     
     const response = await fetch(
       'https://www.googleapis.com/calendar/v3/calendars/primary/events',
@@ -497,7 +471,7 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
     }
 
     const createdEvent = await response.json();
-    console.log(`✅ [Google Calendar] Evento creado exitosamente con ID: ${createdEvent.id}`);
+
     return createdEvent.id;
   } catch (error) {
     console.error('Error en createGoogleCalendarEvent:', error);
@@ -547,17 +521,7 @@ async function createMicrosoftCalendarEvent(accessToken: string, session: any, t
       reminderMinutesBeforeStart: 15,
       isReminderOn: true,
     };
-    
-    console.log(`📅 Creando evento en Microsoft Calendar con zona horaria: ${timezone}`);
-    console.log(`   Fecha original inicio: ${session.start_time}`);
-    console.log(`   Fecha original fin: ${session.end_time}`);
-    console.log(`   Fecha formateada inicio: ${startDateTime} (${timezone})`);
-    console.log(`   Fecha formateada fin: ${endDateTime} (${timezone})`);
 
-    console.log(`📤 [Microsoft Calendar] Enviando request para crear evento...`);
-    console.log(`   Título: ${event.subject}`);
-    console.log(`   Inicio: ${event.start.dateTime} (${event.start.timeZone})`);
-    console.log(`   Fin: ${event.end.dateTime} (${event.end.timeZone})`);
     
     const response = await fetch(
       'https://graph.microsoft.com/v1.0/me/calendar/events',
@@ -579,7 +543,7 @@ async function createMicrosoftCalendarEvent(accessToken: string, session: any, t
     }
 
     const createdEvent = await response.json();
-    console.log(`✅ [Microsoft Calendar] Evento creado exitosamente con ID: ${createdEvent.id}`);
+
     return createdEvent.id;
   } catch (error) {
     console.error('Error en createMicrosoftCalendarEvent:', error);

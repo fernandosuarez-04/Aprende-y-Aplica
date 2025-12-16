@@ -196,12 +196,7 @@ export default function StatisticsPage() {
 
       // Obtener dificultad directamente del uso de IA (sin cálculo)
       const dificultad_id = calcularDificultad(formData.uso_ia);
-      
-      console.log('Dificultad asignada:', {
-        uso_ia: formData.uso_ia,
-        dificultad_id
-      });
-      
+
       // Obtener nombre del cargo desde el rol seleccionado
       const rolSeleccionado = referenceData?.roles.find(r => r.id === formData.rol_id);
       const cargo_titulo = rolSeleccionado?.nombre || '';

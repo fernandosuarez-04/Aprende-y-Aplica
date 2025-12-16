@@ -136,7 +136,7 @@ export function AddWorkshopModal({ isOpen, onClose, onSave }: AddWorkshopModalPr
     setError(null)
 
     try {
-      console.log('[AddWorkshopModal] Enviando solicitud para crear taller...');
+
       const response = await fetch('/api/admin/workshops/create', {
         method: 'POST',
         headers: {
@@ -157,22 +157,18 @@ export function AddWorkshopModal({ isOpen, onClose, onSave }: AddWorkshopModalPr
         })
       })
 
-      console.log('[AddWorkshopModal] Respuesta recibida, status:', response.status);
       const data = await response.json()
-      console.log('[AddWorkshopModal] Datos recibidos:', data);
 
       if (!response.ok) {
         throw new Error(data.error || data.message || 'Error al crear el taller')
       }
 
-      console.log('[AddWorkshopModal] Taller creado exitosamente, esperando a que termine la traducción...');
       // La traducción ya se completó en el servidor antes de devolver la respuesta
       // pero esperamos un momento para asegurarnos de que todo se guardó
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log('[AddWorkshopModal] Llamando onSave() para refrescar la lista...');
       await onSave()
-      console.log('[AddWorkshopModal] Cerrando modal...');
+
       onClose()
     } catch (err) {
       console.error('[AddWorkshopModal] Error al crear taller:', err);

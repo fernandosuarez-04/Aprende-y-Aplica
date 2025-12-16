@@ -67,7 +67,7 @@ export function ProgressBar3D({
           />
           
           {/* Glow effect on edges */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00D4B3]/60 via-transparent to-[#00D4B3]/60 rounded-full blur-sm" /> {/* Aqua */
+          <div className="absolute inset-0 bg-gradient-to-r from-[#00D4B3]/60 via-transparent to-[#00D4B3]/60 rounded-full blur-sm" />
           
           {/* Animated particles */}
           {clampedProgress > 0 && clampedProgress < 100 && (

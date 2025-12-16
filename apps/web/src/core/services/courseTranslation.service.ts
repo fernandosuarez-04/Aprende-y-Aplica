@@ -31,26 +31,8 @@ export async function translateCourseOnCreate(
   userId?: string,
   supabaseClient?: Awaited<ReturnType<typeof createClient>>
 ): Promise<TranslationResult> {
-  console.log(`[CourseTranslation] ========== translateCourseOnCreate INICIADO ==========`);
-  console.log(`[CourseTranslation] Parámetros recibidos:`, {
-    courseId,
-    hasTitle: !!courseData.title,
-    title: courseData.title,
-    hasDescription: !!courseData.description,
-    descriptionLength: courseData.description?.length || 0,
-    hasLearningObjectives: !!courseData.learning_objectives,
-    learningObjectivesCount: Array.isArray(courseData.learning_objectives) ? courseData.learning_objectives.length : 0,
-    userId,
-    hasClient: !!supabaseClient
-  });
-
   // Verificar configuración de OpenAI ANTES de continuar
   const openaiKey = process.env.OPENAI_API_KEY;
-  console.log(`[CourseTranslation] Verificando configuración de OpenAI:`, {
-    hasOpenAIKey: !!openaiKey,
-    keyLength: openaiKey?.length || 0,
-    keyPrefix: openaiKey ? `${openaiKey.substring(0, 7)}...` : 'N/A'
-  });
 
   if (!openaiKey) {
     console.error('[CourseTranslation] ❌ OPENAI_API_KEY no está configurada. No se puede traducir.');
@@ -66,7 +48,7 @@ export async function translateCourseOnCreate(
   }
 
   // Usar el cliente proporcionado o crear uno nuevo
-  console.log('[CourseTranslation] Obteniendo cliente de Supabase...');
+
   const supabase = supabaseClient || await createClient();
   
   if (!supabase) {
@@ -77,23 +59,17 @@ export async function translateCourseOnCreate(
       errors: { es: 'Error al crear cliente de Supabase', en: 'Error al crear cliente de Supabase', pt: 'Error al crear cliente de Supabase' }
     };
   }
-  
-  console.log('[CourseTranslation] ✅ Cliente de Supabase obtenido correctamente');
 
   // PASO 1: Detectar el idioma del contenido
-  console.log('[CourseTranslation] ========== PASO 1: DETECTANDO IDIOMA ==========');
+
   const textsToAnalyze: string[] = [courseData.title];
   if (courseData.description) textsToAnalyze.push(courseData.description);
   
   const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
-  console.log(`[CourseTranslation] ✅ Idioma detectado: ${detectedLanguage}`);
 
   // PASO 2: Determinar idiomas destino (los otros dos)
   const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
   const targetLanguages = allLanguages.filter(lang => lang !== detectedLanguage) as SupportedLanguage[];
-  console.log(`[CourseTranslation] ========== PASO 2: IDIOMAS DESTINO ==========`);
-  console.log(`[CourseTranslation] Idioma origen: ${detectedLanguage}`);
-  console.log(`[CourseTranslation] Idiomas destino: ${targetLanguages.join(', ')}`);
 
   const errors: Record<SupportedLanguage, string> = {} as Record<SupportedLanguage, string>;
   let successCount = 0;
@@ -108,22 +84,6 @@ export async function translateCourseOnCreate(
   // PASO 3: Traducir a cada idioma destino
   for (const lang of targetLanguages) {
     try {
-      console.log(`[CourseTranslation] Iniciando traducción del curso ${courseId} a ${lang}...`);
-      console.log(`[CourseTranslation] Campos a traducir:`, fieldsToTranslate);
-      console.log(`[CourseTranslation] Datos del curso:`, {
-        title: courseData.title,
-        hasDescription: !!courseData.description,
-        hasLearningObjectives: !!courseData.learning_objectives
-      });
-
-      console.log(`[CourseTranslation] ========== PASO 3: TRADUCIENDO A ${lang.toUpperCase()} ==========`);
-      console.log(`[CourseTranslation] Detalles de traducción:`, {
-        sourceLanguage: detectedLanguage,
-        targetLanguage: lang,
-        fieldsToTranslate,
-        courseTitle: courseData.title?.substring(0, 50)
-      });
-      
       const translations = await AutoTranslationService.translateEntity(
         courseData,
         fieldsToTranslate,
@@ -136,22 +96,6 @@ export async function translateCourseOnCreate(
         }
       );
       
-      console.log(`[CourseTranslation] ✅ Traducción completada para ${lang}:`, {
-        translationKeys: Object.keys(translations),
-        hasTitle: !!translations.title,
-        titlePreview: translations.title?.substring(0, 50)
-      });
-
-      console.log(`[CourseTranslation] Traducciones obtenidas para ${lang}:`, JSON.stringify(translations, null, 2));
-      console.log(`[CourseTranslation] Preparando para guardar traducción...`, {
-        entityType: 'course',
-        entityId: courseId,
-        language: lang,
-        translationKeys: Object.keys(translations),
-        userId,
-        hasSupabaseClient: !!supabase
-      });
-
       // Guardar traducción usando el cliente del servidor
       const saved = await ContentTranslationService.saveTranslation(
         'course',
@@ -161,12 +105,10 @@ export async function translateCourseOnCreate(
         userId,
         supabase
       );
-      
-      console.log(`[CourseTranslation] Resultado de saveTranslation para ${lang}:`, saved);
 
       if (saved) {
         successCount++;
-        console.log(`[CourseTranslation] ✅ Curso ${courseId} traducido exitosamente a ${lang}`);
+
       } else {
         errors[lang] = 'Error al guardar traducción en la base de datos';
         console.error(`[CourseTranslation] ❌ Error al guardar traducción del curso ${courseId} a ${lang}`);
@@ -202,7 +144,6 @@ export async function translateModuleOnCreate(
   if (moduleData.module_description) textsToAnalyze.push(moduleData.module_description);
   
   const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
-  console.log(`[CourseTranslation] Módulo ${moduleId}: Idioma detectado: ${detectedLanguage}`);
 
   // Determinar idiomas destino (los otros dos)
   const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
@@ -242,7 +183,7 @@ export async function translateModuleOnCreate(
 
       if (saved) {
         successCount++;
-        console.log(`[CourseTranslation] Módulo ${moduleId} traducido exitosamente a ${lang}`);
+
       } else {
         errors[lang] = 'Error al guardar traducción';
       }
@@ -284,7 +225,6 @@ export async function translateLessonOnCreate(
   }
   
   const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
-  console.log(`[CourseTranslation] Lección ${lessonId}: Idioma detectado: ${detectedLanguage}`);
 
   // Determinar idiomas destino (los otros dos)
   const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
@@ -315,19 +255,6 @@ export async function translateLessonOnCreate(
         }
       );
 
-      console.log(`[CourseTranslation] Intentando guardar traducción a ${lang} para lección ${lessonId}`, {
-        translationKeys: Object.keys(translations),
-        translationSizes: Object.keys(translations).reduce((acc, key) => {
-          const value = translations[key];
-          acc[key] = typeof value === 'string' ? value.length : Array.isArray(value) ? value.length : 'N/A';
-          return acc;
-        }, {} as Record<string, any>),
-        hasTranscript: !!translations.transcript_content,
-        transcriptLength: translations.transcript_content?.length || 0,
-        hasSummary: !!translations.summary_content,
-        summaryLength: translations.summary_content?.length || 0
-      });
-
       const saved = await ContentTranslationService.saveTranslation(
         'lesson',
         lessonId,
@@ -339,7 +266,7 @@ export async function translateLessonOnCreate(
 
       if (saved) {
         successCount++;
-        console.log(`[CourseTranslation] ✅ Lección ${lessonId} traducida exitosamente a ${lang}`);
+
       } else {
         const errorMsg = `Error al guardar traducción a ${lang}. Revisa los logs del servidor para más detalles.`;
         errors[lang] = errorMsg;
@@ -385,7 +312,6 @@ export async function translateActivityOnCreate(
   }
   
   const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
-  console.log(`[CourseTranslation] Actividad ${activityId}: Idioma detectado: ${detectedLanguage}`);
 
   // Determinar idiomas destino (los otros dos)
   const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
@@ -427,7 +353,7 @@ export async function translateActivityOnCreate(
 
       if (saved) {
         successCount++;
-        console.log(`[CourseTranslation] Actividad ${activityId} traducida exitosamente a ${lang}`);
+
       } else {
         errors[lang] = 'Error al guardar traducción';
       }
@@ -462,7 +388,6 @@ export async function translateMaterialOnCreate(
   if (materialData.material_description) textsToAnalyze.push(materialData.material_description);
   
   const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze);
-  console.log(`[CourseTranslation] Material ${materialId}: Idioma detectado: ${detectedLanguage}`);
 
   // Determinar idiomas destino (los otros dos)
   const allLanguages: SupportedLanguage[] = ['es', 'en', 'pt'];
@@ -506,7 +431,7 @@ export async function translateMaterialOnCreate(
 
       if (saved) {
         successCount++;
-        console.log(`[CourseTranslation] Material ${materialId} traducido exitosamente a ${lang}`);
+
       } else {
         errors[lang] = 'Error al guardar traducción';
       }

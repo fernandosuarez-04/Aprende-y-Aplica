@@ -408,7 +408,6 @@ export default function StatisticsResultsPage() {
       }
 
       // Log simplificado de respuestas recibidas
-      console.log('📋 Total de respuestas recibidas:', responses?.length || 0);
 
       // Log para debug de Inversión
       console.log('📋 Preguntas 16-18:', responses?.filter(r => r.pregunta_id >= 16 && r.pregunta_id <= 18).map(r => ({
@@ -421,7 +420,7 @@ export default function StatisticsResultsPage() {
       
       // Procesar datos para el radar (pasar dificultad_id del usuario)
       const processedRadarData = processRadarData(responses || [], userProfile.dificultad_id);
-      console.log('📊 Datos del radar procesados:', processedRadarData);
+
       setRadarData(processedRadarData);
 
       // Procesar análisis
@@ -567,16 +566,6 @@ export default function StatisticsResultsPage() {
         const texto = response.preguntas?.texto?.toLowerCase() || '';
         const preguntaId = response.pregunta_id;
 
-        // Log de debug para preguntas 13-18 (todas las de Conocimiento)
-        if (preguntaId >= 13 && preguntaId <= 18) {
-          console.log(`🔍 Evaluando pregunta ${preguntaId} para dimensión ${dimension}:`, {
-            preguntaId,
-            bloque,
-            section,
-            texto_preview: texto.substring(0, 50)
-          });
-        }
-
         // Mapear sección/bloque a dimensión de manera más inteligente
         let mappedDimension = '';
 
@@ -618,22 +607,16 @@ export default function StatisticsResultsPage() {
 
           // Log para debug
           if (preguntaId >= 16 && preguntaId <= 18) {
-            console.log(`🔍 Mapeando pregunta ${preguntaId}:`, {
-              preguntaId,
-              tipo_preguntaId: typeof preguntaId,
-              comparacion_16_17: preguntaId >= 16 && preguntaId <= 17,
-              comparacion_18: preguntaId === 18
-            });
+
           }
 
           if (preguntaId >= 13 && preguntaId <= 15) {
             mappedDimension = 'Conocimiento';
           } else if (preguntaId >= 16 && preguntaId <= 17) {
             mappedDimension = 'Inversión';
-            console.log(`✅ Pregunta ${preguntaId} mapeada a Inversión`);
+
           } else if (preguntaId === 18) {
             mappedDimension = 'Estrategia';
-            console.log(`✅ Pregunta ${preguntaId} mapeada a Estrategia (desde Conocimiento)`);
           } else {
             // Fallback: distribuir por texto
             if (texto.includes('inversión') || texto.includes('presupuesto') || texto.includes('capacitación') || texto.includes('formación')) {
@@ -659,7 +642,6 @@ export default function StatisticsResultsPage() {
 
         // Log del resultado del mapeo para preguntas 16-18
         if (preguntaId >= 16 && preguntaId <= 18) {
-          console.log(`✅ Pregunta ${preguntaId} mapeada a: "${mappedDimension}" (buscando: "${dimension}")`);
         }
 
         return mappedDimension === dimension;
@@ -667,7 +649,7 @@ export default function StatisticsResultsPage() {
 
       // Log simplificado
       if (relevantResponses.length > 0) {
-        console.log(`📈 ${dimension}: ${relevantResponses.length} respuestas`);
+
       }
 
       let totalScore = 0;
@@ -780,7 +762,6 @@ export default function StatisticsResultsPage() {
     });
 
     // Log final de scores
-    console.log('📊 Scores finales por dimensión:', scores.map(s => `${s.dimension}: ${s.score}`).join(', '));
 
     return scores;
   };

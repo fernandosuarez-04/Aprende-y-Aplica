@@ -119,7 +119,6 @@ export class SessionRecorder {
     // Esto previene que errores de MutationRecord rompan la aplicación
     setupMutationRecordErrorHandler();
 
-    console.log('🎬 Iniciando grabación de sesión...');
     this.events = [];
     this.initialSnapshot = null;
     this.isRecording = true;
@@ -156,7 +155,7 @@ export class SessionRecorder {
           // Guardar el snapshot inicial (tipo 2) por separado
           if (event.type === 2 && !this.initialSnapshot) {
             this.initialSnapshot = event;
-            console.log('📸 Snapshot inicial capturado');
+
           }
           
           // Agregar evento a la lista
@@ -269,13 +268,12 @@ export class SessionRecorder {
       // Auto-detener después de maxDuration
       setTimeout(() => {
         if (this.isRecording) {
-          console.log('⏱️ Duración máxima alcanzada, deteniendo grabación');
+
           this.stopRecording?.();
           this.isRecording = false;
         }
       }, this.maxDuration);
 
-      console.log('✅ Grabación iniciada correctamente');
     } catch (error) {
       console.error('❌ Error iniciando grabación:', error);
       this.isRecording = false;
@@ -306,15 +304,13 @@ export class SessionRecorder {
       return null;
     }
 
-    console.log('📸 Capturando snapshot de la sesión sin detener grabación...');
-
     // Crear copia de los eventos actuales
     const eventsCopy = [...this.events];
 
     // Verificar que tengamos el snapshot inicial (tipo 2)
     const hasSnapshot = eventsCopy.some(e => e.type === 2);
     if (!hasSnapshot && this.initialSnapshot) {
-      console.log('➕ Agregando snapshot inicial a la copia');
+
       eventsCopy.unshift(this.initialSnapshot);
     }
 
@@ -327,7 +323,6 @@ export class SessionRecorder {
     const duration = session.endTime && session.startTime 
       ? Math.round((session.endTime - session.startTime) / 1000)
       : 0;
-    console.log(`✅ Snapshot capturado: ${session.events.length} eventos (${duration}s de grabación)`);
     
     // NO limpiamos eventos, la grabación continúa
     return session;
@@ -342,7 +337,6 @@ export class SessionRecorder {
       return null;
     }
 
-    console.log('🛑 Deteniendo grabación...');
     this.stopRecording?.();
     this.isRecording = false;
 
@@ -359,7 +353,7 @@ export class SessionRecorder {
       // Si tenemos el snapshot guardado, agregarlo al inicio
       if (this.initialSnapshot) {
         this.events.unshift(this.initialSnapshot);
-        console.log('✅ Snapshot inicial recuperado');
+
       } else {
         console.error('❌ No se puede reproducir sin snapshot inicial');
       }
@@ -370,8 +364,6 @@ export class SessionRecorder {
       startTime: this.events[0]?.timestamp || Date.now(),
       endTime: this.events[this.events.length - 1]?.timestamp || Date.now(),
     };
-
-    console.log(`✅ Grabación detenida. ${session.events.length} eventos capturados (Snapshot: ${hasSnapshot ? 'Sí' : 'No'})`);
 
     // Limpiar eventos
     this.events = [];

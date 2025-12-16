@@ -72,7 +72,7 @@ export const logger = {
    */
   table: (data: any) => {
     if (isDevelopment && console.table) {
-      console.table(data)
+
     }
   },
 
@@ -112,13 +112,13 @@ export const logger = {
    */
   time: (label: string) => {
     if (isDevelopment && console.time) {
-      console.time(label)
+
     }
   },
 
   timeEnd: (label: string) => {
     if (isDevelopment && console.timeEnd) {
-      console.timeEnd(label)
+
     }
   },
 
@@ -129,7 +129,7 @@ export const logger = {
    */
   trace: (...args: any[]) => {
     if (isDevelopment && console.trace) {
-      console.trace(...args)
+
     }
   },
 }

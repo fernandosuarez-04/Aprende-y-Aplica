@@ -15,9 +15,6 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const lessonId = searchParams.get('lessonId') || 'f30ac395-a54c-4353-91ff-fecab7120f82'
 
-    console.log('[TEST-ES-TRANSLATION] ========== DIAGNÓSTICO DE TRADUCCIÓN A ESPAÑOL ==========')
-    console.log('[TEST-ES-TRANSLATION] Lesson ID:', lessonId)
-
     // Obtener datos de la lección
     const supabase = await createClient()
     const { data: lesson, error: lessonError } = await supabase
@@ -33,20 +30,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[TEST-ES-TRANSLATION] Lección encontrada:', {
-      id: lesson.lesson_id,
-      title: lesson.lesson_title,
-      hasDescription: !!lesson.lesson_description,
-      hasTranscript: !!lesson.transcript_content,
-      hasSummary: !!lesson.summary_content
-    })
-
     // Detectar idioma
     const textsToAnalyze: string[] = [lesson.lesson_title]
     if (lesson.lesson_description) textsToAnalyze.push(lesson.lesson_description)
     
     const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze)
-    console.log('[TEST-ES-TRANSLATION] Idioma detectado:', detectedLanguage)
 
     if (detectedLanguage === 'es') {
       return NextResponse.json({
@@ -62,10 +50,8 @@ export async function GET(request: NextRequest) {
     if (lesson.transcript_content) fieldsToTranslate.push('transcript_content')
     if (lesson.summary_content) fieldsToTranslate.push('summary_content')
 
-    console.log('[TEST-ES-TRANSLATION] Campos a traducir:', fieldsToTranslate)
-
     // PASO 1: Traducir usando AutoTranslationService
-    console.log('[TEST-ES-TRANSLATION] ========== PASO 1: TRADUCIENDO CON OPENAI ==========')
+
     let translations: Record<string, any> = {}
     
     try {
@@ -107,7 +93,7 @@ export async function GET(request: NextRequest) {
     // PASO 2: Verificar tamaño de datos
     const translationsJson = JSON.stringify(translations)
     const translationsSize = new Blob([translationsJson]).size
-    console.log('[TEST-ES-TRANSLATION] ========== PASO 2: VERIFICANDO TAMAÑO ==========')
+
     console.log('[TEST-ES-TRANSLATION] Tamaño de traducciones:', {
       sizeBytes: translationsSize,
       sizeKB: (translationsSize / 1024).toFixed(2),
@@ -115,8 +101,7 @@ export async function GET(request: NextRequest) {
     })
 
     // PASO 3: Intentar guardar directamente con Supabase para capturar el error
-    console.log('[TEST-ES-TRANSLATION] ========== PASO 3: GUARDANDO EN BD ==========')
-    
+
     let saved = false
     let saveError: any = null
     
@@ -130,7 +115,7 @@ export async function GET(request: NextRequest) {
         null,
         supabase
       )
-      console.log('[TEST-ES-TRANSLATION] Resultado de saveTranslation:', saved)
+
     } catch (error) {
       saveError = error
       console.error('[TEST-ES-TRANSLATION] ❌ Excepción en saveTranslation:', error)
@@ -138,7 +123,7 @@ export async function GET(request: NextRequest) {
 
     // Si falló, intentar guardar directamente para ver el error
     if (!saved && !saveError) {
-      console.log('[TEST-ES-TRANSLATION] Intentando guardar directamente para diagnosticar...')
+
       try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -185,7 +170,7 @@ export async function GET(request: NextRequest) {
             console.error('[TEST-ES-TRANSLATION] ❌ Error directo de Supabase:', directError)
           } else {
             saved = true
-            console.log('[TEST-ES-TRANSLATION] ✅ Guardado directo exitoso:', directData)
+
           }
         }
       } catch (directError) {
@@ -206,13 +191,6 @@ export async function GET(request: NextRequest) {
       .eq('entity_id', lessonId)
       .eq('language_code', 'es')
       .single()
-
-    console.log('[TEST-ES-TRANSLATION] ========== PASO 4: VERIFICANDO EN BD ==========')
-    console.log('[TEST-ES-TRANSLATION] Traducción en BD:', {
-      found: !!savedTranslation,
-      error: queryError,
-      hasData: !!savedTranslation?.translations
-    })
 
     return NextResponse.json({
       success: saved,

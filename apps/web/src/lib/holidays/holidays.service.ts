@@ -251,7 +251,7 @@ export class HolidayService {
     keysToDelete.forEach(key => this.holidayCache.delete(key));
 
     if (keysToDelete.length > 0) {
-      console.log(`🗑️ Cache limpiado: ${keysToDelete.length} entradas antiguas eliminadas`);
+
     }
   }
 

@@ -9,7 +9,7 @@ import React from 'react';
 export function resetOnboarding() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('has-seen-onboarding');
-    console.log('✅ Onboarding reseteado. Recarga la página en /dashboard para verlo de nuevo.');
+
   }
 }
 

@@ -118,7 +118,6 @@ export default function NotificationsPage() {
 
       // Si llegamos aquí, la operación fue exitosa
       const updatedCount = data.data?.updated || 0
-      console.log(`✅ ${updatedCount} notificaciones marcadas como leídas`)
 
       // Optimización: Actualizar estado según el filtro actual
       if (statusFilter === 'unread') {

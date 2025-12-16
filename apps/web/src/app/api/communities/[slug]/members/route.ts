@@ -173,7 +173,7 @@ export async function GET(
         const hasOtherCommunities = usersWithOtherCommunitiesSet.has(userId);
 
         if (hasOtherCommunities) {
-          console.log(`Usuario ${userId} excluido de Profesionales - tiene otras comunidades`);
+
         }
 
         return !hasOtherCommunities;
@@ -417,7 +417,7 @@ export async function PATCH(
       // Si tiene otras comunidades, marcarlo como inválido
       if (otherMemberships && otherMemberships.length > 0) {
         invalidMemberIds.push(member.id);
-        console.log(`Marcando usuario ${member.user_id} como inválido - tiene ${otherMemberships.length} otras comunidades`);
+
       }
     }
 

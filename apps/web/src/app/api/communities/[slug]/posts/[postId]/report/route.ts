@@ -22,10 +22,10 @@ export async function POST(
   { params }: { params: Promise<{ slug: string; postId: string }> }
 ) {
   try {
-    console.log('📥 POST /api/communities/[slug]/posts/[postId]/report - Request received')
+
     const supabase = await createClient()
     const { slug, postId } = await params
-    console.log('📋 Route params:', { slug, postId })
+
     const user = await SessionService.getCurrentUser()
 
     if (!user) {
@@ -33,11 +33,9 @@ export async function POST(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    console.log('✅ User authenticated:', user.id)
-
     // Validar body
     const body = await request.json()
-    console.log('📦 Request body:', body)
+
     const validationResult = reportSchema.safeParse(body)
 
     if (!validationResult.success) {
@@ -49,7 +47,6 @@ export async function POST(
     }
 
     const { reason_category, reason_details } = validationResult.data
-    console.log('✅ Validated data:', { reason_category, reason_details })
 
     // Obtener el post
     const { data: post, error: postError } = await supabase
@@ -67,8 +64,6 @@ export async function POST(
       }, { status: 404 })
     }
 
-    console.log('✅ Post found:', { postId: post.id, communityId: post.community_id, userId: post.user_id })
-
     // Verificar que el post pertenece a la comunidad correcta
     const { data: community, error: communityError } = await supabase
       .from('communities')
@@ -85,8 +80,6 @@ export async function POST(
         code: communityError?.code
       }, { status: 404 })
     }
-
-    console.log('✅ Community verified:', { communityId: community.id, slug: community.slug })
 
     // Validar que el usuario no sea el autor del post
     if (post.user_id === user.id) {
@@ -125,8 +118,6 @@ export async function POST(
       }
     }
 
-    console.log('✅ Table exists, checking for existing reports...')
-
     // Validar que el usuario no haya reportado este post anteriormente
     const { data: existingReport, error: existingReportError } = await supabase
       .from('community_post_reports')
@@ -159,14 +150,12 @@ export async function POST(
     }
 
     if (existingReport) {
-      console.log('⚠️ User already reported this post')
+
       return NextResponse.json(
         { error: 'Ya has reportado este post anteriormente' },
         { status: 400 }
       )
     }
-
-    console.log('✅ No existing report found, proceeding to create...')
 
     // Crear el reporte
     const reportData = {
@@ -177,14 +166,6 @@ export async function POST(
       reason_details: reason_details?.trim() || null,
       status: 'pending'
     }
-
-    console.log('📝 Creating report with data:', {
-      postId,
-      communityId: post.community_id,
-      userId: user.id,
-      reasonCategory: reason_category,
-      reasonDetails: reason_details
-    })
 
     // Usar cliente admin para bypass RLS ya que el proyecto usa autenticación personalizada
     // La validación de permisos ya se hizo arriba (usuario autenticado, no propio post, etc.)
@@ -261,8 +242,6 @@ export async function POST(
         { status: 500 }
       )
     }
-
-    console.log('✅ Report created successfully:', { reportId: report.id, postId, userId: user.id })
 
     return NextResponse.json({
       success: true,
