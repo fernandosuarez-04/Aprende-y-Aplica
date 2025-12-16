@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users,
@@ -81,26 +81,26 @@ export function BusinessReports({}: BusinessReportsProps) {
     }
   }, [showFilters, filters])
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = useCallback(() => {
     const filtersToUse = {
       ...filters,
       start_date: localStartDate || undefined,
       end_date: localEndDate || undefined
     }
     fetchReport(reportType, filtersToUse)
-  }
+  }, [filters, localStartDate, localEndDate, fetchReport, reportType])
 
+  // Cargar reporte inicial cuando cambia el tipo de reporte
   useEffect(() => {
     if (reportType) {
-      const filtersToUse = {
+      // Usar valores actuales de filtros directamente
+      fetchReport(reportType, {
         ...filters,
         start_date: localStartDate || undefined,
         end_date: localEndDate || undefined
-      }
-      fetchReport(reportType, filtersToUse)
+      })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reportType])
+  }, [reportType, fetchReport, filters, localStartDate, localEndDate])
 
   const handleExportExcel = async () => {
     if (!reportData?.data) {

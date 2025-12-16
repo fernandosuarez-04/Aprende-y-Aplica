@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Menu, Transition } from '@headlessui/react'
 import { 
   BellIcon,
@@ -82,20 +82,20 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
   const [error, setError] = useState<string | null>(null)
 
   // Función para obtener notificaciones
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
 
       // Obtener notificaciones del usuario (últimas 10, leídas y no leídas)
       const response = await fetch('/api/notifications?limit=10&orderBy=created_at&orderDirection=desc')
-      
+
       if (!response.ok) {
         throw new Error('Error al obtener notificaciones')
       }
 
       const data = await response.json()
-      
+
       if (data.success && data.data?.notifications) {
         const mappedNotifications = data.data.notifications.map(mapNotificationToComponent)
         setNotificationsList(mappedNotifications)
@@ -103,19 +103,18 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
         setNotificationsList([])
       }
     } catch (err) {
-      // console.error('Error fetching notifications:', err)
       setError('No se pudieron cargar las notificaciones')
       setNotificationsList([])
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   // Función para obtener conteo de no leídas
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await fetch('/api/notifications/unread-count')
-      
+
       if (response.ok) {
         const data = await response.json()
         if (data.success && data.data) {
@@ -123,9 +122,9 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
         }
       }
     } catch (err) {
-      // console.error('Error fetching unread count:', err)
+      // Silent error - unread count is not critical
     }
-  }
+  }, [])
 
   // Cargar notificaciones y conteo al montar el componente
   useEffect(() => {
@@ -145,10 +144,9 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
       fetchNotifications()
       fetchUnreadCount()
     }, 30000)
-    
+
     return () => clearInterval(interval)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [fetchNotifications, fetchUnreadCount])
 
   const getNotificationIcon = (type: string) => {
     switch (type) {

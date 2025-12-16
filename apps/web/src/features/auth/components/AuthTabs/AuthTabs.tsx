@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -45,42 +45,37 @@ export function AuthTabs() {
   }, [tabParam]);
 
   // Calcular posición y tamaño del indicador basado en los botones reales
-  const updateIndicatorPosition = () => {
+  const updateIndicatorPosition = useCallback(() => {
     const activeButton = activeTab === 'login' ? loginButtonRef.current : registerButtonRef.current;
     const container = tabsContainerRef.current;
-    
+
     if (activeButton && container) {
       const containerRect = container.getBoundingClientRect();
       const buttonRect = activeButton.getBoundingClientRect();
-      
+
       setIndicatorStyle({
         width: buttonRect.width,
         left: buttonRect.left - containerRect.left,
       });
     }
-  };
+  }, [activeTab]);
 
   // Actualizar posición del indicador cuando cambia el tab o el tamaño de la ventana
   useEffect(() => {
     updateIndicatorPosition();
-    
-    const handleResize = () => {
-      updateIndicatorPosition();
-    };
-    
-    window.addEventListener('resize', handleResize);
-    
+
+    window.addEventListener('resize', updateIndicatorPosition);
+
     // También actualizar después de un pequeño delay para asegurar que los elementos estén renderizados
     const timeoutId = setTimeout(updateIndicatorPosition, 10);
     const timeoutId2 = setTimeout(updateIndicatorPosition, 100);
-    
+
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', updateIndicatorPosition);
       clearTimeout(timeoutId);
       clearTimeout(timeoutId2);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [updateIndicatorPosition]);
 
   // Medir altura del nuevo contenido antes de animar
   useEffect(() => {

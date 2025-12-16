@@ -703,7 +703,7 @@ export function AIChatAgent({
       // Primero verificar si el modo de contexto está activado
       const savedContextMode = localStorage.getItem(STORAGE_KEY_CONTEXT_MODE);
       const contextModeEnabled = savedContextMode === 'true';
-      
+
       // Cargar mensajes guardados
       const savedMessages = loadContextMessages();
 
@@ -712,15 +712,13 @@ export function AIChatAgent({
         setUseContextMode(true);
         if (savedMessages.length > 0) {
           setNormalMessages(savedMessages);
-
         }
         localStorage.setItem(STORAGE_KEY_CONTEXT_MODE, 'true');
       }
     } catch (error) {
       console.error('Error cargando estado de contexto desde localStorage:', error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Solo ejecutar una vez al montar
+  }, [loadContextMessages]); // loadContextMessages es estable (useCallback con [])
 
   // ✅ PERSISTENCIA: Guardar estado de useContextMode cuando cambia
   useEffect(() => {
@@ -1752,47 +1750,43 @@ export function AIChatAgent({
       prevPathnameRef.current = pathname;
       return;
     }
-    
+
     if (prevPathnameRef.current !== pathname) {
       const wasOpen = isOpen;
-      const previousPathname = prevPathnameRef.current;
 
       // ✅ PERSISTENCIA: Guardar mensajes antes de cambiar de página si el modo de contexto está activo
       if (useContextMode && !isPromptMode && normalMessages.length > 0) {
         saveContextMessages(normalMessages);
-
       }
-      
+
       // ✅ PERSISTENCIA: NO limpiar mensajes si el modo de contexto está activo
       // Esto permite mantener el contexto del chat entre páginas
       // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal y sin contexto)
       // Esto evita usar contenido de la página anterior
       if (!isPromptMode && !useContextMode) {
         setNormalMessages([]);
-      } else if (useContextMode) {
       }
       setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
       prevPathnameRef.current = pathname;
-      
+
       // Actualizar el contenido de la página cuando cambia (sin enviar mensaje automático)
       if (wasOpen) {
         // Marcar que ya se abrió para evitar que el otro useEffect interfiera
         hasOpenedRef.current = true;
-        
+
         // Actualizar el contenido de la página sin enviar mensaje automático
         const timer = setTimeout(() => {
           const currentPageContent = extractPageContent();
           setPageContent(currentPageContent);
         }, 100);
-        
+
         return () => clearTimeout(timer);
       } else {
         // Si el chat está cerrado, resetear el flag
         hasOpenedRef.current = false;
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, useContextMode, isPromptMode]); // Agregar dependencias necesarias para detectar modo de contexto
+  }, [pathname, useContextMode, isPromptMode, isOpen, normalMessages, saveContextMessages]);
 
   // Actualizar contenido de página cuando se abre la LIA (sin enviar mensaje automático)
   useEffect(() => {

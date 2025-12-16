@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Palette,
@@ -20,6 +20,22 @@ import { PRESET_THEMES, getAllThemes, ThemeConfig, generateBrandingTheme, Brandi
 
 type ActivePanel = 'panel' | 'userDashboard' | 'login';
 
+// Función pura fuera del componente para obtener estilos por defecto
+const getDefaultStyle = (): StyleConfig => ({
+  background_type: 'gradient',
+  background_value: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1e40af 100%)',
+  primary_button_color: '#3b82f6',
+  secondary_button_color: '#2563eb',
+  accent_color: '#60a5fa',
+  sidebar_background: '#1e293b',
+  card_background: '#1e293b',
+  text_color: '#f8fafc',
+  border_color: '#334155',
+  modal_opacity: 0.95,
+  card_opacity: 1,
+  sidebar_opacity: 1
+});
+
 export function BusinessThemeCustomizer() {
   const { styles, loading, error, updateStyles, applyTheme, refetch } = useOrganizationStylesContext();
   const [activePanel, setActivePanel] = useState<ActivePanel>('panel');
@@ -29,21 +45,6 @@ export function BusinessThemeCustomizer() {
   const [brandingColors, setBrandingColors] = useState<BrandingColors | null>(null);
   const [loadingBranding, setLoadingBranding] = useState(true);
 
-  // Función para obtener estilo por defecto
-  const getDefaultStyle = (): StyleConfig => ({
-    background_type: 'gradient',
-    background_value: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1e40af 100%)',
-    primary_button_color: '#3b82f6',
-    secondary_button_color: '#2563eb',
-    accent_color: '#60a5fa',
-    sidebar_background: '#1e293b',
-    card_background: '#1e293b',
-    text_color: '#f8fafc',
-    border_color: '#334155',
-    modal_opacity: 0.95,
-    card_opacity: 1,
-    sidebar_opacity: 1
-  });
 
   // Estados locales para cada panel
   const [panelStyles, setPanelStyles] = useState<StyleConfig | null>(() => getDefaultStyle());
@@ -80,7 +81,6 @@ export function BusinessThemeCustomizer() {
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [styles, activePanel]);
 
   // Cargar colores de branding para generar tema automático
@@ -282,14 +282,14 @@ export function BusinessThemeCustomizer() {
   }
 
   // Generar CSS del gradiente basado en los colores y ángulo
-  const generateGradientCSS = (): string => {
+  const generateGradientCSS = useCallback((): string => {
     if (gradientColors.length < 2) return 'linear-gradient(135deg, #1e3a8a, #1e40af)'
     const colorsWithStops = gradientColors.map((color, index) => {
       const stop = (index / (gradientColors.length - 1)) * 100
       return `${color} ${stop}%`
     }).join(', ')
     return `linear-gradient(${gradientAngle}deg, ${colorsWithStops})`
-  }
+  }, [gradientColors, gradientAngle])
 
   // Actualizar gradiente cuando cambien los colores o el ángulo
   useEffect(() => {
@@ -301,8 +301,7 @@ export function BusinessThemeCustomizer() {
         updateStyle(activePanel, 'background_value', newGradient)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gradientColors, gradientAngle, activePanel])
+  }, [gradientColors, gradientAngle, activePanel, currentStyles, generateGradientCSS, updateStyle])
 
   // Agregar color al gradiente
   const addGradientColor = () => {

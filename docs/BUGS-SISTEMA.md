@@ -26,15 +26,6 @@
 **Impacto:** Performance, seguridad (expone info)
 **Fix:** Configurar regla ESLint `no-console` y remover logs
 
-### 2. Uso excesivo de `as any` (Type Safety)
-**Archivos afectados:** 81 archivos
-**Principales:**
-- `apps/web/src/app/study-planner/dashboard/page.tsx`
-- `apps/web/src/features/study-planner/components/StudyPlannerLIA.tsx`
-- `apps/web/src/core/components/AIChatAgent/AIChatAgent.tsx`
-- `apps/web/src/app/courses/[slug]/learn/page.tsx`
-
-**Fix:** Crear tipos apropiados para cada caso
 
 ### 3. TODOs sin implementar criticos
 **Archivo:Linea - Descripcion:**
