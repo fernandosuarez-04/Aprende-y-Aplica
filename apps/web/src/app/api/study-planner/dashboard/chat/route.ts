@@ -623,6 +623,13 @@ interface ProactiveAnalysis {
     originalTime: string;
     suggestedRecoverySlots: string[];
   }>;
+  overdueSessions: Array<{
+    sessionTitle: string;
+    sessionId: string;
+    scheduledTime: string;
+    hoursOverdue: number;
+    suggestedRecoverySlots: string[];
+  }>;
   freeSlots: Array<{
     date: string;
     startTime: string;
@@ -675,6 +682,7 @@ async function analyzeProactively(
     conflicts: [],
     overloadedDays: [],
     missedSessions: [],
+    overdueSessions: [],
     freeSlots: [],
     weeklyProgress: {
       plannedMinutes: 0,
@@ -828,6 +836,33 @@ async function analyzeProactively(
     }
   }
 
+  // 3.5. DETECTAR SESIONES NO REALIZADAS (planificadas en el pasado pero no completadas)
+  for (const session of sessions) {
+    // Solo considerar sesiones que están planificadas y cuya hora de fin ya pasó
+    if (session.status === 'planned') {
+      const sessionEndTime = new Date(session.end_time);
+      const hoursOverdue = (now.getTime() - sessionEndTime.getTime()) / (1000 * 60 * 60);
+
+      // Si la sesión terminó hace más de 1 hora y sigue como 'planned', es una sesión no realizada
+      if (hoursOverdue > 1) {
+        const recoverySlots = findAlternativeSlots(
+          new Date(),
+          session.duration_minutes || 60,
+          calendarEvents,
+          sessions
+        );
+
+        analysis.overdueSessions.push({
+          sessionTitle: session.title,
+          sessionId: session.id,
+          scheduledTime: formatDateTime(new Date(session.start_time)),
+          hoursOverdue: Math.round(hoursOverdue),
+          suggestedRecoverySlots: recoverySlots.slice(0, 3)
+        });
+      }
+    }
+  }
+
   // 4. DETECTAR HUECOS LIBRES (para sugerir micro-sesiones)
   const next7Days = [];
   for (let i = 0; i < 7; i++) {
@@ -927,13 +962,14 @@ async function analyzeProactively(
     }
   }
 
-  logger.info(`🔍 Análisis completado: ${analysis.conflicts.length} conflictos, ${analysis.overloadedDays.length} días sobrecargados, ${analysis.missedSessions.length} sesiones perdidas`);
+  logger.info(`🔍 Análisis completado: ${analysis.conflicts.length} conflictos, ${analysis.overloadedDays.length} días sobrecargados, ${analysis.missedSessions.length} sesiones perdidas, ${analysis.overdueSessions.length} sesiones no realizadas`);
 
   return analysis;
 }
 
 /**
  * Encuentra horarios alternativos para una sesión
+ * Verifica contra TODOS los eventos del calendario (no solo sesiones de estudio)
  */
 function findAlternativeSlots(
   date: Date,
@@ -942,66 +978,100 @@ function findAlternativeSlots(
   sessions: Array<{ start_time: string; end_time: string }>
 ): string[] {
   const alternatives: string[] = [];
-  const dateKey = date.toISOString().split('T')[0];
-  
-  // Horarios preferidos para estudiar
-  const preferredSlots = [
-    { start: 7, end: 8 },   // Mañana temprano
-    { start: 8, end: 9 },
-    { start: 9, end: 10 },
-    { start: 12, end: 13 }, // Mediodía
-    { start: 18, end: 19 }, // Tarde
-    { start: 19, end: 20 },
-    { start: 20, end: 21 }, // Noche
-    { start: 21, end: 22 },
-  ];
-  
-  // Obtener todos los eventos del día
-  const dayEvents = [
-    ...calendarEvents.filter(e => new Date(e.start).toISOString().split('T')[0] === dateKey),
-    ...sessions.filter(s => new Date(s.start_time).toISOString().split('T')[0] === dateKey)
-      .map(s => ({ start: s.start_time, end: s.end_time }))
-  ];
-  
-  for (const slot of preferredSlots) {
-    const slotStart = new Date(date);
-    slotStart.setHours(slot.start, 0, 0, 0);
-    
-    const slotEnd = new Date(date);
-    slotEnd.setHours(slot.start + Math.ceil(durationMinutes / 60), 0, 0, 0);
-    
-    // Verificar si el slot está libre
-    const isFree = !dayEvents.some(event => {
+  const now = new Date();
+
+  // Horarios preferidos para estudiar (hora de inicio)
+  const preferredHours = [7, 8, 9, 10, 12, 13, 14, 17, 18, 19, 20, 21];
+
+  // Calcular duración en horas (redondeado hacia arriba)
+  const durationHours = Math.ceil(durationMinutes / 60);
+
+  // Función auxiliar para obtener la clave de fecha en formato local
+  const getDateKey = (d: Date): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Función para verificar si un slot tiene conflicto con eventos
+  const hasConflict = (slotStart: Date, slotEnd: Date, events: Array<{ start: string; end: string }>): boolean => {
+    return events.some(event => {
       const eventStart = new Date(event.start).getTime();
       const eventEnd = new Date(event.end).getTime();
-      return (slotStart.getTime() < eventEnd) && (slotEnd.getTime() > eventStart);
+      const slotStartTime = slotStart.getTime();
+      const slotEndTime = slotEnd.getTime();
+
+      // Hay conflicto si los rangos se superponen
+      return (slotStartTime < eventEnd) && (slotEndTime > eventStart);
     });
-    
-    if (isFree) {
-      alternatives.push(`${formatTime(slotStart)} - ${formatTime(slotEnd)}`);
-    }
-    
-    if (alternatives.length >= 3) break;
-  }
-  
-  // Si no hay alternativas en el mismo día, buscar en los siguientes días
-  if (alternatives.length === 0) {
-    for (let i = 1; i <= 3; i++) {
-      const nextDay = new Date(date);
-      nextDay.setDate(nextDay.getDate() + i);
-      const nextDateKey = nextDay.toISOString().split('T')[0];
-      
-      for (const slot of preferredSlots.slice(0, 3)) {
-        const slotStart = new Date(nextDay);
-        slotStart.setHours(slot.start, 0, 0, 0);
-        
-        alternatives.push(`${formatDate(slotStart)} a las ${formatTime(slotStart)}`);
-        if (alternatives.length >= 3) break;
+  };
+
+  // Buscar en los próximos 14 días
+  for (let dayOffset = 0; dayOffset <= 14 && alternatives.length < 3; dayOffset++) {
+    const checkDate = new Date(now);
+    checkDate.setDate(checkDate.getDate() + dayOffset);
+    checkDate.setHours(0, 0, 0, 0);
+
+    const dateKey = getDateKey(checkDate);
+
+    // Obtener TODOS los eventos de este día (calendario externo + sesiones de estudio)
+    const allDayEvents: Array<{ start: string; end: string }> = [];
+
+    // Agregar eventos del calendario externo
+    for (const event of calendarEvents) {
+      const eventDateKey = getDateKey(new Date(event.start));
+      if (eventDateKey === dateKey) {
+        allDayEvents.push({ start: event.start, end: event.end });
       }
+    }
+
+    // Agregar sesiones de estudio existentes
+    for (const session of sessions) {
+      const sessionDateKey = getDateKey(new Date(session.start_time));
+      if (sessionDateKey === dateKey) {
+        allDayEvents.push({ start: session.start_time, end: session.end_time });
+      }
+    }
+
+    // Log para debug (solo en desarrollo)
+    if (allDayEvents.length > 0) {
+      logger.info(`📅 Día ${dateKey}: ${allDayEvents.length} eventos encontrados`);
+    }
+
+    // Probar cada hora preferida
+    for (const hour of preferredHours) {
       if (alternatives.length >= 3) break;
+
+      const slotStart = new Date(checkDate);
+      slotStart.setHours(hour, 0, 0, 0);
+
+      const slotEnd = new Date(checkDate);
+      slotEnd.setHours(hour + durationHours, 0, 0, 0);
+
+      // Saltar si el slot ya pasó
+      if (slotStart.getTime() < now.getTime()) {
+        continue;
+      }
+
+      // Verificar si hay conflicto con algún evento
+      if (!hasConflict(slotStart, slotEnd, allDayEvents)) {
+        // Formatear con día de la semana para mayor claridad
+        const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const dayName = dayNames[slotStart.getDay()];
+        const dateStr = formatDate(slotStart);
+
+        alternatives.push(`${dayName} ${dateStr}, ${formatTime(slotStart)} - ${formatTime(slotEnd)}`);
+        logger.info(`✅ Slot libre encontrado: ${dayName} ${dateStr} ${formatTime(slotStart)}`);
+      }
     }
   }
-  
+
+  // Si no encontramos alternativas, dar un mensaje genérico
+  if (alternatives.length === 0) {
+    alternatives.push('Revisa tu calendario para encontrar un horario libre');
+  }
+
   return alternatives;
 }
 
@@ -1307,6 +1377,29 @@ Se han detectado **${proactiveAnalysis.conflicts.length} conflicto(s)** entre se
 `;
     }
 
+    // 4.5. SESIONES NO REALIZADAS (planificadas que ya pasaron)
+    if (proactiveAnalysis.overdueSessions.length > 0) {
+      context += `
+### ⚠️ SESIONES NO REALIZADAS
+Estas sesiones estaban planificadas pero no se completaron:
+`;
+      for (const overdue of proactiveAnalysis.overdueSessions) {
+        const hoursText = overdue.hoursOverdue >= 24
+          ? `hace ${Math.floor(overdue.hoursOverdue / 24)} día(s)`
+          : `hace ${overdue.hoursOverdue}h`;
+        context += `- **${overdue.sessionTitle}** (programada: ${overdue.scheduledTime}, ${hoursText})
+  - Horarios sugeridos para recuperar: ${overdue.suggestedRecoverySlots.join(' | ') || 'Buscar horario libre'}
+`;
+      }
+      context += `
+**ACCIÓN:** Pregunta al usuario con empatía qué pasó con estas sesiones. Ofrece ayuda para:
+1. Reprogramarlas a un nuevo horario
+2. Marcarlas como completadas si ya las hizo
+3. Eliminarlas si ya no son relevantes
+Sé comprensivo - a veces la vida se interpone. Ayuda al usuario a retomar el ritmo sin juzgar.
+`;
+    }
+
     // 5. PROGRESO SEMANAL
     context += `
 ### 📈 PROGRESO SEMANAL
@@ -1342,13 +1435,14 @@ Se han detectado **${proactiveAnalysis.conflicts.length} conflicto(s)** entre se
 
     context += `
 ---
-**INSTRUCCIONES PARA LIA:** 
+**INSTRUCCIONES PARA LIA:**
 1. Si hay conflictos, PRIMERO menciónalos y ofrece soluciones con las alternativas sugeridas
 2. Si hay días sobrecargados o riesgo de burnout, sugiere reducir la carga
 3. Si hay sesiones perdidas, ofrece reprogramarlas
-4. Si el progreso semanal está atrasado, ofrece rebalancear el plan
-5. Si hay huecos libres, sugiere micro-sesiones de repaso
-6. Siempre sé proactiva y empática con el usuario
+4. Si hay sesiones NO REALIZADAS (planificadas que ya pasaron), pregunta con empatía qué sucedió y ofrece ayuda para reprogramar, marcar como completadas o eliminar
+5. Si el progreso semanal está atrasado, ofrece rebalancear el plan
+6. Si hay huecos libres, sugiere micro-sesiones de repaso
+7. Siempre sé proactiva y empática con el usuario - no juzgues si no completó sesiones
 `;
   }
 
