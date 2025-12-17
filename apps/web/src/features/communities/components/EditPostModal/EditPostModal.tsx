@@ -244,7 +244,7 @@ export function EditPostModal({
           for (const att of postAttachments) {
             if (att.data?.file) {
               try {
-                console.log(`📤 Procesando archivo: ${att.type} - ${att.data.name || 'sin nombre'}`)
+
                 setIsProcessingAttachment(true)
                 const processed = await processAttachment({
                   type: att.type,
@@ -253,7 +253,7 @@ export function EditPostModal({
                 setIsProcessingAttachment(false)
                 
                 if (processed) {
-                  console.log(`✅ Archivo procesado exitosamente:`, processed.attachment_url)
+
                   processedAttachments.push(processed)
                 } else {
                   console.error(`❌ Error: processAttachment retornó null para ${att.type}`)
@@ -282,8 +282,6 @@ export function EditPostModal({
           if (filesToProcess.length > 0 && processedAttachments.length < filesToProcess.length) {
             throw new Error(`Solo se procesaron ${processedAttachments.length} de ${filesToProcess.length} archivo(s). Por favor, intenta de nuevo.`)
           }
-          
-          console.log(`✅ Todos los archivos procesados exitosamente`)
 
           // Si hay un solo attachment procesado
           if (processedAttachments.length === 1) {

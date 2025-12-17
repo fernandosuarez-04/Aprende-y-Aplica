@@ -26,8 +26,7 @@ export async function GET(request: NextRequest) {
     if (countError) {
       console.error('[LIA Analytics Conversations] Error counting total:', countError);
     }
-    console.log('[LIA Analytics Conversations] Total conversaciones sin filtros:', totalWithoutFilters);
-    
+
     // Obtener parámetros
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -70,12 +69,12 @@ export async function GET(request: NextRequest) {
     // NOTA: El frontend siempre envía fechas, pero si no hay datos en ese rango,
     // podríamos querer mostrar datos sin filtrar
     if (startDate) {
-      console.log('[LIA Analytics Conversations] Applying startDate filter:', startDate);
+
       query = query.gte('started_at', startDate);
     }
     
     if (endDate) {
-      console.log('[LIA Analytics Conversations] Applying endDate filter:', endDate);
+
       query = query.lte('started_at', endDate);
     }
     
@@ -87,12 +86,7 @@ export async function GET(request: NextRequest) {
     const { data: conversations, count, error } = await query;
     
     // ✅ Log para debugging
-    console.log('[LIA Analytics Conversations]', {
-      filters: { contextType, userId, startDate, endDate },
-      pagination: { page, limit, offset },
-      results: { count, error: error?.message, conversationsReturned: conversations?.length }
-    });
-    
+
     if (error) {
       console.error('Error fetching conversations:', error);
       console.error('Error code:', error.code);

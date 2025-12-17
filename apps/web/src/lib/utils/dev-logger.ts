@@ -140,9 +140,9 @@ class DevLogger {
     if (!this.isDevelopment) return
 
     if (columns) {
-      console.table(data, columns)
+
     } else {
-      console.table(data)
+
     }
   }
 }

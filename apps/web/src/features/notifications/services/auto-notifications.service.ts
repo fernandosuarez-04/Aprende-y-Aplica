@@ -10,10 +10,10 @@ async function getServerClient() {
     throw new Error('getServerClient can only be used on the server')
   }
   
-  // Usar Function constructor para evitar análisis estático de Next.js/Turbopack
-  const importServer = new Function('path', 'return import(path)')
-  const serverModule = await importServer('@/lib/supabase/server')
-  return await serverModule.createClient()
+  // Usar import dinámico con ruta relativa para evitar problemas con alias en runtime
+  // Esto evita que webpack analice el módulo durante el build
+  const module = await import('../../../lib/supabase/server')
+  return await module.createClient()
 }
 
 /**

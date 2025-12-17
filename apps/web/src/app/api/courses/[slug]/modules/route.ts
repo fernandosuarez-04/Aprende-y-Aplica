@@ -96,10 +96,6 @@ export async function GET(
     // Las traducciones se aplican desde content_translations en el frontend
     if (modules.length > 0) {
       const moduleIds = modules.map((m) => m.module_id);
-      console.log('[modules/route] Obteniendo lecciones para módulos:', {
-        moduleCount: modules.length,
-        moduleIds: moduleIds
-      });
 
       const { data: lessonsData, error: lessonsError } = await supabase
         .from('course_lessons')
@@ -138,7 +134,7 @@ export async function GET(
 
       allLessonsData = lessonsData ?? [];
     } else {
-      console.log('[modules/route] ⚠️ No hay módulos, no se pueden obtener lecciones');
+
     }
 
     let progressMap = new Map<

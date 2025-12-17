@@ -258,7 +258,7 @@ export async function DELETE(
           const tokenExpiry = integration.expires_at ? new Date(integration.expires_at) : null;
           
           if (tokenExpiry && tokenExpiry <= new Date() && integration.refresh_token) {
-            console.log('⏰ Token expirado, refrescando...');
+
             const refreshResult = await refreshAccessToken(integration);
             if (refreshResult.success && refreshResult.accessToken) {
               accessToken = refreshResult.accessToken;
@@ -312,7 +312,7 @@ export async function DELETE(
           const tokenExpiry = integration.expires_at ? new Date(integration.expires_at) : null;
           
           if (tokenExpiry && tokenExpiry <= new Date() && integration.refresh_token) {
-            console.log('⏰ Token expirado, refrescando...');
+
             const refreshResult = await refreshAccessToken(integration);
             if (refreshResult.success && refreshResult.accessToken) {
               accessToken = refreshResult.accessToken;

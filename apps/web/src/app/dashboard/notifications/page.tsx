@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, Check, CheckCheck, Archive, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -21,12 +21,12 @@ export default function NotificationsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read' | 'archived'>('all')
 
   // Cargar notificaciones
-  const loadNotifications = async (reset: boolean = false) => {
+  const loadNotifications = useCallback(async (reset: boolean = false, currentStatusFilter: string = statusFilter) => {
     try {
       setIsLoading(true)
       const currentOffset = reset ? 0 : offset
-      const statusParam = statusFilter === 'all' ? '' : `&status=${statusFilter}`
-      
+      const statusParam = currentStatusFilter === 'all' ? '' : `&status=${currentStatusFilter}`
+
       const response = await fetch(
         `/api/notifications?limit=${NOTIFICATIONS_PER_PAGE}&offset=${currentOffset}&orderBy=created_at&orderDirection=desc${statusParam}`,
         {
@@ -39,15 +39,15 @@ export default function NotificationsPage() {
       }
 
       const data = await response.json()
-      
+
       if (data.success && data.data) {
         const newNotifications = data.data.notifications || []
         if (reset) {
           setNotifications(newNotifications)
           setOffset(newNotifications.length)
         } else {
-          setNotifications([...notifications, ...newNotifications])
-          setOffset(offset + newNotifications.length)
+          setNotifications(prev => [...prev, ...newNotifications])
+          setOffset(prev => prev + newNotifications.length)
         }
         setHasMore(data.data.hasMore || false)
         setTotal(data.data.total || 0)
@@ -57,16 +57,15 @@ export default function NotificationsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [offset, statusFilter])
 
   // Cargar notificaciones al montar y cuando cambia el filtro
   React.useEffect(() => {
     // Resetear offset cuando cambia el filtro
     setOffset(0)
     setNotifications([])
-    loadNotifications(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
+    loadNotifications(true, statusFilter)
+  }, [statusFilter, loadNotifications])
 
   // Marcar como leída
   const handleMarkAsRead = async (notificationId: string) => {
@@ -118,7 +117,6 @@ export default function NotificationsPage() {
 
       // Si llegamos aquí, la operación fue exitosa
       const updatedCount = data.data?.updated || 0
-      console.log(`✅ ${updatedCount} notificaciones marcadas como leídas`)
 
       // Optimización: Actualizar estado según el filtro actual
       if (statusFilter === 'unread') {

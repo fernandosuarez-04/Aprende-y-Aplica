@@ -145,7 +145,7 @@ export class InstructorWorkshopsService {
 
       // Traducir automáticamente el curso a inglés y portugués
       try {
-        console.log('[InstructorWorkshopsService] Iniciando traducción automática del curso:', data.id);
+
         const { translateCourseOnCreate } = await import('@/core/services/courseTranslation.service')
         const translationResult = await translateCourseOnCreate(
           data.id,
@@ -157,7 +157,7 @@ export class InstructorWorkshopsService {
           instructorId,
           supabase // Pasar el cliente de Supabase existente
         )
-        console.log('[InstructorWorkshopsService] Resultado de traducción:', translationResult);
+
         if (!translationResult.success) {
           console.warn('[InstructorWorkshopsService] La traducción no fue completamente exitosa:', translationResult.errors);
         }

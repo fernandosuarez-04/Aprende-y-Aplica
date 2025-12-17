@@ -28,6 +28,7 @@ interface CalendarEvent {
   source?: 'calendar' | 'study_session';
   googleEventId?: string; // ID del evento en Google Calendar
   localEventId?: string; // ID del evento en nuestra base de datos
+  externalEventId?: string; // ID del evento externo (para sesiones de estudio)
   color?: string; // Color personalizado del evento
 }
 
@@ -257,6 +258,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           provider: calendarData.provider,
           source: 'calendar' as const,
           googleEventId: calendarData.provider === 'google' ? event.id : undefined,
+          externalEventId: event.id, // Guardar el ID externo para filtrado (funciona para Google y Microsoft)
         }));
       }
       
@@ -266,17 +268,27 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       );
       
       let studySessions: CalendarEvent[] = [];
+      const studySessionExternalIds = new Set<string>();
       if (studySessionsResponse.ok) {
         const sessionsData = await studySessionsResponse.json();
-        studySessions = (sessionsData.sessions || []).map((session: any) => ({
-          id: session.id || `study-${session.id}`,
-          title: session.title || 'Sesión de estudio',
-          description: session.description,
-          start: session.start_time,
-          end: session.end_time,
-          provider: 'study' as const,
-          source: 'study_session' as const,
-        }));
+        studySessions = (sessionsData.sessions || []).map((session: any) => {
+          // Guardar external_event_id para filtrar eventos duplicados del calendario externo
+          if (session.external_event_id) {
+            // Limpiar el ID del evento (puede venir con formato de recurrencia)
+            const cleanEventId = String(session.external_event_id).split('_')[0];
+            studySessionExternalIds.add(cleanEventId);
+          }
+          return {
+            id: session.id || `study-${session.id}`,
+            title: session.title || 'Sesión de estudio',
+            description: session.description,
+            start: session.start_time,
+            end: session.end_time,
+            provider: 'study' as const,
+            source: 'study_session' as const,
+            externalEventId: session.external_event_id || undefined,
+          };
+        });
       }
       
       // Cargar eventos personalizados del usuario
@@ -314,19 +326,40 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         customEvents = []; // Continuar con array vacío
       }
       
-      // Filtrar eventos duplicados: si un evento de Google Calendar ya está en customEvents (tiene google_event_id), no incluirlo
-      const customEventGoogleIds = new Set(
+      // Filtrar eventos duplicados: si un evento del calendario externo ya está en customEvents, no incluirlo
+      const customEventExternalIds = new Set(
         customEvents
-          .filter(e => e.googleEventId)
-          .map(e => e.googleEventId)
+          .filter(e => e.googleEventId || e.externalEventId)
+          .map(e => {
+            // Limpiar el ID del evento (puede venir con formato de recurrencia)
+            const eventId = e.googleEventId || e.externalEventId;
+            return eventId ? String(eventId).split('_')[0] : null;
+          })
+          .filter((id): id is string => id !== null)
       );
       
-      // Filtrar eventos de Google Calendar que ya están en customEvents
+      // Filtrar eventos del calendario externo que ya están en customEvents o en sesiones de estudio
       const uniqueCalendarEvents = calendarEvents.filter(event => {
-        // Si el evento tiene un googleEventId y ese ID ya está en customEvents, excluirlo
-        if (event.googleEventId && customEventGoogleIds.has(event.googleEventId)) {
+        // Limpiar el ID del evento (puede venir con formato de recurrencia)
+        const cleanEventId = event.externalEventId 
+          ? String(event.externalEventId).split('_')[0] 
+          : (event.googleEventId ? String(event.googleEventId).split('_')[0] : null);
+        
+        if (!cleanEventId) {
+          return true; // Si no tiene ID externo, incluirlo (evento local)
+        }
+        
+        // Si el evento tiene un ID externo y ese ID ya está en customEvents, excluirlo
+        if (customEventExternalIds.has(cleanEventId)) {
           return false;
         }
+        
+        // Si el evento tiene un ID que corresponde a una sesión de estudio, excluirlo
+        // (ya se muestra como studySession)
+        if (studySessionExternalIds.has(cleanEventId)) {
+          return false;
+        }
+        
         return true;
       });
       

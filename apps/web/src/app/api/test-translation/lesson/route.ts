@@ -21,9 +21,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[TEST-LESSON-TRANSLATION] ========== INICIANDO PRUEBA DE TRADUCCIÓN DE LECCIÓN ==========')
-    console.log('[TEST-LESSON-TRANSLATION] Lesson ID:', lessonId)
-
     // Obtener datos de la lección
     const supabase = await createClient()
     const { data: lesson, error: lessonError } = await supabase
@@ -39,16 +36,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[TEST-LESSON-TRANSLATION] Lección encontrada:', {
-      id: lesson.lesson_id,
-      title: lesson.lesson_title,
-      hasDescription: !!lesson.lesson_description,
-      hasTranscript: !!lesson.transcript_content,
-      hasSummary: !!lesson.summary_content
-    })
-
     // PASO 1: Detectar idioma del contenido
-    console.log('[TEST-LESSON-TRANSLATION] ========== DETECTANDO IDIOMA ==========')
+
     const textsToAnalyze: string[] = [lesson.lesson_title]
     if (lesson.lesson_description) textsToAnalyze.push(lesson.lesson_description)
     if (lesson.transcript_content) {
@@ -59,7 +48,6 @@ export async function GET(request: NextRequest) {
     }
     
     const detectedLanguage = await LanguageDetectionService.detectLanguageFromMultipleTexts(textsToAnalyze)
-    console.log('[TEST-LESSON-TRANSLATION] Idioma detectado:', detectedLanguage)
 
     // PASO 2: Verificar traducciones existentes
     const { data: existingTranslations, error: translationsError } = await supabase
@@ -74,7 +62,7 @@ export async function GET(request: NextRequest) {
     })
 
     // PASO 3: Traducir la lección (si no está traducida o necesita actualización)
-    console.log('[TEST-LESSON-TRANSLATION] ========== TRADUCIENDO LECCIÓN ==========')
+
     const translationResult = await translateLessonOnCreate(
       lessonId,
       {
@@ -85,8 +73,6 @@ export async function GET(request: NextRequest) {
       },
       null // userId opcional
     )
-
-    console.log('[TEST-LESSON-TRANSLATION] Resultado de traducción:', translationResult)
 
     // PASO 4: Verificar traducciones después de traducir
     const { data: translationsAfter, error: translationsAfterError } = await supabase
@@ -101,7 +87,7 @@ export async function GET(request: NextRequest) {
     })
 
     // PASO 5: Probar carga de traducciones para cada idioma
-    console.log('[TEST-LESSON-TRANSLATION] ========== PROBANDO CARGA DE TRADUCCIONES ==========')
+
     const translationLoadTests: Record<string, any> = {}
     
     for (const lang of ['es', 'en', 'pt'] as SupportedLanguage[]) {
@@ -118,7 +104,7 @@ export async function GET(request: NextRequest) {
           translationKeys: Object.keys(loadedTranslations),
           sampleTranslation: loadedTranslations.lesson_title || loadedTranslations.lesson_description || 'N/A'
         }
-        console.log(`[TEST-LESSON-TRANSLATION] Traducciones para ${lang}:`, translationLoadTests[lang])
+
       } catch (error) {
         translationLoadTests[lang] = {
           success: false,

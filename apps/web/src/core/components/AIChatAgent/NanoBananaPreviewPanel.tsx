@@ -163,8 +163,6 @@ export const NanoBananaPreviewPanel: React.FC<NanoBananaPreviewPanelProps> = ({
 
   // La condición de visibilidad ya se maneja en el componente padre
   // if (!isOpen || !schema) return null;
-  
-  console.log('[NanoBananaPreviewPanel] Renderizando panel:', { isOpen, hasSchema: !!schema });
 
   const entityCount = schema.entities?.length || 0;
   const hasVariations = (schema.variations?.length || 0) > 0;

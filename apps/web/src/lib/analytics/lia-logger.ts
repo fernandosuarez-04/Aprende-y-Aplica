@@ -460,7 +460,7 @@ export class LiaLogger {
     }
     
     this.messageSequence = data?.message_sequence || 0;
-    console.log('[LiaLogger] Recovered message sequence:', this.messageSequence);
+
   }
 
   /**
@@ -580,5 +580,4 @@ export async function getLiaGlobalMetrics(startDate: Date, endDate: Date) {
     totalCostUsd: totalCost,
   };
 }
-
 

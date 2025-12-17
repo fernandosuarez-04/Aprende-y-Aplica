@@ -20,9 +20,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[TEST-COURSE-LESSONS] ========== LISTANDO LECCIONES DEL CURSO ==========')
-    console.log('[TEST-COURSE-LESSONS] Course ID:', courseId)
-
     const supabase = await createClient()
 
     // Obtener todas las lecciones del curso
@@ -46,8 +43,6 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       )
     }
-
-    console.log('[TEST-COURSE-LESSONS] Lecciones encontradas:', lessons.length)
 
     // Analizar cada lección
     const lessonsAnalysis = await Promise.all(

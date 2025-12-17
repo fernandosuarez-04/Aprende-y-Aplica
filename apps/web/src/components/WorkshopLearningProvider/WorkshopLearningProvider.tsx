@@ -82,13 +82,7 @@ export function WorkshopLearningProvider({
     enabled,
     checkInterval,
     onDifficultyDetected: (detectedAnalysis) => {
-      console.log('🚨 Dificultad detectada por WorkshopLearningProvider:', {
-        workshopId,
-        activityId,
-        score: detectedAnalysis.overallScore,
-        patterns: detectedAnalysis.patterns.length
-      });
-      
+
       if (onDifficultyDetected) {
         onDifficultyDetected(detectedAnalysis);
       }
@@ -100,7 +94,6 @@ export function WorkshopLearningProvider({
   const handleAcceptHelp = useCallback(async () => {
     if (!analysis) return;
 
-    console.log('📞 Usuario aceptó ayuda proactiva, notificando al componente padre...');
     setIsLoadingHelp(true);
 
     try {
@@ -112,8 +105,7 @@ export function WorkshopLearningProvider({
       
       // Aceptar ayuda localmente (cierra el modal y limpia el estado)
       acceptHelp();
-      
-      console.log('✅ Ayuda proactiva iniciada correctamente');
+
     } catch (error) {
       console.error('❌ Error al procesar ayuda proactiva:', error);
       // Aún así aceptar la ayuda localmente para cerrar el modal

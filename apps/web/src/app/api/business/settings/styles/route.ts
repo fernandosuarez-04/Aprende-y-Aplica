@@ -5,21 +5,19 @@ import { PRESET_THEMES, getThemeById, generateBrandingTheme } from '@/features/b
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('📡 [API /business/settings/styles GET] Request recibida');
 
     const auth = await requireBusiness();
     if (auth instanceof NextResponse) {
-      console.log('❌ [API] requireBusiness falló - usuario no autorizado');
+
       return auth;
     }
 
     const { userId, organizationId } = auth;
-    console.log('👤 [API] Auth info:', { userId, organizationId });
 
     const supabase = await createClient();
 
     if (!organizationId) {
-      console.log('❌ [API] organizationId es undefined/null');
+
       return NextResponse.json(
         { success: false, error: 'Organización no encontrada' },
         { status: 404 }
@@ -27,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener estilos de la organización
-    console.log('🔍 [API] Consultando estilos para organization:', organizationId);
+
     const { data: organization, error: orgError } = await supabase
       .from('organizations')
       .select('panel_styles, user_dashboard_styles, login_styles, selected_theme')
@@ -35,19 +33,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (orgError || !organization) {
-      console.log('❌ [API] Error al consultar BD:', orgError);
+
       return NextResponse.json(
         { success: false, error: 'Error al obtener estilos' },
         { status: 500 }
       );
     }
-
-    console.log('✅ [API] Estilos obtenidos desde BD:', {
-      selectedTheme: organization.selected_theme,
-      hasPanelStyles: !!organization.panel_styles,
-      hasUserDashboardStyles: !!organization.user_dashboard_styles,
-      hasLoginStyles: !!organization.login_styles
-    });
 
     return NextResponse.json({
       success: true,

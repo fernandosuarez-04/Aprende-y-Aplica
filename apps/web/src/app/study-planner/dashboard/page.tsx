@@ -2,26 +2,59 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Mic, MicOff, Send, Settings, Calendar as CalendarIcon, X, Loader2, AlertCircle, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { 
+  ChevronRight,
+  Mic,
+  MicOff,
+  Send,
+  Settings,
+  Calendar as CalendarIcon,
+  X,
+  Loader2,
+  AlertCircle,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+} from 'lucide-react';
 import Image from 'next/image';
+import ReactMarkdown from 'react-markdown';
 import { useRouter } from 'next/navigation';
 import { StudyPlannerCalendar } from '@/features/study-planner/components/StudyPlannerCalendar';
 import { ToastNotification } from '@/core/components/ToastNotification';
 import { redirectToDashboard } from '@/features/auth/actions/dashboard-redirect';
+import { useStudyPlannerDashboardLIA, type DashboardMessage } from '@/features/study-planner/hooks/useStudyPlannerDashboardLIA';
 
 export default function StudyPlannerDashboardPage() {
   const router = useRouter();
-  
-  // Estado para el panel derecho de LIA
-  // Iniciar con el panel cerrado para mostrar la burbuja
+
+  // Hook para el chat con LIA
+  const {
+    messages,
+    isSending,
+    error,
+    sendMessage,
+    clearError,
+  } = useStudyPlannerDashboardLIA();
+
+  // Estado para el panel de LIA (derecha)
   const [isLiaPanelOpen, setIsLiaPanelOpen] = useState(false);
   const [isLiaCollapsed, setIsLiaCollapsed] = useState(true);
   const liaPanelRef = useRef<HTMLDivElement>(null);
-  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   // Estado para el input de mensaje
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Scroll automático al último mensaje
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   // Estados para los iconos de acción
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
@@ -151,12 +184,7 @@ export default function StudyPlannerDashboardPage() {
             // Codificar el state actualizado (sin doble codificación)
             url.searchParams.set('state', JSON.stringify(stateData));
             authUrl = url.toString();
-            
-            console.log('✅ URL modificada con usePopup:', {
-              original: data.data.authUrl,
-              modified: authUrl,
-              stateData
-            });
+
           } catch (e) {
             console.error('❌ Error modificando la URL:', e);
             // Si falla, intentar construir la URL manualmente
@@ -167,7 +195,7 @@ export default function StudyPlannerDashboardPage() {
               usePopup: true
             };
             authUrl = `${authUrl}${separator}state=${encodeURIComponent(JSON.stringify(stateData))}`;
-            console.log('✅ URL construida manualmente:', authUrl);
+
           }
           
           // Abrir popup
@@ -206,14 +234,13 @@ export default function StudyPlannerDashboardPage() {
             
             if (event.data && event.data.type === 'calendar-connected') {
               if (messageProcessed) {
-                console.log('Mensaje ya procesado, ignorando duplicado');
+
                 return;
               }
               messageProcessed = true;
               
               const connectedProvider = event.data.provider || provider;
-              console.log('Calendario conectado exitosamente:', connectedProvider);
-              
+
               // Limpiar listeners
               window.removeEventListener('message', messageListener);
               if (checkClosed) {
@@ -254,7 +281,7 @@ export default function StudyPlannerDashboardPage() {
                     popup.close();
                   }
                 } catch (e) {
-                  console.log('No se pudo verificar/cerrar el popup');
+
                 }
               }
               
@@ -431,18 +458,111 @@ export default function StudyPlannerDashboardPage() {
   };
 
   // Función para enviar mensaje
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      // Aquí se enviará el mensaje a LIA
-      console.log('Enviando mensaje:', message);
+  const handleSendMessage = async () => {
+    if (message.trim() && !isSending) {
+      const messageToSend = message;
       setMessage('');
       if (messageInputRef.current) {
         messageInputRef.current.style.height = 'auto';
       }
+      await sendMessage(messageToSend);
     }
   };
 
-  // Ancho del panel cuando está expandido (más ancho)
+  // Renderizar mensaje del chat
+  const renderMessage = (msg: DashboardMessage) => {
+    const isUser = msg.role === 'user';
+    
+    return (
+      <motion.div
+        key={msg.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
+      >
+        {!isUser && (
+          <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden mr-2">
+            <Image
+              src="/lia-avatar.png"
+              alt="LIA"
+              width={32}
+              height={32}
+              className="object-cover"
+            />
+          </div>
+        )}
+        <div
+          className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+            isUser
+              ? 'bg-blue-500 text-white rounded-br-sm'
+              : 'bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 shadow-sm rounded-bl-sm'
+          }`}
+        >
+          {isUser ? (
+            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+          ) : (
+            <div className="text-sm prose prose-sm prose-slate dark:prose-invert max-w-none">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className="text-base font-semibold mb-1">{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="text-sm font-semibold mb-1 mt-1.5">{children}</h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-sm font-semibold mb-1 mt-1.5">{children}</h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="mb-1.5 leading-relaxed">{children}</p>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold">{children}</strong>
+                  ),
+                  em: ({ children }) => (
+                    <em className="italic">{children}</em>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="list-disc list-inside mb-1.5 space-y-0.5">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal list-inside mb-1.5 space-y-0.5">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => (
+                    <li className="leading-relaxed">{children}</li>
+                  ),
+                  br: () => <br />,
+                }}
+              >
+                {msg.content}
+              </ReactMarkdown>
+            </div>
+          )}
+          {msg.actionStatus === 'success' && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-green-500">
+              <CheckCircle className="w-3 h-3" />
+              <span>Acción completada</span>
+            </div>
+          )}
+          {msg.actionStatus === 'error' && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-red-500">
+              <XCircle className="w-3 h-3" />
+              <span>Error en la acción</span>
+            </div>
+          )}
+          <span className="text-xs opacity-60 mt-1 block">
+            {msg.timestamp.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+      </motion.div>
+    );
+  };
+
+  // Ancho del panel cuando está expandido
   const expandedWidth = 'w-[520px]';
 
   return (
@@ -785,7 +905,7 @@ export default function StudyPlannerDashboardPage() {
         </div>
       </div>
 
-      {/* Panel Derecho - LIA Coach (solo cuando está expandido) */}
+      {/* Panel Derecho - Chat con LIA */}
       <AnimatePresence>
         {isLiaPanelOpen && !isLiaCollapsed && (
           <motion.div
@@ -796,7 +916,7 @@ export default function StudyPlannerDashboardPage() {
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className={`fixed right-0 top-0 h-full z-40 bg-white dark:bg-[#1E2329] shadow-2xl flex flex-col ${expandedWidth} transition-all duration-300 ease-in-out`}
           >
-            {/* Header del Panel de LIA - Flotante */}
+            {/* Header del Panel de LIA */}
             <div className="absolute top-0 left-0 right-0 z-10 px-4 pt-3 pb-2">
               <motion.div
                 initial={{ y: -20, opacity: 0 }}
@@ -822,7 +942,7 @@ export default function StudyPlannerDashboardPage() {
                     <h3 className="text-[#0A2540] dark:text-white font-semibold text-sm truncate">LIA Coach</h3>
                     <p className="text-[#6C757D] dark:text-gray-400 text-xs truncate">Tu asistente de estudio</p>
                   </div>
-                </motion.div>
+                </div>
                 <button
                   onClick={() => setIsLiaCollapsed(true)}
                   className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors flex-shrink-0 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white"
@@ -833,17 +953,57 @@ export default function StudyPlannerDashboardPage() {
               </motion.div>
             </div>
 
-            {/* Contenido del Panel de LIA - Chat */}
+            {/* Área de mensajes */}
             <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-[#0F1419] pt-20">
-              {/* Área de mensajes de LIA */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-                {/* Los mensajes aparecerán aquí */}
-                <div className="text-center text-[#6C757D] dark:text-gray-400 text-sm py-8">
-                  <p>LIA te enviará mensajes proactivos aquí</p>
-                </div>
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                {messages.length === 0 ? (
+                  <div className="text-center text-[#6C757D] dark:text-gray-400 text-sm py-8">
+                    <p>Escribe un mensaje para empezar a gestionar tu plan</p>
+                  </div>
+                ) : (
+                  <>
+                    {messages.map(renderMessage)}
+                    <div ref={messagesEndRef} />
+                  </>
+                )}
+                
+                {/* Indicador de carga */}
+                {isSending && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center gap-2 text-gray-400 dark:text-gray-500 text-sm"
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
+                      <Image
+                        src="/lia-avatar.png"
+                        alt="LIA"
+                        width={32}
+                        height={32}
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>LIA está pensando...</span>
+                    </div>
+                  </motion.div>
+                )}
               </div>
               
-              {/* Barra de input flotante estilo Telegram - Más pequeña y minimalista */}
+              {/* Error */}
+              {error && (
+                <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-100 dark:border-red-800">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    <button onClick={clearError} className="text-red-500 hover:text-red-600">
+                      <XCircle className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Barra de input */}
               <div className="px-3 pb-3 pt-2 bg-transparent">
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
@@ -857,21 +1017,18 @@ export default function StudyPlannerDashboardPage() {
                       value={message}
                       onChange={(e) => {
                         setMessage(e.target.value);
-                        // Auto-resize textarea
                         if (messageInputRef.current) {
                           messageInputRef.current.style.height = 'auto';
-                          messageInputRef.current.style.height = `${Math.min(messageInputRef.current.scrollHeight, 60)}px`;
+                          messageInputRef.current.style.height = `${Math.min(messageInputRef.current.scrollHeight, 100)}px`;
                         }
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
-                          if (message.trim()) {
-                            handleSendMessage();
-                          }
+                          handleSendMessage();
                         }
                       }}
-                      placeholder="Escribe un mensaje..."
+                      placeholder="Escribe un mensaje para gestionar tu plan..."
                       rows={1}
                       className="w-full resize-none bg-transparent text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-gray-500 text-sm focus:outline-none max-h-[60px] overflow-y-auto leading-5 py-0.5"
                       style={{ 
@@ -882,7 +1039,6 @@ export default function StudyPlannerDashboardPage() {
                     />
                   </div>
                   
-                  {/* Botón de micrófono/enviar - Fuera del campo, un poco más grande */}
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -890,11 +1046,11 @@ export default function StudyPlannerDashboardPage() {
                       if (message.trim()) {
                         handleSendMessage();
                       } else {
-                        // Toggle recording
                         setIsRecording(!isRecording);
                       }
                     }}
-                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+                    disabled={isSending}
+                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 ${
                       message.trim()
                         ? 'bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-sm'
                         : isRecording
@@ -903,7 +1059,9 @@ export default function StudyPlannerDashboardPage() {
                     }`}
                     title={message.trim() ? 'Enviar mensaje' : isRecording ? 'Detener grabación' : 'Grabar audio'}
                   >
-                    {message.trim() ? (
+                    {isSending ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : message.trim() ? (
                       <Send className="w-5 h-5" />
                     ) : isRecording ? (
                       <MicOff className="w-5 h-5" />
@@ -918,7 +1076,7 @@ export default function StudyPlannerDashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* Burbuja flotante de LIA (cuando está colapsado o cerrado) */}
+      {/* Burbuja flotante de LIA */}
       <AnimatePresence>
         {(isLiaCollapsed || !isLiaPanelOpen) && (
           <motion.button
@@ -933,7 +1091,6 @@ export default function StudyPlannerDashboardPage() {
             className="fixed right-4 bottom-4 z-50 w-16 h-16 rounded-full shadow-2xl hover:shadow-[#0A2540]/50 dark:hover:shadow-[#00D4B3]/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden ring-4 ring-[#0A2540]/20 dark:ring-[#00D4B3]/30"
             title="Abrir LIA Coach"
           >
-            {/* Avatar de LIA en la burbuja */}
             <div className="relative w-full h-full">
               <Image
                 src="/lia-avatar.png"
@@ -944,17 +1101,19 @@ export default function StudyPlannerDashboardPage() {
               />
             </div>
             {/* Indicador de notificación */}
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 z-10"
-            >
+            {messages.length > 0 && (
               <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-                className="w-full h-full bg-red-500 rounded-full"
-              />
-            </motion.div>
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 z-10"
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="w-full h-full bg-red-500 rounded-full"
+                />
+              </motion.div>
+            )}
           </motion.button>
         )}
       </AnimatePresence>

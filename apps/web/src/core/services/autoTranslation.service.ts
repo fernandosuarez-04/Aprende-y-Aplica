@@ -25,14 +25,7 @@ export class AutoTranslationService {
    */
   private static isConfigured(): boolean {
     const isConfigured = !!this.OPENAI_API_KEY;
-    console.log('[AutoTranslationService] Verificando configuración:', {
-      hasApiKey: !!this.OPENAI_API_KEY,
-      apiKeyLength: this.OPENAI_API_KEY?.length || 0,
-      apiKeyPrefix: this.OPENAI_API_KEY ? `${this.OPENAI_API_KEY.substring(0, 7)}...` : 'N/A',
-      model: this.OPENAI_MODEL,
-      baseUrl: this.OPENAI_BASE_URL
-    });
-    
+
     if (!isConfigured) {
       console.error('[AutoTranslationService] ❌ OPENAI_API_KEY no está configurada en las variables de entorno');
       console.error('[AutoTranslationService] Variables de entorno disponibles:', {
@@ -41,7 +34,7 @@ export class AutoTranslationService {
         nodeEnv: process.env.NODE_ENV
       });
     } else {
-      console.log('[AutoTranslationService] ✅ OPENAI_API_KEY configurada correctamente');
+
     }
     return isConfigured;
   }
@@ -71,22 +64,13 @@ export class AutoTranslationService {
     const finalSourceLanguage = sourceLanguage || 'es';
     
     if (finalSourceLanguage === targetLanguage) {
-      console.log(`[AutoTranslationService] Idioma origen y destino son iguales (${finalSourceLanguage}), retornando texto original`);
       return text;
     }
-    
-    console.log(`[AutoTranslationService] Traduciendo de ${finalSourceLanguage} a ${targetLanguage}`, {
-      providedSourceLanguage: sourceLanguage,
-      finalSourceLanguage,
-      targetLanguage
-    });
 
     if (!this.isConfigured()) {
       console.warn('[AutoTranslationService] ⚠️ OPENAI_API_KEY no configurada, retornando texto original sin traducir');
       return text;
     }
-
-    console.log(`[AutoTranslationService] Iniciando traducción de ${finalSourceLanguage} a ${targetLanguage} (longitud: ${text.length} caracteres)`);
 
     const languageNames: Record<SourceLanguage | TargetLanguage, string> = {
       es: 'español',
@@ -120,7 +104,6 @@ ${text}
 Traducción:`;
 
     try {
-      console.log(`[AutoTranslationService] Enviando solicitud a OpenAI API (modelo: ${this.OPENAI_MODEL})`);
       
       const startTime = Date.now();
       const response = await fetch(this.OPENAI_BASE_URL, {
@@ -172,7 +155,6 @@ Traducción:`;
       if (translatedText === text) {
         console.warn(`[AutoTranslationService] ⚠️ La traducción retornada es igual al texto original (posible error silencioso)`);
       } else {
-        console.log(`[AutoTranslationService] ✅ Traducción exitosa: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}" → "${translatedText.substring(0, 50)}${translatedText.length > 50 ? '...' : ''}" (${targetLanguage})`);
       }
       
       return translatedText;
@@ -195,11 +177,6 @@ Traducción:`;
     targetLanguage: TargetLanguage,
     options: TranslationOptions = {}
   ): Promise<Record<string, any>> {
-    console.log(`[AutoTranslationService] translateObject: Iniciando traducción de ${fields.length} campos a ${targetLanguage}`, {
-      fields,
-      objKeys: Object.keys(obj)
-    });
-
     const translations: Record<string, any> = {};
 
     // Traducir cada campo en paralelo para mejor rendimiento
@@ -257,7 +234,6 @@ Traducción:`;
       });
     });
 
-    console.log(`[AutoTranslationService] translateObject: ✅ Traducción completada para ${Object.keys(translations).length} campos a ${targetLanguage}`);
     return translations;
   }
 
@@ -272,12 +248,6 @@ Traducción:`;
     entityType?: string,
     options: TranslationOptions = {}
   ): Promise<Record<string, any>> {
-    console.log(`[AutoTranslationService] translateEntity: Iniciando traducción de entidad ${entityType || 'desconocida'} a ${targetLanguage}`, {
-      entityType,
-      fields,
-      entityKeys: Object.keys(entity)
-    });
-
     const context = entityType 
       ? `Este es un ${entityType} de una plataforma educativa sobre inteligencia artificial.`
       : options.context;
@@ -286,10 +256,6 @@ Traducción:`;
       ...options,
       context,
       preserveFormatting: true, // Preservar formato para contenido educativo
-    });
-
-    console.log(`[AutoTranslationService] translateEntity: ✅ Traducción de entidad ${entityType || 'desconocida'} completada`, {
-      translatedFields: Object.keys(result)
     });
 
     return result;

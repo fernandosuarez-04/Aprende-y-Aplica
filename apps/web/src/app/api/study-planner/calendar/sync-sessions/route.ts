@@ -66,8 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     const supabase = createAdminClient();
     
     // ✅ CORRECCIÓN URGENTE: Obtener las sesiones con el plan para obtener la zona horaria
-    console.log(`📋 Obteniendo ${body.sessionIds.length} sesiones para sincronizar...`);
-    
+
     const { data: sessions, error: sessionsError } = await supabase
       .from('study_sessions')
       .select('*')
@@ -89,9 +88,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         { status: 404 }
       );
     }
-    
-    console.log(`✅ Se obtuvieron ${sessions.length} sesiones`);
-    
+
     // ✅ CORRECCIÓN: Obtener la zona horaria del plan directamente
     // Todas las sesiones deben pertenecer al mismo plan
     let planTimezone = 'UTC';
@@ -101,8 +98,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     if (!planId) {
       console.warn('⚠️ La sesión no tiene plan_id, usando UTC como zona horaria por defecto');
     } else {
-      console.log(`📋 Obteniendo zona horaria del plan: ${planId}`);
-      
+
       const { data: planData, error: planError } = await supabase
         .from('study_plans')
         .select('timezone')
@@ -115,14 +111,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         console.warn('⚠️ Usando UTC como zona horaria por defecto');
       } else if (planData && planData.timezone) {
         planTimezone = planData.timezone;
-        console.log(`✅ Zona horaria obtenida del plan: ${planTimezone}`);
+
       } else {
         console.warn('⚠️ El plan no tiene zona horaria configurada, usando UTC');
       }
     }
-    
-    console.log(`🌍 Zona horaria final del plan: ${planTimezone}`);
-    
+
     // Obtener integración de calendario del usuario
     const { data: integrations, error: integrationError } = await supabase
       .from('calendar_integrations')
@@ -157,8 +151,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     const needsRefresh = !tokenExpiry || !integration.expires_at || tokenExpiry <= new Date();
     
     if (needsRefresh) {
-      console.log('⏰ [Sync Sessions] Token expirado o sin fecha de expiración, refrescando...');
-      
+
       // Verificar que haya refresh_token disponible
       if (!integration.refresh_token) {
         console.error('❌ [Sync Sessions] No hay refresh_token disponible');
@@ -177,25 +170,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         );
       }
       accessToken = refreshResult.accessToken;
-      console.log('✅ [Sync Sessions] Token refrescado exitosamente');
+
     } else {
-      console.log('✅ [Sync Sessions] Token válido hasta:', tokenExpiry.toISOString());
     }
     
     // ✅ CORRECCIÓN: Sincronizar sesiones según el proveedor con mejor logging
     let syncedCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
-    
-    console.log(`📅 Iniciando sincronización de ${sessions.length} sesiones con ${integration.provider} Calendar`);
-    
+
     for (let i = 0; i < sessions.length; i++) {
       const session = sessions[i];
       try {
-        console.log(`📅 [${i + 1}/${sessions.length}] Sincronizando sesión: "${session.title}"`);
-        console.log(`   Inicio: ${session.start_time}`);
-        console.log(`   Fin: ${session.end_time}`);
-        
+
         let eventId: string | null = null;
         
         if (integration.provider === 'google') {
@@ -210,8 +197,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         }
         
         if (eventId) {
-          console.log(`✅ [${i + 1}/${sessions.length}] Evento creado con ID: ${eventId}`);
-          
+
           // Actualizar la sesión con el ID del evento del calendario
           const { error: updateError } = await supabase
             .from('study_sessions')
@@ -241,9 +227,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         console.error(`❌ [${i + 1}/${sessions.length}] ${errorMsg}`, error);
       }
     }
-    
-    console.log(`📅 Sincronización completada: ${syncedCount} exitosas, ${failedCount} fallidas`);
-    
+
     return NextResponse.json({
       success: true,
       data: {
@@ -363,8 +347,39 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 }
 
 /**
+ * Formatea una fecha en formato ISO 8601 manteniendo la hora local de la zona horaria especificada
+ * Esto evita el problema de conversión a UTC que causa desfases de hora
+ */
+function formatDateTimeInTimezone(date: Date, timezone: string): string {
+  // Usar Intl.DateTimeFormat para formatear la fecha en la zona horaria especificada
+  // sin convertirla a UTC
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+
+  // Obtener las partes de la fecha formateadas
+  const parts = formatter.formatToParts(date);
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  const hour = parts.find(p => p.type === 'hour')?.value;
+  const minute = parts.find(p => p.type === 'minute')?.value;
+  const second = parts.find(p => p.type === 'second')?.value;
+
+  // Formatear en ISO 8601 sin la 'Z' al final (porque especificaremos timeZone por separado)
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+}
+
+/**
  * Crea un evento en Google Calendar
- * ✅ CORRECCIÓN URGENTE: Usa la zona horaria del plan en lugar de UTC
+ * ✅ CORRECCIÓN: Formatea fechas en la zona horaria correcta sin convertir a UTC
  */
 async function createGoogleCalendarEvent(accessToken: string, session: any, timezone: string = 'UTC'): Promise<string | null> {
   try {
@@ -373,11 +388,11 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
     
     if (session.description) {
       // Si la descripción ya tiene las lecciones listadas (formato: "1. Lección X\n2. Lección Y")
-      const lines = session.description.split('\n').filter(line => line.trim().length > 0);
+      const lines = session.description.split('\n').filter((line: string) => line.trim().length > 0);
       
       if (lines.length > 1) {
         // Hay múltiples lecciones, formatear con HTML para mejor visualización
-        const formattedLessons = lines.map(line => {
+        const formattedLessons = lines.map((line: string) => {
           // Remover el número inicial si existe (ej: "1. " o "1.")
           const cleanLine = line.replace(/^\d+\.\s*/, '').trim();
           return `• ${cleanLine}`;
@@ -386,7 +401,7 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
         description = `<strong>📚 Lecciones a estudiar:</strong><br><br>${formattedLessons}`;
       } else if (lines.length === 1) {
         // Solo una lección
-        const cleanLine = lines[0].replace(/^\d+\.\s*/, '').trim();
+        const cleanLine = (lines[0] as string).replace(/^\d+\.\s*/, '').trim();
         description = `<strong>📚 Lección:</strong><br><br>• ${cleanLine}`;
       } else {
         description = session.description;
@@ -395,8 +410,8 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
       description = `Sesión de estudio${session.course_id ? ` - Curso: ${session.course_id}` : ''}`;
     }
     
-    // ✅ CORRECCIÓN URGENTE: Las fechas en la BD están en formato ISO string
-    // Necesitamos asegurarnos de que se interpreten correctamente según la zona horaria del plan
+    // ✅ CORRECCIÓN: Las fechas en la BD están en formato ISO string
+    // Interpretarlas y formatearlas en la zona horaria del plan sin convertir a UTC
     const startTime = new Date(session.start_time);
     const endTime = new Date(session.end_time);
     
@@ -410,16 +425,21 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
       return null;
     }
     
+    // ✅ CORRECCIÓN CRÍTICA: Formatear en la zona horaria del plan sin convertir a UTC
+    // Esto evita el desfase de -1 hora
+    const startDateTime = formatDateTimeInTimezone(startTime, timezone);
+    const endDateTime = formatDateTimeInTimezone(endTime, timezone);
+    
     const event = {
       summary: session.title,
       description: description,
       start: {
-        dateTime: startTime.toISOString(),
-        timeZone: timezone, // ✅ Usar zona horaria del plan, no UTC
+        dateTime: startDateTime,
+        timeZone: timezone,
       },
       end: {
-        dateTime: endTime.toISOString(),
-        timeZone: timezone, // ✅ Usar zona horaria del plan, no UTC
+        dateTime: endDateTime,
+        timeZone: timezone,
       },
       reminders: {
         useDefault: false,
@@ -429,15 +449,7 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
         ],
       },
     };
-    
-    console.log(`📅 Creando evento en Google Calendar con zona horaria: ${timezone}`);
-    console.log(`   Inicio: ${startTime.toISOString()} (${timezone})`);
-    console.log(`   Fin: ${endTime.toISOString()} (${timezone})`);
 
-    console.log(`📤 [Google Calendar] Enviando request para crear evento...`);
-    console.log(`   Título: ${event.summary}`);
-    console.log(`   Inicio: ${event.start.dateTime} (${event.start.timeZone})`);
-    console.log(`   Fin: ${event.end.dateTime} (${event.end.timeZone})`);
     
     const response = await fetch(
       'https://www.googleapis.com/calendar/v3/calendars/primary/events',
@@ -459,7 +471,7 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
     }
 
     const createdEvent = await response.json();
-    console.log(`✅ [Google Calendar] Evento creado exitosamente con ID: ${createdEvent.id}`);
+
     return createdEvent.id;
   } catch (error) {
     console.error('Error en createGoogleCalendarEvent:', error);
@@ -469,11 +481,11 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
 
 /**
  * Crea un evento en Microsoft Calendar
- * ✅ CORRECCIÓN URGENTE: Usa la zona horaria del plan en lugar de UTC
+ * ✅ CORRECCIÓN: Formatea fechas en la zona horaria correcta sin convertir a UTC
  */
 async function createMicrosoftCalendarEvent(accessToken: string, session: any, timezone: string = 'UTC'): Promise<string | null> {
   try {
-    // ✅ CORRECCIÓN URGENTE: Las fechas en la BD están en formato ISO string
+    // ✅ CORRECCIÓN: Las fechas en la BD están en formato ISO string
     const startTime = new Date(session.start_time);
     const endTime = new Date(session.end_time);
     
@@ -487,6 +499,11 @@ async function createMicrosoftCalendarEvent(accessToken: string, session: any, t
       return null;
     }
     
+    // ✅ CORRECCIÓN CRÍTICA: Formatear en la zona horaria del plan sin convertir a UTC
+    // Esto evita el desfase de -1 hora
+    const startDateTime = formatDateTimeInTimezone(startTime, timezone);
+    const endDateTime = formatDateTimeInTimezone(endTime, timezone);
+    
     const event = {
       subject: session.title,
       body: {
@@ -494,25 +511,17 @@ async function createMicrosoftCalendarEvent(accessToken: string, session: any, t
         content: session.description || `Sesión de estudio${session.course_id ? ` - Curso: ${session.course_id}` : ''}`,
       },
       start: {
-        dateTime: startTime.toISOString(),
-        timeZone: timezone, // ✅ Usar zona horaria del plan, no UTC
+        dateTime: startDateTime,
+        timeZone: timezone,
       },
       end: {
-        dateTime: endTime.toISOString(),
-        timeZone: timezone, // ✅ Usar zona horaria del plan, no UTC
+        dateTime: endDateTime,
+        timeZone: timezone,
       },
       reminderMinutesBeforeStart: 15,
       isReminderOn: true,
     };
-    
-    console.log(`📅 Creando evento en Microsoft Calendar con zona horaria: ${timezone}`);
-    console.log(`   Inicio: ${startTime.toISOString()} (${timezone})`);
-    console.log(`   Fin: ${endTime.toISOString()} (${timezone})`);
 
-    console.log(`📤 [Microsoft Calendar] Enviando request para crear evento...`);
-    console.log(`   Título: ${event.subject}`);
-    console.log(`   Inicio: ${event.start.dateTime} (${event.start.timeZone})`);
-    console.log(`   Fin: ${event.end.dateTime} (${event.end.timeZone})`);
     
     const response = await fetch(
       'https://graph.microsoft.com/v1.0/me/calendar/events',
@@ -534,7 +543,7 @@ async function createMicrosoftCalendarEvent(accessToken: string, session: any, t
     }
 
     const createdEvent = await response.json();
-    console.log(`✅ [Microsoft Calendar] Evento creado exitosamente con ID: ${createdEvent.id}`);
+
     return createdEvent.id;
   } catch (error) {
     console.error('Error en createMicrosoftCalendarEvent:', error);

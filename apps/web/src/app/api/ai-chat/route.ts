@@ -662,7 +662,7 @@ IMPORTANTE: Siempre combina la respuesta educativa/informativa con la navegació
 
     // Información de dificultad detectada (si existe)
     const difficultyInfo = courseContext.difficultyDetected
-      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${courseContext.difficultyDetected.patterns.map(p => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${courseContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(courseContext.difficultyDetected.suggestedHelpType, courseContext)}`
+      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${courseContext.difficultyDetected.patterns.map(p => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${courseContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(courseContext.difficultyDetected.suggestedHelpType || 'general', courseContext)}`
       : '';
 
     // Información de comportamiento del usuario en el curso (si existe)
@@ -918,7 +918,7 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
 
     // ✅ Información de dificultad detectada para talleres (si existe)
     const workshopDifficultyInfo = workshopContext.difficultyDetected
-      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${workshopContext.difficultyDetected.patterns.map((p: any) => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${workshopContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(workshopContext.difficultyDetected.suggestedHelpType, workshopContext)}`
+      ? `\n\n🚨 CONTEXTO DE AYUDA PROACTIVA:\nEl sistema ha detectado que el estudiante está experimentando dificultades:\n${workshopContext.difficultyDetected.patterns.map((p: any) => `- ${p.description}`).join('\n')}\n\n⚠️ TIPO DE AYUDA SUGERIDA: ${workshopContext.difficultyDetected.suggestedHelpType || 'general'}\n\n📋 INSTRUCCIONES ESPECÍFICAS SEGÚN EL TIPO DE DIFICULTAD:\n${generateHelpInstructions(workshopContext.difficultyDetected.suggestedHelpType || 'general', workshopContext)}`
       : '';
 
     // ✅ Información de comportamiento del usuario en el taller (si existe)
@@ -1358,6 +1358,9 @@ ${studyPlannerContextString}
 IMPORTANTE - TIPOS DE USUARIO:
 - Usuario B2B: Pertenece a una organización. Sus cursos ya están asignados con plazos fijos.
   NO puede seleccionar otros cursos. Debes respetar los plazos del administrador.
+  ⚠️ CRÍTICO: Las fechas límite (dueDate) vienen de los cursos asignados por la organización.
+  NO preguntes por una fecha objetivo - usa automáticamente las fechas límite de los cursos.
+  Si hay múltiples cursos, usa la fecha límite más próxima como referencia principal.
 - Usuario B2C: Usuario independiente. Tiene flexibilidad total para elegir cursos y tiempos.
   Puede establecer metas fijas o no. Puedes sugerirle rutas de aprendizaje.
 
@@ -1365,11 +1368,19 @@ FASES DEL PLANIFICADOR:
 1. Análisis de Contexto: Identificar tipo de usuario, analizar perfil profesional
 2. Selección de Cursos: B2B usa cursos asignados, B2C elige sus cursos (modal automático)
 3. Selección de Enfoque: Rápido (25min), Normal (45min), o Largo (60min) (modal automático)
-4. Fecha Objetivo: Usuario selecciona fecha límite para completar cursos (modal automático)
+   ⚠️ CRÍTICO: NO preguntes sobre el enfoque de estudio en el chat. El modal se abre automáticamente.
+   Si el usuario aún no ha seleccionado el enfoque, simplemente espera a que lo haga en el modal.
+   NO menciones "rápido", "normal" o "largo" en tus mensajes hasta que el usuario lo haya seleccionado.
+4. Fecha Objetivo: 
+   - B2B: Usa AUTOMÁTICAMENTE las fechas límite (dueDate) de los cursos asignados por la organización
+     NO preguntes por una fecha objetivo - las fechas ya están establecidas por el administrador
+     Si hay múltiples cursos, usa la fecha límite más próxima como referencia principal
+   - B2C: Usuario selecciona fecha límite para completar cursos (modal automático)
 5. Integración de Calendario: Conexión automática de Google/Microsoft Calendar
+   ⚠️ OBLIGATORIO para B2B: El calendario debe estar conectado para adaptar el plan a horarios de trabajo
 6. Análisis y Recomendaciones: Calcular AUTOMÁTICAMENTE metas y horarios basándose en:
    - Lecciones pendientes del sistema (NO preguntar)
-   - Semanas hasta fecha objetivo (calculado automáticamente)
+   - Semanas hasta fecha objetivo (calculado automáticamente desde dueDate para B2B)
    - Horas disponibles del calendario (analizado automáticamente)
    - Duración de sesión según enfoque seleccionado (NO preguntar)
 7. Resumen y Confirmación: Mostrar resumen completo y preguntar si desea ajustar
@@ -1431,7 +1442,10 @@ Si recibes información de factibilidad con "isFeasible: false", DEBES:
 
 REGLAS CRÍTICAS:
 - Los tiempos de sesión YA están definidos según el enfoque: rápido=25min, normal=45min, largo=60min
-- NO preguntar sobre tiempos de sesión si el usuario ya seleccionó un enfoque
+- ⚠️ PROHIBIDO: NO preguntes sobre el enfoque de estudio (rápido/normal/largo) en el chat
+- ⚠️ PROHIBIDO: NO preguntes sobre tiempos de sesión (25min/45min/60min) en el chat
+- El modal de selección de enfoque se abre automáticamente - NO necesitas preguntar nada
+- Si el usuario aún no ha seleccionado el enfoque, simplemente presenta el análisis de contexto y espera
 - Los tiempos de descanso son automáticos: rápido=5min, normal=10min, largo=15min
 - Para B2B: SIEMPRE validar que los tiempos permitan cumplir los plazos del administrador
 - Para B2C: Dar recomendaciones basadas en los datos del sistema

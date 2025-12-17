@@ -269,7 +269,7 @@ export function OnboardingAgent() {
       const audioBlob = await response.blob();
       // If the request was aborted, do not proceed
       if (ttsAbortRef.current && ttsAbortRef.current.signal.aborted) {
-        console.log('TTS request aborted, skipping playback');
+
         ttsAbortRef.current = null;
         return;
       }
@@ -303,7 +303,7 @@ export function OnboardingAgent() {
     } catch (error: any) {
       // Si la petición fue abortada, lo manejamos como info
       if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
-        console.log('TTS aborted:', error.message || error);
+
       } else {
         console.error('Error en síntesis de voz con ElevenLabs:', error);
       }

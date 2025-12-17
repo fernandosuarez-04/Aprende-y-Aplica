@@ -82,19 +82,13 @@ export class DifficultyPatternDetector {
 
     if (sessionDuration < warmUpPeriod) {
       const remainingSeconds = Math.ceil((warmUpPeriod - sessionDuration) / 1000);
-      console.log(`⏳ [WARM-UP] Esperando ${remainingSeconds}s antes de iniciar detección de dificultad`);
+
       return this.createAnalysis(0, [], false, '');
     }
 
     // Filtrar eventos dentro de la ventana de análisis
     const recentEvents = this.filterRecentEvents(events, this.thresholds.analysisWindow);
 
-    console.log('🔍 [DEBUG] Analizando eventos:', {
-      totalEvents: events.length,
-      recentEvents: recentEvents.length,
-      analysisWindow: this.thresholds.analysisWindow,
-      sessionDuration: `${Math.floor(sessionDuration / 1000)}s`
-    });
 
     if (recentEvents.length === 0) {
       return this.createAnalysis(0, [], false, '');
@@ -161,18 +155,6 @@ export class DifficultyPatternDetector {
 
     const now = Date.now();
     
-    // 🐛 DEBUG: Ver cuántas interacciones reales hay
-    console.log('🐛 [DEBUG] Interacciones reales:', {
-      total: interactionEvents.length,
-      ultimaInteraccion: interactionEvents.length > 0 
-        ? `hace ${Math.floor((now - interactionEvents[interactionEvents.length - 1].timestamp) / 1000)}s`
-        : 'ninguna',
-      tiposDeEvento: interactionEvents.slice(-3).map(e => ({
-        source: (e.data as any)?.source,
-        timestamp: new Date(e.timestamp).toLocaleTimeString()
-      }))
-    });
-
     if (interactionEvents.length === 0) {
       // Si no hay eventos de interacción en toda la ventana (3 min), usuario está MUY inactivo
       const oldestEventTime = events[0].timestamp;
@@ -181,7 +163,7 @@ export class DifficultyPatternDetector {
       if (timeSinceOldest > this.thresholds.inactivityThreshold) {
         const minutes = Math.floor(timeSinceOldest / 60000);
         const seconds = Math.floor((timeSinceOldest % 60000) / 1000);
-        console.log('⚠️ INACTIVIDAD DETECTADA: Sin interacciones por', minutes, 'min', seconds, 's');
+
         return {
           type: 'inactivity',
           severity: timeSinceOldest > 180000 ? 'high' : 'medium',
@@ -205,7 +187,7 @@ export class DifficultyPatternDetector {
     if (timeSinceLastActivity > this.thresholds.inactivityThreshold) {
       const minutes = Math.floor(timeSinceLastActivity / 60000);
       const seconds = Math.floor((timeSinceLastActivity % 60000) / 1000);
-      console.log('⚠️ INACTIVIDAD DETECTADA: Última interacción hace', minutes, 'min', seconds, 's');
+
       return {
         type: 'inactivity',
         severity: timeSinceLastActivity > 180000 ? 'high' : 'medium',
@@ -255,13 +237,7 @@ export class DifficultyPatternDetector {
 
     // Extraer secuencia de IDs clickeados
     const clickedIds = clickEvents.map(e => (e.data as any).id);
-    
-    console.log('🖱️ [DEBUG] Secuencia de clicks:', {
-      total: clickedIds.length,
-      ids: clickedIds,
-      uniqueIds: [...new Set(clickedIds)].length
-    });
-    
+
     // Detectar patrón de ciclos: si hay muchos clicks alternando entre pocos IDs únicos
     // Ejemplo: [177, 184, 192, 177, 184, 192] = cambio entre tabs
     const uniqueIds = new Set(clickedIds);
@@ -278,26 +254,12 @@ export class DifficultyPatternDetector {
           tabClickEvents.push(clickEvents[i]);
         }
       }
-      
-      console.log('🔄 [DEBUG] Análisis de alternancia:', {
-        clicksTotal: clickedIds.length,
-        idsUnicos: uniqueIds.size,
-        alternancias: alternations,
-        ratio: (alternations / clickedIds.length).toFixed(2)
-      });
     }
 
     // Si hay suficientes cambios de tab/sección en la ventana de análisis, es un ciclo repetitivo
     const totalNavigationEvents = backNavigationEvents.length + alternations;
     const repetitionThreshold = this.thresholds.repetitiveCyclesThreshold ?? 5;
 
-    console.log('🔄 [DEBUG] Ciclos repetitivos:', {
-      backNavigation: backNavigationEvents.length,
-      tabChanges: alternations,
-      total: totalNavigationEvents,
-      threshold: repetitionThreshold
-    });
-    
     if (totalNavigationEvents >= repetitionThreshold) {
       return {
         type: 'repetitive_cycles',
@@ -374,27 +336,17 @@ export class DifficultyPatternDetector {
     
     // Requerir al menos 10 interacciones reales para considerar que hay actividad real del usuario
     if (interactionEvents.length < 10) {
-      console.log('⚠️ [DEBUG] Muy pocas interacciones reales:', interactionEvents.length, '< 10. Usuario probablemente AFK.');
+
       return null;
     }
     
     // Estrategia alternativa: contar eventos de mutación frecuentes como indicador de scroll
     const incrementalSnapshots = events.filter(event => event.type === 3);
-    
-    console.log('📜 [DEBUG] Análisis de scroll alternativo:', {
-      totalIncrementalSnapshots: incrementalSnapshots.length,
-      interaccionesReales: interactionEvents.length,
-      primeros5Tipos: incrementalSnapshots.slice(0, 5).map(e => ({
-        type: e.type,
-        source: (e.data as any).source,
-        timestamp: e.timestamp
-      }))
-    });
-    
+
     // Si hay muchos eventos incrementales en poco tiempo, probablemente hay scroll activo
     // Contar "ráfagas" de eventos (grupos de eventos muy juntos en tiempo)
     if (incrementalSnapshots.length < 100) {
-      console.log('⚠️ [DEBUG] Pocos snapshots incrementales:', incrementalSnapshots.length);
+
       return null;
     }
     
@@ -422,21 +374,11 @@ export class DifficultyPatternDetector {
         directionChanges++;
       }
     }
-    
-    console.log('📜 [DEBUG] Ráfagas de scroll:', {
-      ventanasActivas: activeWindows.length,
-      cambiosDireccion: directionChanges,
-      interaccionesReales: interactionEvents.length,
-      threshold: this.thresholds.scrollRepeatThreshold,
-      detectadoPorCambios: directionChanges >= this.thresholds.scrollRepeatThreshold,
-      detectadoPorVolumen: activeWindows.length >= 15, // AUMENTADO de 8 a 15
-      primeras5Ventanas: activeWindows.slice(0, 5)
-    });
 
     // 🛑 VALIDACIÓN CRÍTICA: Solo detectar si hay interacciones reales del usuario
     // Si no hay clicks, inputs, o teclas presionadas, no hay scroll intencional
     if (interactionEvents.length < 5) {
-      console.log('⚠️ [DEBUG] Ignorando scroll - sin interacciones reales suficientes');
+
       return null;
     }
 

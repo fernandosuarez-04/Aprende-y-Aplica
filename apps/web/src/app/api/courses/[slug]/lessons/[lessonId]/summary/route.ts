@@ -88,8 +88,6 @@ export async function GET(
 
     const summaryContent = lessonData?.summary_content || null;
 
-    console.log(`[summary/route] ✅ Resumen obtenido de ${lessonsTableName} para ${lessonId}`);
-
     // ⚡ OPTIMIZACIÓN: Agregar cache headers (datos estáticos - 1 hora)
     return withCacheHeaders(
       NextResponse.json({

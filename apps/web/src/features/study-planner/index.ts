@@ -37,6 +37,16 @@ export {
   type StudyPlannerLIAActions,
 } from './hooks/useStudyPlannerLIA';
 
+export {
+  useStudyPlannerDashboardLIA,
+  type DashboardMessage,
+  type StudyPlannerAction,
+  type ActiveStudyPlan,
+  type CalendarChange,
+  type StudyPlannerDashboardState,
+  type StudyPlannerDashboardActions,
+} from './hooks/useStudyPlannerDashboardLIA';
+
 // ============================================================================
 // CONTEXTO
 // ============================================================================

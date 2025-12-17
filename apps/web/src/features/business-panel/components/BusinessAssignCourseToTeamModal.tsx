@@ -197,7 +197,7 @@ export function BusinessAssignCourseToTeamModal({
                   <PremiumSelect
                     value={selectedCourseId}
                     onValueChange={(value) => {
-                      console.log('Curso seleccionado:', value)
+
                       setSelectedCourseId(value)
                       setError(null) // Limpiar error al cambiar selección
                     }}

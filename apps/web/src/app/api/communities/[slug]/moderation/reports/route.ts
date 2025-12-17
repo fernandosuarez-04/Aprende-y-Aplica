@@ -15,18 +15,16 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    console.log('📥 GET /api/communities/[slug]/moderation/reports - Request received')
+
     const supabase = await createClient()
     const { slug } = await params
-    console.log('📋 Route params:', { slug })
+
     const user = await SessionService.getCurrentUser()
 
     if (!user) {
       console.error('❌ User not authenticated')
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
-
-    console.log('✅ User authenticated:', user.id)
 
     const { searchParams } = new URL(request.url)
     
@@ -35,8 +33,6 @@ export async function GET(
     const reasonCategory = searchParams.get('reason_category')
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
-
-    console.log('🔍 Filters:', { status, reasonCategory, limit, offset })
 
     // Obtener la comunidad por slug
     const { data: community, error: communityError } = await supabase
@@ -53,11 +49,9 @@ export async function GET(
       )
     }
 
-    console.log('✅ Community found:', { communityId: community.id, slug })
-
     // Verificar permisos de moderación
     const canModerate = await canModerateCommunity(user.id, community.id)
-    console.log('🔐 Can moderate:', canModerate)
+
     if (!canModerate) {
       console.error('❌ User does not have moderation permissions')
       return NextResponse.json(
@@ -92,14 +86,6 @@ export async function GET(
     )
 
     // Construir query base - simplificada primero
-    console.log('🔍 Querying reports for community:', {
-      communityId: community.id,
-      slug,
-      status,
-      reasonCategory,
-      limit,
-      offset
-    })
 
     // Primero verificar si hay reportes sin filtros para debug
     const { data: allReports, error: allReportsError } = await adminSupabase
@@ -148,8 +134,6 @@ export async function GET(
         { status: 500 }
       )
     }
-
-    console.log('📊 Reports found:', reports?.length || 0)
 
     // Enriquecer reportes con información relacionada
     const enrichedReports = await Promise.all(

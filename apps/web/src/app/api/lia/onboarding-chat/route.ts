@@ -31,8 +31,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`🎤 Pregunta de onboarding: "${question}"`);
-
     // En lugar de llamar directamente a OpenAI desde aquí, delegamos en el endpoint
     // central `/api/ai-chat` que ya contiene el sistema completo de LIA y todo el
     // manejo de contexto/analytics. Esto hará que las respuestas usen el mismo

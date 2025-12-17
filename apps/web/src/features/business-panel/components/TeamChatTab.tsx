@@ -101,7 +101,7 @@ export function TeamChatTab({ teamId }: TeamChatTabProps) {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Suscrito a mensajes en tiempo real')
+
         } else if (status === 'CHANNEL_ERROR') {
           console.error('❌ Error en la suscripción Realtime')
           setError('Error de conexión en tiempo real')

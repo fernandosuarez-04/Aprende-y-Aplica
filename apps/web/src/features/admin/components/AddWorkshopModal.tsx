@@ -144,6 +144,7 @@ export function AddWorkshopModal({ isOpen, onClose, onSave }: AddWorkshopModalPr
     setError(null)
 
     try {
+
       const response = await fetch('/api/admin/workshops/create', {
         method: 'POST',
         headers: {

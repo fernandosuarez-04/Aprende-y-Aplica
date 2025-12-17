@@ -43,16 +43,6 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
 
   // Debug: Log cuando los estilos se aplican
   useEffect(() => {
-    console.log('🖼️ [BusinessPanelLayout] Estilos recibidos del contexto:', {
-      hasStyles: !!styles,
-      selectedTheme: styles?.selectedTheme,
-      panel: {
-        hasBackground: !!styles?.panel?.background_value,
-        backgroundType: styles?.panel?.background_type,
-        primaryColor: styles?.panel?.primary_button_color,
-        secondaryColor: styles?.panel?.secondary_button_color
-      }
-    });
 
     if (styles?.panel) {
       console.log('✅ [BusinessPanelLayout] Estilos aplicados correctamente al layout:', {

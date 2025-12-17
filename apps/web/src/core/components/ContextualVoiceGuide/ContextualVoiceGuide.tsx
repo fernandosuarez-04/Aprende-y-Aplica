@@ -311,7 +311,7 @@ export function ContextualVoiceGuide({
       const audioBlob = await response.blob();
       // If the request was aborted, do not proceed
       if (ttsAbortRef.current && ttsAbortRef.current.signal.aborted) {
-        console.log('TTS request aborted, skipping playback');
+
         ttsAbortRef.current = null;
         return;
       }
@@ -345,7 +345,7 @@ export function ContextualVoiceGuide({
     } catch (error: any) {
       // Si la peticiÃ³n fue abortada, lo manejamos como info
       if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
-        console.log('TTS aborted:', error.message || error);
+
       } else {
         console.error('Error en sÃ­ntesis de voz con ElevenLabs:', error);
       }
@@ -367,7 +367,6 @@ export function ContextualVoiceGuide({
         recognition.onresult = (event: any) => {
           const speechToTextRaw = event.results[0][0].transcript || '';
           const speechToText = speechToTextRaw.trim();
-          console.log('TranscripciÃ³n raw:', speechToTextRaw);
 
           // Normalizar texto para deduplicaciÃ³n
           const normalize = (s: string) => s.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
@@ -576,8 +575,6 @@ export function ContextualVoiceGuide({
         conversationHistory,
       };
 
-      console.log('🤖 Enviando pregunta a LIA:', question);
-
       // ✅ CORRECCIÓN: Construir pageContext correcto con pathname actual
       // Esto permite que Lia sepa exactamente en qué página está el usuario
       const currentPathname = pathname || '/';
@@ -611,8 +608,6 @@ export function ContextualVoiceGuide({
 
       const data = await response.json();
       const liaResponse = data.response;
-
-      console.log('ðŸ’¬ Respuesta de LIA:', liaResponse);
 
       // Actualizar historial de conversaciÃ³n, evitando duplicados consecutivos
       setConversationHistory(prev => {

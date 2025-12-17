@@ -200,13 +200,7 @@ export default function CalendarCallbackPage() {
     }
 
     if (success && state && isPopup && window.opener) {
-      console.log('[Calendar Callback] Enviando mensaje de éxito al padre:', {
-        type: 'calendar-connected',
-        provider: providerFromState,
-        origin: window.location.origin,
-        openerExists: !!window.opener
-      });
-      
+
       // Si es popup, la conexión ya se procesó en el servidor
       // Solo necesitamos notificar al padre
       try {
@@ -217,7 +211,7 @@ export default function CalendarCallbackPage() {
           },
           window.location.origin
         );
-        console.log('[Calendar Callback] Mensaje enviado exitosamente');
+
       } catch (e) {
         console.error('[Calendar Callback] Error enviando mensaje:', e);
       }
@@ -232,7 +226,6 @@ export default function CalendarCallbackPage() {
             },
             window.location.origin
           );
-          console.log('[Calendar Callback] Mensaje enviado (intento)');
         } catch (e) {
           console.error('[Calendar Callback] Error enviando mensaje:', e);
         }
@@ -247,7 +240,7 @@ export default function CalendarCallbackPage() {
 
       // Cerrar el popup después de dar tiempo al mensaje
       setTimeout(() => {
-        console.log('[Calendar Callback] Cerrando popup...');
+
         try {
           window.close();
         } catch (e) {
@@ -259,7 +252,7 @@ export default function CalendarCallbackPage() {
     } else if (code && state && !success && isPopup) {
       // Si tenemos code pero no success, el servidor debe procesarlo primero
       // Redirigir al servidor para que lo procese
-      console.log('[Calendar Callback] Procesando código en el servidor...');
+
       window.location.href = `/api/study-planner/calendar/callback?code=${code}&state=${encodeURIComponent(state)}`;
     } else if (success && !isPopup) {
       // Si no es popup, redirigir normalmente

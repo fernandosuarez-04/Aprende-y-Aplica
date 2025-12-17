@@ -56,8 +56,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`[translate-existing-lessons] Encontradas ${lessons.length} lecciones para procesar`)
-
     const results = {
       translated: 0,
       failed: 0,
@@ -105,7 +103,7 @@ export async function POST(request: NextRequest) {
             status: 'skipped',
             languages: existingLanguages
           })
-          console.log(`[translate-existing-lessons] ⏭️ Lección ${lessonId} ya tiene todas las traducciones, saltando`)
+
           continue
         }
 

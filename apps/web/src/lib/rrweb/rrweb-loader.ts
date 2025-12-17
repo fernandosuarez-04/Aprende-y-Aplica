@@ -141,7 +141,7 @@ export async function loadRrweb(): Promise<RrwebModule | null> {
       
       rrwebModule = module;
       isRrwebLoading = false;
-      console.log('✅ [rrweb-loader] rrweb cargado correctamente');
+
       return module;
     } catch (error) {
       console.error('❌ [rrweb-loader] Error cargando rrweb:', error);
@@ -207,7 +207,7 @@ export async function loadRrwebPlayer(): Promise<any | null> {
       
       rrwebPlayerModule = module;
       isRrwebPlayerLoading = false;
-      console.log('✅ [rrweb-loader] rrweb-player cargado correctamente');
+
       return module;
     } catch (error) {
       console.error('❌ [rrweb-loader] Error cargando rrweb-player:', error);

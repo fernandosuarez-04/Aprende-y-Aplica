@@ -9,12 +9,10 @@ async function getServerClient() {
     throw new Error('getServerClient can only be used on the server')
   }
   
-  // Construir el path dinámicamente para evitar análisis estático del bundler
-  // Esto evita que Turbopack/Webpack incluyan el módulo server-only en el bundle del cliente
-  const modulePath = ['@', 'lib', 'supabase', 'server'].join('/')
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const serverModule = require(modulePath)
-  return await serverModule.createClient()
+  // Usar import dinámico con ruta relativa para evitar problemas con alias en runtime
+  // Esto evita que webpack analice el módulo durante el build
+  const module = await import('../../../lib/supabase/server')
+  return await module.createClient()
 }
 
 /**

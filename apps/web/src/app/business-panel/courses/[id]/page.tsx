@@ -132,16 +132,12 @@ export default function BusinessCourseDetailPage() {
         setLoading(true)
         setError(null)
 
-        console.log('🔍 Fetching course with ID:', courseId)
-
         const response = await fetch(`/api/business/courses/${courseId}`, {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json'
           }
         })
-
-        console.log('📡 Response status:', response.status)
 
         let data
         try {
@@ -153,7 +149,7 @@ export default function BusinessCourseDetailPage() {
           }
           
           data = JSON.parse(responseText)
-          console.log('📦 Parsed data:', data)
+
         } catch (jsonError) {
           console.error('❌ Failed to parse JSON response:', jsonError)
           throw new Error(`Error al procesar la respuesta del servidor (${response.status})`)
@@ -171,7 +167,7 @@ export default function BusinessCourseDetailPage() {
         }
 
         if (data.success && data.course) {
-          console.log('✅ Course loaded successfully:', data.course.title)
+
           setCourse(data.course)
           // Expandir el primer módulo por defecto
           if (data.course.modules && data.course.modules.length > 0) {

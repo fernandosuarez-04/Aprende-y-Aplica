@@ -49,7 +49,7 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
       // Verificar si estamos en producción
       const isProduction = process.env.NODE_ENV === 'production';
       if (isProduction && !enableOnProduction) {
-        console.log('⚠️ Grabación deshabilitada en producción');
+
         return;
       }
 
@@ -102,7 +102,7 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
     try {
       await recorder.startRecording(maxDuration);
       setIsRecording(true);
-      console.log('✅ Grabación iniciada');
+
     } catch (error) {
       console.error('❌ Error al iniciar grabación:', error);
       setIsRecording(false);
@@ -125,7 +125,7 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
       const session = recorder.stop();
       setIsRecording(false);
       setCurrentSession(session);
-      console.log('✅ Grabación detenida');
+
       return session;
     } catch (error) {
       console.error('❌ Error al detener grabación:', error);

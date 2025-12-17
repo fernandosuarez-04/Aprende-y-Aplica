@@ -59,13 +59,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🤖 Procesando ayuda proactiva de LIA:', {
-      patterns: analysis.patterns.length,
-      score: analysis.overallScore,
-      workshopId,
-      activityId
-    });
-
     // Analizar sesión para obtener contexto adicional
     const sessionAnalyzer = new SessionAnalyzer();
     const sessionContext = sessionEvents && sessionEvents.length > 0
@@ -141,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     } else {
       // Fallback: respuestas simuladas para desarrollo
-      console.log('⚠️ OPENAI_API_KEY no configurado, usando respuestas simuladas');
+
       const mockResponse = generateMockProactiveResponse(analysis, sessionContext);
       liaResponse = mockResponse.response;
       suggestions = mockResponse.suggestions;
@@ -150,11 +143,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Log de respuesta generada
-    console.log('✅ Respuesta proactiva generada:', {
-      responseLength: liaResponse.length,
-      suggestionsCount: suggestions.length,
-      resourcesCount: resources.length
-    });
 
     return NextResponse.json<ProactiveHelpResponse>({
       success: true,

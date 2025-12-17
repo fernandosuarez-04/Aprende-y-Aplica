@@ -59,22 +59,11 @@ export function ModerationReportsPage({ communitySlug }: ModerationReportsPagePr
     setError(null)
 
     try {
-      console.log('🔍 Fetching reports for community:', communitySlug, {
-        status: selectedStatus === 'all' ? undefined : selectedStatus,
-        limit: pagination.limit,
-        offset: pagination.offset,
-      })
 
       const result = await PostReportsService.getReports(communitySlug, {
         status: selectedStatus === 'all' ? undefined : selectedStatus,
         limit: pagination.limit,
         offset: pagination.offset,
-      })
-
-      console.log('📊 Reports result:', {
-        success: result.success,
-        reportsCount: result.reports?.length || 0,
-        pagination: result.pagination
       })
 
       if (result.success) {
@@ -109,20 +98,12 @@ export function ModerationReportsPage({ communitySlug }: ModerationReportsPagePr
   ) => {
     setIsResolving(true)
     try {
-      console.log('🔧 Resolving report:', {
-        reportId,
-        status,
-        resolutionAction,
-        resolutionNotes
-      })
 
       const result = await PostReportsService.resolveReport(communitySlug, reportId, {
         status,
         resolution_action: resolutionAction,
         resolution_notes: resolutionNotes,
       })
-
-      console.log('📊 Resolve result:', result)
 
       if (result.success && result.report) {
         // Actualizar el reporte en la lista
@@ -131,7 +112,7 @@ export function ModerationReportsPage({ communitySlug }: ModerationReportsPagePr
         )
         // Recargar para actualizar contadores y filtros
         await fetchReports()
-        console.log('✅ Report resolved and list updated')
+
       } else {
         console.error('❌ Resolve failed:', result.error)
         alert(result.error || 'Error al resolver el reporte')
@@ -389,5 +370,4 @@ export function ModerationReportsPage({ communitySlug }: ModerationReportsPagePr
     </div>
   )
 }
-
 

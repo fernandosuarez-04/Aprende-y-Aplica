@@ -160,11 +160,7 @@ export class PostReportsService {
       }
 
       const data = await response.json()
-      console.log('✅ Reports data received:', {
-        success: data.success,
-        reportsCount: data.reports?.length || 0,
-        pagination: data.pagination
-      })
+
       return data
     } catch (error) {
       console.error('Error fetching reports:', error)

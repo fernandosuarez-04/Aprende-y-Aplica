@@ -167,7 +167,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       let recordingSizeStr = 'N/A';
       
       // La grabación está corriendo en background, capturamos un snapshot sin detenerla
-      console.log('📸 Capturando snapshot de la sesión en background...');
+
       const session = sessionRecorder.captureSnapshot();
       
       if (session && session.endTime) {
@@ -175,7 +175,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         sessionRecording = sessionRecorder.exportSessionBase64(session);
         recordingDuration = session.endTime - session.startTime;
         recordingSizeStr = `${Math.round(sessionRecording.length / 1024)} KB`;
-        console.log(`✅ Snapshot capturado: ${session.events.length} eventos, ${recordingSizeStr}, ${recordingDuration}ms`);
+
       } else {
         console.warn('⚠️ No se pudo capturar el snapshot de la sesión');
       }

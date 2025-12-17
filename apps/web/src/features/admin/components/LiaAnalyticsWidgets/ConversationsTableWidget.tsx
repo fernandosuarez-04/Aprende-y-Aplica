@@ -122,14 +122,6 @@ export function ConversationsTableWidget({
       const response = await fetch(`/api/admin/lia-analytics/conversations?${params}`);
       const data = await response.json();
 
-      console.log('[ConversationsTableWidget] Response:', {
-        success: data.success,
-        total: data.data?.pagination?.total,
-        conversationsCount: data.data?.conversations?.length,
-        error: data.error,
-        details: data.details
-      });
-
       if (data.success) {
         setConversations(data.data.conversations);
         setTotalPages(data.data.pagination.totalPages);

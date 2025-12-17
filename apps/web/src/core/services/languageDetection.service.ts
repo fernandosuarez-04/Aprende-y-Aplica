@@ -19,7 +19,7 @@ export class LanguageDetectionService {
    */
   static async detectLanguage(text: string): Promise<DetectableLanguage> {
     if (!text || text.trim().length === 0) {
-      console.log('[LanguageDetectionService] Texto vacío, retornando español por defecto');
+
       return 'es';
     }
 
@@ -30,12 +30,11 @@ export class LanguageDetectionService {
 
     // Para textos muy cortos, usar detección básica (más rápido y económico)
     if (text.trim().length < 50) {
-      console.log('[LanguageDetectionService] Texto muy corto, usando detección básica');
+
       return this.detectLanguageBasic(text);
     }
 
     try {
-      console.log(`[LanguageDetectionService] Detectando idioma usando OpenAI (texto: ${text.length} caracteres)`);
 
       const systemPrompt = `Eres un detector de idiomas especializado. Tu tarea es identificar el idioma del texto proporcionado.
 
@@ -100,7 +99,7 @@ ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`;
 
       // Validar que sea uno de los idiomas soportados
       if (detectedLang === 'es' || detectedLang === 'en' || detectedLang === 'pt') {
-        console.log(`[LanguageDetectionService] ✅ Idioma detectado: ${detectedLang}`);
+
         return detectedLang as DetectableLanguage;
       } else {
         console.warn(`[LanguageDetectionService] ⚠️ Idioma detectado no válido: "${detectedLang}", usando detección básica`);
@@ -144,18 +143,15 @@ ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`;
     
     // Si hay más patrones de inglés
     if (englishScore > portugueseScore && englishScore > 2) {
-      console.log(`[LanguageDetectionService] Idioma detectado (básico): inglés (score: ${englishScore})`);
       return 'en';
     }
     
     // Si hay más patrones de portugués
     if (portugueseScore > englishScore && portugueseScore > 2) {
-      console.log(`[LanguageDetectionService] Idioma detectado (básico): portugués (score: ${portugueseScore})`);
       return 'pt';
     }
     
     // Por defecto, español
-    console.log(`[LanguageDetectionService] Idioma detectado (básico): español (por defecto)`);
     return 'es';
   }
 
@@ -198,7 +194,6 @@ ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`;
       counts[a[0] as DetectableLanguage] > counts[b[0] as DetectableLanguage] ? a : b
     )[0] as DetectableLanguage;
 
-    console.log(`[LanguageDetectionService] Idioma más común detectado: ${mostCommon}`, counts);
     return mostCommon;
   }
 }

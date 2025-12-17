@@ -323,8 +323,7 @@ export default function CourseLearnPage() {
       // Mantener solo las últimas 50 acciones para no sobrecargar memoria
       return newLog.slice(-50);
     });
-    
-    console.log('🎯 User Action Tracked:', logEntry);
+
   }, [currentLesson]);
 
   // Función para analizar el comportamiento y generar contexto detallado
@@ -514,10 +513,9 @@ export default function CourseLearnPage() {
 
   // Callback memoizado para evitar loops infinitos
   const handlePromptsChange = useCallback((prompts: string[]) => {
-    console.log('[handlePromptsChange] Recibiendo prompts:', prompts.length);
-    console.log('[handlePromptsChange] Prompts recibidos:', prompts);
+
     setCurrentActivityPrompts(prompts);
-    console.log('[handlePromptsChange] Estado actualizado');
+
   }, []);
 
   // Detectar tamaño de pantalla y ajustar estado inicial de paneles
@@ -989,7 +987,6 @@ export default function CourseLearnPage() {
     setSavedNotes((prev) => prev.filter(note => note.id !== noteId));
   };
 
-
   // Función para construir el contexto de la lección actual
   const getLessonContext = (): CourseLessonContext | undefined => {
     if (!currentLesson || !course) return undefined;
@@ -1281,7 +1278,7 @@ export default function CourseLearnPage() {
   // 🎨 Efecto: Mostrar panel de preview automáticamente cuando se genera un NanoBanana
   useEffect(() => {
     if (generatedNanoBanana && isNanoBananaMode) {
-      console.log('[LIA /learn] 🎨 NanoBanana generado, mostrando panel');
+
       setShowNanoBananaPreview(true);
     }
   }, [generatedNanoBanana, isNanoBananaMode]);
@@ -1293,14 +1290,9 @@ export default function CourseLearnPage() {
     activityTitle: string,
     userRole?: string
   ): Promise<string[]> => {
-    console.log('[generateRoleBasedPrompts] Iniciando con:', {
-      basePrompts: basePrompts.length,
-      activityTitle,
-      userRole
-    });
 
     if (!userRole || basePrompts.length === 0) {
-      console.log('[generateRoleBasedPrompts] Sin rol o sin prompts base, retornando originales');
+
       return basePrompts; // Retornar prompts originales si no hay rol
     }
 
@@ -1324,8 +1316,6 @@ INSTRUCCIONES:
 
 PROMPTS ADAPTADOS:`;
 
-      console.log('[generateRoleBasedPrompts] Llamando a /api/ai-chat...');
-
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -1338,8 +1328,6 @@ PROMPTS ADAPTADOS:`;
           isSystemMessage: true,
         }),
       });
-
-      console.log('[generateRoleBasedPrompts] Respuesta HTTP:', response.status, response.statusText);
 
       if (!response.ok) {
         console.warn('[generateRoleBasedPrompts] Respuesta no OK, usando fallback');
@@ -1357,14 +1345,11 @@ PROMPTS ADAPTADOS:`;
         .filter((line: string) => line.length > 0 && !line.match(/^\d+[\.\)]/)) // Filtrar numeración
         .slice(0, basePrompts.length); // Limitar al número de prompts originales
 
-      console.log('[generateRoleBasedPrompts] Prompts adaptados extraídos:', adaptedPrompts.length);
-
       if (adaptedPrompts.length === 0) {
         console.warn('[generateRoleBasedPrompts] No se extrajeron prompts, usando originales');
         return basePrompts;
       }
 
-      console.log('[generateRoleBasedPrompts] ✓ Personalización exitosa');
       return adaptedPrompts;
     } catch (error) {
       console.error('[generateRoleBasedPrompts] ✗ Error:', error);
@@ -1833,7 +1818,6 @@ Antes de cada respuesta, pregúntate:
     await loadNotesStats(slug);
   };
 
-
   useEffect(() => {
     async function loadCourse() {
       try {
@@ -1915,21 +1899,21 @@ Antes de cada respuesta, pregúntate:
 
           // ⚡ OPTIMIZACIÓN: Cargar automáticamente el último video visto
           if (learnData.lastWatchedLessonId && allLessons.length > 0) {
-            console.log('🎯 Auto-redirección: lastWatchedLessonId =', learnData.lastWatchedLessonId);
+
             const lastWatchedLesson = allLessons.find(
               (l: Lesson) => l.lesson_id === learnData.lastWatchedLessonId
             );
             if (lastWatchedLesson) {
-              console.log('✅ Auto-redirección: Redirigiendo a lección', lastWatchedLesson.lesson_title);
+
               setCurrentLesson(lastWatchedLesson);
             } else {
-              console.log('⚠️ Auto-redirección: No se encontró la lección. Usando fallback.');
+
               // Fallback: primera lección no completada o primera lección
               const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
               setCurrentLesson(nextIncomplete || allLessons[0]);
             }
           } else if (allLessons.length > 0) {
-            console.log('ℹ️ Auto-redirección: No hay lastWatchedLessonId. Cargando primera lección incompleta.');
+
             // Si no hay último video visto, cargar primera lección no completada o primera lección
             const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
             setCurrentLesson(nextIncomplete || allLessons[0]);
@@ -1990,7 +1974,6 @@ Antes de cada respuesta, pregúntate:
 
   // ⚡ OPTIMIZACIÓN: Eliminado prefetch waterfall - datos ya vienen del endpoint unificado
   // El endpoint /learn-data ya incluye transcript, summary, activities, materials y questions
-
 
   const loadModules = async (courseSlug: string) => {
     try {
@@ -2599,7 +2582,6 @@ Antes de cada respuesta, pregúntate:
     }
   };
 
-
   const tabs = [
     { id: 'video' as const, label: t('tabs.video'), icon: Play },
     { id: 'transcript' as const, label: t('tabs.transcript'), icon: ScrollText },
@@ -2648,19 +2630,10 @@ Antes de cada respuesta, pregúntate:
       assistantPosition="bottom-right"
       assistantCompact={false}
       onDifficultyDetected={(analysis) => {
-        console.log('🚨 Dificultad detectada en taller:', {
-          workshop: course?.title || course?.course_title,
-          lesson: currentLesson?.lesson_title,
-          patterns: analysis.patterns,
-          score: analysis.overallScore
-        });
+
       }}
       onHelpAccepted={async (analysis) => {
-        console.log('✅ Usuario aceptó ayuda proactiva:', {
-          lesson: currentLesson?.lesson_title,
-          patterns: analysis.patterns
-        });
-        
+
         // Abrir el panel de LIA (panel derecho)
         setIsRightPanelOpen(true);
         
@@ -4292,7 +4265,7 @@ Antes de cada respuesta, pregúntate:
                         {message.role === 'assistant' && message.generatedNanoBanana && (
                           <button
                             onClick={() => {
-                              console.log('[LIA /learn] 🎨 Reabriendo panel NanoBanana');
+
                               // Restaurar los datos del NanoBanana al estado global
                               // y abrir el panel
                               setShowNanoBananaPreview(true);
@@ -4330,12 +4303,7 @@ Antes de cada respuesta, pregúntate:
                 <AnimatePresence>
                   {(() => {
                     const shouldShow = currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen;
-                    console.log('[PROMPTS UI] Condiciones de visibilidad:', {
-                      prompts: currentActivityPrompts.length,
-                      activeTab,
-                      isRightPanelOpen,
-                      shouldShow
-                    });
+
                     return shouldShow;
                   })() && (
                     <motion.div
@@ -4530,7 +4498,7 @@ Antes de cada respuesta, pregúntate:
                       onEdit={(edited) => {
                         // Nota: Para editar, el usuario tendría que modificar el prompt generado
                         // Esto podría implementarse con un modal de edición más adelante
-                        console.log('Prompt editado:', edited);
+
                       }}
                       isSaving={isSavingPrompt}
                     />
@@ -4558,14 +4526,14 @@ Antes de cada respuesta, pregúntate:
                     setShowNanoBananaPreview(false);
                   }}
                   onCopy={() => {
-                    console.log('[LIA /learn] 📋 JSON NanoBanana copiado');
+
                   }}
                   onDownload={() => {
-                    console.log('[LIA /learn] 📥 JSON NanoBanana descargado');
+
                   }}
                   onRegenerate={() => {
                     // Reabrir el input para regenerar
-                    console.log('[LIA /learn] 🔄 Regenerar solicitado');
+
                   }}
                 />
               </div>
@@ -5807,8 +5775,7 @@ function QuizRenderer({
             setSubmitError(result.error || 'Error al guardar las respuestas');
           } else {
             // Quiz guardado exitosamente o no se guardó porque no mejoró
-            console.log('Quiz procesado:', result);
-            
+
             // Guardar mensaje del servidor para mostrarlo en los resultados
             if (result.message) {
               setServerMessage(result.message);
@@ -6883,10 +6850,6 @@ function ActivitiesContent({
       const allPrompts: string[] = [];
       const activityPromptsMap: Map<string, { prompts: string[], content: string, title: string }> = new Map();
 
-      console.log('[LIA PROMPTS] Iniciando procesamiento de prompts...');
-      console.log('[LIA PROMPTS] Total actividades:', activities.length);
-      console.log('[LIA PROMPTS] Usuario tiene rol:', userRole || 'Sin rol');
-
       // Primero, extraer todos los prompts base de las actividades
       activities.forEach(activity => {
         if (activity.ai_prompts) {
@@ -6927,7 +6890,7 @@ function ActivitiesContent({
                 content: activity.activity_content || '',
                 title: activity.activity_title || ''
               });
-              console.log('[LIA PROMPTS] Actividad:', activity.activity_title, '| Prompts extraídos:', cleanPrompts.length);
+
             }
           } catch (error) {
             console.warn('[LIA PROMPTS] Error parsing prompts para actividad:', activity.activity_title, error);
@@ -6935,18 +6898,15 @@ function ActivitiesContent({
         }
       });
 
-      console.log('[LIA PROMPTS] Total actividades con prompts:', activityPromptsMap.size);
-
       // Si hay rol del usuario y función de generación, adaptar prompts
       if (userRole && generateRoleBasedPromptsRef.current && activityPromptsMap.size > 0) {
-        console.log('[LIA PROMPTS] Iniciando personalización para rol:', userRole);
+
         try {
           // Generar prompts adaptados para cada actividad EN PARALELO
           const adaptationPromises = Array.from(activityPromptsMap.entries()).map(
             async ([activityId, activityData]) => {
               if (!isMounted) return []; // Salir si el componente se desmontó
 
-              console.log('[LIA PROMPTS] Personalizando prompts para:', activityData.title);
               try {
                 const adaptedPrompts = await generateRoleBasedPromptsRef.current(
                   activityData.prompts,
@@ -6954,7 +6914,7 @@ function ActivitiesContent({
                   activityData.title,
                   userRole
                 );
-                console.log('[LIA PROMPTS] ✓ Personalización exitosa para:', activityData.title, '| Prompts:', adaptedPrompts.length);
+
                 return adaptedPrompts;
               } catch (error) {
                 console.error('[LIA PROMPTS] ✗ Error personalizando:', activityData.title, error);
@@ -6982,14 +6942,13 @@ function ActivitiesContent({
             allPrompts.push(...prompts);
           });
 
-          console.log('[LIA PROMPTS] Personalización completada. Total prompts adaptados:', allPrompts.length);
         } catch (error) {
           console.error('[LIA PROMPTS] Error generando prompts adaptados:', error);
           // Fallback: usar prompts originales
           activityPromptsMap.forEach(activityData => {
             allPrompts.push(...activityData.prompts);
           });
-          console.log('[LIA PROMPTS] Usando prompts originales por error. Total:', allPrompts.length);
+
         }
       } else {
         // Sin rol o sin función de generación, usar prompts originales
@@ -6997,13 +6956,12 @@ function ActivitiesContent({
         activityPromptsMap.forEach(activityData => {
           allPrompts.push(...activityData.prompts);
         });
-        console.log('[LIA PROMPTS] Total prompts originales:', allPrompts.length);
+
       }
 
       // Notificar cambios al componente padre solo si el componente sigue montado
       if (isMounted && onPromptsChangeRef.current) {
-        console.log('[LIA PROMPTS] Notificando cambios al componente padre. Prompts finales:', allPrompts.length);
-        console.log('[LIA PROMPTS] Prompts:', allPrompts);
+
         onPromptsChangeRef.current(allPrompts);
       } else {
         console.warn('[LIA PROMPTS] Componente desmontado o sin callback, no se notifican cambios');
