@@ -942,7 +942,7 @@ export default function StudyPlannerDashboardPage() {
                     <h3 className="text-[#0A2540] dark:text-white font-semibold text-sm truncate">LIA Coach</h3>
                     <p className="text-[#6C757D] dark:text-gray-400 text-xs truncate">Tu asistente de estudio</p>
                   </div>
-                </div>
+                </motion.div>
                 <button
                   onClick={() => setIsLiaCollapsed(true)}
                   className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors flex-shrink-0 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white"

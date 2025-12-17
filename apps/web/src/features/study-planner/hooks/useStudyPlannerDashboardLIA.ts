@@ -186,7 +186,7 @@ Puedo ayudarte a organizar tu tiempo de estudio de manera eficiente según tu di
           messages: prev.messages.length === 0 ? [{
             id: `loading-${Date.now()}`,
             role: 'assistant' as const,
-            content: `¡Hola! 👋 Soy LIA. Estoy analizando tu calendario y plan de estudios... ⏳`,
+            content: `¡Hola! Soy LIA. Estoy analizando tu calendario y plan de estudios...`,
             timestamp: new Date(),
           }] : prev.messages,
         }));
