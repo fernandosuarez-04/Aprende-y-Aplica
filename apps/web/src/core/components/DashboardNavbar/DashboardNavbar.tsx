@@ -3,9 +3,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { 
-  GraduationCap, 
-  UsersRound, 
-  FileText
+  GraduationCap 
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { UserDropdown } from '../UserDropdown'
@@ -21,8 +19,6 @@ interface DashboardNavbarProps {
 
 const navigationItems = [
   { id: 'workshops', nameKey: 'dashboardNav.workshops', icon: GraduationCap },
-  { id: 'community', nameKey: 'dashboardNav.community', icon: UsersRound },
-  { id: 'news', nameKey: 'dashboardNav.news', icon: FileText },
 ]
 
 export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarProps) {
@@ -35,8 +31,6 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
   // Determinar item activo basado en pathname para móvil
   const getMobileActiveItem = (): string => {
     if (pathname.startsWith('/dashboard') || pathname.startsWith('/my-courses') || pathname.startsWith('/courses')) return 'workshops'
-    if (pathname.startsWith('/communities')) return 'community'
-    if (pathname.startsWith('/news')) return 'news'
     return activeItem
   }
 
@@ -46,12 +40,6 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
     switch (itemId) {
       case 'workshops':
         router.push('/dashboard')
-        break
-      case 'community':
-        router.push('/communities')
-        break
-      case 'news':
-        router.push('/news')
         break
       default:
         break
@@ -116,9 +104,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
               const isActive = activeItem === item.id
               
               const routeMap: Record<string, string> = {
-                'workshops': '/dashboard',
-                'community': '/communities',
-                'news': '/news'
+                'workshops': '/dashboard'
               }
               const href = routeMap[item.id]
               
@@ -243,7 +229,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
 
       {/* Mobile Navigation - Diseño mejorado */}
       <div className="lg:hidden border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white/95 dark:bg-[#0F1419]/95 backdrop-blur-md">
-        <div className="grid grid-cols-3 h-[64px]">
+        <div className="grid grid-cols-1 h-[64px]">
           {navigationItems.map((item, index) => {
             const Icon = item.icon
             const isActive = mobileActiveItem === item.id
