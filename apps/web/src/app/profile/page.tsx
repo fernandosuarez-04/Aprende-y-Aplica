@@ -469,7 +469,7 @@ function LinkCard({ title, icon, iconBg, iconColor, value, onChange, placeholder
 interface CVUploadCardProps {
   hasCV: boolean
   cvUrl?: string
-  onUpload: (file: File) => Promise<void>
+  onUpload: (file: File) => Promise<string>
 }
 
 function CVUploadCard({ hasCV, cvUrl, onUpload }: CVUploadCardProps) {

@@ -41,3 +41,11 @@ export {
   clearSessionCache,
   hasSessionCache,
 } from './session-cache';
+
+// SCORM API Adapter (client-side only)
+export {
+  SCORMAPIAdapter,
+  initializeSCORMAPI,
+  cleanupSCORMAPI,
+  findAPI,
+} from './adapter';

@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { SessionService } from '../../../../../../features/auth/services/session.service';
+import { SessionService } from '@/features/auth/services/session.service';
 import { createClient } from '@supabase/supabase-js';
 
 // Crear cliente admin para bypass de RLS
@@ -148,9 +148,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         const originalDateOnly = new Date(date);
         originalDateOnly.setHours(0, 0, 0, 0);
         
-        // Crear fecha/hora original en UTC para comparación más precisa
-        const originalStartDateTime = new Date(date);
-        originalStartDateTime.setHours(originalHour, originalMin, 0, 0);
+        // Usar fecha/hora original en UTC para comparación más precisa
         const originalStartISO = originalStartDateTime.toISOString();
         
         console.log(`🔍 Buscando sesión:`, {

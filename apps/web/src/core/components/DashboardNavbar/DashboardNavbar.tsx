@@ -17,8 +17,8 @@ interface DashboardNavbarProps {
   activeItem?: string
 }
 
-const navigationItems = [
-  { id: 'workshops', nameKey: 'dashboardNav.workshops', icon: GraduationCap },
+const navigationItems: { id: string; nameKey: string; icon: typeof GraduationCap }[] = [
+  // Botón de Talleres eliminado
 ]
 
 export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarProps) {

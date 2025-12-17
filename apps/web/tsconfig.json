@@ -20,10 +20,10 @@
         "../../packages/shared/src/*"
       ],
       "@/shared/*": [
-        "../shared/src/*"
+        "./src/shared/*"
       ],
       "@/ui/*": [
-        "../ui/src/*"
+        "../../packages/ui/src/*"
       ],
       "@/features/*": [
         "./src/features/*"

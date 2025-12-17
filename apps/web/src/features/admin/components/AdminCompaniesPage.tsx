@@ -309,7 +309,6 @@ export function AdminCompaniesPage() {
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                           {company.logo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={company.logo_url}
                               alt={company.name}

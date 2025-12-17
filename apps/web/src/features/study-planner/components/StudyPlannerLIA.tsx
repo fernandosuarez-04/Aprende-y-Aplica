@@ -4051,7 +4051,7 @@ export function StudyPlannerLIA() {
   
   // Si el slot es de un día pasado, excluirlo
   return false;
-})
+});
       // ✅ SIMPLIFICADO: Dividir slots largos según el máximo de sesión del usuario
       const dividedSlots: FreeSlotWithDay[] = [];
       const sessionLength = profileAvailability?.recommendedSessionLength || 30;
@@ -4204,6 +4204,7 @@ export function StudyPlannerLIA() {
       } else {
         weeklyAvailableMinutes = profileAvailability?.weeklyMinutes || 300;
       }
+      }
 
       // 5. Calcular metas semanales basadas en cursos seleccionados y fecha objetivo
 
@@ -4220,8 +4221,6 @@ export function StudyPlannerLIA() {
       if (!weeklyGoals) {
         console.warn('⚠️ No se pudieron calcular las metas semanales. Verificar condiciones.');
         console.warn(`   Condiciones: selectedCourseIds=${selectedCourseIds.length > 0}, weeklyAvailableMinutes=${weeklyAvailableMinutes > 0}, studyApproach=${!!studyApproach}, weeksUntilTarget=${weeksUntilTarget > 0}, totalLessonsNeeded=${totalLessonsNeeded > 0}`);
-      } else {
-
       }
 
       // 6. Construir información del perfil
@@ -5509,7 +5508,7 @@ export function StudyPlannerLIA() {
         }
         await speakText(shortSummary);
       }
-      
+
     } catch (error) {
       console.error('Error analizando calendario:', error);
       
@@ -8936,9 +8935,7 @@ Cuéntame:
                     <h3 className="text-xl font-bold text-[#0A2540] dark:text-white mb-2">
                       Conecta tu calendario
                     </h3>
-                    <p className="text-[#6C757D] dark:text-gray-400 text-xs max-w-sm mx-auto">
-                      Analizo tu calendario para encontrar los mejores horarios para estudiar
-                    <p className="text-slate-400 text-sm max-w-sm mx-auto">
+                    <p className="text-[#6C757D] dark:text-gray-400 text-sm max-w-sm mx-auto">
                       {userContext?.userType === 'b2b' 
                         ? 'Como usuario empresarial, es necesario conectar tu calendario para adaptar el plan a tus horarios de trabajo y cumplir con los plazos asignados.'
                         : 'Analizo tu calendario para encontrar los mejores horarios para estudiar'}
