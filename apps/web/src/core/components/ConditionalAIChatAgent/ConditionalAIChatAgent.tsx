@@ -1,10 +1,10 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { AIChatAgent } from '../AIChatAgent/AIChatAgent';
+import { EmbeddedLiaPanel } from '../EmbeddedLiaPanel/EmbeddedLiaPanel';
 
 /**
- * Wrapper condicional para AIChatAgent que lo oculta en páginas de lecciones
+ * Wrapper condicional para EmbeddedLiaPanel que lo oculta en páginas de lecciones
  * donde ya existe una implementación específica de Lia, en la página principal y en auth
  */
 export function ConditionalAIChatAgent() {
@@ -27,11 +27,11 @@ export function ConditionalAIChatAgent() {
     return null;
   }
 
-  // Renderizar normalmente en el resto de páginas
-  // El mensaje inicial se obtiene de i18n dentro de AIChatAgent
+  // Renderizar el nuevo componente embebido con diseño de panel derecho
   return (
-    <AIChatAgent
-      assistantName="Lia"
+    <EmbeddedLiaPanel
+      assistantName="LIA"
+      assistantAvatar="/lia-avatar.png"
     />
   );
 }

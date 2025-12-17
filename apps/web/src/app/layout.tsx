@@ -11,6 +11,8 @@ import { GlobalRecorderProvider } from '../core/components/GlobalRecorderProvide
 import { I18nProvider } from '../core/providers/I18nProvider';
 import { ShareModalProvider } from '../core/providers/ShareModalProvider';
 import { OnboardingAgent } from '../core/components/OnboardingAgent';
+import { LiaPanelProvider } from '../core/contexts/LiaPanelContext';
+import { ContentWrapper } from '../core/components/ContentWrapper';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -207,16 +209,18 @@ export default function RootLayout({
               <ThemeProvider>
                 <ShareModalProvider>
                   <NotificationProvider pollingInterval={60000}>
-                    <PrefetchManager />
-                    <div className="bg-[var(--color-bg-dark)] transition-colors duration-300 min-h-full">
+                    <LiaPanelProvider>
+                      <PrefetchManager />
                       <ConditionalNavbar>
-                        {children}
+                        <ContentWrapper>
+                          {children}
+                        </ContentWrapper>
                       </ConditionalNavbar>
-                    </div>
-                    {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
-                    <ConditionalAIChatAgent />
-                    {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
-                    <OnboardingAgent />
+                      {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
+                      <ConditionalAIChatAgent />
+                      {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
+                      <OnboardingAgent />
+                    </LiaPanelProvider>
                   </NotificationProvider>
                 </ShareModalProvider>
               </ThemeProvider>

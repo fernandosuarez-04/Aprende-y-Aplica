@@ -5,9 +5,10 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
+  const supabase = await createClient()
+  
   try {
-    const { id } = await params
-    const supabase = await createClient()
 
     // Enrollments con información de usuarios
     const { data: enrollments, error: enrErr } = await supabase
@@ -152,17 +153,27 @@ export async function GET(
       u.last_accessed_at && new Date(u.last_accessed_at) >= thirtyDaysAgo
     ).length
 
-    // Datos históricos para gráficas de líneas (últimos 30 días)
+    // Preparar datos simplificados para gráfica de tendencia por mes
+    const studentStatusByMonth: Array<{ mes: string; completados: number; enProgreso: number; noIniciados: number }> = []
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     
+    // Temporalmente: usar solo datos actuales para evitar error 500
+    studentStatusByMonth.push({
+      mes: monthNames[now.getMonth()],
+      completados: completed,
+      enProgreso: in_progress,
+      noIniciados: not_started
+    })
+    
+    // Mantener también la tendencia de inscripciones diarias (últimos 30 días) para otras gráficas
     const { data: historicalEnrollments } = await supabase
       .from('user_course_enrollments')
       .select('enrolled_at, completed_at, enrollment_status')
       .eq('course_id', id)
       .gte('enrolled_at', thirtyDaysAgo.toISOString())
 
-    // Preparar datos para gráfica de tendencia
-    const enrollmentTrend: Array<{ date: string; enrollments: number; completions: number }> = []
     const dateMap = new Map<string, { enrollments: number; completions: number }>()
+    const enrollmentTrend: Array<{ date: string; enrollments: number; completions: number }> = []
     
     // Inicializar últimos 30 días
     for (let i = 29; i >= 0; i--) {
@@ -358,6 +369,7 @@ export async function GET(
         enrollment_rates: enrollmentRate,
         user_roles_pie: rolesPie,
         user_areas_pie: areasPie,
+        student_status_by_month: studentStatusByMonth,
       },
     })
   } catch (error: any) {

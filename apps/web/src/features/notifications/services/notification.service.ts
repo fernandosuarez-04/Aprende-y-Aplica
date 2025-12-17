@@ -9,9 +9,11 @@ async function getServerClient() {
     throw new Error('getServerClient can only be used on the server')
   }
   
-  // Usar Function constructor para evitar análisis estático de Next.js/Turbopack
-  const importServer = new Function('path', 'return import(path)')
-  const serverModule = await importServer('@/lib/supabase/server')
+  // Construir el path dinámicamente para evitar análisis estático del bundler
+  // Esto evita que Turbopack/Webpack incluyan el módulo server-only en el bundle del cliente
+  const modulePath = ['@', 'lib', 'supabase', 'server'].join('/')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const serverModule = require(modulePath)
   return await serverModule.createClient()
 }
 
@@ -673,19 +675,10 @@ export class NotificationService {
     try {
       const supabase = await getServerClient()
 
-      // Obtener las notificaciones más recientes del sistema
+      // Obtener las notificaciones más recientes del sistema (sin JOIN para evitar errores de FK)
       const { data: notifications, error } = await supabase
         .from('user_notifications')
-        .select(`
-          *,
-          users:users!user_notifications_user_id_fkey (
-            id,
-            first_name,
-            last_name,
-            display_name,
-            username
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(limit)
 
@@ -700,6 +693,25 @@ export class NotificationService {
         if (!notif.expires_at) return true
         return new Date(notif.expires_at) > now
       })
+
+      // Obtener información de usuarios si hay notificaciones válidas
+      if (validNotifications.length > 0) {
+        const userIds = [...new Set(validNotifications.map(n => n.user_id))]
+        
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, display_name, username')
+          .in('id', userIds)
+
+        if (!usersError && users) {
+          const usersMap = new Map(users.map(u => [u.id, u]))
+          
+          // Agregar información del usuario a cada notificación
+          validNotifications.forEach(notif => {
+            notif.users = usersMap.get(notif.user_id) || null
+          })
+        }
+      }
 
       logger.info('✅ Actividad reciente obtenida', {
         count: validNotifications.length

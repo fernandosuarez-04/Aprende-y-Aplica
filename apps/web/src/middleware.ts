@@ -250,7 +250,7 @@ export async function middleware(request: NextRequest) {
     // pueda acceder sin completar el cuestionario, incluso si es administrador o instructor
     try {
       const needsQuestionnaire = await requiresQuestionnaire(supabase, sessionData.user_id)
-
+      
       if (needsQuestionnaire) {
         logger.log('📋 Usuario OAuth sin cuestionario detectado, redirigiendo a /statistics')
         // Redirigir a /statistics sin importar la ruta que intentó acceder

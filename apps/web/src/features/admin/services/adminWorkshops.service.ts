@@ -11,6 +11,7 @@ export interface AdminWorkshop {
   duration_total_minutes: number // Cambiado de 'duration' a 'duration_total_minutes'
   instructor_id: string
   instructor_name?: string
+  instructor_profile_picture_url?: string | null
   is_active: boolean // Cambiado de 'status' a 'is_active'
   thumbnail_url?: string // Cambiado de 'image_url' a 'thumbnail_url'
   slug: string
@@ -78,7 +79,7 @@ export class AdminWorkshopsService {
           if (workshop.instructor_id) {
             const { data: instructor } = await supabase
               .from('users')
-              .select('display_name, first_name, last_name')
+              .select('display_name, first_name, last_name, profile_picture_url')
               .eq('id', workshop.instructor_id)
               .single()
 
@@ -86,12 +87,14 @@ export class AdminWorkshopsService {
               ...workshop,
               instructor_name: instructor?.display_name || 
                              `${instructor?.first_name || ''} ${instructor?.last_name || ''}`.trim() ||
-                             'Instructor no asignado'
+                             'Instructor no asignado',
+              instructor_profile_picture_url: instructor?.profile_picture_url || null
             }
           }
           return {
             ...workshop,
-            instructor_name: 'Instructor no asignado'
+            instructor_name: 'Instructor no asignado',
+            instructor_profile_picture_url: null
           }
         })
       )

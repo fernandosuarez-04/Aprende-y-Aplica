@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       activities: notifications
     })
   } catch (error) {
-    // console.error('Error in GET /api/admin/activity/recent:', error)
+    console.error('Error in GET /api/admin/activity/recent:', error)
     return NextResponse.json(
       {
         success: false,

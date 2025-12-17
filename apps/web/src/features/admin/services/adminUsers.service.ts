@@ -92,6 +92,7 @@ export class AdminUsersService {
           profile_picture_url,
           points,
           created_at,
+          updated_at,
           last_login_at
         `, { count: 'exact' })
 

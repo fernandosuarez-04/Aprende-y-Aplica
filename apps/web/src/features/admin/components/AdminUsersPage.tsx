@@ -2,17 +2,22 @@
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   UsersIcon, 
   PlusIcon, 
   MagnifyingGlassIcon,
   FunnelIcon,
-  UserCircleIcon,
   ShieldCheckIcon,
-  ShieldExclamationIcon,
+  AcademicCapIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  UserCircleIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
+import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid'
 import { useAdminUsers } from '../hooks/useAdminUsers'
 import { AdminUser } from '../services/adminUsers.service'
 
@@ -26,6 +31,28 @@ const AddUserModal = dynamic(() => import('./AddUserModal').then(mod => ({ defau
   ssr: false
 })
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.25, 0.46, 0.45, 0.94]
+    }
+  }
+}
+
 export function AdminUsersPage() {
   const { users, stats, isLoading, error, refetch } = useAdminUsers()
   const [searchTerm, setSearchTerm] = useState('')
@@ -35,6 +62,7 @@ export function AdminUsersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   const filteredUsers = users.filter(user => {
     const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
@@ -47,16 +75,36 @@ export function AdminUsersPage() {
     return matchesSearch && matchesRole
   })
 
-  const getRoleColor = (role: string) => {
+  const getRoleBadge = (role: string) => {
     switch (role) {
       case 'Administrador':
-        return 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+        return {
+          bg: 'bg-[#0A2540]/10 dark:bg-[#0A2540]/30',
+          text: 'text-[#0A2540] dark:text-[#00D4B3]',
+          border: 'border-[#0A2540]/20 dark:border-[#00D4B3]/30',
+          icon: ShieldCheckIcon
+        }
       case 'Instructor':
-        return 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+        return {
+          bg: 'bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20',
+          text: 'text-[#F59E0B]',
+          border: 'border-[#F59E0B]/20',
+          icon: AcademicCapIcon
+        }
       case 'Usuario':
-        return 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+        return {
+          bg: 'bg-[#10B981]/10 dark:bg-[#10B981]/20',
+          text: 'text-[#10B981]',
+          border: 'border-[#10B981]/20',
+          icon: UserCircleIcon
+        }
       default:
-        return 'bg-gray-100 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400'
+        return {
+          bg: 'bg-[#6C757D]/10 dark:bg-[#6C757D]/20',
+          text: 'text-[#6C757D]',
+          border: 'border-[#6C757D]/20',
+          icon: UserCircleIcon
+        }
     }
   }
 
@@ -85,7 +133,6 @@ export function AdminUsersPage() {
       throw new Error('Error al actualizar usuario')
     }
 
-    // Refrescar la lista de usuarios
     refetch()
   }
 
@@ -102,12 +149,10 @@ export function AdminUsersPage() {
         throw new Error(errorData.error || 'Error al eliminar usuario')
       }
 
-      // Refrescar la lista de usuarios
       refetch()
       setIsDeleteModalOpen(false)
       setDeletingUser(null)
     } catch (error) {
-      // console.error('Error deleting user:', error)
       alert(error instanceof Error ? error.message : 'Error al eliminar usuario')
     }
   }
@@ -140,11 +185,9 @@ export function AdminUsersPage() {
         throw new Error('Error al crear usuario')
       }
 
-      // Refrescar la lista de usuarios
       refetch()
       setIsAddModalOpen(false)
     } catch (error) {
-      // console.error('Error creating user:', error)
       throw error
     }
   }
@@ -155,14 +198,13 @@ export function AdminUsersPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
-          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            ))}
+      <div className="p-6 min-h-screen bg-white dark:bg-[#0F1419]">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-4 border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-full border-t-[#00D4B3] animate-spin"></div>
+              <p className="text-[#6C757D] dark:text-white/70">Cargando usuarios...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -171,259 +213,359 @@ export function AdminUsersPage() {
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <ShieldExclamationIcon className="h-5 w-5 text-red-400" />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
-                Error al cargar usuarios
-              </h3>
-              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
-                {error}
+      <div className="p-6 min-h-screen bg-white dark:bg-[#0F1419]">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-[#1E2329] border border-red-500/20 dark:border-red-500/30 rounded-2xl p-6 shadow-lg"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                  <XMarkIcon className="h-5 w-5 text-red-500" />
+                </div>
               </div>
-              <div className="mt-4">
-                <button
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-[#0A2540] dark:text-white mb-2">
+                  Error al cargar usuarios
+                </h3>
+                <p className="text-sm text-[#6C757D] dark:text-white/70 mb-4">
+                  {error}
+                </p>
+                <motion.button
                   onClick={refetch}
-                  className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl text-sm font-medium transition-colors duration-200"
                 >
                   Reintentar
-                </button>
+                </motion.button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-white dark:bg-[#0F1419]">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                Gestión de Usuarios
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Administra todos los usuarios de la plataforma
-              </p>
-            </div>
-            <button 
-              onClick={handleAddUser}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <PlusIcon className="h-5 w-5" />
-              <span>Agregar Usuario</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20">
-                <UsersIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Usuarios</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats?.totalUsers || 0}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 p-3 rounded-lg bg-green-100 dark:bg-green-900/20">
-                <ShieldCheckIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Verificados</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {stats?.verifiedUsers || 0}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Header Compacto */}
+          <motion.div variants={itemVariants} className="mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#0A2540] dark:text-white mb-1">
+                  Gestión de Usuarios
+                </h1>
+                <p className="text-sm text-[#6C757D] dark:text-white/70">
+                  {filteredUsers.length} {filteredUsers.length === 1 ? 'usuario' : 'usuarios'} encontrados
                 </p>
               </div>
-            </div>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 p-3 rounded-lg bg-purple-100 dark:bg-purple-900/20">
-                <ShieldExclamationIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Instructores</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {stats?.instructors || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 p-3 rounded-lg bg-red-100 dark:bg-red-900/20">
-                <ShieldCheckIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Administradores</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {stats?.administrators || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
-                <input
-                  type="text"
-                  placeholder="Buscar usuarios..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                />
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <FunnelIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              <select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              <motion.button
+                onClick={handleAddUser}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl text-sm font-medium shadow-lg shadow-[#0A2540]/20 transition-all duration-200"
               >
-                <option value="all">Todos los roles</option>
-                <option value="Usuario">Usuario</option>
-                <option value="Instructor">Instructor</option>
-                <option value="Administrador">Administrador</option>
-              </select>
+                <PlusIcon className="h-5 w-5" />
+                <span>Agregar Usuario</span>
+              </motion.button>
             </div>
-          </div>
-        </div>
+          </motion.div>
 
-        {/* Users Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {filteredUsers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <UsersIcon className="h-16 w-16 text-gray-400 dark:text-gray-500 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No se encontraron usuarios
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                {searchTerm || filterRole !== 'all'
-                  ? 'Intenta ajustar los filtros de búsqueda'
-                  : 'No hay usuarios registrados en el sistema'}
-              </p>
+          {/* Stats Cards Compactas */}
+          <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <motion.div
+              whileHover={{ y: -2, scale: 1.02 }}
+              className="bg-gradient-to-br from-[#0A2540] to-[#0A2540]/80 dark:from-[#1E2329] dark:to-[#0A2540]/30 rounded-xl p-4 border border-[#0A2540]/10 dark:border-[#6C757D]/30 shadow-lg"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-white/70 dark:text-white/60 mb-1">Total</p>
+                  <p className="text-2xl font-bold text-white">{stats?.totalUsers || 0}</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-white/10 dark:bg-[#00D4B3]/10 flex items-center justify-center">
+                  <UsersIcon className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -2, scale: 1.02 }}
+              className="bg-gradient-to-br from-[#10B981] to-[#10B981]/80 dark:from-[#1E2329] dark:to-[#10B981]/20 rounded-xl p-4 border border-[#10B981]/10 dark:border-[#6C757D]/30 shadow-lg"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-white/70 dark:text-white/60 mb-1">Verificados</p>
+                  <p className="text-2xl font-bold text-white">{stats?.verifiedUsers || 0}</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-white/10 dark:bg-[#10B981]/10 flex items-center justify-center">
+                  <CheckCircleIconSolid className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -2, scale: 1.02 }}
+              className="bg-gradient-to-br from-[#F59E0B] to-[#F59E0B]/80 dark:from-[#1E2329] dark:to-[#F59E0B]/20 rounded-xl p-4 border border-[#F59E0B]/10 dark:border-[#6C757D]/30 shadow-lg"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-white/70 dark:text-white/60 mb-1">Instructores</p>
+                  <p className="text-2xl font-bold text-white">{stats?.instructors || 0}</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-white/10 dark:bg-[#F59E0B]/10 flex items-center justify-center">
+                  <AcademicCapIcon className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -2, scale: 1.02 }}
+              className="bg-gradient-to-br from-[#00D4B3] to-[#00D4B3]/80 dark:from-[#1E2329] dark:to-[#00D4B3]/20 rounded-xl p-4 border border-[#00D4B3]/10 dark:border-[#6C757D]/30 shadow-lg"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-white/70 dark:text-white/60 mb-1">Administradores</p>
+                  <p className="text-2xl font-bold text-white">{stats?.administrators || 0}</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-white/10 dark:bg-[#00D4B3]/10 flex items-center justify-center">
+                  <ShieldCheckIcon className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Search and Filter Bar */}
+          <motion.div variants={itemVariants} className="mb-6">
+            <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#6C757D] dark:text-white/60" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre, email o username..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent bg-white dark:bg-[#0A0D12] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 transition-all duration-200"
+                  />
+                </div>
+                <div className="relative">
+                  <motion.button
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center gap-2 px-4 py-2.5 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl bg-white dark:bg-[#0A0D12] text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] transition-colors duration-200"
+                  >
+                    <FunnelIcon className="h-5 w-5 text-[#6C757D] dark:text-white/60" />
+                    <span className="text-sm font-medium">
+                      {filterRole === 'all' ? 'Todos los roles' : filterRole}
+                    </span>
+                  </motion.button>
+                  
+                  <AnimatePresence>
+                    {isFilterOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-xl z-50 overflow-hidden"
+                      >
+                        {['all', 'Usuario', 'Instructor', 'Administrador'].map((role) => (
+                          <button
+                            key={role}
+                            onClick={() => {
+                              setFilterRole(role)
+                              setIsFilterOpen(false)
+                            }}
+                            className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-200 ${
+                              filterRole === role
+                                ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] font-medium'
+                                : 'text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/30'
+                            }`}
+                          >
+                            {role === 'all' ? 'Todos los roles' : role}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Usuario
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Rol
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Último acceso
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredUsers.map((user) => {
-                    const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
-                    return (
-                      <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              {user.profile_picture_url ? (
-                                <img
-                                  src={user.profile_picture_url}
-                                  alt={displayName}
-                                  className="h-10 w-10 rounded-full object-cover"
-                                />
-                              ) : (
-                                <UserCircleIcon className="h-10 w-10 text-gray-400 dark:text-gray-500" />
-                              )}
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                {displayName}
-                              </div>
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
-                                @{user.username}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">{user.email}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.cargo_rol)}`}>
-                            {user.cargo_rol}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            user.email_verified
-                              ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                              : 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400'
-                          }`}>
-                            {user.email_verified ? 'Verificado' : 'Pendiente'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                          {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Nunca'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleEditUser(user)}
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                              title="Editar usuario"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(user)}
-                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
-                              title="Eliminar usuario"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
+          </motion.div>
+
+          {/* Users Grid/List */}
+          <motion.div variants={itemVariants}>
+            {filteredUsers.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-12 text-center"
+              >
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#E9ECEF] dark:bg-[#0A0D12] flex items-center justify-center">
+                  <UsersIcon className="h-8 w-8 text-[#6C757D] dark:text-white/60" />
+                </div>
+                <h3 className="text-lg font-semibold text-[#0A2540] dark:text-white mb-2">
+                  No se encontraron usuarios
+                </h3>
+                <p className="text-sm text-[#6C757D] dark:text-white/70">
+                  {searchTerm || filterRole !== 'all'
+                    ? 'Intenta ajustar los filtros de búsqueda'
+                    : 'No hay usuarios registrados en el sistema'}
+                </p>
+              </motion.div>
+            ) : (
+              <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-[#E9ECEF] dark:divide-[#6C757D]/30">
+                    <thead className="bg-[#E9ECEF]/50 dark:bg-[#0A0D12]">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-[#6C757D] dark:text-white/70 uppercase tracking-wider">
+                          Usuario
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-[#6C757D] dark:text-white/70 uppercase tracking-wider">
+                          Email
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-[#6C757D] dark:text-white/70 uppercase tracking-wider">
+                          Rol
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-[#6C757D] dark:text-white/70 uppercase tracking-wider">
+                          Estado
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-[#6C757D] dark:text-white/70 uppercase tracking-wider">
+                          Último acceso
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-[#6C757D] dark:text-white/70 uppercase tracking-wider">
+                          Acciones
+                        </th>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                    </thead>
+                    <tbody className="bg-white dark:bg-[#1E2329] divide-y divide-[#E9ECEF] dark:divide-[#6C757D]/30">
+                      <AnimatePresence>
+                        {filteredUsers.map((user, index) => {
+                          const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
+                          const roleBadge = getRoleBadge(user.cargo_rol)
+                          const RoleIcon = roleBadge.icon
+                          
+                          return (
+                            <motion.tr
+                              key={user.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: 20 }}
+                              transition={{ delay: index * 0.02, duration: 0.3 }}
+                              className="hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A0D12] transition-colors duration-200 group"
+                            >
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <div className="flex items-center gap-3">
+                                  <div className="relative">
+                                    {user.profile_picture_url ? (
+                                      <motion.img
+                                        src={user.profile_picture_url}
+                                        alt={displayName}
+                                        className="h-10 w-10 rounded-full object-cover border-2 border-[#E9ECEF] dark:border-[#6C757D]/30"
+                                        whileHover={{ scale: 1.1 }}
+                                      />
+                                    ) : (
+                                      <motion.div
+                                        className="h-10 w-10 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center text-white text-sm font-semibold border-2 border-[#E9ECEF] dark:border-[#6C757D]/30"
+                                        whileHover={{ scale: 1.1 }}
+                                      >
+                                        {displayName.charAt(0).toUpperCase()}
+                                      </motion.div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-semibold text-[#0A2540] dark:text-white">
+                                      {displayName}
+                                    </div>
+                                    <div className="text-xs text-[#6C757D] dark:text-white/60">
+                                      @{user.username}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <div className="text-sm text-[#0A2540] dark:text-white">{user.email}</div>
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <motion.span
+                                  whileHover={{ scale: 1.05 }}
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border ${roleBadge.bg} ${roleBadge.text} ${roleBadge.border}`}
+                                >
+                                  <RoleIcon className="h-3.5 w-3.5" />
+                                  {user.cargo_rol}
+                                </motion.span>
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <motion.span
+                                  whileHover={{ scale: 1.05 }}
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg ${
+                                    user.email_verified
+                                      ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/20'
+                                      : 'bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/20'
+                                  }`}
+                                >
+                                  {user.email_verified ? (
+                                    <CheckCircleIcon className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <ClockIcon className="h-3.5 w-3.5" />
+                                  )}
+                                  {user.email_verified ? 'Verificado' : 'Pendiente'}
+                                </motion.span>
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <div className="text-sm text-[#6C757D] dark:text-white/60">
+                                  {user.updated_at 
+                                    ? new Date(user.updated_at).toLocaleDateString('es-ES', { 
+                                        day: 'numeric', 
+                                        month: 'short',
+                                        year: 'numeric'
+                                      })
+                                    : 'Nunca'}
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <motion.button
+                                    onClick={() => handleEditUser(user)}
+                                    whileHover={{ scale: 1.1, rotate: 5 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="p-2 rounded-lg text-[#00D4B3] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 transition-colors duration-200"
+                                    title="Editar usuario"
+                                  >
+                                    <PencilIcon className="h-4 w-4" />
+                                  </motion.button>
+                                  <motion.button
+                                    onClick={() => handleDeleteUser(user)}
+                                    whileHover={{ scale: 1.1, rotate: -5 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors duration-200"
+                                    title="Eliminar usuario"
+                                  >
+                                    <TrashIcon className="h-4 w-4" />
+                                  </motion.button>
+                                </div>
+                              </td>
+                            </motion.tr>
+                          )
+                        })}
+                      </AnimatePresence>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
       </div>
 
       {/* Modals */}

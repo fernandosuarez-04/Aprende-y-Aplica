@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, CheckCircle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { XMarkIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
+import { FileText, Link as LinkIcon, BookOpen, FileQuestion, PenTool, Clock } from 'lucide-react'
 import { AdminMaterial } from '../services/adminMaterials.service'
 import { PDFUpload } from './PDFUpload'
 import { QuizBuilder } from './QuizBuilder'
@@ -12,6 +14,8 @@ interface MaterialModalProps {
   onClose: () => void
   onSave: (data: any) => Promise<void>
 }
+
+type TabType = 'basic' | 'content'
 
 export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialModalProps) {
   const [formData, setFormData] = useState({
@@ -26,6 +30,13 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
   })
   const [quizQuestions, setQuizQuestions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<TabType>('basic')
+
+  const tabs: { id: TabType; label: string; icon: typeof FileText }[] = [
+    { id: 'basic', label: 'Básica', icon: FileText },
+    { id: 'content', label: 'Contenido', icon: BookOpen }
+  ]
 
   useEffect(() => {
     if (material) {
@@ -64,6 +75,7 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     setLoading(true)
 
     try {
@@ -80,176 +92,383 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
       await onSave(dataToSave)
       onClose()
     } catch (error) {
-      // console.error('Error saving material:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al guardar el material'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
   }
 
+  const getMaterialTypeIcon = () => {
+    switch (formData.material_type) {
+      case 'pdf':
+      case 'document':
+        return FileText
+      case 'link':
+        return LinkIcon
+      case 'reading':
+        return BookOpen
+      case 'quiz':
+        return FileQuestion
+      case 'exercise':
+        return PenTool
+      default:
+        return FileText
+    }
+  }
+
+  const MaterialTypeIcon = getMaterialTypeIcon()
+
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700/50">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50 rounded-t-2xl">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {material ? 'Editar Material' : 'Crear Material'}
-          </h2>
-          <button
+    <AnimatePresence>
+      {true && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+          />
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto scrollbar-thin-dark flex-1">
-          {/* Título */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Título del Material *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.material_title}
-              onChange={(e) => setFormData(prev => ({ ...prev, material_title: e.target.value }))}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
-              placeholder="Ej: Guía de Python"
-            />
-          </div>
+          {/* Modal */}
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-screen items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="relative bg-white dark:bg-[#1E2329] rounded-2xl shadow-2xl max-w-4xl w-full border border-[#E9ECEF] dark:border-[#6C757D]/30 max-h-[90vh] overflow-hidden flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header Rediseñado */}
+                <div className="relative bg-gradient-to-r from-[#0A2540] to-[#0A2540]/90 dark:from-[#0A2540] dark:to-[#0A2540]/80 px-6 py-4 border-b border-[#0A2540]/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#00D4B3]/20 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-[#00D4B3]" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">
+                          {material ? 'Editar Material' : 'Crear Material'}
+                        </h3>
+                        <p className="text-xs text-white/70">
+                          {material ? 'Modifica la información del material' : 'Agrega un nuevo material a la lección'}
+                        </p>
+                      </div>
+                    </div>
+                    <motion.button
+                      onClick={onClose}
+                      whileHover={{ scale: 1.1, rotate: 90 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors duration-200"
+                    >
+                      <XMarkIcon className="h-5 w-5" />
+                    </motion.button>
+                  </div>
+                </div>
 
-          {/* Descripción */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Descripción
-            </label>
-            <textarea
-              rows={2}
-              value={formData.material_description}
-              onChange={(e) => setFormData(prev => ({ ...prev, material_description: e.target.value }))}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500 resize-y min-h-[80px] scrollbar-thin-dark"
-              placeholder="Descripción del material..."
-            />
-          </div>
+                {/* Tabs */}
+                <div className="flex items-center gap-1 px-6 py-3 bg-[#E9ECEF]/50 dark:bg-[#0A0D12] border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon
+                    const isActive = activeTab === tab.id
+                    return (
+                      <motion.button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                          isActive
+                            ? 'text-[#00D4B3] bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20'
+                            : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329]'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{tab.label}</span>
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeTab"
+                            className="absolute inset-0 rounded-xl bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 -z-10"
+                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          />
+                        )}
+                      </motion.button>
+                    )
+                  })}
+                </div>
 
-          {/* Tipo de Material */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Tipo de Material *
-            </label>
-            <select
-              value={formData.material_type}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                material_type: e.target.value as any,
-                file_url: '',
-                external_url: ''
-              }))}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="pdf">PDF</option>
-              <option value="document">Documento Word</option>
-              <option value="link">Enlace Externo</option>
-              <option value="reading">Lectura</option>
-              <option value="quiz">Quiz</option>
-              <option value="exercise">Ejercicio</option>
-            </select>
-          </div>
+                {/* Form Content */}
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+                  <div className="p-6">
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-4 p-4 bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-xl"
+                      >
+                        <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+                      </motion.div>
+                    )}
 
-          {/* Tiempo Estimado - NUEVO CAMPO PARA STUDY PLANNER */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Tiempo Estimado (minutos) *
-            </label>
-            <input
-              type="number"
-              required
-              min="1"
-              max="480"
-              value={formData.estimated_time_minutes}
-              onChange={(e) => setFormData(prev => ({ ...prev, estimated_time_minutes: parseInt(e.target.value) || 1 }))}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
-              placeholder="Ej: 15"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-              Tiempo estimado para completar este material ({formData.material_type === 'reading' ? 'leer' : formData.material_type === 'quiz' ? 'completar quiz' : formData.material_type === 'link' ? 'revisar enlace' : 'revisar material'}). Mínimo 1 minuto, máximo 480 minutos (8 horas).
-              <span className="block mt-1 text-blue-600 dark:text-blue-400 font-medium">
-                ⏱️ Requerido para el Planificador de Estudio IA
-              </span>
-            </p>
-          </div>
+                    <AnimatePresence mode="wait">
+                      {/* Tab: Básica */}
+                      {activeTab === 'basic' && (
+                        <motion.div
+                          key="basic"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ duration: 0.2 }}
+                          className="space-y-4"
+                        >
+                          <div className="group">
+                            <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                              Título del Material *
+                            </label>
+                            <div className="relative">
+                              <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" />
+                              <input
+                                type="text"
+                                required
+                                value={formData.material_title}
+                                onChange={(e) => setFormData(prev => ({ ...prev, material_title: e.target.value }))}
+                                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200"
+                                placeholder="Ej: Guía de Python"
+                              />
+                            </div>
+                          </div>
 
-          {/* Contenido según tipo */}
-          {['pdf', 'document'].includes(formData.material_type) && (
-            <PDFUpload
-              value={formData.file_url}
-              onChange={(url) => setFormData(prev => ({ ...prev, file_url: url }))}
-            />
-          )}
+                          <div>
+                            <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                              Descripción
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={formData.material_description}
+                              onChange={(e) => setFormData(prev => ({ ...prev, material_description: e.target.value }))}
+                              className="w-full px-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 resize-none"
+                              placeholder="Descripción del material..."
+                            />
+                          </div>
 
-          {formData.material_type === 'quiz' && (
-            <QuizBuilder
-              questions={quizQuestions}
-              onChange={setQuizQuestions}
-            />
-          )}
+                          <div className="group">
+                            <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                              Tipo de Material *
+                            </label>
+                            <div className="relative">
+                              <MaterialTypeIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" />
+                              <select
+                                value={formData.material_type}
+                                onChange={(e) => setFormData(prev => ({
+                                  ...prev,
+                                  material_type: e.target.value as any,
+                                  file_url: '',
+                                  external_url: ''
+                                }))}
+                                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                              >
+                                <option value="pdf">PDF</option>
+                                <option value="document">Documento Word</option>
+                                <option value="link">Enlace Externo</option>
+                                <option value="reading">Lectura</option>
+                                <option value="quiz">Quiz</option>
+                                <option value="exercise">Ejercicio</option>
+                              </select>
+                            </div>
+                          </div>
 
-          {formData.material_type === 'link' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                URL del Enlace *
-              </label>
-              <input
-                type="url"
-                required={formData.material_type === 'link'}
-                value={formData.external_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, external_url: e.target.value }))}
-                className="w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
-                placeholder="https://ejemplo.com/recurso"
-              />
+                          <div className="group">
+                            <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                              Tiempo Estimado (minutos) *
+                            </label>
+                            <div className="relative">
+                              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <input
+                                type="number"
+                                required
+                                min="1"
+                                max="480"
+                                value={formData.estimated_time_minutes}
+                                onChange={(e) => setFormData(prev => ({ ...prev, estimated_time_minutes: parseInt(e.target.value) || 1 }))}
+                                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200"
+                                placeholder="Ej: 15"
+                              />
+                            </div>
+                            <p className="text-xs text-[#6C757D] dark:text-white/60 mt-1.5 ml-1">
+                              Tiempo estimado para completar este material ({formData.material_type === 'reading' ? 'leer' : formData.material_type === 'quiz' ? 'completar quiz' : formData.material_type === 'link' ? 'revisar enlace' : 'revisar material'}). Mínimo 1 minuto, máximo 480 minutos (8 horas).
+                              <span className="flex items-center gap-1.5 mt-1 text-[#00D4B3] font-medium">
+                                <Clock className="w-3.5 h-3.5" />
+                                Requerido para el Planificador de Estudio IA
+                              </span>
+                            </p>
+                          </div>
+
+                          <motion.div
+                            whileHover={{ scale: 1.01 }}
+                            className="p-4 bg-[#E9ECEF]/50 dark:bg-[#0A0D12] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                          >
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <div className="relative">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.is_downloadable}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, is_downloadable: e.target.checked }))}
+                                  className="sr-only"
+                                />
+                                <motion.div
+                                  animate={{
+                                    backgroundColor: formData.is_downloadable ? '#00D4B3' : '#E9ECEF',
+                                    borderColor: formData.is_downloadable ? '#00D4B3' : '#E9ECEF'
+                                  }}
+                                  className="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors duration-200"
+                                >
+                                  {formData.is_downloadable && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                    >
+                                      <CheckCircleIcon className="h-4 w-4 text-white" />
+                                    </motion.div>
+                                  )}
+                                </motion.div>
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-[#0A2540] dark:text-white">
+                                  Permitir Descarga
+                                </span>
+                                <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5">
+                                  Los estudiantes podrán descargar este material
+                                </p>
+                              </div>
+                            </label>
+                          </motion.div>
+                        </motion.div>
+                      )}
+
+                      {/* Tab: Contenido */}
+                      {activeTab === 'content' && (
+                        <motion.div
+                          key="content"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ duration: 0.2 }}
+                          className="space-y-4"
+                        >
+                          {/* Contenido según tipo */}
+                          {['pdf', 'document'].includes(formData.material_type) && (
+                            <PDFUpload
+                              value={formData.file_url}
+                              onChange={(url) => setFormData(prev => ({ ...prev, file_url: url }))}
+                            />
+                          )}
+
+                          {formData.material_type === 'quiz' && (
+                            <QuizBuilder
+                              questions={quizQuestions}
+                              onChange={setQuizQuestions}
+                            />
+                          )}
+
+                          {formData.material_type === 'link' && (
+                            <div className="group">
+                              <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                                URL del Enlace *
+                              </label>
+                              <div className="relative">
+                                <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" />
+                                <input
+                                  type="url"
+                                  required={formData.material_type === 'link'}
+                                  value={formData.external_url}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, external_url: e.target.value }))}
+                                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200"
+                                  placeholder="https://ejemplo.com/recurso"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {formData.material_type === 'reading' && (
+                            <div>
+                              <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                                Contenido de Lectura
+                              </label>
+                              <textarea
+                                rows={8}
+                                value={formData.material_description}
+                                onChange={(e) => setFormData(prev => ({ ...prev, material_description: e.target.value }))}
+                                className="w-full px-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 resize-none"
+                                placeholder="Escribe el contenido de la lectura aquí..."
+                              />
+                            </div>
+                          )}
+
+                          {formData.material_type === 'exercise' && (
+                            <div>
+                              <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                                Instrucciones del Ejercicio
+                              </label>
+                              <textarea
+                                rows={8}
+                                value={formData.material_description}
+                                onChange={(e) => setFormData(prev => ({ ...prev, material_description: e.target.value }))}
+                                className="w-full px-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 resize-none"
+                                placeholder="Describe las instrucciones del ejercicio..."
+                              />
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Botones */}
+                  <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#E9ECEF]/30 dark:bg-[#0A0D12]">
+                    <motion.button
+                      type="button"
+                      onClick={onClose}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="px-4 py-2 text-sm font-medium text-[#6C757D] dark:text-white/60 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 transition-all duration-200"
+                    >
+                      Cancelar
+                    </motion.button>
+                    <motion.button
+                      type="submit"
+                      disabled={loading}
+                      whileHover={{ scale: loading ? 1 : 1.02, y: loading ? 0 : -1 }}
+                      whileTap={{ scale: loading ? 1 : 0.98 }}
+                      className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#0A2540] to-[#0A2540]/90 hover:from-[#0d2f4d] hover:to-[#0A2540] rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md hover:shadow-lg disabled:shadow-none"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          <span>Guardando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircleIcon className="h-4 w-4" />
+                          <span>Guardar</span>
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                </form>
+              </motion.div>
             </div>
-          )}
-
-          {/* Descargable */}
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={formData.is_downloadable}
-              onChange={(e) => setFormData(prev => ({ ...prev, is_downloadable: e.target.checked }))}
-              className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
-            />
-            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Permitir Descarga</span>
-          </label>
-
-          {/* Botones */}
-          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700/50 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/50 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 font-medium shadow-lg shadow-blue-500/20"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  <span>Guardando...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Guardar</span>
-                </>
-              )}
-            </button>
           </div>
-        </form>
-      </div>
-    </div>
+        </>
+      )}
+    </AnimatePresence>
   )
 }
 

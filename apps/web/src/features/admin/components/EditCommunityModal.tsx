@@ -1,19 +1,41 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  XMarkIcon,
-  UserGroupIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  GlobeAltIcon,
-  LockClosedIcon,
-  ShieldCheckIcon,
-  PhotoIcon,
-  LinkIcon,
-  DocumentTextIcon
-} from '@heroicons/react/24/outline'
+  X,
+  Users,
+  Eye,
+  EyeOff,
+  Globe,
+  Lock,
+  Shield,
+  Image,
+  Link2,
+  FileText,
+  Save,
+  Edit3,
+  ChevronRight,
+  Check,
+  AlertCircle
+} from 'lucide-react'
 import { AdminCommunity } from '../services/adminCommunities.service'
+
+// ============================================
+// SOFIA DESIGN SYSTEM COLORS
+// ============================================
+const colors = {
+  primary: '#0A2540',
+  accent: '#00D4B3',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  bgPrimary: '#0F1419',
+  bgSecondary: '#1E2329',
+  bgTertiary: '#0A0D12',
+  grayLight: '#E9ECEF',
+  grayMedium: '#6C757D',
+}
 
 interface EditCommunityModalProps {
   community: AdminCommunity | null
@@ -22,18 +44,240 @@ interface EditCommunityModalProps {
   onSave: (communityData: any) => Promise<void>
 }
 
-export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditCommunityModalProps) {
-  // Estilos consistentes para los campos
-  const fieldStyles = {
-    container: "group",
-    label: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 group-hover:text-gray-900 dark:group-hover:text-white transition-colors",
-    inputContainer: "relative",
-    icon: "absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors",
-    input: "w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500",
-    inputNoIcon: "w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500",
-    textarea: "w-full px-4 py-3 bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500 resize-none"
-  }
+// ============================================
+// PREMIUM INPUT COMPONENT
+// ============================================
+interface PremiumInputProps {
+  label: string
+  name: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  placeholder?: string
+  icon?: React.ReactNode
+  required?: boolean
+  error?: string
+  disabled?: boolean
+  type?: string
+}
 
+function PremiumInput({ label, name, value, onChange, placeholder, icon, required, error, disabled, type = 'text' }: PremiumInputProps) {
+  const [isFocused, setIsFocused] = useState(false)
+  
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-300">
+        {label} {required && <span style={{ color: colors.accent }}>*</span>}
+      </label>
+      <div className="relative group">
+        {icon && (
+          <div 
+            className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300"
+            style={{ color: isFocused ? colors.accent : colors.grayMedium }}
+          >
+            {icon}
+          </div>
+        )}
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          disabled={disabled}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className={`w-full ${icon ? 'pl-12' : 'pl-4'} pr-4 py-3.5 rounded-xl bg-[#0A0D12] text-white placeholder-gray-500 border transition-all duration-300 outline-none ${
+            error 
+              ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
+              : 'border-white/10 focus:border-[#00D4B3] focus:ring-2 focus:ring-[#00D4B3]/20 hover:border-white/20'
+          }`}
+        />
+        {isFocused && !error && (
+          <motion.div
+            className="absolute inset-0 rounded-xl pointer-events-none"
+            style={{ 
+              boxShadow: `0 0 20px ${colors.accent}20`,
+              border: `1px solid ${colors.accent}50`
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+        )}
+      </div>
+      {error && (
+        <motion.p 
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-sm flex items-center gap-1.5"
+          style={{ color: colors.error }}
+        >
+          <AlertCircle className="w-3.5 h-3.5" />
+          {error}
+        </motion.p>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// PREMIUM SELECT COMPONENT
+// ============================================
+interface PremiumSelectProps {
+  label: string
+  name: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
+  options: { value: string; label: string }[]
+  icon?: React.ReactNode
+  required?: boolean
+  disabled?: boolean
+}
+
+function PremiumSelect({ label, name, value, onChange, options, icon, required, disabled }: PremiumSelectProps) {
+  const [isFocused, setIsFocused] = useState(false)
+  
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-300">
+        {label} {required && <span style={{ color: colors.accent }}>*</span>}
+      </label>
+      <div className="relative group">
+        {icon && (
+          <div 
+            className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300 z-10"
+            style={{ color: isFocused ? colors.accent : colors.grayMedium }}
+          >
+            {icon}
+          </div>
+        )}
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          required={required}
+          disabled={disabled}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className={`w-full ${icon ? 'pl-12' : 'pl-4'} pr-10 py-3.5 rounded-xl bg-[#0A0D12] text-white border border-white/10 transition-all duration-300 outline-none cursor-pointer appearance-none hover:border-white/20 focus:border-[#00D4B3] focus:ring-2 focus:ring-[#00D4B3]/20`}
+        >
+          {options.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 rotate-90 pointer-events-none" />
+      </div>
+    </div>
+  )
+}
+
+// ============================================
+// PREMIUM TEXTAREA COMPONENT
+// ============================================
+interface PremiumTextareaProps {
+  label: string
+  name: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  placeholder?: string
+  required?: boolean
+  error?: string
+  rows?: number
+}
+
+function PremiumTextarea({ label, name, value, onChange, placeholder, required, error, rows = 4 }: PremiumTextareaProps) {
+  const [isFocused, setIsFocused] = useState(false)
+  
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-300">
+        {label} {required && <span style={{ color: colors.accent }}>*</span>}
+      </label>
+      <div className="relative">
+        <textarea
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          rows={rows}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className={`w-full px-4 py-3.5 rounded-xl bg-[#0A0D12] text-white placeholder-gray-500 border transition-all duration-300 outline-none resize-none ${
+            error 
+              ? 'border-red-500 focus:border-red-500' 
+              : 'border-white/10 focus:border-[#00D4B3] focus:ring-2 focus:ring-[#00D4B3]/20 hover:border-white/20'
+          }`}
+        />
+        {isFocused && !error && (
+          <motion.div
+            className="absolute inset-0 rounded-xl pointer-events-none"
+            style={{ 
+              boxShadow: `0 0 20px ${colors.accent}20`,
+              border: `1px solid ${colors.accent}50`
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          />
+        )}
+      </div>
+      {error && (
+        <motion.p 
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-sm flex items-center gap-1.5"
+          style={{ color: colors.error }}
+        >
+          <AlertCircle className="w-3.5 h-3.5" />
+          {error}
+        </motion.p>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// SECTION HEADER COMPONENT
+// ============================================
+interface SectionHeaderProps {
+  icon: React.ReactNode
+  title: string
+  subtitle: string
+  color: string
+}
+
+function SectionHeader({ icon, title, subtitle, color }: SectionHeaderProps) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-start gap-4 p-4 rounded-xl mb-6"
+      style={{ 
+        background: `linear-gradient(135deg, ${color}15 0%, transparent 100%)`,
+        border: `1px solid ${color}30`
+      }}
+    >
+      <div 
+        className="p-3 rounded-xl"
+        style={{ background: `${color}20` }}
+      >
+        {icon}
+      </div>
+      <div>
+        <h4 className="text-lg font-semibold text-white">{title}</h4>
+        <p className="text-sm text-gray-400">{subtitle}</p>
+      </div>
+    </motion.div>
+  )
+}
+
+// ============================================
+// MAIN MODAL COMPONENT
+// ============================================
+export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditCommunityModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -86,274 +330,337 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
   if (!isOpen || !community) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4">
-        {/* Backdrop */}
-        <div 
-          className="fixed inset-0 bg-gray-900/50 dark:bg-gray-600/75 bg-opacity-50 dark:bg-opacity-75 transition-opacity"
-          onClick={onClose}
-        />
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={onClose}
+          />
 
-        {/* Modal */}
-        <div className="relative bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full border border-gray-200 dark:border-gray-600 max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-2xl p-6">
-            <div className="absolute inset-0 bg-black/20 rounded-t-2xl"></div>
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <UserGroupIcon className="h-6 w-6 text-white" />
+          {/* Modal */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: "spring", duration: 0.5 }}
+            className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl"
+            style={{ 
+              background: `linear-gradient(145deg, ${colors.bgSecondary} 0%, ${colors.bgTertiary} 100%)`,
+              border: `1px solid rgba(255,255,255,0.1)`
+            }}
+          >
+            {/* Decorative glow */}
+            <div 
+              className="absolute -top-40 -right-40 w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
+              style={{ background: '#8B5CF6' }}
+            />
+
+            {/* Header */}
+            <div 
+              className="relative p-6 border-b"
+              style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <motion.div 
+                    initial={{ rotate: -180, scale: 0 }}
+                    animate={{ rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", delay: 0.1 }}
+                    className="p-3 rounded-2xl"
+                    style={{ 
+                      background: 'linear-gradient(135deg, #8B5CF6 0%, #0A2540 100%)',
+                      boxShadow: '0 10px 40px rgba(139, 92, 246, 0.3)'
+                    }}
+                  >
+                    <Edit3 className="w-6 h-6 text-white" />
+                  </motion.div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Editar Comunidad</h2>
+                    <p className="text-gray-400 text-sm mt-0.5">
+                      Modificando: <span className="text-white font-medium">{community.name}</span>
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">
-                    Editar Comunidad
-                  </h3>
-                  <p className="text-blue-100 text-sm">
-                    Modificar información de "{community.name}"
-                  </p>
-                </div>
+                
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={onClose}
+                  className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </motion.button>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-all duration-200 text-white hover:scale-105"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
             </div>
-          </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6">
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-6">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-              </div>
-            )}
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-8">
+              {/* Global Error */}
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-3 p-4 rounded-xl"
+                  style={{ 
+                    background: `${colors.error}15`,
+                    border: `1px solid ${colors.error}30`
+                  }}
+                >
+                  <AlertCircle className="w-5 h-5" style={{ color: colors.error }} />
+                  <p className="text-sm" style={{ color: colors.error }}>{error}</p>
+                </motion.div>
+              )}
 
-            {/* Información Básica */}
-            <div className="mb-8">
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-500/10 dark:to-purple-500/10 rounded-xl p-4 mb-6 border border-blue-200 dark:border-blue-500/20">
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg mr-3">
-                    <UserGroupIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  Información Básica
-                </h4>
-                <p className="text-gray-600 dark:text-gray-400 text-sm ml-11">
-                  Datos principales de la comunidad
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Nombre */}
-                <div className={fieldStyles.container}>
-                  <label className={fieldStyles.label}>
-                    Nombre de la comunidad *
-                  </label>
-                  <div className={fieldStyles.inputContainer}>
-                    <UserGroupIcon className={fieldStyles.icon} />
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      className={fieldStyles.input}
-                      required
-                    />
-                  </div>
+              {/* Section 1: Basic Info */}
+              <div>
+                <SectionHeader 
+                  icon={<Users className="w-5 h-5" style={{ color: colors.accent }} />}
+                  title="Información Básica"
+                  subtitle="Datos principales de la comunidad"
+                  color={colors.accent}
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <PremiumInput
+                    label="Nombre de la comunidad"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="ej. Comunidad de Desarrolladores"
+                    icon={<Users className="w-5 h-5" />}
+                    required
+                  />
+                  
+                  <PremiumInput
+                    label="Slug (URL amigable)"
+                    name="slug"
+                    value={formData.slug}
+                    onChange={handleChange}
+                    placeholder="ej. comunidad-desarrolladores"
+                    icon={<Link2 className="w-5 h-5" />}
+                    required
+                  />
                 </div>
 
-                {/* Slug */}
-                <div className={fieldStyles.container}>
-                  <label className={fieldStyles.label}>
-                    Slug (URL amigable) *
-                  </label>
-                  <div className={fieldStyles.inputContainer}>
-                    <LinkIcon className={fieldStyles.icon} />
-                    <input
-                      type="text"
-                      name="slug"
-                      value={formData.slug}
-                      onChange={handleChange}
-                      className={fieldStyles.input}
-                      required
-                      pattern="[a-z0-9-]+"
-                      title="Solo letras minúsculas, números y guiones"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Descripción */}
-              <div className="mt-6">
-                <label className={fieldStyles.label}>
-                  Descripción *
-                </label>
-                <div className={fieldStyles.inputContainer}>
-                  <DocumentTextIcon className={fieldStyles.icon} />
-                  <textarea
+                <div className="mt-5">
+                  <PremiumTextarea
+                    label="Descripción"
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    rows={3}
-                    className={fieldStyles.textarea}
-                    required
                     placeholder="Describe el propósito y objetivos de la comunidad..."
+                    required
+                    rows={3}
                   />
                 </div>
-              </div>
 
-              {/* Imagen */}
-              <div className="mt-6">
-                <label className={fieldStyles.label}>
-                  URL de imagen
-                </label>
-                <div className={fieldStyles.inputContainer}>
-                  <PhotoIcon className={fieldStyles.icon} />
-                  <input
-                    type="url"
+                {/* Image URL */}
+                <div className="mt-5">
+                  <PremiumInput
+                    label="URL de imagen"
                     name="image_url"
                     value={formData.image_url}
                     onChange={handleChange}
-                    className={fieldStyles.input}
                     placeholder="https://ejemplo.com/imagen.jpg"
+                    icon={<Image className="w-5 h-5" />}
+                    type="url"
+                  />
+                  {formData.image_url && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="mt-3 p-3 rounded-xl bg-[#0A0D12] border border-white/10"
+                    >
+                      <p className="text-xs text-gray-500 mb-2">Vista previa:</p>
+                      <img 
+                        src={formData.image_url} 
+                        alt="Preview" 
+                        className="h-24 w-auto rounded-lg object-cover"
+                        onError={(e) => e.currentTarget.style.display = 'none'}
+                      />
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 2: Privacy Settings */}
+              <div>
+                <SectionHeader 
+                  icon={<Shield className="w-5 h-5" style={{ color: '#8B5CF6' }} />}
+                  title="Configuración de Privacidad"
+                  subtitle="Controla quién puede ver y acceder a la comunidad"
+                  color="#8B5CF6"
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <PremiumSelect
+                    label="Visibilidad"
+                    name="visibility"
+                    value={formData.visibility}
+                    onChange={handleChange}
+                    icon={<Globe className="w-5 h-5" />}
+                    options={[
+                      { value: 'public', label: '🌐 Pública - Visible para todos' },
+                      { value: 'private', label: '🔒 Privada - Solo miembros' }
+                    ]}
+                    required
+                  />
+                  
+                  <PremiumSelect
+                    label="Tipo de Acceso"
+                    name="access_type"
+                    value={formData.access_type}
+                    onChange={handleChange}
+                    icon={<Lock className="w-5 h-5" />}
+                    options={[
+                      { value: 'open', label: '✅ Abierto - Cualquiera puede unirse' },
+                      { value: 'moderated', label: '👀 Moderado - Requiere aprobación' },
+                      { value: 'invite_only', label: '✉️ Solo invitación' }
+                    ]}
+                    required
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Configuración de Privacidad */}
-            <div className="mb-8">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-500/10 dark:to-pink-500/10 rounded-xl p-4 mb-6 border border-purple-200 dark:border-purple-500/20">
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-500/20 rounded-lg mr-3">
-                    <ShieldCheckIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  Configuración de Privacidad
-                </h4>
-                <p className="text-gray-600 dark:text-gray-400 text-sm ml-11">
-                  Controla quién puede ver y acceder a la comunidad
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Visibilidad */}
-                <div className={fieldStyles.container}>
-                  <label className={fieldStyles.label}>
-                    Visibilidad *
-                  </label>
-                  <div className={fieldStyles.inputContainer}>
-                    <GlobeAltIcon className={fieldStyles.icon} />
-                    <select
-                      name="visibility"
-                      value={formData.visibility}
-                      onChange={handleChange}
-                      className={fieldStyles.input}
-                    >
-                      <option value="public">Pública</option>
-                      <option value="private">Privada</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Tipo de Acceso */}
-                <div className={fieldStyles.container}>
-                  <label className={fieldStyles.label}>
-                    Tipo de Acceso *
-                  </label>
-                  <div className={fieldStyles.inputContainer}>
-                    <LockClosedIcon className={fieldStyles.icon} />
-                    <select
-                      name="access_type"
-                      value={formData.access_type}
-                      onChange={handleChange}
-                      className={fieldStyles.input}
-                    >
-                      <option value="open">Abierto</option>
-                      <option value="moderated">Moderado</option>
-                      <option value="invite_only">Solo por invitación</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Estado de la Comunidad */}
-            <div className="mb-8">
-              <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-500/10 dark:to-blue-500/10 rounded-xl p-4 mb-6 border border-green-200 dark:border-green-500/20">
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
-                  <div className="p-2 bg-green-100 dark:bg-green-500/20 rounded-lg mr-3">
-                    {formData.is_active ? (
-                      <EyeIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    ) : (
-                      <EyeSlashIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
-                    )}
-                  </div>
-                  Estado de la Comunidad
-                </h4>
-                <p className="text-gray-600 dark:text-gray-400 text-sm ml-11">
-                  Controla si la comunidad está activa y visible
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  name="is_active"
-                  checked={formData.is_active}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+              {/* Section 3: Status */}
+              <div>
+                <SectionHeader 
+                  icon={formData.is_active ? <Eye className="w-5 h-5" style={{ color: colors.success }} /> : <EyeOff className="w-5 h-5" style={{ color: colors.grayMedium }} />}
+                  title="Estado de la Comunidad"
+                  subtitle="Controla si la comunidad está activa y visible"
+                  color={formData.is_active ? colors.success : colors.grayMedium}
                 />
-                <label htmlFor="is_active" className="text-sm text-gray-700 dark:text-gray-300">
-                  Comunidad activa (visible para los usuarios)
-                </label>
+                
+                <motion.label 
+                  whileHover={{ scale: 1.01 }}
+                  className="flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all"
+                  style={{ 
+                    background: formData.is_active ? `${colors.success}10` : colors.bgTertiary,
+                    border: `1px solid ${formData.is_active ? colors.success + '30' : 'rgba(255,255,255,0.05)'}`
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ background: formData.is_active ? `${colors.success}20` : 'rgba(255,255,255,0.05)' }}
+                    >
+                      {formData.is_active ? (
+                        <Eye className="w-5 h-5" style={{ color: colors.success }} />
+                      ) : (
+                        <EyeOff className="w-5 h-5 text-gray-500" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">
+                        Comunidad {formData.is_active ? 'Activa' : 'Inactiva'}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        {formData.is_active ? 'Visible para los usuarios' : 'Oculta para los usuarios'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Custom Toggle */}
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      name="is_active"
+                      checked={formData.is_active}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <div 
+                      className="w-14 h-8 rounded-full p-1 transition-colors duration-300"
+                      style={{ background: formData.is_active ? colors.success : 'rgba(255,255,255,0.1)' }}
+                    >
+                      <motion.div 
+                        className="w-6 h-6 rounded-full bg-white shadow-lg flex items-center justify-center"
+                        animate={{ x: formData.is_active ? 24 : 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      >
+                        {formData.is_active && (
+                          <Check className="w-3.5 h-3.5" style={{ color: colors.success }} />
+                        )}
+                      </motion.div>
+                    </div>
+                  </div>
+                </motion.label>
               </div>
-            </div>
 
-            {/* Aviso de Protección de Datos */}
-            <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 border border-blue-200 dark:border-blue-500/30 rounded-xl">
-              <div className="flex items-start space-x-3">
-                <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-                  <ShieldCheckIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              {/* Data Protection Notice */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="flex items-start gap-3 p-4 rounded-xl"
+                style={{ 
+                  background: `linear-gradient(135deg, ${colors.primary}30 0%, ${colors.accent}10 100%)`,
+                  border: `1px solid ${colors.accent}20`
+                }}
+              >
+                <div className="p-2 rounded-lg" style={{ background: `${colors.accent}20` }}>
+                  <Shield className="w-5 h-5" style={{ color: colors.accent }} />
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-2">
-                    Protección de Datos Personales
+                  <h5 className="text-sm font-semibold" style={{ color: colors.accent }}>
+                    Protección de Datos
                   </h5>
-                  <p className="text-xs text-blue-600 dark:text-blue-300 leading-relaxed">
-                    Al modificar esta comunidad, se está manejando información sensible protegida por la Ley Federal de Protección de Datos Personales (LFPDPPP) y las normas ISO 27001. 
-                    La modificación será registrada en el log de auditoría para cumplir con los requisitos de trazabilidad.
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                    La modificación será registrada en el log de auditoría conforme a la LFPDPPP y las normas ISO 27001.
                   </p>
                 </div>
-              </div>
-            </div>
+              </motion.div>
 
-            {/* Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-8 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-600/50 rounded-xl transition-all duration-200 hover:scale-105 border border-gray-300 dark:border-gray-600"
-                disabled={isLoading}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 hover:scale-105 shadow-lg"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Guardando...</span>
-                  </div>
-                ) : (
-                  'Guardar Cambios'
-                )}
-              </button>
-            </div>
-          </form>
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-6 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="px-6 py-3 rounded-xl font-medium text-gray-300 bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                >
+                  Cancelar
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02, boxShadow: '0 10px 40px rgba(139, 92, 246, 0.3)' }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-8 py-3 rounded-xl font-semibold text-white flex items-center gap-2 disabled:opacity-50"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #8B5CF6 0%, #0A2540 100%)',
+                    boxShadow: '0 5px 20px rgba(139, 92, 246, 0.2)'
+                  }}
+                >
+                  {isLoading ? (
+                    <>
+                      <motion.div 
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                      />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      <span>Guardar Cambios</span>
+                    </>
+                  )}
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </AnimatePresence>
   )
 }

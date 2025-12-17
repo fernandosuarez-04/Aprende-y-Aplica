@@ -24,6 +24,7 @@ import {
   AcademicCapIcon
 } from '@heroicons/react/24/outline'
 import { MapPinIcon as MapPinIconSolid } from '@heroicons/react/24/solid'
+import Image from 'next/image'
 
 interface AdminSidebarProps {
   isOpen: boolean
@@ -183,12 +184,17 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                 transition={{ duration: 0.2 }}
                 className="flex items-center gap-3"
               >
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-xs font-bold">A</span>
+                <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                  <Image
+                    src="/Logo.png"
+                    alt="Sofia Logo"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#0A2540] dark:text-white truncate">Admin</p>
-                  <p className="text-xs text-[#6C757D] dark:text-gray-400 truncate">Panel</p>
+                  <p className="text-sm font-semibold text-[#0A2540] dark:text-white truncate">Sofia</p>
                 </div>
               </motion.div>
             ) : (
@@ -200,8 +206,14 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                 transition={{ duration: 0.2 }}
                 className="flex items-center justify-center w-full"
               >
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">A</span>
+                <div className="h-8 w-8 rounded-lg flex items-center justify-center relative overflow-hidden">
+                  <Image
+                    src="/Logo.png"
+                    alt="Sofia Logo"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
                 </div>
               </motion.div>
             )}
@@ -367,48 +379,6 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
           </div>
         </nav>
 
-        {/* User info at bottom */}
-        <div className="flex-shrink-0 p-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#0F1419]">
-          <AnimatePresence mode="wait">
-            {(!isCollapsed || shouldExpand) ? (
-              <motion.div
-                key="user-expanded"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center"
-              >
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center ring-2 ring-[#0A2540]/20 dark:ring-[#00D4B3]/20">
-                    <span className="text-sm font-semibold text-white">A</span>
-                  </div>
-                </div>
-                <div className="ml-3 min-w-0">
-                  <p className="text-sm font-semibold text-[#0A2540] dark:text-white truncate">
-                    Administrador
-                  </p>
-                  <p className="text-xs text-[#6C757D] dark:text-gray-400 truncate">
-                    Panel de Control
-                  </p>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="user-collapsed"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center justify-center"
-              >
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center ring-2 ring-[#0A2540]/20 dark:ring-[#00D4B3]/20">
-                  <span className="text-sm font-semibold text-white">A</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
       </motion.div>
     </>
   )

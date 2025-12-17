@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, Badge, Button } from '@aprende-y-aplica/ui';
 import { fadeIn, slideUp, staggerContainer, staggerItem } from '../../../../shared/utils/animations';
-import { DollarSign, BarChart, Wrench, GraduationCap, Check, ArrowRight, Calculator } from 'lucide-react';
+import { DollarSign, BarChart3, Wrench, GraduationCap, Check, ArrowRight, Calculator } from 'lucide-react';
 
 interface InstructorsInfoSectionProps {
   title: string;
@@ -34,7 +34,7 @@ export function InstructorsInfoSection({ title, subtitle, cards, benefits, proce
 
   const iconMap: Record<string, React.ComponentType<any>> = {
     DollarSign,
-    BarChart,
+    BarChart: BarChart3,
     Wrench,
     GraduationCap,
   };

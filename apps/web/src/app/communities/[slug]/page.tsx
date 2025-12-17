@@ -179,7 +179,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
           >
             <div className="bg-gray-50 dark:bg-slate-800/30 rounded-xl p-4 border border-gray-200 dark:border-slate-700/50">
               <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center text-white text-sm font-semibold">
                   U
                 </div>
                 <div className="flex-1">
@@ -187,14 +187,14 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Escribe un comentario..."
-                    className="w-full bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
+                    className="w-full bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg px-3 py-2 text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-transparent resize-none"
                     rows={2}
                   />
                   <div className="flex justify-end mt-2">
                     <Button
                       onClick={handleSubmitComment}
                       disabled={!newComment.trim() || isSubmitting}
-                      className="bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
+                      className="bg-[#0A2540] hover:bg-[#0d2f4d] text-white disabled:opacity-50"
                     >
                       {isSubmitting ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -217,7 +217,7 @@ function LocalCommentsSection({ postId, communitySlug, onCommentAdded, showComme
                   className="bg-gray-50 dark:bg-slate-800/30 rounded-xl p-4 border border-gray-200 dark:border-slate-700/50"
                 >
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center text-white text-sm font-semibold">
                       {comment.user?.first_name?.charAt(0) || 'U'}
                     </div>
                     <div className="flex-1">
@@ -297,7 +297,7 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
       <div className="relative" ref={buttonRef}>
         <motion.button
           onClick={() => setShowMenu(!showMenu)}
-          className="flex items-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
+          className="flex items-center gap-1 sm:gap-1.5 text-[#6C757D] dark:text-white/70 hover:text-[#10B981] dark:hover:text-[#10B981] transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329]"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
@@ -320,21 +320,21 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
                   onClick={() => copyToClipboard(postUrl)}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
-                  <Copy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <Copy className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3]" />
                   <span className="text-gray-900 dark:text-slate-200 text-sm">Copiar enlace</span>
                 </button>
                 <button
                   onClick={shareToTwitter}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
-                  <Twitter className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <Twitter className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3]" />
                   <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Twitter</span>
                 </button>
                 <button
                   onClick={shareToFacebook}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
-                  <Facebook className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <Facebook className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3]" />
                   <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Facebook</span>
                 </button>
               </div>
@@ -347,7 +347,7 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
                     exit={{ opacity: 0, y: 10 }}
                     className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-600"
                   >
-                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
+                    <div className="flex items-center gap-2 text-[#10B981] dark:text-[#10B981] text-sm">
                       <Copy className="w-3 h-3" />
                       ¡Enlace copiado!
                     </div>
@@ -388,21 +388,21 @@ function ShareButton({ postId, postContent, communityName, communitySlug, isFace
                 onClick={() => copyToClipboard(postUrl)}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
               >
-                <Copy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Copy className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3]" />
                 <span className="text-gray-900 dark:text-slate-200 text-sm">Copiar enlace</span>
               </button>
               <button
                 onClick={shareToTwitter}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
               >
-                <Twitter className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Twitter className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3]" />
                 <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Twitter</span>
               </button>
               <button
                 onClick={shareToFacebook}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors text-left"
               >
-                <Facebook className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Facebook className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3]" />
                 <span className="text-gray-900 dark:text-slate-200 text-sm">Compartir en Facebook</span>
               </button>
             </div>
@@ -528,21 +528,21 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative overflow-hidden rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-800/80 dark:via-slate-900/60 dark:to-slate-800/80 border border-gray-200 dark:border-slate-700/40 backdrop-blur-xl shadow-2xl mb-6"
+        className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 backdrop-blur-xl shadow-2xl mb-6"
       >
         {/* Efecto de brillo sutil */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
         
         {/* Header con gradiente */}
-        <div className="relative bg-gradient-to-r from-blue-500/10 via-purple-500/5 to-indigo-500/10 border-b border-gray-200 dark:border-slate-700/30">
+        <div className="relative bg-gradient-to-r from-[#0A2540]/10 via-[#00D4B3]/5 to-[#0A2540]/10 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
           <div className="flex items-center gap-4 p-6">
             <div className="relative">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center shadow-lg shadow-[#0A2540]/25">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#10B981] rounded-full border-2 border-white dark:border-[#0F1419] animate-pulse"></div>
             </div>
             <div className="flex-1">
               <h4 className="text-gray-900 dark:text-white font-bold text-xl mb-1">
@@ -572,8 +572,8 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
                 isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
               } ${
                 isSelected 
-                  ? 'border-blue-500 dark:border-blue-400 bg-gradient-to-r from-blue-500/20 dark:from-blue-500/20 via-blue-500/10 dark:via-blue-500/10 to-indigo-500/20 dark:to-indigo-500/20 shadow-lg shadow-blue-500/30 scale-[1.02]' 
-                  : 'border-gray-300 dark:border-slate-600/50 bg-gray-50 dark:bg-slate-800/40 hover:border-blue-500/60 dark:hover:border-blue-400/60 hover:bg-gray-100 dark:hover:bg-slate-700/50 hover:scale-[1.01] hover:shadow-lg hover:shadow-blue-500/20'
+                  ? 'border-[#00D4B3] dark:border-[#00D4B3] bg-gradient-to-r from-[#00D4B3]/20 dark:from-[#00D4B3]/20 via-[#00D4B3]/10 dark:via-[#00D4B3]/10 to-[#0A2540]/20 dark:to-[#0A2540]/20 shadow-lg shadow-[#00D4B3]/30 scale-[1.02]' 
+                  : 'border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#E9ECEF] dark:bg-[#0A0D12] hover:border-[#00D4B3]/60 dark:hover:border-[#00D4B3]/60 hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] hover:scale-[1.01] hover:shadow-lg hover:shadow-[#00D4B3]/20'
               }`}
               onClick={() => !isLoading && handleVote(optionKey)}
             >
@@ -587,23 +587,23 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center"
+                        className="w-6 h-6 rounded-full bg-[#00D4B3] flex items-center justify-center"
                       >
                         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
                       </motion.div>
                     )}
-                    <span className="text-gray-900 dark:text-white font-semibold text-lg">
+                    <span className="text-[#0A2540] dark:text-white font-semibold text-lg">
                       {optionKey}
                     </span>
                   </div>
                   
                   <div className="text-right">
-                    <div className="text-blue-600 dark:text-blue-400 font-bold text-lg">
+                    <div className="text-[#00D4B3] dark:text-[#00D4B3] font-bold text-lg">
                       {percentage}%
                     </div>
-                    <div className="text-gray-600 dark:text-slate-400 text-sm">
+                    <div className="text-[#6C757D] dark:text-white/70 text-sm">
                       {voteCount} votos
                     </div>
                   </div>
@@ -612,9 +612,9 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
                 {/* Barra de progreso mejorada */}
                 {hasVoted && (
                   <div className="relative">
-                    <div className="w-full h-3 bg-gray-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-[#E9ECEF] dark:bg-[#0A0D12] rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-indigo-500 rounded-full relative"
+                        className="h-full bg-gradient-to-r from-[#0A2540] via-[#00D4B3] to-[#00D4B3] rounded-full relative"
                         initial={{ width: 0 }}
                         animate={{ width: `${percentage}%` }}
                         transition={{ duration: 0.8, delay: index * 0.1, ease: "easeOut" }}
@@ -635,7 +635,7 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
       <div className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-slate-800/50 dark:to-slate-900/50 border-t border-gray-200 dark:border-slate-700/30 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-[#00D4B3] dark:bg-[#00D4B3] rounded-full animate-pulse"></div>
             <span className="text-gray-700 dark:text-slate-300 font-medium">
               {totalVotes} votos totales
             </span>
@@ -643,7 +643,7 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
           
           {isLoading ? (
             <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400 bg-gray-200 dark:bg-slate-700/30 rounded-lg px-3 py-2 border border-gray-300 dark:border-slate-600/30">
-              <div className="w-4 h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-[#00D4B3] dark:border-[#00D4B3] border-t-transparent rounded-full animate-spin"></div>
               <span>Procesando voto...</span>
             </div>
           ) : hasVoted ? (
@@ -652,7 +652,7 @@ function PollViewer({ pollData, postId }: { pollData: any; postId: string }) {
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400 bg-gray-200 dark:bg-slate-700/30 rounded-lg px-3 py-2 border border-gray-300 dark:border-slate-600/30"
             >
-              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Haz click en tu voto para quitarlo o en otra opción para cambiar</span>
@@ -998,7 +998,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-indigo-500/10 dark:from-blue-500/10 dark:via-purple-500/5 dark:to-indigo-500/10 border border-blue-400/20 dark:border-blue-400/20 hover:border-blue-400/40 dark:hover:border-blue-400/40 transition-all duration-300 mb-4 backdrop-blur-sm"
+        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0A2540]/10 via-[#00D4B3]/5 to-[#0A2540]/10 dark:from-[#0A2540]/10 dark:via-[#00D4B3]/5 dark:to-[#0A2540]/10 border border-[#00D4B3]/20 dark:border-[#00D4B3]/20 hover:border-[#00D4B3]/40 dark:hover:border-[#00D4B3]/40 transition-all duration-300 mb-4 backdrop-blur-sm"
       >
         {/* Efecto de brillo sutil */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
@@ -1007,27 +1007,27 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
           <div className="flex items-start gap-5">
             {/* Icono mejorado */}
             <div className="relative">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/40 transition-all duration-300 group-hover:scale-105">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-lg shadow-[#0A2540]/25 group-hover:shadow-[#00D4B3]/40 transition-all duration-300 group-hover:scale-105">
                 <Link2 className="w-7 h-7 text-white" />
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#10B981] rounded-full border-2 border-white dark:border-[#0F1419] animate-pulse"></div>
             </div>
             
             {/* Contenido principal */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                <h4 className="text-gray-900 dark:text-white font-semibold text-lg truncate">
+                <Globe className="w-5 h-5 text-[#00D4B3] dark:text-[#00D4B3] flex-shrink-0" />
+                <h4 className="text-[#0A2540] dark:text-white font-semibold text-lg truncate">
                   {pageName}
                 </h4>
               </div>
               
-              <p className="text-blue-600 dark:text-blue-200/80 text-sm mb-3 font-medium">
+              <p className="text-[#00D4B3] dark:text-[#00D4B3] text-sm mb-3 font-medium">
                 {fileName || 'Enlace web'}
               </p>
               
-              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400/70 bg-blue-500/10 dark:bg-blue-500/10 rounded-lg px-3 py-2 border border-blue-400/20 dark:border-blue-400/20">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="flex items-center gap-2 text-xs text-[#00D4B3] dark:text-[#00D4B3]/70 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/10 rounded-lg px-3 py-2 border border-[#00D4B3]/20 dark:border-[#00D4B3]/20">
+                <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse"></div>
                 <span className="truncate">{attachmentUrl}</span>
               </div>
             </div>
@@ -1036,7 +1036,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => window.open(attachmentUrl, '_blank')}
-                className="group/btn p-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 transition-all duration-300 hover:scale-105 active:scale-95"
+                className="group/btn p-3 rounded-xl bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg shadow-[#0A2540]/25 hover:shadow-[#0A2540]/40 transition-all duration-300 hover:scale-105 active:scale-95"
                 title="Abrir enlace"
               >
                 <ExternalLink className="w-5 h-5 group-hover/btn:rotate-12 transition-transform duration-200" />
@@ -1047,7 +1047,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
                   navigator.clipboard.writeText(attachmentUrl);
                   // Aquí podrías agregar una notificación de "copiado"
                 }}
-                className="group/btn p-3 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white shadow-lg shadow-purple-600/25 hover:shadow-purple-600/40 transition-all duration-300 hover:scale-105 active:scale-95"
+                className="group/btn p-3 rounded-xl bg-[#00D4B3] hover:bg-[#00c4a3] text-white shadow-lg shadow-[#00D4B3]/25 hover:shadow-[#00D4B3]/40 transition-all duration-300 hover:scale-105 active:scale-95"
                 title="Copiar enlace"
               >
                 <Copy className="w-5 h-5 group-hover/btn:scale-110 transition-transform duration-200" />
@@ -1118,7 +1118,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
               <div className={`p-4 rounded-2xl bg-gradient-to-br ${fileTypeGradient} shadow-lg shadow-slate-500/25 group-hover:shadow-slate-500/40 transition-all duration-300 group-hover:scale-105`}>
                 <FileText className="w-7 h-7 text-white" />
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#00D4B3] rounded-full border-2 border-white dark:border-[#0F1419] animate-pulse"></div>
             </div>
             
             {/* Contenido principal */}
@@ -1141,7 +1141,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
               </div>
               
               <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400/70 bg-gray-200 dark:bg-slate-500/10 rounded-lg px-3 py-2 border border-gray-300 dark:border-slate-400/20">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-[#00D4B3] rounded-full animate-pulse"></div>
                 <span>Archivo adjunto disponible</span>
               </div>
             </div>
@@ -1166,7 +1166,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
                   link.click();
                   document.body.removeChild(link);
                 }}
-                className="group/btn p-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 transition-all duration-300 hover:scale-105 active:scale-95"
+                className="group/btn p-3 rounded-xl bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg shadow-[#0A2540]/25 hover:shadow-[#0A2540]/40 transition-all duration-300 hover:scale-105 active:scale-95"
                 title="Descargar"
               >
                 <Download className="w-5 h-5 group-hover/btn:scale-110 transition-transform duration-200" />
@@ -1220,7 +1220,7 @@ function AttachmentViewer({ attachmentUrl, attachmentType, attachmentData, fileN
               link.click();
               document.body.removeChild(link);
             }}
-            className="p-2 rounded-lg bg-blue-600/50 hover:bg-blue-600 text-blue-300 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-[#0A2540]/50 hover:bg-[#0A2540] text-[#00D4B3] hover:text-white transition-colors"
             title="Descargar"
           >
             <Download className="w-4 h-4" />
@@ -1380,7 +1380,7 @@ export default function CommunityDetailPage() {
   const [postReactionStats, setPostReactionStats] = useState<Record<string, any>>({});
   const communityHeaderRef = useRef<HTMLElement | null>(null);
   const feedSectionRef = useRef<HTMLElement | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   
   // Validar cuestionario
@@ -1412,12 +1412,14 @@ export default function CommunityDetailPage() {
   }, [user, isLoadingValidation, isRequired]);
 
   useEffect(() => {
+    // Solo ejecutar en el cliente para evitar problemas de hidratación
+    if (typeof window === 'undefined') return;
+    
     const checkViewport = () => {
-      if (typeof window !== 'undefined') {
-        setIsMobile(window.innerWidth < 768);
-      }
+      setIsMobile(window.innerWidth < 768);
     };
 
+    // Inicializar después del primer render para evitar diferencias SSR/CSR
     checkViewport();
     window.addEventListener('resize', checkViewport);
 
@@ -1463,6 +1465,12 @@ export default function CommunityDetailPage() {
         const data = await response.json();
         setCommunity(data.community);
       } else {
+        const errorData = await response.json().catch(() => ({}));
+        // Si es error de cuestionario requerido, redirigir o mostrar mensaje
+        if (response.status === 403 && errorData.requiresQuestionnaire) {
+          // No redirigir automáticamente, solo mostrar mensaje en la UI
+          console.warn('Questionnaire required:', errorData);
+        }
         // console.error('Error fetching community:', response.statusText);
       }
     } catch (error) {
@@ -1488,14 +1496,24 @@ export default function CommunityDetailPage() {
           await loadUserReactions(data.posts);
         }
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         // console.error('Error fetching posts:', errorData);
         
         // Si es error de autenticación, no mostrar posts pero permitir ver la comunidad
         if (response.status === 401 && errorData.requires_auth) {
           setPosts([]);
-        } else if (response.status === 403 && errorData.requires_membership) {
-          setPosts([]);
+        } else if (response.status === 403) {
+          // Manejar diferentes tipos de 403
+          if (errorData.requires_membership) {
+            setPosts([]);
+          } else if (errorData.requiresQuestionnaire) {
+            // Si requiere cuestionario, no mostrar posts pero permitir ver la comunidad
+            setPosts([]);
+            console.warn('Questionnaire required:', errorData);
+          } else {
+            // Otro tipo de 403, no mostrar posts
+            setPosts([]);
+          }
         }
       }
     } catch (error) {
@@ -1953,7 +1971,7 @@ export default function CommunityDetailPage() {
         <Button
           onClick={handleJoinCommunity}
           disabled={isJoining}
-          className="w-full sm:w-auto bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
+          className="w-full sm:w-auto bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg shadow-[#0A2540]/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
         >
           {isJoining ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -1969,7 +1987,7 @@ export default function CommunityDetailPage() {
       <Button
         onClick={handleJoinCommunity}
         disabled={isJoining}
-        className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
+        className="w-full sm:w-auto bg-[#00D4B3] hover:bg-[#00c4a3] text-white shadow-lg shadow-[#00D4B3]/40 border-0 transition-transform duration-300 hover:-translate-y-0.5 disabled:opacity-70"
       >
         {isJoining ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -2007,9 +2025,9 @@ export default function CommunityDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419]">
         <div className="flex items-center justify-center min-h-screen">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#00D4B3] border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -2017,10 +2035,10 @@ export default function CommunityDetailPage() {
 
   if (!community) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
+      <div className="min-h-screen bg-white dark:bg-[#0F1419]">
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Comunidad no encontrada</h1>
+            <h1 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-4">Comunidad no encontrada</h1>
             <Button onClick={() => router.push('/communities')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver a Comunidades
@@ -2036,14 +2054,7 @@ export default function CommunityDetailPage() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900"
-      style={
-        isMobile
-          ? {
-              paddingBottom: `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
-            }
-          : undefined
-      }
+      className={`min-h-screen bg-white dark:bg-[#0F1419] ${isMobile === true ? 'pb-[calc(72px+env(safe-area-inset-bottom,0px))]' : ''}`}
     >
       {/* Navigation Bar */}
       <motion.nav
@@ -2053,11 +2064,11 @@ export default function CommunityDetailPage() {
         transition={{ duration: 0.5 }}
       >
         <div className="max-w-7xl mx-auto px-6 pt-6">
-          <div className="flex items-center justify-between gap-6 rounded-[32px] bg-white/5 border border-white/10 shadow-xl backdrop-blur-xl px-6 py-4">
+          <div className="flex items-center justify-between gap-6 rounded-[32px] bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-xl backdrop-blur-xl px-6 py-4">
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={() => router.push('/communities')}
-                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 text-slate-900 font-semibold shadow-lg shadow-slate-200 transition-all duration-300 hover:-translate-y-0.5 dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-500 dark:text-white dark:shadow-blue-500/30"
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0A2540] text-white font-semibold shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#0d2f4d] dark:bg-[#0A2540] dark:text-white dark:shadow-[#0A2540]/30"
               >
                 <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
                 Volver
@@ -2070,18 +2081,18 @@ export default function CommunityDetailPage() {
                     onClick={() => handleTabNavigation(tab.id)}
                     className={`group relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                       activeTab === tab.id
-                        ? 'text-slate-900 dark:text-white'
-                        : 'text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white'
+                        ? 'text-[#0A2540] dark:text-white'
+                        : 'text-[#6C757D] hover:text-[#0A2540] dark:text-white/70 dark:hover:text-white'
                     }`}
                   >
                     <span className="relative z-10 flex items-center gap-2">
                       {tab.label}
                     </span>
                     <span
-                      className={`absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 transition-opacity ${
+                      className={`absolute inset-0 rounded-full bg-[#00D4B3] opacity-0 transition-opacity ${
                         activeTab === tab.id
-                          ? 'opacity-100 shadow-lg shadow-purple-500/30 dark:shadow-purple-500/30'
-                          : 'group-hover:opacity-30 bg-white/50 dark:bg-gradient-to-r dark:from-blue-500 dark:to-purple-500'
+                          ? 'opacity-100 shadow-lg shadow-[#00D4B3]/30 dark:shadow-[#00D4B3]/30'
+                          : 'group-hover:opacity-20 bg-[#00D4B3]/50 dark:bg-[#00D4B3]/50'
                       }`}
                     />
                   </button>
@@ -2095,7 +2106,7 @@ export default function CommunityDetailPage() {
                 <input
                   type="text"
                   placeholder="Buscar en esta comunidad..."
-                  className="pl-12 pr-4 py-2 rounded-full bg-white/90 border border-white/70 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-transparent transition-all dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder-white/60"
+                  className="pl-12 pr-4 py-2 rounded-full bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 text-[#0A2540] placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all dark:text-white dark:placeholder-white/60"
                 />
               </div>
             </div>
@@ -2113,7 +2124,7 @@ export default function CommunityDetailPage() {
       >
         <div className="max-w-7xl mx-auto grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
           <motion.div
-            className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[32px] shadow-2xl overflow-hidden backdrop-blur-xl"
+            className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-[32px] shadow-2xl overflow-hidden backdrop-blur-xl"
             variants={itemVariants}
           >
             <div className="relative h-52 sm:h-64 overflow-hidden">
@@ -2124,15 +2135,15 @@ export default function CommunityDetailPage() {
                     alt={community.name}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0F1419]/70 via-[#0F1419]/20 to-transparent" />
                 </>
               ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-500/30" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0A2540]/30 to-[#00D4B3]/30" />
               )}
             </div>
             <div className="p-6 sm:p-8 space-y-6">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-900/5 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-white/80">
+                <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#0A2540]/5 dark:bg-[#00D4B3]/10 text-xs font-semibold uppercase tracking-wide text-[#0A2540] dark:text-white/80">
                   <Globe className="w-3.5 h-3.5" />
                   {communityCategoryLabel}
                 </span>
@@ -2141,19 +2152,19 @@ export default function CommunityDetailPage() {
                 </div>
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3">
+                <h1 className="text-3xl sm:text-4xl font-bold text-[#0A2540] dark:text-white mb-3">
                   {community.name}
                 </h1>
-                <p className="text-slate-600 dark:text-white/80 text-base sm:text-lg leading-relaxed">
+                <p className="text-[#6C757D] dark:text-white/80 text-base sm:text-lg leading-relaxed">
                   {community.description}
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-white/80">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-[#6C757D] dark:text-white/80">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0A2540]/5 dark:bg-[#00D4B3]/10 backdrop-blur">
                   <Users className="w-4 h-4" />
                   {community.member_count} Miembros
                 </div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0A2540]/5 dark:bg-[#00D4B3]/10 backdrop-blur">
                   {(community.access_type === 'free' || (community.slug === 'profesionales' && community.is_member)) ? (
                     <CheckCircle className="w-4 h-4" />
                   ) : (
@@ -2161,7 +2172,7 @@ export default function CommunityDetailPage() {
                   )}
                   {(community.access_type === 'free' || (community.slug === 'profesionales' && community.is_member)) ? 'Acceso gratuito' : 'Por invitación'}
                 </div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 backdrop-blur">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0A2540]/5 dark:bg-[#00D4B3]/10 backdrop-blur">
                   <Clock className="w-4 h-4" />
                   Actualizado {formattedUpdatedAt}
                 </div>
@@ -2176,32 +2187,32 @@ export default function CommunityDetailPage() {
               {user && community && (community.user_role === 'admin' || community.user_role === 'moderator' || user.id === community.creator_id) && (
                 <Button
                   onClick={() => router.push(`/communities/${slug}/moderation/reports`)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
+                  className="w-full bg-[#0A2540] hover:bg-[#0d2f4d] text-white flex items-center justify-center gap-2"
                 >
                   <Shield className="w-4 h-4" />
                   Panel de Moderación
                 </Button>
               )}
             </div>
-            <div className="bg-white dark:bg-slate-900/40 border border-white/40 dark:border-white/10 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-5">
+            <div className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-[28px] p-6 backdrop-blur-xl shadow-xl space-y-5">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-600 dark:text-white/60 uppercase tracking-[0.3em]">Actividad</p>
-                <div className="h-1 w-16 rounded-full bg-gradient-to-r from-blue-400 to-purple-400" />
+                <p className="text-xs font-semibold text-[#6C757D] dark:text-white/70 uppercase tracking-[0.3em]">Actividad</p>
+                <div className="h-1 w-16 rounded-full bg-gradient-to-r from-[#0A2540] to-[#00D4B3]" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
-                  { label: 'Posts', value: postsCount, gradient: 'from-blue-500 to-cyan-500' },
-                  { label: 'Comentarios', value: commentsCount, gradient: 'from-purple-500 to-pink-500' },
-                  { label: 'Reacciones', value: reactionsCount, gradient: 'from-emerald-500 to-lime-500' },
+                  { label: 'Posts', value: postsCount, gradient: 'from-[#0A2540] to-[#00D4B3]' },
+                  { label: 'Comentarios', value: commentsCount, gradient: 'from-[#00D4B3] to-[#00D4B3]' },
+                  { label: 'Reacciones', value: reactionsCount, gradient: 'from-[#10B981] to-[#10B981]' },
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className="rounded-2xl bg-white/70 border border-white/30 px-4 py-5 text-center dark:bg-white/5 dark:border-white/10"
+                    className="rounded-2xl bg-[#E9ECEF] dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-5 text-center"
                   >
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                    <p className="text-2xl font-bold text-[#0A2540] dark:text-white mb-1">
                       {stat.value}
                     </p>
-                    <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-white/70">
+                    <span className="text-xs uppercase tracking-wide text-[#6C757D] dark:text-white/70">
                       {stat.label}
                     </span>
                     <div className={`mt-3 h-1 rounded-full bg-gradient-to-r ${stat.gradient}`} />
@@ -2217,11 +2228,7 @@ export default function CommunityDetailPage() {
       <motion.section
         ref={feedSectionRef}
         className="px-4 md:px-6 pt-8"
-        style={{
-          paddingBottom: isMobile
-            ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px) + ${MOBILE_CONTENT_EXTRA_PADDING}px)`
-            : '4rem',
-        }}
+        className={isMobile === true ? 'pb-[calc(72px+env(safe-area-inset-bottom,0px)+24px)]' : 'pb-16'}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -2233,10 +2240,10 @@ export default function CommunityDetailPage() {
               {community.is_member && (
                 <motion.div
                   variants={cardVariants}
-                  className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200 dark:border-slate-600/50 rounded-2xl p-6 mb-6 shadow-lg dark:shadow-xl"
+                  className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-2xl p-6 mb-6 shadow-lg dark:shadow-xl"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center overflow-hidden">
                       {user?.profile_picture_url ? (
                         <img 
                           src={user.profile_picture_url} 
@@ -2261,7 +2268,7 @@ export default function CommunityDetailPage() {
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
                         onPaste={handlePasteImage}
-                        className="w-full bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 resize-none focus:outline-none"
+                        className="w-full bg-transparent text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 resize-none focus:outline-none"
                         rows={3}
                       />
                       {/* Preview de los adjuntos */}
@@ -2435,7 +2442,7 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        className="text-[#6C757D] dark:text-white/70 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-colors"
                       >
                         {post.comment_count} comentarios
                       </button>
@@ -2472,7 +2479,7 @@ export default function CommunityDetailPage() {
                             }, 100);
                           }
                         }}
-                        className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30"
+                        className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 text-[#6C757D] dark:text-white/70 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-colors py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329]"
                       >
                         <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="text-xs sm:text-sm">Comentar</span>
@@ -2523,13 +2530,13 @@ export default function CommunityDetailPage() {
               variants={cardVariants}
               className="text-center py-16"
             >
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-slate-800/50 flex items-center justify-center">
-                <EyeOff className="w-12 h-12 text-gray-600 dark:text-slate-400" />
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[#E9ECEF] dark:bg-[#1E2329] flex items-center justify-center">
+                <EyeOff className="w-12 h-12 text-[#6C757D] dark:text-white/70" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-xl font-semibold text-[#0A2540] dark:text-white mb-2">
                 Contenido restringido
               </h3>
-              <p className="text-gray-600 dark:text-slate-400 mb-6">
+              <p className="text-[#6C757D] dark:text-white/70 mb-6">
                 {community.access_type === 'free' 
                   ? 'Únete a esta comunidad para ver todo el contenido'
                   : 'Esta comunidad es solo por invitación'
@@ -2547,7 +2554,7 @@ export default function CommunityDetailPage() {
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.25 }}
-          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-2xl"
+          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-lg border-t border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl"
           style={{
             paddingBottom: 'calc(env(safe-area-inset-bottom, 0px))',
           }}
@@ -2563,8 +2570,8 @@ export default function CommunityDetailPage() {
                   onClick={() => handleTabNavigation(tab.id)}
                   className={`flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-all ${
                     isActive
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                      ? 'text-[#00D4B3] dark:text-[#00D4B3]'
+                      : 'text-[#6C757D] dark:text-white/70 hover:text-[#0A2540] dark:hover:text-white'
                   }`}
                 >
                   <Icon className="w-5 h-5" />

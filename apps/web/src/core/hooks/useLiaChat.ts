@@ -399,28 +399,17 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
 
       setMessages(prev => [...prev, userMessage]);
 
-      // Si debemos notificar cambio de modo, agregar mensaje del sistema DESPUÉS del mensaje de usuario
-      if (shouldNotifyModeChange && modeChangeMessage) {
-        const systemMessage: LiaMessage = {
-          id: `system-${Date.now()}`,
-          role: 'assistant',
-          content: modeChangeMessage,
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, systemMessage]);
-        
-        // 🎯 IMPORTANTE: Solo esperar sin responder si se ACTIVÓ un modo especial (NanoBanana/Prompts)
-        // Si se cambió a curso/contexto CON una pregunta, debe continuar y responder
-        if (shouldWaitForNextMessage) {
-          console.log('[LIA] ⏸️ Modo especial activado. Esperando descripción del usuario...');
-          // ✅ ACTIVIDADES: Iniciar tracking de tiempo
-          activityStartTimeRef.current = Date.now();
-          setIsLoading(false);
-          return;
-        } else {
-          console.log('[LIA] 🔄 Modo cambiado. Continuando para responder la pregunta...');
-        }
+      // No agregar mensaje automático del sistema al cambiar de modo
+      // La información del modo se muestra en el fondo del chat cuando no hay mensajes
+      // Si debemos esperar sin responder si se ACTIVÓ un modo especial (NanoBanana/Prompts)
+      if (shouldNotifyModeChange && shouldWaitForNextMessage) {
+        console.log('[LIA] ⏸️ Modo especial activado. Esperando descripción del usuario...');
+        // ✅ ACTIVIDADES: Iniciar tracking de tiempo
+        activityStartTimeRef.current = Date.now();
+        setIsLoading(false);
+        return;
+      } else if (shouldNotifyModeChange) {
+        console.log('[LIA] 🔄 Modo cambiado. Continuando para responder la pregunta...');
       }
     }
 
@@ -613,31 +602,8 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   const setMode = useCallback((mode: LiaChatMode) => {
     setCurrentMode(mode);
     
-    // Agregar mensaje del sistema notificando el cambio
-    let modeMessage = '';
-    switch (mode) {
-      case 'course':
-        modeMessage = "Modo cambiado a: Curso 📚\n\nAhora puedo ayudarte específicamente con el contenido de este curso.";
-        break;
-      case 'prompts':
-        modeMessage = "Modo cambiado a: Creación de Prompts 🎯\n\n¿Qué tipo de prompt quieres crear?";
-        break;
-      case 'context':
-        modeMessage = "Modo cambiado a: Contexto Persistente 🧠\n\nAhora mantendré el contexto de nuestra conversación entre lecciones.";
-        break;
-      case 'nanobana':
-        modeMessage = "Modo cambiado a: NanoBanana Pro 🎨\n\n¿Qué tipo de imagen o diseño quieres crear? Puedo generar JSON para UI, fotografía o diagramas.";
-        break;
-    }
-    
-    const systemMessage: LiaMessage = {
-      id: `system-mode-${Date.now()}`,
-      role: 'assistant',
-      content: modeMessage,
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, systemMessage]);
+    // No agregar mensaje automático del sistema al cambiar de modo
+    // La información del modo se muestra en el fondo del chat cuando no hay mensajes
   }, []);
 
   // ✨ Función para limpiar el prompt generado

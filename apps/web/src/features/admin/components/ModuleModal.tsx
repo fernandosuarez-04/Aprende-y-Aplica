@@ -1,7 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, CheckCircle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  XMarkIcon,
+  BookOpenIcon,
+  CheckCircleIcon
+} from '@heroicons/react/24/outline'
 import { AdminModule } from '../services/adminModules.service'
 
 interface ModuleModalProps {
@@ -18,6 +23,7 @@ export function ModuleModal({ module, onClose, onSave }: ModuleModalProps) {
     is_published: false
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (module) {
@@ -27,121 +33,342 @@ export function ModuleModal({ module, onClose, onSave }: ModuleModalProps) {
         is_required: module.is_required,
         is_published: module.is_published
       })
+    } else {
+      setFormData({
+        module_title: '',
+        module_description: '',
+        is_required: true,
+        is_published: false
+      })
     }
+    setError(null)
   }, [module])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
 
     try {
       await onSave(formData)
       onClose()
     } catch (error) {
-      // console.error('Error saving module:', error)
+      setError(error instanceof Error ? error.message : 'Error al guardar el módulo')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {module ? 'Editar Módulo' : 'Crear Módulo'}
-          </h2>
-          <button
+    <AnimatePresence>
+      {true && (
+        <>
+          {/* Backdrop Mejorado */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+          />
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Título */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Título del Módulo *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.module_title}
-              onChange={(e) => setFormData(prev => ({ ...prev, module_title: e.target.value }))}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Ej: Introducción a la IA"
-            />
+          {/* Modal Mejorado */}
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-screen items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                transition={{ 
+                  duration: 0.3, 
+                  ease: [0.25, 0.46, 0.45, 0.94],
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30
+                }}
+                className="relative bg-white dark:bg-[#1E2329] rounded-2xl shadow-2xl max-w-2xl w-full border border-[#E9ECEF] dark:border-[#6C757D]/30 max-h-[90vh] overflow-hidden flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header Mejorado con Animación */}
+                <motion.div 
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="relative bg-gradient-to-r from-[#0A2540] via-[#0A2540]/95 to-[#0A2540]/90 dark:from-[#0A2540] dark:via-[#0A2540]/90 dark:to-[#0A2540]/80 px-6 py-5 border-b border-[#0A2540]/20 overflow-hidden"
+                >
+                  {/* Efecto de brillo animado */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00D4B3]/10 to-transparent"
+                    animate={{
+                      x: ['-100%', '200%']
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      repeatDelay: 2,
+                      ease: "linear"
+                    }}
+                  />
+                  
+                  <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <motion.div 
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                        className="w-12 h-12 rounded-xl bg-[#00D4B3]/20 dark:bg-[#00D4B3]/30 flex items-center justify-center shadow-lg shadow-[#00D4B3]/20"
+                      >
+                        <BookOpenIcon className="h-6 w-6 text-[#00D4B3]" />
+                      </motion.div>
+                      <div>
+                        <motion.h3 
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.15 }}
+                          className="text-xl font-bold text-white"
+                        >
+                          {module ? 'Editar Módulo' : 'Crear Módulo'}
+                        </motion.h3>
+                        <motion.p 
+                          initial={{ x: -20, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ delay: 0.2 }}
+                          className="text-xs text-white/70 mt-0.5"
+                        >
+                          {module ? 'Modifica la información del módulo' : 'Agrega un nuevo módulo al curso'}
+                        </motion.p>
+                      </div>
+                    </div>
+                    <motion.button
+                      onClick={onClose}
+                      whileHover={{ scale: 1.1, rotate: 90 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 group relative"
+                    >
+                      <XMarkIcon className="h-5 w-5 relative z-10" />
+                      <motion.div
+                        className="absolute inset-0 rounded-xl bg-white/0 group-hover:bg-white/10"
+                        transition={{ duration: 0.2 }}
+                      />
+                    </motion.button>
+                  </div>
+                </motion.div>
+
+                {/* Form Content */}
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+                  <div className="p-6 space-y-4">
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-xl"
+                      >
+                        <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+                      </motion.div>
+                    )}
+
+                    {/* Título Mejorado */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="group"
+                    >
+                      <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-2 uppercase tracking-wide">
+                        Título del Módulo *
+                      </label>
+                      <div className="relative">
+                        <motion.div
+                          animate={{
+                            color: formData.module_title ? '#00D4B3' : '#6C757D'
+                          }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <BookOpenIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 group-focus-within:text-[#00D4B3] transition-colors pointer-events-none" />
+                        </motion.div>
+                        <input
+                          type="text"
+                          required
+                          value={formData.module_title}
+                          onChange={(e) => setFormData(prev => ({ ...prev, module_title: e.target.value }))}
+                          className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-[#00D4B3]/50 transition-all duration-200"
+                          placeholder="Ej: Introducción a la IA"
+                        />
+                      </div>
+                    </motion.div>
+
+                    {/* Descripción Mejorada */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15 }}
+                    >
+                      <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-2 uppercase tracking-wide">
+                        Descripción
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={formData.module_description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, module_description: e.target.value }))}
+                        className="w-full px-4 py-3 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-[#00D4B3]/50 transition-all duration-200 resize-none"
+                        placeholder="Descripción del módulo..."
+                      />
+                    </motion.div>
+
+                    {/* Checkboxes Mejorados */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+                      <motion.div
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="group relative p-4 bg-gradient-to-br from-[#E9ECEF]/50 to-[#E9ECEF]/30 dark:from-[#0A0D12] dark:to-[#0A0D12]/50 rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3]/30 dark:hover:border-[#00D4B3]/30 transition-all duration-300 cursor-pointer overflow-hidden"
+                      >
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-[#00D4B3]/0 to-[#00D4B3]/0 group-hover:from-[#00D4B3]/5 group-hover:to-[#00D4B3]/0"
+                          transition={{ duration: 0.3 }}
+                        />
+                        <label className="relative flex items-center gap-3 cursor-pointer">
+                          <div className="relative">
+                            <input
+                              type="checkbox"
+                              checked={formData.is_required}
+                              onChange={(e) => setFormData(prev => ({ ...prev, is_required: e.target.checked }))}
+                              className="sr-only"
+                            />
+                            <motion.div
+                              animate={{
+                                backgroundColor: formData.is_required ? '#00D4B3' : '#E9ECEF',
+                                borderColor: formData.is_required ? '#00D4B3' : '#E9ECEF',
+                                scale: formData.is_required ? 1 : 0.95
+                              }}
+                              className="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 shadow-sm"
+                            >
+                              {formData.is_required && (
+                                <motion.div
+                                  initial={{ scale: 0, rotate: -180 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                >
+                                  <CheckCircleIcon className="h-4 w-4 text-white" />
+                                </motion.div>
+                              )}
+                            </motion.div>
+                          </div>
+                          <div>
+                            <span className="text-sm font-semibold text-[#0A2540] dark:text-white">
+                              Módulo Requerido
+                            </span>
+                            <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5">
+                              Los estudiantes deben completarlo
+                            </p>
+                          </div>
+                        </label>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="group relative p-4 bg-gradient-to-br from-[#E9ECEF]/50 to-[#E9ECEF]/30 dark:from-[#0A0D12] dark:to-[#0A0D12]/50 rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3]/30 dark:hover:border-[#00D4B3]/30 transition-all duration-300 cursor-pointer overflow-hidden"
+                      >
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-[#00D4B3]/0 to-[#00D4B3]/0 group-hover:from-[#00D4B3]/5 group-hover:to-[#00D4B3]/0"
+                          transition={{ duration: 0.3 }}
+                        />
+                        <label className="relative flex items-center gap-3 cursor-pointer">
+                          <div className="relative">
+                            <input
+                              type="checkbox"
+                              checked={formData.is_published}
+                              onChange={(e) => setFormData(prev => ({ ...prev, is_published: e.target.checked }))}
+                              className="sr-only"
+                            />
+                            <motion.div
+                              animate={{
+                                backgroundColor: formData.is_published ? '#00D4B3' : '#E9ECEF',
+                                borderColor: formData.is_published ? '#00D4B3' : '#E9ECEF',
+                                scale: formData.is_published ? 1 : 0.95
+                              }}
+                              className="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 shadow-sm"
+                            >
+                              {formData.is_published && (
+                                <motion.div
+                                  initial={{ scale: 0, rotate: -180 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                >
+                                  <CheckCircleIcon className="h-4 w-4 text-white" />
+                                </motion.div>
+                              )}
+                            </motion.div>
+                          </div>
+                          <div>
+                            <span className="text-sm font-semibold text-[#0A2540] dark:text-white">
+                              Publicado
+                            </span>
+                            <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5">
+                              Visible para los estudiantes
+                            </p>
+                          </div>
+                        </label>
+                      </motion.div>
+                    </motion.div>
+                  </div>
+
+                  {/* Footer Mejorado */}
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.25 }}
+                    className="px-6 py-4 bg-gradient-to-r from-[#E9ECEF]/30 via-[#E9ECEF]/20 to-[#E9ECEF]/30 dark:from-[#0A0D12] dark:via-[#0A0D12]/50 dark:to-[#0A0D12] border-t border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-end gap-3"
+                  >
+                    <motion.button
+                      type="button"
+                      onClick={onClose}
+                      whileHover={{ scale: 1.02, x: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="px-6 py-2.5 text-[#6C757D] dark:text-white/70 bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/30 rounded-xl text-sm font-medium transition-all duration-200 border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm hover:shadow-md"
+                      disabled={loading}
+                    >
+                      Cancelar
+                    </motion.button>
+                    <motion.button
+                      type="submit"
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="group relative px-6 py-2.5 bg-gradient-to-r from-[#0A2540] to-[#0A2540]/90 hover:from-[#0d2f4d] hover:to-[#0A2540] text-white rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#0A2540]/20 hover:shadow-xl hover:shadow-[#0A2540]/30 flex items-center gap-2 overflow-hidden"
+                      disabled={loading}
+                    >
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-[#00D4B3]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      />
+                      {loading ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full relative z-10"
+                          />
+                          <span className="relative z-10">Guardando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircleIcon className="h-4 w-4 relative z-10" />
+                          <span className="relative z-10">Guardar</span>
+                        </>
+                      )}
+                    </motion.button>
+                  </motion.div>
+                </form>
+              </motion.div>
+            </div>
           </div>
-
-          {/* Descripción */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Descripción
-            </label>
-            <textarea
-              rows={4}
-              value={formData.module_description}
-              onChange={(e) => setFormData(prev => ({ ...prev, module_description: e.target.value }))}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[100px] scrollbar-thin-dark"
-              placeholder="Descripción del módulo..."
-            />
-          </div>
-
-          {/* Checkboxes */}
-          <div className="flex items-center space-x-6">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.is_required}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_required: e.target.checked }))}
-                className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
-              />
-              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Módulo Requerido</span>
-            </label>
-
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.is_published}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_published: e.target.checked }))}
-                className="w-4 h-4 text-blue-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
-              />
-              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Publicado</span>
-            </label>
-          </div>
-
-          {/* Botones */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  <span>Guardando...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Guardar</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </>
+      )}
+    </AnimatePresence>
   )
 }
-

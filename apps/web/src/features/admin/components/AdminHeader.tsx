@@ -10,18 +10,24 @@ interface AdminHeaderProps {
   onMenuClick: () => void
   title: string
   isCollapsed?: boolean
+  isPinned?: boolean
   onToggleCollapse?: () => void
 }
 
-export function AdminHeader({ onMenuClick, title, isCollapsed, onToggleCollapse }: AdminHeaderProps) {
+export function AdminHeader({ onMenuClick, title, isCollapsed, isPinned, onToggleCollapse }: AdminHeaderProps) {
   const { user, isLoading } = useAdminUser()
+
+  // Calcular el left del header basado en el estado del sidebar
+  // Si el sidebar está colapsado Y no está fijado, usar left-16 (64px)
+  // De lo contrario, usar left-64 (256px)
+  const sidebarWidth = isCollapsed && !isPinned ? 'lg:left-16' : 'lg:left-64'
 
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="sticky top-0 z-30 bg-white/80 dark:bg-[#0F1419]/80 backdrop-blur-md shadow-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 w-full"
+      className={`fixed top-0 right-0 z-50 bg-white/80 dark:bg-[#0F1419]/80 backdrop-blur-md shadow-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 transition-all duration-300 ${sidebarWidth} left-0`}
     >
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -37,17 +43,9 @@ export function AdminHeader({ onMenuClick, title, isCollapsed, onToggleCollapse 
             </motion.button>
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-xs font-bold">A</span>
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-[#0A2540] dark:text-white">
-                    {title}
-                  </h1>
-                  <p className="text-xs text-[#6C757D] dark:text-gray-400 hidden md:block">
-                    Gestión y administración
-                  </p>
-                </div>
+                <h1 className="text-lg font-semibold text-[#0A2540] dark:text-white">
+                  {title}
+                </h1>
               </div>
               <div className="sm:hidden">
                 <h1 className="text-base font-semibold text-[#0A2540] dark:text-white">

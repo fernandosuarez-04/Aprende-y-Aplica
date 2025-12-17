@@ -130,11 +130,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           onMenuClick={() => setSidebarOpen(true)}
           title="Panel de Administración"
           isCollapsed={sidebarCollapsed}
+          isPinned={sidebarPinned}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 
-        {/* Page Content */}
-        <main className="bg-white dark:bg-[#0F1419] min-h-screen">
+        {/* Page Content - pt-16 para compensar el header fijo */}
+        <main className="bg-white dark:bg-[#0F1419] min-h-screen pt-16">
           {children}
         </main>
       </div>
