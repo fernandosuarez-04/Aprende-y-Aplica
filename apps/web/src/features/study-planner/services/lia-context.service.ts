@@ -120,6 +120,8 @@ export class LiaContextService {
     // Obtener contexto del usuario
     const userContext = await UserContextService.getFullUserContext(userId);
     
+    console.log(`[LiaContextService] buildStudyPlannerContext - userType recibido: ${userContext.userType} para userId: ${userId}`);
+    
     // Construir contexto base
     const context: StudyPlannerLIAContext = {
       userType: userContext.userType,
@@ -128,6 +130,8 @@ export class LiaContextService {
       calendarConnected: !!userContext.calendarIntegration?.isConnected,
       calendarProvider: userContext.calendarIntegration?.provider,
     };
+    
+    console.log(`[LiaContextService] buildStudyPlannerContext - Contexto construido con userType: ${context.userType}`);
     
     // Agregar información de organización para B2B
     if (userContext.userType === 'b2b' && userContext.organization) {
@@ -345,9 +349,14 @@ export class LiaContextService {
     
     // Tipo de usuario
     prompt += `\n## TIPO DE USUARIO\n`;
-    prompt += context.userType === 'b2b' 
-      ? 'Usuario B2B (pertenece a una organización con cursos asignados y plazos)\n'
-      : 'Usuario B2C (usuario independiente con flexibilidad total)\n';
+    if (context.userType === 'b2b') {
+      const hasCourses = context.courses && context.courses.length > 0;
+      prompt += hasCourses
+        ? 'Usuario B2B (pertenece a una organización con cursos asignados y plazos)\n'
+        : 'Usuario B2B (pertenece a una organización, pero aún no tiene cursos asignados)\n';
+    } else {
+      prompt += 'Usuario B2C (usuario independiente con flexibilidad total)\n';
+    }
     
     // Perfil profesional
     prompt += `\n## PERFIL PROFESIONAL\n`;
@@ -544,7 +553,10 @@ ACCIONES:
         
       case 2: // Selección de cursos
         if (isB2B) {
-          instructions = `
+          const hasCourses = context.courses && context.courses.length > 0;
+          
+          if (hasCourses) {
+            instructions = `
 FASE 2: CURSOS ASIGNADOS (B2B)
 
 Los cursos ya están asignados por la organización. NO preguntes qué cursos quiere estudiar.
@@ -562,6 +574,20 @@ ACCIONES:
 4. Sugiere priorizar los cursos con plazos más cercanos
 5. Pregunta si está de acuerdo con el orden propuesto
 `;
+          } else {
+            instructions = `
+FASE 2: SIN CURSOS ASIGNADOS (B2B)
+
+Este usuario B2B aún no tiene cursos asignados por su organización.
+
+ACCIONES:
+1. Informa al usuario que actualmente no tiene cursos asignados
+2. Explica que su organización o administrador puede asignarle cursos
+3. Ofrece ayudarle a preparar un plan de estudios general o de tiempo
+4. Puedes sugerir que se comunique con su administrador para obtener cursos asignados
+5. Si el usuario insiste en crear un plan, puedes ayudarle a organizar su tiempo de estudio general
+`;
+          }
         } else {
           instructions = `
 FASE 2: SELECCIÓN DE CURSOS (B2C)

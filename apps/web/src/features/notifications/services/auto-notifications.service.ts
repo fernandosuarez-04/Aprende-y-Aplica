@@ -11,10 +11,9 @@ async function getServerClient() {
     throw new Error('getServerClient can only be used on the server')
   }
   
-  // Usar import dinámico con una ruta construida en tiempo de ejecución
+  // Usar import dinámico con ruta relativa para evitar problemas con alias en runtime
   // Esto evita que webpack analice el módulo durante el build
-  const serverModulePath = ['@', 'lib', 'supabase', 'server'].join('/')
-  const module = await import(serverModulePath)
+  const module = await import('../../../lib/supabase/server')
   return await module.createClient()
 }
 

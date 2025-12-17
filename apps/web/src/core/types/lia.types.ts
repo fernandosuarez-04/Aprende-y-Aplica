@@ -64,6 +64,40 @@ export interface CourseLessonContext {
     }>;
     overallScore: number;
     shouldIntervene: boolean;
+    suggestedHelpType?: string;
+  };
+  
+  // Contexto de actividades
+  activitiesContext?: {
+    totalActivities: number;
+    requiredActivities: number;
+    completedActivities: number;
+    pendingRequiredCount: number;
+    pendingRequiredTitles?: string;
+    activityTypes?: Array<{
+      title: string;
+      type: string;
+      isRequired: boolean;
+      isCompleted: boolean;
+    }>;
+    currentActivityFocus?: {
+      title: string;
+      type: string;
+      isRequired: boolean;
+      description: string;
+    } | null;
+  };
+  
+  // Contexto de comportamiento del usuario
+  userBehaviorContext?: string;
+  
+  // Contexto de progreso de aprendizaje
+  learningProgressContext?: {
+    currentLessonNumber: number;
+    totalLessons: number;
+    progressPercentage: number;
+    currentTab: string;
+    timeInCurrentLesson: string;
   };
 }
 

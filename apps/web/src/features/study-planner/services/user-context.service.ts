@@ -42,7 +42,16 @@ export class UserContextService {
       throw new Error('No se pudo determinar el tipo de usuario');
     }
     
-    return data.organization_id ? 'b2b' : 'b2c';
+    const userType = data.organization_id ? 'b2b' : 'b2c';
+    
+    // Log para debugging
+    console.log(`[UserContextService] Detección de tipo de usuario:`, {
+      userId,
+      organization_id: data.organization_id,
+      userType,
+    });
+    
+    return userType;
   }
 
   /**
@@ -222,9 +231,8 @@ export class UserContextService {
         name,
         slug,
         logo_url,
-        industry,
-        size,
-        plan
+        subscription_plan,
+        max_users
       `)
       .eq('id', userData.organization_id)
       .single();
@@ -239,9 +247,11 @@ export class UserContextService {
       name: data.name,
       slug: data.slug,
       logoUrl: data.logo_url,
-      industry: data.industry,
-      size: data.size,
-      plan: data.plan,
+      // industry no existe en la tabla, usar null
+      industry: null,
+      // size no existe, usar max_users como referencia
+      size: data.max_users ? `${data.max_users} usuarios` : null,
+      plan: data.subscription_plan,
     };
   }
 
@@ -789,6 +799,8 @@ export class UserContextService {
     // Obtener tipo de usuario primero
     const userType = await this.getUserType(userId);
     
+    console.log(`[UserContextService] getFullUserContext - userType detectado: ${userType} para userId: ${userId}`);
+    
     // Obtener datos en paralelo
     const [
       user,
@@ -810,7 +822,7 @@ export class UserContextService {
       this.getLearningRoutes(userId),
     ]);
     
-    return {
+    const context = {
       user,
       userType,
       professionalProfile: professionalProfile || undefined,
@@ -821,6 +833,15 @@ export class UserContextService {
       calendarIntegration: calendarIntegration || undefined,
       learningRoutes: learningRoutes.length > 0 ? learningRoutes : undefined,
     };
+    
+    console.log(`[UserContextService] getFullUserContext - Contexto construido:`, {
+      userType: context.userType,
+      hasOrganization: !!context.organization,
+      organizationName: context.organization?.name,
+      coursesCount: context.courses.length,
+    });
+    
+    return context;
   }
 
   /**
