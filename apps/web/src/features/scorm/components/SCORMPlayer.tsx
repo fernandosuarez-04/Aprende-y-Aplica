@@ -74,6 +74,58 @@ export function SCORMPlayer({
 
   const handleIframeLoad = useCallback(() => {
     setIsLoading(false);
+    
+    // Intentar inyectar estilos CSS en el iframe para mejorar el contraste
+    // Esto solo funciona si el iframe está en el mismo origen o permite acceso
+    try {
+      const iframe = iframeRef.current;
+      if (iframe && iframe.contentDocument) {
+        const iframeDoc = iframe.contentDocument;
+        const iframeHead = iframeDoc.head || iframeDoc.getElementsByTagName('head')[0];
+        
+        // Verificar si ya existe el estilo para evitar duplicados
+        if (iframeHead && !iframeDoc.getElementById('scorm-contrast-fix')) {
+          // Crear un elemento style para mejorar el contraste
+          const style = iframeDoc.createElement('style');
+          style.type = 'text/css';
+          style.id = 'scorm-contrast-fix';
+          style.innerHTML = `
+            /* Mejorar contraste del texto para mejor legibilidad */
+            body {
+              color: #1a1a1a !important;
+              background-color: #ffffff !important;
+            }
+            
+            /* Mejorar contraste de elementos comunes de texto que no tengan color definido */
+            body p:not([style*="color"]):not([class*="no-contrast"]),
+            body h1:not([style*="color"]):not([class*="no-contrast"]),
+            body h2:not([style*="color"]):not([class*="no-contrast"]),
+            body h3:not([style*="color"]):not([class*="no-contrast"]),
+            body h4:not([style*="color"]):not([class*="no-contrast"]),
+            body h5:not([style*="color"]):not([class*="no-contrast"]),
+            body h6:not([style*="color"]):not([class*="no-contrast"]),
+            body div:not([style*="color"]):not([class*="no-contrast"]),
+            body span:not([style*="color"]):not([class*="no-contrast"]),
+            body li:not([style*="color"]):not([class*="no-contrast"]),
+            body td:not([style*="color"]):not([class*="no-contrast"]),
+            body th:not([style*="color"]):not([class*="no-contrast"]) {
+              color: #1a1a1a !important;
+            }
+            
+            /* Asegurar fondo blanco para mejor contraste */
+            html, body {
+              background-color: #ffffff !important;
+            }
+          `;
+          
+          iframeHead.appendChild(style);
+        }
+      }
+    } catch (error) {
+      // Si hay errores de CORS o seguridad, simplemente continuar
+      // Esto es normal si el iframe tiene restricciones de seguridad o está en otro dominio
+      // En ese caso, el filtro CSS aplicado al iframe mismo ayudará con el contraste
+    }
   }, []);
 
   const handleIframeError = useCallback(() => {
@@ -112,12 +164,12 @@ export function SCORMPlayer({
   }
 
   return (
-    <div className={`relative bg-neutral-100 rounded-lg overflow-hidden ${className}`}>
+    <div className={`relative bg-white dark:bg-neutral-900 rounded-lg overflow-hidden border-2 border-neutral-200 dark:border-neutral-700 shadow-lg ${className}`}>
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-neutral-900 z-10">
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-neutral-600 text-sm">Cargando curso...</p>
+            <p className="text-neutral-700 dark:text-neutral-200 text-sm font-medium">Cargando curso...</p>
           </div>
         </div>
       )}
@@ -126,12 +178,17 @@ export function SCORMPlayer({
         <iframe
           ref={iframeRef}
           src={contentUrl}
-          className="w-full h-full min-h-[600px] border-0"
+          className="w-full h-full min-h-[600px] border-0 bg-white dark:bg-neutral-900"
           onLoad={handleIframeLoad}
           onError={handleIframeError}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           allow="autoplay; fullscreen"
           title="SCORM Content"
+          style={{ 
+            backgroundColor: '#ffffff',
+            colorScheme: 'light',
+            filter: 'contrast(1.1) brightness(1.05)'
+          }}
         />
       )}
     </div>

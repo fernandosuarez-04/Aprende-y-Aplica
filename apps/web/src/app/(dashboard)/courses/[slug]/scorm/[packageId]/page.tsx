@@ -62,23 +62,23 @@ export default function ScormCoursePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6 bg-white dark:bg-neutral-900 min-h-screen">
       {/* Breadcrumb */}
       <nav className="mb-4 text-sm">
-        <ol className="flex items-center gap-2 text-neutral-500">
+        <ol className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
           <li>
-            <Link href="/courses" className="hover:text-primary-600 transition-colors">
+            <Link href="/courses" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               Cursos
             </Link>
           </li>
           <li>/</li>
           <li>
-            <Link href={`/courses/${courseId}`} className="hover:text-primary-600 transition-colors">
+            <Link href={`/courses/${courseId}`} className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               Curso
             </Link>
           </li>
           <li>/</li>
-          <li className="text-neutral-900 font-medium truncate max-w-[200px]">
+          <li className="text-neutral-900 dark:text-white font-medium truncate max-w-[200px]">
             {package_.title}
           </li>
         </ol>
@@ -86,12 +86,12 @@ export default function ScormCoursePage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">{package_.title}</h1>
+        <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">{package_.title}</h1>
         {package_.description && (
-          <p className="text-neutral-600 mt-1">{package_.description}</p>
+          <p className="text-neutral-700 dark:text-neutral-200 mt-2 text-base leading-relaxed">{package_.description}</p>
         )}
         <div className="flex items-center gap-4 mt-3 flex-wrap">
-          <span className="px-2 py-1 bg-neutral-100 text-neutral-600 rounded text-sm">
+          <span className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm font-medium shadow-sm">
             {package_.version === 'SCORM_2004' ? 'SCORM 2004' : 'SCORM 1.2'}
           </span>
           {latestAttempt && (
@@ -111,7 +111,7 @@ export default function ScormCoursePage() {
       {/* Historial de intentos */}
       {showHistory && attempts.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-neutral-900 mb-3">Historial de Intentos</h2>
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-3">Historial de Intentos</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {attempts.map((attempt) => (
               <SCORMProgress key={attempt.id} attempt={attempt} />

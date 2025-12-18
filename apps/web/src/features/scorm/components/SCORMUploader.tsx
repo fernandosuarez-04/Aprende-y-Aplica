@@ -46,6 +46,7 @@ export function SCORMUploader({
 
       const response = await fetch('/api/scorm/upload', {
         method: 'POST',
+        credentials: 'include',
         body: formData
       });
 

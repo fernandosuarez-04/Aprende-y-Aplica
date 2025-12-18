@@ -28,7 +28,12 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
     if (!packageId) return;
 
     try {
-      const response = await fetch(`/api/scorm/packages/${packageId}`);
+      const response = await fetch(`/api/scorm/packages/${packageId}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
 
       if (!response.ok) {
@@ -47,7 +52,12 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
       if (courseId) params.append('courseId', courseId);
       if (organizationId) params.append('organizationId', organizationId);
 
-      const response = await fetch(`/api/scorm/packages?${params.toString()}`);
+      const response = await fetch(`/api/scorm/packages?${params.toString()}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
 
       if (!response.ok) {
@@ -66,7 +76,7 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
 
     if (packageId) {
       await fetchPackage();
-    } else {
+    } else if (courseId && organizationId) {
       await fetchPackages();
     }
 
@@ -74,7 +84,16 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
   };
 
   useEffect(() => {
-    refetch();
+    // Solo hacer fetch si hay parámetros válidos
+    if (packageId || (courseId && organizationId)) {
+      refetch();
+    } else {
+      // Si no hay parámetros, no hacer loading
+      setIsLoading(false);
+      setPackages([]);
+      setPackage(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [packageId, courseId, organizationId]);
 
   return {
