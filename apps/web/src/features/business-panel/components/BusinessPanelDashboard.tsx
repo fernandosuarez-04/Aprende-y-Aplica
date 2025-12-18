@@ -1,473 +1,636 @@
 'use client'
 
-import { useState, useEffect, Suspense, lazy, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  Users, 
-  BookOpen, 
-  CheckCircle, 
-  TrendingUp,
-  Activity as ActivityIcon,
-  Clock,
-  User as UserIcon
-} from 'lucide-react'
-import Image from 'next/image'
-import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
-import { getBackgroundStyle, generateCSSVariables, hexToRgb } from '../utils/styles'
+  UsersIcon, 
+  BookOpenIcon, 
+  CheckCircleIcon,
+  ChartBarIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
+  SparklesIcon,
+  ClockIcon,
+  PlusIcon,
+  Cog6ToothIcon,
+  RocketLaunchIcon,
+  AcademicCapIcon,
+  UserGroupIcon
+} from '@heroicons/react/24/outline'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
-// Lazy load components
-const ParticlesBackground = lazy(() => 
-  import('@/app/business-user/dashboard/components/ParticlesBackground').then(m => ({ default: m.ParticlesBackground }))
-)
-
-const Background3DEffects = lazy(() => 
-  import('@/app/business-user/dashboard/components/Background3DEffects').then(m => ({ default: m.Background3DEffects }))
-)
-
-const ModernStatsCard = lazy(() => 
-  import('@/app/business-user/dashboard/components/ModernStatsCard').then(m => ({ default: m.ModernStatsCard }))
-)
-
-const ProgressBar3D = lazy(() => 
-  import('@/app/business-user/dashboard/components/ProgressBar3D').then(m => ({ default: m.ProgressBar3D }))
-)
-
-interface DashboardStats {
-  activeUsers: { value: string; change: string; changeType: 'positive' | 'negative' };
-  assignedCourses: { value: string; change: string; changeType: 'positive' | 'negative' };
-  completed: { value: string; change: string; changeType: 'positive' | 'negative' };
-  inProgress: { value: string; change: string; changeType: 'positive' | 'negative' };
+// ============================================
+// COMPONENTE: StatCard Premium
+// ============================================
+interface StatCardProps {
+  title: string
+  value: string | number
+  change: number
+  icon: React.ComponentType<any>
+  gradient: string
+  delay: number
+  href?: string
 }
 
-interface ActivityItem {
-  user: string;
-  action: string;
-  time: string;
-  icon: string;
-  userPicture?: string;
-}
+function StatCard({ title, value, change, icon: Icon, gradient, delay, href }: StatCardProps) {
+  const isPositive = change >= 0
 
-interface CourseProgress {
-  label: string;
-  progress: number;
-  students: number;
-  thumbnail?: string;
-}
-
-const iconMap: Record<string, typeof Users> = {
-  'Users': Users,
-  'CheckCircle': CheckCircle,
-  'BookOpen': BookOpen,
-  'Activity': ActivityIcon,
-}
-
-export function BusinessPanelDashboard() {
-  const { styles } = useOrganizationStylesContext()
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [activities, setActivities] = useState<ActivityItem[]>([])
-  const [courses, setCourses] = useState<CourseProgress[]>([])
-  const [loading, setLoading] = useState(true)
-
-  // Aplicar estilos personalizados
-  const panelStyles = styles?.panel
-  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
-  const cardStyle = useMemo(() => {
-    if (!panelStyles) {
-      return {
-        backgroundColor: 'rgba(30, 41, 59, 0.95)',
-        borderColor: 'rgba(71, 85, 105, 0.5)',
-        color: undefined as string | undefined
-      }
-    }
-
-    const cardBg = panelStyles.card_background || '#1e293b'
-    const cardOpacity = panelStyles.card_opacity !== undefined ? panelStyles.card_opacity : 0.95
-    const borderColor = panelStyles.border_color || 'rgba(71, 85, 105, 0.5)'
-    const textColor = panelStyles.text_color
-
-    let backgroundColor: string
-    if (cardBg.startsWith('#')) {
-      const rgb = hexToRgb(cardBg)
-      backgroundColor = `rgba(${rgb}, ${cardOpacity})`
-    } else if (cardBg.startsWith('rgba')) {
-      const rgbaMatch = cardBg.match(/rgba?\(([^)]+)\)/)
-      if (rgbaMatch) {
-        const parts = rgbaMatch[1].split(',')
-        if (parts.length >= 3) {
-          backgroundColor = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${cardOpacity})`
-        } else {
-          backgroundColor = cardBg
-        }
-      } else {
-        backgroundColor = cardBg
-      }
-    } else {
-      backgroundColor = cardBg
-    }
-
-    return {
-      backgroundColor,
-      borderColor,
-      color: textColor
-    }
-  }, [panelStyles])
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true)
+  const CardContent = (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ 
+        delay: delay * 0.1,
+        duration: 0.5,
+        type: "spring",
+        stiffness: 100
+      }}
+      whileHover={{ 
+        y: -5,
+        scale: 1.02,
+        transition: { duration: 0.2 }
+      }}
+      className="relative group overflow-hidden rounded-2xl bg-[#1E2329] border border-[#6C757D]/20 p-6 cursor-pointer"
+    >
+      {/* Gradient Background Effect */}
+      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${gradient}`} />
+      
+      {/* Glow Effect */}
+      <motion.div 
+        className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-[#00D4B3]/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+      />
+      
+      {/* Content */}
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <motion.div 
+            className={`p-3 rounded-xl ${gradient} shadow-lg`}
+            whileHover={{ rotate: [0, -10, 10, 0], transition: { duration: 0.5 } }}
+          >
+            <Icon className="h-6 w-6 text-white" />
+          </motion.div>
+          
+          {/* Change Badge */}
+          <motion.div 
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              isPositive 
+                ? 'bg-[#10B981]/20 text-[#10B981]' 
+                : 'bg-red-500/20 text-red-400'
+            }`}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: delay * 0.1 + 0.3, type: "spring" }}
+          >
+            {isPositive ? (
+              <ArrowTrendingUpIcon className="h-3.5 w-3.5" />
+            ) : (
+              <ArrowTrendingDownIcon className="h-3.5 w-3.5" />
+            )}
+            {isPositive ? '+' : ''}{change}%
+          </motion.div>
+        </div>
         
-        // Obtener estadísticas, actividad y progreso en paralelo
-        const [statsRes, activityRes, progressRes] = await Promise.all([
-          fetch('/api/business/dashboard/stats', { credentials: 'include' }),
-          fetch('/api/business/dashboard/activity', { credentials: 'include' }),
-          fetch('/api/business/dashboard/progress', { credentials: 'include' })
-        ])
+        <motion.h3 
+          className="text-3xl font-bold text-white mb-1 tracking-tight"
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: delay * 0.1 + 0.2 }}
+        >
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </motion.h3>
+        
+        <p className="text-[#6C757D] text-sm font-medium">{title}</p>
+        
+        {/* Animated line */}
+        <motion.div 
+          className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[#00D4B3] to-[#0A2540]"
+          initial={{ width: 0 }}
+          animate={{ width: '30%' }}
+          transition={{ delay: delay * 0.1 + 0.4, duration: 0.8 }}
+        />
+      </div>
+    </motion.div>
+  )
 
-        if (statsRes.ok) {
-          const statsData = await statsRes.json()
-          if (statsData.success && statsData.stats) {
-            setStats(statsData.stats)
-          }
-        }
+  if (href) {
+    return <Link href={href}>{CardContent}</Link>
+  }
 
-        if (activityRes.ok) {
-          const activityData = await activityRes.json()
-          if (activityData.success && activityData.activities) {
-            setActivities(activityData.activities)
-          }
-        }
+  return CardContent
+}
 
-        if (progressRes.ok) {
-          const progressData = await progressRes.json()
-          if (progressData.success && progressData.courses) {
-            setCourses(progressData.courses)
-          }
-        }
-      } catch (error) {
-        // console.error('Error fetching dashboard data:', error)
-      } finally {
-        setLoading(false)
-      }
+// ============================================
+// COMPONENTE: Quick Action Button
+// ============================================
+interface QuickActionProps {
+  title: string
+  description: string
+  icon: React.ComponentType<any>
+  href: string
+  color: string
+  delay: number
+}
+
+function QuickAction({ title, description, icon: Icon, href, color, delay }: QuickActionProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: delay * 0.1 + 0.5, duration: 0.4 }}
+    >
+      <Link href={href}>
+        <motion.div
+          whileHover={{ x: 5, scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="flex items-center gap-4 p-4 rounded-xl bg-[#1E2329]/50 border border-[#6C757D]/20 hover:border-[#00D4B3]/50 transition-all duration-300 group"
+        >
+          <div className={`p-3 rounded-lg ${color}`}>
+            <Icon className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-white font-semibold text-sm group-hover:text-[#00D4B3] transition-colors">
+              {title}
+            </h4>
+            <p className="text-[#6C757D] text-xs mt-0.5">{description}</p>
+          </div>
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            whileHover={{ opacity: 1, x: 0 }}
+            className="text-[#00D4B3]"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </motion.div>
+        </motion.div>
+      </Link>
+    </motion.div>
+  )
+}
+
+// ============================================
+// COMPONENTE: Activity Item
+// ============================================
+interface ActivityItemProps {
+  title: string
+  description: string
+  user: string
+  timestamp: string
+  type: string
+  delay: number
+}
+
+function ActivityItem({ title, description, user, timestamp, type, delay }: ActivityItemProps) {
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'user': return 'bg-[#0A2540] border-[#0A2540]/50'
+      case 'course': return 'bg-[#10B981] border-[#10B981]/50'
+      case 'certificate': return 'bg-[#00D4B3] border-[#00D4B3]/50'
+      case 'progress': return 'bg-[#F59E0B] border-[#F59E0B]/50'
+      default: return 'bg-[#6C757D] border-[#6C757D]/50'
     }
-
-    fetchDashboardData()
-  }, [])
-
-  // Convertir valores de string a number para ModernStatsCard
-  const myStats = useMemo(() => {
-    const parseValue = (value: string): number => {
-      // Remover % y convertir a número
-      const num = parseInt(value.replace(/[^0-9]/g, '')) || 0
-      return num
-    }
-
-    return [
-      { 
-        label: 'Usuarios Activos', 
-        value: parseValue(stats?.activeUsers.value || '0'), 
-        icon: Users, 
-        color: 'from-blue-500 to-cyan-500' 
-      },
-      { 
-        label: 'Cursos Asignados', 
-        value: parseValue(stats?.assignedCourses.value || '0'), 
-        icon: BookOpen, 
-        color: 'from-purple-500 to-pink-500' 
-      },
-      { 
-        label: 'Completados', 
-        value: parseValue(stats?.completed.value || '0'), 
-        icon: CheckCircle, 
-        color: 'from-green-500 to-emerald-500' 
-      },
-      { 
-        label: 'En Progreso', 
-        value: parseValue(stats?.inProgress.value || '0'), 
-        icon: TrendingUp, 
-        color: 'from-orange-500 to-red-500' 
-      },
-    ]
-  }, [stats])
+  }
 
   return (
-    <div className="relative w-full min-h-[calc(100vh-8rem)]">
-      {/* Background Effects */}
-      <Suspense fallback={null}>
-        <ParticlesBackground />
-        <Background3DEffects />
-      </Suspense>
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: delay * 0.08, duration: 0.4 }}
+      whileHover={{ x: 5 }}
+      className="flex items-start gap-4 p-4 rounded-xl hover:bg-[#1E2329]/80 transition-all duration-300 border-l-2 border-transparent hover:border-[#00D4B3]"
+    >
+      <div className={`w-2 h-2 mt-2 rounded-full ${getTypeColor(type)}`} />
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-4">
+          <h4 className="text-white font-medium text-sm truncate">{title}</h4>
+          <div className="flex items-center gap-1 text-[#6C757D] text-xs whitespace-nowrap">
+            <ClockIcon className="h-3.5 w-3.5" />
+            {timestamp}
+          </div>
+        </div>
+        <p className="text-[#6C757D] text-xs mt-1 line-clamp-1">{description}</p>
+        <p className="text-[#00D4B3] text-xs mt-1 font-medium">por {user}</p>
+      </div>
+    </motion.div>
+  )
+}
 
-      <div className="relative z-10 space-y-8">
-        {/* Welcome Section */}
+// ============================================
+// COMPONENTE PRINCIPAL: BusinessPanelDashboard
+// ============================================
+export function BusinessPanelDashboard() {
+  const [stats, setStats] = useState<any>(null)
+  const [activities, setActivities] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [activitiesLoading, setActivitiesLoading] = useState(true)
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Actualizar la hora cada minuto
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Cargar estadísticas
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/business/dashboard/stats', { credentials: 'include' })
+        const data = await res.json()
+        if (data.success && data.stats) {
+          setStats(data.stats)
+        }
+      } catch (err) {
+        console.error('Error fetching stats:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchStats()
+  }, [])
+
+  // Cargar actividad reciente
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch('/api/business/dashboard/activity?limit=8', { credentials: 'include' })
+        const data = await res.json()
+        if (data.success && data.activities) {
+          setActivities(data.activities)
+        }
+      } catch (err) {
+        console.error('Error fetching activities:', err)
+      } finally {
+        setActivitiesLoading(false)
+      }
+    }
+    fetchActivities()
+    const interval = setInterval(fetchActivities, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const getGreeting = () => {
+    const hour = currentTime.getHours()
+    if (hour < 12) return 'Buenos días'
+    if (hour < 18) return 'Buenas tardes'
+    return 'Buenas noches'
+  }
+
+  const getUserName = () => {
+    return 'Administrador'
+  }
+
+  // Helper function para formatear timestamps
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp)
+      const now = new Date()
+      const diffMs = now.getTime() - date.getTime()
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMs / 3600000)
+      const diffDays = Math.floor(diffMs / 86400000)
+
+      if (diffMins < 1) return 'Hace un momento'
+      if (diffMins < 60) return `Hace ${diffMins} min`
+      if (diffHours < 24) return `Hace ${diffHours}h`
+      if (diffDays < 7) return `Hace ${diffDays}d`
+      return date.toLocaleDateString('es-MX')
+    } catch {
+      return 'Hace un momento'
+    }
+  }
+
+  const statsData = stats ? [
+    {
+      title: 'Usuarios Activos',
+      value: typeof stats.activeUsers === 'object' ? stats.activeUsers.value : (stats.activeUsers || 0),
+      change: typeof stats.activeUsers === 'object' ? parseFloat(stats.activeUsers.change) : 0,
+      icon: UsersIcon,
+      gradient: 'bg-gradient-to-br from-[#0A2540] to-[#0A2540]/80',
+      href: '/business-panel/users'
+    },
+    {
+      title: 'Cursos Asignados',
+      value: typeof stats.assignedCourses === 'object' ? stats.assignedCourses.value : (stats.assignedCourses || 0),
+      change: typeof stats.assignedCourses === 'object' ? parseFloat(stats.assignedCourses.change) : 0,
+      icon: BookOpenIcon,
+      gradient: 'bg-gradient-to-br from-[#10B981] to-[#10B981]/80',
+      href: '/business-panel/courses'
+    },
+    {
+      title: 'Completados',
+      value: typeof stats.completed === 'object' ? stats.completed.value : (stats.completed || stats.completedCourses || 0),
+      change: typeof stats.completed === 'object' ? parseFloat(stats.completed.change) : 0,
+      icon: CheckCircleIcon,
+      gradient: 'bg-gradient-to-br from-[#00D4B3] to-[#00D4B3]/80',
+    },
+    {
+      title: 'Progreso Promedio',
+      value: typeof stats.inProgress === 'object' ? stats.inProgress.value : `${stats.averageProgress || 0}%`,
+      change: typeof stats.inProgress === 'object' ? parseFloat(stats.inProgress.change) : 0,
+      icon: ChartBarIcon,
+      gradient: 'bg-gradient-to-br from-[#F59E0B] to-[#F59E0B]/80',
+    },
+    {
+      title: 'Certificados',
+      value: stats.certificates || 0,
+      change: stats.certificateGrowth || 0,
+      icon: AcademicCapIcon,
+      gradient: 'bg-gradient-to-br from-[#8B5CF6] to-[#8B5CF6]/80',
+    },
+    {
+      title: 'Engagement',
+      value: `${stats.engagementRate || 0}%`,
+      change: stats.engagementGrowth || 0,
+      icon: UserGroupIcon,
+      gradient: 'bg-gradient-to-br from-[#EC4899] to-[#EC4899]/80',
+    },
+  ] : []
+
+  const quickActions = [
+    {
+      title: 'Gestionar Usuarios',
+      description: 'Administra tu equipo',
+      icon: UsersIcon,
+      href: '/business-panel/users',
+      color: 'bg-[#0A2540]'
+    },
+    {
+      title: 'Asignar Cursos',
+      description: 'Asigna talleres a usuarios',
+      icon: PlusIcon,
+      href: '/business-panel/courses',
+      color: 'bg-[#10B981]'
+    },
+    {
+      title: 'Ver Reportes',
+      description: 'Analytics y métricas',
+      icon: ChartBarIcon,
+      href: '/business-panel/reports',
+      color: 'bg-[#00D4B3]'
+    },
+    {
+      title: 'Configuración',
+      description: 'Branding y ajustes',
+      icon: Cog6ToothIcon,
+      href: '/business-panel/settings',
+      color: 'bg-[#8B5CF6]'
+    },
+  ]
+
+  return (
+    <div className="p-6 lg:p-8 bg-[#0F1419] min-h-screen">
+      {/* Hero Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0A2540] via-[#0A2540] to-[#0A2540]/90 p-8 mb-8"
+      >
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-[#00D4B3] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#00D4B3] rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+        </div>
+        
+        {/* Animated Particles */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="relative overflow-hidden rounded-xl border backdrop-blur-sm p-8 shadow-lg"
-          style={{
-            backgroundColor: cardStyle.backgroundColor,
-            borderColor: cardStyle.borderColor,
+          animate={{ 
+            y: [0, -10, 0],
+            opacity: [0.5, 1, 0.5]
           }}
-        >
-          {/* Background gradient removed - using organization colors instead */}
-          <div className="relative z-10">
-            <h1 
-              className="text-2xl sm:text-3xl font-bold mb-2"
-              style={{ color: cardStyle.color || undefined }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="absolute top-10 right-20 w-2 h-2 bg-[#00D4B3] rounded-full"
+        />
+        <motion.div
+          animate={{ 
+            y: [0, 10, 0],
+            opacity: [0.3, 0.8, 0.3]
+          }}
+          transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+          className="absolute bottom-10 right-40 w-3 h-3 bg-[#00D4B3] rounded-full"
+        />
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
             >
-              ¡Bienvenido de vuelta!
-            </h1>
-            <p 
-              className="text-sm sm:text-base opacity-80"
-              style={{ color: cardStyle.color || undefined }}
+              <SparklesIcon className="h-6 w-6 text-[#00D4B3]" />
+            </motion.div>
+            <span className="text-[#00D4B3] text-sm font-medium tracking-wide uppercase">
+              Panel Empresarial
+            </span>
+          </div>
+          
+          <motion.h1 
+            className="text-3xl lg:text-4xl font-bold text-white mb-2"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            {getGreeting()}, {getUserName()}
+          </motion.h1>
+          
+          <motion.p 
+            className="text-white/70 text-lg max-w-xl"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            Gestiona el aprendizaje de tu equipo y supervisa su progreso.
+          </motion.p>
+          
+          {/* Date & Status */}
+          <motion.div 
+            className="flex items-center gap-6 mt-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div className="flex items-center gap-2 text-white/60 text-sm">
+              <ClockIcon className="h-4 w-4" />
+              {currentTime.toLocaleDateString('es-MX', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse" />
+              <span className="text-[#10B981] text-sm font-medium">Sistema Activo</span>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        {/* Main Content */}
+        <div className="xl:col-span-3 space-y-8">
+          {/* Stats Grid */}
+          <section>
+            <motion.div 
+              className="flex items-center justify-between mb-6"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
             >
-              Gestiona tu equipo y supervisa el progreso de aprendizaje
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          <Suspense fallback={
-            <>
-              {myStats.map((stat, index) => (
-                <div
-                  key={stat.label}
-                  className="rounded-xl border backdrop-blur-sm p-5 animate-pulse"
-                  style={{
-                    backgroundColor: cardStyle.backgroundColor,
-                    borderColor: cardStyle.borderColor,
-                  }}
-                >
-                  <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 mb-3" />
-                  <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded mb-2 w-2/3" />
-                  <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
-                </div>
-              ))}
-            </>
-          }>
-            {myStats.map((stat, index) => (
-              <ModernStatsCard
-                key={stat.label}
-                label={stat.label}
-                value={stat.value}
-                icon={stat.icon}
-                color={stat.color}
-                index={index}
-                styles={panelStyles}
-              />
-            ))}
-          </Suspense>
-        </div>
-
-        {/* Recent Activity */}
-        <div>
-          <motion.h2 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl sm:text-2xl font-semibold mb-6"
-            style={{ color: cardStyle.color || undefined }}
-          >
-            Actividad Reciente
-          </motion.h2>
-          
-          <div className="space-y-3">
-            {loading ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="rounded-xl border backdrop-blur-sm p-12 text-center"
-                style={{
-                  backgroundColor: cardStyle.backgroundColor,
-                  borderColor: cardStyle.borderColor,
-                }}
-              >
-                <div className="inline-block w-8 h-8 border-4 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: primaryColor }} />
-                <p 
-                  className="mt-4 text-sm opacity-70"
-                  style={{ color: cardStyle.color || undefined }}
-                >
-                  Cargando actividad...
-                </p>
-              </motion.div>
-            ) : activities.length > 0 ? (
-              activities.map((activity, index) => {
-                const Icon = iconMap[activity.icon] || ActivityIcon
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05, duration: 0.4 }}
-                    whileHover={{ x: 4 }}
-                    className="flex items-start gap-4 p-4 rounded-xl border backdrop-blur-sm transition-all duration-300 cursor-pointer group"
-                    style={{
-                      backgroundColor: cardStyle.backgroundColor,
-                      borderColor: cardStyle.borderColor,
-                    }}
-                  >
-                    <div 
-                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
-                      style={{ 
-                        backgroundColor: `${primaryColor}20`,
-                        borderColor: `${primaryColor}30`
-                      }}
-                    >
-                      <Icon className="w-5 h-5" style={{ color: primaryColor }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p 
-                        className="text-sm font-medium mb-1"
-                        style={{ color: cardStyle.color || undefined }}
-                      >
-                        <span className="font-semibold">{activity.user}</span> {activity.action}
-                      </p>
-                      <p 
-                        className="text-xs opacity-70 flex items-center gap-1"
-                        style={{ color: cardStyle.color || undefined }}
-                      >
-                        <Clock className="w-3 h-3" />
-                        {activity.time}
-                      </p>
-                    </div>
-                  </motion.div>
-                )
-              })
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="rounded-xl border backdrop-blur-sm p-12 text-center"
-                style={{
-                  backgroundColor: cardStyle.backgroundColor,
-                  borderColor: cardStyle.borderColor,
-                }}
-              >
-                <ActivityIcon className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4 opacity-50" />
-                <p 
-                  className="text-base sm:text-lg font-medium mb-2"
-                  style={{ color: cardStyle.color || undefined }}
-                >
-                  No hay actividad reciente
-                </p>
-                <p 
-                  className="text-sm opacity-80"
-                  style={{ color: cardStyle.color || undefined }}
-                >
-                  La actividad de tu equipo aparecerá aquí
-                </p>
-              </motion.div>
-            )}
-          </div>
-        </div>
-
-        {/* Progress Overview */}
-        <div>
-          <motion.h2 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="text-xl sm:text-2xl font-semibold mb-6"
-            style={{ color: cardStyle.color || undefined }}
-          >
-            Resumen de Progreso
-          </motion.h2>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="rounded-xl border backdrop-blur-sm p-6 lg:p-8"
-            style={{
-              backgroundColor: cardStyle.backgroundColor,
-              borderColor: cardStyle.borderColor,
-            }}
-          >
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="inline-block w-8 h-8 border-4 border-gray-300 rounded-full animate-spin" style={{ borderTopColor: primaryColor }} />
-                <p 
-                  className="mt-4 text-sm opacity-70"
-                  style={{ color: cardStyle.color || undefined }}
-                >
-                  Cargando progreso...
-                </p>
+              <div>
+                <h2 className="text-xl font-bold text-white">Estadísticas Generales</h2>
+                <p className="text-[#6C757D] text-sm mt-1">Métricas clave de tu equipo</p>
               </div>
-            ) : courses.length > 0 ? (
-              <div className="space-y-6">
-                {courses.map((course, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 + 0.5, duration: 0.4 }}
-                    className="space-y-3"
-                  >
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 
-                          className="text-base font-semibold mb-2"
-                          style={{ color: cardStyle.color || undefined }}
-                        >
-                          {course.label}
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span 
-                            className="opacity-70 flex items-center gap-1"
-                            style={{ color: cardStyle.color || undefined }}
-                          >
-                            <UserIcon className="w-4 h-4" />
-                            {course.students} estudiantes
-                          </span>
-                          <span 
-                            className="font-semibold"
-                            style={{ 
-                              color: 'var(--org-primary-button-color, #3b82f6)' 
-                            }}
-                          >
-                            {course.progress}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <Suspense fallback={
-                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full rounded-full"
-                          style={{ 
-                            background: `linear-gradient(90deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || primaryColor} 100%)`
-                          }}
-                          style={{ width: `${course.progress}%` }}
-                        />
-                      </div>
-                    }>
-                      <ProgressBar3D
-                        progress={course.progress}
-                        delay={index * 0.1}
-                      />
-                    </Suspense>
-                  </motion.div>
+            </motion.div>
+
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-36 bg-[#1E2329] rounded-2xl animate-pulse" />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <BookOpen className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4 opacity-50" />
-                <p 
-                  className="text-base sm:text-lg font-medium mb-2"
-                  style={{ color: cardStyle.color || undefined }}
-                >
-                  No hay cursos asignados aún
-                </p>
-                <p 
-                  className="text-sm opacity-80"
-                  style={{ color: cardStyle.color || undefined }}
-                >
-                  Los cursos que asignes aparecerán aquí
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {statsData.map((stat, index) => (
+                  <StatCard
+                    key={stat.title}
+                    title={stat.title}
+                    value={stat.value}
+                    change={stat.change}
+                    icon={stat.icon}
+                    gradient={stat.gradient}
+                    delay={index}
+                    href={stat.href}
+                  />
+                ))}
               </div>
             )}
+          </section>
+
+          {/* Activity Section */}
+          <section>
+            <motion.div 
+              className="flex items-center justify-between mb-6"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <div>
+                <h2 className="text-xl font-bold text-white">Actividad Reciente</h2>
+                <p className="text-[#6C757D] text-sm mt-1">Últimas acciones de tu equipo</p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="bg-[#1E2329] rounded-2xl border border-[#6C757D]/20 overflow-hidden"
+            >
+              {activitiesLoading ? (
+                <div className="p-6 space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex gap-4 animate-pulse">
+                      <div className="w-2 h-2 mt-2 rounded-full bg-[#6C757D]/30" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-[#6C757D]/20 rounded w-3/4" />
+                        <div className="h-3 bg-[#6C757D]/20 rounded w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="p-12 text-center">
+                  <ClockIcon className="h-12 w-12 text-[#6C757D]/50 mx-auto mb-4" />
+                  <p className="text-[#6C757D]">No hay actividad reciente</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-[#6C757D]/10">
+                  {activities.map((activity, index) => (
+                    <ActivityItem
+                      key={index}
+                      title={activity.title || 'Actividad'}
+                      description={activity.description || 'Sin descripción'}
+                      user={activity.user || 'Usuario'}
+                      timestamp={activity.timestamp ? formatTimestamp(activity.timestamp) : 'Hace un momento'}
+                      type={activity.type || 'system'}
+                      delay={index}
+                    />
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </section>
+        </div>
+
+        {/* Sidebar - Quick Actions */}
+        <div className="xl:col-span-1">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="sticky top-24"
+          >
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-white">Acciones Rápidas</h2>
+              <p className="text-[#6C757D] text-sm mt-1">Accesos directos</p>
+            </div>
+            
+            <div className="space-y-3">
+              {quickActions.map((action, index) => (
+                <QuickAction
+                  key={action.title}
+                  title={action.title}
+                  description={action.description}
+                  icon={action.icon}
+                  href={action.href}
+                  color={action.color}
+                  delay={index}
+                />
+              ))}
+            </div>
+
+            {/* System Health Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+              className="mt-6 p-6 rounded-2xl bg-gradient-to-br from-[#10B981]/20 to-[#10B981]/5 border border-[#10B981]/30"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="p-2 bg-[#10B981] rounded-lg"
+                >
+                  <RocketLaunchIcon className="h-5 w-5 text-white" />
+                </motion.div>
+                <div>
+                  <h3 className="text-white font-semibold">Cuenta Activa</h3>
+                  <p className="text-[#10B981] text-xs">Todos los servicios operativos</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#6C757D]">Usuarios</span>
+                  <span className="text-[#10B981] font-medium">
+                    {typeof stats?.activeUsers === 'object' ? stats.activeUsers.value : (stats?.activeUsers || 0)} activos
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#6C757D]">Cursos</span>
+                  <span className="text-[#10B981] font-medium">
+                    {typeof stats?.assignedCourses === 'object' ? stats.assignedCourses.value : (stats?.assignedCourses || 0)} asignados
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#6C757D]">Sistema</span>
+                  <span className="text-[#10B981] font-medium">Operativo</span>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>

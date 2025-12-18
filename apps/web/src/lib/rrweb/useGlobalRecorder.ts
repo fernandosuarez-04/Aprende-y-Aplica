@@ -19,8 +19,9 @@ async function getSessionRecorder() {
   }
   
   if (!sessionRecorder) {
-    const module = await import('./session-recorder');
-    sessionRecorder = module.sessionRecorder;
+    // Destructure sessionRecorder from the module export
+    const { sessionRecorder: recorder } = await import('./session-recorder');
+    sessionRecorder = recorder;
   }
   
   return sessionRecorder;
