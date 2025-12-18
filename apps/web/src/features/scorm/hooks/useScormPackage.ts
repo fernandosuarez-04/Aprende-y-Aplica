@@ -40,6 +40,9 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
         throw new Error(data.error || 'Error al obtener el paquete');
       }
 
+      console.log('[useScormPackage] Received package data:', data.package);
+      console.log('[useScormPackage] manifest_data:', data.package?.manifest_data);
+      console.log('[useScormPackage] objectives:', data.package?.manifest_data?.objectives);
       setPackage(data.package);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al obtener el paquete');
@@ -86,7 +89,7 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
   useEffect(() => {
     // Solo hacer fetch si hay parámetros válidos
     if (packageId || (courseId && organizationId)) {
-      refetch();
+    refetch();
     } else {
       // Si no hay parámetros, no hacer loading
       setIsLoading(false);

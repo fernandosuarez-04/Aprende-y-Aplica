@@ -63,6 +63,9 @@ export async function POST(req: NextRequest) {
     const manifestXml = await manifestFile.async('string');
     const manifest = await parseScormManifest(manifestXml);
 
+    console.log('[SCORM Upload] Parsed manifest objectives:', manifest.objectives);
+    console.log('[SCORM Upload] Full manifest being saved:', JSON.stringify(manifest, null, 2));
+
     // Validar estructura
     const validation = await validateScormPackage(zip, manifest);
     if (!validation.valid) {
@@ -121,6 +124,9 @@ export async function POST(req: NextRequest) {
         .remove([storagePath]);
       throw error;
     }
+
+    console.log('[SCORM Upload] Stored package manifest_data:', package_?.manifest_data);
+    console.log('[SCORM Upload] Stored objectives:', package_?.manifest_data?.objectives);
 
     return NextResponse.json({ success: true, package: package_ });
   } catch (error) {

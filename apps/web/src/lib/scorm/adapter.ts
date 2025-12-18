@@ -15,6 +15,31 @@ export class SCORMAPIAdapter {
 
   constructor(config: SCORMAdapterConfig) {
     this.config = config;
+
+    // Pre-initialize objectives from config immediately (before async init)
+    // This ensures objectives are available when SCORM content queries them
+    console.log('[SCORM Adapter] Constructor - objectives from config:', config.objectives);
+
+    if (config.objectives && config.objectives.length > 0) {
+      // Set initial count
+      this.cache.set('cmi.objectives._count', '0');
+
+      config.objectives.forEach((objective) => {
+        console.log('[SCORM Adapter] Pre-initializing objective:', objective.id);
+        this.getOrCreateObjectiveByID(objective.id);
+        if (objective.description) {
+          const index = this.findObjectiveByID(objective.id);
+          if (index >= 0) {
+            this.cache.set(`cmi.objectives.${index}.description`, objective.description);
+          }
+        }
+      });
+
+      console.log('[SCORM Adapter] After init - objectives count:', this.cache.get('cmi.objectives._count'));
+      console.log('[SCORM Adapter] Objective IDs map:', Array.from(this.objectiveIdToIndex.entries()));
+    } else {
+      console.warn('[SCORM Adapter] No objectives provided in config!');
+    }
   }
 
   // =====================

@@ -26,6 +26,9 @@ export async function GET(
       return NextResponse.json({ error: 'Package not found' }, { status: 404 });
     }
 
+    console.log('[SCORM Package GET] manifest_data:', JSON.stringify(data.manifest_data, null, 2));
+    console.log('[SCORM Package GET] objectives in manifest_data:', data.manifest_data?.objectives);
+
     return NextResponse.json({ package: data });
   } catch (error) {
     return NextResponse.json(

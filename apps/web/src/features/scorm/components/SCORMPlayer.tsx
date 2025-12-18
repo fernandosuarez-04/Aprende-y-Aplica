@@ -11,29 +11,25 @@ export function SCORMPlayer({
   entryPoint,
   onComplete,
   onError,
-  className = ''
+  className = '',
+  objectives = []
 }: SCORMPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [contentUrl, setContentUrl] = useState<string | null>(null);
+  const [adapterReady, setAdapterReady] = useState(false);
   const adapterRef = useRef<ReturnType<typeof initializeSCORMAPI> | null>(null);
 
-  // Construir URL del proxy para el contenido SCORM
+  // Initialize SCORM API FIRST, before setting content URL
+  // This ensures objectives are available when SCORM content loads
   useEffect(() => {
-    // Use proxy URL to serve content with proper headers
-    // This avoids Supabase Storage's restrictive CSP headers
-    const proxyUrl = `/api/scorm/content/${storagePath}/${entryPoint}`;
-    setContentUrl(proxyUrl);
-  }, [storagePath, entryPoint]);
-
-  // Inicializar SCORM API
-  useEffect(() => {
-    if (!contentUrl) return;
+    console.log('[SCORMPlayer] Initializing adapter with objectives:', objectives);
 
     const adapter = initializeSCORMAPI({
       packageId,
       version,
+      objectives, // Pass objectives for immediate initialization in constructor
       onError: (err) => {
         setError(err);
         onError?.(err);
@@ -44,14 +40,25 @@ export function SCORMPlayer({
     });
 
     adapterRef.current = adapter;
+    setAdapterReady(true);
 
     return () => {
       if (adapterRef.current && !adapterRef.current.isTerminated()) {
         adapterRef.current.LMSFinish('');
       }
       cleanupSCORMAPI();
+      setAdapterReady(false);
     };
-  }, [contentUrl, packageId, version, onComplete, onError]);
+  }, [packageId, version, objectives, onComplete, onError]);
+
+  // Set content URL only AFTER adapter is ready
+  useEffect(() => {
+    if (!adapterReady) return;
+
+    // Use proxy URL to serve content with proper headers
+    const proxyUrl = `/api/scorm/content/${storagePath}/${entryPoint}`;
+    setContentUrl(proxyUrl);
+  }, [adapterReady, storagePath, entryPoint]);
 
   const handleIframeLoad = useCallback(() => {
     setIsLoading(false);

@@ -88,6 +88,8 @@ export interface SCORMPlayerProps {
   onComplete?: (status: string, score?: number) => void;
   onError?: (error: string) => void;
   className?: string;
+  // Pre-defined objectives from manifest to initialize immediately
+  objectives?: SCORMObjectiveDefinition[];
 }
 
 export interface SCORMUploaderProps {

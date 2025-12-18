@@ -18,6 +18,15 @@ export default function ScormCoursePage() {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completionData, setCompletionData] = useState<{ status: string; score?: number } | null>(null);
 
+  // Debug: Log when package data is loaded
+  useEffect(() => {
+    if (package_) {
+      console.log('[ScormCoursePage] Package loaded:', package_.id);
+      console.log('[ScormCoursePage] manifest_data:', package_.manifest_data);
+      console.log('[ScormCoursePage] objectives:', package_.manifest_data?.objectives);
+    }
+  }, [package_]);
+
   // Interceptar intentos de cerrar ventana desde el contenido SCORM
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -157,6 +166,8 @@ export default function ScormCoursePage() {
       )}
 
       {/* Player */}
+      {console.log('[ScormCoursePage RENDER] package_.manifest_data:', package_.manifest_data)}
+      {console.log('[ScormCoursePage RENDER] objectives being passed:', package_.manifest_data?.objectives)}
       <SCORMPlayer
         packageId={package_.id}
         version={package_.version}
@@ -165,6 +176,7 @@ export default function ScormCoursePage() {
         onComplete={handleComplete}
         onError={handleError}
         className="aspect-video max-h-[700px]"
+        objectives={package_.manifest_data?.objectives || []}
       />
 
       {/* Modal de completado */}
