@@ -30,7 +30,9 @@ const authFetcher = async (url: string): Promise<User | null> => {
 
     if (!response.ok) {
       // Si no está autenticado, no es un error - simplemente no hay usuario
+      // Suprimir el error 401 en la consola ya que es esperado cuando no hay sesión
       if (response.status === 401 || response.status === 403) {
+        // No lanzar error ni mostrar en consola - es un estado válido (no autenticado)
         return null
       }
       throw new Error('Error fetching user')
@@ -46,9 +48,7 @@ const authFetcher = async (url: string): Promise<User | null> => {
       return null
     }
     
-    if (process.env.NODE_ENV === 'development') {
-      // console.warn('useAuth fetcher error:', error)
-    }
+    // No mostrar errores de autenticación en consola (son esperados)
     return null
   }
 }

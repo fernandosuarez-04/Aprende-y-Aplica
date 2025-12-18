@@ -166,8 +166,6 @@ export default function ScormCoursePage() {
       )}
 
       {/* Player */}
-      {console.log('[ScormCoursePage RENDER] package_.manifest_data:', package_.manifest_data)}
-      {console.log('[ScormCoursePage RENDER] objectives being passed:', package_.manifest_data?.objectives)}
       <SCORMPlayer
         packageId={package_.id}
         version={package_.version}
@@ -176,7 +174,14 @@ export default function ScormCoursePage() {
         onComplete={handleComplete}
         onError={handleError}
         className="aspect-video max-h-[700px]"
-        objectives={package_.manifest_data?.objectives || []}
+        objectives={
+          package_.manifest_data?.objectives
+            ? package_.manifest_data.objectives.map((obj: any) => ({
+                id: obj.id,
+                description: obj.description || ''
+              }))
+            : []
+        }
       />
 
       {/* Modal de completado */}

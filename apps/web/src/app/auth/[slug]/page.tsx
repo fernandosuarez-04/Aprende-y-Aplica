@@ -34,6 +34,12 @@ export default function OrganizationLoginPage() {
       return;
     }
 
+    // Si el slug es "login", redirigir al login principal
+    if (slug === 'login') {
+      router.push('/auth');
+      return;
+    }
+
     const fetchOrganization = async () => {
       try {
         setIsLoading(true);
@@ -42,6 +48,13 @@ export default function OrganizationLoginPage() {
         const response = await fetch(`/api/organizations/${slug}`, {
           credentials: 'include',
         });
+
+        // Si es 404, no mostrar error en consola (es esperado para slugs inválidos)
+        if (response.status === 404) {
+          setError('Organización no encontrada');
+          setIsLoading(false);
+          return;
+        }
 
         const data = await response.json();
 
@@ -53,7 +66,7 @@ export default function OrganizationLoginPage() {
 
         setOrganization(data.organization);
       } catch (err) {
-        // console.error('Error fetching organization:', err);
+        // Error de red - no mostrar en consola si es esperado
         setError('Error al cargar información de la organización');
       } finally {
         setIsLoading(false);
@@ -61,7 +74,7 @@ export default function OrganizationLoginPage() {
     };
 
     fetchOrganization();
-  }, [slug]);
+  }, [slug, router]);
 
   if (isLoading) {
     return (

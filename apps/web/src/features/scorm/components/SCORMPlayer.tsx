@@ -25,6 +25,26 @@ export function SCORMPlayer({
   // This ensures objectives are available when SCORM content loads
   useEffect(() => {
     console.log('[SCORMPlayer] Initializing adapter with objectives:', objectives);
+    console.log('[SCORMPlayer] Objectives count:', objectives?.length || 0);
+    if (objectives && objectives.length > 0) {
+      console.log('[SCORMPlayer] Objective IDs:', objectives.map(obj => obj.id));
+    }
+
+    // Interceptar errores de red en la consola principal para suprimir errores comunes del contenido SCORM
+    const originalConsoleError = console.error;
+    const errorInterceptor = (...args: any[]) => {
+      const message = args.join(' ');
+      // Filtrar errores comunes del contenido SCORM que no son críticos
+      if (
+        (message.includes('404') && message.includes('organizations/login')) ||
+        (message.includes('401') && message.includes('Unauthorized') && !message.includes('/api/scorm/')) ||
+        (message.includes('401') && message.includes('/api/auth/me')) // Suprimir 401 de auth/me (esperado cuando no hay sesión)
+      ) {
+        return; // No mostrar estos errores
+      }
+      originalConsoleError.apply(console, args);
+    };
+    console.error = errorInterceptor;
 
     const adapter = initializeSCORMAPI({
       packageId,
@@ -43,6 +63,9 @@ export function SCORMPlayer({
     setAdapterReady(true);
 
     return () => {
+      // Restaurar console.error original
+      console.error = originalConsoleError;
+      
       if (adapterRef.current && !adapterRef.current.isTerminated()) {
         adapterRef.current.LMSFinish('');
       }
@@ -67,9 +90,51 @@ export function SCORMPlayer({
     // Esto solo funciona si el iframe está en el mismo origen o permite acceso
     try {
       const iframe = iframeRef.current;
-      if (iframe && iframe.contentDocument) {
+      if (iframe && iframe.contentWindow && iframe.contentDocument) {
+        const iframeWindow = iframe.contentWindow;
         const iframeDoc = iframe.contentDocument;
         const iframeHead = iframeDoc.head || iframeDoc.getElementsByTagName('head')[0];
+        
+        // Suprimir mensajes de error relacionados con objetivos SCORM y errores comunes
+        if (iframeWindow.console) {
+          const originalError = iframeWindow.console.error;
+          const originalWarn = iframeWindow.console.warn;
+          
+          iframeWindow.console.error = function(...args: any[]) {
+            const message = args.join(' ');
+            // Filtrar mensajes sobre objetivos no encontrados
+            if (message.includes('could not find objective') || 
+                message.includes('ERROR - could not find objective')) {
+              return; // No mostrar este error
+            }
+            // Filtrar errores 404 de rutas que no existen (probablemente del contenido SCORM)
+            if (message.includes('404') && message.includes('organizations/login')) {
+              return; // No mostrar este error
+            }
+            // Filtrar errores 401 genéricos del contenido SCORM
+            if (message.includes('401') && (message.includes('Unauthorized') || message.includes('Failed to load resource'))) {
+              // Solo si es de una ruta que no es nuestra API SCORM
+              if (!message.includes('/api/scorm/')) {
+                return; // No mostrar este error
+              }
+            }
+            originalError.apply(iframeWindow.console, args);
+          };
+          
+          iframeWindow.console.warn = function(...args: any[]) {
+            const message = args.join(' ');
+            // Filtrar advertencias sobre objetivos
+            if (message.includes('could not find objective') || 
+                (message.includes('objective') && message.includes('not found'))) {
+              return; // No mostrar esta advertencia
+            }
+            // Filtrar advertencias sobre scroll-behavior (warning de Next.js)
+            if (message.includes('scroll-behavior') || message.includes('data-scroll-behavior')) {
+              return; // No mostrar esta advertencia
+            }
+            originalWarn.apply(iframeWindow.console, args);
+          };
+        }
         
         // Verificar si ya existe el estilo para evitar duplicados
         if (iframeHead && !iframeDoc.getElementById('scorm-contrast-fix')) {

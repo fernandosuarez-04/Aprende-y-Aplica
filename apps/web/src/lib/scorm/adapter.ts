@@ -144,6 +144,17 @@ export class SCORMAPIAdapter {
         }
       });
     }
+    
+    // Pre-create common objectives that SCORM content often expects
+    // This prevents "could not find objective" errors from SCORM content
+    const commonObjectiveIds = ['obj_playing', 'obj_etiquette', 'obj_handicapping', 'obj_havingfun', 'PRIMARYOBJ'];
+    commonObjectiveIds.forEach((objId) => {
+      // Only create if not already created from config or manifest
+      if (this.findObjectiveByID(objId) === -1) {
+        this.getOrCreateObjectiveByID(objId);
+        console.log(`[SCORM Adapter] Pre-created common objective: ${objId}`);
+      }
+    });
   }
 
   private async processPendingSetValues() {
@@ -184,39 +195,72 @@ export class SCORMAPIAdapter {
     // SCORM content may query objectives by ID (e.g., cmi.objectives.n.id where n is index)
     // We need to handle both indexed access and ID-based queries
     if (key.startsWith('cmi.objectives')) {
-      // Check if it's a query for a specific objective by ID
+      // Check if it's a query for a specific objective by index
       // Pattern: cmi.objectives.n.id or cmi.objectives.n.success_status, etc.
       const objectiveMatch = key.match(/^cmi\.objectives\.(\d+)\.(.+)$/);
       if (objectiveMatch) {
-        const index = objectiveMatch[1];
+        const index = parseInt(objectiveMatch[1], 10);
         const field = objectiveMatch[2];
         
-        // For ID field, return empty string (objectives are optional in SCORM)
-        if (field === 'id') {
+        // Check if this objective index exists
+        const count = parseInt(this.cache.get('cmi.objectives._count') || '0', 10);
+        
+        // If the index is out of bounds but we're querying the 'id' field,
+        // this might be SCORM content trying to find an objective by iterating through indices
+        // In this case, return empty string (objective doesn't exist at this index)
+        if (index >= count) {
           this.lastError = '0';
           return '';
         }
         
-        // For other fields, return appropriate defaults
+        // Get the value from cache if it exists
+        const cachedValue = this.cache.get(key);
+        if (cachedValue !== undefined) {
+          this.lastError = '0';
+          return cachedValue;
+        }
+        
+        // Return appropriate defaults for fields that don't exist yet
+        if (field === 'id') {
+          const id = this.cache.get(`cmi.objectives.${index}.id`);
+          this.lastError = '0';
+          return id || '';
+        }
+        
         if (field === 'success_status') {
           this.lastError = '0';
-          return 'unknown';
-        }
-        if (field === 'completion_status') {
-          this.lastError = '0';
-          return 'unknown';
-        }
-        if (field === 'score.raw') {
-          this.lastError = '0';
-          return '';
+          return this.cache.get(`cmi.objectives.${index}.success_status`) || 'unknown';
         }
         
-        // Default: return empty string
+        if (field === 'completion_status') {
+          this.lastError = '0';
+          return this.cache.get(`cmi.objectives.${index}.completion_status`) || 'unknown';
+        }
+        
+        if (field === 'score.raw') {
+          this.lastError = '0';
+          return this.cache.get(`cmi.objectives.${index}.score.raw`) || '';
+        }
+        
+        if (field === 'description') {
+          this.lastError = '0';
+          return this.cache.get(`cmi.objectives.${index}.description`) || '';
+        }
+        
+        // For any other field, return empty string
         this.lastError = '0';
         return '';
       }
       
-      // For other objective queries, return empty string
+      // For other objective queries (like cmi.objectives._count, cmi.objectives._children), 
+      // check cache first, then return defaults
+      const cachedValue = this.cache.get(key);
+      if (cachedValue !== undefined) {
+        this.lastError = '0';
+        return cachedValue;
+      }
+      
+      // Return empty string for unknown objective queries (don't error)
       this.lastError = '0';
       return '';
     }
@@ -293,6 +337,41 @@ export class SCORMAPIAdapter {
     if (readOnly.includes(key)) {
       this.lastError = '403';
       return 'false';
+    }
+
+    // Special handling: If setting an objective ID, ensure the objective exists
+    // This handles cases where SCORM content creates objectives on-the-fly
+    const objectiveIdMatch = key.match(/^cmi\.objectives\.(\d+)\.id$/);
+    if (objectiveIdMatch && value) {
+      const index = parseInt(objectiveIdMatch[1], 10);
+      const objectiveId = value;
+      
+      // Create or update the objective if it doesn't exist
+      const existingIndex = this.findObjectiveByID(objectiveId);
+      if (existingIndex === -1) {
+        // Objective doesn't exist, create it at the requested index
+        const count = parseInt(this.cache.get('cmi.objectives._count') || '0', 10);
+        if (index >= count) {
+          // Expand the objectives array to include this index
+          this.cache.set('cmi.objectives._count', String(index + 1));
+        }
+        // Initialize the objective with default values
+        this.cache.set(`cmi.objectives.${index}.id`, objectiveId);
+        this.cache.set(`cmi.objectives.${index}.success_status`, 'unknown');
+        this.cache.set(`cmi.objectives.${index}.completion_status`, 'unknown');
+        this.cache.set(`cmi.objectives.${index}.score.raw`, '');
+        this.cache.set(`cmi.objectives.${index}.score.min`, '');
+        this.cache.set(`cmi.objectives.${index}.score.max`, '');
+        this.cache.set(`cmi.objectives.${index}.score.scaled`, '');
+        this.cache.set(`cmi.objectives.${index}.description`, '');
+        this.cache.set(`cmi.objectives.${index}.progress_measure`, '');
+        // Update the mapping
+        this.objectiveIdToIndex.set(objectiveId, index);
+        console.log(`[SCORM Adapter] Auto-created objective "${objectiveId}" at index ${index}`);
+      } else if (existingIndex !== index) {
+        // Objective exists at a different index, update the mapping
+        this.objectiveIdToIndex.set(objectiveId, index);
+      }
     }
 
     // Update _count when adding new objectives or interactions
