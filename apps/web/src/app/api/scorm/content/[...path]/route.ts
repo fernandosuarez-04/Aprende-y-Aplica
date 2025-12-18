@@ -83,7 +83,14 @@ export async function GET(
     // Path format: [orgId, packageId, ...filePath]
     const [orgId, packageId, ...filePath] = path;
     // Normalize the file path to handle encoded spaces and .. segments
-    const rawFilePath = filePath.join('/');
+    let rawFilePath = filePath.join('/');
+
+    // Remove query string if present (Next.js catch-all might include it)
+    const queryIndex = rawFilePath.indexOf('?');
+    if (queryIndex !== -1) {
+      rawFilePath = rawFilePath.substring(0, queryIndex);
+    }
+
     const fullFilePath = normalizePath(decodeURIComponent(rawFilePath));
     const storagePath = `${orgId}/${packageId}/${fullFilePath}`;
 
@@ -126,13 +133,51 @@ export async function GET(
     // For HTML files, rewrite relative URLs and set permissive CSP
     if (fullFilePath.endsWith('.html') || fullFilePath.endsWith('.htm')) {
       let htmlContent = await data.text();
-      
+
       // Extract base directory for relative URLs
       const pathParts = fullFilePath.split('/');
       pathParts.pop();
       const baseDir = pathParts.length > 0 ? pathParts.join('/') : '';
       const baseDirPath = baseDir ? `${baseDir}/` : '';
-      
+
+      // Helper function to rewrite a URL
+      const rewriteUrl = (url: string): string => {
+        url = url.trim();
+        if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('mailto:') || url.startsWith('#') || url === '') {
+          return url;
+        }
+
+        // Separate path from query string and hash
+        let queryString = '';
+        let hash = '';
+        let pathOnly = url;
+
+        const hashIndex = pathOnly.indexOf('#');
+        if (hashIndex !== -1) {
+          hash = pathOnly.substring(hashIndex);
+          pathOnly = pathOnly.substring(0, hashIndex);
+        }
+
+        const queryIndex = pathOnly.indexOf('?');
+        if (queryIndex !== -1) {
+          queryString = pathOnly.substring(queryIndex);
+          pathOnly = pathOnly.substring(0, queryIndex);
+        }
+
+        const relativePath = pathOnly.startsWith('/') ? pathOnly.substring(1) : pathOnly;
+        const combinedPath = baseDirPath ? `${baseDirPath}${relativePath}` : relativePath;
+        const resourcePath = normalizePath(combinedPath);
+        return `${req.nextUrl.origin}/api/scorm/content/${orgId}/${packageId}/${resourcePath}${queryString}${hash}`;
+      };
+
+      // Extract and preserve script blocks to avoid modifying JavaScript strings
+      const scriptPlaceholders: string[] = [];
+      htmlContent = htmlContent.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (match) => {
+        const placeholder = `__SCRIPT_PLACEHOLDER_${scriptPlaceholders.length}__`;
+        scriptPlaceholders.push(match);
+        return placeholder;
+      });
+
       // Prevent content from trying to load main page in iframes
       htmlContent = htmlContent.replace(
         /(src|href|action)=["'](\/|http:\/\/localhost:3000\/|https?:\/\/[^\/]+:\d+\/)[^"']*["']/gi,
@@ -143,39 +188,39 @@ export async function GET(
           return match;
         }
       );
-      
-      // Rewrite relative URLs to use the proxy
+
+      // Rewrite relative URLs in HTML attributes (outside of script blocks)
       htmlContent = htmlContent.replace(
         /(src|href)=["']([^"']+)["']/gi,
         (match, attr, url) => {
-          // Trim whitespace from URL (handles cases like href=" ../path")
-          url = url.trim();
-          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('mailto:') || url.startsWith('#') || url === '') {
+          const rewritten = rewriteUrl(url);
+          if (rewritten === url.trim()) {
             return match;
           }
-          const relativePath = url.startsWith('/') ? url.substring(1) : url;
-          const combinedPath = baseDirPath ? `${baseDirPath}${relativePath}` : relativePath;
-          // Normalize the path to resolve .. and . segments
-          const resourcePath = normalizePath(combinedPath);
-          return `${attr}="${req.nextUrl.origin}/api/scorm/content/${orgId}/${packageId}/${resourcePath}"`;
+          // Preserve the original quote style
+          const quote = match.includes('"') ? '"' : "'";
+          return `${attr}=${quote}${rewritten}${quote}`;
         }
       );
-      
-      // Rewrite CSS URLs
+
+      // Rewrite CSS @import and url() outside of scripts
       htmlContent = htmlContent.replace(
         /url\(["']?([^"')]+)["']?\)/gi,
         (match, url) => {
-          // Trim whitespace from URL
           url = url.trim();
           if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('/') || url === '') {
             return match;
           }
           const combinedPath = baseDirPath ? `${baseDirPath}${url}` : url;
-          // Normalize the path to resolve .. and . segments
           const resourcePath = normalizePath(combinedPath);
           return `url("${req.nextUrl.origin}/api/scorm/content/${orgId}/${packageId}/${resourcePath}")`;
         }
       );
+
+      // Restore script blocks
+      scriptPlaceholders.forEach((script, index) => {
+        htmlContent = htmlContent.replace(`__SCRIPT_PLACEHOLDER_${index}__`, script);
+      });
       
       // Allow scripts, styles, images, fonts, and connections needed for SCORM
       headers.set(

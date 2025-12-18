@@ -39,6 +39,19 @@ interface ScormResource {
   files: string[];
 }
 
+// Helper to get a value from an object trying multiple key variations (with/without namespace)
+function getWithNS(obj: any, ...keys: string[]): any {
+  if (!obj) return undefined;
+  for (const key of keys) {
+    if (obj[key] !== undefined) return obj[key];
+    // Try with common namespace prefixes
+    for (const ns of ['imsss:', 'adlseq:', 'adlcp:', 'adlnav:', '']) {
+      if (obj[ns + key] !== undefined) return obj[ns + key];
+    }
+  }
+  return undefined;
+}
+
 export async function parseScormManifest(xml: string): Promise<ScormManifest> {
   const result = await parseStringPromise(xml, { explicitArray: false });
   const manifest = result.manifest;
@@ -110,56 +123,44 @@ function parseItemObjectives(item: any): ScormObjective[] {
   const objectives: ScormObjective[] = [];
 
   // SCORM 2004 objectives can be in various namespaces
-  // Look for imsss:sequencing, adlseq:sequencing, or just sequencing
-  const sequencing =
-    item['imsss:sequencing'] ||
-    item['adlseq:sequencing'] ||
-    item.sequencing;
+  const sequencing = getWithNS(item, 'sequencing');
 
   if (sequencing) {
-    // Primary objective
-    const primaryObjective =
-      sequencing['imsss:objectives']?.['imsss:primaryObjective'] ||
-      sequencing['adlseq:objectives']?.['adlseq:primaryObjective'] ||
-      sequencing.objectives?.primaryObjective;
+    const objectivesContainer = getWithNS(sequencing, 'objectives');
 
-    if (primaryObjective) {
-      const objId = primaryObjective['$']?.objectiveID;
-      if (objId) {
-        objectives.push({
-          id: objId,
-          satisfiedByMeasure: primaryObjective['$']?.satisfiedByMeasure === 'true',
-          minNormalizedMeasure: parseFloat(
-            primaryObjective['imsss:minNormalizedMeasure'] ||
-            primaryObjective.minNormalizedMeasure ||
-            '0'
-          ),
-        });
-      }
-    }
+    if (objectivesContainer) {
+      // Primary objective
+      const primaryObjective = getWithNS(objectivesContainer, 'primaryObjective');
 
-    // Other objectives
-    const otherObjectives =
-      sequencing['imsss:objectives']?.['imsss:objective'] ||
-      sequencing['adlseq:objectives']?.['adlseq:objective'] ||
-      sequencing.objectives?.objective;
-
-    if (otherObjectives) {
-      const objArr = Array.isArray(otherObjectives) ? otherObjectives : [otherObjectives];
-      objArr.forEach((obj: any) => {
-        const objId = obj['$']?.objectiveID;
+      if (primaryObjective) {
+        const objId = primaryObjective['$']?.objectiveID;
         if (objId) {
+          const minMeasure = getWithNS(primaryObjective, 'minNormalizedMeasure');
           objectives.push({
             id: objId,
-            satisfiedByMeasure: obj['$']?.satisfiedByMeasure === 'true',
-            minNormalizedMeasure: parseFloat(
-              obj['imsss:minNormalizedMeasure'] ||
-              obj.minNormalizedMeasure ||
-              '0'
-            ),
+            satisfiedByMeasure: primaryObjective['$']?.satisfiedByMeasure === 'true',
+            minNormalizedMeasure: parseFloat(minMeasure || '0'),
           });
         }
-      });
+      }
+
+      // Secondary objectives
+      const otherObjectives = getWithNS(objectivesContainer, 'objective');
+
+      if (otherObjectives) {
+        const objArr = Array.isArray(otherObjectives) ? otherObjectives : [otherObjectives];
+        objArr.forEach((obj: any) => {
+          const objId = obj['$']?.objectiveID;
+          if (objId) {
+            const minMeasure = getWithNS(obj, 'minNormalizedMeasure');
+            objectives.push({
+              id: objId,
+              satisfiedByMeasure: obj['$']?.satisfiedByMeasure === 'true',
+              minNormalizedMeasure: parseFloat(minMeasure || '0'),
+            });
+          }
+        });
+      }
     }
   }
 
@@ -192,34 +193,31 @@ function extractObjectives(manifest: any, organizations: ScormOrganization[]): S
   }
 
   // Also check for global objectives in the manifest
-  const globalSeq =
-    manifest['imsss:sequencingCollection'] ||
-    manifest['adlseq:sequencingCollection'] ||
-    manifest.sequencingCollection;
+  const globalSeq = getWithNS(manifest, 'sequencingCollection');
 
   if (globalSeq) {
-    const globalObjectives =
-      globalSeq['imsss:sequencing']?.['imsss:objectives']?.['imsss:objective'] ||
-      globalSeq['adlseq:sequencing']?.['adlseq:objectives']?.['adlseq:objective'] ||
-      globalSeq.sequencing?.objectives?.objective;
+    const sequencing = getWithNS(globalSeq, 'sequencing');
+    if (sequencing) {
+      const objectivesContainer = getWithNS(sequencing, 'objectives');
+      if (objectivesContainer) {
+        const globalObjectives = getWithNS(objectivesContainer, 'objective');
 
-    if (globalObjectives) {
-      const objArr = Array.isArray(globalObjectives) ? globalObjectives : [globalObjectives];
-      objArr.forEach((obj: any) => {
-        const objId = obj['$']?.objectiveID;
-        if (objId && !seenIds.has(objId)) {
-          seenIds.add(objId);
-          allObjectives.push({
-            id: objId,
-            satisfiedByMeasure: obj['$']?.satisfiedByMeasure === 'true',
-            minNormalizedMeasure: parseFloat(
-              obj['imsss:minNormalizedMeasure'] ||
-              obj.minNormalizedMeasure ||
-              '0'
-            ),
+        if (globalObjectives) {
+          const objArr = Array.isArray(globalObjectives) ? globalObjectives : [globalObjectives];
+          objArr.forEach((obj: any) => {
+            const objId = obj['$']?.objectiveID;
+            if (objId && !seenIds.has(objId)) {
+              seenIds.add(objId);
+              const minMeasure = getWithNS(obj, 'minNormalizedMeasure');
+              allObjectives.push({
+                id: objId,
+                satisfiedByMeasure: obj['$']?.satisfiedByMeasure === 'true',
+                minNormalizedMeasure: parseFloat(minMeasure || '0'),
+              });
+            }
           });
         }
-      });
+      }
     }
   }
 
