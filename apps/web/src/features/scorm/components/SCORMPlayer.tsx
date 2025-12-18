@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { initializeSCORMAPI, cleanupSCORMAPI } from '@/lib/scorm/adapter';
-import { createClient } from '@/lib/supabase/client';
 import { SCORMPlayerProps } from '@/lib/scorm/types';
 
 export function SCORMPlayer({
@@ -20,31 +19,13 @@ export function SCORMPlayer({
   const [contentUrl, setContentUrl] = useState<string | null>(null);
   const adapterRef = useRef<ReturnType<typeof initializeSCORMAPI> | null>(null);
 
-  // Obtener URL firmada del contenido
+  // Construir URL del proxy para el contenido SCORM
   useEffect(() => {
-    async function getContentUrl() {
-      try {
-        const supabase = createClient();
-
-        const { data, error: urlError } = await supabase.storage
-          .from('scorm-packages')
-          .createSignedUrl(`${storagePath}/${entryPoint}`, 3600);
-
-        if (urlError || !data) {
-          setError('Failed to load content');
-          onError?.('Failed to load content');
-          return;
-        }
-
-        setContentUrl(data.signedUrl);
-      } catch (err) {
-        setError('Failed to load content');
-        onError?.('Failed to load content');
-      }
-    }
-
-    getContentUrl();
-  }, [storagePath, entryPoint, onError]);
+    // Use proxy URL to serve content with proper headers
+    // This avoids Supabase Storage's restrictive CSP headers
+    const proxyUrl = `/api/scorm/content/${storagePath}/${entryPoint}`;
+    setContentUrl(proxyUrl);
+  }, [storagePath, entryPoint]);
 
   // Inicializar SCORM API
   useEffect(() => {
