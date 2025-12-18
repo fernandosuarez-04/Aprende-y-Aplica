@@ -66,11 +66,18 @@ export interface ScormObjective {
   description?: string;
 }
 
+export interface SCORMObjectiveDefinition {
+  id: string;
+  description?: string;
+}
+
 export interface SCORMAdapterConfig {
   packageId: string;
   version: SCORMVersion;
   onError?: (error: string) => void;
   onComplete?: (status: string, score?: number) => void;
+  // Pre-defined objectives from imsmanifest.xml
+  objectives?: SCORMObjectiveDefinition[];
 }
 
 export interface SCORMPlayerProps {

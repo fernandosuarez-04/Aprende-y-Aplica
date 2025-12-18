@@ -10,6 +10,8 @@ export class SCORMAPIAdapter {
   private initPromise: Promise<void> | null = null;
   private initCompleted: boolean = false;
   private pendingSetValues: Array<{ key: string; value: string }> = [];
+  // Map objective IDs to their indices for lookup
+  private objectiveIdToIndex: Map<string, number> = new Map();
 
   constructor(config: SCORMAdapterConfig) {
     this.config = config;
@@ -63,6 +65,19 @@ export class SCORMAPIAdapter {
         // Initialize default values for common SCORM 2004 elements
         this.initializeDefaults();
 
+        // Initialize objectives from server response (from imsmanifest.xml)
+        if (data.objectives && Array.isArray(data.objectives)) {
+          data.objectives.forEach((obj: { id: string; description?: string }) => {
+            this.getOrCreateObjectiveByID(obj.id);
+            if (obj.description) {
+              const index = this.findObjectiveByID(obj.id);
+              if (index >= 0) {
+                this.cache.set(`cmi.objectives.${index}.description`, obj.description);
+              }
+            }
+          });
+        }
+
         this.initCompleted = true;
 
         // Process any pending setValue calls
@@ -90,6 +105,20 @@ export class SCORMAPIAdapter {
         this.cache.set(key, value);
       }
     });
+
+    // Initialize pre-defined objectives from config
+    if (this.config.objectives && this.config.objectives.length > 0) {
+      this.config.objectives.forEach((objective) => {
+        this.getOrCreateObjectiveByID(objective.id);
+        // Set description if provided
+        if (objective.description) {
+          const index = this.findObjectiveByID(objective.id);
+          if (index >= 0) {
+            this.cache.set(`cmi.objectives.${index}.description`, objective.description);
+          }
+        }
+      });
+    }
   }
 
   private async processPendingSetValues() {
@@ -242,7 +271,7 @@ export class SCORMAPIAdapter {
     }
 
     // Update _count when adding new objectives or interactions
-    this.updateCollectionCount(key);
+    this.updateCollectionCount(key, value);
 
     this.cache.set(key, value);
 
@@ -268,14 +297,19 @@ export class SCORMAPIAdapter {
     return 'true';
   }
 
-  private updateCollectionCount(key: string) {
-    // Update objectives count
-    const objectiveMatch = key.match(/^cmi\.objectives\.(\d+)\./);
+  private updateCollectionCount(key: string, value?: string) {
+    // Update objectives count and track IDs
+    const objectiveMatch = key.match(/^cmi\.objectives\.(\d+)\.(.+)$/);
     if (objectiveMatch) {
       const index = parseInt(objectiveMatch[1], 10);
+      const field = objectiveMatch[2];
       const currentCount = parseInt(this.cache.get('cmi.objectives._count') || '0', 10);
       if (index >= currentCount) {
         this.cache.set('cmi.objectives._count', String(index + 1));
+      }
+      // Track objective ID to index mapping
+      if (field === 'id' && value) {
+        this.objectiveIdToIndex.set(value, index);
       }
     }
 
@@ -288,6 +322,49 @@ export class SCORMAPIAdapter {
         this.cache.set('cmi.interactions._count', String(index + 1));
       }
     }
+  }
+
+  // Find objective index by ID
+  findObjectiveByID(objectiveId: string): number {
+    // First check the cached mapping
+    if (this.objectiveIdToIndex.has(objectiveId)) {
+      return this.objectiveIdToIndex.get(objectiveId)!;
+    }
+
+    // Scan through objectives to find by ID
+    const count = parseInt(this.cache.get('cmi.objectives._count') || '0', 10);
+    for (let i = 0; i < count; i++) {
+      const id = this.cache.get(`cmi.objectives.${i}.id`);
+      if (id === objectiveId) {
+        this.objectiveIdToIndex.set(objectiveId, i);
+        return i;
+      }
+    }
+
+    return -1; // Not found
+  }
+
+  // Get or create objective by ID (for SCORM content that expects objectives to exist)
+  getOrCreateObjectiveByID(objectiveId: string): number {
+    let index = this.findObjectiveByID(objectiveId);
+    if (index === -1) {
+      // Create new objective
+      index = parseInt(this.cache.get('cmi.objectives._count') || '0', 10);
+      this.cache.set(`cmi.objectives.${index}.id`, objectiveId);
+      this.cache.set('cmi.objectives._count', String(index + 1));
+      this.objectiveIdToIndex.set(objectiveId, index);
+
+      // Initialize default values for the new objective
+      this.cache.set(`cmi.objectives.${index}.success_status`, 'unknown');
+      this.cache.set(`cmi.objectives.${index}.completion_status`, 'unknown');
+      this.cache.set(`cmi.objectives.${index}.score.raw`, '');
+      this.cache.set(`cmi.objectives.${index}.score.min`, '');
+      this.cache.set(`cmi.objectives.${index}.score.max`, '');
+      this.cache.set(`cmi.objectives.${index}.score.scaled`, '');
+      this.cache.set(`cmi.objectives.${index}.description`, '');
+      this.cache.set(`cmi.objectives.${index}.progress_measure`, '');
+    }
+    return index;
   }
 
   private async setValueAsync(key: string, value: string) {

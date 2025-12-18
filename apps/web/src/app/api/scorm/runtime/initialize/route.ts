@@ -89,10 +89,14 @@ export async function POST(req: NextRequest) {
     // Construir datos CMI iniciales
     const cmiData = buildCMIData(attempt, user, package_);
 
+    // Extraer objetivos del manifest si existen
+    const objectives = package_.manifest_data?.objectives || [];
+
     return NextResponse.json({
       success: true,
       attemptId: attempt.id,
       cmiData,
+      objectives,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to initialize';

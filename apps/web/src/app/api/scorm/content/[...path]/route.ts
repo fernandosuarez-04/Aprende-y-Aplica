@@ -41,6 +41,25 @@ function isTextFile(filename: string): boolean {
   return ['html', 'htm', 'js', 'css', 'json', 'xml', 'svg'].includes(ext || '');
 }
 
+// Normalize path by resolving .. and . segments and trimming whitespace
+function normalizePath(path: string): string {
+  // Trim whitespace from the path
+  path = path.trim();
+
+  const parts = path.split('/');
+  const normalized: string[] = [];
+
+  for (const part of parts) {
+    if (part === '..') {
+      normalized.pop();
+    } else if (part !== '.' && part !== '') {
+      normalized.push(part);
+    }
+  }
+
+  return normalized.join('/');
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
@@ -63,7 +82,9 @@ export async function GET(
 
     // Path format: [orgId, packageId, ...filePath]
     const [orgId, packageId, ...filePath] = path;
-    const fullFilePath = filePath.join('/');
+    // Normalize the file path to handle encoded spaces and .. segments
+    const rawFilePath = filePath.join('/');
+    const fullFilePath = normalizePath(decodeURIComponent(rawFilePath));
     const storagePath = `${orgId}/${packageId}/${fullFilePath}`;
 
     const supabase = await createClient();
@@ -127,11 +148,15 @@ export async function GET(
       htmlContent = htmlContent.replace(
         /(src|href)=["']([^"']+)["']/gi,
         (match, attr, url) => {
-          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('mailto:') || url.startsWith('#')) {
+          // Trim whitespace from URL (handles cases like href=" ../path")
+          url = url.trim();
+          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('mailto:') || url.startsWith('#') || url === '') {
             return match;
           }
           const relativePath = url.startsWith('/') ? url.substring(1) : url;
-          const resourcePath = baseDirPath ? `${baseDirPath}${relativePath}` : relativePath;
+          const combinedPath = baseDirPath ? `${baseDirPath}${relativePath}` : relativePath;
+          // Normalize the path to resolve .. and . segments
+          const resourcePath = normalizePath(combinedPath);
           return `${attr}="${req.nextUrl.origin}/api/scorm/content/${orgId}/${packageId}/${resourcePath}"`;
         }
       );
@@ -140,10 +165,14 @@ export async function GET(
       htmlContent = htmlContent.replace(
         /url\(["']?([^"')]+)["']?\)/gi,
         (match, url) => {
-          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('/')) {
+          // Trim whitespace from URL
+          url = url.trim();
+          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('/') || url === '') {
             return match;
           }
-          const resourcePath = baseDirPath ? `${baseDirPath}${url}` : url;
+          const combinedPath = baseDirPath ? `${baseDirPath}${url}` : url;
+          // Normalize the path to resolve .. and . segments
+          const resourcePath = normalizePath(combinedPath);
           return `url("${req.nextUrl.origin}/api/scorm/content/${orgId}/${packageId}/${resourcePath}")`;
         }
       );

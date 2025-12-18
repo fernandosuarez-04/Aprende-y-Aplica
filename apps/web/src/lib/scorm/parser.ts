@@ -1,6 +1,13 @@
 import { parseStringPromise } from 'xml2js';
 import JSZip from 'jszip';
 
+export interface ScormObjective {
+  id: string;
+  description?: string;
+  satisfiedByMeasure?: boolean;
+  minNormalizedMeasure?: number;
+}
+
 export interface ScormManifest {
   version: 'SCORM_1.2' | 'SCORM_2004';
   title: string;
@@ -8,6 +15,7 @@ export interface ScormManifest {
   entryPoint: string;
   organizations: ScormOrganization[];
   resources: ScormResource[];
+  objectives: ScormObjective[];
 }
 
 interface ScormOrganization {
@@ -21,6 +29,7 @@ interface ScormItem {
   title: string;
   resourceId?: string;
   children?: ScormItem[];
+  objectives?: ScormObjective[];
 }
 
 interface ScormResource {
@@ -71,6 +80,9 @@ export async function parseScormManifest(xml: string): Promise<ScormManifest> {
     manifest.metadata?.lom?.general?.title?.string ||
     'Untitled Course';
 
+  // Extraer objetivos del manifest
+  const objectives = extractObjectives(manifest, organizations);
+
   return {
     version,
     title,
@@ -78,6 +90,7 @@ export async function parseScormManifest(xml: string): Promise<ScormManifest> {
     entryPoint,
     organizations,
     resources,
+    objectives,
   };
 }
 
@@ -89,7 +102,128 @@ function parseItems(items: any): ScormItem[] {
     title: item.title || '',
     resourceId: item['$']?.identifierref,
     children: parseItems(item.item),
+    objectives: parseItemObjectives(item),
   }));
+}
+
+function parseItemObjectives(item: any): ScormObjective[] {
+  const objectives: ScormObjective[] = [];
+
+  // SCORM 2004 objectives can be in various namespaces
+  // Look for imsss:sequencing, adlseq:sequencing, or just sequencing
+  const sequencing =
+    item['imsss:sequencing'] ||
+    item['adlseq:sequencing'] ||
+    item.sequencing;
+
+  if (sequencing) {
+    // Primary objective
+    const primaryObjective =
+      sequencing['imsss:objectives']?.['imsss:primaryObjective'] ||
+      sequencing['adlseq:objectives']?.['adlseq:primaryObjective'] ||
+      sequencing.objectives?.primaryObjective;
+
+    if (primaryObjective) {
+      const objId = primaryObjective['$']?.objectiveID;
+      if (objId) {
+        objectives.push({
+          id: objId,
+          satisfiedByMeasure: primaryObjective['$']?.satisfiedByMeasure === 'true',
+          minNormalizedMeasure: parseFloat(
+            primaryObjective['imsss:minNormalizedMeasure'] ||
+            primaryObjective.minNormalizedMeasure ||
+            '0'
+          ),
+        });
+      }
+    }
+
+    // Other objectives
+    const otherObjectives =
+      sequencing['imsss:objectives']?.['imsss:objective'] ||
+      sequencing['adlseq:objectives']?.['adlseq:objective'] ||
+      sequencing.objectives?.objective;
+
+    if (otherObjectives) {
+      const objArr = Array.isArray(otherObjectives) ? otherObjectives : [otherObjectives];
+      objArr.forEach((obj: any) => {
+        const objId = obj['$']?.objectiveID;
+        if (objId) {
+          objectives.push({
+            id: objId,
+            satisfiedByMeasure: obj['$']?.satisfiedByMeasure === 'true',
+            minNormalizedMeasure: parseFloat(
+              obj['imsss:minNormalizedMeasure'] ||
+              obj.minNormalizedMeasure ||
+              '0'
+            ),
+          });
+        }
+      });
+    }
+  }
+
+  return objectives;
+}
+
+function extractObjectives(manifest: any, organizations: ScormOrganization[]): ScormObjective[] {
+  const allObjectives: ScormObjective[] = [];
+  const seenIds = new Set<string>();
+
+  // Extract objectives from all items in all organizations
+  function collectFromItems(items: ScormItem[]) {
+    for (const item of items) {
+      if (item.objectives) {
+        for (const obj of item.objectives) {
+          if (!seenIds.has(obj.id)) {
+            seenIds.add(obj.id);
+            allObjectives.push(obj);
+          }
+        }
+      }
+      if (item.children) {
+        collectFromItems(item.children);
+      }
+    }
+  }
+
+  for (const org of organizations) {
+    collectFromItems(org.items);
+  }
+
+  // Also check for global objectives in the manifest
+  const globalSeq =
+    manifest['imsss:sequencingCollection'] ||
+    manifest['adlseq:sequencingCollection'] ||
+    manifest.sequencingCollection;
+
+  if (globalSeq) {
+    const globalObjectives =
+      globalSeq['imsss:sequencing']?.['imsss:objectives']?.['imsss:objective'] ||
+      globalSeq['adlseq:sequencing']?.['adlseq:objectives']?.['adlseq:objective'] ||
+      globalSeq.sequencing?.objectives?.objective;
+
+    if (globalObjectives) {
+      const objArr = Array.isArray(globalObjectives) ? globalObjectives : [globalObjectives];
+      objArr.forEach((obj: any) => {
+        const objId = obj['$']?.objectiveID;
+        if (objId && !seenIds.has(objId)) {
+          seenIds.add(objId);
+          allObjectives.push({
+            id: objId,
+            satisfiedByMeasure: obj['$']?.satisfiedByMeasure === 'true',
+            minNormalizedMeasure: parseFloat(
+              obj['imsss:minNormalizedMeasure'] ||
+              obj.minNormalizedMeasure ||
+              '0'
+            ),
+          });
+        }
+      });
+    }
+  }
+
+  return allObjectives;
 }
 
 function parseFiles(files: any): string[] {
