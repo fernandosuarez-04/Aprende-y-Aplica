@@ -102,8 +102,52 @@ export async function GET(
       'X-Content-Type-Options': 'nosniff',
     });
 
-    // For HTML files, set permissive CSP to allow SCORM to function
+    // For HTML files, rewrite relative URLs and set permissive CSP
     if (fullFilePath.endsWith('.html') || fullFilePath.endsWith('.htm')) {
+      let htmlContent = await data.text();
+      
+      // Extract base directory for relative URLs
+      const pathParts = fullFilePath.split('/');
+      pathParts.pop();
+      const baseDir = pathParts.length > 0 ? pathParts.join('/') : '';
+      const baseDirPath = baseDir ? `${baseDir}/` : '';
+      
+      // Prevent content from trying to load main page in iframes
+      htmlContent = htmlContent.replace(
+        /(src|href|action)=["'](\/|http:\/\/localhost:3000\/|https?:\/\/[^\/]+:\d+\/)[^"']*["']/gi,
+        (match, attr, url) => {
+          if (url === '/' || url.match(/^https?:\/\/[^\/]+:\d+\/?$/)) {
+            return `${attr}="#"`;
+          }
+          return match;
+        }
+      );
+      
+      // Rewrite relative URLs to use the proxy
+      htmlContent = htmlContent.replace(
+        /(src|href)=["']([^"']+)["']/gi,
+        (match, attr, url) => {
+          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('mailto:') || url.startsWith('#')) {
+            return match;
+          }
+          const relativePath = url.startsWith('/') ? url.substring(1) : url;
+          const resourcePath = baseDirPath ? `${baseDirPath}${relativePath}` : relativePath;
+          return `${attr}="${req.nextUrl.origin}/api/scorm/content/${orgId}/${packageId}/${resourcePath}"`;
+        }
+      );
+      
+      // Rewrite CSS URLs
+      htmlContent = htmlContent.replace(
+        /url\(["']?([^"')]+)["']?\)/gi,
+        (match, url) => {
+          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('/')) {
+            return match;
+          }
+          const resourcePath = baseDirPath ? `${baseDirPath}${url}` : url;
+          return `url("${req.nextUrl.origin}/api/scorm/content/${orgId}/${packageId}/${resourcePath}")`;
+        }
+      );
+      
       // Allow scripts, styles, images, fonts, and connections needed for SCORM
       headers.set(
         'Content-Security-Policy',
@@ -116,10 +160,20 @@ export async function GET(
         "media-src 'self' data: blob: https:; " +
         "frame-ancestors 'self';"
       );
+      headers.set('X-Frame-Options', 'SAMEORIGIN');
+      
+      return new NextResponse(htmlContent, { headers });
     }
 
+    // Set frame options for all files
+    headers.set('X-Frame-Options', 'SAMEORIGIN');
+    headers.set(
+      'Content-Security-Policy',
+      "frame-ancestors 'self';"
+    );
+    
     // Return appropriate response based on file type
-    if (isTextFile(fullFilePath)) {
+    if (isTextFile(fullFilePath) && !fullFilePath.endsWith('.html') && !fullFilePath.endsWith('.htm')) {
       const text = await data.text();
       return new NextResponse(text, { headers });
     } else {
