@@ -534,6 +534,27 @@ export class SCORMAPIAdapter {
     }
 
     this.terminated = true;
+    
+    // Get current completion status and score before terminating
+    const completionStatus = this.cache.get('cmi.completion_status') || 
+                            this.cache.get('cmi.core.lesson_status') || 
+                            'unknown';
+    const scoreKey = this.config.version === 'SCORM_2004'
+      ? 'cmi.score.raw'
+      : 'cmi.core.score.raw';
+    const score = parseFloat(this.cache.get(scoreKey) || '');
+    
+    // Trigger onComplete callback when finishing
+    // This ensures the completion modal is shown even if status wasn't explicitly set
+    if (this.config.onComplete) {
+      const finalStatus = completionStatus === 'completed' || 
+                         completionStatus === 'passed' || 
+                         completionStatus === 'failed'
+        ? completionStatus
+        : 'completed'; // Default to completed if status is unknown
+      this.config.onComplete(finalStatus, isNaN(score) ? undefined : score);
+    }
+    
     this.terminateAsync();
     this.lastError = '0';
     return 'true';

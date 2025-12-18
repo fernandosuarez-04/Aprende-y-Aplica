@@ -95,6 +95,22 @@ export function SCORMPlayer({
         const iframeDoc = iframe.contentDocument;
         const iframeHead = iframeDoc.head || iframeDoc.getElementsByTagName('head')[0];
         
+        // Interceptar window.close() dentro del iframe
+        // Cuando el contenido SCORM intenta cerrar la ventana, disparar el callback de completado
+        const originalClose = iframeWindow.close;
+        iframeWindow.close = function() {
+          console.log('[SCORMPlayer] Content attempted to close window. Triggering completion...');
+          // Disparar el callback de completado para mostrar el modal
+          if (adapterRef.current && !adapterRef.current.isTerminated()) {
+            // Si el adapter no está terminado, llamar a LMSFinish para guardar el estado
+            adapterRef.current.LMSFinish('');
+          } else {
+            // Si ya está terminado, solo disparar el callback
+            onComplete?.('completed', undefined);
+          }
+          // No cerrar realmente la ventana, solo prevenir el cierre
+        };
+        
         // Suprimir mensajes de error relacionados con objetivos SCORM y errores comunes
         if (iframeWindow.console) {
           const originalError = iframeWindow.console.error;
@@ -179,7 +195,7 @@ export function SCORMPlayer({
       // Esto es normal si el iframe tiene restricciones de seguridad o está en otro dominio
       // En ese caso, el filtro CSS aplicado al iframe mismo ayudará con el contraste
     }
-  }, []);
+  }, [onComplete]);
 
   const handleIframeError = useCallback(() => {
     setError('Failed to load SCORM content');

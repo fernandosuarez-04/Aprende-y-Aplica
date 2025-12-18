@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { SCORMPlayer, SCORMProgress, useScormPackage, useScormAttempts } from '@/features/scorm';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 export default function ScormCoursePage() {
@@ -18,6 +18,16 @@ export default function ScormCoursePage() {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completionData, setCompletionData] = useState<{ status: string; score?: number } | null>(null);
 
+  // Definir handleComplete antes de usarlo en useEffect
+  const handleComplete = useCallback((status: string, score?: number) => {
+    refetchAttempts();
+    setCompletionData({ status, score });
+    
+    // Mostrar modal de completado siempre que se complete el curso
+    // (incluso si el status es 'unknown', lo tratamos como completado)
+    setShowCompletionModal(true);
+  }, [refetchAttempts]);
+
   // Debug: Log when package data is loaded
   useEffect(() => {
     if (package_) {
@@ -29,40 +39,30 @@ export default function ScormCoursePage() {
 
   // Interceptar intentos de cerrar ventana desde el contenido SCORM
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Permitir que el contenido SCORM guarde antes de salir
-      // No bloquear, solo permitir que termine correctamente
-    };
-
-    // Interceptar window.close() desde el iframe
+    // Interceptar window.close() en la ventana principal como respaldo
+    // (aunque el iframe debería manejar esto primero)
     const originalClose = window.close;
     window.close = function() {
-      // Si el contenido SCORM intenta cerrar, redirigir al curso en su lugar
+      // Si hay datos de completado, redirigir al curso en su lugar
       if (completionData) {
         router.push(`/courses/${courseId}`);
         return;
       }
-      // Permitir cierre normal si no hay datos de completado
+      // Si no hay datos de completado pero estamos en la página SCORM,
+      // intentar disparar el completado antes de cerrar
+      if (package_) {
+        // El SCORMPlayer debería manejar esto, pero como respaldo:
+        handleComplete('completed', undefined);
+        return;
+      }
+      // Permitir cierre normal en otros casos
       return originalClose.call(window);
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       window.close = originalClose;
     };
-  }, [completionData, courseId, router]);
-
-  const handleComplete = (status: string, score?: number) => {
-    refetchAttempts();
-    setCompletionData({ status, score });
-    
-    // Mostrar modal de completado
-    if (status === 'completed' || status === 'passed' || status === 'failed') {
-      setShowCompletionModal(true);
-    }
-  };
+  }, [completionData, courseId, router, package_, handleComplete]);
 
   const handleError = (error: string) => {
     console.error('SCORM Error:', error);
