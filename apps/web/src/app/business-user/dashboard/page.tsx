@@ -4,23 +4,25 @@ import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { 
-      BookOpen, 
-      Clock, 
-      Award, 
-      CheckCircle2, 
-      PlayCircle, 
-      TrendingUp, 
-      Loader2, 
-      AlertCircle,
-      Edit3,
-      LogOut,
-      ChevronDown,
-      User,
-      Building2
-    } from 'lucide-react'
+import {
+  BookOpen,
+  Clock,
+  Award,
+  CheckCircle2,
+  PlayCircle,
+  TrendingUp,
+  Loader2,
+  AlertCircle,
+  Edit3,
+  LogOut,
+  ChevronDown,
+  User,
+  Building2,
+  Package
+} from 'lucide-react'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
+import { useBusinessUserScormPackages, AssignedScormPackage } from '@/features/scorm'
 import { getBackgroundStyle, generateCSSVariables, hexToRgb } from '@/features/business-panel/utils/styles'
 
 // Lazy load components
@@ -36,8 +38,11 @@ const ModernNavbar = lazy(() =>
 const ModernStatsCard = lazy(() => 
   import('./components/ModernStatsCard').then(m => ({ default: m.ModernStatsCard }))
 )
-const CourseCard3D = lazy(() => 
+const CourseCard3D = lazy(() =>
   import('./components/CourseCard3D').then(m => ({ default: m.CourseCard3D }))
+)
+const ScormCoursesSection = lazy(() =>
+  import('./components/ScormCoursesSection').then(m => ({ default: m.ScormCoursesSection }))
 )
 
 interface DashboardStats {
@@ -90,6 +95,13 @@ export default function BusinessUserDashboardPage() {
     certificates: 0
   })
   const [assignedCourses, setAssignedCourses] = useState<AssignedCourse[]>([])
+
+  // SCORM packages
+  const {
+    packages: scormPackages,
+    stats: scormStats,
+    isLoading: scormLoading
+  } = useBusinessUserScormPackages()
 
   // Obtener información de la organización
   useEffect(() => {
@@ -196,6 +208,10 @@ export default function BusinessUserDashboardPage() {
     await logout()
     router.push('/auth')
   }, [logout, router])
+
+  const handleScormPackageClick = useCallback((packageId: string) => {
+    router.push(`/business-user/scorm/${packageId}`)
+  }, [router])
 
   const handleProfileClick = useCallback(() => {
     router.push('/profile')
@@ -393,6 +409,50 @@ export default function BusinessUserDashboardPage() {
               </div>
             )}
           </div>
+
+          {/* SCORM Courses Section */}
+          {(scormPackages.length > 0 || scormLoading) && (
+            <div className="mt-12">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="flex items-center gap-3 mb-6"
+              >
+                <Package className="w-6 h-6 text-primary" />
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
+                  Cursos SCORM
+                </h2>
+                {scormStats.total > 0 && (
+                  <span className="px-2.5 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full">
+                    {scormStats.total} {scormStats.total === 1 ? 'curso' : 'cursos'}
+                  </span>
+                )}
+              </motion.div>
+              <Suspense fallback={
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {[0, 1, 2].map((index) => (
+                    <div
+                      key={index}
+                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 p-6 animate-pulse"
+                    >
+                      <div className="h-48 bg-gray-200 dark:bg-gray-800 rounded mb-4" />
+                      <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded mb-2 w-3/4" />
+                      <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded mb-4 w-1/2" />
+                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded" />
+                    </div>
+                  ))}
+                </div>
+              }>
+                <ScormCoursesSection
+                  packages={scormPackages}
+                  isLoading={scormLoading}
+                  styles={userDashboardStyles}
+                  onPackageClick={handleScormPackageClick}
+                />
+              </Suspense>
+            </div>
+          )}
         </div>
       </main>
     </div>

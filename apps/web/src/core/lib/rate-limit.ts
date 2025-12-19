@@ -53,7 +53,7 @@ export const RATE_LIMITS = {
   
   // Upload operations: 20 por hora
   upload: {
-    maxRequests: 20,
+    maxRequests: 30,
     windowMs: 60 * 60 * 1000, // 1 hora
     message: 'Límite de subidas alcanzado. Intenta nuevamente en 1 hora.'
   },

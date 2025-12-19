@@ -93,7 +93,7 @@ export interface SCORMPlayerProps {
 }
 
 export interface SCORMUploaderProps {
-  courseId: string;
+  courseId?: string;
   organizationId: string;
   onSuccess?: (packageData: ScormPackage) => void;
   onError?: (error: string) => void;

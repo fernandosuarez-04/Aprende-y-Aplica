@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '../../../lib/utils/logger';
 import { createClient } from '../../../lib/supabase/server';
-import type { CourseLessonContext } from '../../../core/types/lia.types';
+import type { CourseLessonContext, ScormLessonContext } from '../../../core/types/lia.types';
 import { checkRateLimit } from '../../../core/lib/rate-limit';
 import { calculateCost, logOpenAIUsage } from '../../../lib/openai/usage-monitor';
 import type { Database } from '../../../lib/supabase/types';
@@ -455,15 +455,16 @@ const getContextPrompt = (
   context: string,
   userName?: string,
   courseContext?: CourseLessonContext,
-  workshopContext?: CourseLessonContext, // ✅ Nuevo: contexto para talleres
+  workshopContext?: CourseLessonContext,
+  scormContext?: ScormLessonContext,
   pageContext?: PageContext,
   userRole?: string,
   language: SupportedLanguage = 'es',
-  isFirstMessage: boolean = false,  // ✅ Nuevo parámetro para detectar primer mensaje
-  studyPlannerContextString?: string  // ✅ Nuevo: contexto detallado del planificador de estudios
+  isFirstMessage: boolean = false,
+  studyPlannerContextString?: string
 ) => {
   // Obtener rol del usuario (priorizar el pasado como parámetro, luego del contexto)
-  const role = userRole || courseContext?.userRole || workshopContext?.userRole;
+  const role = userRole || courseContext?.userRole || workshopContext?.userRole || scormContext?.userRole;
   
   // Personalización con el nombre del usuario
   const nameGreeting = userName && userName !== 'usuario' 
@@ -932,6 +933,35 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
       : '';
 
     workshopMetadataInfo = `${workshopInfo}${currentModuleInfo}${currentLessonInfo}${modulesAndLessonsInfo}${workshopActivitiesInfo}${workshopDifficultyInfo}${workshopBehaviorInfo}${workshopProgressInfo}`;
+  }
+
+  // 📦 Construir información de metadatos SCORM si está disponible
+  let scormMetadataInfo = '';
+  if (context === 'scorm' && scormContext) {
+    const scormInfo = scormContext.packageTitle
+      ? `\n\nCURSO SCORM ACTUAL:\n- Título: ${scormContext.packageTitle}${scormContext.packageDescription ? `\n- Descripción: ${scormContext.packageDescription}` : ''}\n- Versión SCORM: ${scormContext.scormVersion}`
+      : '';
+
+    // Objetivos de aprendizaje del manifest
+    let objectivesInfo = '';
+    if (scormContext.objectives && scormContext.objectives.length > 0) {
+      objectivesInfo = '\n\nOBJETIVOS DE APRENDIZAJE:\n';
+      scormContext.objectives.forEach((obj, index) => {
+        objectivesInfo += `${index + 1}. ${obj.id}${obj.description ? `: ${obj.description}` : ''}\n`;
+      });
+    }
+
+    // Estructura del curso desde el manifest
+    const structureInfo = scormContext.courseStructure
+      ? `\n\nESTRUCTURA DEL CURSO:\n${scormContext.courseStructure}`
+      : '';
+
+    // Progreso actual
+    const progressInfo = scormContext.currentProgress !== undefined
+      ? `\n\n📊 PROGRESO ACTUAL: ${scormContext.currentProgress}%${scormContext.lessonStatus ? ` (Estado: ${scormContext.lessonStatus})` : ''}`
+      : '';
+
+    scormMetadataInfo = `${scormInfo}${objectivesInfo}${structureInfo}${progressInfo}`;
   }
 
   const contexts: Record<string, string> = {
@@ -1677,9 +1707,40 @@ Genera un JSON con la siguiente estructura:
   }
 }
 
-Responde SOLO con el JSON, sin texto adicional.`
+Responde SOLO con el JSON, sin texto adicional.`,
+
+    // 📦 Contexto para cursos SCORM
+    scorm: `${languageNote}
+
+Eres Lia, un asistente de aprendizaje especializado en ayudar a estudiantes con cursos SCORM.
+${nameGreeting}${scormMetadataInfo}
+
+SOBRE LOS CURSOS SCORM:
+- Los cursos SCORM son contenidos de aprendizaje interactivo estandarizados
+- El contenido se ejecuta en un iframe y tú NO puedes ver su contenido interno
+- Solo tienes acceso a la metadata del paquete SCORM (título, descripción, objetivos de aprendizaje, estructura)
+
+TU ROL COMO ASISTENTE:
+1. Ayudar al estudiante a entender los objetivos de aprendizaje del curso
+2. Proporcionar contexto sobre la estructura del curso
+3. Responder preguntas generales sobre los temas del curso basándote en los objetivos
+4. Motivar y guiar al estudiante en su progreso
+5. Si el estudiante pregunta algo específico del contenido que no puedes ver, sugiérele que revise el contenido del curso
+
+LIMITACIONES:
+- NO puedes ver el contenido específico que se muestra en el curso SCORM
+- Solo conoces los objetivos de aprendizaje y la estructura del manifiesto
+- Si te preguntan sobre algo específico del contenido, indica que deben revisar el material del curso
+
+FORMATO DE RESPUESTAS:
+- Responde de forma clara y concisa
+- Usa listas cuando sea apropiado
+- Proporciona ejemplos relevantes cuando sea útil
+- Siempre mantén un tono motivador y de apoyo
+
+${roleInfo}${navigationLinksInfo}`
   };
-  
+
   return contexts[context] || contexts.general;
 };
 
@@ -1827,7 +1888,8 @@ export async function POST(request: NextRequest) {
       userName,
       userInfo: userInfoFromRequest,
       courseContext,
-      workshopContext, // ✅ Nuevo: contexto para talleres
+      workshopContext,
+      scormContext,
       pageContext,
       isSystemMessage = false,
       conversationId: existingConversationId,
@@ -1846,7 +1908,8 @@ export async function POST(request: NextRequest) {
         type_rol?: string;
       };
       courseContext?: CourseLessonContext;
-      workshopContext?: CourseLessonContext; // ✅ Nuevo: contexto para talleres
+      workshopContext?: CourseLessonContext;
+      scormContext?: ScormLessonContext;
       pageContext?: PageContext;
       isSystemMessage?: boolean;
       conversationId?: string;
@@ -1976,7 +2039,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener el prompt de contexto específico con el nombre del usuario, rol, contexto de curso/taller y contexto de página
-    let contextPrompt = getContextPrompt(effectiveContext, displayName, courseContext, workshopContext, pageContext, userRole, effectiveLanguage, isFirstMessage, studyPlannerContextString);
+    let contextPrompt = getContextPrompt(effectiveContext, displayName, courseContext, workshopContext, scormContext, pageContext, userRole, effectiveLanguage, isFirstMessage, studyPlannerContextString);
 
     // ✅ VALIDACIÓN DE HORARIOS: Detectar y validar solicitudes de cambio de horarios
     if (context === 'study-planner' && user) {

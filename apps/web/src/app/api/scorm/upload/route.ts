@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!courseId || !organizationId) {
+    if (!organizationId) {
       return NextResponse.json(
-        { error: 'courseId and organizationId are required' },
+        { error: 'organizationId is required' },
         { status: 400 }
       );
     }
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       .insert({
         id: packageId,
         organization_id: organizationId,
-        course_id: courseId,
+        course_id: courseId || null,
         title: manifest.title,
         description: manifest.description,
         version: manifest.version,

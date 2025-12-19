@@ -109,12 +109,70 @@ export interface GeneratedNanoBananaData {
   outputFormat: OutputFormat;
 }
 
+/**
+ * Información de objetivo SCORM para contexto de LIA
+ */
+export interface ScormObjectiveInfo {
+  id: string;
+  description?: string;
+  satisfiedByMeasure?: boolean;
+  minNormalizedMeasure?: number;
+}
+
+/**
+ * Información de item SCORM (estructura del curso)
+ */
+export interface ScormItemInfo {
+  identifier: string;
+  title: string;
+  children?: ScormItemInfo[];
+}
+
+/**
+ * Información de organización SCORM
+ */
+export interface ScormOrganizationInfo {
+  identifier: string;
+  title: string;
+  items: ScormItemInfo[];
+}
+
+/**
+ * Contexto para paquetes SCORM
+ * Usado por LIA para entender la estructura y objetivos del contenido SCORM
+ */
+export interface ScormLessonContext {
+  contextType: 'scorm';
+
+  // Información del paquete
+  packageId: string;
+  packageTitle: string;
+  packageDescription?: string;
+  scormVersion: 'SCORM_1.2' | 'SCORM_2004';
+
+  // Objetivos de aprendizaje del manifest
+  objectives: ScormObjectiveInfo[];
+
+  // Estructura del curso (formateada para LIA)
+  courseStructure: string;
+
+  // Organizaciones del manifest (estructura completa)
+  organizations?: ScormOrganizationInfo[];
+
+  // Progreso actual
+  currentProgress?: number;
+  lessonStatus?: string;
+
+  // Información del usuario
+  userRole?: string;
+}
+
 export interface LiaMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  // 🎨 Datos de NanoBanana generado (opcional)
+  // Datos de NanoBanana generado (opcional)
   generatedNanoBanana?: GeneratedNanoBananaData;
 }
 

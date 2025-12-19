@@ -38,7 +38,9 @@ export function SCORMUploader({
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('courseId', courseId);
+    if (courseId) {
+      formData.append('courseId', courseId);
+    }
     formData.append('organizationId', organizationId);
 
     try {
