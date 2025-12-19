@@ -41,11 +41,23 @@ export async function loginAction(formData: FormData) {
     // Buscar usuario por username o email (case-insensitive match exacto)
 
     // Intentar buscar por username primero
+    console.log('🔍 [loginAction] Buscando usuario con:', {
+      input: parsed.emailOrUsername,
+      isEmail: parsed.emailOrUsername.includes('@')
+    });
+
     let { data: userByUsername, error: usernameError } = await supabase
       .from('users')
       .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
       .ilike('username', parsed.emailOrUsername)
       .maybeSingle()
+
+    console.log('🔍 [loginAction] Resultado búsqueda por username:', {
+      found: !!userByUsername,
+      username: userByUsername?.username,
+      error: usernameError?.message
+    });
 
     // Si no se encuentra por username, buscar por email
     let { data: userByEmail, error: emailError } = await supabase
@@ -53,6 +65,12 @@ export async function loginAction(formData: FormData) {
       .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
       .ilike('email', parsed.emailOrUsername)
       .maybeSingle()
+
+    console.log('🔍 [loginAction] Resultado búsqueda por email:', {
+      found: !!userByEmail,
+      email: userByEmail?.email,
+      error: emailError?.message
+    });
 
     // Determinar qué usuario usar (prioridad: username > email)
     const user = userByUsername || userByEmail
@@ -66,7 +84,11 @@ export async function loginAction(formData: FormData) {
     })
 
     if (error || !user) {
-      console.log('❌ [loginAction] Usuario NO encontrado en la base de datos')
+      console.log('❌ [loginAction] Usuario NO encontrado:', {
+        usernameError: usernameError?.message,
+        emailError: emailError?.message,
+        inputProvided: parsed.emailOrUsername
+      });      console.log('❌ [loginAction] Usuario NO encontrado en la base de datos')
       return { error: 'Credenciales inválidas' }
     }
 
@@ -89,16 +111,15 @@ export async function loginAction(formData: FormData) {
     const user_final = { ...user, organization_id: userOrganizationId } as typeof user & { organization_id: string | null }
 
     console.log('👤 [loginAction] Usuario encontrado:', {
-      id: user_final.id,
-      username: user_final.username,
-      email: user_final.email,
-      cargo_rol: user_final.cargo_rol,
-      organization_id: user_final.organization_id
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      cargo_rol: user.cargo_rol
     });
 
     // ⭐ MODERACIÓN: Verificar si el usuario está baneado
     if ((user as any).is_banned) {
-      return { 
+      return {
         error: `❌ Tu cuenta ha sido suspendida por violaciones de las reglas de la comunidad. ${(user as any).ban_reason || ''}`,
         banned: true
       }
@@ -126,10 +147,10 @@ export async function loginAction(formData: FormData) {
         const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service')
         const headersList = await headers()
         const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-                   headersList.get('x-real-ip') ||
-                   'unknown'
+          headersList.get('x-real-ip') ||
+          'unknown'
         const userAgent = headersList.get('user-agent') || 'unknown'
-        
+
         await AutoNotificationsService.notifyLoginFailed(user.id, ip, userAgent, {
           timestamp: new Date().toISOString()
         })
@@ -181,14 +202,13 @@ export async function loginAction(formData: FormData) {
         .eq('status', 'active')
         .single()
 
-      const belongsViaTable = !!orgUser
-      const belongsToOrganization = belongsViaDirect || belongsViaTable
+      const belongsToOrganization = !!orgUser
 
       if (!belongsToOrganization) {
         // Usuario NO pertenece a esta organización - buscar su organización correcta
         let correctSlug: string | null = null
 
-        // Prioridad 1: Buscar en organization_users (más reciente por joined_at)
+        // Buscar en organization_users (más reciente por joined_at)
         const { data: userOrgs } = await supabase
           .from('organization_users')
           .select('organization_id, joined_at, organizations!inner(slug)')
@@ -246,8 +266,8 @@ export async function loginAction(formData: FormData) {
       const headersList = await headers()
       const userAgent = headersList.get('user-agent') || 'unknown'
       const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-                 headersList.get('x-real-ip') ||
-                 'unknown'
+        headersList.get('x-real-ip') ||
+        'unknown'
 
       console.log('📋 [loginAction] Contexto obtenido:', {
         hasHeaders: !!headersList,
@@ -305,14 +325,14 @@ export async function loginAction(formData: FormData) {
       try {
         logger.info('🔔 Iniciando creación de notificación de login', { userId: user.id })
         const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service')
-        
+
         // Usar Promise.race con timeout para no bloquear el login más de 2 segundos
         await Promise.race([
           AutoNotificationsService.notifyLoginSuccess(user.id, ip, userAgent, {
             rememberMe: parsed.rememberMe,
             timestamp: new Date().toISOString()
           }),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Timeout')), 2000)
           )
         ]).catch((error) => {
@@ -346,10 +366,8 @@ export async function loginAction(formData: FormData) {
     }
 
     // 7. Limpiar sesiones expiradas (mantenimiento)
-
     try {
       await AuthService.clearExpiredSessions()
-
     } catch (clearError) {
       // No fallar el login si falla la limpieza
     }
@@ -414,18 +432,41 @@ export async function loginAction(formData: FormData) {
     });
 
     if (normalizedRole === 'Administrador') {
-
       redirect('/admin/dashboard')
-    } else if (normalizedRole === 'Instructor') {
+    } else if (normalizedRole === 'Business' || normalizedRole === 'Business User') {
+      // Para roles de empresa, verificar que pertenezca a una organización
+      const { data: userOrg, error: orgError } = await supabase
+        .from('organization_users')
+        .select('organization_id, status, organizations!inner(id, name, slug, is_active)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single()
 
-      redirect('/instructor/dashboard')
-    } else if (normalizedRole === 'Business') {
+      if (orgError || !userOrg) {
+        console.log('⚠️ [loginAction] Usuario Business sin organización activa:', {
+          userId: user.id,
+          cargo_rol: normalizedRole,
+          error: orgError?.message
+        })
+        // Si no pertenece a ninguna organización, redirigir al dashboard normal
+        redirect('/dashboard')
+      }
 
-      redirect('/business-panel/dashboard')
-    } else if (normalizedRole === 'Business User') {
+      console.log('✅ [loginAction] Usuario Business con organización:', {
+        userId: user.id,
+        cargo_rol: normalizedRole,
+        organizationId: userOrg.organization_id,
+        organizationName: userOrg.organizations?.name
+      })
 
-      redirect('/business-user/dashboard')
+      // Redirigir según el rol específico
+      if (normalizedRole === 'Business') {
+        redirect('/business-panel/dashboard')
+      } else {
+        redirect('/business-user/dashboard')
+      }
     } else {
+      // Usuario normal o sin rol definido → Tour de SOFIA + Planes
       redirect('/dashboard')
     }
   } catch (error) {
@@ -449,7 +490,7 @@ export async function loginAction(formData: FormData) {
       if (error.message.includes('password_hash') || error.message.includes('password')) {
         return { error: 'Error al verificar las credenciales. Por favor, intenta nuevamente.' }
       }
-      
+
       if (error.message.includes('session') || error.message.includes('cookie')) {
         return { error: 'Error al crear la sesión. Por favor, verifica las cookies de tu navegador.' }
       }

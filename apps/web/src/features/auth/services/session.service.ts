@@ -18,23 +18,23 @@ export class SessionService {
    * @returns Información de la sesión legacy creada (token y fecha de expiración)
    */
   static async createLegacySession(
-    userId: string, 
+    userId: string,
     rememberMe: boolean = false
   ): Promise<{ sessionToken: string; expiresAt: Date }> {
     logger.debug('Creando sesión legacy para compatibilidad');
-    
+
     // Obtener headers
     const headersList = await headers();
     const userAgent = headersList.get('user-agent') || 'unknown';
-    const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-               headersList.get('x-real-ip') || 
-               '127.0.0.1';
-    
+    const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      headersList.get('x-real-ip') ||
+      '127.0.0.1';
+
     const sessionToken = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000);
-    
+
     const supabase = await createClient();
-    
+
     const legacySession: any = {
       user_id: userId,
       jwt_id: sessionToken,
@@ -44,16 +44,16 @@ export class SessionService {
       user_agent: userAgent,
       revoked: false,
     };
-    
+
     const { error: legacyError } = await supabase.from('user_session').insert(legacySession);
-    
+
     if (legacyError) {
       logger.error('Error creando sesión legacy (no crítico)', legacyError);
       throw new Error(`Error creando sesión legacy: ${legacyError.message}`);
     }
-    
+
     logger.debug('✅ Sesión legacy creada exitosamente');
-    
+
     return { sessionToken, expiresAt };
   }
 
@@ -65,20 +65,20 @@ export class SessionService {
     try {
       logger.debug('SessionService: Obteniendo usuario actual');
       const cookieStore = await cookies();
-      
+
       // Intentar obtener userId desde el sistema de refresh tokens primero
       const accessToken = cookieStore.get('access_token')?.value;
       let userId: string | null = null;
-      
+
       if (accessToken) {
         // Sistema nuevo: buscar en refresh_tokens
         logger.debug('Usando sistema de refresh tokens');
         const supabase = await createClient();
-        
+
         // Buscar refresh token activo para este usuario
         // (no podemos decodificar el access token sin JWT, así que usamos el refresh token)
         const refreshToken = cookieStore.get('refresh_token')?.value;
-        
+
         if (refreshToken) {
           // ⚡ OPTIMIZACIÓN CRÍTICA: Hash y query directo en lugar de fetch ALL + loop
           // ANTES: Fetch ALL tokens → loop con crypto verification (3-5 segundos)
@@ -108,19 +108,19 @@ export class SessionService {
               .from('refresh_tokens')
               .update({ last_used_at: new Date().toISOString() })
               .eq('id', token.id)
-              .then(() => {})
-              .catch(() => {}); // Fire and forget
+              .then(() => { })
+              .catch(() => { }); // Fire and forget
           }
         } else {
           logger.debug('No hay refresh token en cookie');
         }
       }
-      
+
       // Fallback al sistema legacy si no se encontró con refresh tokens
       if (!userId) {
         logger.debug('Usando sistema legacy (user_session)');
         const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
-        
+
         if (!sessionToken) {
           logger.debug('No hay token de sesión legacy en cookie');
           return null;
@@ -136,7 +136,7 @@ export class SessionService {
         }
 
         const supabase = await createClient();
-        
+
         // Buscar sesión válida - validar que el token en la cookie corresponda al jwt_id en la DB
         logger.debug('Buscando sesión legacy en DB con jwt_id', {
           tokenPrefix: sessionToken.substring(0, 8) + '...'
@@ -157,17 +157,17 @@ export class SessionService {
           });
           return null;
         }
-        
+
         if (!session) {
           logger.warn('⚠️ Sesión legacy no encontrada o inválida');
           return null;
         }
-        
+
         logger.auth('✅ Sesión legacy válida encontrada', {
           userId: session.user_id,
           expiresAt: session.expires_at
         });
-        
+
         userId = (session as any).user_id;
       }
 
@@ -176,11 +176,12 @@ export class SessionService {
         logger.debug('No se pudo determinar userId de ninguna sesión');
         return null;
       }
-      
+
       logger.debug('Buscando usuario con ID', { userId });
       const supabase = await createClient();
       const { data: user, error: userError } = await supabase
         .from('users')
+        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned, signature_url, signature_name')
         .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned, signature_url, signature_name')
         .eq('id', userId)
         .single();
@@ -204,7 +205,7 @@ export class SessionService {
         });
         return null;
       }
-      
+
       if (!user) {
         logger.warn('⚠️ Usuario no encontrado en la DB', { userId });
         return null;
@@ -233,6 +234,7 @@ export class SessionService {
         role: (userWithOrg as any).role
       });
 
+
       // Cachear por token de sesión para evitar consultas repetidas
       const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
       if (sessionToken) {
@@ -257,40 +259,40 @@ export class SessionService {
     try {
       logger.auth('🚪 Destruyendo sesión');
       const cookieStore = await cookies();
-      
+
       // Obtener el user_id de la sesión actual para revocar todos sus refresh tokens
       const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
       let userId: string | null = null;
-      
+
       if (sessionToken) {
         const supabase = await createClient();
-        
+
         // Obtener user_id de la sesión legacy
         const { data: session } = await supabase
           .from('user_session')
           .select('user_id')
           .eq('jwt_id', sessionToken)
           .single();
-        
+
         if (session) {
           userId = (session as any).user_id;
         }
-        
+
         // Marcar sesión legacy como revocada
         await (supabase
           .from('user_session') as any)
           .update({ revoked: true })
           .eq('jwt_id', sessionToken);
-        
+
         logger.debug('Sesión legacy revocada');
       }
-      
+
       // Revocar todos los refresh tokens del usuario
       if (userId) {
         await RefreshTokenService.revokeAllUserTokens(userId, 'user_logout');
         logger.auth('✅ Todos los refresh tokens del usuario revocados');
       }
-      
+
       // Eliminar cookies (tanto legacy como refresh tokens)
       cookieStore.set(this.SESSION_COOKIE_NAME, '', {
         httpOnly: true,
@@ -300,11 +302,11 @@ export class SessionService {
         path: '/',
       });
       cookieStore.delete(this.SESSION_COOKIE_NAME);
-      
+
       // Eliminar cookies de refresh token system
       cookieStore.delete('access_token');
       cookieStore.delete('refresh_token');
-      
+
       logger.auth('✅ Sesión destruida completamente');
     } catch (error) {
       logger.error('❌ Error destroying session:', error);
@@ -315,7 +317,7 @@ export class SessionService {
   static async validateSession(sessionToken: string): Promise<boolean> {
     try {
       const supabase = await createClient();
-      
+
       const { data: session, error } = await supabase
         .from('user_session')
         .select('id')

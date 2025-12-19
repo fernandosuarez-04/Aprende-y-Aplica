@@ -1,24 +1,58 @@
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
 
+export interface AdminCompanyMember {
+  id: string
+  user_id: string
+  role: string | null
+  status: string | null
+  joined_at: string | null
+  user?: {
+    id: string
+    email: string
+    username: string | null
+    first_name: string | null
+    last_name: string | null
+    display_name: string | null
+    profile_picture_url: string | null
+  }
+}
+
 export interface AdminCompany {
   id: string
   name: string
   slug: string | null
+  description: string | null
   logo_url: string | null
+  brand_logo_url: string | null
+  brand_banner_url: string | null
+  brand_favicon_url: string | null
+  // Branding colors
+  brand_color_primary: string | null
+  brand_color_secondary: string | null
+  brand_color_accent: string | null
+  brand_font_family: string | null
+  // Contact
   contact_email: string | null
   contact_phone: string | null
   website_url: string | null
+  // Subscription
   subscription_plan: string | null
   subscription_status: string | null
+  subscription_start_date: string | null
+  subscription_end_date: string | null
   is_active: boolean
   max_users: number | null
+  // Stats
   total_users: number
   active_users: number
   invited_users: number
   suspended_users: number
+  // Dates
   created_at: string
   updated_at: string
+  // Members
+  members: AdminCompanyMember[]
 }
 
 export interface CompanyStats {
@@ -32,57 +66,124 @@ export interface CompanyStats {
 }
 
 export interface CompanyUpdatePayload {
+  name?: string
+  slug?: string | null
+  description?: string | null
+  logo_url?: string | null
+  brand_logo_url?: string | null
+  brand_banner_url?: string | null
+  brand_favicon_url?: string | null
+  brand_color_primary?: string | null
+  brand_color_secondary?: string | null
+  brand_color_accent?: string | null
+  brand_font_family?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
+  website_url?: string | null
   is_active?: boolean
   subscription_status?: string
   subscription_plan?: string
   max_users?: number
 }
 
+interface OrganizationUserRow {
+  id: string
+  user_id: string
+  role: string | null
+  status: string | null
+  joined_at: string | null
+  users?: {
+    id: string
+    email: string
+    username: string | null
+    first_name: string | null
+    last_name: string | null
+    display_name: string | null
+    profile_picture_url: string | null
+  } | null
+}
+
 interface OrganizationRow {
   id: string
   name: string
   slug: string | null
+  description: string | null
   logo_url: string | null
+  brand_logo_url: string | null
+  brand_banner_url: string | null
+  brand_favicon_url: string | null
+  brand_color_primary: string | null
+  brand_color_secondary: string | null
+  brand_color_accent: string | null
+  brand_font_family: string | null
   contact_email: string | null
   contact_phone: string | null
   website_url: string | null
   subscription_plan: string | null
   subscription_status: string | null
-  is_active: boolean
+  subscription_start_date: string | null
+  subscription_end_date: string | null
+  is_active: boolean | null
   max_users: number | null
-  created_at: string
-  updated_at: string
-  organization_users?: Array<{
-    status?: string | null
-  }> | null
+  created_at: string | null
+  updated_at: string | null
+  organization_users?: OrganizationUserRow[] | null
 }
 
 export class AdminCompaniesService {
   private static mapOrganization(row: OrganizationRow): AdminCompany {
-    const members = row.organization_users || []
-    const totalUsers = members.length
-    const activeUsers = members.filter(member => member.status === 'active').length
-    const invitedUsers = members.filter(member => member.status === 'invited').length
-    const suspendedUsers = members.filter(member => member.status === 'suspended').length
+    const orgUsers = row.organization_users || []
+    const totalUsers = orgUsers.length
+    const activeUsers = orgUsers.filter(m => m.status === 'active').length
+    const invitedUsers = orgUsers.filter(m => m.status === 'invited').length
+    const suspendedUsers = orgUsers.filter(m => m.status === 'suspended').length
+
+    const members: AdminCompanyMember[] = orgUsers.map(m => ({
+      id: m.id,
+      user_id: m.user_id,
+      role: m.role,
+      status: m.status,
+      joined_at: m.joined_at,
+      user: m.users ? {
+        id: m.users.id,
+        email: m.users.email,
+        username: m.users.username,
+        first_name: m.users.first_name,
+        last_name: m.users.last_name,
+        display_name: m.users.display_name,
+        profile_picture_url: m.users.profile_picture_url
+      } : undefined
+    }))
 
     return {
       id: row.id,
       name: row.name,
       slug: row.slug,
+      description: row.description,
       logo_url: row.logo_url,
+      brand_logo_url: row.brand_logo_url,
+      brand_banner_url: row.brand_banner_url,
+      brand_favicon_url: row.brand_favicon_url,
+      brand_color_primary: row.brand_color_primary ?? '#3b82f6',
+      brand_color_secondary: row.brand_color_secondary ?? '#10b981',
+      brand_color_accent: row.brand_color_accent ?? '#8b5cf6',
+      brand_font_family: row.brand_font_family ?? 'Inter',
       contact_email: row.contact_email,
       contact_phone: row.contact_phone,
       website_url: row.website_url,
       subscription_plan: row.subscription_plan,
       subscription_status: row.subscription_status,
-      is_active: row.is_active,
+      subscription_start_date: row.subscription_start_date,
+      subscription_end_date: row.subscription_end_date,
+      is_active: row.is_active ?? true,
       max_users: row.max_users,
       total_users: totalUsers,
       active_users: activeUsers,
       invited_users: invitedUsers,
       suspended_users: suspendedUsers,
-      created_at: row.created_at,
-      updated_at: row.updated_at
+      created_at: row.created_at || new Date().toISOString(),
+      updated_at: row.updated_at || new Date().toISOString(),
+      members
     }
   }
 
@@ -95,18 +196,32 @@ export class AdminCompaniesService {
         id,
         name,
         slug,
+        description,
         logo_url,
+        brand_logo_url,
+        brand_banner_url,
+        brand_favicon_url,
+        brand_color_primary,
+        brand_color_secondary,
+        brand_color_accent,
+        brand_font_family,
         contact_email,
         contact_phone,
         website_url,
         subscription_plan,
         subscription_status,
+        subscription_start_date,
+        subscription_end_date,
         is_active,
         max_users,
         created_at,
         updated_at,
         organization_users (
-          status
+          id,
+          user_id,
+          role,
+          status,
+          joined_at
         )
       `)
       .order('created_at', { ascending: false })
@@ -116,7 +231,79 @@ export class AdminCompaniesService {
       throw error
     }
 
-    return ((data as OrganizationRow[] | null) ?? []).map(org => this.mapOrganization(org))
+    const organizations = (data as unknown as OrganizationRow[] | null) ?? []
+
+    // Obtener datos de usuarios para los miembros
+    const allUserIds = new Set<string>()
+    organizations.forEach(org => {
+      org.organization_users?.forEach(member => {
+        allUserIds.add(member.user_id)
+      })
+    })
+
+    let usersMap: Map<string, { id: string; email: string; username: string | null; first_name: string | null; last_name: string | null; display_name: string | null; profile_picture_url: string | null }> = new Map()
+
+    if (allUserIds.size > 0) {
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, email, username, first_name, last_name, display_name, profile_picture_url')
+        .in('id', Array.from(allUserIds))
+
+      if (usersData) {
+        usersData.forEach((user: { id: string; email: string; username: string | null; first_name: string | null; last_name: string | null; display_name: string | null; profile_picture_url: string | null }) => {
+          usersMap.set(user.id, user)
+        })
+      }
+    }
+
+    // Mapear organizaciones con datos de usuarios
+    return organizations.map(org => {
+      const orgUsers = org.organization_users || []
+      const totalUsers = orgUsers.length
+      const activeUsers = orgUsers.filter(m => m.status === 'active').length
+      const invitedUsers = orgUsers.filter(m => m.status === 'invited').length
+      const suspendedUsers = orgUsers.filter(m => m.status === 'suspended').length
+
+      const members: AdminCompanyMember[] = orgUsers.map(m => ({
+        id: m.id,
+        user_id: m.user_id,
+        role: m.role,
+        status: m.status,
+        joined_at: m.joined_at,
+        user: usersMap.get(m.user_id)
+      }))
+
+      return {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        description: org.description,
+        logo_url: org.logo_url,
+        brand_logo_url: org.brand_logo_url,
+        brand_banner_url: org.brand_banner_url,
+        brand_favicon_url: org.brand_favicon_url,
+        brand_color_primary: org.brand_color_primary ?? '#3b82f6',
+        brand_color_secondary: org.brand_color_secondary ?? '#10b981',
+        brand_color_accent: org.brand_color_accent ?? '#8b5cf6',
+        brand_font_family: org.brand_font_family ?? 'Inter',
+        contact_email: org.contact_email,
+        contact_phone: org.contact_phone,
+        website_url: org.website_url,
+        subscription_plan: org.subscription_plan,
+        subscription_status: org.subscription_status,
+        subscription_start_date: org.subscription_start_date,
+        subscription_end_date: org.subscription_end_date,
+        is_active: org.is_active ?? true,
+        max_users: org.max_users,
+        total_users: totalUsers,
+        active_users: activeUsers,
+        invited_users: invitedUsers,
+        suspended_users: suspendedUsers,
+        created_at: org.created_at || new Date().toISOString(),
+        updated_at: org.updated_at || new Date().toISOString(),
+        members
+      }
+    })
   }
 
   static calculateStats(companies: AdminCompany[]): CompanyStats {
@@ -165,18 +352,32 @@ export class AdminCompaniesService {
         id,
         name,
         slug,
+        description,
         logo_url,
+        brand_logo_url,
+        brand_banner_url,
+        brand_favicon_url,
+        brand_color_primary,
+        brand_color_secondary,
+        brand_color_accent,
+        brand_font_family,
         contact_email,
         contact_phone,
         website_url,
         subscription_plan,
         subscription_status,
+        subscription_start_date,
+        subscription_end_date,
         is_active,
         max_users,
         created_at,
         updated_at,
         organization_users (
-          status
+          id,
+          user_id,
+          role,
+          status,
+          joined_at
         )
       `)
       .eq('id', id)
@@ -187,7 +388,72 @@ export class AdminCompaniesService {
       return null
     }
 
-    return data ? this.mapOrganization(data as OrganizationRow) : null
+    if (!data) return null
+
+    // Obtener datos de usuarios
+    const orgUsers = (data as unknown as OrganizationRow).organization_users || []
+    const allUserIds = orgUsers.map(m => m.user_id)
+
+    let usersMap: Map<string, { id: string; email: string; username: string | null; first_name: string | null; last_name: string | null; display_name: string | null; profile_picture_url: string | null }> = new Map()
+
+    if (allUserIds.length > 0) {
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, email, username, first_name, last_name, display_name, profile_picture_url')
+        .in('id', allUserIds)
+
+      if (usersData) {
+        usersData.forEach((user: { id: string; email: string; username: string | null; first_name: string | null; last_name: string | null; display_name: string | null; profile_picture_url: string | null }) => {
+          usersMap.set(user.id, user)
+        })
+      }
+    }
+
+    const org = data as unknown as OrganizationRow
+    const totalUsers = orgUsers.length
+    const activeUsers = orgUsers.filter(m => m.status === 'active').length
+    const invitedUsers = orgUsers.filter(m => m.status === 'invited').length
+    const suspendedUsers = orgUsers.filter(m => m.status === 'suspended').length
+
+    const members: AdminCompanyMember[] = orgUsers.map(m => ({
+      id: m.id,
+      user_id: m.user_id,
+      role: m.role,
+      status: m.status,
+      joined_at: m.joined_at,
+      user: usersMap.get(m.user_id)
+    }))
+
+    return {
+      id: org.id,
+      name: org.name,
+      slug: org.slug,
+      description: org.description,
+      logo_url: org.logo_url,
+      brand_logo_url: org.brand_logo_url,
+      brand_banner_url: org.brand_banner_url,
+      brand_favicon_url: org.brand_favicon_url,
+      brand_color_primary: org.brand_color_primary ?? '#3b82f6',
+      brand_color_secondary: org.brand_color_secondary ?? '#10b981',
+      brand_color_accent: org.brand_color_accent ?? '#8b5cf6',
+      brand_font_family: org.brand_font_family ?? 'Inter',
+      contact_email: org.contact_email,
+      contact_phone: org.contact_phone,
+      website_url: org.website_url,
+      subscription_plan: org.subscription_plan,
+      subscription_status: org.subscription_status,
+      subscription_start_date: org.subscription_start_date,
+      subscription_end_date: org.subscription_end_date,
+      is_active: org.is_active ?? true,
+      max_users: org.max_users,
+      total_users: totalUsers,
+      active_users: activeUsers,
+      invited_users: invitedUsers,
+      suspended_users: suspendedUsers,
+      created_at: org.created_at || new Date().toISOString(),
+      updated_at: org.updated_at || new Date().toISOString(),
+      members
+    }
   }
 
   static async updateCompany(id: string, updates: CompanyUpdatePayload): Promise<AdminCompany> {
@@ -197,21 +463,31 @@ export class AdminCompaniesService {
       updated_at: new Date().toISOString()
     }
 
-    if (updates.is_active !== undefined) {
-      updateData.is_active = updates.is_active
-    }
+    // Campos básicos
+    if (updates.name !== undefined) updateData.name = updates.name
+    if (updates.slug !== undefined) updateData.slug = updates.slug
+    if (updates.description !== undefined) updateData.description = updates.description
 
-    if (updates.subscription_status !== undefined) {
-      updateData.subscription_status = updates.subscription_status
-    }
+    // Contacto
+    if (updates.contact_email !== undefined) updateData.contact_email = updates.contact_email
+    if (updates.contact_phone !== undefined) updateData.contact_phone = updates.contact_phone
+    if (updates.website_url !== undefined) updateData.website_url = updates.website_url
 
-    if (updates.subscription_plan !== undefined) {
-      updateData.subscription_plan = updates.subscription_plan
-    }
+    // Branding
+    if (updates.logo_url !== undefined) updateData.logo_url = updates.logo_url
+    if (updates.brand_logo_url !== undefined) updateData.brand_logo_url = updates.brand_logo_url
+    if (updates.brand_banner_url !== undefined) updateData.brand_banner_url = updates.brand_banner_url
+    if (updates.brand_favicon_url !== undefined) updateData.brand_favicon_url = updates.brand_favicon_url
+    if (updates.brand_color_primary !== undefined) updateData.brand_color_primary = updates.brand_color_primary
+    if (updates.brand_color_secondary !== undefined) updateData.brand_color_secondary = updates.brand_color_secondary
+    if (updates.brand_color_accent !== undefined) updateData.brand_color_accent = updates.brand_color_accent
+    if (updates.brand_font_family !== undefined) updateData.brand_font_family = updates.brand_font_family
 
-    if (updates.max_users !== undefined) {
-      updateData.max_users = updates.max_users
-    }
+    // Suscripción
+    if (updates.is_active !== undefined) updateData.is_active = updates.is_active
+    if (updates.subscription_status !== undefined) updateData.subscription_status = updates.subscription_status
+    if (updates.subscription_plan !== undefined) updateData.subscription_plan = updates.subscription_plan
+    if (updates.max_users !== undefined) updateData.max_users = updates.max_users
 
     if (Object.keys(updateData).length === 1) {
       throw new Error('No hay campos para actualizar')

@@ -1,99 +1,1040 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   BuildingOffice2Icon,
   ArrowPathIcon,
-  AdjustmentsHorizontalIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   PauseCircleIcon,
   BoltIcon,
-  UserGroupIcon
+  PencilSquareIcon,
+  XMarkIcon,
+  GlobeAltIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  SparklesIcon,
+  ChartBarIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline'
 import { useAdminCompanies } from '../hooks/useAdminCompanies'
 import { AdminCompany } from '../services/adminCompanies.service'
 
-const PLAN_LABELS: Record<string, string> = {
-  team: 'Team',
-  business: 'Business',
-  enterprise: 'Enterprise'
+// ============================================
+// DESIGN SYSTEM - SOFIA COLORS
+// ============================================
+const colors = {
+  primary: '#0A2540',
+  accent: '#00D4B3',
+  accentLight: '#00E5C4',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  purple: '#8B5CF6',
+  bgPrimary: '#0F1419',
+  bgSecondary: '#1E2329',
+  bgTertiary: '#0A0D12',
+  grayLight: '#E9ECEF',
+  grayMedium: '#6C757D',
+}
+
+const PLAN_LABELS: Record<string, { label: string; color: string }> = {
+  team: { label: 'Team', color: colors.primary },
+  business: { label: 'Business', color: colors.accent },
+  enterprise: { label: 'Enterprise', color: colors.purple }
 }
 
 function formatPlan(plan?: string | null) {
-  if (!plan) return 'Sin plan'
+  if (!plan) return { label: 'Sin plan', color: colors.grayMedium }
   const normalized = plan.toLowerCase()
-  return PLAN_LABELS[normalized] || plan
+  return PLAN_LABELS[normalized] || { label: plan, color: colors.grayMedium }
 }
 
-function formatStatus(company: AdminCompany) {
+function getStatusInfo(company: AdminCompany) {
   if (!company.is_active) {
     return {
       label: 'Pausada',
-      className: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'
+      color: colors.warning,
+      bgColor: `${colors.warning}20`,
+      icon: PauseCircleIcon
     }
   }
-
   if (company.subscription_status?.toLowerCase() === 'trial') {
     return {
       label: 'Trial',
-      className: 'bg-purple-500/10 text-purple-300 border border-purple-500/30'
+      color: colors.purple,
+      bgColor: `${colors.purple}20`,
+      icon: BoltIcon
     }
   }
-
   if (company.subscription_status?.toLowerCase() === 'expired') {
     return {
       label: 'Expirada',
-      className: 'bg-red-500/10 text-red-300 border border-red-500/30'
+      color: colors.error,
+      bgColor: `${colors.error}20`,
+      icon: ExclamationTriangleIcon
     }
   }
-
   return {
     label: 'Activa',
-    className: 'bg-green-500/10 text-green-300 border border-green-500/30'
+    color: colors.success,
+    bgColor: `${colors.success}20`,
+    icon: CheckCircleIcon
   }
 }
 
-function SeatUsage({ company }: { company: AdminCompany }) {
-  const max = company.max_users || 0
-  const used = company.active_users
-  const percentage = max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0
+// ============================================
+// STAT CARD COMPONENT
+// ============================================
+interface StatCardProps {
+  title: string
+  value: string | number
+  subtitle: string
+  icon: React.ComponentType<any>
+  color: string
+  delay: number
+}
 
+function StatCard({ title, value, subtitle, icon: Icon, color, delay }: StatCardProps) {
   return (
-    <div>
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-        <span>{used} usuarios activos</span>
-        <span>{max > 0 ? `${percentage}%` : 'Sin límite'}</span>
-      </div>
-      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-blue-500"
-          style={{ width: max === 0 ? '0%' : `${percentage}%` }}
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: delay * 0.1, duration: 0.5, type: "spring", stiffness: 100 }}
+      whileHover={{ y: -5, scale: 1.02, transition: { duration: 0.2 } }}
+      className="relative group overflow-hidden rounded-2xl border p-6"
+      style={{
+        backgroundColor: colors.bgSecondary,
+        borderColor: `${colors.grayMedium}30`
+      }}
+    >
+      {/* Glow Effect */}
+      <motion.div
+        className="absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-700"
+        style={{ backgroundColor: color }}
+      />
+
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <motion.div
+            className="p-3 rounded-xl"
+            style={{ backgroundColor: `${color}20` }}
+            whileHover={{ rotate: [0, -10, 10, 0], transition: { duration: 0.5 } }}
+          >
+            <Icon className="h-6 w-6" style={{ color }} />
+          </motion.div>
+        </div>
+
+        <motion.h3
+          className="text-3xl font-bold text-white mb-1"
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: delay * 0.1 + 0.2 }}
+        >
+          {value}
+        </motion.h3>
+
+        <p className="font-medium mb-1" style={{ color: colors.grayMedium }}>{title}</p>
+        <p className="text-xs" style={{ color: `${colors.grayMedium}80` }}>{subtitle}</p>
+
+        {/* Animated line */}
+        <motion.div
+          className="absolute bottom-0 left-0 h-1"
+          style={{ background: `linear-gradient(to right, ${color}, ${colors.primary})` }}
+          initial={{ width: 0 }}
+          animate={{ width: '30%' }}
+          transition={{ delay: delay * 0.1 + 0.4, duration: 0.8 }}
         />
       </div>
-    </div>
+    </motion.div>
   )
 }
 
+// ============================================
+// COMPANY CARD COMPONENT
+// ============================================
+interface CompanyCardProps {
+  company: AdminCompany
+  onView: () => void
+  onEdit: () => void
+  onToggle: () => void
+  isUpdating: boolean
+}
+
+function CompanyCard({ company, onView, onEdit, onToggle, isUpdating }: CompanyCardProps) {
+  const statusInfo = getStatusInfo(company)
+  const planInfo = formatPlan(company.subscription_plan)
+  const StatusIcon = statusInfo.icon
+  const usagePercent = company.max_users ? Math.min(100, Math.round((company.active_users / company.max_users) * 100)) : 0
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5, scale: 1.01 }}
+      className="relative group overflow-hidden rounded-2xl border"
+      style={{
+        backgroundColor: colors.bgSecondary,
+        borderColor: `${colors.grayMedium}20`
+      }}
+    >
+      {/* Gradient overlay on hover */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: `linear-gradient(135deg, ${colors.accent}05, transparent)` }}
+      />
+
+      <div className="relative z-10 p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <motion.div
+              className="h-14 w-14 rounded-xl flex items-center justify-center overflow-hidden"
+              style={{
+                backgroundColor: `${colors.grayMedium}20`,
+                border: `1px solid ${colors.grayMedium}30`
+              }}
+              whileHover={{ scale: 1.05 }}
+            >
+              {company.logo_url ? (
+                <img
+                  src={company.logo_url}
+                  alt={company.name}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              ) : (
+                <BuildingOffice2Icon className="h-7 w-7" style={{ color: colors.grayMedium }} />
+              )}
+            </motion.div>
+            <div>
+              <h3 className="text-lg font-bold text-white">{company.name}</h3>
+              <p className="text-sm" style={{ color: colors.grayMedium }}>
+                {company.slug || 'Sin slug'}
+              </p>
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+            style={{
+              backgroundColor: statusInfo.bgColor,
+              color: statusInfo.color
+            }}
+          >
+            <StatusIcon className="h-3.5 w-3.5" />
+            {statusInfo.label}
+          </motion.div>
+        </div>
+
+        {/* Plan Badge */}
+        <div className="flex items-center gap-2 mb-4">
+          <span
+            className="px-3 py-1 rounded-lg text-xs font-medium"
+            style={{
+              backgroundColor: `${planInfo.color}20`,
+              color: planInfo.color
+            }}
+          >
+            Plan {planInfo.label}
+          </span>
+          {company.contact_email && (
+            <span
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
+              style={{
+                backgroundColor: `${colors.grayMedium}10`,
+                color: colors.grayMedium
+              }}
+            >
+              <EnvelopeIcon className="h-3 w-3" />
+              {company.contact_email.split('@')[0]}...
+            </span>
+          )}
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div
+            className="p-3 rounded-xl text-center"
+            style={{ backgroundColor: colors.bgTertiary }}
+          >
+            <p className="text-lg font-bold text-white">{company.active_users}</p>
+            <p className="text-xs" style={{ color: colors.grayMedium }}>Activos</p>
+          </div>
+          <div
+            className="p-3 rounded-xl text-center"
+            style={{ backgroundColor: colors.bgTertiary }}
+          >
+            <p className="text-lg font-bold text-white">{company.total_users}</p>
+            <p className="text-xs" style={{ color: colors.grayMedium }}>Total</p>
+          </div>
+          <div
+            className="p-3 rounded-xl text-center"
+            style={{ backgroundColor: colors.bgTertiary }}
+          >
+            <p className="text-lg font-bold" style={{ color: colors.accent }}>{usagePercent}%</p>
+            <p className="text-xs" style={{ color: colors.grayMedium }}>Uso</p>
+          </div>
+        </div>
+
+        {/* Usage Bar */}
+        <div className="mb-5">
+          <div className="flex justify-between text-xs mb-1.5" style={{ color: colors.grayMedium }}>
+            <span>Uso de licencias</span>
+            <span>{company.active_users} / {company.max_users || '∞'}</span>
+          </div>
+          <div
+            className="h-2 rounded-full overflow-hidden"
+            style={{ backgroundColor: `${colors.grayMedium}20` }}
+          >
+            <motion.div
+              className="h-full rounded-full"
+              style={{
+                backgroundColor: usagePercent > 90 ? colors.error : usagePercent > 70 ? colors.warning : colors.accent
+              }}
+              initial={{ width: 0 }}
+              animate={{ width: `${usagePercent}%` }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <motion.button
+            onClick={(e) => { e.stopPropagation(); onView() }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: `${colors.grayMedium}15`,
+              color: 'white'
+            }}
+          >
+            <EyeIcon className="h-4 w-4" />
+            Ver
+          </motion.button>
+
+          <motion.button
+            onClick={(e) => { e.stopPropagation(); onEdit() }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: `${colors.accent}20`,
+              color: colors.accent
+            }}
+          >
+            <PencilSquareIcon className="h-4 w-4" />
+            Editar
+          </motion.button>
+
+          <motion.button
+            onClick={(e) => { e.stopPropagation(); onToggle() }}
+            disabled={isUpdating}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+            style={{
+              backgroundColor: company.is_active ? `${colors.warning}20` : `${colors.success}20`,
+              color: company.is_active ? colors.warning : colors.success
+            }}
+          >
+            {isUpdating ? (
+              <ArrowPathIcon className="h-4 w-4 animate-spin" />
+            ) : company.is_active ? (
+              <PauseCircleIcon className="h-4 w-4" />
+            ) : (
+              <CheckCircleIcon className="h-4 w-4" />
+            )}
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ============================================
+// VIEW MODAL COMPONENT
+// ============================================
+interface ViewModalProps {
+  company: AdminCompany
+  onClose: () => void
+  onEdit: () => void
+}
+
+function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
+  const router = useRouter()
+  const statusInfo = getStatusInfo(company)
+  const planInfo = formatPlan(company.subscription_plan)
+  const StatusIcon = statusInfo.icon
+
+  // Obtener owner y admins
+  const owner = company.members?.find(m => m.role === 'owner')
+  const admins = company.members?.filter(m => m.role === 'admin') || []
+
+  const getUserDisplayName = (user?: { email: string; first_name: string | null; last_name: string | null; display_name: string | null; username: string | null }) => {
+    if (!user) return 'Usuario'
+    if (user.display_name) return user.display_name
+    if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`
+    if (user.first_name) return user.first_name
+    if (user.username) return user.username
+    return user.email.split('@')[0]
+  }
+
+  const handleNavigateToEdit = () => {
+    onClose()
+    router.push(`/admin/companies/${company.id}/edit`)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style={{ backgroundColor: 'rgba(10, 13, 18, 0.95)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        transition={{ type: 'spring', duration: 0.4, bounce: 0.2 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl my-8 rounded-2xl shadow-2xl overflow-hidden"
+        style={{ backgroundColor: colors.bgSecondary }}
+      >
+        {/* Banner */}
+        <div
+          className="relative h-40 w-full"
+          style={{
+            backgroundColor: colors.bgTertiary,
+            backgroundImage: company.brand_banner_url ? `url(${company.brand_banner_url})` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        >
+          {!company.brand_banner_url && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="w-full h-full opacity-30"
+                style={{ background: `linear-gradient(135deg, ${colors.accent}40, ${colors.primary}60)` }}
+              />
+            </div>
+          )}
+
+          {/* Close button */}
+          <motion.button
+            onClick={onClose}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="absolute top-3 right-3 p-2 rounded-lg backdrop-blur-sm"
+            style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: 'white' }}
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </motion.button>
+
+          {/* Logo overlay */}
+          <div className="absolute -bottom-12 left-6">
+            <div
+              className="h-24 w-24 rounded-2xl flex items-center justify-center overflow-hidden border-4 shadow-lg"
+              style={{
+                backgroundColor: colors.bgSecondary,
+                borderColor: colors.bgSecondary
+              }}
+            >
+              {company.logo_url || company.brand_logo_url ? (
+                <img
+                  src={company.brand_logo_url || company.logo_url || undefined}
+                  alt={company.name}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <BuildingOffice2Icon className="h-12 w-12" style={{ color: colors.grayMedium }} />
+              )}
+            </div>
+          </div>
+
+          {/* Favicon */}
+          {company.brand_favicon_url && (
+            <div className="absolute -bottom-5 left-32">
+              <div
+                className="h-12 w-12 rounded-xl flex items-center justify-center overflow-hidden border-3 shadow-md"
+                style={{
+                  backgroundColor: colors.bgSecondary,
+                  borderColor: colors.bgSecondary,
+                  borderWidth: '3px'
+                }}
+              >
+                <img
+                  src={company.brand_favicon_url}
+                  alt="favicon"
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Header Content */}
+        <div className="pt-16 px-6 pb-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white">{company.name}</h2>
+              <p className="text-sm mt-1" style={{ color: colors.grayMedium }}>
+                /{company.slug || 'sin-slug'}
+              </p>
+              {company.description && (
+                <p className="text-sm mt-2 text-white/70 line-clamp-2">{company.description}</p>
+              )}
+            </div>
+            <motion.button
+              onClick={onEdit}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2"
+              style={{ backgroundColor: `${colors.accent}20`, color: colors.accent }}
+            >
+              <PencilSquareIcon className="h-4 w-4" />
+              Editar
+            </motion.button>
+          </div>
+
+          {/* Status & Plan Badges */}
+          <div className="flex items-center gap-2 mt-4">
+            <span
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ backgroundColor: statusInfo.bgColor, color: statusInfo.color }}
+            >
+              <StatusIcon className="h-3.5 w-3.5" />
+              {statusInfo.label}
+            </span>
+            <span
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ backgroundColor: `${planInfo.color}20`, color: planInfo.color }}
+            >
+              Plan {planInfo.label}
+            </span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 pb-6 space-y-4">
+          {/* Owner & Admins */}
+          <div
+            className="p-4 rounded-xl"
+            style={{ backgroundColor: colors.bgTertiary }}
+          >
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: colors.accent }}>
+              Administradores
+            </h3>
+            <div className="space-y-3">
+              {/* Owner */}
+              {owner && (
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-10 w-10 rounded-full flex items-center justify-center overflow-hidden"
+                    style={{ backgroundColor: `${colors.warning}20` }}
+                  >
+                    {owner.user?.profile_picture_url ? (
+                      <img src={owner.user.profile_picture_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-bold" style={{ color: colors.warning }}>
+                        {getUserDisplayName(owner.user).charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{getUserDisplayName(owner.user)}</p>
+                    <p className="text-xs truncate" style={{ color: colors.grayMedium }}>{owner.user?.email}</p>
+                  </div>
+                  <span
+                    className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase"
+                    style={{ backgroundColor: `${colors.warning}20`, color: colors.warning }}
+                  >
+                    Owner
+                  </span>
+                </div>
+              )}
+
+              {/* Admins */}
+              {admins.map(admin => (
+                <div key={admin.id} className="flex items-center gap-3">
+                  <div
+                    className="h-10 w-10 rounded-full flex items-center justify-center overflow-hidden"
+                    style={{ backgroundColor: `${colors.accent}20` }}
+                  >
+                    {admin.user?.profile_picture_url ? (
+                      <img src={admin.user.profile_picture_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-bold" style={{ color: colors.accent }}>
+                        {getUserDisplayName(admin.user).charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{getUserDisplayName(admin.user)}</p>
+                    <p className="text-xs truncate" style={{ color: colors.grayMedium }}>{admin.user?.email}</p>
+                  </div>
+                  <span
+                    className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase"
+                    style={{ backgroundColor: `${colors.accent}20`, color: colors.accent }}
+                  >
+                    Admin
+                  </span>
+                </div>
+              ))}
+
+              {!owner && admins.length === 0 && (
+                <p className="text-sm text-center py-2" style={{ color: colors.grayMedium }}>
+                  Sin administradores asignados
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Contact Info */}
+          <div
+            className="p-4 rounded-xl"
+            style={{ backgroundColor: colors.bgTertiary }}
+          >
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: colors.accent }}>
+              Información de Contacto
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex items-start gap-2">
+                <EnvelopeIcon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: colors.grayMedium }} />
+                <div>
+                  <p className="text-[10px] uppercase" style={{ color: colors.grayMedium }}>Email</p>
+                  <p className="text-sm text-white break-all">{company.contact_email || 'No definido'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <PhoneIcon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: colors.grayMedium }} />
+                <div>
+                  <p className="text-[10px] uppercase" style={{ color: colors.grayMedium }}>Teléfono</p>
+                  <p className="text-sm text-white">{company.contact_phone || 'No definido'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 md:col-span-2">
+                <GlobeAltIcon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: colors.grayMedium }} />
+                <div>
+                  <p className="text-[10px] uppercase" style={{ color: colors.grayMedium }}>Sitio Web</p>
+                  <p className="text-sm text-white break-all">{company.website_url || 'No definido'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Users Grid */}
+          <div
+            className="p-4 rounded-xl"
+            style={{ backgroundColor: colors.bgTertiary }}
+          >
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: colors.accent }}>
+              Usuarios ({company.total_users})
+            </h3>
+            <div className="grid grid-cols-4 gap-2">
+              <div
+                className="text-center p-3 rounded-lg"
+                style={{ backgroundColor: `${colors.success}15` }}
+              >
+                <p className="text-xl font-bold" style={{ color: colors.success }}>{company.active_users}</p>
+                <p className="text-[10px]" style={{ color: colors.grayMedium }}>Activos</p>
+              </div>
+              <div
+                className="text-center p-3 rounded-lg"
+                style={{ backgroundColor: `${colors.warning}15` }}
+              >
+                <p className="text-xl font-bold" style={{ color: colors.warning }}>{company.invited_users}</p>
+                <p className="text-[10px]" style={{ color: colors.grayMedium }}>Invitados</p>
+              </div>
+              <div
+                className="text-center p-3 rounded-lg"
+                style={{ backgroundColor: `${colors.error}15` }}
+              >
+                <p className="text-xl font-bold" style={{ color: colors.error }}>{company.suspended_users}</p>
+                <p className="text-[10px]" style={{ color: colors.grayMedium }}>Suspendidos</p>
+              </div>
+              <div
+                className="text-center p-3 rounded-lg"
+                style={{ backgroundColor: `${colors.accent}15` }}
+              >
+                <p className="text-xl font-bold" style={{ color: colors.accent }}>{company.max_users || '∞'}</p>
+                <p className="text-[10px]" style={{ color: colors.grayMedium }}>Máximo</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <motion.button
+            onClick={handleNavigateToEdit}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-colors"
+            style={{ backgroundColor: colors.accent, color: colors.primary }}
+          >
+            <PencilSquareIcon className="h-4 w-4" />
+            Editar información de la empresa
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ============================================
+// EDIT MODAL COMPONENT
+// ============================================
+interface EditModalProps {
+  company: AdminCompany
+  onClose: () => void
+  onSave: (updates: Partial<AdminCompany>) => Promise<void>
+  isSaving: boolean
+}
+
+const PLAN_OPTIONS = [
+  { value: 'team', label: 'Team', color: '#3B82F6', description: 'Hasta 10 usuarios' },
+  { value: 'business', label: 'Business', color: '#8B5CF6', description: 'Hasta 50 usuarios' },
+  { value: 'enterprise', label: 'Enterprise', color: '#F59E0B', description: 'Usuarios ilimitados' }
+]
+
+function EditModal({ company, onClose, onSave, isSaving }: EditModalProps) {
+  const [formData, setFormData] = useState({
+    name: company.name || '',
+    slug: company.slug || '',
+    contact_email: company.contact_email || '',
+    contact_phone: company.contact_phone || '',
+    website_url: company.website_url || '',
+    subscription_plan: company.subscription_plan || 'team',
+    max_users: company.max_users || 10,
+    is_active: company.is_active
+  })
+  const [isPlanOpen, setIsPlanOpen] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await onSave(formData)
+  }
+
+  const selectedPlan = PLAN_OPTIONS.find(p => p.value === formData.subscription_plan) || PLAN_OPTIONS[0]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style={{ backgroundColor: 'rgba(10, 13, 18, 0.95)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        transition={{ type: 'spring', duration: 0.4, bounce: 0.2 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg my-8 rounded-2xl shadow-2xl"
+        style={{ backgroundColor: colors.bgSecondary }}
+      >
+        {/* Gradient accent */}
+        <div
+          className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
+          style={{ background: `linear-gradient(90deg, ${colors.accent}, ${colors.primary})` }}
+        />
+
+        {/* Header */}
+        <div className="p-5 border-b" style={{ borderColor: `${colors.grayMedium}15` }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className="p-2.5 rounded-xl"
+                style={{ backgroundColor: `${colors.accent}15` }}
+              >
+                <PencilSquareIcon className="h-5 w-5" style={{ color: colors.accent }} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Editar Empresa</h2>
+                <p className="text-xs" style={{ color: colors.grayMedium }}>{company.name}</p>
+              </div>
+            </div>
+            <motion.button
+              onClick={onClose}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="p-2 rounded-lg transition-colors"
+              style={{ backgroundColor: `${colors.grayMedium}15`, color: colors.grayMedium }}
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          {/* Basic Info Section */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: colors.accent }}>
+              Información básica
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-white/70 mb-1.5">Nombre</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
+                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/70 mb-1.5">Slug</label>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
+                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Section */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: colors.accent }}>
+              Contacto
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-white/70 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={formData.contact_email}
+                  onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
+                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/70 mb-1.5">Teléfono</label>
+                <input
+                  type="tel"
+                  value={formData.contact_phone}
+                  onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
+                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-white/70 mb-1.5">Sitio web</label>
+              <input
+                type="url"
+                value={formData.website_url}
+                onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
+                style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
+                placeholder="https://"
+              />
+            </div>
+          </div>
+
+          {/* Plan Section */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: colors.accent }}>
+              Suscripción
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Custom Select */}
+              <div className="relative">
+                <label className="block text-xs font-medium text-white/70 mb-1.5">Plan</label>
+                <button
+                  type="button"
+                  onClick={() => setIsPlanOpen(!isPlanOpen)}
+                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white text-left flex items-center justify-between transition-colors"
+                  style={{
+                    backgroundColor: colors.bgTertiary,
+                    borderColor: isPlanOpen ? colors.accent : `${colors.grayMedium}20`
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: selectedPlan.color }}
+                    />
+                    <span>{selectedPlan.label}</span>
+                  </div>
+                  <motion.svg
+                    animate={{ rotate: isPlanOpen ? 180 : 0 }}
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </motion.svg>
+                </button>
+
+                {/* Dropdown */}
+                <AnimatePresence>
+                  {isPlanOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-xl border"
+                      style={{
+                        backgroundColor: colors.bgSecondary,
+                        borderColor: `${colors.grayMedium}20`
+                      }}
+                    >
+                      {PLAN_OPTIONS.map((plan) => (
+                        <button
+                          key={plan.value}
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, subscription_plan: plan.value })
+                            setIsPlanOpen(false)
+                          }}
+                          className="w-full px-4 py-3 text-left flex items-center gap-3 transition-colors hover:bg-white/5"
+                          style={{
+                            backgroundColor: formData.subscription_plan === plan.value ? `${plan.color}15` : 'transparent'
+                          }}
+                        >
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: plan.color }}
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-white">{plan.label}</p>
+                            <p className="text-xs" style={{ color: colors.grayMedium }}>{plan.description}</p>
+                          </div>
+                          {formData.subscription_plan === plan.value && (
+                            <CheckCircleIcon className="w-4 h-4" style={{ color: plan.color }} />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-white/70 mb-1.5">Máximo de usuarios</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.max_users}
+                  onChange={(e) => setFormData({ ...formData, max_users: parseInt(e.target.value) || 10 })}
+                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
+                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Status Toggle */}
+          <div
+            className="flex items-center justify-between p-4 rounded-xl"
+            style={{ backgroundColor: colors.bgTertiary }}
+          >
+            <div>
+              <p className="text-sm font-medium text-white">Estado de la empresa</p>
+              <p className="text-xs" style={{ color: colors.grayMedium }}>
+                {formData.is_active ? 'Empresa activa y operativa' : 'Empresa pausada temporalmente'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
+              className="relative w-12 h-6 rounded-full transition-colors"
+              style={{
+                backgroundColor: formData.is_active ? colors.success : `${colors.grayMedium}40`
+              }}
+            >
+              <motion.div
+                className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
+                animate={{ left: formData.is_active ? '1.75rem' : '0.25rem' }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              />
+            </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <motion.button
+              type="button"
+              onClick={onClose}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              style={{ color: colors.grayMedium }}
+            >
+              Cancelar
+            </motion.button>
+            <motion.button
+              type="submit"
+              disabled={isSaving}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+              style={{ backgroundColor: colors.accent, color: colors.primary }}
+            >
+              {isSaving ? (
+                <>
+                  <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Guardar cambios
+                </>
+              )}
+            </motion.button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 export function AdminCompaniesPage() {
   const { companies, stats, isLoading, error, refetch, updatingId, updateCompany, actionError } = useAdminCompanies()
   const [searchTerm, setSearchTerm] = useState('')
   const [planFilter, setPlanFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [selectedCompany, setSelectedCompany] = useState<AdminCompany | null>(null)
+  const [viewCompany, setViewCompany] = useState<AdminCompany | null>(null)
+  const [editCompany, setEditCompany] = useState<AdminCompany | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const filteredCompanies = useMemo(() => {
     return companies.filter(company => {
-      const normalizedSearch = searchTerm.toLowerCase()
+      const searchLower = searchTerm.toLowerCase()
       const matchesSearch =
-        company.name.toLowerCase().includes(normalizedSearch) ||
-        (company.slug ? company.slug.toLowerCase().includes(normalizedSearch) : false) ||
-        (company.contact_email ? company.contact_email.toLowerCase().includes(normalizedSearch) : false)
+        company.name.toLowerCase().includes(searchLower) ||
+        (company.slug?.toLowerCase().includes(searchLower) ?? false) ||
+        (company.contact_email?.toLowerCase().includes(searchLower) ?? false)
 
       const matchesPlan =
         planFilter === 'all' ||
-        (company.subscription_plan && company.subscription_plan.toLowerCase() === planFilter)
+        company.subscription_plan?.toLowerCase() === planFilter
 
       const normalizedStatus = company.subscription_status?.toLowerCase()
       const matchesStatus =
@@ -107,24 +1048,34 @@ export function AdminCompaniesPage() {
     })
   }, [companies, planFilter, searchTerm, statusFilter])
 
-  const handleToggleCompany = async (company: AdminCompany) => {
+  const handleToggle = async (company: AdminCompany) => {
     await updateCompany(company.id, { is_active: !company.is_active })
+  }
+
+  const handleSaveEdit = async (updates: Partial<AdminCompany>) => {
+    if (!editCompany) return
+    setIsSaving(true)
+    try {
+      await updateCompany(editCompany.id, updates)
+      setEditCompany(null)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+      <div className="p-6 lg:p-8 min-h-screen" style={{ backgroundColor: colors.bgPrimary }}>
+        <div className="animate-pulse space-y-8">
+          <div className="h-12 bg-gray-800 rounded-xl w-1/3" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-36 bg-gray-800 rounded-2xl" />
             ))}
           </div>
-          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded" />
-          <div className="space-y-4">
-            {[...Array(5)].map((_, index) => (
-              <div key={index} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-72 bg-gray-800 rounded-2xl" />
             ))}
           </div>
         </div>
@@ -134,344 +1085,251 @@ export function AdminCompaniesPage() {
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-          <div className="flex items-center gap-3 text-red-700 dark:text-red-200">
-            <ExclamationTriangleIcon className="h-6 w-6" />
-            <div>
-              <p className="font-semibold">Error al cargar empresas</p>
-              <p className="text-sm text-red-600 dark:text-red-300 mt-1">{error}</p>
-            </div>
-          </div>
-          <button
+      <div className="p-6 lg:p-8 min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.bgPrimary }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="p-8 rounded-2xl border text-center max-w-md"
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderColor: `${colors.error}30`
+          }}
+        >
+          <ExclamationTriangleIcon className="h-12 w-12 mx-auto mb-4" style={{ color: colors.error }} />
+          <h2 className="text-xl font-bold text-white mb-2">Error al cargar</h2>
+          <p style={{ color: colors.grayMedium }} className="mb-6">{error}</p>
+          <motion.button
             onClick={refetch}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-200 rounded-md hover:bg-red-200 dark:hover:bg-red-900/60 transition"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3 rounded-xl font-medium flex items-center gap-2 mx-auto"
+            style={{ backgroundColor: colors.accent, color: colors.primary }}
           >
             <ArrowPathIcon className="h-5 w-5" />
             Reintentar
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 space-y-8">
-      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm text-blue-500 font-semibold uppercase tracking-wide">Empresas</p>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Administración de Empresas</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Supervisa el estado de las organizaciones, su uso de licencias y planes activos.
-          </p>
+    <div className="p-6 lg:p-8 min-h-screen" style={{ backgroundColor: colors.bgPrimary }}>
+      {/* Header */}
+      <motion.header
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <SparklesIcon className="h-5 w-5" style={{ color: colors.accent }} />
+              <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: colors.accent }}>
+                Gestión B2B
+              </span>
+            </div>
+            <h1 className="text-3xl lg:text-4xl font-bold text-white">
+              Administración de Empresas
+            </h1>
+            <p style={{ color: colors.grayMedium }} className="mt-2">
+              Gestiona organizaciones, planes y usuarios empresariales
+            </p>
+          </div>
+          <motion.button
+            onClick={refetch}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl font-medium"
+            style={{ backgroundColor: colors.accent, color: colors.primary }}
+          >
+            <ArrowPathIcon className="h-5 w-5" />
+            Actualizar
+          </motion.button>
         </div>
-        <button
-          onClick={refetch}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
-        >
-          <ArrowPathIcon className="h-5 w-5" />
-          Actualizar
-        </button>
-      </header>
+      </motion.header>
 
       {actionError && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4 flex items-start gap-3">
-          <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 mt-1" />
-          <div>
-            <p className="text-sm text-amber-800 dark:text-amber-100 font-medium">Acción no completada</p>
-            <p className="text-sm text-amber-700 dark:text-amber-200">{actionError}</p>
-          </div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 rounded-xl border flex items-center gap-3"
+          style={{
+            backgroundColor: `${colors.warning}10`,
+            borderColor: `${colors.warning}30`
+          }}
+        >
+          <ExclamationTriangleIcon className="h-5 w-5" style={{ color: colors.warning }} />
+          <p className="text-sm" style={{ color: colors.warning }}>{actionError}</p>
+        </motion.div>
       )}
 
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Empresas activas</p>
-            <CheckCircleIcon className="h-5 w-5 text-green-500" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-            {stats?.activeCompanies ?? 0}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            de {stats?.totalCompanies ?? 0} registradas
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Empresas en trial</p>
-            <BoltIcon className="h-5 w-5 text-purple-400" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-            {stats?.trialCompanies ?? 0}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Conversiones prioritarias</p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Empresas pausadas</p>
-            <PauseCircleIcon className="h-5 w-5 text-yellow-400" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-            {stats?.pausedCompanies ?? 0}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Revisar facturación</p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Uso promedio</p>
-            <UserGroupIcon className="h-5 w-5 text-blue-400" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-            {stats ? `${stats.averageUtilization}%` : '0%'}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {stats ? `${stats.usedSeats} / ${stats.totalSeats || 0} licencias` : 'Sin datos'}
-          </p>
-        </div>
+      {/* Stats */}
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          title="Empresas Activas"
+          value={stats?.activeCompanies ?? 0}
+          subtitle={`de ${stats?.totalCompanies ?? 0} registradas`}
+          icon={CheckCircleIcon}
+          color={colors.success}
+          delay={0}
+        />
+        <StatCard
+          title="En Trial"
+          value={stats?.trialCompanies ?? 0}
+          subtitle="Conversiones prioritarias"
+          icon={BoltIcon}
+          color={colors.purple}
+          delay={1}
+        />
+        <StatCard
+          title="Pausadas"
+          value={stats?.pausedCompanies ?? 0}
+          subtitle="Revisar facturación"
+          icon={PauseCircleIcon}
+          color={colors.warning}
+          delay={2}
+        />
+        <StatCard
+          title="Uso Promedio"
+          value={`${stats?.averageUtilization ?? 0}%`}
+          subtitle={`${stats?.usedSeats ?? 0} / ${stats?.totalSeats ?? 0} licencias`}
+          icon={ChartBarIcon}
+          color={colors.accent}
+          delay={3}
+        />
       </section>
 
-      <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
-          <div className="flex-1 flex flex-col gap-4 md:flex-row">
-            <div className="relative flex-1">
-              <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre, slug o correo..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div className="flex gap-3">
-              <select
-                value={planFilter}
-                onChange={(event) => setPlanFilter(event.target.value)}
-                className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-600 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">Todos los planes</option>
-                <option value="team">Team</option>
-                <option value="business">Business</option>
-                <option value="enterprise">Enterprise</option>
-              </select>
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-600 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">Todos los estados</option>
-                <option value="active">Activas</option>
-                <option value="trial">En trial</option>
-                <option value="paused">Pausadas</option>
-                <option value="expired">Expiradas</option>
-              </select>
-            </div>
+      {/* Filters */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="mb-8 p-5 rounded-2xl border"
+        style={{
+          backgroundColor: colors.bgSecondary,
+          borderColor: `${colors.grayMedium}20`
+        }}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          {/* Search */}
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon
+              className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2"
+              style={{ color: colors.grayMedium }}
+            />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, slug o email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 rounded-xl border bg-transparent text-white placeholder-gray-500 focus:outline-none focus:ring-2"
+              style={{
+                borderColor: `${colors.grayMedium}30`,
+                backgroundColor: colors.bgTertiary
+              }}
+            />
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <AdjustmentsHorizontalIcon className="h-5 w-5" />
-            {filteredCompanies.length} empresas mostradas
-          </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-            <thead>
-              <tr className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                <th className="px-4 py-3">Empresa</th>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3">Usuarios</th>
-                <th className="px-4 py-3">Uso de licencias</th>
-                <th className="px-4 py-3 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
-              {filteredCompanies.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-                    No se encontraron empresas con los filtros seleccionados.
-                  </td>
-                </tr>
-              )}
-              {filteredCompanies.map(company => {
-                const statusInfo = formatStatus(company)
-                return (
-                  <tr
-                    key={company.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition cursor-pointer"
-                    onClick={() => setSelectedCompany(company)}
-                  >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                          {company.logo_url ? (
-                            <img
-                              src={company.logo_url}
-                              alt={company.name}
-                              className="h-10 w-10 rounded-lg object-cover"
-                              onError={(event) => {
-                                (event.target as HTMLImageElement).style.display = 'none'
-                              }}
-                            />
-                          ) : (
-                            <BuildingOffice2Icon className="h-6 w-6 text-gray-400" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">{company.name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{company.slug || 'Sin slug'}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-gray-700 dark:text-gray-300">{formatPlan(company.subscription_plan)}</td>
-                    <td className="px-4 py-4">
-                      <span className={`px-3 py-1 text-xs font-medium rounded-full ${statusInfo.className}`}>
-                        {statusInfo.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-gray-700 dark:text-gray-300">
-                      {company.active_users}/{company.total_users} activos
-                    </td>
-                    <td className="px-4 py-4">
-                      <SeatUsage company={company} />
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            setSelectedCompany(company)
-                          }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                        >
-                          Ver detalles
-                        </button>
-                        <button
-                          onClick={async (event) => {
-                            event.stopPropagation()
-                            try {
-                              await handleToggleCompany(company)
-                            } catch (err) {
-                              console.error(err)
-                            }
-                          }}
-                          disabled={updatingId === company.id}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-full transition flex items-center gap-1 ${
-                            company.is_active
-                              ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
-                              : 'bg-green-600 text-white hover:bg-green-500'
-                          } ${updatingId === company.id ? 'opacity-70 cursor-not-allowed' : ''}`}
-                        >
-                          {updatingId === company.id ? (
-                            <>
-                              <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                              Guardando
-                            </>
-                          ) : company.is_active ? (
-                            <>
-                              <PauseCircleIcon className="h-4 w-4" />
-                              Pausar
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircleIcon className="h-4 w-4" />
-                              Activar
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {selectedCompany && (
-        <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-sm text-blue-500 font-semibold uppercase tracking-wide">Detalle</p>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{selectedCompany.name}</h2>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">{selectedCompany.slug || 'Sin slug asignado'}</p>
-            </div>
-            <button
-              onClick={() => setSelectedCompany(null)}
-              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          {/* Filters */}
+          <div className="flex gap-3">
+            <select
+              value={planFilter}
+              onChange={(e) => setPlanFilter(e.target.value)}
+              className="px-4 py-3 rounded-xl border text-white focus:outline-none focus:ring-2"
+              style={{
+                borderColor: `${colors.grayMedium}30`,
+                backgroundColor: colors.bgTertiary
+              }}
             >
-              Cerrar
-            </button>
+              <option value="all">Todos los planes</option>
+              <option value="team">Team</option>
+              <option value="business">Business</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-3 rounded-xl border text-white focus:outline-none focus:ring-2"
+              style={{
+                borderColor: `${colors.grayMedium}30`,
+                backgroundColor: colors.bgTertiary
+              }}
+            >
+              <option value="all">Todos los estados</option>
+              <option value="active">Activas</option>
+              <option value="trial">En trial</option>
+              <option value="paused">Pausadas</option>
+              <option value="expired">Expiradas</option>
+            </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                Información de contacto
-              </h3>
-              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <p>
-                  <span className="font-medium">Correo:</span>{' '}
-                  {selectedCompany.contact_email || 'No definido'}
-                </p>
-                <p>
-                  <span className="font-medium">Teléfono:</span>{' '}
-                  {selectedCompany.contact_phone || 'No definido'}
-                </p>
-                <p>
-                  <span className="font-medium">Sitio:</span>{' '}
-                  {selectedCompany.website_url || 'No definido'}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                Plan y estado
-              </h3>
-              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <p>
-                  <span className="font-medium">Plan:</span> {formatPlan(selectedCompany.subscription_plan)}
-                </p>
-                <p>
-                  <span className="font-medium">Estado de suscripción:</span>{' '}
-                  {selectedCompany.subscription_status || 'Sin estado'}
-                </p>
-                <p>
-                  <span className="font-medium">Estado del panel:</span>{' '}
-                  {selectedCompany.is_active ? 'Habilitado' : 'Pausado'}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                Usuarios
-              </h3>
-              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <p>
-                  <span className="font-medium">Activos:</span> {selectedCompany.active_users}
-                </p>
-                <p>
-                  <span className="font-medium">Invitados:</span> {selectedCompany.invited_users}
-                </p>
-                <p>
-                  <span className="font-medium">Suspendidos:</span> {selectedCompany.suspended_users}
-                </p>
-                <p>
-                  <span className="font-medium">Máximo permitido:</span> {selectedCompany.max_users ?? 'Ilimitado'}
-                </p>
-              </div>
-            </div>
+          <div className="text-sm" style={{ color: colors.grayMedium }}>
+            {filteredCompanies.length} empresas
           </div>
-        </section>
-      )}
+        </div>
+      </motion.section>
+
+      {/* Companies Grid */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AnimatePresence>
+          {filteredCompanies.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="col-span-full p-12 rounded-2xl border text-center"
+              style={{
+                backgroundColor: colors.bgSecondary,
+                borderColor: `${colors.grayMedium}20`
+              }}
+            >
+              <BuildingOffice2Icon className="h-16 w-16 mx-auto mb-4" style={{ color: colors.grayMedium }} />
+              <p className="text-lg font-medium text-white mb-2">No se encontraron empresas</p>
+              <p style={{ color: colors.grayMedium }}>Intenta ajustar los filtros de búsqueda</p>
+            </motion.div>
+          ) : (
+            filteredCompanies.map((company, index) => (
+              <motion.div
+                key={company.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <CompanyCard
+                  company={company}
+                  onView={() => setViewCompany(company)}
+                  onEdit={() => setEditCompany(company)}
+                  onToggle={() => handleToggle(company)}
+                  isUpdating={updatingId === company.id}
+                />
+              </motion.div>
+            ))
+          )}
+        </AnimatePresence>
+      </section>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {viewCompany && (
+          <ViewModal
+            company={viewCompany}
+            onClose={() => setViewCompany(null)}
+            onEdit={() => {
+              setEditCompany(viewCompany)
+              setViewCompany(null)
+            }}
+          />
+        )}
+        {editCompany && (
+          <EditModal
+            company={editCompany}
+            onClose={() => setEditCompany(null)}
+            onSave={handleSaveEdit}
+            isSaving={isSaving}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
-

@@ -22,7 +22,7 @@ export async function GET() {
       });
     }
 
-    // ⚡ OPTIMIZACIÓN: Buscar organización con cache y queries en paralelo
+    // ⚡ OPTIMIZACIÓN: Buscar organización con cache y query simplificada
     let organization = null;
 
     // Verificar cache primero
@@ -35,32 +35,17 @@ export async function GET() {
       try {
         const supabase = await createClient();
 
-        // ⚡ OPTIMIZACIÓN CRÍTICA: Ejecutar ambas queries en PARALELO con Promise.all
-        // ANTES: Query 1 → wait → Query 2 (2-4 segundos)
-        // DESPUÉS: Promise.all([Query 1, Query 2]) (1-2 segundos)
-        const [userOrgsResult, directOrgResult] = await Promise.all([
-          // Query 1: organization_users
-          supabase
-            .from('organization_users')
-            .select('organization_id, joined_at, organizations!inner(id, name, logo_url, brand_logo_url, brand_favicon_url, slug)')
-            .eq('user_id', user.id)
-            .eq('status', 'active')
-            .order('joined_at', { ascending: false })
-            .limit(1),
+        // Buscar en organization_users (única fuente de verdad después de eliminar users.organization_id)
+        const { data: userOrgs, error: userOrgsError } = await supabase
+          .from('organization_users')
+          .select('organization_id, joined_at, organizations!inner(id, name, logo_url, brand_logo_url, brand_favicon_url, slug)')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('joined_at', { ascending: false })
+          .limit(1);
 
-          // Query 2: organizations (solo si hay organization_id)
-          user.organization_id
-            ? supabase
-                .from('organizations')
-                .select('id, name, logo_url, brand_logo_url, brand_favicon_url, slug')
-                .eq('id', user.organization_id)
-                .single()
-            : Promise.resolve({ data: null, error: null })
-        ]);
-
-        // Prioridad 1: organization_users (más reciente)
-        if (!userOrgsResult.error && userOrgsResult.data && userOrgsResult.data.length > 0) {
-          const org = userOrgsResult.data[0].organizations;
+        if (!userOrgsError && userOrgs && userOrgs.length > 0) {
+          const org = userOrgs[0].organizations;
           organization = {
             id: org.id,
             name: org.name,
@@ -69,19 +54,6 @@ export async function GET() {
             brand_favicon_url: org.brand_favicon_url,
             favicon_url: org.brand_favicon_url,
             slug: org.slug
-          };
-        }
-        // Prioridad 2: users.organization_id
-        else if (!directOrgResult.error && directOrgResult.data) {
-          const orgData = directOrgResult.data;
-          organization = {
-            id: orgData.id,
-            name: orgData.name,
-            logo_url: orgData.logo_url,
-            brand_logo_url: orgData.brand_logo_url,
-            brand_favicon_url: orgData.brand_favicon_url,
-            favicon_url: orgData.brand_favicon_url,
-            slug: orgData.slug
           };
         }
 
@@ -98,7 +70,6 @@ export async function GET() {
       success: true,
       user: {
         ...user,
-        organization_id: user.organization_id, // ✅ CRÍTICO: Incluir organization_id directo
         organization: organization // Información completa de la organización (opcional)
       }
     }, {
@@ -106,9 +77,9 @@ export async function GET() {
     });
   } catch (error) {
     logger.error('Error getting current user:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Error interno' 
+    return NextResponse.json({
+      success: false,
+      error: 'Error interno'
     }, { status: 500 });
   }
 }

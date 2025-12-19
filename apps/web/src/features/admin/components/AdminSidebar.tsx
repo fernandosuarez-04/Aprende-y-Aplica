@@ -4,24 +4,16 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  HomeIcon, 
-  UsersIcon, 
-  BookOpenIcon, 
-  ChatBubbleLeftRightIcon,
-  CpuChipIcon,
-  NewspaperIcon,
-  PlayIcon,
-  UserGroupIcon,
+import {
+  HomeIcon,
+  UsersIcon,
+  BookOpenIcon,
   DocumentTextIcon,
   ChartBarIcon,
   XMarkIcon,
   ChevronRightIcon,
-  ChevronLeftIcon,
-  Bars3Icon,
   MapPinIcon,
-  BuildingOffice2Icon,
-  AcademicCapIcon
+  BuildingOffice2Icon
 } from '@heroicons/react/24/outline'
 import { MapPinIcon as MapPinIconSolid } from '@heroicons/react/24/solid'
 import Image from 'next/image'
@@ -41,13 +33,7 @@ const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
   { name: 'Usuarios', href: '/admin/users', icon: UsersIcon },
   { name: 'Talleres', href: '/admin/workshops', icon: BookOpenIcon },
-  { name: 'Comunidades', href: '/admin/communities', icon: UserGroupIcon },
-  { name: 'Prompts', href: '/admin/prompts', icon: ChatBubbleLeftRightIcon },
-  { name: 'Apps de IA', href: '/admin/apps', icon: CpuChipIcon },
   { name: 'LIA Analytics', href: '/admin/lia-analytics', icon: ChartBarIcon },
-  { name: 'Skills', href: '/admin/skills', icon: AcademicCapIcon },
-  { name: 'Noticias', href: '/admin/news', icon: NewspaperIcon },
-  { name: 'Reels', href: '/admin/reels', icon: PlayIcon },
   { name: 'Estadísticas de Usuarios', href: '/admin/user-stats', icon: MapPinIcon },
   { name: 'Empresas', href: '/admin/companies', icon: BuildingOffice2Icon },
   { name: 'Reportes', href: '/admin/reportes', icon: DocumentTextIcon },
@@ -71,11 +57,11 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
         if (isPinned) {
           return
         }
-        
+
         if (isCollapsed && isHovered) {
           setIsHovered(false)
         }
-        
+
         if (!isCollapsed) {
           onToggleCollapse()
         }
@@ -121,7 +107,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
       {/* Mobile backdrop */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -133,7 +119,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
       </AnimatePresence>
 
       {/* Sidebar */}
-      <motion.div 
+      <motion.div
         ref={sidebarRef}
         initial={false}
         animate={{
@@ -218,7 +204,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           <div className="flex items-center gap-1">
             {/* Botón de fijar */}
             <motion.button
@@ -237,7 +223,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                 <MapPinIcon className="h-4 w-4" />
               )}
             </motion.button>
-            
+
             {/* Botón de cerrar en mobile */}
             <motion.button
               onClick={(event) => {
@@ -269,7 +255,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               </p>
             </motion.div>
           )}
-          
+
           {isPinned && !isCollapsed && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -284,7 +270,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               </p>
             </motion.div>
           )}
-          
+
           {showPinFeedback && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -325,8 +311,8 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                     }}
                     className={`
                       group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
-                      ${isActive 
-                        ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white shadow-md shadow-[#0A2540]/20' 
+                      ${isActive
+                        ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white shadow-md shadow-[#0A2540]/20'
                         : 'text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 hover:text-[#0A2540] dark:hover:text-white'
                       }
                       ${(isCollapsed && !shouldExpand) ? 'justify-center' : ''}
@@ -340,15 +326,15 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                       />
                     )}
-                    <item.icon 
+                    <item.icon
                       className={`
                         h-5 w-5 transition-colors duration-200 flex-shrink-0
-                        ${isActive 
-                          ? 'text-white' 
+                        ${isActive
+                          ? 'text-white'
                           : 'text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white'
                         }
                         ${(isCollapsed && !shouldExpand) ? '' : 'mr-3'}
-                      `} 
+                      `}
                     />
                     <AnimatePresence>
                       {(!isCollapsed || shouldExpand) && (

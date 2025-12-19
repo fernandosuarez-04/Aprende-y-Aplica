@@ -37,13 +37,13 @@ export async function registerAction(formData: FormData) {
   try {
     // Convertir FormData a objeto, manejando correctamente los tipos
     const rawData = Object.fromEntries(formData)
-    
+
     // Convertir aceptTerms de string a boolean
     const formDataParsed = {
       ...rawData,
       acceptTerms: rawData.acceptTerms === 'true' || rawData.acceptTerms === 'on'
     }
-    
+
     const parsed = registerSchema.parse(formDataParsed)
 
     // Obtener contexto de organización si viene de registro personalizado
@@ -68,10 +68,10 @@ export async function registerAction(formData: FormData) {
       // Validar que puede usar login personalizado
       const allowedPlans = ['team', 'business', 'enterprise']
       const activeStatuses = ['active', 'trial']
-      
-      if (!allowedPlans.includes(organization.subscription_plan) || 
-          !activeStatuses.includes(organization.subscription_status) ||
-          !organization.is_active) {
+
+      if (!allowedPlans.includes(organization.subscription_plan) ||
+        !activeStatuses.includes(organization.subscription_status) ||
+        !organization.is_active) {
         return { error: 'Esta organización no permite nuevos registros' }
       }
     }
@@ -97,7 +97,7 @@ export async function registerAction(formData: FormData) {
 
     // Crear usuario directamente en la tabla users (sin Supabase Auth)
     const cargoTitulo = parsed.cargo_titulo?.trim() || 'Usuario';
-    
+
     const { data: user, error } = await supabase
       .from('users')
       .insert({
@@ -113,7 +113,6 @@ export async function registerAction(formData: FormData) {
         cargo_rol: 'Usuario', // Rol por defecto para nuevos usuarios
         type_rol: cargoTitulo, // Tipo de rol: cargo_titulo si se proporciona, 'Usuario' por defecto
         email_verified: false, // Se verificará después con email manual
-        organization_id: organizationId || null, // Asignar organización si viene de registro personalizado
       })
       .select()
       .single()
@@ -123,6 +122,24 @@ export async function registerAction(formData: FormData) {
       // Limpiar cuenta de auth en caso de error
       // Nota: Esto requeriría service role key, por ahora solo logueamos
       return { error: 'Error al crear perfil de usuario' }
+    }
+
+    // Si viene de registro personalizado de organización, crear relación en organization_users
+    if (organizationId) {
+      try {
+        await supabase
+          .from('organization_users')
+          .insert({
+            organization_id: organizationId,
+            user_id: user.id,
+            role: 'member',
+            status: 'active',
+            joined_at: new Date().toISOString()
+          })
+      } catch (orgUserError) {
+        // No fallar el registro si hay error creando la relación
+        // console.error('Error creating organization_users relation:', orgUserError)
+      }
     }
 
     // Si se proporcionó cargo_titulo, crear perfil inicial en user_perfil
@@ -143,10 +160,10 @@ export async function registerAction(formData: FormData) {
       }
     }
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: 'Cuenta creada exitosamente.',
-      userId: user.id 
+      userId: user.id
     }
   } catch (error) {
     // console.error('Register error:', error)

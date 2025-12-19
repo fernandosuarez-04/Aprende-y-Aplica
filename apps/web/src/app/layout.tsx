@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Montserrat } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '../core/components/ThemeProvider';
-import { ConditionalNavbar } from '../core/components/ConditionalNavbar';
+
 import { PrefetchManager } from '../core/components/PrefetchManager';
 import { SWRProvider } from '../core/providers/SWRProvider';
 import { NotificationProvider } from '../features/notifications/context/NotificationContext';
@@ -147,7 +147,7 @@ export default function RootLayout({
             `,
           }}
         />
-        
+
         {/* 🎨 Script para aplicar tema antes del render (evita flash) */}
         <script
           dangerouslySetInnerHTML={{
@@ -200,14 +200,14 @@ export default function RootLayout({
             `,
           }}
         />
-        
+
         {/* 🚀 Resource Hints - Mejora conexión a APIs externas 20-30% */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
-        
+
         {/* 📱 PWA Meta Tags */}
         <meta name="application-name" content="SOFIA" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -216,7 +216,7 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#3b82f6" />
-        
+
         {/* 🎨 Splash Screens iOS */}
         <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
       </head>
@@ -229,11 +229,9 @@ export default function RootLayout({
                   <NotificationProvider pollingInterval={60000}>
                     <LiaPanelProvider>
                       <PrefetchManager />
-                      <ConditionalNavbar>
-                        <ContentWrapper>
-                          {children}
-                        </ContentWrapper>
-                      </ConditionalNavbar>
+                      <ContentWrapper>
+                        {children}
+                      </ContentWrapper>
                       {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
                       <ConditionalAIChatAgent />
                       {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}

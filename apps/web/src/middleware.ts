@@ -61,11 +61,11 @@ async function requiresQuestionnaire(
 
 export async function middleware(request: NextRequest) {
   logger.log('🔍 Middleware ejecutándose para:', request.nextUrl.pathname)
-  
-  // Verificar si es una ruta de auth y si el usuario tiene organización
-  // NO redirigir si hay un parámetro ?redirect=force que indica redirección forzada
-  if ((request.nextUrl.pathname === '/auth' || request.nextUrl.pathname === '/auth/') 
-      && !request.nextUrl.searchParams.has('redirect')) {
+
+  // Verificar si es una ruta de auth y si el usuario tiene sesión activa
+  // Redirigir usuarios autenticados al dashboard apropiado según cargo_rol
+  if ((request.nextUrl.pathname === '/auth' || request.nextUrl.pathname === '/auth/')
+    && !request.nextUrl.searchParams.has('redirect')) {
     const sessionCookie = request.cookies.get('aprende-y-aplica-session')
     if (sessionCookie) {
       try {
@@ -77,7 +77,7 @@ export async function middleware(request: NextRequest) {
               getAll() {
                 return request.cookies.getAll()
               },
-              setAll() {},
+              setAll() { },
             },
           }
         )
@@ -92,64 +92,54 @@ export async function middleware(request: NextRequest) {
           .single()
 
         if (sessionData) {
-          // Obtener información del usuario y su organización
+          // Obtener cargo_rol del usuario
           const { data: user } = await supabase
             .from('users')
-            .select('organization_id, cargo_rol')
+            .select('cargo_rol')
             .eq('id', sessionData.user_id)
             .single()
 
-          if (user?.organization_id) {
-            // Obtener slug de la organización
-            const { data: organization } = await supabase
-              .from('organizations')
-              .select('slug, subscription_plan, subscription_status, is_active')
-              .eq('id', user.organization_id)
-              .single()
-
-            if (organization?.slug) {
-              // Validar que puede usar login personalizado
-              const allowedPlans = ['team', 'business', 'enterprise']
-              const activeStatuses = ['active', 'trial']
-              
-              if (allowedPlans.includes(organization.subscription_plan) && 
-                  activeStatuses.includes(organization.subscription_status) &&
-                  organization.is_active) {
-                // Redirigir a login personalizado
-                // console.log('🔄 Redirigiendo usuario de organización a login personalizado')
-                return NextResponse.redirect(new URL(`/auth/${organization.slug}`, request.url))
-              }
-            }
-          }
-
-          // Si el usuario está autenticado pero NO tiene organización válida,
-          // redirigirlo al dashboard apropiado según su rol
+          // Redirigir según cargo_rol (Enfoque B2B)
           if (user) {
             const normalizedRole = user.cargo_rol?.toLowerCase().trim()
-            
-            logger.log('🔄 Usuario autenticado en /auth sin organización válida, redirigiendo según rol:', normalizedRole)
-            
+
+            logger.log('🔄 Usuario autenticado en /auth, redirigiendo según cargo_rol:', normalizedRole)
+
             if (normalizedRole === 'administrador') {
               return NextResponse.redirect(new URL('/admin/dashboard', request.url))
-            } else if (normalizedRole === 'instructor') {
-              return NextResponse.redirect(new URL('/instructor/dashboard', request.url))
-            } else if (normalizedRole === 'business') {
-              return NextResponse.redirect(new URL('/business-panel/dashboard', request.url))
-            } else if (normalizedRole === 'business user') {
-              return NextResponse.redirect(new URL('/business-user/dashboard', request.url))
+            } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
+              // Para roles de empresa, verificar que pertenezca a una organización
+              const { data: userOrg, error: orgError } = await supabase
+                .from('organization_users')
+                .select('organization_id, status')
+                .eq('user_id', sessionData.user_id)
+                .eq('status', 'active')
+                .single()
+
+              if (orgError || !userOrg) {
+                // Si no pertenece a ninguna organización, redirigir al dashboard normal
+                return NextResponse.redirect(new URL('/dashboard', request.url))
+              }
+
+              // Redirigir según el rol específico
+              if (normalizedRole === 'business') {
+                return NextResponse.redirect(new URL('/business-panel/dashboard', request.url))
+              } else {
+                return NextResponse.redirect(new URL('/business-user/dashboard', request.url))
+              }
             } else {
-              // Usuario regular o sin rol específico
+              // Usuario normal o sin rol → Tour SOFIA + Planes
               return NextResponse.redirect(new URL('/dashboard', request.url))
             }
           }
         }
       } catch (error) {
-        // console.error('Error verificando organización en middleware:', error)
+        // console.error('Error verificando sesión en middleware:', error)
         // Continuar con flujo normal si hay error
       }
     }
   }
-  
+
   // Rutas que están exentas de la validación de cuestionario
   const exemptRoutes = [
     '/auth',
@@ -160,14 +150,14 @@ export async function middleware(request: NextRequest) {
     '/_next',
     '/favicon.ico'
   ]
-  
-  const isExemptRoute = exemptRoutes.some(route => 
+
+  const isExemptRoute = exemptRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
 
   // Verificar si la ruta requiere autenticación
   const protectedRoutes = ['/admin', '/instructor', '/dashboard', '/communities']
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const isProtectedRoute = protectedRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
 
@@ -250,7 +240,7 @@ export async function middleware(request: NextRequest) {
     // pueda acceder sin completar el cuestionario, incluso si es administrador o instructor
     try {
       const needsQuestionnaire = await requiresQuestionnaire(supabase, sessionData.user_id)
-      
+
       if (needsQuestionnaire) {
         logger.log('📋 Usuario OAuth sin cuestionario detectado, redirigiendo a /statistics')
         // Redirigir a /statistics sin importar la ruta que intentó acceder
@@ -298,7 +288,7 @@ export async function middleware(request: NextRequest) {
 
       // ✅ Normalizar rol antes de comparar (toLowerCase y trim)
       const userRole = userData?.cargo_rol?.toLowerCase().trim()
-      
+
       if (!userData || userRole !== 'administrador') {
         logger.log('❌ No es administrador, redirigiendo a /dashboard')
         return NextResponse.redirect(new URL('/dashboard', request.url))
