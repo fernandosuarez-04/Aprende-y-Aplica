@@ -82,10 +82,10 @@ export default function AdminScormPage() {
   const { packages, isLoading: packagesLoading, refetch } = useScormPackage(
     selectedOrgId
       ? {
-          // 'none' = solo paquetes sin curso, undefined = todos los paquetes
-          courseId: selectedCourseId || 'none',
-          organizationId: selectedOrgId
-        }
+        // 'none' = solo paquetes sin curso, undefined = todos los paquetes
+        courseId: selectedCourseId || 'none',
+        organizationId: selectedOrgId
+      }
       : {}
   );
 
@@ -284,24 +284,30 @@ export default function AdminScormPage() {
                       <span className="px-3 py-1 bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-lg text-xs font-medium">
                         {formatFileSize(pkg.file_size)}
                       </span>
-                      <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                        pkg.status === 'active'
+                      <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${pkg.status === 'active'
                           ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
                           : pkg.status === 'processing'
                             ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800'
                             : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-600'
-                      }`}>
+                        }`}>
                         {pkg.status === 'active' ? 'Activo' : pkg.status === 'processing' ? 'Procesando' : 'Inactivo'}
                       </span>
                     </div>
 
                     {/* Botón Ver */}
-                    {course && (
+                    {course ? (
                       <Link
                         href={`/courses/${course.slug}/scorm/${pkg.id}`}
                         className="block w-full text-center px-5 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 dark:from-primary-500 dark:to-primary-600 dark:hover:from-primary-600 dark:hover:to-primary-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 border-2 border-primary-800 dark:border-primary-400"
                       >
                         Ver Curso
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/admin/scorm/view/${pkg.id}`}
+                        className="block w-full text-center px-5 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 dark:from-emerald-500 dark:to-emerald-600 dark:hover:from-emerald-600 dark:hover:to-emerald-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 border-2 border-emerald-800 dark:border-emerald-400"
+                      >
+                        Ver SCORM
                       </Link>
                     )}
 
