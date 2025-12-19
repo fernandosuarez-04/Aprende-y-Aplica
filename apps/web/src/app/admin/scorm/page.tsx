@@ -80,9 +80,10 @@ export default function AdminScormPage() {
   }, [user, authLoading, isAuthenticated, router]);
 
   const { packages, isLoading: packagesLoading, refetch } = useScormPackage(
-    selectedCourseId && selectedOrgId
+    selectedOrgId
       ? {
-          courseId: selectedCourseId,
+          // 'none' = solo paquetes sin curso, undefined = todos los paquetes
+          courseId: selectedCourseId || 'none',
           organizationId: selectedOrgId
         }
       : {}
@@ -223,7 +224,7 @@ export default function AdminScormPage() {
         <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">
-              Paquetes SCORM {selectedCourseId ? 'del Curso' : 'de la Organización'}
+              Paquetes SCORM {selectedCourseId ? 'del Curso' : 'sin Curso Asociado'}
             </h2>
             {packages.length > 0 && (
               <span className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full text-sm font-medium">

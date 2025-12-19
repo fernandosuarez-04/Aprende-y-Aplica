@@ -26,7 +26,10 @@ export async function GET(req: NextRequest) {
       query = query.eq('organization_id', organizationId);
     }
 
-    if (courseId) {
+    if (courseId === 'none') {
+      // Filtrar solo paquetes SIN curso asociado
+      query = query.is('course_id', null);
+    } else if (courseId) {
       query = query.eq('course_id', courseId);
     }
 

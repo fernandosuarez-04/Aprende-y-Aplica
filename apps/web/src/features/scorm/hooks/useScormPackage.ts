@@ -79,7 +79,8 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
 
     if (packageId) {
       await fetchPackage();
-    } else if (courseId && organizationId) {
+    } else if (organizationId) {
+      // Permitir buscar solo por organizationId (courseId es opcional)
       await fetchPackages();
     }
 
@@ -88,8 +89,8 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
 
   useEffect(() => {
     // Solo hacer fetch si hay parámetros válidos
-    if (packageId || (courseId && organizationId)) {
-    refetch();
+    if (packageId || organizationId) {
+      refetch();
     } else {
       // Si no hay parámetros, no hacer loading
       setIsLoading(false);
