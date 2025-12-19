@@ -12,6 +12,8 @@ export class SCORMAPIAdapter {
   private pendingSetValues: Array<{ key: string; value: string }> = [];
   // Map objective IDs to their indices for lookup
   private objectiveIdToIndex: Map<string, number> = new Map();
+  // Track session start time for automatic time calculation
+  private sessionStartTime: number = 0;
 
   constructor(config: SCORMAdapterConfig) {
     this.config = config;
@@ -57,6 +59,9 @@ export class SCORMAPIAdapter {
     if (this.terminated) {
       this.resetState();
     }
+
+    // Track session start time for automatic time calculation
+    this.sessionStartTime = Date.now();
 
     this.initPromise = this.initializeAsync();
     this.initialized = true;
@@ -387,13 +392,34 @@ export class SCORMAPIAdapter {
     }
 
     // Detectar completado
-    if (key === 'cmi.core.lesson_status' || key === 'cmi.completion_status') {
-      if (value === 'completed' || value === 'passed' || value === 'failed') {
+    // SCORM 1.2: cmi.core.lesson_status = completed/passed/failed
+    // SCORM 2004: cmi.completion_status = completed AND/OR cmi.success_status = passed/failed
+    const isCompletionKey = key === 'cmi.core.lesson_status' ||
+                            key === 'cmi.completion_status' ||
+                            key === 'cmi.success_status';
+
+    if (isCompletionKey) {
+      // For SCORM 2004, check both completion_status and success_status
+      let finalStatus = value;
+      if (this.config.version === 'SCORM_2004') {
+        const completionStatus = this.cache.get('cmi.completion_status') || '';
+        const successStatus = this.cache.get('cmi.success_status') || '';
+
+        // Determine final status - passed/failed takes precedence over completed
+        if (successStatus === 'passed' || successStatus === 'failed') {
+          finalStatus = successStatus;
+        } else if (completionStatus === 'completed') {
+          finalStatus = 'completed';
+        }
+      }
+
+      if (finalStatus === 'completed' || finalStatus === 'passed' || finalStatus === 'failed') {
         const scoreKey = this.config.version === 'SCORM_2004'
           ? 'cmi.score.raw'
           : 'cmi.core.score.raw';
         const score = parseFloat(this.cache.get(scoreKey) || '');
-        this.config.onComplete?.(value, isNaN(score) ? undefined : score);
+        console.log('[SCORM Adapter] Course completed with status:', finalStatus, 'score:', score);
+        this.config.onComplete?.(finalStatus, isNaN(score) ? undefined : score);
       }
     }
 
@@ -534,27 +560,71 @@ export class SCORMAPIAdapter {
     }
 
     this.terminated = true;
-    
+
     // Get current completion status and score before terminating
-    const completionStatus = this.cache.get('cmi.completion_status') || 
-                            this.cache.get('cmi.core.lesson_status') || 
+    const completionStatus = this.cache.get('cmi.completion_status') ||
+                            this.cache.get('cmi.core.lesson_status') ||
                             'unknown';
     const scoreKey = this.config.version === 'SCORM_2004'
       ? 'cmi.score.raw'
       : 'cmi.core.score.raw';
     const score = parseFloat(this.cache.get(scoreKey) || '');
-    
-    // Trigger onComplete callback when finishing
-    // This ensures the completion modal is shown even if status wasn't explicitly set
-    if (this.config.onComplete) {
-      const finalStatus = completionStatus === 'completed' || 
-                         completionStatus === 'passed' || 
-                         completionStatus === 'failed'
-        ? completionStatus
-        : 'completed'; // Default to completed if status is unknown
-      this.config.onComplete(finalStatus, isNaN(score) ? undefined : score);
+
+    // Calculate and set session_time if not set by SCORM content
+    const sessionTimeKey = this.config.version === 'SCORM_2004' ? 'cmi.session_time' : 'cmi.core.session_time';
+    const existingSessionTime = this.cache.get(sessionTimeKey);
+
+    if (!existingSessionTime && this.sessionStartTime > 0) {
+      const elapsedMs = Date.now() - this.sessionStartTime;
+      const elapsedSeconds = Math.floor(elapsedMs / 1000);
+      const hours = Math.floor(elapsedSeconds / 3600);
+      const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+      const seconds = elapsedSeconds % 60;
+
+      let sessionTimeValue: string;
+      if (this.config.version === 'SCORM_2004') {
+        // ISO 8601 duration format: PT#H#M#S
+        sessionTimeValue = `PT${hours}H${minutes}M${seconds}S`;
+      } else {
+        // SCORM 1.2 format: HHHH:MM:SS.ss
+        sessionTimeValue = `${hours.toString().padStart(4, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.00`;
+      }
+
+      this.cache.set(sessionTimeKey, sessionTimeValue);
+      if (this.initCompleted) {
+        this.setValueAsync(sessionTimeKey, sessionTimeValue);
+      }
+      console.log('[SCORM Adapter] Auto-calculated session time:', sessionTimeValue);
     }
-    
+
+    // IMPORTANT: If course is not completed, set exit to 'suspend' to enable resume
+    // This ensures progress is saved for resumption even if the content doesn't set it
+    const isCompleted = completionStatus === 'completed' ||
+                       completionStatus === 'passed' ||
+                       completionStatus === 'failed';
+
+    if (!isCompleted) {
+      // Set exit to suspend for resuming later
+      const exitKey = this.config.version === 'SCORM_2004' ? 'cmi.exit' : 'cmi.core.exit';
+      const currentExit = this.cache.get(exitKey);
+
+      // Only set to suspend if not already set by the content
+      if (!currentExit || currentExit === '' || currentExit === 'time-out' || currentExit === 'logout') {
+        this.cache.set(exitKey, 'suspend');
+        // Send to server
+        if (this.initCompleted) {
+          this.setValueAsync(exitKey, 'suspend');
+        }
+        console.log('[SCORM Adapter] Auto-set exit to suspend for incomplete course');
+      }
+    }
+
+    // ONLY trigger onComplete callback for ACTUAL completions (passed, completed, failed)
+    // Do NOT trigger for 'incomplete' - the user just exited mid-course
+    if (this.config.onComplete && isCompleted) {
+      this.config.onComplete(completionStatus, isNaN(score) ? undefined : score);
+    }
+
     this.terminateAsync();
     this.lastError = '0';
     return 'true';

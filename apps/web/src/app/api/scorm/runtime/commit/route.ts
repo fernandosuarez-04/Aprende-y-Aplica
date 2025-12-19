@@ -85,6 +85,29 @@ export async function POST(req: NextRequest) {
       updateData.completed_at = new Date().toISOString();
     }
 
+    // If session_time is provided, we need to add it to total_time
+    // First get the current attempt to get existing total_time
+    if (updateData.session_time) {
+      const { data: currentAttempt } = await supabase
+        .from('scorm_attempts')
+        .select('total_time')
+        .eq('id', attemptId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (currentAttempt) {
+        const currentTotalSeconds = parseIntervalToSeconds(currentAttempt.total_time);
+        const sessionSeconds = parseIntervalToSeconds(updateData.session_time);
+        const newTotalSeconds = currentTotalSeconds + sessionSeconds;
+
+        // Convert back to interval format
+        const hours = Math.floor(newTotalSeconds / 3600);
+        const minutes = Math.floor((newTotalSeconds % 3600) / 60);
+        const seconds = newTotalSeconds % 60;
+        updateData.total_time = `${hours}:${minutes}:${seconds}`;
+      }
+    }
+
     // Guardar en DB
     const { error } = await supabase
       .from('scorm_attempts')
@@ -103,6 +126,15 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: 'Failed to commit' }, { status: 500 });
   }
+}
+
+function parseIntervalToSeconds(interval: string | null): number {
+  if (!interval) return 0;
+  const match = interval.match(/(\d+):(\d+):(\d+)/);
+  if (match) {
+    return parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
+  }
+  return 0;
 }
 
 function parseSessionTime(time: string): string {

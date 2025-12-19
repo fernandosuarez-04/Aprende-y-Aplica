@@ -73,10 +73,24 @@ export async function POST(req: NextRequest) {
       attempt = newAttempt;
     } else {
       // Resuming - actualizar entry
+      // Determine if this should be a resume based on:
+      // 1. Has suspend_data (bookmark data)
+      // 2. Has lesson_location (position in course)
+      // 3. Exit type was 'suspend'
+      // 4. Status is incomplete (not completed/passed/failed)
+      const shouldResume = attempt.suspend_data ||
+                          attempt.lesson_location ||
+                          attempt.exit_type === 'suspend' ||
+                          (attempt.lesson_status &&
+                           attempt.lesson_status !== 'not attempted' &&
+                           attempt.lesson_status !== 'completed' &&
+                           attempt.lesson_status !== 'passed' &&
+                           attempt.lesson_status !== 'failed');
+
       const { error: updateError } = await supabase
         .from('scorm_attempts')
         .update({
-          entry: attempt.suspend_data ? 'resume' : 'ab-initio',
+          entry: shouldResume ? 'resume' : 'ab-initio',
           last_accessed_at: new Date().toISOString(),
         })
         .eq('id', attempt.id);
@@ -84,6 +98,9 @@ export async function POST(req: NextRequest) {
       if (updateError) {
         throw updateError;
       }
+
+      // Update the attempt object for cmiData building
+      attempt.entry = shouldResume ? 'resume' : 'ab-initio';
     }
 
     // Construir datos CMI iniciales

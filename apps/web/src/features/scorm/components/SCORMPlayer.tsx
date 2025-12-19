@@ -96,17 +96,14 @@ export function SCORMPlayer({
         const iframeHead = iframeDoc.head || iframeDoc.getElementsByTagName('head')[0];
         
         // Interceptar window.close() dentro del iframe
-        // Cuando el contenido SCORM intenta cerrar la ventana, disparar el callback de completado
+        // Cuando el contenido SCORM intenta cerrar la ventana, guardar el estado sin mostrar modal
         const originalClose = iframeWindow.close;
         iframeWindow.close = function() {
-          console.log('[SCORMPlayer] Content attempted to close window. Triggering completion...');
-          // Disparar el callback de completado para mostrar el modal
+          console.log('[SCORMPlayer] Content attempted to close window. Saving state...');
+          // Solo llamar a LMSFinish para guardar el estado
+          // El modal de completado solo se mostrará si el curso está realmente completado
           if (adapterRef.current && !adapterRef.current.isTerminated()) {
-            // Si el adapter no está terminado, llamar a LMSFinish para guardar el estado
             adapterRef.current.LMSFinish('');
-          } else {
-            // Si ya está terminado, solo disparar el callback
-            onComplete?.('completed', undefined);
           }
           // No cerrar realmente la ventana, solo prevenir el cierre
         };
