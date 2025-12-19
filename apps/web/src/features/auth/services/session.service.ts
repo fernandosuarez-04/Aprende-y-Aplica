@@ -181,9 +181,21 @@ export class SessionService {
       const supabase = await createClient();
       const { data: user, error: userError } = await supabase
         .from('users')
-        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned, signature_url, signature_name, organization_id')
+        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned, signature_url, signature_name')
         .eq('id', userId)
         .single();
+
+      // Intentar obtener organization_id de forma separada (la columna puede no existir)
+      let organizationId: string | null = null;
+      const { data: orgData, error: orgError } = await supabase
+        .from('users')
+        .select('organization_id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!orgError && orgData) {
+        organizationId = orgData.organization_id || null;
+      }
 
       if (userError) {
         logger.error('Error obteniendo usuario de la DB:', {
@@ -209,22 +221,25 @@ export class SessionService {
         return null;
       }
 
+      // Combinar usuario con organization_id obtenido de forma separada
+      const userWithOrg = { ...user, organization_id: organizationId };
+
       logger.auth('✅ Usuario obtenido exitosamente', {
-        userId: user.id,
-        username: user.username,
-        email: user.email,
-        cargo_rol: user.cargo_rol,
-        organization_id: (user as any).organization_id,
-        role: (user as any).role
+        userId: userWithOrg.id,
+        username: userWithOrg.username,
+        email: userWithOrg.email,
+        cargo_rol: userWithOrg.cargo_rol,
+        organization_id: userWithOrg.organization_id,
+        role: (userWithOrg as any).role
       });
-      
+
       // Cachear por token de sesión para evitar consultas repetidas
       const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
       if (sessionToken) {
-        cacheSet(`user-by-session:${sessionToken}`, user, 30_000);
+        cacheSet(`user-by-session:${sessionToken}`, userWithOrg, 30_000);
       }
-      
-      return user;
+
+      return userWithOrg;
     } catch (error) {
       logger.error('💥 Error crítico obteniendo usuario actual:', {
         name: (error as any)?.name,

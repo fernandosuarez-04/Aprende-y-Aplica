@@ -19,6 +19,7 @@ const loginSchema = z.object({
 
 export async function loginAction(formData: FormData) {
   try {
+    console.log('🔐 [loginAction] Iniciando login...')
 
     // 1. Validar datos
     const parsed = loginSchema.parse({
@@ -26,6 +27,8 @@ export async function loginAction(formData: FormData) {
       password: formData.get('password'),
       rememberMe: formData.get('rememberMe') === 'true',
     })
+
+    console.log('📧 [loginAction] Buscando usuario:', parsed.emailOrUsername)
 
     // 2. Crear cliente Supabase
     const supabase = await createClient()
@@ -40,14 +43,14 @@ export async function loginAction(formData: FormData) {
     // Intentar buscar por username primero
     let { data: userByUsername, error: usernameError } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason, organization_id')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
       .ilike('username', parsed.emailOrUsername)
       .maybeSingle()
 
     // Si no se encuentra por username, buscar por email
     let { data: userByEmail, error: emailError } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason, organization_id')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
       .ilike('email', parsed.emailOrUsername)
       .maybeSingle()
 
@@ -55,17 +58,42 @@ export async function loginAction(formData: FormData) {
     const user = userByUsername || userByEmail
     const error = userByUsername ? usernameError : emailError
 
-    if (error || !user) {
+    console.log('🔍 [loginAction] Resultado búsqueda:', {
+      userByUsername: userByUsername ? 'encontrado' : 'no encontrado',
+      userByEmail: userByEmail ? 'encontrado' : 'no encontrado',
+      usernameError: usernameError?.message || null,
+      emailError: emailError?.message || null,
+    })
 
+    if (error || !user) {
+      console.log('❌ [loginAction] Usuario NO encontrado en la base de datos')
       return { error: 'Credenciales inválidas' }
     }
 
+    // Intentar obtener organization_id de forma separada (la columna puede no existir)
+    let userOrganizationId: string | null = null
+    const { data: orgData, error: orgError } = await supabase
+      .from('users')
+      .select('organization_id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (!orgError && orgData) {
+      userOrganizationId = orgData.organization_id || null
+    } else if (orgError) {
+      // La columna organization_id puede no existir - continuar sin ella
+      console.log('ℹ️ [loginAction] Columna organization_id no disponible:', orgError.message)
+    }
+
+    // Reasignar user con organization_id incluido
+    const user_final = { ...user, organization_id: userOrganizationId } as typeof user & { organization_id: string | null }
+
     console.log('👤 [loginAction] Usuario encontrado:', {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      cargo_rol: user.cargo_rol,
-      organization_id: (user as any).organization_id
+      id: user_final.id,
+      username: user_final.username,
+      email: user_final.email,
+      cargo_rol: user_final.cargo_rol,
+      organization_id: user_final.organization_id
     });
 
     // ⭐ MODERACIÓN: Verificar si el usuario está baneado
@@ -78,13 +106,20 @@ export async function loginAction(formData: FormData) {
 
     // 4. Verificar contraseña con bcrypt (como en tu sistema anterior)
     if (!user.password_hash) {
-
+      console.log('❌ [loginAction] Usuario sin password_hash configurado')
       return { error: 'Error en la configuración de la cuenta. Por favor, contacta al soporte.' }
     }
 
+    console.log('🔑 [loginAction] Verificando contraseña...', {
+      hasPasswordHash: !!user.password_hash,
+      hashLength: user.password_hash.length,
+    })
+
     const passwordValid = await bcrypt.compare(parsed.password, user.password_hash)
+    console.log('🔑 [loginAction] Contraseña válida:', passwordValid)
 
     if (!passwordValid) {
+      console.log('❌ [loginAction] Contraseña incorrecta')
 
       // Crear notificación de intento de inicio de sesión fallido
       try {
@@ -135,7 +170,7 @@ export async function loginAction(formData: FormData) {
       }
 
       // Verificar pertenencia a organización (users.organization_id y organization_users)
-      const belongsViaDirect = user.organization_id === organizationId
+      const belongsViaDirect = user_final.organization_id === organizationId
 
       // Verificar organization_users
       const { data: orgUser } = await supabase
@@ -164,12 +199,12 @@ export async function loginAction(formData: FormData) {
 
         if (userOrgs && userOrgs.length > 0) {
           correctSlug = userOrgs[0].organizations?.slug || null
-        } else if (user.organization_id) {
+        } else if (user_final.organization_id) {
           // Prioridad 2: Si no hay en organization_users, usar users.organization_id
           const { data: userOrg } = await supabase
             .from('organizations')
             .select('slug')
-            .eq('id', user.organization_id)
+            .eq('id', user_final.organization_id)
             .single()
 
           if (userOrg) {
@@ -338,12 +373,12 @@ export async function loginAction(formData: FormData) {
       ];
 
       // Query 2: Si usuario tiene organization_id, buscar en organizations
-      if (user.organization_id) {
+      if (user_final.organization_id) {
         orgQueries.push(
           supabase
             .from('organizations')
             .select('slug')
-            .eq('id', user.organization_id)
+            .eq('id', user_final.organization_id)
             .single()
         );
       }
@@ -371,11 +406,11 @@ export async function loginAction(formData: FormData) {
     }
 
     // 8. Redirigir según el rol del usuario
-    const normalizedRole = user.cargo_rol?.trim();
+    const normalizedRole = user_final.cargo_rol?.trim();
     console.log('🎯 [loginAction] Determinando redirección según rol:', {
-      cargo_rol: user.cargo_rol,
+      cargo_rol: user_final.cargo_rol,
       normalizedRole,
-      organization_id: (user as any).organization_id
+      organization_id: user_final.organization_id
     });
 
     if (normalizedRole === 'Administrador') {
