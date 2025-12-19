@@ -6,90 +6,77 @@ import { SessionService } from '../services/session.service';
 import { logger } from '@/lib/logger';
 
 /**
- * Verifica si el usuario pertenece a una organización y su type_rol,
- * luego redirige al dashboard apropiado
+ * Redirige al usuario al dashboard apropiado según su cargo_rol (Enfoque B2B)
+ * - Administrador → /admin/dashboard
+ * - Business → /business-panel/dashboard (Panel Admin Empresas)
+ * - Business User → /business-user/dashboard (Dashboard Usuario Business)
+ * - Usuario (o cualquier otro) → /dashboard (Tour SOFIA + Planes)
  */
 export async function redirectToDashboard() {
   try {
     // Verificar si el usuario está autenticado
     const user = await SessionService.getCurrentUser();
-    
+
     if (!user) {
-      // Si no está autenticado, redirigir al login
       logger.warn('Dashboard redirect: Usuario no autenticado');
       redirect('/auth');
     }
 
     const supabase = await createClient();
 
-    // Obtener información completa del usuario incluyendo type_rol
+    // Obtener cargo_rol del usuario
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, type_rol, organization_id')
+      .select('id, cargo_rol')
       .eq('id', user.id)
       .single();
 
     if (userError || !userData) {
       logger.error('Error obteniendo datos del usuario:', userError);
-      // En caso de error, redirigir al dashboard principal
       redirect('/dashboard');
       return;
     }
 
-    // Normalizar type_rol para comparación (case-insensitive)
-    const typeRol = userData.type_rol?.toLowerCase().trim() || null;
+    // Redirección basada en cargo_rol
+    const cargoRol = userData.cargo_rol?.trim();
+    logger.log(`Dashboard redirect: cargo_rol = ${cargoRol}`);
 
-    // PRIORIDAD 1: Verificar type_rol
-    // Si type_rol es 'Business User', redirigir al dashboard de empresa
-    if (typeRol === 'business user') {
-      logger.log('Dashboard redirect: Usuario con type_rol = Business User → /business-user/dashboard');
-      redirect('/business-user/dashboard');
-      return;
-    }
+    if (cargoRol === 'Administrador') {
+      redirect('/admin/dashboard');
+    } else if (cargoRol === 'Business' || cargoRol === 'Business User') {
+      // Para roles de empresa, verificar que pertenezca a una organización
+      const { data: userOrg, error: orgError } = await supabase
+        .from('organization_users')
+        .select('organization_id, status')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
 
-    // PRIORIDAD 2: Verificar si pertenece a una organización
-    // Verificar en organization_users (más reciente)
-    const { data: userOrgs, error: orgUsersError } = await supabase
-      .from('organization_users')
-      .select('organization_id, joined_at')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('joined_at', { ascending: false })
-      .limit(1);
+      if (orgError || !userOrg) {
+        logger.warn(`Usuario ${cargoRol} sin organización activa, redirigiendo a /dashboard`);
+        redirect('/dashboard');
+      }
 
-    // Verificar organization_id directo en users
-    const hasOrganizationId = !!userData.organization_id;
-
-    // Si hay error en la consulta pero tiene organization_id, continuar
-    if (orgUsersError && !hasOrganizationId) {
-      logger.error('Error verificando organización:', orgUsersError);
-    }
-
-    // Determinar si pertenece a una organización
-    const belongsToOrganization = (userOrgs && userOrgs.length > 0) || hasOrganizationId;
-
-    if (belongsToOrganization) {
-      // Usuario pertenece a una organización → Dashboard de empresa
-      logger.log('Dashboard redirect: Usuario con organización → /business-user/dashboard');
-      redirect('/business-user/dashboard');
-      return;
-    }
-
-    // PRIORIDAD 3: Si type_rol es NULL o 'Usuario', o no pertenece a organización
-    // → Dashboard principal de talleres
-    if (!typeRol || typeRol === 'usuario') {
-      logger.log('Dashboard redirect: Usuario sin organización y type_rol NULL/Usuario → /dashboard');
+      // Redirigir según el rol específico
+      if (cargoRol === 'Business') {
+        redirect('/business-panel/dashboard');
+      } else {
+        redirect('/business-user/dashboard');
+      }
+    } else {
+      // Usuario normal o sin rol definido → Tour de SOFIA + Planes
       redirect('/dashboard');
-      return;
     }
-
-    // Por defecto, redirigir al dashboard principal
-    logger.log('Dashboard redirect: Caso por defecto → /dashboard');
-    redirect('/dashboard');
   } catch (error) {
+    // Manejar redirect de Next.js (no es un error real)
+    if (error && typeof error === 'object' && 'digest' in error) {
+      const digest = (error as any).digest;
+      if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
+        throw error;
+      }
+    }
+
     logger.error('Error en redirectToDashboard:', error);
-    // En caso de error, redirigir al dashboard principal
     redirect('/dashboard');
   }
 }
-

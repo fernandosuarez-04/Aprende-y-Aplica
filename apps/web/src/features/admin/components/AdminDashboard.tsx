@@ -1,12 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { 
-  UsersIcon, 
-  BookOpenIcon, 
-  CpuChipIcon,
-  NewspaperIcon,
-  PlayIcon,
+import {
+  UsersIcon,
+  BookOpenIcon,
+  BuildingOffice2Icon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
@@ -14,10 +12,10 @@ import {
   ClockIcon,
   EyeIcon,
   PlusIcon,
-  Cog6ToothIcon,
   BellAlertIcon,
   ShieldCheckIcon,
-  RocketLaunchIcon
+  RocketLaunchIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline'
 import { useAdminStats } from '../hooks/useAdminStats'
 import { useState, useEffect } from 'react'
@@ -46,13 +44,13 @@ function StatCard({ title, value, change, icon: Icon, gradient, delay, href }: S
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ 
+      transition={{
         delay: delay * 0.1,
         duration: 0.5,
         type: "spring",
         stiffness: 100
       }}
-      whileHover={{ 
+      whileHover={{
         y: -5,
         scale: 1.02,
         transition: { duration: 0.2 }
@@ -61,29 +59,28 @@ function StatCard({ title, value, change, icon: Icon, gradient, delay, href }: S
     >
       {/* Gradient Background Effect */}
       <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${gradient}`} />
-      
+
       {/* Glow Effect */}
-      <motion.div 
+      <motion.div
         className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-[#00D4B3]/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"
       />
-      
+
       {/* Content */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
-          <motion.div 
+          <motion.div
             className={`p-3 rounded-xl ${gradient} shadow-lg`}
             whileHover={{ rotate: [0, -10, 10, 0], transition: { duration: 0.5 } }}
           >
             <Icon className="h-6 w-6 text-white" />
           </motion.div>
-          
+
           {/* Change Badge */}
-          <motion.div 
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-              isPositive 
-                ? 'bg-[#10B981]/20 text-[#10B981]' 
+          <motion.div
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${isPositive
+                ? 'bg-[#10B981]/20 text-[#10B981]'
                 : 'bg-red-500/20 text-red-400'
-            }`}
+              }`}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: delay * 0.1 + 0.3, type: "spring" }}
@@ -96,8 +93,8 @@ function StatCard({ title, value, change, icon: Icon, gradient, delay, href }: S
             {isPositive ? '+' : ''}{change}%
           </motion.div>
         </div>
-        
-        <motion.h3 
+
+        <motion.h3
           className="text-3xl font-bold text-white mb-1 tracking-tight"
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -105,11 +102,11 @@ function StatCard({ title, value, change, icon: Icon, gradient, delay, href }: S
         >
           {typeof value === 'number' ? value.toLocaleString() : value}
         </motion.h3>
-        
+
         <p className="text-[#6C757D] text-sm font-medium">{title}</p>
-        
+
         {/* Animated line */}
-        <motion.div 
+        <motion.div
           className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[#00D4B3] to-[#0A2540]"
           initial={{ width: 0 }}
           animate={{ width: '30%' }}
@@ -207,7 +204,7 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
       className="flex items-start gap-4 p-4 rounded-xl hover:bg-[#1E2329]/80 transition-all duration-300 border-l-2 border-transparent hover:border-[#00D4B3]"
     >
       <div className={`w-2 h-2 mt-2 rounded-full ${getTypeColor(type)}`} />
-      
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-4">
           <h4 className="text-white font-medium text-sm truncate">{title}</h4>
@@ -300,35 +297,19 @@ export function AdminDashboard() {
       href: '/admin/workshops'
     },
     {
-      title: 'Apps de IA',
-      value: dbStats.totalAIApps,
-      change: dbStats.aiAppGrowth,
-      icon: CpuChipIcon,
+      title: 'Empresas Activas',
+      value: dbStats.totalOrganizations || 0,
+      change: dbStats.organizationGrowth || 0,
+      icon: BuildingOffice2Icon,
       gradient: 'bg-gradient-to-br from-[#00D4B3] to-[#00D4B3]/80',
-      href: '/admin/apps'
-    },
-    {
-      title: 'Noticias Publicadas',
-      value: dbStats.totalNews,
-      change: dbStats.newsGrowth,
-      icon: NewspaperIcon,
-      gradient: 'bg-gradient-to-br from-[#F59E0B] to-[#F59E0B]/80',
-      href: '/admin/news'
-    },
-    {
-      title: 'Reels Activos',
-      value: dbStats.totalReels,
-      change: dbStats.reelsGrowth,
-      icon: PlayIcon,
-      gradient: 'bg-gradient-to-br from-[#8B5CF6] to-[#8B5CF6]/80',
-      href: '/admin/reels'
+      href: '/admin/companies'
     },
     {
       title: 'Engagement',
       value: `${dbStats.engagementRate}%`,
       change: dbStats.engagementGrowth,
       icon: ChartBarIcon,
-      gradient: 'bg-gradient-to-br from-[#EC4899] to-[#EC4899]/80',
+      gradient: 'bg-gradient-to-br from-[#8B5CF6] to-[#8B5CF6]/80',
       href: '/admin/lia-analytics'
     },
   ] : []
@@ -349,10 +330,10 @@ export function AdminDashboard() {
       color: 'bg-[#0A2540]'
     },
     {
-      title: 'Configurar Prompts',
-      description: 'Personaliza respuestas de LIA',
-      icon: SparklesIcon,
-      href: '/admin/prompts',
+      title: 'Gestionar Empresas',
+      description: 'Administra organizaciones B2B',
+      icon: BuildingOffice2Icon,
+      href: '/admin/companies',
       color: 'bg-[#00D4B3]'
     },
     {
@@ -362,12 +343,19 @@ export function AdminDashboard() {
       href: '/admin/lia-analytics',
       color: 'bg-[#8B5CF6]'
     },
+    {
+      title: 'Ver Reportes',
+      description: 'Reportes y métricas del sistema',
+      icon: DocumentTextIcon,
+      href: '/admin/reportes',
+      color: 'bg-[#F59E0B]'
+    },
   ]
 
   return (
     <div className="p-6 lg:p-8 bg-[#0F1419] min-h-screen">
       {/* Hero Section */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -378,10 +366,10 @@ export function AdminDashboard() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-[#00D4B3] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#00D4B3] rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
         </div>
-        
+
         {/* Animated Particles */}
         <motion.div
-          animate={{ 
+          animate={{
             y: [0, -10, 0],
             opacity: [0.5, 1, 0.5]
           }}
@@ -389,14 +377,14 @@ export function AdminDashboard() {
           className="absolute top-10 right-20 w-2 h-2 bg-[#00D4B3] rounded-full"
         />
         <motion.div
-          animate={{ 
+          animate={{
             y: [0, 10, 0],
             opacity: [0.3, 0.8, 0.3]
           }}
           transition={{ duration: 4, repeat: Infinity, delay: 1 }}
           className="absolute bottom-10 right-40 w-3 h-3 bg-[#00D4B3] rounded-full"
         />
-        
+
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <motion.div
@@ -409,8 +397,8 @@ export function AdminDashboard() {
               Panel de Control
             </span>
           </div>
-          
-          <motion.h1 
+
+          <motion.h1
             className="text-3xl lg:text-4xl font-bold text-white mb-2"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -418,8 +406,8 @@ export function AdminDashboard() {
           >
             {getGreeting()}, {getUserName()}
           </motion.h1>
-          
-          <motion.p 
+
+          <motion.p
             className="text-white/70 text-lg max-w-xl"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -427,9 +415,9 @@ export function AdminDashboard() {
           >
             Gestiona tu plataforma de aprendizaje con IA. Tienes el control total.
           </motion.p>
-          
+
           {/* Date & Status */}
-          <motion.div 
+          <motion.div
             className="flex items-center gap-6 mt-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -437,11 +425,11 @@ export function AdminDashboard() {
           >
             <div className="flex items-center gap-2 text-white/60 text-sm">
               <ClockIcon className="h-4 w-4" />
-              {currentTime.toLocaleDateString('es-MX', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              {currentTime.toLocaleDateString('es-MX', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}
             </div>
             <div className="flex items-center gap-2">
@@ -450,7 +438,7 @@ export function AdminDashboard() {
             </div>
           </motion.div>
         </div>
-        
+
         {/* Decorative Shield */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
@@ -467,7 +455,7 @@ export function AdminDashboard() {
         <div className="xl:col-span-3 space-y-8">
           {/* Stats Grid */}
           <section>
-            <motion.div 
+            <motion.div
               className="flex items-center justify-between mb-6"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -516,7 +504,7 @@ export function AdminDashboard() {
 
           {/* Activity Section */}
           <section>
-            <motion.div 
+            <motion.div
               className="flex items-center justify-between mb-6"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -565,10 +553,10 @@ export function AdminDashboard() {
                 <div className="divide-y divide-[#6C757D]/10">
                   {activities.map((activity, index) => {
                     const user = activity.users || {}
-                    const userName = user.display_name || 
-                      `${user.first_name || ''} ${user.last_name || ''}`.trim() || 
+                    const userName = user.display_name ||
+                      `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
                       user.username || 'Usuario'
-                    
+
                     return (
                       <ActivityItem
                         key={activity.notification_id}
@@ -576,9 +564,9 @@ export function AdminDashboard() {
                         description={activity.message || 'Sin descripción'}
                         user={userName}
                         timestamp={formatRelativeTime(activity.created_at)}
-                        type={activity.notification_type?.includes('user') ? 'user' : 
-                              activity.notification_type?.includes('course') ? 'workshop' :
-                              activity.notification_type?.includes('ai') ? 'ai-app' :
+                        type={activity.notification_type?.includes('user') ? 'user' :
+                          activity.notification_type?.includes('course') ? 'workshop' :
+                            activity.notification_type?.includes('ai') ? 'ai-app' :
                               activity.notification_type?.includes('news') ? 'news' : 'system'}
                         delay={index}
                       />
@@ -602,7 +590,7 @@ export function AdminDashboard() {
               <h2 className="text-lg font-bold text-white">Acciones Rápidas</h2>
               <p className="text-[#6C757D] text-sm mt-1">Accesos directos</p>
             </div>
-            
+
             <div className="space-y-3">
               {quickActions.map((action, index) => (
                 <QuickAction
@@ -637,7 +625,7 @@ export function AdminDashboard() {
                   <p className="text-[#10B981] text-xs">Todos los servicios activos</p>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-[#6C757D]">API</span>

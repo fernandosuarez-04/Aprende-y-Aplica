@@ -13,8 +13,6 @@ interface User {
   cargo_rol?: string
   type_rol?: string
   profile_picture_url?: string
-  organization_id?: string // ✅ AGREGADO: Para business panel
-  role?: string // Rol del usuario (admin, instructor, student, business, etc.)
 }
 
 // Fetcher optimizado para autenticación
@@ -45,7 +43,7 @@ const authFetcher = async (url: string): Promise<User | null> => {
       // Error de red esperado durante navegación - retornar null silenciosamente
       return null
     }
-    
+
     if (process.env.NODE_ENV === 'development') {
       // console.warn('useAuth fetcher error:', error)
     }
@@ -106,14 +104,14 @@ export function useAuth() {
       if (process.env.NODE_ENV === 'development') {
         // console.error('Error during logout:', error)
       }
-      
+
       // ⚠️ CRÍTICO: Asegurar limpieza del carrito incluso si hay error
       if (typeof window !== 'undefined') {
         const { useShoppingCartStore } = await import('@/core/stores/shoppingCartStore')
         useShoppingCartStore.getState().clearCart()
         useShoppingCartStore.getState().setUserId(null)
       }
-      
+
       // Fallback: limpiar caché y redirigir a home con recarga completa
       await mutate(null, false)
       window.location.href = '/'
