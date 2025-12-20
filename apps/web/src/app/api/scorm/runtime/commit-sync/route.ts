@@ -140,8 +140,9 @@ export async function POST(req: NextRequest) {
           totalScore, totalMaxScore, percentage, objectiveScores, objectiveMaxScores
         });
 
-        // También actualizar el updateData con este score
+        // También actualizar el updateData con este score y score_max
         updateData.score_raw = percentage;
+        updateData.score_max = 100; // El porcentaje ya está normalizado a 100
       }
     }
 

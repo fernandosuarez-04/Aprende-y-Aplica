@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
         const percentage = totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0;
         scoreRaw = String(percentage);
         updateData.score_raw = percentage;
+        updateData.score_max = 100; // El porcentaje ya está normalizado a 100
         console.log('[SCORM commit] Calculated score from objectives:', percentage);
       }
     }

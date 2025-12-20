@@ -36,15 +36,16 @@ export default function AdminScormViewPage() {
     const [stats, setStats] = useState<PackageStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(false);
 
-    const fetchStats = useCallback(async () => {
-        if (stats) {
+    const fetchStats = useCallback(async (forceRefresh: boolean = false) => {
+        if (stats && !forceRefresh) {
             setShowStats(!showStats);
             return;
         }
         setLoadingStats(true);
         try {
             const response = await fetch(`/api/scorm/packages/${packageId}/stats`, {
-                credentials: 'include'
+                credentials: 'include',
+                cache: 'no-store'
             });
             const data = await response.json();
             if (data.success) {
@@ -62,6 +63,8 @@ export default function AdminScormViewPage() {
         refetchAttempts();
         setCompletionData({ status, score });
         setShowCompletionModal(true);
+        // Invalidar cache de stats para que se actualicen al volver a ver
+        setStats(null);
     }, [refetchAttempts]);
 
     const handleError = (error: string) => {
@@ -154,7 +157,7 @@ export default function AdminScormViewPage() {
                         </button>
                     )}
                     <button
-                        onClick={fetchStats}
+                        onClick={() => fetchStats()}
                         disabled={loadingStats}
                         className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1 disabled:opacity-50"
                     >
@@ -185,12 +188,24 @@ export default function AdminScormViewPage() {
             {/* Estadísticas del paquete */}
             {showStats && stats && (
                 <div className="mb-6 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-6">
-                    <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        Estadísticas del Paquete
-                    </h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            Estadísticas del Paquete
+                        </h2>
+                        <button
+                            onClick={() => fetchStats(true)}
+                            disabled={loadingStats}
+                            className="p-2 text-neutral-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                            title="Actualizar estadísticas"
+                        >
+                            <svg className={`w-5 h-5 ${loadingStats ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-neutral-50 dark:bg-neutral-700/50 rounded-lg p-4">
                             <p className="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Total Intentos</p>
