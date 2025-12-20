@@ -435,12 +435,9 @@ export class SCORMAPIAdapter {
 
     this.cache.set(key, value);
 
-    // Queue the setValue if initialization hasn't completed yet
-    if (!this.initCompleted) {
-      this.pendingSetValues.push({ key, value });
-    } else {
-      this.setValueAsync(key, value);
-    }
+    // NOTE: We no longer send individual setValue calls to the server
+    // All data is sent via commitSync when LMSFinish/Terminate is called
+    // This prevents rate limiting issues with SCORM content that makes many rapid calls
 
     // Detectar completado - múltiples condiciones según el estándar SCORM
     //
@@ -705,9 +702,7 @@ export class SCORMAPIAdapter {
       }
 
       this.cache.set(sessionTimeKey, sessionTimeValue);
-      if (this.initCompleted) {
-        this.setValueAsync(sessionTimeKey, sessionTimeValue);
-      }
+      // NOTE: No individual setValueAsync call - all data sent via commitSync
       console.log('[SCORM Adapter] Auto-calculated session time:', sessionTimeValue);
     }
 
@@ -725,10 +720,7 @@ export class SCORMAPIAdapter {
       // Only set to suspend if not already set by the content
       if (!currentExit || currentExit === '' || currentExit === 'time-out' || currentExit === 'logout') {
         this.cache.set(exitKey, 'suspend');
-        // Send to server
-        if (this.initCompleted) {
-          this.setValueAsync(exitKey, 'suspend');
-        }
+        // NOTE: No individual setValueAsync call - all data sent via commitSync
         console.log('[SCORM Adapter] Auto-set exit to suspend for incomplete course');
       }
     }

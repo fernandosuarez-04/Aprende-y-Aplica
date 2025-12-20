@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
     console.log('[SCORM commit-sync] Session time from client:', cacheData['cmi.session_time'] || cacheData['cmi.core.session_time']);
 
     // Convert cacheData object to Map-like operations
-    const cache = new Map<string, string>(Object.entries(cacheData));
+    // Ensure all values are converted to strings (some SCORM content sends numbers)
+    const cache = new Map<string, string>();
+    for (const [key, value] of Object.entries(cacheData)) {
+      cache.set(key, String(value));
+    }
 
     // Mapear CMI keys a columnas de DB
     const updateData: Record<string, any> = {
@@ -227,25 +231,45 @@ export async function POST(req: NextRequest) {
       ? successStatus
       : derivedSuccessStatus;
 
+    // Determine final lesson_status with improved logic for SCORM 2004
+    // Priority: explicit success_status > score-based determination > completion_status
     if (effectiveSuccessStatus === 'passed' || effectiveSuccessStatus === 'failed') {
       updateData.lesson_status = effectiveSuccessStatus;
       console.log('[SCORM commit-sync] Using effective success status:', effectiveSuccessStatus);
     } else if (lessonStatus12 === 'passed' || lessonStatus12 === 'failed') {
       updateData.lesson_status = lessonStatus12;
-    } else if (completionStatus === 'completed' && scoreRaw) {
+    } else if (scoreRaw) {
+      // If we have a score, determine passed/failed based on score
+      // This handles SCORM 2004 where success_status may be 'unknown' but score is set
       const score = parseFloat(scoreRaw);
       const max = parseFloat(scoreMax || '100');
-      const scaledPassingScore = parseFloat(cache.get('cmi.scaled_passing_score') || '0.8');
-      const passThreshold = max * scaledPassingScore;
 
-      if (!isNaN(score)) {
+      if (!isNaN(score) && max > 0) {
+        // Calculate percentage and use configurable passing score (default 80%)
+        const scaledPassingScore = parseFloat(cache.get('cmi.scaled_passing_score') || '0.8');
+        const passThreshold = max * scaledPassingScore;
+        const percentage = (score / max) * 100;
+
         updateData.lesson_status = score >= passThreshold ? 'passed' : 'failed';
-        console.log('[SCORM commit-sync] Determined status from score:', updateData.lesson_status);
-      } else {
-        updateData.lesson_status = completionStatus;
+
+        // Ensure score_raw and score_max are saved for statistics
+        if (!updateData.score_raw) {
+          updateData.score_raw = score;
+        }
+        if (!updateData.score_max) {
+          updateData.score_max = max;
+        }
+
+        console.log('[SCORM commit-sync] Determined status from score:', {
+          score, max, percentage, passThreshold, status: updateData.lesson_status
+        });
+      } else if (completionStatus === 'completed') {
+        // If score is invalid but completion_status is 'completed', mark as completed
+        updateData.lesson_status = 'completed';
       }
-    } else if (lessonStatus12 === 'completed' && scoreRaw) {
-      updateData.lesson_status = 'passed';
+    } else if (lessonStatus12 === 'completed') {
+      // SCORM 1.2: completed without score
+      updateData.lesson_status = lessonStatus12;
     } else if (lessonStatus12) {
       updateData.lesson_status = lessonStatus12;
     } else if (completionStatus) {
