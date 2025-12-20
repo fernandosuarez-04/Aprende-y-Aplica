@@ -183,7 +183,7 @@ export async function requireBusiness(): Promise<BusinessAuth | NextResponse> {
     const { data: orgData, error: orgError } = await supabase
       .from('users')
       .select('organization_id')
-      .eq('id', session.user_id)
+      .eq('id', userId)
       .maybeSingle();
 
     if (!orgError && orgData) {
@@ -368,7 +368,7 @@ export async function requireBusinessUser(): Promise<BusinessAuth | NextResponse
     const { data: orgData } = await supabase
       .from('users')
       .select('organization_id')
-      .eq('id', session.user_id)
+      .eq('id', userId)
       .maybeSingle();
 
     if (orgData) {
