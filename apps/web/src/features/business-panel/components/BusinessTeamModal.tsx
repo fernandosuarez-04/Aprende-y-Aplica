@@ -1,34 +1,42 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, UsersRound, User, BookOpen, FileText } from 'lucide-react'
-import { Button } from '@aprende-y-aplica/ui'
+import {
+  X,
+  UsersRound,
+  User,
+  Search,
+  Check,
+  Crown,
+  Upload,
+  Camera,
+  Plus,
+  Minus,
+  ChevronRight
+} from 'lucide-react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, CreateWorkTeamRequest, UpdateWorkTeamRequest } from '../services/teams.service'
 import { useBusinessUsers } from '../hooks/useBusinessUsers'
-import { PremiumSelect } from './PremiumSelect'
-import { TeamImageUpload } from './TeamImageUpload'
 
 interface BusinessTeamModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
-  teamId?: string // Si se proporciona, es modo edición
+  teamId?: string
 }
 
 export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: BusinessTeamModalProps) {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { users } = useBusinessUsers()
-  
-  // Aplicar colores personalizados
-  const modalBg = panelStyles?.card_background || 'rgba(15, 23, 42, 0.95)'
-  const modalBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-  const textColor = panelStyles?.text_color || '#f8fafc'
-  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
-  const sectionBg = `${modalBg}CC`
-  
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Theme Colors
+  const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
+  const accentColor = panelStyles?.accent_color || '#10B981'
+  const cardBackground = panelStyles?.card_background || '#1a1f2e'
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -41,17 +49,17 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
-  // Cargar datos del equipo si está en modo edición
+  // Load team data for edit mode
   useEffect(() => {
     const loadTeamData = async () => {
       if (!teamId || !isOpen) return
-
       try {
         setIsLoadingTeam(true)
         const teamData = await TeamsService.getTeam(teamId)
         const members = await TeamsService.getTeamMembers(teamId)
-        
         setFormData({
           name: teamData.name,
           description: teamData.description || '',
@@ -60,34 +68,26 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
           member_ids: members.map(m => m.user_id),
           image_url: teamData.image_url || ''
         })
+        if (teamData.image_url) setImagePreview(teamData.image_url)
       } catch (err) {
-        console.error('Error loading team data:', err)
         setError('Error al cargar datos del equipo')
       } finally {
         setIsLoadingTeam(false)
       }
     }
-
     loadTeamData()
   }, [teamId, isOpen])
 
-  // Resetear formulario cuando se cierra el modal
+  // Reset on close
   useEffect(() => {
     if (!isOpen) {
-      setFormData({
-        name: '',
-        description: '',
-        team_leader_id: '',
-        course_id: '',
-        member_ids: [],
-        image_url: ''
-      })
+      setFormData({ name: '', description: '', team_leader_id: '', course_id: '', member_ids: [], image_url: '' })
       setSearchTerm('')
       setError(null)
+      setImagePreview(null)
     }
   }, [isOpen])
 
-  // Filtrar usuarios para selección
   const filteredUsers = users.filter(user => {
     if (!searchTerm) return true
     const search = searchTerm.toLowerCase()
@@ -99,11 +99,10 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
     )
   })
 
+  const selectedUsers = users.filter(u => formData.member_ids.includes(u.id))
+
   const handleChange = (name: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
 
   const handleToggleMember = (userId: string) => {
@@ -112,57 +111,51 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
       const newMemberIds = isRemoving
         ? prev.member_ids.filter(id => id !== userId)
         : [...prev.member_ids, userId]
-      
-      // Si se está removiendo el líder, limpiar el campo del líder
-      const newLeaderId = isRemoving && prev.team_leader_id === userId
-        ? ''
-        : prev.team_leader_id
-      
-      return {
-        ...prev,
-        member_ids: newMemberIds,
-        team_leader_id: newLeaderId
-      }
+      const newLeaderId = isRemoving && prev.team_leader_id === userId ? '' : prev.team_leader_id
+      return { ...prev, member_ids: newMemberIds, team_leader_id: newLeaderId }
     })
+  }
+
+  const handleImageUpload = async (file: File) => {
+    setIsUploadingImage(true)
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append('file', file)
+      formDataUpload.append('type', 'team')
+      const res = await fetch('/api/upload', { method: 'POST', body: formDataUpload })
+      const data = await res.json()
+      if (data.url) {
+        setImagePreview(data.url)
+        handleChange('image_url', data.url)
+      }
+    } catch (err) {
+      console.error('Error uploading image:', err)
+    } finally {
+      setIsUploadingImage(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
-
     try {
       if (teamId) {
-        const updateRequest: UpdateWorkTeamRequest = {
+        await TeamsService.updateTeam(teamId, {
           name: formData.name.trim(),
           description: formData.description.trim() || undefined,
           team_leader_id: formData.team_leader_id || undefined,
-          course_id: formData.course_id || undefined,
           image_url: formData.image_url || undefined
-        }
-        await TeamsService.updateTeam(teamId, updateRequest)
+        })
       } else {
-        const createRequest: CreateWorkTeamRequest = {
+        await TeamsService.createTeam({
           name: formData.name.trim(),
           description: formData.description.trim() || undefined,
           team_leader_id: formData.team_leader_id || undefined,
-          course_id: formData.course_id || undefined,
           member_ids: formData.member_ids.length > 0 ? formData.member_ids : undefined,
           image_url: formData.image_url || undefined
-        }
-        await TeamsService.createTeam(createRequest)
+        })
       }
-
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        team_leader_id: '',
-        course_id: '',
-        member_ids: [],
-        image_url: ''
-      })
-      setSearchTerm('')
       onSuccess()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar equipo')
@@ -171,262 +164,377 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
     }
   }
 
+  const getUserName = (user: any) => user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email
+
   if (!isOpen) return null
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Container - transparent backdrop */}
+      <div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ zIndex: 99999 }}
+      >
+        {/* Backdrop - transparent, just for closing */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+          className="absolute inset-0"
         />
 
+        {/* Modal */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 20 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10 backdrop-blur-xl"
-          style={{ 
-            backgroundColor: modalBg,
-            borderColor: modalBorder
-          }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+          className="relative w-full max-w-4xl mx-4 max-h-[90vh]"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="relative border-b p-5 backdrop-blur-sm" style={{ 
-            backgroundColor: modalBg,
-            borderColor: modalBorder
-          }}>
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <motion.div 
-                  initial={{ scale: 0.9, rotate: -5 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.1, type: 'spring' }}
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  <UsersRound className="w-5 h-5 text-white" />
-                </motion.div>
-                <div>
-                  <h2 className="font-heading text-xl font-bold tracking-tight" style={{ color: textColor }}>
-                    {teamId ? 'Editar Equipo' : 'Crear Equipo'}
-                  </h2>
-                  <p className="font-body text-xs mt-1" style={{ color: textColor, opacity: 0.7 }}>
-                    {teamId ? 'Modifica la información del equipo' : 'Crea un nuevo equipo de trabajo'}
-                  </p>
-                </div>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={onClose}
-                disabled={isLoading}
-                className="p-2 rounded-xl transition-all duration-200 disabled:opacity-50"
+          <div
+            className="rounded-2xl shadow-2xl overflow-hidden border border-white/10"
+            style={{ backgroundColor: cardBackground }}
+          >
+            {/* Two Column Layout */}
+            <div className="flex flex-col lg:flex-row min-h-[400px] lg:min-h-[550px] max-h-[85vh]">
+
+              {/* Left Side - Preview Card */}
+              <div
+                className="lg:w-80 w-full p-6 lg:p-8 flex flex-col border-b lg:border-b-0 lg:border-r border-white/5 lg:sticky lg:top-0 lg:self-start shrink-0"
+                style={{ background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)` }}
               >
-                <X className="w-5 h-5" style={{ color: textColor, opacity: 0.7 }} />
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-            {isLoadingTeam ? (
-              <div className="flex-1 flex items-center justify-center p-12">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-2" style={{ borderColor: primaryColor }}></div>
-                  <p className="text-sm font-body opacity-70" style={{ color: textColor }}>Cargando datos del equipo...</p>
-                </div>
-              </div>
-            ) : (
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3 rounded-xl text-red-400 flex items-center gap-3 border backdrop-blur-sm"
-                  style={{ 
-                    backgroundColor: 'rgba(127, 29, 29, 0.2)',
-                    borderColor: 'rgba(220, 38, 38, 0.3)'
-                  }}
-                >
-                  <X className="w-4 h-4" />
-                  <span className="text-sm font-body">{error}</span>
-                </motion.div>
-              )}
-
-              {/* Nombre */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Nombre del Equipo <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  required
-                  className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
-                  style={{ 
-                    borderColor: modalBorder,
-                    backgroundColor: sectionBg,
-                    color: textColor
-                  }}
-                  placeholder="Equipo de Desarrollo"
-                />
-              </div>
-
-              {/* Imagen o Icono */}
-              <TeamImageUpload
-                value={formData.image_url}
-                onChange={(url) => handleChange('image_url', url)}
-                disabled={isLoading || isLoadingTeam}
-                primaryColor={primaryColor}
-                modalBg={modalBg}
-                modalBorder={modalBorder}
-                textColor={textColor}
-                sectionBg={sectionBg}
-              />
-
-              {/* Descripción */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Descripción
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleChange('description', e.target.value)}
-                  rows={3}
-                  className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all resize-none"
-                  style={{ 
-                    borderColor: modalBorder,
-                    backgroundColor: sectionBg,
-                    color: textColor
-                  }}
-                  placeholder="Descripción del equipo..."
-                />
-              </div>
-
-              {/* Líder del Equipo */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Líder del Equipo
-                </label>
-                {formData.member_ids.length === 0 ? (
-                  <div 
-                    className="w-full px-4 py-3 border rounded-xl font-body opacity-50 cursor-not-allowed"
-                    style={{ 
-                      borderColor: modalBorder,
-                      backgroundColor: sectionBg,
-                      color: textColor
-                    }}
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  {/* Team Avatar */}
+                  <motion.div
+                    className="relative mb-6 group cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    Selecciona primero los miembros del equipo
+                    <div
+                      className="w-28 h-28 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-dashed border-white/20 group-hover:border-white/40 transition-colors"
+                      style={{
+                        backgroundColor: imagePreview ? 'transparent' : `${primaryColor}15`,
+                        boxShadow: `0 8px 30px ${primaryColor}40`
+                      }}
+                    >
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="" className="w-full h-full object-cover" />
+                      ) : isUploadingImage ? (
+                        <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full" />
+                      ) : (
+                        <Camera className="w-10 h-10 text-white/30 group-hover:text-white/50 transition-colors" />
+                      )}
+                    </div>
+                    <motion.div
+                      className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg"
+                      style={{ backgroundColor: primaryColor }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <Upload className="w-5 h-5 text-white" />
+                    </motion.div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                    />
+                  </motion.div>
+
+                  {/* Team Name Preview */}
+                  <h3 className="text-xl font-bold text-white text-center mb-2 min-h-[28px]">
+                    {formData.name || 'Nombre del equipo'}
+                  </h3>
+                  <p className="text-sm text-white/40 text-center mb-8 min-h-[40px] line-clamp-2">
+                    {formData.description || 'Descripción del equipo...'}
+                  </p>
+
+                  {/* Selected Members Preview */}
+                  <div className="w-full">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
+                        Miembros
+                      </span>
+                      <span className="text-xs font-bold text-white/70">
+                        {formData.member_ids.length}
+                      </span>
+                    </div>
+
+                    {selectedUsers.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedUsers.slice(0, 6).map((user) => (
+                          <motion.div
+                            key={user.id}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="relative"
+                          >
+                            {user.profile_picture_url ? (
+                              <img
+                                src={user.profile_picture_url}
+                                alt=""
+                                className="w-10 h-10 rounded-xl object-cover border border-white/10"
+                              />
+                            ) : (
+                              <div
+                                className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold"
+                                style={{ backgroundColor: `${primaryColor}30`, color: primaryColor }}
+                              >
+                                {getUserName(user).charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            {formData.team_leader_id === user.id && (
+                              <div className="absolute -top-1 -right-1 p-0.5 rounded-full bg-amber-500">
+                                <Crown className="w-2.5 h-2.5 text-white" />
+                              </div>
+                            )}
+                          </motion.div>
+                        ))}
+                        {selectedUsers.length > 6 && (
+                          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xs font-medium text-white/50">
+                            +{selectedUsers.length - 6}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-white/30 text-sm">
+                        <UsersRound className="w-4 h-4" />
+                        Sin miembros
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <PremiumSelect
-                    value={formData.team_leader_id}
-                    onValueChange={(value) => handleChange('team_leader_id', value)}
-                    placeholder="Seleccionar líder..."
-                    options={users
-                      .filter(user => formData.member_ids.includes(user.id))
-                      .map(user => ({
-                        value: user.id,
-                        label: user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email
-                      }))}
-                  />
+                </div>
+
+                {/* Leader Section */}
+                {formData.team_leader_id && (
+                  <div className="pt-6 border-t border-white/5">
+                    <span className="text-xs font-medium text-white/50 uppercase tracking-wider block mb-3">
+                      Líder del equipo
+                    </span>
+                    {(() => {
+                      const leader = users.find(u => u.id === formData.team_leader_id)
+                      if (!leader) return null
+                      return (
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            {leader.profile_picture_url ? (
+                              <img src={leader.profile_picture_url} alt="" className="w-10 h-10 rounded-xl object-cover" />
+                            ) : (
+                              <div
+                                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
+                                style={{ backgroundColor: `${primaryColor}30`, color: primaryColor }}
+                              >
+                                {getUserName(leader).charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <Crown className="absolute -top-1 -right-1 w-4 h-4 text-amber-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white">{getUserName(leader)}</p>
+                            <p className="text-xs text-white/40">{leader.email}</p>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
                 )}
               </div>
 
-              {/* Miembros */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Miembros del Equipo
-                </label>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar usuarios..."
-                  className="w-full px-4 py-2 mb-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
-                  style={{ 
-                    borderColor: modalBorder,
-                    backgroundColor: sectionBg,
-                    color: textColor
-                  }}
-                />
-                <div className="max-h-48 overflow-y-auto space-y-2 border rounded-xl p-3" style={{ borderColor: modalBorder, backgroundColor: sectionBg }}>
-                  {filteredUsers.length === 0 ? (
-                    <p className="text-sm font-body opacity-70 text-center py-4">No hay usuarios disponibles</p>
-                  ) : (
-                    filteredUsers.map(user => (
-                      <label
-                        key={user.id}
-                        className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                        style={{ backgroundColor: formData.member_ids.includes(user.id) ? `${primaryColor}20` : 'transparent' }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.member_ids.includes(user.id)}
-                          onChange={() => handleToggleMember(user.id)}
-                          className="w-4 h-4 rounded"
-                          style={{ accentColor: primaryColor }}
-                        />
-                        <div className="flex items-center gap-2 flex-1">
-                          {user.profile_picture_url ? (
-                            <img src={user.profile_picture_url} alt="" className="w-8 h-8 rounded-full" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}30` }}>
-                              <User className="w-4 h-4" style={{ color: primaryColor }} />
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-sm font-body font-medium">{user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}</p>
-                            <p className="text-xs font-body opacity-70">{user.email}</p>
-                          </div>
-                        </div>
-                      </label>
-                    ))
-                  )}
+              {/* Right Side - Form */}
+              <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 lg:p-6 border-b border-white/5 shrink-0">
+                  <div>
+                    <h2 className="text-lg lg:text-xl font-bold text-white">
+                      {teamId ? 'Editar equipo' : 'Nuevo equipo'}
+                    </h2>
+                    <p className="text-sm text-white/40 mt-0.5">
+                      {teamId ? 'Actualiza la información del equipo' : 'Configura tu nuevo equipo de trabajo'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                  >
+                    <X className="w-5 h-5 text-white/60" />
+                  </button>
                 </div>
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+                  <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-5 lg:space-y-6" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+                    {/* Error */}
+                    {error && (
+                      <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                        {error}
+                      </div>
+                    )}
+
+                    {/* Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-2">
+                        Nombre <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => handleChange('name', e.target.value)}
+                        required
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors"
+                        placeholder="Ej: Equipo de Desarrollo"
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-2">
+                        Descripción
+                      </label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => handleChange('description', e.target.value)}
+                        rows={2}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors resize-none"
+                        placeholder="¿Cuál es el propósito de este equipo?"
+                      />
+                    </div>
+
+                    {/* Members */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-white/70">
+                          Agregar miembros
+                        </label>
+                        {formData.member_ids.length > 0 && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/60">
+                            {formData.member_ids.length} seleccionados
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Search */}
+                      <div className="relative mb-3">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors"
+                          placeholder="Buscar por nombre o email..."
+                        />
+                      </div>
+
+                      {/* User List */}
+                      <div className="max-h-40 lg:max-h-48 overflow-y-auto rounded-xl border border-white/10 divide-y divide-white/5" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+                        {filteredUsers.length === 0 ? (
+                          <div className="p-6 text-center text-white/30 text-sm">
+                            No hay usuarios disponibles
+                          </div>
+                        ) : (
+                          filteredUsers.map((user) => {
+                            const isSelected = formData.member_ids.includes(user.id)
+                            const isLeader = formData.team_leader_id === user.id
+
+                            return (
+                              <div
+                                key={user.id}
+                                className={`flex items-center gap-3 p-3 transition-colors ${isSelected ? 'bg-white/5' : 'hover:bg-white/[0.02]'
+                                  }`}
+                              >
+                                {/* Add/Remove Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleMember(user.id)}
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${isSelected
+                                    ? 'bg-emerald-500 text-white'
+                                    : 'bg-white/5 text-white/40 hover:bg-white/10'
+                                    }`}
+                                >
+                                  {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                </button>
+
+                                {/* Avatar */}
+                                {user.profile_picture_url ? (
+                                  <img src={user.profile_picture_url} alt="" className="w-9 h-9 rounded-lg object-cover" />
+                                ) : (
+                                  <div
+                                    className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-semibold"
+                                    style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                                  >
+                                    {getUserName(user).charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-white truncate">{getUserName(user)}</p>
+                                  <p className="text-xs text-white/40 truncate">{user.email}</p>
+                                </div>
+
+                                {/* Leader Toggle */}
+                                {isSelected && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleChange('team_leader_id', isLeader ? '' : user.id)}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${isLeader
+                                      ? 'bg-amber-500/20 text-amber-400'
+                                      : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                                      }`}
+                                  >
+                                    <Crown className="w-3 h-3" />
+                                    {isLeader ? 'Líder' : 'Líder'}
+                                  </button>
+                                )}
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="p-4 lg:p-6 border-t border-white/5 flex items-center justify-end gap-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      disabled={isLoading}
+                      className="px-5 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isLoading || !formData.name.trim()}
+                      className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      style={{
+                        backgroundColor: primaryColor,
+                        boxShadow: `0 4px 20px ${primaryColor}40`
+                      }}
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          {teamId ? 'Guardar cambios' : 'Crear equipo'}
+                          <ChevronRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
-            )}
-
-            {/* Footer */}
-            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3" style={{ 
-              backgroundColor: modalBg,
-              borderColor: modalBorder
-            }}>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onClose}
-                disabled={isLoading}
-                className="font-body"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="gradient"
-                disabled={isLoading || isLoadingTeam}
-                className="font-body"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || '#8b5cf6'} 100%)`,
-                  boxShadow: `0 4px 14px 0 ${primaryColor}40`
-                }}
-              >
-                {isLoading ? 'Guardando...' : teamId ? 'Actualizar' : 'Crear Equipo'}
-              </Button>
-            </div>
-          </form>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>
   )
 }
-

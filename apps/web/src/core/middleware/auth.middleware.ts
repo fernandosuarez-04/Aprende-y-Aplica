@@ -22,7 +22,7 @@ export const ROLE_ROUTES = {
 /**
  * Eventos de seguridad que se registran
  */
-export type SecurityEvent = 
+export type SecurityEvent =
   | 'UNAUTHORIZED_ACCESS_ATTEMPT'
   | 'EXPIRED_SESSION_ACCESS'
   | 'USER_NOT_FOUND'
@@ -69,15 +69,15 @@ async function logSecurityEvent(
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const realIp = request.headers.get('x-real-ip');
-  
+
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
-  
+
   if (realIp) {
     return realIp;
   }
-  
+
   return 'unknown';
 }
 
@@ -88,12 +88,12 @@ function createUnauthorizedResponse(request: NextRequest): NextResponse {
   const response = NextResponse.redirect(
     new URL('/auth?error=unauthorized', request.url)
   );
-  
+
   // Limpiar todas las cookies de sesión
   response.cookies.delete('aprende-y-aplica-session');
   response.cookies.delete('access_token');
   response.cookies.delete('refresh_token');
-  
+
   return response;
 }
 
@@ -120,13 +120,13 @@ function normalizeRole(role: any): ValidRole | null {
   if (typeof role !== 'string') {
     return null;
   }
-  
+
   const trimmed = role.trim();
-  
+
   if (!isValidRole(trimmed)) {
     return null;
   }
-  
+
   return trimmed;
 }
 
@@ -138,47 +138,86 @@ function hasRoleAccess(role: ValidRole, pathname: string): boolean {
   if (role === 'Administrador') {
     return true;
   }
-  
+
   // Instructor tiene acceso a rutas de instructor y usuario
   if (role === 'Instructor') {
-    const isInstructorRoute = ROLE_ROUTES.instructor.some(route => 
+    const isInstructorRoute = ROLE_ROUTES.instructor.some(route =>
       pathname.startsWith(route)
     );
-    const isUserRoute = ROLE_ROUTES.user.some(route => 
+    const isUserRoute = ROLE_ROUTES.user.some(route =>
       pathname.startsWith(route)
     );
-    const isAdminRoute = ROLE_ROUTES.admin.some(route => 
+    const isAdminRoute = ROLE_ROUTES.admin.some(route =>
       pathname.startsWith(route)
     );
-    
+
     // Instructor NO puede acceder a rutas admin
     if (isAdminRoute) {
       return false;
     }
-    
+
     return isInstructorRoute || isUserRoute;
   }
-  
+
+  // ✅ Business tiene acceso a rutas business-panel y rutas de usuario básico
+  if (role === 'Business') {
+    const isBusinessRoute = ROLE_ROUTES.business.some(route =>
+      pathname.startsWith(route)
+    );
+    const isUserRoute = ROLE_ROUTES.user.some(route =>
+      pathname.startsWith(route)
+    );
+    const isAdminRoute = ROLE_ROUTES.admin.some(route =>
+      pathname.startsWith(route)
+    );
+
+    // Business NO puede acceder a rutas admin
+    if (isAdminRoute) {
+      return false;
+    }
+
+    return isBusinessRoute || isUserRoute;
+  }
+
+  // ✅ Business User tiene acceso a rutas business-user y rutas de usuario básico
+  if (role === 'Business User') {
+    const isBusinessRoute = pathname.startsWith('/business-user') ||
+      pathname.startsWith('/business-panel'); // También puede ver el panel
+    const isUserRoute = ROLE_ROUTES.user.some(route =>
+      pathname.startsWith(route)
+    );
+    const isAdminRoute = ROLE_ROUTES.admin.some(route =>
+      pathname.startsWith(route)
+    );
+
+    // Business User NO puede acceder a rutas admin
+    if (isAdminRoute) {
+      return false;
+    }
+
+    return isBusinessRoute || isUserRoute;
+  }
+
   // Usuario solo tiene acceso a rutas de usuario
   if (role === 'Usuario') {
-    const isUserRoute = ROLE_ROUTES.user.some(route => 
+    const isUserRoute = ROLE_ROUTES.user.some(route =>
       pathname.startsWith(route)
     );
-    const isAdminRoute = ROLE_ROUTES.admin.some(route => 
+    const isAdminRoute = ROLE_ROUTES.admin.some(route =>
       pathname.startsWith(route)
     );
-    const isInstructorRoute = ROLE_ROUTES.instructor.some(route => 
+    const isInstructorRoute = ROLE_ROUTES.instructor.some(route =>
       pathname.startsWith(route)
     );
-    
+
     // Usuario NO puede acceder a rutas admin ni instructor
     if (isAdminRoute || isInstructorRoute) {
       return false;
     }
-    
+
     return isUserRoute;
   }
-  
+
   return false;
 }
 
@@ -213,14 +252,14 @@ export async function validateRoleAccess(
       ip: clientIp,
       userAgent
     });
-    
+
     return { isValid: false, error: 'No session found' };
   }
 
   try {
     // 2. Obtener datos de la sesión desde la base de datos
     const supabase = await createClient();
-    
+
     const { data: sessionData, error: sessionError } = await supabase
       .from('user_session')
       .select('user_id, expires_at, revoked')
@@ -232,7 +271,7 @@ export async function validateRoleAccess(
         path: pathname,
         ip: clientIp
       });
-      
+
       return { isValid: false, error: 'Invalid session' };
     }
 
@@ -243,7 +282,7 @@ export async function validateRoleAccess(
         path: pathname,
         ip: clientIp
       });
-      
+
       return { isValid: false, error: 'Session revoked' };
     }
 
@@ -257,7 +296,7 @@ export async function validateRoleAccess(
         path: pathname,
         ip: clientIp
       });
-      
+
       return { isValid: false, error: 'Session expired' };
     }
 
@@ -273,7 +312,7 @@ export async function validateRoleAccess(
         userId: (sessionData as any).user_id,
         path: pathname
       });
-      
+
       return { isValid: false, error: 'User not found' };
     }
 
@@ -286,7 +325,7 @@ export async function validateRoleAccess(
         role: (userData as any).cargo_rol,
         path: pathname
       });
-      
+
       return { isValid: false, error: 'Invalid role' };
     }
 
@@ -300,12 +339,12 @@ export async function validateRoleAccess(
           attemptedPath: pathname,
           ip: clientIp
         });
-        
-        return { 
-          isValid: false, 
+
+        return {
+          isValid: false,
           userId: (userData as any).id,
           role: normalizedRole,
-          error: 'Insufficient permissions' 
+          error: 'Insufficient permissions'
         };
       }
     }
@@ -318,12 +357,12 @@ export async function validateRoleAccess(
         attemptedPath: pathname,
         ip: clientIp
       });
-      
-      return { 
-        isValid: false, 
+
+      return {
+        isValid: false,
         userId: (userData as any).id,
         role: normalizedRole,
-        error: 'Route access denied' 
+        error: 'Route access denied'
       };
     }
 
@@ -351,15 +390,15 @@ export async function validateRoleAccess(
  */
 export async function validateAdminAccess(request: NextRequest): Promise<NextResponse | null> {
   const result = await validateRoleAccess(request, 'Administrador');
-  
+
   if (!result.isValid) {
     if (result.error === 'No session found' || result.error === 'Invalid session' || result.error === 'Session expired') {
       return createUnauthorizedResponse(request);
     }
-    
+
     return createForbiddenResponse(request);
   }
-  
+
   return null; // null = permitir acceso
 }
 
@@ -368,20 +407,20 @@ export async function validateAdminAccess(request: NextRequest): Promise<NextRes
  */
 export async function validateInstructorAccess(request: NextRequest): Promise<NextResponse | null> {
   const result = await validateRoleAccess(request);
-  
+
   if (!result.isValid) {
     if (result.error === 'No session found' || result.error === 'Invalid session' || result.error === 'Session expired') {
       return createUnauthorizedResponse(request);
     }
-    
+
     return createForbiddenResponse(request);
   }
-  
+
   // Verificar que sea Instructor o Administrador
   if (result.role !== 'Instructor' && result.role !== 'Administrador') {
     return createForbiddenResponse(request);
   }
-  
+
   return null; // null = permitir acceso
 }
 

@@ -461,8 +461,539 @@
 - **Errores**: Mensajes claros con acciones sugeridas
 - **Éxito**: Confirmaciones breves y celebratorias
 
+## 8. Patrón de Modales: Split Panel Modal
+
+### 8.1 Descripción
+
+El **Split Panel Modal** es el patrón de diseño oficial para todos los modales complejos en SOFIA. Inspirado en el estilo de Notion y Linear, proporciona una experiencia de usuario premium y consistente.
+
+### 8.2 Características del Patrón
+
+#### Estructura de Dos Columnas
+
+```
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│  ┌──────────────┬────────────────────────────────┐  │
+│  │              │                                │  │
+│  │   PREVIEW    │           FORM                 │  │
+│  │   PANEL      │           PANEL                │  │
+│  │   (320px)    │           (flex-1)             │  │
+│  │              │                                │  │
+│  │  - Avatar    │  - Header con título           │  │
+│  │  - Info      │  - Campos del formulario       │  │
+│  │  - Stats     │  - Secciones organizadas       │  │
+│  │  - Actions   │  - Footer con botones          │  │
+│  │              │                                │  │
+│  └──────────────┴────────────────────────────────┘  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+#### Panel Izquierdo (Preview)
+- **Ancho fijo**: `320px` (`w-80`)
+- **Contenido**:
+  - Icono o avatar con animación
+  - Título contextual
+  - Preview en tiempo real de los datos
+  - Información secundaria
+  - Botones de acción secundaria
+- **Estilo**: Gradiente sutil usando colores de la organización
+- **Fondo**: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)`
+
+#### Panel Derecho (Form)
+- **Ancho flexible**: `flex-1`
+- **Secciones**:
+  1. **Header**: Título, subtítulo y botón de cerrar
+  2. **Content**: Campos del formulario con scroll
+  3. **Footer**: Botones de acción (Cancelar, Guardar)
+
+### 8.3 Especificaciones Técnicas
+
+#### Backdrop
+```tsx
+// SIN fondo - Transparente
+<motion.div className="absolute inset-0" onClick={onClose} />
+
+// O con glassmorphism suave (opcional)
+<motion.div 
+  className="absolute inset-0 backdrop-blur-md"
+  style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+  onClick={onClose}
+/>
+```
+
+#### Contenedor Principal
+```tsx
+<div 
+  className="fixed inset-0 flex items-center justify-center"
+  style={{ zIndex: 99999 }}
+>
+```
+
+#### Modal Box
+```tsx
+<div 
+  className="rounded-2xl shadow-2xl overflow-hidden border border-white/10"
+  style={{ backgroundColor: 'var(--org-card-background, #1a1f2e)' }}
+>
+  <div className="flex min-h-[550px]">
+    {/* Left Panel */}
+    <div className="w-80 p-8 border-r border-white/5" style={{ 
+      background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)` 
+    }}>
+      ...
+    </div>
+    
+    {/* Right Panel */}
+    <div className="flex-1 flex flex-col">
+      ...
+    </div>
+  </div>
+</div>
+```
+
+### 8.4 Elementos del Preview Panel
+
+#### Avatar/Icono Animado
+```tsx
+<motion.div
+  initial={{ scale: 0.8, opacity: 0 }}
+  animate={{ scale: 1, opacity: 1 }}
+  className="relative"
+>
+  <div 
+    className="w-24 h-24 rounded-2xl flex items-center justify-center"
+    style={{ 
+      background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+      boxShadow: `0 8px 30px ${primaryColor}40`
+    }}
+  >
+    {/* Contenido del avatar */}
+  </div>
+  
+  {/* Badge animado */}
+  <motion.div
+    animate={{ scale: [1, 1.2, 1] }}
+    transition={{ duration: 2, repeat: Infinity }}
+    className="absolute -top-2 -right-2 w-8 h-8 rounded-full"
+    style={{ backgroundColor: accentColor }}
+  >
+    <Sparkles className="w-4 h-4 text-white" />
+  </motion.div>
+</motion.div>
+```
+
+### 8.5 Colores y Theming
+
+Los modales **DEBEN** usar los colores personalizados de la organización:
+
+```tsx
+const { styles } = useOrganizationStylesContext()
+const panelStyles = styles?.panel
+
+const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
+const accentColor = panelStyles?.accent_color || '#10B981'
+```
+
+#### Aplicación de Colores
+- **Gradientes de botones**: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`
+- **Sombras**: `0 4px 15px ${primaryColor}40`
+- **Badges y estados activos**: `backgroundColor: ${primaryColor}20`
+- **Bordes activos**: `borderColor: ${primaryColor}`
+
+### 8.6 Inputs y Campos
+
+#### Estilo de Input
+```tsx
+<input
+  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 
+             text-white placeholder-white/30 focus:outline-none focus:border-white/20 
+             transition-colors"
+/>
+```
+
+#### Input con Icono
+```tsx
+<div className="relative">
+  <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+  <input className="pl-10 ..." />
+</div>
+```
+
+### 8.7 Botones del Footer
+
+```tsx
+{/* Botón Cancelar */}
+<button className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 
+                   hover:text-white hover:bg-white/5 transition-colors">
+  Cancelar
+</button>
+
+{/* Botón Principal */}
+<motion.button
+  whileHover={{ scale: 1.02 }}
+  whileTap={{ scale: 0.98 }}
+  className="px-5 py-2.5 rounded-xl text-sm font-medium text-white"
+  style={{ 
+    background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+    boxShadow: `0 4px 15px ${primaryColor}40`
+  }}
+>
+  Acción Principal
+</motion.button>
+```
+
+### 8.8 Modales Implementados con este Patrón
+
+| Modal | Archivo | Descripción |
+|-------|---------|-------------|
+| Crear Equipo | `BusinessTeamModal.tsx` | Crear/editar equipos de trabajo |
+| Agregar Usuario | `BusinessAddUserModal.tsx` | Agregar nuevo usuario a la organización |
+| Importar Usuarios | `BusinessImportUsersModal.tsx` | Importar usuarios desde CSV |
+
+### 8.9 Cuándo Usar Este Patrón
+
+✅ **Usar Split Panel Modal para:**
+- Formularios de creación/edición con múltiples campos
+- Acciones que requieren preview o visualización previa
+- Wizards o procesos de varios pasos
+- Modales con acciones secundarias
+
+❌ **NO usar para:**
+- Confirmaciones simples (usar Alert Dialog)
+- Mensajes de éxito/error (usar Toast)
+- Pop-ups informativos breves (usar Popover)
+
+## 9. Patrón de Dropdowns: Premium Dropdown
+
+### 9.1 Descripción
+
+El **Premium Dropdown** es el patrón de diseño oficial para todos los selectores y filtros en SOFIA. Reemplaza los elementos `<select>` nativos del navegador con dropdowns personalizados que mantienen consistencia visual con el resto de la aplicación.
+
+### 9.2 Características del Patrón
+
+- **Diseño oscuro** consistente con el tema de la organización
+- **Animaciones suaves** con Framer Motion
+- **Indicador visual** de opción seleccionada
+- **Icono de chevron animado** que rota al abrir/cerrar
+- **Bordes dinámicos** que cambian cuando hay una selección activa
+
+### 9.3 Estructura del Componente
+
+```tsx
+// Estado para controlar visibilidad
+const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+const [selectedValue, setSelectedValue] = useState('all')
+
+// Opciones del dropdown
+const options = [
+  { value: 'all', label: 'Todas las opciones' },
+  { value: 'option1', label: 'Opción 1' },
+  { value: 'option2', label: 'Opción 2' },
+]
+```
+
+### 9.4 Especificaciones Técnicas
+
+#### Botón Trigger
+
+```tsx
+<div className="relative min-w-[160px]">
+  <button
+    type="button"
+    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+    className="w-full px-4 py-3.5 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300"
+    style={{
+      backgroundColor: 'var(--org-card-background, #1E2329)',
+      borderColor: selectedValue !== 'all' ? primaryColor : 'rgba(255,255,255,0.1)',
+      color: 'var(--org-text-color, #FFFFFF)'
+    }}
+  >
+    <span className="text-sm">
+      {options.find(o => o.value === selectedValue)?.label}
+    </span>
+    <motion.svg 
+      animate={{ rotate: isDropdownOpen ? 180 : 0 }}
+      className="w-4 h-4 opacity-50" 
+      fill="none" 
+      stroke="currentColor" 
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </motion.svg>
+  </button>
+  
+  {/* Menu desplegable */}
+</div>
+```
+
+#### Menú Desplegable con Animación
+
+```tsx
+<AnimatePresence>
+  {isDropdownOpen && (
+    <motion.div
+      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+      transition={{ duration: 0.15 }}
+      className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50"
+      style={{
+        backgroundColor: 'var(--org-card-background, #1E2329)',
+        borderColor: 'rgba(255,255,255,0.15)'
+      }}
+    >
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => {
+            setSelectedValue(option.value)
+            setIsDropdownOpen(false)
+          }}
+          className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+            selectedValue === option.value
+              ? 'text-white'
+              : 'text-white/70 hover:text-white hover:bg-white/5'
+          }`}
+          style={selectedValue === option.value 
+            ? { backgroundColor: `${primaryColor}30` } 
+            : {}
+          }
+        >
+          {option.label}
+        </button>
+      ))}
+    </motion.div>
+  )}
+</AnimatePresence>
+```
+
+### 9.5 Estilos y Tokens
+
+#### Contenedor Principal
+| Propiedad | Valor |
+|-----------|-------|
+| `min-width` | `160px` |
+| `position` | `relative` |
+
+#### Botón Trigger
+| Propiedad | Valor |
+|-----------|-------|
+| `padding` | `14px 16px` (`py-3.5 px-4`) |
+| `border-radius` | `12px` (`rounded-xl`) |
+| `border-width` | `2px` |
+| `background` | `var(--org-card-background, #1E2329)` |
+| `border-color (inactivo)` | `rgba(255,255,255,0.1)` |
+| `border-color (activo)` | `${primaryColor}` |
+
+#### Menú Desplegable
+| Propiedad | Valor |
+|-----------|-------|
+| `margin-top` | `8px` (`mt-2`) |
+| `border-radius` | `12px` (`rounded-xl`) |
+| `border-color` | `rgba(255,255,255,0.15)` |
+| `box-shadow` | `shadow-2xl` |
+| `z-index` | `50` |
+
+#### Opciones
+| Estado | Background | Text Color |
+|--------|------------|------------|
+| Normal | `transparent` | `rgba(255,255,255,0.7)` |
+| Hover | `rgba(255,255,255,0.05)` | `white` |
+| Seleccionado | `${primaryColor}30` | `white` |
+
+### 9.6 Animaciones
+
+#### Chevron Icon
+```tsx
+animate={{ rotate: isDropdownOpen ? 180 : 0 }}
+```
+
+#### Menú Entrada
+```tsx
+initial={{ opacity: 0, y: -10, scale: 0.95 }}
+animate={{ opacity: 1, y: 0, scale: 1 }}
+transition={{ duration: 0.15 }}
+```
+
+#### Menú Salida
+```tsx
+exit={{ opacity: 0, y: -10, scale: 0.95 }}
+```
+
+### 9.7 Comportamiento UX
+
+1. **Click Toggle**: El menú se abre/cierra al hacer clic en el botón
+2. **Auto-cierre**: Al seleccionar una opción, el menú se cierra
+3. **Múltiples Dropdowns**: Si hay varios dropdowns, al abrir uno se cierra el otro
+4. **Indicador Visual**: El borde cambia de color cuando hay una selección diferente a "todos"
+5. **Animación de Chevron**: El icono rota 180° para indicar el estado
+
+### 9.8 Ejemplo de Uso con Múltiples Dropdowns
+
+```tsx
+const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false)
+const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false)
+
+// Al abrir un dropdown, cerrar el otro
+onClick={() => {
+  setIsRoleDropdownOpen(!isRoleDropdownOpen)
+  setIsStatusDropdownOpen(false)  // Cerrar el otro
+}}
+```
+
+### 9.9 Cuándo Usar Este Patrón
+
+✅ **Usar Premium Dropdown para:**
+- Filtros de búsqueda
+- Selectores de rol, estado, categoría
+- Cualquier selector que reemplace un `<select>` nativo
+- Menús de ordenamiento
+
+❌ **NO usar para:**
+- Menús de navegación (usar Sidebar o NavigationMenu)
+- Acciones contextuales (usar ContextMenu)
+- Autocompletado de búsqueda (usar ComboBox con input)
+
+---
+
+## 10. Patrón Premium DatePicker
+
+### 10.1 Descripción
+
+El **Premium DatePicker** es el componente oficial para selección de fechas en SOFIA. Reemplaza el date picker nativo del navegador con un diseño moderno, animado y completamente integrado con los colores de la organización.
+
+### 10.2 Estructura Visual
+
+```
+┌─────────────────────────────────────────────────┐
+│  📅  Seleccionar fecha                      ✕   │  ← Trigger Button
+└─────────────────────────────────────────────────┘
+
+         ↓ (Al hacer clic)
+
+┌─────────────────────────────────────────────────┐
+│   ←     Diciembre 2024                      →   │  ← Header con navegación
+├─────────────────────────────────────────────────┤
+│  Dom  Lun  Mar  Mié  Jue  Vie  Sáb              │  ← Días de la semana
+├─────────────────────────────────────────────────┤
+│   1    2    3    4    5    6    7               │
+│   8    9   10   11   12   13   14               │
+│  15   16   17   18   19  [20]  21               │  ← Día seleccionado
+│  22   23   24   25   26   27   28               │
+│  29   30   31    1    2    3    4               │  ← Días del siguiente mes
+├─────────────────────────────────────────────────┤
+│   Limpiar                              Hoy      │  ← Footer con acciones
+└─────────────────────────────────────────────────┘
+```
+
+### 10.3 Componentes
+
+#### Trigger Button
+- **Fondo**: `${cardBackground}80`
+- **Borde**: `rgba(255,255,255,0.1)` → `primaryColor` cuando está abierto
+- **Box Shadow activo**: `0 0 0 3px ${primaryColor}20`
+- **Icono de calendario**: Color `primaryColor`
+- **Botón X para limpiar**: Visible cuando hay fecha seleccionada
+
+#### Calendar Popup
+- **Fondo**: `cardBackground`
+- **Borde**: `rgba(255,255,255,0.1)`
+- **Sombra**: `0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px ${primaryColor}20`
+- **Border radius**: `1rem` (16px)
+- **Padding**: `1rem`
+- **Min-width**: `320px`
+
+### 10.4 Estados de Días
+
+| Estado | Background | Color | Box Shadow |
+|--------|------------|-------|------------|
+| Normal | `transparent` | `textColor` | ninguno |
+| Hover | animación scale 1.1 | - | - |
+| Hoy | `${primaryColor}20` | `primaryColor` | + punto indicador |
+| Seleccionado | `primaryColor` | `#FFFFFF` | `0 4px 15px ${primaryColor}40` |
+| Otro mes | opacity: 0.3 | - | - |
+| Deshabilitado | - | opacity: 0.3 | cursor: not-allowed |
+
+### 10.5 Animaciones
+
+#### Popup Entrada
+```tsx
+initial={{ opacity: 0, y: -10, scale: 0.95 }}
+animate={{ opacity: 1, y: 0, scale: 1 }}
+transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+```
+
+#### Popup Salida
+```tsx
+exit={{ opacity: 0, y: -10, scale: 0.95 }}
+```
+
+#### Días Hover
+```tsx
+whileHover={{ scale: 1.1 }}
+whileTap={{ scale: 0.9 }}
+```
+
+#### Navegación de Mes
+```tsx
+// Chevron izquierdo
+whileHover={{ scale: 1.1, x: -2 }}
+
+// Chevron derecho
+whileHover={{ scale: 1.1, x: 2 }}
+```
+
+### 10.6 Footer
+
+- **Botón Limpiar**: Texto simple con hover `bg-white/5`
+- **Botón Hoy**: Background `${accentColor}20`, color `accentColor`
+
+### 10.7 Props del Componente
+
+```tsx
+interface PremiumDatePickerProps {
+  value: string              // Formato YYYY-MM-DD
+  onChange: (date: string) => void
+  placeholder?: string       // Default: "Seleccionar fecha"
+  minDate?: Date            // Fecha mínima permitida
+  maxDate?: Date            // Fecha máxima permitida
+  disabled?: boolean        // Deshabilitar el picker
+  className?: string        // Clases adicionales
+}
+```
+
+### 10.8 Ejemplo de Uso
+
+```tsx
+import { PremiumDatePicker } from '@/features/business-panel/components/PremiumDatePicker'
+
+const [dueDate, setDueDate] = useState('')
+
+<PremiumDatePicker
+  value={dueDate}
+  onChange={setDueDate}
+  placeholder="Fecha límite (opcional)"
+  minDate={new Date()}
+/>
+```
+
+### 10.9 Cuándo Usar Este Patrón
+
+✅ **Usar Premium DatePicker para:**
+- Selección de fechas límite
+- Filtros de fecha
+- Programación de eventos
+- Cualquier input de tipo fecha
+
+❌ **NO usar para:**
+- Rangos de fecha (crear componente específico)
+- Selección de hora (crear TimePicker)
+
 ---
 
 **Última actualización**: Diciembre 2024
-**Versión**: 1.1
+**Versión**: 1.4
 

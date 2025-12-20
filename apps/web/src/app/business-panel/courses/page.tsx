@@ -2,8 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  BookOpen, 
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import {
+  BookOpen,
   Search,
   Filter,
   Star,
@@ -12,32 +14,272 @@ import {
   GraduationCap,
   TrendingUp,
   Tag,
-  Award
+  Award,
+  Play,
+  ChevronRight,
+  Sparkles,
+  BarChart3,
+  Target,
+  Layers
 } from 'lucide-react'
-import { useBusinessCourses, BusinessCourse } from '@/features/business-panel/hooks/useBusinessCourses'
-import Image from 'next/image'
-import { Button } from '@aprende-y-aplica/ui'
-import { useRouter } from 'next/navigation'
+import { useBusinessCourses } from '@/features/business-panel/hooks/useBusinessCourses'
 import { StarRating } from '@/features/courses/components/StarRating'
 import { PremiumSelect } from '@/features/business-panel/components/PremiumSelect'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 
+// ============================================
+// COMPONENTE: StatCard Premium para Cursos
+// ============================================
+interface CourseStatCardProps {
+  title: string
+  value: string | number
+  icon: React.ElementType
+  color: string
+  delay: number
+}
+
+function CourseStatCard({ title, value, icon: Icon, color, delay }: CourseStatCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: delay * 0.1, duration: 0.4 }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      className="relative group overflow-hidden rounded-2xl p-5 border border-white/10"
+      style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+    >
+      {/* Glow effect on hover */}
+      <motion.div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: `radial-gradient(circle at 50% 50%, ${color}15, transparent 70%)` }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10 flex items-center gap-4">
+        <div
+          className="p-3 rounded-xl"
+          style={{ backgroundColor: `${color}20` }}
+        >
+          <Icon className="w-6 h-6" style={{ color }} />
+        </div>
+        <div>
+          <h4 className="text-2xl font-bold" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </h4>
+          <p className="text-sm" style={{ color: 'var(--org-border-color, #9CA3AF)' }}>
+            {title}
+          </p>
+        </div>
+      </div>
+
+      {/* Subtle gradient bar */}
+      <motion.div
+        className="absolute bottom-0 left-0 h-1 rounded-r-full"
+        style={{ backgroundColor: color }}
+        initial={{ width: 0 }}
+        animate={{ width: '40%' }}
+        transition={{ delay: delay * 0.1 + 0.3, duration: 0.6 }}
+      />
+    </motion.div>
+  )
+}
+
+// ============================================
+// COMPONENTE: CourseCard Premium
+// ============================================
+interface CourseCardProps {
+  course: any
+  index: number
+  primaryColor: string
+  onClick: () => void
+}
+
+function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
+  const formatDuration = (minutes: number | null) => {
+    if (!minutes) return 'N/A'
+    if (minutes < 60) return `${minutes} min`
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`
+  }
+
+  const getLevelStyles = (level: string | null) => {
+    switch (level?.toLowerCase()) {
+      case 'beginner':
+      case 'principiante':
+        return { bg: 'rgba(34, 197, 94, 0.2)', color: '#22C55E', text: 'Principiante' }
+      case 'intermediate':
+      case 'intermedio':
+        return { bg: 'rgba(234, 179, 8, 0.2)', color: '#EAB308', text: 'Intermedio' }
+      case 'advanced':
+      case 'avanzado':
+        return { bg: 'rgba(239, 68, 68, 0.2)', color: '#EF4444', text: 'Avanzado' }
+      default:
+        return { bg: 'rgba(59, 130, 246, 0.2)', color: '#3B82F6', text: level || 'N/A' }
+    }
+  }
+
+  const levelStyles = getLevelStyles(course.level)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.4 }}
+      whileHover={{ y: -6, scale: 1.02 }}
+      onClick={onClick}
+      className="group cursor-pointer overflow-hidden rounded-2xl border border-white/10 transition-all duration-300"
+      style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+    >
+      {/* Thumbnail with Overlay */}
+      <div className="relative h-44 overflow-hidden">
+        {course.thumbnail_url ? (
+          <Image
+            src={course.thumbnail_url}
+            alt={course.title}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center"
+            style={{ background: `linear-gradient(135deg, ${primaryColor}30, ${primaryColor}10)` }}
+          >
+            <BookOpen className="w-16 h-16" style={{ color: `${primaryColor}60` }} />
+          </div>
+        )}
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+        {/* Level Badge */}
+        <div className="absolute top-3 left-3">
+          <span
+            className="px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md"
+            style={{ backgroundColor: levelStyles.bg, color: levelStyles.color }}
+          >
+            {levelStyles.text}
+          </span>
+        </div>
+
+        {/* Play Button on Hover */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          whileHover={{ opacity: 1, scale: 1 }}
+          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
+        >
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-md border border-white/20"
+            style={{ backgroundColor: `${primaryColor}90` }}
+          >
+            <Play className="w-6 h-6 text-white ml-1" fill="white" />
+          </div>
+        </motion.div>
+
+        {/* Rating Badge */}
+        <div className="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full backdrop-blur-md bg-black/50">
+          <Star className="w-3.5 h-3.5 text-yellow-400" fill="#FACC15" />
+          <span className="text-xs font-semibold text-white">
+            {course.rating ? course.rating.toFixed(1) : '0.0'}
+          </span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-5">
+        {/* Category */}
+        {course.category && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <Tag className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+            <span className="text-xs font-medium" style={{ color: primaryColor }}>
+              {course.category}
+            </span>
+          </div>
+        )}
+
+        {/* Title */}
+        <h3
+          className="text-base font-bold mb-2 line-clamp-2 group-hover:text-primary transition-colors"
+          style={{ color: 'var(--org-text-color, #FFFFFF)' }}
+        >
+          {course.title}
+        </h3>
+
+        {/* Description */}
+        <p
+          className="text-sm mb-4 line-clamp-2"
+          style={{ color: 'var(--org-border-color, #9CA3AF)' }}
+        >
+          {course.description || 'Sin descripción disponible'}
+        </p>
+
+        {/* Instructor */}
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/5">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}99)` }}
+          >
+            {course.instructor.name[0].toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-medium" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>
+              {course.instructor.name}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--org-border-color, #9CA3AF)' }}>
+              Instructor
+            </p>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5" style={{ color: 'var(--org-border-color, #9CA3AF)' }}>
+              <Clock className="w-4 h-4" />
+              <span className="text-xs font-medium">{formatDuration(course.duration)}</span>
+            </div>
+            <div className="flex items-center gap-1.5" style={{ color: 'var(--org-border-color, #9CA3AF)' }}>
+              <Users className="w-4 h-4" />
+              <span className="text-xs font-medium">{course.student_count || 0}</span>
+            </div>
+          </div>
+
+          {/* Arrow */}
+          <motion.div
+            className="w-8 h-8 rounded-full flex items-center justify-center border border-white/10 group-hover:border-transparent transition-all duration-300"
+            style={{ backgroundColor: 'transparent' }}
+            whileHover={{ backgroundColor: primaryColor }}
+          >
+            <ChevronRight
+              className="w-4 h-4 text-white/50 group-hover:text-white transition-colors"
+            />
+          </motion.div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ============================================
+// COMPONENTE PRINCIPAL: BusinessPanelCoursesPage
+// ============================================
 export default function BusinessPanelCoursesPage() {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
-  const { courses, stats, isLoading, error, refetch } = useBusinessCourses()
+  const { courses, stats, isLoading, error } = useBusinessCourses()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterLevel, setFilterLevel] = useState('all')
   const router = useRouter()
 
-  // Aplicar colores personalizados
-  const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
-  const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-  const textColor = panelStyles?.text_color || '#f8fafc'
-  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
+  // Theme Colors
+  const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
+  const accentColor = panelStyles?.accent_color || '#10B981'
+  const secondaryColor = panelStyles?.secondary_button_color || '#3B82F6'
+  const textColor = panelStyles?.text_color || '#FFFFFF'
+  const cardBg = panelStyles?.card_background || '#1E2329'
 
-  // Obtener categorías y niveles únicos para los filtros
+  // Obtener categorías y niveles únicos
   const categories = useMemo(() => {
     const cats = new Set<string>()
     courses.forEach(course => {
@@ -57,7 +299,7 @@ export default function BusinessPanelCoursesPage() {
   // Filtrar cursos
   const filteredCourses = useMemo(() => {
     return courses.filter(course => {
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.instructor.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -69,254 +311,257 @@ export default function BusinessPanelCoursesPage() {
     })
   }, [courses, searchTerm, filterCategory, filterLevel])
 
-  const formatDuration = (minutes: number | null) => {
-    if (!minutes) return 'N/A'
-    if (minutes < 60) return `${minutes} min`
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`
-  }
-
-  const getLevelColor = (level: string | null) => {
-    switch (level?.toLowerCase()) {
-      case 'beginner':
-      case 'principiante':
-        return 'bg-green-500/20 text-green-400'
-      case 'intermediate':
-      case 'intermedio':
-        return 'bg-yellow-500/20 text-yellow-400'
-      case 'advanced':
-      case 'avanzado':
-        return 'bg-red-500/20 text-red-400'
-      default:
-        return 'bg-blue-500/20 text-blue-400'
-    }
-  }
+  // Stats data
+  const courseStats = useMemo(() => [
+    {
+      title: 'Total Cursos',
+      value: courses.length,
+      icon: BookOpen,
+      color: primaryColor
+    },
+    {
+      title: 'Categorías',
+      value: categories.length,
+      icon: Layers,
+      color: secondaryColor
+    },
+    {
+      title: 'Niveles',
+      value: levels.length,
+      icon: BarChart3,
+      color: accentColor
+    },
+    {
+      title: 'Estudiantes Totales',
+      value: courses.reduce((acc, c) => acc + (c.student_count || 0), 0),
+      icon: Users,
+      color: '#F59E0B'
+    },
+  ], [courses, categories, levels, primaryColor, secondaryColor, accentColor])
 
   if (isLoading) {
     return (
-      <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }}
-        className="w-full"
-      >
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-carbon-700/50 rounded w-1/3 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-carbon-700/50 rounded-xl"></div>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-80 bg-carbon-700/50 rounded-xl"></div>
-            ))}
-          </div>
+      <div className="p-6 lg:p-8 min-h-screen animate-pulse">
+        {/* Hero Skeleton */}
+        <div className="h-48 rounded-3xl bg-white/5 mb-8" />
+
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 bg-white/5 rounded-2xl" />
+          ))}
         </div>
-      </motion.div>
+
+        {/* Filters Skeleton */}
+        <div className="h-16 bg-white/5 rounded-2xl mb-8" />
+
+        {/* Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-96 bg-white/5 rounded-2xl" />
+          ))}
+        </div>
+      </div>
     )
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-6 lg:p-8 min-h-screen"
     >
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl sm:text-3xl font-semibold mb-3" style={{ color: textColor }}>
+      {/* Hero Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative overflow-hidden rounded-3xl p-8 mb-8"
+        style={{
+          background: `linear-gradient(135deg, ${primaryColor}20, ${accentColor}10)`,
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}
+      >
+        {/* Decorative Elements */}
+        <motion.div
+          className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-30"
+          style={{ backgroundColor: primaryColor }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 5, repeat: Infinity }}
+        />
+        <motion.div
+          className="absolute bottom-0 left-1/3 w-48 h-48 rounded-full blur-3xl opacity-20"
+          style={{ backgroundColor: accentColor }}
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.1, 0.3] }}
+          transition={{ duration: 6, repeat: Infinity }}
+        />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-3">
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            >
+              <Sparkles className="w-5 h-5" style={{ color: accentColor }} />
+            </motion.div>
+            <span
+              className="text-sm font-semibold uppercase tracking-wider"
+              style={{ color: accentColor }}
+            >
               Gestión de Cursos
-            </h1>
-            <p className="font-body text-sm" style={{ color: textColor, opacity: 0.7 }}>
-              Asigna cursos a tu equipo y supervisa su progreso
-            </p>
+            </span>
           </div>
+
+          <h1
+            className="text-3xl lg:text-4xl font-bold mb-3"
+            style={{ color: textColor }}
+          >
+            Biblioteca de Cursos
+          </h1>
+          <p
+            className="text-base lg:text-lg max-w-2xl"
+            style={{ color: `${textColor}99` }}
+          >
+            Explora, asigna y supervisa el progreso de tu equipo en nuestra colección de cursos especializados.
+          </p>
         </div>
+      </motion.div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {courseStats.map((stat, index) => (
+          <CourseStatCard key={stat.title} {...stat} delay={index} />
+        ))}
       </div>
-      
-      {/* Error message */}
+
+      {/* Error Message */}
       {error && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <div className="p-4 rounded-xl border backdrop-blur-sm" style={{ 
+          className="mb-6 p-4 rounded-2xl border backdrop-blur-sm"
+          style={{
             backgroundColor: 'rgba(234, 179, 8, 0.1)',
             borderColor: 'rgba(234, 179, 8, 0.3)'
-          }}>
-            <div className="flex items-center gap-3">
-              <Award className="w-5 h-5 text-yellow-400" />
-              <div>
-                <h4 className="font-body text-sm font-heading font-semibold text-yellow-400">Información</h4>
-                <p className="font-body text-xs mt-1" style={{ color: textColor, opacity: 0.8 }}>{error}</p>
-              </div>
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <Award className="w-5 h-5 text-yellow-400" />
+            <div>
+              <h4 className="text-sm font-semibold text-yellow-400">Información</h4>
+              <p className="text-xs mt-1" style={{ color: textColor, opacity: 0.8 }}>{error}</p>
             </div>
           </div>
         </motion.div>
       )}
 
-
-      {/* Filters */}
-      <div className="rounded-2xl p-6 border mb-6 backdrop-blur-sm" style={{ 
-        backgroundColor: cardBg,
-        borderColor: cardBorder
-      }}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors duration-200" style={{ color: textColor, opacity: 0.5 }} />
+      {/* Filters Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="rounded-2xl p-5 border border-white/10 mb-8"
+        style={{ backgroundColor: cardBg }}
+      >
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative group">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors duration-200"
+              style={{ color: `${textColor}50` }}
+            />
             <input
               type="text"
-              placeholder="Buscar cursos..."
+              placeholder="Buscar cursos por nombre, descripción o instructor..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 border rounded-xl font-body placeholder-carbon-500 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200"
-              style={{ 
-                backgroundColor: `${cardBg}CC`,
-                borderColor: cardBorder,
-                color: textColor
+              className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-white/10 bg-white/5 focus:outline-none focus:ring-2 transition-all duration-200"
+              style={{
+                color: textColor,
+                borderColor: 'rgba(255,255,255,0.1)'
               }}
             />
           </div>
 
-          <PremiumSelect
-            value={filterCategory}
-            onChange={setFilterCategory}
-            options={[
-              { value: 'all', label: 'Todas las categorías' },
-              ...categories.map(cat => ({ value: cat, label: cat }))
-            ]}
-            placeholder="Todas las categorías"
-            icon={<Filter className="w-5 h-5" />}
-          />
+          {/* Category Filter */}
+          <div className="w-full lg:w-56">
+            <PremiumSelect
+              value={filterCategory}
+              onChange={setFilterCategory}
+              options={[
+                { value: 'all', label: 'Todas las categorías' },
+                ...categories.map(cat => ({ value: cat, label: cat }))
+              ]}
+              placeholder="Categoría"
+              icon={<Filter className="w-5 h-5" />}
+            />
+          </div>
 
-          <PremiumSelect
-            value={filterLevel}
-            onChange={setFilterLevel}
-            options={[
-              { value: 'all', label: 'Todos los niveles' },
-              ...levels.map(level => ({ value: level, label: level }))
-            ]}
-            placeholder="Todos los niveles"
-            icon={<GraduationCap className="w-5 h-5" />}
-          />
+          {/* Level Filter */}
+          <div className="w-full lg:w-56">
+            <PremiumSelect
+              value={filterLevel}
+              onChange={setFilterLevel}
+              options={[
+                { value: 'all', label: 'Todos los niveles' },
+                ...levels.map(level => ({ value: level, label: level }))
+              ]}
+              placeholder="Nivel"
+              icon={<GraduationCap className="w-5 h-5" />}
+            />
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Courses Grid */}
       {filteredCourses.length === 0 ? (
-        <div className="rounded-2xl p-12 border text-center backdrop-blur-sm" style={{ 
-          backgroundColor: cardBg,
-          borderColor: cardBorder
-        }}>
-          <BookOpen className="w-16 h-16 mx-auto mb-4" style={{ color: textColor, opacity: 0.5 }} />
-          <p className="font-body text-lg mb-2" style={{ color: textColor }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="rounded-3xl p-16 border border-white/10 text-center"
+          style={{ backgroundColor: cardBg }}
+        >
+          <div
+            className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center"
+            style={{ backgroundColor: `${primaryColor}20` }}
+          >
+            <BookOpen className="w-10 h-10" style={{ color: primaryColor }} />
+          </div>
+          <h3 className="text-xl font-bold mb-2" style={{ color: textColor }}>
             {courses.length === 0 ? 'No hay cursos disponibles' : 'No se encontraron cursos'}
-          </p>
-          <p className="font-body text-sm" style={{ color: textColor, opacity: 0.6 }}>
-            {courses.length === 0 
+          </h3>
+          <p className="text-sm" style={{ color: `${textColor}70` }}>
+            {courses.length === 0
               ? 'Aún no hay cursos disponibles en la plataforma'
               : 'Intenta con otros filtros de búsqueda'}
           </p>
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {filteredCourses.map((course, index) => (
-            <motion.div
-              key={course.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={{ y: -3, scale: 1.01 }}
-              onClick={() => router.push(`/business-panel/courses/${course.id}`)}
-              className="rounded-xl overflow-hidden border transition-all duration-300 cursor-pointer group backdrop-blur-sm"
-              style={{ 
-                backgroundColor: cardBg,
-                borderColor: cardBorder
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = `${primaryColor}50`
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = cardBorder
-              }}
-            >
-              {/* Thumbnail */}
-              <div className="relative h-32 bg-carbon-600 overflow-hidden">
-                {course.thumbnail_url ? (
-                  <Image
-                    src={course.thumbnail_url}
-                    alt={course.title}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-success/20 flex items-center justify-center">
-                    <BookOpen className="w-10 h-10 text-primary/50" />
-                  </div>
-                )}
-                <div className="absolute top-2 right-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getLevelColor(course.level)}`}>
-                    {course.level || 'N/A'}
-                  </span>
-                </div>
-              </div>
+        <>
+          {/* Results Count */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center justify-between mb-6"
+          >
+            <p className="text-sm" style={{ color: `${textColor}70` }}>
+              Mostrando <span className="font-semibold" style={{ color: textColor }}>{filteredCourses.length}</span> cursos
+            </p>
+          </motion.div>
 
-              {/* Content */}
-              <div className="p-3">
-                <h3 className="font-heading text-sm font-semibold mb-1.5 line-clamp-2 transition-colors" style={{ color: textColor }}>
-                  {course.title}
-                </h3>
-                <p className="font-body text-xs mb-2.5 line-clamp-1" style={{ color: textColor, opacity: 0.7 }}>
-                  {course.description || 'Sin descripción'}
-                </p>
-
-                {/* Instructor */}
-                <div className="flex items-center gap-1.5 mb-2.5">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: primaryColor }}>
-                    {course.instructor.name[0].toUpperCase()}
-                  </div>
-                  <span className="font-body text-xs truncate" style={{ color: textColor, opacity: 0.8 }}>{course.instructor.name}</span>
-                </div>
-
-                {/* Stats */}
-                <div className="flex items-center gap-2 text-xs mb-2" style={{ color: textColor, opacity: 0.6 }}>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span className="font-body">{formatDuration(course.duration)}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    <span className="font-body">{course.student_count || 0}</span>
-                  </div>
-                </div>
-
-                {/* Rating & Category */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <StarRating
-                      rating={course.rating || 0}
-                      size="sm"
-                      showRatingNumber={false}
-                    />
-                    <span className="font-body text-xs" style={{ color: textColor, opacity: 0.6 }}>
-                      {course.rating ? course.rating.toFixed(1) : '0.0'}
-                    </span>
-                  </div>
-                  {course.category && (
-                    <div className="flex items-center gap-1">
-                      <Tag className="w-3 h-3" style={{ color: textColor, opacity: 0.5 }} />
-                      <span className="font-body text-xs truncate max-w-[60px]" style={{ color: textColor, opacity: 0.6 }}>{course.category}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+          {/* Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCourses.map((course, index) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                index={index}
+                primaryColor={primaryColor}
+                onClick={() => router.push(`/business-panel/courses/${course.id}`)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </motion.div>
   )

@@ -24,6 +24,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'active'
 
+    // Debug: Log organization ID y status
+    console.log('🔍 [Teams API] Fetching teams for organization:', auth.organizationId)
+    console.log('🔍 [Teams API] Status filter:', status)
+
+    // Primero, verificar todos los equipos sin filtros
+    const { data: allTeams, error: allTeamsError } = await supabase
+      .from('work_teams')
+      .select('team_id, organization_id, name, status')
+
+    console.log('🔍 [Teams API] ALL teams in database:', allTeams)
+    console.log('🔍 [Teams API] ALL teams error:', allTeamsError)
+
     // Obtener equipos de la organización
     const { data: teams, error: teamsError } = await supabase
       .from('work_teams')
@@ -44,6 +56,9 @@ export async function GET(request: NextRequest) {
       .eq('organization_id', auth.organizationId)
       .eq('status', status)
       .order('created_at', { ascending: false })
+
+    console.log('🔍 [Teams API] Filtered teams:', teams)
+    console.log('🔍 [Teams API] Filtered teams error:', teamsError)
 
     if (teamsError) {
       logger.error('Error fetching teams:', teamsError)
@@ -94,7 +109,7 @@ export async function GET(request: NextRequest) {
             .select('id, display_name, first_name, last_name, email, profile_picture_url')
             .eq('id', team.team_leader_id)
             .single()
-          
+
           if (leader) {
             teamLeader = {
               id: leader.id,
@@ -113,7 +128,7 @@ export async function GET(request: NextRequest) {
             .select('id, title, thumbnail_url')
             .eq('id', team.course_id)
             .single()
-          
+
           if (courseData) {
             course = {
               id: courseData.id,
@@ -222,7 +237,7 @@ export async function POST(request: NextRequest) {
         // Continuar sin miembros, el equipo ya está creado
       } else if (orgUsers && orgUsers.length > 0) {
         const validUserIds = orgUsers.map(u => u.user_id)
-        
+
         // Agregar el líder como miembro si no está en la lista
         const allMemberIds = team_leader_id && !validUserIds.includes(team_leader_id)
           ? [...validUserIds, team_leader_id]

@@ -18,10 +18,10 @@ export async function GET(
 
     const { id } = await params
     logger.info(`🔍 Fetching course with ID: ${id}`)
-    
+
     if (!id || id === 'undefined' || id === 'null') {
       logger.error('❌ Invalid course ID:', id)
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
         error: 'ID de curso no válido'
       }, { status: 400 })
@@ -63,15 +63,15 @@ export async function GET(
         hint: courseError.hint,
         courseId: id
       })
-      
+
       if (courseError.code === 'PGRST116') {
-        return NextResponse.json({ 
+        return NextResponse.json({
           success: false,
           error: `Curso con ID "${id}" no encontrado en la base de datos`
         }, { status: 404 })
       }
-      
-      return NextResponse.json({ 
+
+      return NextResponse.json({
         success: false,
         error: `Error al obtener el curso: ${courseError.message || 'Error desconocido'}`
       }, { status: 500 })
@@ -79,7 +79,7 @@ export async function GET(
 
     if (!course) {
       logger.error('❌ Course not found (null result):', id)
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
         error: `Curso con ID "${id}" no encontrado`
       }, { status: 404 })
@@ -89,19 +89,53 @@ export async function GET(
 
     // Obtener información del instructor
     let instructor = null
-    if (course.instructor_id) {
+    let instructorId = course.instructor_id
+
+    // Si el curso no tiene instructor_id, intentar obtenerlo de la primera lección
+    if (!instructorId) {
+      logger.info('🔍 Course has no instructor_id, trying to get from first lesson...')
+
+      // Obtener el primer módulo
+      const { data: firstModule } = await supabase
+        .from('course_modules')
+        .select('module_id')
+        .eq('course_id', course.id)
+        .eq('is_published', true)
+        .order('module_order_index', { ascending: true })
+        .limit(1)
+        .single()
+
+      if (firstModule) {
+        // Obtener la primera lección del primer módulo
+        const { data: firstLesson } = await supabase
+          .from('course_lessons')
+          .select('instructor_id')
+          .eq('module_id', firstModule.module_id)
+          .eq('is_published', true)
+          .order('lesson_order_index', { ascending: true })
+          .limit(1)
+          .single()
+
+        if (firstLesson?.instructor_id) {
+          instructorId = firstLesson.instructor_id
+          logger.info(`✅ Found instructor_id from first lesson: ${instructorId}`)
+        }
+      }
+    }
+
+    if (instructorId) {
       const { data: instructorData, error: instructorError } = await supabase
         .from('users')
         .select('id, first_name, last_name, display_name, username, email, profile_picture_url, bio, linkedin_url, github_url, website_url, location, cargo_rol, type_rol')
-        .eq('id', course.instructor_id)
+        .eq('id', instructorId)
         .single()
 
       if (!instructorError && instructorData) {
-        const name = instructorData.display_name || 
-          `${instructorData.first_name || ''} ${instructorData.last_name || ''}`.trim() || 
-          instructorData.username || 
+        const name = instructorData.display_name ||
+          `${instructorData.first_name || ''} ${instructorData.last_name || ''}`.trim() ||
+          instructorData.username ||
           'Instructor'
-        
+
         instructor = {
           id: instructorData.id,
           name,
@@ -115,7 +149,12 @@ export async function GET(
           cargo_rol: instructorData.cargo_rol,
           type_rol: instructorData.type_rol
         }
+        logger.info(`✅ Instructor loaded: ${name}`)
+      } else {
+        logger.warn('⚠️ Could not load instructor data:', instructorError)
       }
+    } else {
+      logger.warn('⚠️ No instructor_id found for course or lessons')
     }
 
     // Obtener módulos del curso (usar course.id, no el parámetro id)
@@ -179,7 +218,7 @@ export async function GET(
         .eq('is_public', true)
         .order('created_at', { ascending: false })
         .limit(10)
-      
+
       if (reviewsError) {
         logger.warn('⚠️ Error fetching reviews (non-critical):', reviewsError)
         reviews = []
@@ -196,7 +235,7 @@ export async function GET(
     const totalLessons = modulesWithLessons.reduce((sum, m) => sum + (m.lessons?.length || 0), 0)
     const totalDuration = modulesWithLessons.reduce((sum, m) => {
       const moduleDuration = m.module_duration_minutes || 0
-      const lessonsDuration = (m.lessons || []).reduce((s: number, l: any) => 
+      const lessonsDuration = (m.lessons || []).reduce((s: number, l: any) =>
         s + (l.duration_seconds ? Math.floor(l.duration_seconds / 60) : 0), 0
       )
       return sum + Math.max(moduleDuration, lessonsDuration)
@@ -212,7 +251,7 @@ export async function GET(
 
     try {
       const currentUser = await SessionService.getCurrentUser()
-      
+
       if (currentUser && auth.organizationId) {
         try {
           // Verificar membresía activa
@@ -290,9 +329,9 @@ export async function GET(
           is_verified: review.is_verified,
           created_at: review.created_at,
           user: {
-            name: review.users?.display_name || 
-              `${review.users?.first_name || ''} ${review.users?.last_name || ''}`.trim() || 
-              review.users?.username || 
+            name: review.users?.display_name ||
+              `${review.users?.first_name || ''} ${review.users?.last_name || ''}`.trim() ||
+              review.users?.username ||
               'Usuario',
             profile_picture_url: review.users?.profile_picture_url
           }
@@ -312,13 +351,13 @@ export async function GET(
     logger.error('💥 Error in /api/business/courses/[id]:', error)
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
     const errorStack = error instanceof Error ? error.stack : undefined
-    
+
     logger.error('💥 Error details:', {
       message: errorMessage,
       stack: errorStack,
       error
     })
-    
+
     return NextResponse.json({
       success: false,
       error: `Error al obtener detalles del curso: ${errorMessage}`

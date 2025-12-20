@@ -62,25 +62,30 @@ export class BusinessUsersService {
 
   static async getOrganizationUsers(): Promise<BusinessUser[]> {
     try {
-      const response = await fetch(this.API_BASE)
+      const response = await fetch(this.API_BASE, {
+        credentials: 'include'
+      })
       const data = await response.json()
-      
+
       if (!response.ok) {
+        console.error('Error fetching users:', data.error || response.statusText)
         return [] // Retornar array vacío en lugar de lanzar
       }
 
       return data.users || []
     } catch (error) {
-      // console.error('Error fetching users:', error)
+      console.error('Error fetching users:', error)
       return [] // Retornar array vacío en caso de error de red
     }
   }
 
   static async getOrganizationStats(): Promise<BusinessUserStats> {
     try {
-      const response = await fetch(`${this.API_BASE}/stats`)
+      const response = await fetch(`${this.API_BASE}/stats`, {
+        credentials: 'include'
+      })
       const data = await response.json()
-      
+
       if (!response.ok) {
         return {
           total: 0,
@@ -116,6 +121,7 @@ export class BusinessUsersService {
   static async createUser(userData: CreateBusinessUserRequest): Promise<BusinessUser> {
     const response = await fetch(this.API_BASE, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -123,7 +129,7 @@ export class BusinessUsersService {
     })
 
     const data = await response.json()
-    
+
     if (!response.ok) {
       throw new Error(data.error || data.message || 'Error al crear usuario')
     }
@@ -134,6 +140,7 @@ export class BusinessUsersService {
   static async updateUser(userId: string, userData: UpdateBusinessUserRequest): Promise<BusinessUser> {
     const response = await fetch(`${this.API_BASE}/${userId}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -141,7 +148,7 @@ export class BusinessUsersService {
     })
 
     const data = await response.json()
-    
+
     if (!response.ok) {
       throw new Error(data.error || data.message || 'Error al actualizar usuario')
     }
@@ -152,6 +159,7 @@ export class BusinessUsersService {
   static async deleteUser(userId: string): Promise<void> {
     const response = await fetch(`${this.API_BASE}/${userId}`, {
       method: 'DELETE',
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -163,6 +171,7 @@ export class BusinessUsersService {
   static async resendInvitation(userId: string): Promise<void> {
     const response = await fetch(`${this.API_BASE}/${userId}/resend-invitation`, {
       method: 'POST',
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -174,6 +183,7 @@ export class BusinessUsersService {
   static async suspendUser(userId: string): Promise<void> {
     const response = await fetch(`${this.API_BASE}/${userId}/suspend`, {
       method: 'POST',
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -185,6 +195,7 @@ export class BusinessUsersService {
   static async activateUser(userId: string): Promise<void> {
     const response = await fetch(`${this.API_BASE}/${userId}/activate`, {
       method: 'POST',
+      credentials: 'include',
     })
 
     if (!response.ok) {

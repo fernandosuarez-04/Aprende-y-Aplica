@@ -6,7 +6,7 @@ import { SessionService } from '../services/session.service'
 import { RefreshTokenService } from '../../../lib/auth/refreshToken.service'
 import { SECURE_COOKIE_OPTIONS, getCustomCookieOptions } from '../../../lib/auth/cookie-config'
 import { z } from 'zod'
-import { redirect } from 'next/navigation'
+// redirect no se usa directamente - devolvemos redirectTo para que el cliente maneje la navegación
 import bcrypt from 'bcryptjs'
 import { cookies, headers } from 'next/headers'
 import { logger } from '../../../lib/logger'
@@ -431,8 +431,12 @@ export async function loginAction(formData: FormData) {
       organization_id: user_final.organization_id
     });
 
+    // En lugar de usar redirect(), devolver la URL para que el cliente maneje la navegación
+    // Esto evita problemas de "redirect count exceeded" en Next.js
+    let redirectTo = '/dashboard'; // Default
+
     if (normalizedRole === 'Administrador') {
-      redirect('/admin/dashboard')
+      redirectTo = '/admin/dashboard';
     } else if (normalizedRole === 'Business' || normalizedRole === 'Business User') {
       // Para roles de empresa, verificar que pertenezca a una organización
       const { data: userOrg, error: orgError } = await supabase
@@ -448,27 +452,28 @@ export async function loginAction(formData: FormData) {
           cargo_rol: normalizedRole,
           error: orgError?.message
         })
-        // Si no pertenece a ninguna organización, redirigir al dashboard normal
-        redirect('/dashboard')
-      }
-
-      console.log('✅ [loginAction] Usuario Business con organización:', {
-        userId: user.id,
-        cargo_rol: normalizedRole,
-        organizationId: userOrg.organization_id,
-        organizationName: userOrg.organizations?.name
-      })
-
-      // Redirigir según el rol específico
-      if (normalizedRole === 'Business') {
-        redirect('/business-panel/dashboard')
+        redirectTo = '/dashboard'; // Sin organización, ir al dashboard normal
       } else {
-        redirect('/business-user/dashboard')
+        console.log('✅ [loginAction] Usuario Business con organización:', {
+          userId: user.id,
+          cargo_rol: normalizedRole,
+          organizationId: userOrg.organization_id,
+          organizationName: userOrg.organizations?.name
+        })
+
+        // Redirigir según el rol específico
+        if (normalizedRole === 'Business') {
+          redirectTo = '/business-panel/dashboard';
+        } else {
+          redirectTo = '/business-user/dashboard';
+        }
       }
-    } else {
-      // Usuario normal o sin rol definido → Tour de SOFIA + Planes
-      redirect('/dashboard')
     }
+
+    console.log('🚀 [loginAction] Redirigiendo a:', redirectTo);
+
+    // Devolver success con la URL de redirección
+    return { success: true, redirectTo }
   } catch (error) {
     // Manejar redirect de Next.js (no es un error real)
     if (error && typeof error === 'object' && 'digest' in error) {

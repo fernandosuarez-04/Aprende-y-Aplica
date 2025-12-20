@@ -2,8 +2,19 @@
 
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Upload, Download, FileText, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
-import { Button } from '@aprende-y-aplica/ui'
+import {
+  X,
+  Upload,
+  Download,
+  FileText,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  FileSpreadsheet,
+  Users,
+  Sparkles
+} from 'lucide-react'
+import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 
 interface BusinessImportUsersModalProps {
   isOpen: boolean
@@ -19,12 +30,19 @@ interface ImportResult {
 }
 
 export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: BusinessImportUsersModalProps) {
+  const { styles } = useOrganizationStylesContext()
+  const panelStyles = styles?.panel
+
   const [isDragging, setIsDragging] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const dropAreaRef = useRef<HTMLDivElement>(null)
+
+  // Theme Colors
+  const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
+  const accentColor = panelStyles?.accent_color || '#10B981'
 
   const handleDownloadTemplate = async () => {
     try {
@@ -55,18 +73,20 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
       setError('El archivo debe ser un CSV (.csv)')
       return
     }
-
-    await processFile(file)
+    setSelectedFile(file)
+    setError(null)
   }
 
-  const processFile = async (file: File) => {
+  const processFile = async () => {
+    if (!selectedFile) return
+
     setIsImporting(true)
     setError(null)
     setImportResult(null)
 
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', selectedFile)
 
       const response = await fetch('/api/business/users/import', {
         method: 'POST',
@@ -125,6 +145,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
   const handleReset = () => {
     setError(null)
     setImportResult(null)
+    setSelectedFile(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -139,341 +160,355 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop premium */}
+      {/* Portal style - Covers entire viewport */}
+      <div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ zIndex: 99999 }}
+      >
+        {/* Backdrop - Transparent, just for closing */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={handleClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+          className="absolute inset-0"
         />
 
         {/* Modal */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 20 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative backdrop-blur-xl rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10"
-          style={{ 
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            borderColor: 'rgba(51, 65, 85, 0.3)'
-          }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+          className="relative w-full max-w-4xl mx-4 max-h-[90vh]"
+          onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="relative border-b p-6 backdrop-blur-sm" style={{ 
-            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-            borderColor: 'rgba(51, 65, 85, 0.3)'
-          }}>
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <motion.div
-                  initial={{ scale: 0.9, rotate: -5 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.1, type: 'spring' }}
-                  className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-success flex items-center justify-center shadow-lg"
-                >
-                  <Upload className="w-6 h-6 text-white" />
-                </motion.div>
-                <div>
-                  <h2 className="text-heading text-2xl font-bold text-white tracking-tight">
+          <div
+            className="rounded-2xl shadow-2xl overflow-hidden border border-white/10"
+            style={{ backgroundColor: 'var(--org-card-background, #1a1f2e)' }}
+          >
+            {/* Two Column Layout */}
+            <div className="flex flex-col lg:flex-row min-h-[400px] lg:min-h-[500px] max-h-[85vh]">
+
+              {/* Left Side - Preview & Info (Sticky) */}
+              <div
+                className="lg:w-80 w-full p-6 lg:p-8 flex flex-col border-b lg:border-b-0 lg:border-r border-white/5 lg:sticky lg:top-0 lg:self-start shrink-0"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)`
+                }}
+              >
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  {/* Icon */}
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="relative mb-6"
+                  >
+                    <div
+                      className="w-24 h-24 rounded-2xl flex items-center justify-center"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}30, ${accentColor}30)`,
+                        border: `2px solid ${primaryColor}50`
+                      }}
+                    >
+                      <Upload className="w-12 h-12" style={{ color: primaryColor }} />
+                    </div>
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: accentColor }}
+                    >
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </motion.div>
+                  </motion.div>
+
+                  {/* Title */}
+                  <h2 className="text-xl font-bold text-white mb-2 text-center">
                     Importar Usuarios
                   </h2>
-                  <p className="text-body text-sm text-carbon-400 mt-1">
-                    Importa múltiples usuarios desde un archivo CSV
+                  <p className="text-sm text-white/50 text-center mb-8">
+                    Agrega múltiples usuarios desde un archivo CSV
                   </p>
-                </div>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleClose}
-                disabled={isImporting}
-                className="p-2 rounded-xl transition-all duration-200 hover:bg-carbon-700/50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <X className="w-5 h-5 text-carbon-400 hover:text-white transition-colors" />
-              </motion.button>
-            </div>
-          </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Descargar plantilla */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
-              className="flex items-center justify-between p-5 rounded-xl border backdrop-blur-sm" style={{
-                backgroundColor: 'rgba(15, 23, 42, 0.5)',
-                borderColor: 'rgba(51, 65, 85, 0.3)'
-              }}
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-body text-sm font-heading font-semibold text-white">Plantilla CSV</p>
-                  <p className="text-body text-xs text-carbon-400 mt-0.5">Descarga el formato necesario para importar usuarios</p>
-                </div>
-              </div>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  onClick={handleDownloadTemplate}
-                  variant="outline"
-                  className="flex items-center gap-2 font-heading text-sm transition-all duration-200"
-                >
-                  <Download className="w-4 h-4" />
-                  Descargar Plantilla
-                </Button>
-              </motion.div>
-            </motion.div>
-
-            {/* Error message */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                  className="p-4 rounded-xl text-red-400 flex items-center gap-3 border backdrop-blur-sm"
-                  style={{ 
-                    backgroundColor: 'rgba(127, 29, 29, 0.2)',
-                    borderColor: 'rgba(220, 38, 38, 0.3)'
-                  }}
-                >
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <span className="text-body text-sm">{error}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Resultado de importación */}
-            {importResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-4"
-              >
-                {/* Resumen */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-5 rounded-xl border backdrop-blur-sm" style={{
-                    backgroundColor: 'rgba(15, 23, 42, 0.5)',
-                    borderColor: 'rgba(51, 65, 85, 0.3)'
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-heading text-lg font-semibold text-white">Resumen de Importación</h3>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2 text-green-400">
-                        <CheckCircle className="w-5 h-5" />
-                        <span className="text-body font-heading font-semibold">{importResult.imported} exitosos</span>
+                  {/* Stats Preview */}
+                  {importResult ? (
+                    <div className="w-full space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                        <span className="text-white/60 text-sm">Total procesados</span>
+                        <span className="font-bold text-white">{importResult.total}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                        <span className="text-green-400/80 text-sm">Importados</span>
+                        <span className="font-bold text-green-400">{importResult.imported}</span>
                       </div>
                       {importResult.errors > 0 && (
-                        <div className="flex items-center gap-2 text-red-400">
-                          <XCircle className="w-5 h-5" />
-                          <span className="text-body font-heading font-semibold">{importResult.errors} errores</span>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                          <span className="text-red-400/80 text-sm">Errores</span>
+                          <span className="font-bold text-red-400">{importResult.errors}</span>
                         </div>
                       )}
                     </div>
-                  </div>
-                  <p className="text-body text-sm text-carbon-400">
-                    Total procesado: {importResult.total} usuarios
-                  </p>
-                </motion.div>
+                  ) : selectedFile ? (
+                    <div className="w-full p-4 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
+                          <FileSpreadsheet className="w-5 h-5" style={{ color: primaryColor }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{selectedFile.name}</p>
+                          <p className="text-xs text-white/40">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full p-4 rounded-xl border-2 border-dashed border-white/10 text-center">
+                      <FileText className="w-8 h-8 mx-auto mb-2 text-white/20" />
+                      <p className="text-xs text-white/30">Ningún archivo seleccionado</p>
+                    </div>
+                  )}
+                </div>
 
-                {/* Detalles de errores */}
-                {importResult.errors > 0 && importResult.details.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="space-y-3"
+                {/* Download Template Button */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleDownloadTemplate}
+                  className="w-full py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium text-white/80"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar Plantilla CSV
+                </motion.button>
+              </div>
+
+              {/* Right Side - Form */}
+              <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 lg:p-6 border-b border-white/5 shrink-0">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">
+                      {importResult ? 'Resultado de Importación' : 'Subir Archivo'}
+                    </h3>
+                    <p className="text-sm text-white/40 mt-0.5">
+                      {importResult ? 'Resumen del proceso' : 'Selecciona o arrastra tu archivo CSV'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleClose}
+                    className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                   >
-                    <h4 className="text-body text-sm font-heading font-semibold text-white">Detalles de errores:</h4>
-                    <div className="max-h-48 overflow-y-auto space-y-2">
-                      {importResult.details.slice(0, 10).map((detail, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="p-3 rounded-xl border text-sm backdrop-blur-sm"
-                          style={{
-                            backgroundColor: 'rgba(127, 29, 29, 0.2)',
-                            borderColor: 'rgba(220, 38, 38, 0.3)'
-                          }}
-                        >
-                          <p className="text-body text-red-400 font-heading font-medium">Fila {detail.row}: {detail.error}</p>
-                          {detail.data?.username && (
-                            <p className="text-body text-red-300 text-xs mt-1">
-                              Usuario: {detail.data.username} | Email: {detail.data.email || 'N/A'}
-                            </p>
-                          )}
-                        </motion.div>
-                      ))}
-                      {importResult.details.length > 10 && (
-                        <p className="text-body text-xs text-carbon-400 text-center py-2">
-                          Y {importResult.details.length - 10} errores más...
-                        </p>
+                    <X className="w-5 h-5 text-white/40" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 p-4 lg:p-6 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+                  {/* Error */}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3"
+                    >
+                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                      <span className="text-sm text-red-400 flex-1">{error}</span>
+                      <button onClick={() => setError(null)} className="p-1 hover:bg-red-500/20 rounded">
+                        <X className="w-4 h-4 text-red-400" />
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {importResult ? (
+                    /* Import Result */
+                    <div className="space-y-4">
+                      {/* Success Message */}
+                      <div
+                        className="p-5 rounded-xl flex items-center gap-4"
+                        style={{
+                          backgroundColor: importResult.imported > 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                          border: `1px solid ${importResult.imported > 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`
+                        }}
+                      >
+                        {importResult.imported > 0 ? (
+                          <CheckCircle className="w-8 h-8 text-green-400" />
+                        ) : (
+                          <XCircle className="w-8 h-8 text-red-400" />
+                        )}
+                        <div>
+                          <p className="font-semibold text-white">
+                            {importResult.imported > 0 ? '¡Importación exitosa!' : 'No se importaron usuarios'}
+                          </p>
+                          <p className="text-sm text-white/50 mt-0.5">
+                            {importResult.imported} de {importResult.total} usuarios fueron importados correctamente
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Error Details */}
+                      {importResult.errors > 0 && importResult.details.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                            <XCircle className="w-4 h-4 text-red-400" />
+                            Errores encontrados ({importResult.errors})
+                          </p>
+                          <div className="max-h-40 lg:max-h-48 overflow-y-auto space-y-2 p-3 rounded-xl bg-red-500/5 border border-red-500/10" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+                            {importResult.details.slice(0, 10).map((detail, index) => (
+                              <div key={index} className="text-sm p-2 rounded-lg bg-red-500/10 text-red-400">
+                                <span className="font-medium">Fila {detail.row}:</span> {detail.error}
+                              </div>
+                            ))}
+                            {importResult.details.length > 10 && (
+                              <p className="text-xs text-red-400/60 text-center py-2">
+                                Y {importResult.details.length - 10} errores más...
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
+                  ) : (
+                    /* Upload Area */
+                    <div className="space-y-4">
+                      {/* Drop Zone */}
+                      <motion.div
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="relative rounded-xl cursor-pointer transition-all duration-200 p-8"
+                        style={{
+                          border: `2px dashed ${isDragging ? primaryColor : 'rgba(255,255,255,0.15)'}`,
+                          backgroundColor: isDragging ? `${primaryColor}10` : 'rgba(255,255,255,0.02)'
+                        }}
+                      >
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".csv"
+                          onChange={handleFileInputChange}
+                          className="hidden"
+                          disabled={isImporting}
+                        />
 
-            {/* Zona de carga */}
-            {!importResult && (
-              <motion.div
-                ref={dropAreaRef}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ 
-                  opacity: 1, 
-                  scale: 1,
-                  borderColor: isDragging ? 'rgba(59, 130, 246, 0.5)' : 'rgba(51, 65, 85, 0.5)',
-                  backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.3)'
-                }}
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.2 }}
-                className="relative border-2 border-dashed rounded-xl p-12 text-center cursor-pointer backdrop-blur-sm"
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileInputChange}
-                  className="hidden"
-                  disabled={isImporting}
-                />
+                        <div className="text-center">
+                          {isImporting ? (
+                            <div className="space-y-4">
+                              <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                className="w-12 h-12 mx-auto rounded-full border-3 border-t-transparent"
+                                style={{ borderColor: `${primaryColor}30`, borderTopColor: primaryColor }}
+                              />
+                              <div>
+                                <p className="font-medium text-white">Importando usuarios...</p>
+                                <p className="text-sm text-white/40 mt-1">Esto puede tardar unos segundos</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div
+                                className="w-14 h-14 mx-auto rounded-xl flex items-center justify-center mb-4"
+                                style={{ backgroundColor: `${primaryColor}15` }}
+                              >
+                                <Upload className="w-7 h-7" style={{ color: primaryColor }} />
+                              </div>
+                              <p className="font-medium text-white mb-1">
+                                {isDragging ? 'Suelta el archivo aquí' : 'Arrastra tu archivo CSV'}
+                              </p>
+                              <p className="text-sm text-white/40">
+                                o haz clic para seleccionar
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </motion.div>
 
-                {isImporting ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="space-y-5"
-                  >
-                    <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto"></div>
-                    <div>
-                      <p className="text-body text-white font-heading font-semibold">Importando usuarios...</p>
-                      <p className="text-body text-carbon-400 text-sm mt-1.5">Por favor espera, esto puede tardar unos momentos</p>
+                      {/* Format Info */}
+                      <div className="rounded-xl p-4 bg-white/5 border border-white/5">
+                        <p className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                          <FileText className="w-4 h-4" style={{ color: accentColor }} />
+                          Formato requerido
+                        </p>
+                        <div className="space-y-2">
+                          {[
+                            { field: 'username', desc: 'Nombre de usuario único', required: true },
+                            { field: 'email', desc: 'Correo electrónico', required: true },
+                            { field: 'password', desc: 'Mínimo 6 caracteres', required: true },
+                            { field: 'org_role', desc: 'member, admin u owner', required: false },
+                          ].map((item) => (
+                            <div key={item.field} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <code
+                                  className="px-2 py-0.5 rounded text-xs font-mono"
+                                  style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
+                                >
+                                  {item.field}
+                                </code>
+                                <span className="text-white/50">{item.desc}</span>
+                              </div>
+                              {item.required && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
+                                  Requerido
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="space-y-5"
-                  >
-                    <motion.div
-                      animate={isDragging ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto"
-                    >
-                      <Upload className="w-10 h-10 text-primary" />
-                    </motion.div>
-                    <div>
-                      <p className="text-body text-white font-heading font-semibold text-lg">
-                        {isDragging ? 'Suelta el archivo aquí' : 'Arrastra un archivo CSV aquí'}
-                      </p>
-                      <p className="text-body text-carbon-400 text-sm mt-2">
-                        o haz clic para seleccionar un archivo
-                      </p>
-                      <p className="text-body text-carbon-500 text-xs mt-4">
-                        Solo se aceptan archivos CSV (.csv)
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
+                  )}
+                </div>
 
-            {/* Instrucciones */}
-            {!importResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="p-5 rounded-xl border backdrop-blur-sm" style={{
-                  backgroundColor: 'rgba(15, 23, 42, 0.5)',
-                  borderColor: 'rgba(51, 65, 85, 0.3)'
-                }}
-              >
-                <h4 className="text-body text-sm font-heading font-semibold text-white mb-4">Instrucciones:</h4>
-                <ul className="space-y-2.5 text-body text-sm text-carbon-400">
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span>Descarga la plantilla CSV para ver el formato correcto</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span>Los campos <strong className="text-white font-heading">username</strong>, <strong className="text-white font-heading">email</strong> y <strong className="text-white font-heading">password</strong> son obligatorios</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span>El campo <strong className="text-white font-heading">password</strong> debe tener al menos 6 caracteres</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span>El campo <strong className="text-white font-heading">org_role</strong> puede ser: member, admin u owner</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="text-primary mt-0.5">•</span>
-                    <span>No se pueden importar usuarios que ya existan (mismo email o username)</span>
-                  </li>
-                </ul>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="border-t p-6 backdrop-blur-sm" style={{ 
-            backgroundColor: 'rgba(30, 41, 59, 0.8)',
-            borderColor: 'rgba(51, 65, 85, 0.3)'
-          }}>
-            <div className="flex items-center justify-end gap-3">
-              {importResult ? (
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    onClick={handleReset}
-                    variant="outline"
-                    className="min-w-[120px] font-heading text-sm transition-all duration-200"
-                  >
-                    Importar Otro
-                  </Button>
-                </motion.div>
-              ) : (
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    onClick={handleClose}
-                    variant="outline"
-                    disabled={isImporting}
-                    className="min-w-[120px] font-heading text-sm transition-all duration-200"
-                  >
-                    Cancelar
-                  </Button>
-                </motion.div>
-              )}
-              {importResult && (
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    onClick={handleClose}
-                    variant="gradient"
-                    className="min-w-[120px] font-heading text-sm transition-all duration-200"
-                  >
-                    Cerrar
-                  </Button>
-                </motion.div>
-              )}
+                {/* Footer */}
+                <div className="p-4 lg:p-6 border-t border-white/5 flex items-center justify-end gap-3 shrink-0">
+                  {importResult ? (
+                    <>
+                      <button
+                        onClick={handleReset}
+                        className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        Importar otro
+                      </button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleClose}
+                        className="px-5 py-2.5 rounded-xl text-sm font-medium text-white"
+                        style={{
+                          background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                          boxShadow: `0 4px 15px ${primaryColor}40`
+                        }}
+                      >
+                        Finalizar
+                      </motion.button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleClose}
+                        disabled={isImporting}
+                        className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                      <motion.button
+                        whileHover={{ scale: selectedFile ? 1.02 : 1 }}
+                        whileTap={{ scale: selectedFile ? 0.98 : 1 }}
+                        onClick={processFile}
+                        disabled={!selectedFile || isImporting}
+                        className="px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{
+                          background: selectedFile ? `linear-gradient(135deg, ${primaryColor}, ${accentColor})` : 'rgba(255,255,255,0.1)',
+                          boxShadow: selectedFile ? `0 4px 15px ${primaryColor}40` : 'none'
+                        }}
+                      >
+                        {isImporting ? 'Importando...' : 'Importar Usuarios'}
+                      </motion.button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -481,4 +516,3 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
     </AnimatePresence>
   )
 }
-

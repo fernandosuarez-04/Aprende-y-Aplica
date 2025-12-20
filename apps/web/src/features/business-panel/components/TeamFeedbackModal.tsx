@@ -17,24 +17,24 @@ interface TeamFeedbackModalProps {
   onFeedbackCreated: () => void
 }
 
-export function TeamFeedbackModal({ 
-  isOpen, 
-  onClose, 
+export function TeamFeedbackModal({
+  isOpen,
+  onClose,
   teamId,
   teamMembers,
-  onFeedbackCreated 
+  onFeedbackCreated
 }: TeamFeedbackModalProps) {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { user } = useAuth()
-  
+
   // Aplicar colores personalizados
   const modalBg = panelStyles?.card_background || 'rgba(15, 23, 42, 0.95)'
   const modalBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
   const textColor = panelStyles?.text_color || '#f8fafc'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
   const sectionBg = `${modalBg}CC`
-  
+
   const [formData, setFormData] = useState<CreateTeamFeedbackRequest>({
     to_user_id: '',
     feedback_type: 'peer_review',
@@ -94,7 +94,7 @@ export function TeamFeedbackModal({
         rating: undefined,
         is_anonymous: false
       })
-      
+
       onFeedbackCreated()
       onClose()
     } catch (err) {
@@ -125,20 +125,20 @@ export function TeamFeedbackModal({
           exit={{ opacity: 0, scale: 0.96, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10 backdrop-blur-xl"
-          style={{ 
+          style={{
             backgroundColor: modalBg,
             borderColor: modalBorder
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative border-b p-5 backdrop-blur-sm" style={{ 
+          <div className="relative border-b p-5 backdrop-blur-sm" style={{
             backgroundColor: modalBg,
             borderColor: modalBorder
           }}>
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <motion.div 
+                <motion.div
                   initial={{ scale: 0.9, rotate: -5 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.1, type: 'spring' }}
@@ -170,13 +170,13 @@ export function TeamFeedbackModal({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="p-3 rounded-xl text-red-400 flex items-center gap-3 border backdrop-blur-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: 'rgba(127, 29, 29, 0.2)',
                     borderColor: 'rgba(220, 38, 38, 0.3)'
                   }}
@@ -238,7 +238,7 @@ export function TeamFeedbackModal({
                   rows={5}
                   maxLength={1000}
                   className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all resize-none"
-                  style={{ 
+                  style={{
                     borderColor: modalBorder,
                     backgroundColor: sectionBg,
                     color: textColor
@@ -261,18 +261,17 @@ export function TeamFeedbackModal({
                     <button
                       key={rating}
                       type="button"
-                      onClick={() => setFormData(prev => ({ 
-                        ...prev, 
-                        rating: prev.rating === rating ? undefined : rating 
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        rating: prev.rating === rating ? undefined : rating
                       }))}
                       className="transition-all hover:scale-110"
                     >
                       <Star
-                        className={`w-6 h-6 ${
-                          formData.rating && formData.rating >= rating
+                        className={`w-6 h-6 ${formData.rating && formData.rating >= rating
                             ? 'fill-yellow-400 text-yellow-400'
                             : 'text-gray-400'
-                        }`}
+                          }`}
                       />
                     </button>
                   ))}
@@ -292,14 +291,14 @@ export function TeamFeedbackModal({
                   checked={formData.is_anonymous}
                   onChange={(e) => setFormData(prev => ({ ...prev, is_anonymous: e.target.checked }))}
                   className="w-5 h-5 rounded border"
-                  style={{ 
+                  style={{
                     borderColor: modalBorder,
                     backgroundColor: sectionBg,
                     accentColor: primaryColor
                   }}
                 />
-                <label 
-                  htmlFor="is_anonymous" 
+                <label
+                  htmlFor="is_anonymous"
                   className="text-sm font-body cursor-pointer"
                   style={{ color: textColor }}
                 >
@@ -309,7 +308,7 @@ export function TeamFeedbackModal({
             </div>
 
             {/* Footer */}
-            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3" style={{ 
+            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3 shrink-0" style={{
               backgroundColor: modalBg,
               borderColor: modalBorder
             }}>

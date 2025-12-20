@@ -22,7 +22,7 @@ export function LoginForm() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const router = useRouter();
   const { setActiveTab } = useAuthTab();
-  
+
   const {
     register,
     handleSubmit,
@@ -53,7 +53,7 @@ export function LoginForm() {
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
     setIsPending(true);
-    
+
     try {
       // Guardar o eliminar credenciales según el estado de "recuérdame"
       if (data.rememberMe) {
@@ -64,17 +64,24 @@ export function LoginForm() {
       } else {
         clearSavedCredentials();
       }
-      
+
       const formData = new FormData();
       formData.append('emailOrUsername', data.emailOrUsername);
       formData.append('password', data.password);
       formData.append('rememberMe', data.rememberMe.toString());
 
       const result = await loginAction(formData);
-      
+
       if (result?.error) {
         setError(result.error);
         setIsPending(false);
+      } else if (result?.success && result?.redirectTo) {
+        // ✅ Login exitoso - navegar a la URL indicada
+        // IMPORTANTE: Usar window.location.href en lugar de router.push
+        // para forzar navegación completa y que las cookies del servidor se propaguen
+        console.log('🚀 [LoginForm] Redirigiendo a:', result.redirectTo);
+        window.location.href = result.redirectTo;
+        // No resetear isPending - la página recargará completamente
       }
     } catch (error: any) {
       // Verificar si es una redirección de Next.js (no es un error real)
@@ -87,24 +94,24 @@ export function LoginForm() {
             throw error;
           }
         }
-        
+
         // También puede ser un error de redirección de otra forma
         if (error.message && error.message.includes('NEXT_REDIRECT')) {
           throw error;
         }
       }
-      
+
       // Solo mostrar error si NO es una redirección
       console.error('❌ Error inesperado en login:', error);
-      
+
       // Proporcionar mensaje de error más específico
       let errorMessage = 'Error inesperado al iniciar sesión';
-      
+
       if (error instanceof Error) {
         // Errores de red/conexión
-        if (error.message.includes('ERR_SSL_PROTOCOL_ERROR') || 
-            error.message.includes('Failed to fetch') ||
-            error.message.includes('NetworkError')) {
+        if (error.message.includes('ERR_SSL_PROTOCOL_ERROR') ||
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('NetworkError')) {
           errorMessage = 'Error de conexión. Verifica tu conexión a internet e intenta nuevamente.';
         } else if (error.message.includes('timeout') || error.message.includes('Timeout')) {
           errorMessage = 'La solicitud tardó demasiado. Por favor, intenta nuevamente.';
@@ -112,7 +119,7 @@ export function LoginForm() {
           errorMessage = error.message || errorMessage;
         }
       }
-      
+
       setError(errorMessage);
       setIsPending(false);
     }
@@ -196,11 +203,10 @@ export function LoginForm() {
                   className="sr-only"
                 />
                 <motion.div
-                  className={`relative w-5 h-5 rounded-lg border-2 transition-all duration-200 ${
-                    rememberMe
-                      ? 'bg-[#00D4B3] border-[#00D4B3]'
-                      : 'bg-white dark:bg-[#1E2329] border-[#6C757D] dark:border-[#6C757D]/50'
-                  }`}
+                  className={`relative w-5 h-5 rounded-lg border-2 transition-all duration-200 ${rememberMe
+                    ? 'bg-[#00D4B3] border-[#00D4B3]'
+                    : 'bg-white dark:bg-[#1E2329] border-[#6C757D] dark:border-[#6C757D]/50'
+                    }`}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -263,7 +269,7 @@ export function LoginForm() {
                 </>
               )}
             </motion.button>
-      </form>
+          </form>
 
           {/* Divisor y Social Login */}
           <motion.div

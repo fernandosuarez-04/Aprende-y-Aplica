@@ -1,12 +1,14 @@
 'use client'
 
-import * as Select from '@radix-ui/react-select'
+import { useState, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Check } from 'lucide-react'
-import { useState } from 'react'
+import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 
 interface Option {
   value: string
   label: string
+  icon?: React.ReactNode
 }
 
 interface PremiumSelectProps {
@@ -17,6 +19,7 @@ interface PremiumSelectProps {
   placeholder?: string
   icon?: React.ReactNode
   className?: string
+  emptyMessage?: string
 }
 
 export function PremiumSelect({
@@ -26,60 +29,209 @@ export function PremiumSelect({
   options,
   placeholder = 'Seleccionar...',
   icon,
-  className = ''
+  className = '',
+  emptyMessage = 'Sin opciones'
 }: PremiumSelectProps) {
-  const [open, setOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
   const selectedOption = options.find(opt => opt.value === value)
-  
+
+  // Obtener estilos de la organización
+  const { styles } = useOrganizationStylesContext()
+  const panelStyles = styles?.panel
+
+  // Colores dinámicos
+  const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
+  const cardBackground = panelStyles?.card_background || '#1E2329'
+  const textColor = panelStyles?.text_color || '#FFFFFF'
+
   // Usar onValueChange si está disponible, sino onChange
-  const handleValueChange = onValueChange || onChange || (() => {})
+  const handleValueChange = onValueChange || onChange || (() => { })
+
+  // Detectar si hay una selección activa (diferente a 'all' o el primer valor)
+  const hasActiveSelection = value !== 'all' && value !== options[0]?.value
+
+  // Cerrar al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
+  // Cerrar con Escape
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape)
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isOpen])
 
   return (
-    <Select.Root value={value} onValueChange={handleValueChange} onOpenChange={setOpen}>
-      <Select.Trigger
-        className={`group relative w-full pl-10 pr-9 py-2.5 bg-carbon-900/20 border border-carbon-700/5 rounded-lg font-body text-white text-sm focus:outline-none focus:ring-0 focus:border-primary/40 hover:border-carbon-600/10 hover:bg-carbon-900/30 transition-all duration-200 cursor-pointer flex items-center justify-between ${className}`}
+    <div ref={containerRef} className={`relative min-w-[160px] ${className}`}>
+      {/* Trigger Button */}
+      <motion.button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        whileTap={{ scale: 0.98 }}
+        className="w-full px-4 py-3.5 rounded-xl border-2 flex items-center justify-between gap-3 transition-all duration-300 group"
+        style={{
+          backgroundColor: cardBackground,
+          borderColor: hasActiveSelection ? primaryColor : 'rgba(255,255,255,0.1)',
+          color: textColor,
+          boxShadow: hasActiveSelection ? `0 0 0 1px ${primaryColor}30` : 'none'
+        }}
       >
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {/* Icon */}
           {icon && (
-            <span className="flex-shrink-0 text-carbon-500 group-hover:text-carbon-400 transition-colors">
+            <span
+              className="flex-shrink-0 transition-colors duration-200"
+              style={{
+                color: hasActiveSelection ? primaryColor : `${textColor}50`
+              }}
+            >
               {icon}
             </span>
           )}
-          <Select.Value className="truncate text-carbon-100">
-            {selectedOption?.label || placeholder}
-          </Select.Value>
-        </div>
-        <Select.Icon className="flex-shrink-0">
-          <ChevronDown 
-            className={`w-4 h-4 text-carbon-500 group-hover:text-carbon-400 transition-all duration-200 ${open ? 'rotate-180' : ''}`} 
-          />
-        </Select.Icon>
-      </Select.Trigger>
 
-      <Select.Portal>
-        <Select.Content
-          position="popper"
-          sideOffset={6}
-          className="min-w-[var(--radix-select-trigger-width)] bg-carbon-900/98 backdrop-blur-xl border border-carbon-700/20 rounded-lg shadow-2xl overflow-hidden"
-          style={{ zIndex: 9999 }}
+          {/* Selected Value */}
+          <span
+            className="text-sm font-medium truncate"
+            style={{
+              color: selectedOption ? textColor : `${textColor}50`
+            }}
+          >
+            {selectedOption?.label || placeholder}
+          </span>
+        </div>
+
+        {/* Chevron Icon with Animation */}
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex-shrink-0"
         >
-          <Select.Viewport className="p-1.5">
-            {options.map((option, index) => (
-              <Select.Item
-                key={option.value}
-                value={option.value}
-                className="relative flex items-center px-3 py-2.5 font-body text-sm text-carbon-100 rounded-md cursor-pointer outline-none hover:bg-primary/8 focus:bg-primary/8 data-[highlighted]:bg-primary/8 data-[state=checked]:bg-primary/10 data-[state=checked]:text-white transition-colors duration-150"
-              >
-                <Select.ItemText className="flex-1">{option.label}</Select.ItemText>
-                <Select.ItemIndicator className="absolute right-3 flex items-center">
-                  <Check className="w-4 h-4 text-primary" />
-                </Select.ItemIndicator>
-              </Select.Item>
-            ))}
-          </Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>
+          <ChevronDown
+            className="w-4 h-4 transition-colors duration-200"
+            style={{ color: `${textColor}50` }}
+          />
+        </motion.div>
+      </motion.button>
+
+      {/* Dropdown Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden backdrop-blur-xl"
+            style={{
+              backgroundColor: cardBackground,
+              borderColor: 'rgba(255,255,255,0.15)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              zIndex: 9999
+            }}
+          >
+            {/* Options List */}
+            <div
+              className="py-2 max-h-64 overflow-y-auto"
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgba(255,255,255,0.1) transparent'
+              }}
+            >
+              {options.length === 0 ? (
+                <div
+                  className="px-4 py-3 text-sm text-center"
+                  style={{ color: `${textColor}50` }}
+                >
+                  {emptyMessage}
+                </div>
+              ) : (
+                options.map((option, index) => {
+                  const isSelected = option.value === value
+
+                  return (
+                    <motion.button
+                      key={option.value}
+                      type="button"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      onClick={() => {
+                        handleValueChange(option.value)
+                        setIsOpen(false)
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 transition-all duration-150"
+                      style={{
+                        backgroundColor: isSelected ? `${primaryColor}20` : 'transparent',
+                        color: isSelected ? textColor : `${textColor}99`
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'
+                          e.currentTarget.style.color = textColor
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = 'transparent'
+                          e.currentTarget.style.color = `${textColor}99`
+                        }
+                      }}
+                    >
+                      {/* Option Icon */}
+                      {option.icon && (
+                        <span
+                          className="flex-shrink-0"
+                          style={{ color: isSelected ? primaryColor : `${textColor}50` }}
+                        >
+                          {option.icon}
+                        </span>
+                      )}
+
+                      {/* Option Label */}
+                      <span className="flex-1 font-medium">{option.label}</span>
+
+                      {/* Check Icon for Selected */}
+                      {isSelected && (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                        >
+                          <Check className="w-4 h-4" style={{ color: primaryColor }} />
+                        </motion.span>
+                      )}
+                    </motion.button>
+                  )
+                })
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
-

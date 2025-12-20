@@ -13,6 +13,16 @@ interface User {
   cargo_rol?: string
   type_rol?: string
   profile_picture_url?: string
+  organization_id?: string | null
+  organization?: {
+    id: string
+    name: string
+    logo_url?: string
+    brand_logo_url?: string
+    brand_favicon_url?: string
+    favicon_url?: string
+    slug?: string
+  } | null
 }
 
 // Fetcher optimizado para autenticación
@@ -78,15 +88,22 @@ export function useAuth() {
 
   const logout = async () => {
     try {
-      // ⚠️ CRÍTICO: Limpiar carrito antes de hacer logout
+      // ⚠️ CRITICAL SECURITY FIX: Limpiar TODO el localStorage de auth PRIMERO
       if (typeof window !== 'undefined') {
+        // Limpiar auth-storage (Zustand persist) - CRÍTICO
+        localStorage.removeItem('auth-storage');
+        // Limpiar tokens
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+
+        // Limpiar carrito
         const { useShoppingCartStore } = await import('@/core/stores/shoppingCartStore')
         useShoppingCartStore.getState().clearCart()
         useShoppingCartStore.getState().setUserId(null)
       }
 
-      // Llamar a la API de logout
-      const response = await fetch('/api/auth/logout', {
+      // Llamar a la API de logout para destruir cookies del servidor
+      await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -94,25 +111,27 @@ export function useAuth() {
         },
       })
 
-      // Limpiar caché de SWR inmediatamente
+      // Limpiar caché de SWR completamente
       await mutate(null, false)
 
-      // SECURITY FIX: Redirigir a home page y forzar recarga completa
-      // Usar window.location.href para asegurar limpieza total del estado
+      // SECURITY FIX: Forzar recarga completa para limpiar todo el estado en memoria
       window.location.href = '/'
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        // console.error('Error during logout:', error)
+        console.error('Error during logout:', error)
       }
 
-      // ⚠️ CRÍTICO: Asegurar limpieza del carrito incluso si hay error
+      // ⚠️ CRITICAL: Asegurar limpieza incluso si hay error
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth-storage');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+
         const { useShoppingCartStore } = await import('@/core/stores/shoppingCartStore')
         useShoppingCartStore.getState().clearCart()
         useShoppingCartStore.getState().setUserId(null)
       }
 
-      // Fallback: limpiar caché y redirigir a home con recarga completa
       await mutate(null, false)
       window.location.href = '/'
     }
