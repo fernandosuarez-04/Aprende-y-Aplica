@@ -70,6 +70,7 @@ export async function GET() {
       success: true,
       user: {
         ...user,
+        organization_id: organization?.id || null, // ID directo para acceso fácil en hooks
         organization: organization // Información completa de la organización (opcional)
       }
     }, {

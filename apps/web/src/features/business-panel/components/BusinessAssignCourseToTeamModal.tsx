@@ -18,25 +18,25 @@ interface BusinessAssignCourseToTeamModalProps {
   onAssignComplete: () => void
 }
 
-export function BusinessAssignCourseToTeamModal({ 
-  isOpen, 
-  onClose, 
+export function BusinessAssignCourseToTeamModal({
+  isOpen,
+  onClose,
   teamId,
   teamName,
   teamMembers,
-  onAssignComplete 
+  onAssignComplete
 }: BusinessAssignCourseToTeamModalProps) {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { courses } = useBusinessCourses()
-  
+
   // Aplicar colores personalizados
   const modalBg = panelStyles?.card_background || 'rgba(15, 23, 42, 0.95)'
   const modalBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
   const textColor = panelStyles?.text_color || '#f8fafc'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
   const sectionBg = `${modalBg}CC`
-  
+
   const [selectedCourseId, setSelectedCourseId] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [customMessage, setCustomMessage] = useState('')
@@ -45,7 +45,7 @@ export function BusinessAssignCourseToTeamModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!selectedCourseId) {
       setError('Debes seleccionar un curso')
       return
@@ -69,13 +69,13 @@ export function BusinessAssignCourseToTeamModal({
         const selectedDate = new Date(dueDate)
         const today = new Date()
         today.setHours(0, 0, 0, 0)
-        
+
         if (selectedDate < today) {
           setError('La fecha límite no puede ser anterior a hoy')
           setIsAssigning(false)
           return
         }
-        
+
         formattedDueDate = dueDate // Ya está en formato YYYY-MM-DD que PostgreSQL acepta
       }
 
@@ -89,7 +89,7 @@ export function BusinessAssignCourseToTeamModal({
       setSelectedCourseId('')
       setDueDate('')
       setCustomMessage('')
-      
+
       // Mostrar mensaje de éxito si está disponible
       if (result) {
         onAssignComplete()
@@ -98,8 +98,8 @@ export function BusinessAssignCourseToTeamModal({
     } catch (err) {
       console.error('Error al asignar curso:', err)
       const errorMessage = err instanceof Error ? err.message : 'Error al asignar curso'
-      setError(errorMessage.includes('adquirir') 
-        ? errorMessage 
+      setError(errorMessage.includes('adquirir')
+        ? errorMessage
         : `Error al asignar curso: ${errorMessage}. Verifica que el curso esté disponible y que tu organización tenga acceso.`)
     } finally {
       setIsAssigning(false)
@@ -126,21 +126,21 @@ export function BusinessAssignCourseToTeamModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[85vh] overflow-visible flex flex-col z-10 backdrop-blur-xl"
-          style={{ 
+          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col z-10 backdrop-blur-xl"
+          style={{
             backgroundColor: modalBg,
             borderColor: modalBorder
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative border-b p-5 backdrop-blur-sm" style={{ 
+          <div className="relative border-b p-5 backdrop-blur-sm" style={{
             backgroundColor: modalBg,
             borderColor: modalBorder
           }}>
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <motion.div 
+                <motion.div
                   initial={{ scale: 0.9, rotate: -5 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.1, type: 'spring' }}
@@ -172,13 +172,13 @@ export function BusinessAssignCourseToTeamModal({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="p-3 rounded-xl text-red-400 flex items-center gap-3 border backdrop-blur-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: 'rgba(127, 29, 29, 0.2)',
                     borderColor: 'rgba(220, 38, 38, 0.3)'
                   }}
@@ -230,7 +230,7 @@ export function BusinessAssignCourseToTeamModal({
                 <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
                   Miembros que recibirán el curso ({teamMembers.length})
                 </label>
-                <div className="max-h-32 overflow-y-auto space-y-2 border rounded-xl p-3" style={{ borderColor: modalBorder, backgroundColor: sectionBg }}>
+                <div className="max-h-32 overflow-y-auto space-y-2 border rounded-xl p-3" style={{ borderColor: modalBorder, backgroundColor: sectionBg, scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
                   {teamMembers.map(member => (
                     <div key={member.id} className="flex items-center gap-2 text-sm font-body">
                       <Users className="w-4 h-4 opacity-50" />
@@ -253,7 +253,7 @@ export function BusinessAssignCourseToTeamModal({
                     onChange={(e) => setDueDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
                     className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
-                    style={{ 
+                    style={{
                       borderColor: modalBorder,
                       backgroundColor: sectionBg,
                       color: textColor
@@ -261,10 +261,10 @@ export function BusinessAssignCourseToTeamModal({
                   />
                   {dueDate && (
                     <p className="text-xs font-body opacity-70 mt-1">
-                      Fecha límite: {new Date(dueDate).toLocaleDateString('es-ES', { 
-                        day: 'numeric', 
-                        month: 'long', 
-                        year: 'numeric' 
+                      Fecha límite: {new Date(dueDate).toLocaleDateString('es-ES', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
                       })}
                     </p>
                   )}
@@ -280,7 +280,7 @@ export function BusinessAssignCourseToTeamModal({
                     rows={2}
                     maxLength={200}
                     className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all resize-none"
-                    style={{ 
+                    style={{
                       borderColor: modalBorder,
                       backgroundColor: sectionBg,
                       color: textColor
@@ -293,7 +293,7 @@ export function BusinessAssignCourseToTeamModal({
             </div>
 
             {/* Footer */}
-            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3" style={{ 
+            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3 shrink-0" style={{
               backgroundColor: modalBg,
               borderColor: modalBorder
             }}>

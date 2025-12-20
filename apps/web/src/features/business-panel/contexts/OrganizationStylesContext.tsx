@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { PRESET_THEMES, DEFAULT_THEME } from '../config/preset-themes';
 
 export interface StyleConfig {
   background_type: 'image' | 'color' | 'gradient';
@@ -43,9 +44,24 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
   const [error, setError] = useState<string | null>(null);
 
   const fetchStyles = async () => {
+    console.log('🔍 [OrganizationStylesContext] fetchStyles iniciado, user:', {
+      userId: user?.id,
+      organizationId: user?.organization_id,
+      role: user?.cargo_rol
+    });
 
     if (!user?.organization_id) {
-
+      console.log('⚠️ [OrganizationStylesContext] No hay organization_id, aplicando tema por defecto');
+      // Aplicar tema por defecto cuando no hay organization_id
+      const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
+      if (defaultTheme) {
+        setStyles({
+          panel: defaultTheme.panel,
+          userDashboard: defaultTheme.userDashboard,
+          login: defaultTheme.login,
+          selectedTheme: DEFAULT_THEME
+        });
+      }
       setLoading(false);
       return;
     }
@@ -54,14 +70,37 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
       setLoading(true);
       setError(null);
 
+      console.log('📡 [OrganizationStylesContext] Fetching styles from API...');
       const response = await fetch('/api/business/settings/styles', {
         credentials: 'include',
       });
 
       const data = await response.json();
+      console.log('📥 [OrganizationStylesContext] Response:', data);
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error al obtener estilos');
+      }
+
+      console.log('✅ [OrganizationStylesContext] Estilos obtenidos:', {
+        panel: data.styles?.panel,
+        selectedTheme: data.styles?.selectedTheme
+      });
+
+      // Si los estilos están vacíos, usar tema por defecto
+      if (!data.styles?.panel && !data.styles?.selectedTheme) {
+        console.log('🎨 [OrganizationStylesContext] Sin estilos configurados, aplicando tema por defecto:', DEFAULT_THEME);
+        const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
+        if (defaultTheme) {
+          const defaultStyles: OrganizationStyles = {
+            panel: defaultTheme.panel,
+            userDashboard: defaultTheme.userDashboard,
+            login: defaultTheme.login,
+            selectedTheme: DEFAULT_THEME
+          };
+          setStyles(defaultStyles);
+          return;
+        }
       }
 
       setStyles(data.styles);
@@ -78,7 +117,7 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
         }
       }
     } catch (err: any) {
-      // console.error('Error fetching organization styles:', err);
+      console.error('❌ [OrganizationStylesContext] Error fetching styles:', err);
       setError(err.message || 'Error al obtener estilos');
 
       // Intentar cargar desde localStorage como fallback
@@ -86,15 +125,50 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
         try {
           const cached = localStorage.getItem(`business-theme-${user.organization_id}`);
           if (cached) {
+            console.log('📦 [OrganizationStylesContext] Usando estilos desde localStorage');
             setStyles(JSON.parse(cached));
+          } else {
+            // No hay cache, usar tema por defecto
+            console.log('🎨 [OrganizationStylesContext] Sin cache, aplicando tema por defecto');
+            const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
+            if (defaultTheme) {
+              setStyles({
+                panel: defaultTheme.panel,
+                userDashboard: defaultTheme.userDashboard,
+                login: defaultTheme.login,
+                selectedTheme: DEFAULT_THEME
+              });
+            } else {
+              setStyles(null);
+            }
+          }
+        } catch (e) {
+          // Error parseando cache, usar tema por defecto
+          const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
+          if (defaultTheme) {
+            setStyles({
+              panel: defaultTheme.panel,
+              userDashboard: defaultTheme.userDashboard,
+              login: defaultTheme.login,
+              selectedTheme: DEFAULT_THEME
+            });
           } else {
             setStyles(null);
           }
-        } catch (e) {
-          setStyles(null);
         }
       } else {
-        setStyles(null);
+        // Sin organization_id, usar tema por defecto
+        const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
+        if (defaultTheme) {
+          setStyles({
+            panel: defaultTheme.panel,
+            userDashboard: defaultTheme.userDashboard,
+            login: defaultTheme.login,
+            selectedTheme: DEFAULT_THEME
+          });
+        } else {
+          setStyles(null);
+        }
       }
     } finally {
       setLoading(false);
@@ -102,7 +176,7 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
   };
 
   useEffect(() => {
-
+    console.log('🔄 [OrganizationStylesContext] useEffect triggered, organization_id:', user?.organization_id);
     fetchStyles();
   }, [user?.organization_id]);
 

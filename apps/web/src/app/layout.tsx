@@ -13,6 +13,7 @@ import { ShareModalProvider } from '../core/providers/ShareModalProvider';
 import { OnboardingAgent } from '../core/components/OnboardingAgent';
 import { LiaPanelProvider } from '../core/contexts/LiaPanelContext';
 import { ContentWrapper } from '../core/components/ContentWrapper';
+import { AuthSecurityGuard } from '../features/auth/components/AuthSecurityGuard';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -211,9 +212,11 @@ export default function RootLayout({
                   <NotificationProvider pollingInterval={60000}>
                     <LiaPanelProvider>
                       <PrefetchManager />
-                      <ContentWrapper>
-                        {children}
-                      </ContentWrapper>
+                      <AuthSecurityGuard>
+                        <ContentWrapper>
+                          {children}
+                        </ContentWrapper>
+                      </AuthSecurityGuard>
                       {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
                       <ConditionalAIChatAgent />
                       {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}

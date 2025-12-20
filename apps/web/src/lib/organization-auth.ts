@@ -13,7 +13,8 @@ interface Organization {
 
 /**
  * Verifica si una organización puede usar login personalizado
- * Requiere: Plan Team/Business/Enterprise y suscripción activa
+ * ✅ SOLO Plan Enterprise tiene acceso al auth personalizado
+ * Los planes Team y Business usan el auth normal (/auth)
  * @param organization Organización a validar
  * @returns true si puede usar login personalizado, false si no
  */
@@ -32,9 +33,9 @@ export function canUseCustomLogin(organization: Organization | null): boolean {
     return false;
   }
 
-  // Solo planes Team, Business y Enterprise pueden usar login personalizado
-  const allowedPlans = ['team', 'business', 'enterprise'];
-  if (!allowedPlans.includes(organization.subscription_plan)) {
+  // ✅ SOLO plan Enterprise puede usar login personalizado
+  // Los planes Team y Business usan el auth normal (/auth)
+  if (organization.subscription_plan !== 'enterprise') {
     return false;
   }
 
@@ -72,6 +73,7 @@ export function getOrganizationLoginUrl(organization: Organization | null): stri
     return null;
   }
 
-  return `/auth/${organization.slug}`;
+  // organization no puede ser null aquí porque canUseCustomLogin ya lo valida
+  return `/auth/${organization!.slug}`;
 }
 

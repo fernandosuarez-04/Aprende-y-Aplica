@@ -62,7 +62,7 @@ export function OrganizationLoginForm({
       fetchLoginStyles();
     }
   }, [organizationSlug]);
-  
+
   const {
     register,
     handleSubmit,
@@ -85,14 +85,14 @@ export function OrganizationLoginForm({
   const textColor = loginStyles?.text_color || '#ffffff';
   const borderColor = loginStyles?.border_color || 'rgba(71, 85, 105, 0.5)';
   const cardBg = loginStyles?.card_background || '#1a1a2e';
-  
-  const inputBgColor = cardBg.startsWith('#') 
-    ? `rgba(${hexToRgb(cardBg)}, 0.5)` 
-    : cardBg.startsWith('rgba') 
+
+  const inputBgColor = cardBg.startsWith('#')
+    ? `rgba(${hexToRgb(cardBg)}, 0.5)`
+    : cardBg.startsWith('rgba')
       ? cardBg.replace(/rgba?\(([^)]+)\)/, (match, p1) => {
-          const parts = p1.split(',');
-          return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, 0.5)`;
-        })
+        const parts = p1.split(',');
+        return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, 0.5)`;
+      })
       : cardBg;
 
   // Cargar credenciales guardadas al montar el componente
@@ -115,22 +115,22 @@ export function OrganizationLoginForm({
       redirectUrlRef.current = null;
     };
   }, []);
-  
+
   // Efecto para redirigir cuando countdown llegue a 0
   useEffect(() => {
     if (redirectInfo && redirectInfo.countdown === 0) {
       const urlToRedirect = redirectUrlRef.current || redirectInfo.to;
-      
+
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
         countdownIntervalRef.current = null;
       }
-      
+
       let timeoutId: NodeJS.Timeout | null = null;
       let isCleanedUp = false;
-      
+
       let finalUrl = urlToRedirect;
-      
+
       const performRedirect = () => {
         if (!isCleanedUp) {
           timeoutId = setTimeout(() => {
@@ -138,7 +138,7 @@ export function OrganizationLoginForm({
           }, 300);
         }
       };
-      
+
       if (urlToRedirect === '/auth' || urlToRedirect.startsWith('/auth')) {
         if (urlToRedirect === '/auth' || urlToRedirect === '/auth/') {
           finalUrl = '/auth?redirect=force';
@@ -147,7 +147,7 @@ export function OrganizationLoginForm({
         } else {
           finalUrl = urlToRedirect + '?redirect=force';
         }
-        
+
         fetch('/api/auth/logout', {
           method: 'POST',
           credentials: 'include',
@@ -162,7 +162,7 @@ export function OrganizationLoginForm({
       } else {
         performRedirect();
       }
-      
+
       return () => {
         isCleanedUp = true;
         if (timeoutId) {
@@ -203,28 +203,28 @@ export function OrganizationLoginForm({
       formData.append('organizationSlug', organizationSlug);
 
       const result = await loginAction(formData);
-      
+
       if (result?.error) {
         if (result.redirectTo && result.redirectMessage) {
           setError(result.error);
-          
+
           redirectUrlRef.current = result.redirectTo;
-          
+
           if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
             countdownIntervalRef.current = null;
           }
-          
+
           let countdown = 5;
           setRedirectInfo({
             to: result.redirectTo,
             message: result.redirectMessage,
             countdown: countdown
           });
-          
+
           countdownIntervalRef.current = setInterval(async () => {
             countdown -= 1;
-            
+
             if (countdown > 0) {
               setRedirectInfo(prev => {
                 if (!prev) return null;
@@ -235,16 +235,22 @@ export function OrganizationLoginForm({
                 clearInterval(countdownIntervalRef.current);
                 countdownIntervalRef.current = null;
               }
-              
+
               setRedirectInfo(prev => prev ? { ...prev, countdown: 0 } : null);
             }
           }, 1000);
-          
+
           setIsPending(false);
         } else {
           setError(result.error);
           setIsPending(false);
         }
+      } else if (result?.success && result?.redirectTo) {
+        // ✅ Login exitoso - navegar a la URL indicada
+        // IMPORTANTE: Usar window.location.href para forzar navegación completa
+        console.log('🚀 [OrganizationLoginForm] Redirigiendo a:', result.redirectTo);
+        window.location.href = result.redirectTo;
+        // No resetear isPending - la página recargará completamente
       }
     } catch (error: any) {
       if (error && typeof error === 'object') {
@@ -254,12 +260,12 @@ export function OrganizationLoginForm({
             throw error;
           }
         }
-        
+
         if (error.message && error.message.includes('NEXT_REDIRECT')) {
           throw error;
         }
       }
-      
+
       setError('Error inesperado al iniciar sesión');
       setIsPending(false);
     }
@@ -270,19 +276,19 @@ export function OrganizationLoginForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Welcome Message - Minimalista */}
-      <motion.div 
+      <motion.div
         className="text-center space-y-2 mb-7"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <h2 
+        <h2
           className="text-2xl font-semibold tracking-tight"
           style={{ color: textColor }}
         >
           Bienvenido de vuelta
         </h2>
-        <p 
+        <p
           className="text-sm opacity-70 font-normal"
           style={{ color: textColor }}
         >
@@ -293,7 +299,7 @@ export function OrganizationLoginForm({
       {/* Error Message */}
       <AnimatePresence>
         {error && (
-          <motion.div 
+          <motion.div
             className="relative overflow-hidden rounded-xl backdrop-blur-sm border p-4"
             initial={{ opacity: 0, y: -8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -342,16 +348,16 @@ export function OrganizationLoginForm({
       </AnimatePresence>
 
       {/* Email or Username - Diseño completamente nuevo */}
-      <motion.div 
+      <motion.div
         className="space-y-1.5"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15, duration: 0.4 }}
       >
-        <label 
-          htmlFor="emailOrUsername" 
+        <label
+          htmlFor="emailOrUsername"
           className="block text-xs font-medium uppercase tracking-wider mb-1.5 transition-all duration-200"
-          style={{ 
+          style={{
             color: focusedField === 'emailOrUsername' ? primaryColor : textColor,
             opacity: focusedField === 'emailOrUsername' ? 1 : 0.7
           }}
@@ -363,15 +369,15 @@ export function OrganizationLoginForm({
           <motion.div
             className="relative rounded-xl border transition-all duration-300 overflow-hidden"
             style={{
-              backgroundColor: focusedField === 'emailOrUsername' 
-                ? (cardBg.startsWith('#') 
-                    ? `rgba(${hexToRgb(cardBg)}, 0.7)` 
-                    : inputBgColor)
+              backgroundColor: focusedField === 'emailOrUsername'
+                ? (cardBg.startsWith('#')
+                  ? `rgba(${hexToRgb(cardBg)}, 0.7)`
+                  : inputBgColor)
                 : inputBgColor,
-              borderColor: focusedField === 'emailOrUsername' 
-                ? primaryColor 
-                : errors.emailOrUsername 
-                  ? '#ef4444' 
+              borderColor: focusedField === 'emailOrUsername'
+                ? primaryColor
+                : errors.emailOrUsername
+                  ? '#ef4444'
                   : borderColor,
               borderWidth: focusedField === 'emailOrUsername' ? '2px' : '1px',
               boxShadow: focusedField === 'emailOrUsername'
@@ -395,11 +401,11 @@ export function OrganizationLoginForm({
                 transition={{ duration: 0.3 }}
               />
             )}
-            
+
             <div className="flex items-center px-4 py-3">
-              <Mail 
-                className="w-4 h-4 flex-shrink-0 mr-3 transition-colors duration-200" 
-                style={{ 
+              <Mail
+                className="w-4 h-4 flex-shrink-0 mr-3 transition-colors duration-200"
+                style={{
                   color: focusedField === 'emailOrUsername' ? primaryColor : `${textColor}50`
                 }}
               />
@@ -420,7 +426,7 @@ export function OrganizationLoginForm({
         </div>
         <AnimatePresence>
           {errors.emailOrUsername && (
-            <motion.p 
+            <motion.p
               className="text-xs text-red-400 flex items-center gap-1.5 px-1 mt-1"
               initial={{ opacity: 0, y: -3 }}
               animate={{ opacity: 1, y: 0 }}
@@ -435,16 +441,16 @@ export function OrganizationLoginForm({
       </motion.div>
 
       {/* Password - Diseño completamente nuevo */}
-      <motion.div 
+      <motion.div
         className="space-y-1.5"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.4 }}
       >
-        <label 
-          htmlFor="password" 
+        <label
+          htmlFor="password"
           className="block text-xs font-medium uppercase tracking-wider mb-1.5 transition-all duration-200"
-          style={{ 
+          style={{
             color: focusedField === 'password' ? primaryColor : textColor,
             opacity: focusedField === 'password' ? 1 : 0.7
           }}
@@ -456,15 +462,15 @@ export function OrganizationLoginForm({
           <motion.div
             className="relative rounded-xl border transition-all duration-300 overflow-hidden"
             style={{
-              backgroundColor: focusedField === 'password' 
-                ? (cardBg.startsWith('#') 
-                    ? `rgba(${hexToRgb(cardBg)}, 0.7)` 
-                    : inputBgColor)
+              backgroundColor: focusedField === 'password'
+                ? (cardBg.startsWith('#')
+                  ? `rgba(${hexToRgb(cardBg)}, 0.7)`
+                  : inputBgColor)
                 : inputBgColor,
-              borderColor: focusedField === 'password' 
-                ? primaryColor 
-                : errors.password 
-                  ? '#ef4444' 
+              borderColor: focusedField === 'password'
+                ? primaryColor
+                : errors.password
+                  ? '#ef4444'
                   : borderColor,
               borderWidth: focusedField === 'password' ? '2px' : '1px',
               boxShadow: focusedField === 'password'
@@ -488,11 +494,11 @@ export function OrganizationLoginForm({
                 transition={{ duration: 0.3 }}
               />
             )}
-            
+
             <div className="flex items-center px-4 py-3">
-              <Lock 
-                className="w-4 h-4 flex-shrink-0 mr-3 transition-colors duration-200" 
-                style={{ 
+              <Lock
+                className="w-4 h-4 flex-shrink-0 mr-3 transition-colors duration-200"
+                style={{
                   color: focusedField === 'password' ? primaryColor : `${textColor}50`
                 }}
               />
@@ -513,7 +519,7 @@ export function OrganizationLoginForm({
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="ml-2 p-1.5 rounded-lg transition-colors flex-shrink-0 hover:opacity-70"
-                style={{ 
+                style={{
                   color: focusedField === 'password' ? primaryColor : `${textColor}50`,
                   backgroundColor: focusedField === 'password' ? `${primaryColor}15` : 'transparent'
                 }}
@@ -531,7 +537,7 @@ export function OrganizationLoginForm({
         </div>
         <AnimatePresence>
           {errors.password && (
-            <motion.p 
+            <motion.p
               className="text-xs text-red-400 flex items-center gap-1.5 px-1 mt-1"
               initial={{ opacity: 0, y: -3 }}
               animate={{ opacity: 1, y: 0 }}
@@ -546,13 +552,13 @@ export function OrganizationLoginForm({
       </motion.div>
 
       {/* Remember Me & Forgot Password - Rediseñado */}
-      <motion.div 
+      <motion.div
         className="flex items-center justify-between pt-1"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.4 }}
       >
-        <motion.label 
+        <motion.label
           className="flex items-center gap-2.5 cursor-pointer group"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -563,11 +569,11 @@ export function OrganizationLoginForm({
               {...register('rememberMe')}
               className="sr-only"
             />
-            <motion.div 
+            <motion.div
               className="w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 overflow-hidden"
               style={{
                 borderColor: rememberMe ? primaryColor : borderColor,
-                backgroundColor: rememberMe 
+                backgroundColor: rememberMe
                   ? primaryColor
                   : 'transparent',
               }}
@@ -590,9 +596,9 @@ export function OrganizationLoginForm({
               </AnimatePresence>
             </motion.div>
           </div>
-          <span 
+          <span
             className="text-xs font-medium transition-colors select-none"
-            style={{ 
+            style={{
               color: textColor,
               opacity: rememberMe ? 1 : 0.7
             }}
@@ -600,7 +606,7 @@ export function OrganizationLoginForm({
             Recordarme
           </span>
         </motion.label>
-        
+
         <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -608,7 +614,7 @@ export function OrganizationLoginForm({
           <Link
             href={`/auth/${organizationSlug}/forgot-password`}
             className="text-xs font-medium transition-all duration-200 relative group/link"
-            style={{ 
+            style={{
               color: primaryColor,
               textDecoration: 'none',
             }}
@@ -642,7 +648,7 @@ export function OrganizationLoginForm({
             background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
             boxShadow: `0 4px 14px -2px ${primaryColor}40`,
           }}
-          whileHover={{ 
+          whileHover={{
             scale: 1.01,
             boxShadow: `0 6px 20px -2px ${primaryColor}50`,
           }}
@@ -662,7 +668,7 @@ export function OrganizationLoginForm({
               ease: 'linear',
             }}
           />
-          
+
           {/* Button content */}
           <span className="relative z-10 flex items-center justify-center gap-2">
             {isPending ? (

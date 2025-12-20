@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener estilos de la organización
-
     const { data: organization, error: orgError } = await supabase
       .from('organizations')
       .select('panel_styles, user_dashboard_styles, login_styles, selected_theme')
@@ -33,19 +32,41 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (orgError || !organization) {
-
+      console.error('❌ [API] Error obteniendo organización:', orgError);
       return NextResponse.json(
         { success: false, error: 'Error al obtener estilos' },
         { status: 500 }
       );
     }
 
+    console.log('📥 [API] Organización obtenida:', {
+      hasPanel: !!organization.panel_styles,
+      hasUserDashboard: !!organization.user_dashboard_styles,
+      hasLogin: !!organization.login_styles,
+      selectedTheme: organization.selected_theme
+    });
+
+    // Si hay un tema seleccionado pero no hay estilos guardados, aplicar el tema preset
+    let panelStyles = organization.panel_styles;
+    let userDashboardStyles = organization.user_dashboard_styles;
+    let loginStyles = organization.login_styles;
+
+    if (organization.selected_theme && (!panelStyles || !userDashboardStyles || !loginStyles)) {
+      console.log('🎨 [API] Aplicando tema preset:', organization.selected_theme);
+      const theme = getThemeById(organization.selected_theme);
+      if (theme) {
+        panelStyles = panelStyles || theme.panel;
+        userDashboardStyles = userDashboardStyles || theme.userDashboard;
+        loginStyles = loginStyles || theme.login;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       styles: {
-        panel: organization.panel_styles || null,
-        userDashboard: organization.user_dashboard_styles || null,
-        login: organization.login_styles || null,
+        panel: panelStyles || null,
+        userDashboard: userDashboardStyles || null,
+        login: loginStyles || null,
         selectedTheme: organization.selected_theme || null
       }
     });
@@ -72,7 +93,7 @@ export async function PUT(request: NextRequest) {
     // Validar estructura de estilos
     const validateStyle = (style: any): boolean => {
       if (!style || typeof style !== 'object') return false;
-      
+
       const requiredFields = ['background_type', 'background_value', 'primary_button_color', 'secondary_button_color', 'accent_color'];
       for (const field of requiredFields) {
         if (!style[field] || typeof style[field] !== 'string') {

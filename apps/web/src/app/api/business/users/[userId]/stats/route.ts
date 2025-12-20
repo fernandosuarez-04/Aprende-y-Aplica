@@ -155,7 +155,7 @@ export async function GET(
     // Obtener módulos del curso con progreso
     const enrollmentIds = enrollments?.map(e => e.enrollment_id).filter(Boolean) || []
     const courseIds = enrollments?.map(e => e.course_id).filter(Boolean) || []
-    
+
     // Obtener módulos de los cursos
     const { data: courseModules, error: modulesError } = await supabase
       .from('course_modules')
@@ -171,6 +171,44 @@ export async function GET(
     if (modulesError) {
       logger.error('Error fetching course modules:', modulesError)
     }
+
+    // Obtener el conteo REAL de lecciones por curso (desde course_lessons, no desde user_lesson_progress)
+    const moduleIds = courseModules?.map(m => m.module_id).filter(Boolean) || []
+    let realLessonCounts: { module_id: string, count: number }[] = []
+
+    if (moduleIds.length > 0) {
+      const { data: lessonCounts, error: lessonCountError } = await supabase
+        .from('course_lessons')
+        .select('lesson_id, module_id')
+        .in('module_id', moduleIds)
+        .eq('is_published', true)
+
+      if (lessonCountError) {
+        logger.error('Error fetching lesson counts:', lessonCountError)
+      } else {
+        // Contar lecciones por módulo
+        const countMap = new Map<string, number>()
+          ; (lessonCounts || []).forEach(l => {
+            countMap.set(l.module_id, (countMap.get(l.module_id) || 0) + 1)
+          })
+        realLessonCounts = Array.from(countMap.entries()).map(([module_id, count]) => ({ module_id, count }))
+      }
+    }
+
+    // Crear mapa de lecciones totales por curso
+    const realLessonsByCourse = new Map<string, number>()
+    courseIds.forEach(courseId => {
+      const courseModuleIds = courseModules
+        ?.filter(m => m.course_id === courseId)
+        .map(m => m.module_id) || []
+
+      const totalLessons = realLessonCounts
+        .filter(lc => courseModuleIds.includes(lc.module_id))
+        .reduce((sum, lc) => sum + lc.count, 0)
+
+      realLessonsByCourse.set(courseId, totalLessons)
+    })
+
 
     // Obtener actividades completadas
     const { data: activityCompletions, error: activityError } = await supabase
@@ -279,7 +317,7 @@ export async function GET(
     const enrichedCertificates = (certificates || []).map((cert: any) => {
       const course = cert.courses || {}
       const instructor = course.instructor_id ? instructorMap.get(course.instructor_id) : null
-      
+
       return {
         certificate_id: cert.certificate_id,
         certificate_url: cert.certificate_url,
@@ -404,10 +442,10 @@ export async function GET(
     // Calcular métricas
     const totalEnrollments = enrollments?.length || 0
     const completedEnrollments = enrollments?.filter(e => e.enrollment_status === 'completed').length || 0
-    const inProgressEnrollments = enrollments?.filter(e => 
+    const inProgressEnrollments = enrollments?.filter(e =>
       e.enrollment_status === 'active' && (e.overall_progress_percentage || 0) > 0 && (e.overall_progress_percentage || 0) < 100
     ).length || 0
-    const notStartedEnrollments = enrollments?.filter(e => 
+    const notStartedEnrollments = enrollments?.filter(e =>
       e.enrollment_status === 'active' && (e.overall_progress_percentage || 0) === 0
     ).length || 0
 
@@ -417,82 +455,83 @@ export async function GET(
       : 0
 
     // Calcular tiempo total dedicado
-    const totalTimeSpent = enrichedLessonProgress?.reduce((sum, p) => sum + (p.time_spent_minutes || 0), 0) || 0
+    const totalTimeSpent = enrichedLessonProgress?.reduce((sum: number, p: any) => sum + (p.time_spent_minutes || 0), 0) || 0
 
-    // Calcular lecciones completadas
-    const completedLessons = enrichedLessonProgress?.filter(p => p.is_completed).length || 0
-    const totalLessons = enrichedLessonProgress?.length || 0
+    // Calcular lecciones completadas y total real de lecciones
+    const completedLessons = enrichedLessonProgress?.filter((p: any) => p.is_completed).length || 0
+    // Total real de lecciones de todos los cursos
+    const totalLessons = Array.from(realLessonsByCourse.values()).reduce((sum, count) => sum + count, 0)
 
     // Calcular estadísticas por curso
     const courseStatsMap = new Map()
-    
-    // Inicializar mapa con enrollments
-    ;(enrollments || []).forEach(e => {
-      courseStatsMap.set(e.course_id, {
-        course_id: e.course_id,
-        course_title: e.courses?.title || 'Curso desconocido',
-        progress: Number(e.overall_progress_percentage) || 0,
-        status: e.enrollment_status,
-        enrolled_at: e.enrolled_at,
-        completed_at: e.completed_at,
-        has_certificate: enrichedCertificates?.some(c => c.course_id === e.course_id) || false,
-        lia_conversations_count: 0,
-        lia_messages_count: 0,
-        lia_avg_duration_minutes: 0,
-        lia_last_conversation: null,
-        quiz_total: 0,
-        quiz_passed: 0,
-        quiz_failed: 0,
-        quiz_average_score: 0,
-        quiz_best_score: 0,
-        quiz_total_attempts: 0,
-        lia_activities_completed: 0,
-        notes_count: 0,
-        time_spent_minutes: 0,
-        // Nuevos campos para información detallada
-        modules_total: 0,
-        modules_completed: 0,
-        lessons_total: 0,
-        lessons_completed: 0,
-        lessons_in_progress: 0,
-        activities_completed: 0,
-        activities_total: 0,
-        readings_viewed: 0,
-        quiz_lessons_completed: 0
+
+      // Inicializar mapa con enrollments
+      ; (enrollments || []).forEach(e => {
+        courseStatsMap.set(e.course_id, {
+          course_id: e.course_id,
+          course_title: e.courses?.title || 'Curso desconocido',
+          progress: Number(e.overall_progress_percentage) || 0,
+          status: e.enrollment_status,
+          enrolled_at: e.enrolled_at,
+          completed_at: e.completed_at,
+          has_certificate: enrichedCertificates?.some(c => c.course_id === e.course_id) || false,
+          lia_conversations_count: 0,
+          lia_messages_count: 0,
+          lia_avg_duration_minutes: 0,
+          lia_last_conversation: null,
+          quiz_total: 0,
+          quiz_passed: 0,
+          quiz_failed: 0,
+          quiz_average_score: 0,
+          quiz_best_score: 0,
+          quiz_total_attempts: 0,
+          lia_activities_completed: 0,
+          notes_count: 0,
+          time_spent_minutes: 0,
+          // Nuevos campos para información detallada
+          modules_total: 0,
+          modules_completed: 0,
+          lessons_total: 0,
+          lessons_completed: 0,
+          lessons_in_progress: 0,
+          activities_completed: 0,
+          activities_total: 0,
+          readings_viewed: 0,
+          quiz_lessons_completed: 0
+        })
       })
-    })
 
     // Agregar estadísticas de LIA por curso
     const liaByCourse = new Map()
-    ;(liaConversations || []).forEach(conv => {
-      if (conv.course_id && courseStatsMap.has(conv.course_id)) {
-        const stats = courseStatsMap.get(conv.course_id)
-        stats.lia_conversations_count++
-        stats.lia_messages_count += conv.total_messages || 0
-        
-        // Calcular duración promedio
-        if (!liaByCourse.has(conv.course_id)) {
-          liaByCourse.set(conv.course_id, { durations: [], lastDate: null })
-        }
-        const liaStats = liaByCourse.get(conv.course_id)
-        
-        if (conv.started_at && conv.ended_at) {
-          const start = new Date(conv.started_at)
-          const end = new Date(conv.ended_at)
-          const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
-          liaStats.durations.push(durationMinutes)
-        }
-        
-        // Última conversación
-        if (conv.started_at) {
-          const convDate = new Date(conv.started_at)
-          if (!liaStats.lastDate || convDate > liaStats.lastDate) {
-            liaStats.lastDate = convDate
-            stats.lia_last_conversation = conv.started_at
+      ; (liaConversations || []).forEach(conv => {
+        if (conv.course_id && courseStatsMap.has(conv.course_id)) {
+          const stats = courseStatsMap.get(conv.course_id)
+          stats.lia_conversations_count++
+          stats.lia_messages_count += conv.total_messages || 0
+
+          // Calcular duración promedio
+          if (!liaByCourse.has(conv.course_id)) {
+            liaByCourse.set(conv.course_id, { durations: [], lastDate: null })
+          }
+          const liaStats = liaByCourse.get(conv.course_id)
+
+          if (conv.started_at && conv.ended_at) {
+            const start = new Date(conv.started_at)
+            const end = new Date(conv.ended_at)
+            const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
+            liaStats.durations.push(durationMinutes)
+          }
+
+          // Última conversación
+          if (conv.started_at) {
+            const convDate = new Date(conv.started_at)
+            if (!liaStats.lastDate || convDate > liaStats.lastDate) {
+              liaStats.lastDate = convDate
+              stats.lia_last_conversation = conv.started_at
+            }
           }
         }
-      }
-    })
+      })
 
     // Calcular promedio de duración de LIA por curso
     liaByCourse.forEach((stats, courseId) => {
@@ -504,25 +543,25 @@ export async function GET(
 
     // Agregar estadísticas de quiz por curso
     const quizByCourse = new Map()
-    ;(quizSubmissions || []).forEach(quiz => {
-      const courseId = quiz.user_course_enrollments?.course_id
-      if (courseId && courseStatsMap.has(courseId)) {
-        if (!quizByCourse.has(courseId)) {
-          quizByCourse.set(courseId, { total: 0, passed: 0, failed: 0, scores: [], attempts: 0 })
+      ; (quizSubmissions || []).forEach(quiz => {
+        const courseId = quiz.user_course_enrollments?.course_id
+        if (courseId && courseStatsMap.has(courseId)) {
+          if (!quizByCourse.has(courseId)) {
+            quizByCourse.set(courseId, { total: 0, passed: 0, failed: 0, scores: [], attempts: 0 })
+          }
+          const quizStats = quizByCourse.get(courseId)
+          quizStats.total++
+          quizStats.attempts++
+          if (quiz.is_passed) {
+            quizStats.passed++
+          } else {
+            quizStats.failed++
+          }
+          if (quiz.percentage_score) {
+            quizStats.scores.push(Number(quiz.percentage_score))
+          }
         }
-        const quizStats = quizByCourse.get(courseId)
-        quizStats.total++
-        quizStats.attempts++
-        if (quiz.is_passed) {
-          quizStats.passed++
-        } else {
-          quizStats.failed++
-        }
-        if (quiz.percentage_score) {
-          quizStats.scores.push(Number(quiz.percentage_score))
-        }
-      }
-    })
+      })
 
     quizByCourse.forEach((stats, courseId) => {
       if (courseStatsMap.has(courseId)) {
@@ -538,97 +577,108 @@ export async function GET(
       }
     })
 
-    // Agregar estadísticas de actividades LIA por curso
-    ;(liaActivityCompletions || []).forEach(activity => {
-      const courseId = activity.lesson_activities?.course_lessons?.course_modules?.course_id
-      if (courseId && courseStatsMap.has(courseId)) {
-        const stats = courseStatsMap.get(courseId)
-        if (activity.status === 'completed') {
-          stats.lia_activities_completed++
-        }
-      }
-    })
-
-    // Agregar notas por curso (usando lessonNotes obtenido arriba)
-    ;(lessonNotes || []).forEach(note => {
-      const courseId = note.course_lessons?.course_modules?.course_id
-      if (courseId && courseStatsMap.has(courseId)) {
-        const stats = courseStatsMap.get(courseId)
-        stats.notes_count++
-      } else if (note.lesson_id) {
-        // Si no tenemos el course_id directamente, buscar a través de lesson_id
-        const lessonProgressItem = enrichedLessonProgress?.find(lp => lp.lesson_id === note.lesson_id)
-        if (lessonProgressItem) {
-          const courseId = lessonProgressItem.user_course_enrollments?.course_id
-          if (courseId && courseStatsMap.has(courseId)) {
-            const stats = courseStatsMap.get(courseId)
-            stats.notes_count++
+      // Agregar estadísticas de actividades LIA por curso
+      ; (liaActivityCompletions || []).forEach(activity => {
+        const courseId = activity.lesson_activities?.course_lessons?.course_modules?.course_id
+        if (courseId && courseStatsMap.has(courseId)) {
+          const stats = courseStatsMap.get(courseId)
+          if (activity.status === 'completed') {
+            stats.lia_activities_completed++
           }
         }
-      }
-    })
+      })
+
+      // Agregar notas por curso (usando lessonNotes obtenido arriba)
+      ; (lessonNotes || []).forEach(note => {
+        const courseId = note.course_lessons?.course_modules?.course_id
+        if (courseId && courseStatsMap.has(courseId)) {
+          const stats = courseStatsMap.get(courseId)
+          stats.notes_count++
+        } else if (note.lesson_id) {
+          // Si no tenemos el course_id directamente, buscar a través de lesson_id
+          const lessonProgressItem = enrichedLessonProgress?.find(lp => lp.lesson_id === note.lesson_id)
+          if (lessonProgressItem) {
+            const courseId = lessonProgressItem.user_course_enrollments?.course_id
+            if (courseId && courseStatsMap.has(courseId)) {
+              const stats = courseStatsMap.get(courseId)
+              stats.notes_count++
+            }
+          }
+        }
+      })
 
     // Agregar tiempo y estadísticas de lecciones por curso
     const lessonsByCourse = new Map()
-    ;(enrichedLessonProgress || []).forEach(progress => {
-      const courseId = progress.user_course_enrollments?.course_id
-      if (courseId && courseStatsMap.has(courseId)) {
-        const stats = courseStatsMap.get(courseId)
-        stats.time_spent_minutes += progress.time_spent_minutes || 0
-        
-        // Contar lecciones
-        if (!lessonsByCourse.has(courseId)) {
-          lessonsByCourse.set(courseId, { total: 0, completed: 0, in_progress: 0, quiz_completed: 0 })
-        }
-        const lessonStats = lessonsByCourse.get(courseId)
-        lessonStats.total++
-        if (progress.is_completed) {
-          lessonStats.completed++
-        } else if (progress.lesson_status === 'in_progress' || progress.started_at) {
-          lessonStats.in_progress++
-        }
-        if (progress.quiz_completed && progress.quiz_passed) {
-          lessonStats.quiz_completed++
-        }
-      }
-    })
+      ; (enrichedLessonProgress || []).forEach(progress => {
+        const courseId = progress.user_course_enrollments?.course_id
+        if (courseId && courseStatsMap.has(courseId)) {
+          const stats = courseStatsMap.get(courseId)
+          stats.time_spent_minutes += progress.time_spent_minutes || 0
 
-    // Actualizar estadísticas de lecciones
+          // Contar lecciones
+          if (!lessonsByCourse.has(courseId)) {
+            lessonsByCourse.set(courseId, { total: 0, completed: 0, in_progress: 0, quiz_completed: 0 })
+          }
+          const lessonStats = lessonsByCourse.get(courseId)
+          lessonStats.total++
+          if (progress.is_completed) {
+            lessonStats.completed++
+          } else if (progress.lesson_status === 'in_progress' || progress.started_at) {
+            lessonStats.in_progress++
+          }
+          if (progress.quiz_completed && progress.quiz_passed) {
+            lessonStats.quiz_completed++
+          }
+        }
+      })
+
+    // Actualizar estadísticas de lecciones - usando el conteo REAL de lecciones del curso
     lessonsByCourse.forEach((stats, courseId) => {
       if (courseStatsMap.has(courseId)) {
         const courseStats = courseStatsMap.get(courseId)
-        courseStats.lessons_total = stats.total
+        // Usar el conteo real de lecciones del curso, no las que tienen progreso
+        courseStats.lessons_total = realLessonsByCourse.get(courseId) || stats.total
         courseStats.lessons_completed = stats.completed
         courseStats.lessons_in_progress = stats.in_progress
         courseStats.quiz_lessons_completed = stats.quiz_completed
       }
     })
 
-    // Agregar estadísticas de módulos por curso
-    const modulesByCourse = new Map()
-    ;(courseModules || []).forEach(module => {
-      if (module.course_id && courseStatsMap.has(module.course_id)) {
-        if (!modulesByCourse.has(module.course_id)) {
-          modulesByCourse.set(module.course_id, { total: 0, completedModules: new Set() })
+    // Asegurar que cursos sin progreso tengan el total de lecciones correcto
+    realLessonsByCourse.forEach((totalLessons, courseId) => {
+      if (courseStatsMap.has(courseId)) {
+        const courseStats = courseStatsMap.get(courseId)
+        if (courseStats.lessons_total === 0) {
+          courseStats.lessons_total = totalLessons
         }
-        modulesByCourse.get(module.course_id).total++
       }
     })
 
-    // Calcular módulos completados basado en lecciones completadas
-    ;(enrichedLessonProgress || []).forEach(progress => {
-      const courseId = progress.user_course_enrollments?.course_id
-      const moduleId = progress.course_lessons?.module_id
-      if (courseId && moduleId && courseStatsMap.has(courseId)) {
-        if (!modulesByCourse.has(courseId)) {
-          modulesByCourse.set(courseId, { total: 0, completedModules: new Set() })
+    // Agregar estadísticas de módulos por curso
+    const modulesByCourse = new Map()
+      ; (courseModules || []).forEach(module => {
+        if (module.course_id && courseStatsMap.has(module.course_id)) {
+          if (!modulesByCourse.has(module.course_id)) {
+            modulesByCourse.set(module.course_id, { total: 0, completedModules: new Set() })
+          }
+          modulesByCourse.get(module.course_id).total++
         }
-        const moduleStats = modulesByCourse.get(courseId)
-        if (progress.is_completed) {
-          moduleStats.completedModules.add(moduleId)
+      })
+
+      // Calcular módulos completados basado en lecciones completadas
+      ; (enrichedLessonProgress || []).forEach(progress => {
+        const courseId = progress.user_course_enrollments?.course_id
+        const moduleId = progress.course_lessons?.module_id
+        if (courseId && moduleId && courseStatsMap.has(courseId)) {
+          if (!modulesByCourse.has(courseId)) {
+            modulesByCourse.set(courseId, { total: 0, completedModules: new Set() })
+          }
+          const moduleStats = modulesByCourse.get(courseId)
+          if (progress.is_completed) {
+            moduleStats.completedModules.add(moduleId)
+          }
         }
-      }
-    })
+      })
 
     modulesByCourse.forEach((stats, courseId) => {
       if (courseStatsMap.has(courseId)) {
@@ -638,26 +688,26 @@ export async function GET(
       }
     })
 
-    // Agregar estadísticas de actividades por curso
-    ;(activityCompletions || []).forEach(activity => {
-      const courseId = activity.lesson_activities?.course_lessons?.course_modules?.course_id
-      if (courseId && courseStatsMap.has(courseId)) {
-        const stats = courseStatsMap.get(courseId)
-        stats.activities_total++
-        if (activity.status === 'completed') {
-          stats.activities_completed++
+      // Agregar estadísticas de actividades por curso
+      ; (activityCompletions || []).forEach(activity => {
+        const courseId = activity.lesson_activities?.course_lessons?.course_modules?.course_id
+        if (courseId && courseStatsMap.has(courseId)) {
+          const stats = courseStatsMap.get(courseId)
+          stats.activities_total++
+          if (activity.status === 'completed') {
+            stats.activities_completed++
+          }
         }
-      }
-    })
+      })
 
-    // Agregar lecturas/materiales vistos (basado en notas)
-    ;(lessonNotes || []).forEach(note => {
-      const courseId = note.course_lessons?.course_modules?.course_id
-      if (courseId && courseStatsMap.has(courseId)) {
-        const stats = courseStatsMap.get(courseId)
-        stats.readings_viewed++
-      }
-    })
+      // Agregar lecturas/materiales vistos (basado en notas)
+      ; (lessonNotes || []).forEach(note => {
+        const courseId = note.course_lessons?.course_modules?.course_id
+        if (courseId && courseStatsMap.has(courseId)) {
+          const stats = courseStatsMap.get(courseId)
+          stats.readings_viewed++
+        }
+      })
 
     // Preparar datos para gráficas
     const coursesData = Array.from(courseStatsMap.values())
@@ -713,27 +763,27 @@ export async function GET(
         in_progress_courses: inProgressEnrollments,
         not_started_courses: notStartedEnrollments,
         average_progress: Math.round(avgProgress * 10) / 10,
-        
+
         // Tiempo y actividad
         total_time_spent_minutes: totalTimeSpent,
         total_time_spent_hours: Math.round((totalTimeSpent / 60) * 10) / 10,
-        
+
         // Lecciones
         completed_lessons: completedLessons,
         total_lessons: totalLessons,
-        
+
         // Certificados y notas
         certificates_count: enrichedCertificates?.length || 0,
         notes_count: lessonNotes?.length || 0,
-        
+
         // Asignaciones
         total_assignments: assignments?.length || 0,
         completed_assignments: assignments?.filter(a => a.status === 'completed').length || 0,
-        
+
         // LIA
         lia_conversations_total: liaConversations?.length || 0,
         lia_messages_total: liaMessages.length || 0,
-        
+
         // Quiz
         quiz_total: quizSubmissions?.length || 0,
         quiz_passed: quizSubmissions?.filter(q => q.is_passed).length || 0,
@@ -741,11 +791,11 @@ export async function GET(
         quiz_average_score: quizSubmissions && quizSubmissions.length > 0
           ? Math.round((quizSubmissions.reduce((sum, q) => sum + (Number(q.percentage_score) || 0), 0) / quizSubmissions.length) * 10) / 10
           : 0,
-        
+
         // Actividades LIA
         lia_activities_completed: liaActivityCompletions?.filter(a => a.status === 'completed').length || 0,
         lia_activities_total: liaActivityCompletions?.length || 0,
-        
+
         // Datos para gráficas
         courses_data: coursesData,
         time_by_course: timeByCourseArray,
@@ -771,15 +821,15 @@ export async function GET(
     })
   } catch (error: any) {
     logger.error('💥 Error in /api/business/users/[userId]/stats:', error)
-    
+
     // Asegurar que siempre devolvemos JSON, nunca HTML
     const errorMessage = error?.message || 'Error al obtener estadísticas del usuario'
-    
+
     return NextResponse.json({
       success: false,
       error: errorMessage,
       details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
-    }, { 
+    }, {
       status: 500,
       headers: {
         'Content-Type': 'application/json'

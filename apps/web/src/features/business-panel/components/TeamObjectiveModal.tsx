@@ -25,22 +25,22 @@ interface TeamCourse {
   } | null
 }
 
-export function TeamObjectiveModal({ 
-  isOpen, 
-  onClose, 
+export function TeamObjectiveModal({
+  isOpen,
+  onClose,
   teamId,
   objective,
-  onComplete 
+  onComplete
 }: TeamObjectiveModalProps) {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
-  
+
   const modalBg = panelStyles?.card_background || 'rgba(15, 23, 42, 0.95)'
   const modalBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
   const textColor = panelStyles?.text_color || '#f8fafc'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
   const sectionBg = `${modalBg}CC`
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -49,7 +49,7 @@ export function TeamObjectiveModal({
     metric_type: 'completion_percentage' as 'completion_percentage' | 'average_score' | 'participation_rate' | 'engagement_rate' | 'custom',
     deadline: ''
   })
-  
+
   const [teamCourses, setTeamCourses] = useState<TeamCourse[]>([])
   const [isLoadingCourses, setIsLoadingCourses] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -107,7 +107,7 @@ export function TeamObjectiveModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.title.trim()) {
       setError('El título del objetivo es requerido')
       return
@@ -174,21 +174,21 @@ export function TeamObjectiveModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-visible flex flex-col z-10 backdrop-blur-xl"
-          style={{ 
+          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10 backdrop-blur-xl"
+          style={{
             backgroundColor: modalBg,
             borderColor: modalBorder
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative border-b p-5 backdrop-blur-sm" style={{ 
+          <div className="relative border-b p-5 backdrop-blur-sm" style={{
             backgroundColor: modalBg,
             borderColor: modalBorder
           }}>
             <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <motion.div 
+                <motion.div
                   initial={{ scale: 0.9, rotate: -5 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.1, type: 'spring' }}
@@ -220,13 +220,13 @@ export function TeamObjectiveModal({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="p-3 rounded-xl text-red-400 flex items-center gap-3 border backdrop-blur-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: 'rgba(127, 29, 29, 0.2)',
                     borderColor: 'rgba(220, 38, 38, 0.3)'
                   }}
@@ -247,7 +247,7 @@ export function TeamObjectiveModal({
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Ej: Completar 80% del curso de IA"
                   className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
-                  style={{ 
+                  style={{
                     borderColor: modalBorder,
                     backgroundColor: sectionBg,
                     color: textColor
@@ -268,7 +268,7 @@ export function TeamObjectiveModal({
                   rows={3}
                   placeholder="Describe el objetivo en detalle..."
                   className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all resize-none"
-                  style={{ 
+                  style={{
                     borderColor: modalBorder,
                     backgroundColor: sectionBg,
                     color: textColor
@@ -337,7 +337,7 @@ export function TeamObjectiveModal({
                     onChange={(e) => setFormData(prev => ({ ...prev, target_value: parseFloat(e.target.value) || 0 }))}
                     placeholder="100"
                     className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
-                    style={{ 
+                    style={{
                       borderColor: modalBorder,
                       backgroundColor: sectionBg,
                       color: textColor
@@ -367,7 +367,7 @@ export function TeamObjectiveModal({
                   onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
                   min={new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
-                  style={{ 
+                  style={{
                     borderColor: modalBorder,
                     backgroundColor: sectionBg,
                     color: textColor
@@ -378,7 +378,7 @@ export function TeamObjectiveModal({
             </div>
 
             {/* Footer */}
-            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3" style={{ 
+            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3 shrink-0" style={{
               backgroundColor: modalBg,
               borderColor: modalBorder
             }}>

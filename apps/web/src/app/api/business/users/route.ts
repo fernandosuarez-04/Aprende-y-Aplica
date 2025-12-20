@@ -9,10 +9,17 @@ export async function GET() {
     // Verificar autenticación y autorización de Business
     const auth = await requireBusiness()
     if (auth instanceof NextResponse) return auth
-    
+
+    console.log('🔍 [Users API] Auth result:', {
+      userId: auth.userId,
+      organizationId: auth.organizationId,
+      role: auth.role
+    })
+
     logger.log('🔄 Cargando usuarios de organización desde API...')
-    
+
     if (!auth.organizationId) {
+      console.log('🔍 [Users API] No organization ID found')
       return NextResponse.json(
         {
           success: false,
@@ -33,7 +40,7 @@ export async function GET() {
         { status: 403 }
       )
     }
-    
+
     const [users, stats] = await Promise.all([
       BusinessUsersServerService.getOrganizationUsers(auth.organizationId),
       BusinessUsersServerService.getOrganizationStats(auth.organizationId)
@@ -63,7 +70,7 @@ export async function GET() {
   } catch (error) {
     logger.error('💥 Error in /api/business/users:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Error al obtener usuarios de la organización',
         users: []
@@ -78,7 +85,7 @@ export async function POST(request: Request) {
     // Verificar autenticación y autorización de Business
     const auth = await requireBusiness()
     if (auth instanceof NextResponse) return auth
-    
+
     if (!auth.organizationId) {
       return NextResponse.json(
         {
@@ -90,7 +97,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    
+
     const userData: CreateBusinessUserRequest = {
       username: body.username,
       email: body.email,
@@ -115,7 +122,7 @@ export async function POST(request: Request) {
   } catch (error) {
     logger.error('💥 Error in /api/business/users POST:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: error instanceof Error ? error.message : 'Error al crear usuario'
       },

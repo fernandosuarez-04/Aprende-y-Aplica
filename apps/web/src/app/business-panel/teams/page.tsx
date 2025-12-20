@@ -1,68 +1,416 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { 
-  UsersRound, 
+import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
+import {
+  UsersRound,
   Search,
-  Filter,
   Plus,
   User,
   BookOpen,
   TrendingUp,
-  Calendar
+  Calendar,
+  Sparkles,
+  ArrowUpRight,
+  Users,
+  Activity,
+  Target,
+  ChevronRight
 } from 'lucide-react'
+import { ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
 import { useTeams } from '@/features/business-panel/hooks/useTeams'
 import { Button } from '@aprende-y-aplica/ui'
 import { useRouter } from 'next/navigation'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { BusinessTeamModal } from '@/features/business-panel/components/BusinessTeamModal'
-import { WorkTeam } from '@/features/business-panel/services/teams.service'
 
-// Componente para el icono del equipo con manejo de errores
-function TeamIcon({ 
-  imageUrl, 
-  teamName, 
-  primaryColor, 
-  cardBorder 
-}: { 
-  imageUrl?: string | null
-  teamName: string
-  primaryColor: string
-  cardBorder: string
-}) {
-  const [imageError, setImageError] = useState(false)
-  
-  // Si hay una URL válida y no hay error, mostrar la imagen
-  if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '' && !imageError) {
-    return (
-      <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border" style={{ borderColor: cardBorder }}>
-        <img
-          src={imageUrl}
-          alt={teamName}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            console.error('Error cargando imagen del equipo:', teamName, imageUrl, e)
-            setImageError(true)
-          }}
-          onLoad={() => {
+// ============================================
+// COMPONENTE: StatCard Premium para Teams
+// ============================================
+interface TeamStatCardProps {
+  title: string
+  value: number
+  icon: React.ReactNode
+  gradient: string
+  delay: number
+  trend?: number
+}
 
-          }}
-        />
-      </div>
-    )
-  }
-  
+function TeamStatCard({ title, value, icon, gradient, delay, trend = 0 }: TeamStatCardProps) {
   return (
-    <div 
-      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-      style={{ backgroundColor: `${primaryColor}20` }}
+    <motion.div
+      initial={{ opacity: 0, y: 30, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{
+        delay: delay * 0.1,
+        duration: 0.6,
+        type: "spring",
+        stiffness: 120,
+        damping: 14
+      }}
+      whileHover={{
+        y: -6,
+        scale: 1.02,
+        transition: { duration: 0.3, type: "spring", stiffness: 300 }
+      }}
+      className="relative group overflow-hidden rounded-2xl cursor-pointer"
+      style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
     >
-      <UsersRound className="w-6 h-6" style={{ color: primaryColor }} />
-    </div>
+      {/* Animated Border Glow */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background: gradient,
+          padding: '1px',
+          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          maskComposite: 'exclude',
+          WebkitMaskComposite: 'xor'
+        }}
+      />
+
+      {/* Glassmorphism Border */}
+      <div className="absolute inset-0 rounded-2xl border border-white/10 group-hover:border-white/20 transition-colors duration-500" />
+
+      {/* Background Gradient */}
+      <div
+        className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500"
+        style={{ background: gradient }}
+      />
+
+      {/* Soft Glow */}
+      <motion.div
+        className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-40 transition-all duration-700"
+        style={{ background: gradient }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10 p-5">
+        <div className="flex items-start justify-between mb-4">
+          {/* Icon Container */}
+          <motion.div
+            className="p-3 rounded-xl backdrop-blur-md border border-white/10"
+            style={{ background: `${gradient.split(',')[0].replace('linear-gradient(135deg, ', '')}20` }}
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ type: 'spring', stiffness: 400 }}
+          >
+            {icon}
+          </motion.div>
+
+          {/* Trend Badge */}
+          {trend !== 0 && (
+            <motion.div
+              className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold backdrop-blur-md border border-emerald-500/30 bg-emerald-500/15 text-emerald-400"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: delay * 0.1 + 0.3, type: "spring" }}
+            >
+              <ArrowTrendingUpIcon className="h-3 w-3" />
+              +{trend}%
+            </motion.div>
+          )}
+        </div>
+
+        <motion.h3
+          className="text-3xl font-black tracking-tight mb-1"
+          style={{
+            color: 'var(--org-text-color, #FFFFFF)',
+            textShadow: '0 0 20px rgba(0,212,179,0.2)'
+          }}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: delay * 0.1 + 0.2 }}
+        >
+          {value.toLocaleString()}
+        </motion.h3>
+
+        <motion.p
+          className="text-sm font-semibold tracking-wide uppercase"
+          style={{ color: 'var(--org-border-color, #9CA3AF)', letterSpacing: '0.05em' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.7 }}
+          transition={{ delay: delay * 0.1 + 0.3 }}
+        >
+          {title}
+        </motion.p>
+
+        {/* Animated Progress Bar */}
+        <motion.div
+          className="absolute bottom-0 left-0 right-0 h-1 overflow-hidden"
+          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+        >
+          <motion.div
+            className="h-full rounded-r-full"
+            style={{ background: gradient }}
+            initial={{ width: 0 }}
+            animate={{ width: '50%' }}
+            transition={{ delay: delay * 0.1 + 0.5, duration: 0.8 }}
+          />
+        </motion.div>
+      </div>
+    </motion.div>
   )
 }
 
+// ============================================
+// COMPONENTE: TeamCard Premium
+// ============================================
+interface TeamCardProps {
+  team: any
+  index: number
+  primaryColor: string
+  cardBg: string
+  cardBorder: string
+  onClick: () => void
+}
+
+function TeamCard({ team, index, primaryColor, cardBg, cardBorder, onClick }: TeamCardProps) {
+  const [imageError, setImageError] = useState(false)
+  const imageUrl = team.image_url || team.metadata?.image_url || null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{
+        delay: index * 0.08,
+        duration: 0.5,
+        type: "spring",
+        stiffness: 100
+      }}
+      whileHover={{
+        y: -8,
+        scale: 1.02,
+        transition: { duration: 0.25 }
+      }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className="relative group overflow-hidden rounded-2xl cursor-pointer"
+      style={{ backgroundColor: cardBg }}
+    >
+      {/* Animated Border */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background: `linear-gradient(135deg, ${primaryColor}, transparent, ${primaryColor})`,
+          padding: '1px',
+          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          maskComposite: 'exclude',
+          WebkitMaskComposite: 'xor'
+        }}
+      />
+
+      {/* Border */}
+      <div
+        className="absolute inset-0 rounded-2xl border border-white/10 group-hover:border-white/20 transition-colors duration-300"
+      />
+
+      {/* Glow Effect */}
+      <motion.div
+        className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-all duration-700"
+        style={{ backgroundColor: primaryColor }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10 p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            {/* Team Image/Icon */}
+            <motion.div
+              className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border border-white/10"
+              whileHover={{ scale: 1.1 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+            >
+              {imageUrl && !imageError ? (
+                <img
+                  src={imageUrl}
+                  alt={team.name}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center"
+                  style={{ backgroundColor: `${primaryColor}20` }}
+                >
+                  <UsersRound className="w-7 h-7" style={{ color: primaryColor }} />
+                </div>
+              )}
+            </motion.div>
+
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-lg mb-0.5 truncate" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>
+                {team.name}
+              </h3>
+              {team.team_leader && (
+                <p className="text-xs opacity-60 flex items-center gap-1 truncate">
+                  <User className="w-3 h-3" />
+                  {team.team_leader.name}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          <motion.span
+            className={`px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border ${team.status === 'active'
+                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                : team.status === 'inactive'
+                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                  : 'bg-gray-500/15 text-gray-400 border-gray-500/30'
+              }`}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: index * 0.08 + 0.2, type: 'spring' }}
+          >
+            {team.status === 'active' ? 'Activo' : team.status === 'inactive' ? 'Inactivo' : 'Archivado'}
+          </motion.span>
+        </div>
+
+        {/* Description */}
+        {team.description && (
+          <p className="text-sm opacity-60 mb-4 line-clamp-2 leading-relaxed">
+            {team.description}
+          </p>
+        )}
+
+        {/* Stats Row */}
+        <div className="flex items-center gap-4 pt-3 border-t border-white/5">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="p-1.5 rounded-lg bg-white/5">
+              <Users className="w-4 h-4 opacity-60" />
+            </div>
+            <span className="font-semibold">{team.member_count || 0}</span>
+            <span className="opacity-50 text-xs">miembros</span>
+          </div>
+
+          {team.course && (
+            <div className="flex items-center gap-2 text-sm">
+              <div className="p-1.5 rounded-lg bg-white/5">
+                <BookOpen className="w-4 h-4 opacity-60" />
+              </div>
+              <span className="font-semibold truncate max-w-[80px]">{team.course.title}</span>
+            </div>
+          )}
+
+          {/* Arrow */}
+          <motion.div
+            className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+            animate={{ x: [0, 5, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <ChevronRight className="w-5 h-5" style={{ color: primaryColor }} />
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Bottom Progress Line */}
+      <motion.div
+        className="absolute bottom-0 left-0 h-0.5"
+        style={{ background: `linear-gradient(90deg, ${primaryColor}, transparent)` }}
+        initial={{ width: 0 }}
+        animate={{ width: '40%' }}
+        transition={{ delay: index * 0.08 + 0.3, duration: 0.6 }}
+      />
+    </motion.div>
+  )
+}
+
+// ============================================
+// COMPONENTE: Empty State Premium
+// ============================================
+function EmptyState({
+  searchTerm,
+  filterStatus,
+  onCreateClick,
+  primaryColor,
+  secondaryColor
+}: {
+  searchTerm: string
+  filterStatus: string
+  onCreateClick: () => void
+  primaryColor: string
+  secondaryColor: string
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative overflow-hidden rounded-3xl p-12 text-center"
+      style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+    >
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 2px 2px, ${primaryColor} 1px, transparent 0)`,
+          backgroundSize: '40px 40px'
+        }} />
+      </div>
+
+      {/* Floating Particles */}
+      <motion.div
+        className="absolute top-10 left-20 w-3 h-3 rounded-full"
+        style={{ backgroundColor: primaryColor }}
+        animate={{ y: [0, -15, 0], opacity: [0.3, 0.8, 0.3] }}
+        transition={{ duration: 3, repeat: Infinity }}
+      />
+      <motion.div
+        className="absolute bottom-20 right-32 w-2 h-2 rounded-full"
+        style={{ backgroundColor: secondaryColor }}
+        animate={{ y: [0, 10, 0], opacity: [0.2, 0.6, 0.2] }}
+        transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10">
+        <motion.div
+          className="w-24 h-24 mx-auto mb-6 rounded-2xl flex items-center justify-center"
+          style={{ backgroundColor: `${primaryColor}15` }}
+          animate={{ rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 4, repeat: Infinity }}
+        >
+          <UsersRound className="w-12 h-12" style={{ color: primaryColor, opacity: 0.6 }} />
+        </motion.div>
+
+        <h3 className="text-2xl font-bold mb-3" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>
+          No hay equipos
+        </h3>
+
+        <p className="text-sm opacity-60 mb-6 max-w-md mx-auto leading-relaxed">
+          {searchTerm || filterStatus !== 'all'
+            ? 'No se encontraron equipos con los filtros aplicados. Intenta ajustar tu búsqueda.'
+            : 'Crea tu primer equipo de trabajo para comenzar a organizar y gestionar el aprendizaje de tu organización.'}
+        </p>
+
+        {!searchTerm && filterStatus === 'all' && (
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button
+              onClick={onCreateClick}
+              variant="gradient"
+              size="lg"
+              className="font-semibold"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                boxShadow: `0 8px 30px ${primaryColor}40`
+              }}
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Crear Primer Equipo
+            </Button>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  )
+}
+
+// ============================================
+// PÁGINA PRINCIPAL: Teams
+// ============================================
 export default function BusinessPanelTeamsPage() {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
@@ -72,16 +420,18 @@ export default function BusinessPanelTeamsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const router = useRouter()
 
-  // Aplicar colores personalizados
+  // Theme Colors
   const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
   const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
   const textColor = panelStyles?.text_color || '#f8fafc'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
+  const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
+  const accentColor = panelStyles?.accent_color || '#00D4B3'
 
-  // Filtrar equipos
+  // Filter Teams
   const filteredTeams = useMemo(() => {
     return teams.filter(team => {
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         team.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         team.team_leader?.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -92,19 +442,14 @@ export default function BusinessPanelTeamsPage() {
     })
   }, [teams, searchTerm, filterStatus])
 
-  // Estadísticas
+  // Stats
   const stats = useMemo(() => {
     const totalTeams = teams.length
     const activeTeams = teams.filter(t => t.status === 'active').length
     const totalMembers = teams.reduce((sum, t) => sum + (t.member_count || 0), 0)
     const activeMembers = teams.reduce((sum, t) => sum + (t.active_member_count || 0), 0)
 
-    return {
-      totalTeams,
-      activeTeams,
-      totalMembers,
-      activeMembers
-    }
+    return { totalTeams, activeTeams, totalMembers, activeMembers }
   }, [teams])
 
   const handleCreateSuccess = () => {
@@ -112,154 +457,220 @@ export default function BusinessPanelTeamsPage() {
     refetch()
   }
 
+  // Loading State
   if (isLoading) {
     return (
-      <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }}
-        className="flex items-center justify-center min-h-screen"
-        style={{ color: textColor }}
-      >
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: primaryColor }}></div>
-          <p className="font-body">Cargando equipos...</p>
+      <div className="p-6 min-h-screen animate-pulse" style={{ color: textColor }}>
+        <div className="h-48 rounded-3xl bg-gray-800/50 mb-8" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 bg-gray-800/50 rounded-2xl" />
+          ))}
         </div>
-      </motion.div>
+        <div className="h-12 bg-gray-800/50 rounded-xl mb-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-48 bg-gray-800/50 rounded-2xl" />
+          ))}
+        </div>
+      </div>
     )
   }
 
+  // Error State
   if (error) {
     return (
       <div className="p-6" style={{ color: textColor }}>
-        <div 
-          className="p-4 rounded-xl border"
-          style={{ 
-            backgroundColor: cardBg,
-            borderColor: cardBorder
-          }}
-        >
-          <p className="font-body text-red-400">Error: {error}</p>
+        <div className="p-6 rounded-2xl border border-red-500/30 bg-red-500/10">
+          <p className="text-red-400 font-semibold">Error: {error}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 space-y-6" style={{ color: textColor }}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold font-heading mb-2">Equipos de Trabajo</h1>
-          <p className="text-sm font-body opacity-70">Gestiona y organiza equipos de trabajo para asignar cursos y objetivos</p>
+    <div className="p-6 lg:p-8 space-y-8" style={{ color: textColor }}>
+      {/* Hero Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative overflow-hidden rounded-3xl p-8 group"
+      >
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <div
+            className="absolute inset-0 mix-blend-multiply opacity-80 z-10"
+            style={{ backgroundColor: primaryColor }}
+          />
+          <div
+            className="absolute inset-0 z-10"
+            style={{
+              background: `linear-gradient(to right, ${primaryColor}, ${primaryColor}99, transparent)`
+            }}
+          />
+          <Image
+            src="/images/teams-header.png"
+            alt="Teams Background"
+            fill
+            priority
+            className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+          />
         </div>
-        <Button
-          onClick={() => setIsCreateModalOpen(true)}
-          variant="gradient"
-          size="lg"
-          className="font-body"
-          style={{
-            background: `linear-gradient(135deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || '#8b5cf6'} 100%)`,
-            boxShadow: `0 4px 14px 0 ${primaryColor}40`
-          }}
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Crear Equipo
-        </Button>
-      </div>
 
-      {/* Estadísticas */}
+        {/* Animated Particles */}
+        <motion.div
+          animate={{ y: [0, -10, 0], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="absolute top-10 right-20 w-2 h-2 rounded-full"
+          style={{ backgroundColor: accentColor }}
+        />
+        <motion.div
+          animate={{ y: [0, 10, 0], opacity: [0.3, 0.8, 0.3] }}
+          transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+          className="absolute bottom-10 right-40 w-3 h-3 rounded-full"
+          style={{ backgroundColor: accentColor }}
+        />
+
+        {/* Content */}
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="w-6 h-6" style={{ color: accentColor }} />
+                </motion.div>
+                <span className="text-sm font-semibold tracking-wider uppercase" style={{ color: accentColor }}>
+                  Gestión de Equipos
+                </span>
+              </div>
+
+              <motion.h1
+                className="text-3xl lg:text-4xl font-bold mb-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                Equipos de Trabajo
+              </motion.h1>
+
+              <motion.p
+                className="text-white/70 text-lg max-w-xl"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                Organiza y gestiona equipos para asignar cursos y objetivos de aprendizaje.
+              </motion.p>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                variant="gradient"
+                size="lg"
+                className="font-semibold shadow-2xl"
+                style={{
+                  background: `linear-gradient(135deg, ${accentColor} 0%, ${secondaryColor} 100%)`,
+                  boxShadow: `0 8px 30px ${accentColor}40`
+                }}
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Crear Equipo
+              </Button>
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="p-4 rounded-2xl border backdrop-blur-sm"
-          style={{ backgroundColor: cardBg, borderColor: cardBorder }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-body opacity-70 mb-1">Total Equipos</p>
-              <p className="text-2xl font-bold font-heading">{stats.totalTeams}</p>
-            </div>
-            <UsersRound className="w-8 h-8 opacity-50" style={{ color: primaryColor }} />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="p-4 rounded-2xl border backdrop-blur-sm"
-          style={{ backgroundColor: cardBg, borderColor: cardBorder }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-body opacity-70 mb-1">Equipos Activos</p>
-              <p className="text-2xl font-bold font-heading">{stats.activeTeams}</p>
-            </div>
-            <TrendingUp className="w-8 h-8 opacity-50" style={{ color: primaryColor }} />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="p-4 rounded-2xl border backdrop-blur-sm"
-          style={{ backgroundColor: cardBg, borderColor: cardBorder }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-body opacity-70 mb-1">Total Miembros</p>
-              <p className="text-2xl font-bold font-heading">{stats.totalMembers}</p>
-            </div>
-            <User className="w-8 h-8 opacity-50" style={{ color: primaryColor }} />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="p-4 rounded-2xl border backdrop-blur-sm"
-          style={{ backgroundColor: cardBg, borderColor: cardBorder }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-body opacity-70 mb-1">Miembros Activos</p>
-              <p className="text-2xl font-bold font-heading">{stats.activeMembers}</p>
-            </div>
-            <Calendar className="w-8 h-8 opacity-50" style={{ color: primaryColor }} />
-          </div>
-        </motion.div>
+        <TeamStatCard
+          title="Total Equipos"
+          value={stats.totalTeams}
+          icon={<UsersRound className="w-6 h-6" style={{ color: '#818cf8' }} />}
+          gradient="linear-gradient(135deg, #818cf8, #6366f1)"
+          delay={0}
+          trend={12}
+        />
+        <TeamStatCard
+          title="Equipos Activos"
+          value={stats.activeTeams}
+          icon={<Activity className="w-6 h-6" style={{ color: '#34d399' }} />}
+          gradient="linear-gradient(135deg, #34d399, #10b981)"
+          delay={1}
+          trend={8}
+        />
+        <TeamStatCard
+          title="Total Miembros"
+          value={stats.totalMembers}
+          icon={<Users className="w-6 h-6" style={{ color: '#38bdf8' }} />}
+          gradient="linear-gradient(135deg, #38bdf8, #0ea5e9)"
+          delay={2}
+          trend={15}
+        />
+        <TeamStatCard
+          title="Miembros Activos"
+          value={stats.activeMembers}
+          icon={<Target className="w-6 h-6" style={{ color: '#fbbf24' }} />}
+          gradient="linear-gradient(135deg, #fbbf24, #f59e0b)"
+          delay={3}
+          trend={5}
+        />
       </div>
 
-      {/* Filtros y Búsqueda */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 opacity-50" />
+      {/* Search & Filter Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="flex flex-col sm:flex-row gap-4"
+      >
+        {/* Search Input */}
+        <div className="flex-1 relative group">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 opacity-40 group-focus-within:opacity-70 transition-opacity" />
           <input
             type="text"
-            placeholder="Buscar equipos..."
+            placeholder="Buscar equipos por nombre, descripción o líder..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl border backdrop-blur-sm font-body"
-            style={{ 
+            className="w-full pl-12 pr-4 py-3.5 rounded-xl border backdrop-blur-sm focus:outline-none focus:ring-2 transition-all duration-300"
+            style={{
               backgroundColor: cardBg,
               borderColor: cardBorder,
               color: textColor
             }}
           />
+          <motion.div
+            className="absolute inset-0 rounded-xl pointer-events-none"
+            style={{
+              boxShadow: `0 0 0 2px ${primaryColor}`,
+              opacity: 0
+            }}
+            whileFocus={{ opacity: 1 }}
+          />
         </div>
-        <div className="flex gap-2">
+
+        {/* Filter Select */}
+        <div className="relative">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 rounded-xl border backdrop-blur-sm font-body"
-            style={{ 
+            className="appearance-none px-6 py-3.5 pr-12 rounded-xl border backdrop-blur-sm cursor-pointer focus:outline-none focus:ring-2 transition-all duration-300"
+            style={{
               backgroundColor: cardBg,
               borderColor: cardBorder,
-              color: textColor
+              color: textColor,
+              minWidth: '160px'
             }}
           >
             <option value="all">Todos</option>
@@ -267,113 +678,45 @@ export default function BusinessPanelTeamsPage() {
             <option value="inactive">Inactivos</option>
             <option value="archived">Archivados</option>
           </select>
+          <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 w-5 h-5 opacity-40 pointer-events-none" />
         </div>
-      </div>
+      </motion.div>
 
-      {/* Lista de Equipos */}
-      {filteredTeams.length === 0 ? (
-        <div 
-          className="p-12 rounded-2xl border text-center backdrop-blur-sm"
-          style={{ backgroundColor: cardBg, borderColor: cardBorder }}
-        >
-          <UsersRound className="w-16 h-16 mx-auto mb-4 opacity-30" />
-          <p className="text-lg font-heading mb-2">No hay equipos</p>
-          <p className="text-sm font-body opacity-70 mb-4">
-            {searchTerm || filterStatus !== 'all' 
-              ? 'No se encontraron equipos con los filtros aplicados'
-              : 'Crea tu primer equipo para comenzar'}
-          </p>
-          {!searchTerm && filterStatus === 'all' && (
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              variant="gradient"
-              className="font-body"
-              style={{
-                background: `linear-gradient(135deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || '#8b5cf6'} 100%)`,
-                boxShadow: `0 4px 14px 0 ${primaryColor}40`
-              }}
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Crear Equipo
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTeams.map((team, index) => {
-            // Debug temporal - verificar datos del equipo
-            if (index === 0) {
+      {/* Teams Grid or Empty State */}
+      <AnimatePresence mode="wait">
+        {filteredTeams.length === 0 ? (
+          <EmptyState
+            key="empty"
+            searchTerm={searchTerm}
+            filterStatus={filterStatus}
+            onCreateClick={() => setIsCreateModalOpen(true)}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+          />
+        ) : (
+          <motion.div
+            key="grid"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
+          >
+            {filteredTeams.map((team, index) => (
+              <TeamCard
+                key={team.team_id}
+                team={team}
+                index={index}
+                primaryColor={primaryColor}
+                cardBg={cardBg}
+                cardBorder={cardBorder}
+                onClick={() => router.push(`/business-panel/teams/${team.team_id}`)}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            }
-            
-            return (
-            <motion.div
-              key={team.team_id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => router.push(`/business-panel/teams/${team.team_id}`)}
-              className="p-5 rounded-2xl border cursor-pointer hover:scale-[1.02] transition-all backdrop-blur-sm"
-              style={{ 
-                backgroundColor: cardBg,
-                borderColor: cardBorder
-              }}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <TeamIcon 
-                    imageUrl={(team as any).image_url || (team.metadata as any)?.image_url || null} 
-                    teamName={team.name}
-                    primaryColor={primaryColor}
-                    cardBorder={cardBorder}
-                  />
-                  <div>
-                    <h3 className="font-heading font-semibold text-lg mb-1">{team.name}</h3>
-                    {team.team_leader && (
-                      <p className="text-xs font-body opacity-70 flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        {team.team_leader.name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <span 
-                  className={`px-2 py-1 rounded-lg text-xs font-body ${
-                    team.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                    team.status === 'inactive' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-gray-500/20 text-gray-400'
-                  }`}
-                >
-                  {team.status === 'active' ? 'Activo' :
-                   team.status === 'inactive' ? 'Inactivo' : 'Archivado'}
-                </span>
-              </div>
-
-              {team.description && (
-                <p className="text-sm font-body opacity-70 mb-4 line-clamp-2">
-                  {team.description}
-                </p>
-              )}
-
-              <div className="flex items-center gap-4 text-sm font-body">
-                <div className="flex items-center gap-1">
-                  <UsersRound className="w-4 h-4 opacity-50" />
-                  <span>{team.member_count || 0} miembros</span>
-                </div>
-                {team.course && (
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="w-4 h-4 opacity-50" />
-                    <span className="truncate max-w-[100px]">{team.course.title}</span>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Modal de Crear Equipo */}
+      {/* Create Team Modal */}
       <BusinessTeamModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -382,4 +725,3 @@ export default function BusinessPanelTeamsPage() {
     </div>
   )
 }
-

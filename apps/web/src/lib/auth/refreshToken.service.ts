@@ -2,7 +2,7 @@ import { createClient } from '../supabase/server'
 import { cookies } from 'next/headers'
 import { SECURE_COOKIE_OPTIONS } from './cookie-config'
 import * as crypto from 'crypto'
-import * as bcrypt from 'bcryptjs'
+// bcrypt eliminado - se usa SHA-256 para hashear tokens (determinístico y más rápido)
 
 /**
  * ✅ ISSUE #17: Servicio de Refresh Tokens
@@ -62,27 +62,32 @@ export class RefreshTokenService {
   }
 
   /**
-   * Hashea un token para almacenamiento seguro
+   * Hashea un token para almacenamiento seguro usando SHA-256
+   * ⚠️ IMPORTANTE: Usar SHA-256 (determinístico) en lugar de bcrypt (no determinístico)
+   * para permitir búsquedas directas por token_hash en la BD
    */
   private static async hashToken(token: string): Promise<string> {
-    return bcrypt.hash(token, 10)
+    return crypto.createHash('sha256').update(token).digest('hex')
   }
 
   /**
    * Verifica un token contra su hash
    * Público para permitir validación desde SessionService
+   * ⚠️ IMPORTANTE: Usar SHA-256 para consistencia con hashToken
    */
   static async verifyToken(token: string, hash: string): Promise<boolean> {
-    return bcrypt.compare(token, hash)
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+    return tokenHash === hash
   }
 
   /**
    * ⚡ OPTIMIZACIÓN: Hashea un token para búsqueda directa en BD
    * Permite query indexed en lugar de fetch ALL + loop
    * Público para uso desde SessionService
+   * ⚠️ IMPORTANTE: Usar SHA-256 (determinístico) para que la búsqueda funcione
    */
   static async hashTokenForLookup(token: string): Promise<string> {
-    return bcrypt.hash(token, 10)
+    return crypto.createHash('sha256').update(token).digest('hex')
   }
 
   /**
@@ -266,7 +271,7 @@ export class RefreshTokenService {
       .eq('user_id', userId)
       .eq('is_revoked', false)
 
-    }
+  }
 
   /**
    * Destruir sesión actual (logout)
@@ -283,7 +288,7 @@ export class RefreshTokenService {
       await this.revokeAllUserTokens(userId, 'User logout')
     }
 
-    }
+  }
 
   /**
    * Obtener todas las sesiones activas de un usuario
@@ -325,7 +330,7 @@ export class RefreshTokenService {
 
     const count = data?.length || 0
     if (count > 0) {
-      }
+    }
 
     return count
   }

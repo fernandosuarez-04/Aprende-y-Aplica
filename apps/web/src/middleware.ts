@@ -111,7 +111,7 @@ export async function middleware(request: NextRequest) {
               // Para roles de empresa, verificar que pertenezca a una organización
               const { data: userOrg, error: orgError } = await supabase
                 .from('organization_users')
-                .select('organization_id, status')
+                .select('organization_id, status, organizations!inner(id, name, slug, is_active, subscription_plan, subscription_status)')
                 .eq('user_id', sessionData.user_id)
                 .eq('status', 'active')
                 .single()
@@ -121,7 +121,8 @@ export async function middleware(request: NextRequest) {
                 return NextResponse.redirect(new URL('/dashboard', request.url))
               }
 
-              // Redirigir según el rol específico
+              // ✅ Usuario Enterprise o Business autenticado -> ir al dashboard correspondiente
+              // El auth personalizado es para cuando NO están autenticados
               if (normalizedRole === 'business') {
                 return NextResponse.redirect(new URL('/business-panel/dashboard', request.url))
               } else {
@@ -156,7 +157,8 @@ export async function middleware(request: NextRequest) {
   )
 
   // Verificar si la ruta requiere autenticación
-  const protectedRoutes = ['/admin', '/instructor', '/dashboard', '/communities']
+  // ✅ Incluye rutas B2B: business-panel (admin de org) y business-user (empleado)
+  const protectedRoutes = ['/admin', '/dashboard', '/communities', '/business-panel', '/business-user']
   const isProtectedRoute = protectedRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
@@ -202,38 +204,78 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Verificar sesión personalizada
+  // ✅ SOPORTE DUAL: Verificar sesión con refresh tokens (nuevo) o legacy (user_session)
   const sessionCookie = request.cookies.get('aprende-y-aplica-session')
-  logger.log('🍪 Cookie de sesión:', sessionCookie ? 'Encontrada' : 'No encontrada')
+  const accessTokenCookie = request.cookies.get('access_token')
+  const refreshTokenCookie = request.cookies.get('refresh_token')
 
-  if (!sessionCookie) {
-    logger.log('❌ No hay sesión, redirigiendo a /auth')
-    // Redirigir a login si no hay sesión
+  const hasLegacySession = !!sessionCookie
+  const hasRefreshTokenSession = !!(accessTokenCookie && refreshTokenCookie)
+
+  logger.log('🍪 Cookies de sesión:', {
+    legacy: hasLegacySession,
+    refreshToken: hasRefreshTokenSession
+  })
+
+  if (!hasLegacySession && !hasRefreshTokenSession) {
+    logger.log('❌ No hay sesión (ni legacy ni refresh token), redirigiendo a /auth')
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
   // Validar que la sesión sea válida en la base de datos
   logger.log('🔍 Validando sesión en base de datos...')
+  let userId: string | null = null;
+
   try {
-    const { data: sessionData, error: sessionError } = await supabase
-      .from('user_session')
-      .select('user_id')
-      .eq('jwt_id', sessionCookie.value)
-      .eq('revoked', false)
-      .gt('expires_at', new Date().toISOString())
-      .single()
+    // PASO 1: Intentar con refresh tokens primero (sistema nuevo)
+    if (hasRefreshTokenSession && refreshTokenCookie) {
+      const crypto = await import('crypto')
+      const tokenHash = crypto.createHash('sha256').update(refreshTokenCookie.value).digest('hex')
 
-    logger.log('📋 Sesión en DB:', sessionData ? 'Válida' : 'No válida')
-    logger.log('❌ Error de sesión:', sessionError?.message || 'Ninguno')
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('refresh_tokens')
+        .select('user_id')
+        .eq('token_hash', tokenHash)
+        .eq('is_revoked', false)
+        .gt('expires_at', new Date().toISOString())
+        .single()
 
-    if (sessionError || !sessionData) {
+      if (!tokenError && tokenData) {
+        userId = tokenData.user_id
+        logger.log('✅ Sesión validada via refresh token:', userId)
+      }
+    }
+
+    // PASO 2: Fallback a sistema legacy si no funcionó refresh tokens
+    if (!userId && hasLegacySession && sessionCookie) {
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('user_session')
+        .select('user_id')
+        .eq('jwt_id', sessionCookie.value)
+        .eq('revoked', false)
+        .gt('expires_at', new Date().toISOString())
+        .single()
+
+      if (!sessionError && sessionData) {
+        userId = sessionData.user_id
+        logger.log('✅ Sesión validada via legacy (user_session):', userId)
+      }
+    }
+
+    if (!userId) {
       logger.log('❌ Sesión inválida o expirada, redirigiendo a /auth')
-      // Eliminar cookie inválida
-      response.cookies.delete('aprende-y-aplica-session')
+      // Eliminar cookies inválidas
+      if (hasLegacySession) {
+        response.cookies.delete('aprende-y-aplica-session')
+      }
       return NextResponse.redirect(new URL('/auth', request.url))
     }
 
-    logger.log('✅ Sesión válida para usuario:', sessionData.user_id)
+    logger.log('✅ Sesión válida para usuario:', userId)
+
+    // Guardar userId para uso posterior en el middleware
+    const sessionData = { user_id: userId };
+
 
     // Verificar si usuario OAuth necesita cuestionario (OBLIGATORIO - NO SE PUEDE ESQUIVAR)
     // Esta validación se ejecuta ANTES de las validaciones de rol para asegurar que ningún usuario OAuth
@@ -261,27 +303,11 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/admin')) {
     logger.log('👑 Verificando acceso de administrador...')
     try {
-      // Obtener información de la sesión
-      const { data: sessionData } = await supabase
-        .from('user_session')
-        .select('user_id')
-        .eq('jwt_id', sessionCookie.value)
-        .eq('revoked', false)
-        .gt('expires_at', new Date().toISOString())
-        .single()
-
-      logger.log('📋 Datos de sesión:', sessionData ? 'Encontrados' : 'No encontrados')
-
-      if (!sessionData) {
-        logger.log('❌ Sesión inválida, redirigiendo a /auth')
-        return NextResponse.redirect(new URL('/auth', request.url))
-      }
-
-      // Verificar rol del usuario
+      // Usar el userId ya validado anteriormente
       const { data: userData } = await supabase
         .from('users')
         .select('cargo_rol')
-        .eq('id', sessionData.user_id)
+        .eq('id', userId)
         .single()
 
       logger.log('👤 Rol del usuario:', userData?.cargo_rol)
@@ -301,30 +327,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Para rutas de instructor, verificar rol
+  // Para rutas de instructor (deprecated - pero mantenemos por compatibilidad)
   if (request.nextUrl.pathname.startsWith('/instructor')) {
     try {
-      // Obtener información de la sesión
-      const { data: sessionData } = await supabase
-        .from('user_session')
-        .select('user_id')
-        .eq('jwt_id', sessionCookie.value)
-        .eq('revoked', false)
-        .gt('expires_at', new Date().toISOString())
-        .single()
-
-      if (!sessionData) {
-        return NextResponse.redirect(new URL('/auth', request.url))
-      }
-
-      // Verificar rol del usuario
       const { data: userData } = await supabase
         .from('users')
         .select('cargo_rol')
-        .eq('id', sessionData.user_id)
+        .eq('id', userId)
         .single()
 
-      // ✅ Normalizar rol antes de comparar (toLowerCase y trim)
       const userRole = userData?.cargo_rol?.toLowerCase().trim()
 
       // Permitir acceso a instructores y administradores
