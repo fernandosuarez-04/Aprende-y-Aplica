@@ -47,6 +47,11 @@ export async function POST(req: NextRequest) {
     const sanitizedValue = sanitizeCMIValue(key, String(value));
     setSessionValue(attemptId, key, sanitizedValue);
 
+    // Log important SCORM values for debugging
+    if (key.includes('status') || key.includes('score') || key.includes('exit') || key.includes('time')) {
+      console.log(`[SCORM setValue] ${key} = ${sanitizedValue}`);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

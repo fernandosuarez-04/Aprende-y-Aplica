@@ -11,15 +11,42 @@ export function SCORMPlayer({
   entryPoint,
   onComplete,
   onError,
+  onExit,
   className = '',
   objectives = []
-}: SCORMPlayerProps) {
+}: SCORMPlayerProps & { onExit?: () => void }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [contentUrl, setContentUrl] = useState<string | null>(null);
   const [adapterReady, setAdapterReady] = useState(false);
   const adapterRef = useRef<ReturnType<typeof initializeSCORMAPI> | null>(null);
+  const interceptorIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Guardar progreso cuando el usuario intenta salir de la página
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (adapterRef.current && !adapterRef.current.isTerminated()) {
+        console.log('[SCORMPlayer] Page unload detected. Saving progress...');
+        adapterRef.current.LMSFinish('');
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && adapterRef.current && !adapterRef.current.isTerminated()) {
+        console.log('[SCORMPlayer] Page hidden. Committing progress...');
+        adapterRef.current.LMSCommit('');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Initialize SCORM API FIRST, before setting content URL
   // This ensures objectives are available when SCORM content loads
@@ -59,6 +86,16 @@ export function SCORMPlayer({
       }
     });
 
+    // Registrar callback de salida para cuando el contenido SCORM quiera salir
+    adapter.setOnExitCallback(() => {
+      console.log('[SCORMPlayer] Exit callback triggered, navigating back...');
+      if (onExit) {
+        onExit();
+      } else {
+        window.history.back();
+      }
+    });
+
     adapterRef.current = adapter;
     setAdapterReady(true);
 
@@ -83,116 +120,140 @@ export function SCORMPlayer({
     setContentUrl(proxyUrl);
   }, [adapterReady, storagePath, entryPoint]);
 
-  const handleIframeLoad = useCallback(() => {
-    setIsLoading(false);
-    
-    // Intentar inyectar estilos CSS en el iframe para mejorar el contraste
-    // Esto solo funciona si el iframe está en el mismo origen o permite acceso
+  // Función para aplicar intercepciones al iframe
+  const applyIframeInterceptions = useCallback(() => {
     try {
       const iframe = iframeRef.current;
-      if (iframe && iframe.contentWindow && iframe.contentDocument) {
-        const iframeWindow = iframe.contentWindow;
-        const iframeDoc = iframe.contentDocument;
-        const iframeHead = iframeDoc.head || iframeDoc.getElementsByTagName('head')[0];
-        
-        // Interceptar window.close() dentro del iframe
-        // Cuando el contenido SCORM intenta cerrar la ventana, guardar el estado sin mostrar modal
-        const originalClose = iframeWindow.close;
-        iframeWindow.close = function() {
-          console.log('[SCORMPlayer] Content attempted to close window. Saving state...');
-          // Solo llamar a LMSFinish para guardar el estado
-          // El modal de completado solo se mostrará si el curso está realmente completado
-          if (adapterRef.current && !adapterRef.current.isTerminated()) {
-            adapterRef.current.LMSFinish('');
+      if (!iframe || !iframe.contentWindow || !iframe.contentDocument) return;
+
+      const iframeWindow = iframe.contentWindow as any;
+      const iframeDoc = iframe.contentDocument;
+
+      // Marcar que ya se aplicaron las intercepciones para evitar duplicados
+      if (iframeWindow.__scormInterceptionsApplied) return;
+      iframeWindow.__scormInterceptionsApplied = true;
+
+      // Interceptar window.close()
+      iframeWindow.close = function() {
+        console.log('[SCORMPlayer] Content attempted to close window. Saving state and exiting...');
+        if (adapterRef.current) {
+          adapterRef.current.terminateAndExit();
+        }
+      };
+
+      // Interceptar window.alert() para suprimir errores de objetivos SCORM
+      const originalAlert = iframeWindow.alert;
+      iframeWindow.alert = function(message: string) {
+        if (message && (
+          message.includes('could not find objective') ||
+          message.includes('ERROR - could not find objective') ||
+          message.includes('ERROR -') ||
+          (message.includes('objective') && message.includes('not found'))
+        )) {
+          console.log('[SCORMPlayer] Suppressed objective alert:', message);
+          return;
+        }
+        originalAlert?.call(iframeWindow, message);
+      };
+
+      // Interceptar window.confirm() para manejar el botón Exit
+      const originalConfirm = iframeWindow.confirm;
+      iframeWindow.confirm = function(message: string) {
+        if (message && (
+          message.toLowerCase().includes('exit') ||
+          message.toLowerCase().includes('salir') ||
+          message.toLowerCase().includes('leave') ||
+          message.toLowerCase().includes('abandonar')
+        )) {
+          console.log('[SCORMPlayer] Exit confirmation detected. Saving and exiting...');
+          if (adapterRef.current) {
+            adapterRef.current.terminateAndExit();
           }
-          // No cerrar realmente la ventana, solo prevenir el cierre
+          return true;
+        }
+        return originalConfirm?.call(iframeWindow, message);
+      };
+
+      // Suprimir console.error y console.warn para objetivos
+      if (iframeWindow.console) {
+        const originalError = iframeWindow.console.error;
+        const originalWarn = iframeWindow.console.warn;
+
+        iframeWindow.console.error = function(...args: any[]) {
+          const message = args.join(' ');
+          if (message.includes('could not find objective') ||
+              message.includes('ERROR - could not find objective') ||
+              (message.includes('404') && message.includes('organizations/login')) ||
+              (message.includes('401') && !message.includes('/api/scorm/'))) {
+            return;
+          }
+          originalError?.apply(iframeWindow.console, args);
         };
-        
-        // Suprimir mensajes de error relacionados con objetivos SCORM y errores comunes
-        if (iframeWindow.console) {
-          const originalError = iframeWindow.console.error;
-          const originalWarn = iframeWindow.console.warn;
-          
-          iframeWindow.console.error = function(...args: any[]) {
-            const message = args.join(' ');
-            // Filtrar mensajes sobre objetivos no encontrados
-            if (message.includes('could not find objective') || 
-                message.includes('ERROR - could not find objective')) {
-              return; // No mostrar este error
-            }
-            // Filtrar errores 404 de rutas que no existen (probablemente del contenido SCORM)
-            if (message.includes('404') && message.includes('organizations/login')) {
-              return; // No mostrar este error
-            }
-            // Filtrar errores 401 genéricos del contenido SCORM
-            if (message.includes('401') && (message.includes('Unauthorized') || message.includes('Failed to load resource'))) {
-              // Solo si es de una ruta que no es nuestra API SCORM
-              if (!message.includes('/api/scorm/')) {
-                return; // No mostrar este error
-              }
-            }
-            originalError.apply(iframeWindow.console, args);
-          };
-          
-          iframeWindow.console.warn = function(...args: any[]) {
-            const message = args.join(' ');
-            // Filtrar advertencias sobre objetivos
-            if (message.includes('could not find objective') || 
-                (message.includes('objective') && message.includes('not found'))) {
-              return; // No mostrar esta advertencia
-            }
-            // Filtrar advertencias sobre scroll-behavior (warning de Next.js)
-            if (message.includes('scroll-behavior') || message.includes('data-scroll-behavior')) {
-              return; // No mostrar esta advertencia
-            }
-            originalWarn.apply(iframeWindow.console, args);
-          };
-        }
-        
-        // Verificar si ya existe el estilo para evitar duplicados
-        if (iframeHead && !iframeDoc.getElementById('scorm-contrast-fix')) {
-          // Crear un elemento style para mejorar el contraste
-          const style = iframeDoc.createElement('style');
-          style.type = 'text/css';
-          style.id = 'scorm-contrast-fix';
-          style.innerHTML = `
-            /* Mejorar contraste del texto para mejor legibilidad */
-            body {
-              color: #1a1a1a !important;
-              background-color: #ffffff !important;
-            }
-            
-            /* Mejorar contraste de elementos comunes de texto que no tengan color definido */
-            body p:not([style*="color"]):not([class*="no-contrast"]),
-            body h1:not([style*="color"]):not([class*="no-contrast"]),
-            body h2:not([style*="color"]):not([class*="no-contrast"]),
-            body h3:not([style*="color"]):not([class*="no-contrast"]),
-            body h4:not([style*="color"]):not([class*="no-contrast"]),
-            body h5:not([style*="color"]):not([class*="no-contrast"]),
-            body h6:not([style*="color"]):not([class*="no-contrast"]),
-            body div:not([style*="color"]):not([class*="no-contrast"]),
-            body span:not([style*="color"]):not([class*="no-contrast"]),
-            body li:not([style*="color"]):not([class*="no-contrast"]),
-            body td:not([style*="color"]):not([class*="no-contrast"]),
-            body th:not([style*="color"]):not([class*="no-contrast"]) {
-              color: #1a1a1a !important;
-            }
-            
-            /* Asegurar fondo blanco para mejor contraste */
-            html, body {
-              background-color: #ffffff !important;
-            }
-          `;
-          
-          iframeHead.appendChild(style);
-        }
+
+        iframeWindow.console.warn = function(...args: any[]) {
+          const message = args.join(' ');
+          if (message.includes('could not find objective') ||
+              (message.includes('objective') && message.includes('not found')) ||
+              message.includes('scroll-behavior')) {
+            return;
+          }
+          originalWarn?.apply(iframeWindow.console, args);
+        };
       }
-    } catch (error) {
-      // Si hay errores de CORS o seguridad, simplemente continuar
-      // Esto es normal si el iframe tiene restricciones de seguridad o está en otro dominio
-      // En ese caso, el filtro CSS aplicado al iframe mismo ayudará con el contraste
+
+      // Inyectar estilos CSS
+      const iframeHead = iframeDoc.head || iframeDoc.getElementsByTagName('head')[0];
+      if (iframeHead && !iframeDoc.getElementById('scorm-contrast-fix')) {
+        const style = iframeDoc.createElement('style');
+        style.type = 'text/css';
+        style.id = 'scorm-contrast-fix';
+        style.innerHTML = `
+          body { color: #1a1a1a !important; background-color: #ffffff !important; }
+          html, body { background-color: #ffffff !important; }
+        `;
+        iframeHead.appendChild(style);
+      }
+    } catch (e) {
+      // Ignorar errores de CORS
     }
-  }, [onComplete]);
+  }, []);
+
+  const handleIframeLoad = useCallback(() => {
+    setIsLoading(false);
+
+    // Aplicar intercepciones al cargar
+    applyIframeInterceptions();
+
+    // Limpiar intervalo anterior si existe
+    if (interceptorIntervalRef.current) {
+      clearInterval(interceptorIntervalRef.current);
+    }
+
+    // Re-aplicar periódicamente para capturar navegaciones internas del SCORM
+    interceptorIntervalRef.current = setInterval(() => {
+      try {
+        const iframe = iframeRef.current;
+        if (iframe && iframe.contentWindow) {
+          const iframeWindow = iframe.contentWindow as any;
+          // Si se detecta que las intercepciones se perdieron, re-aplicarlas
+          if (!iframeWindow.__scormInterceptionsApplied) {
+            applyIframeInterceptions();
+          }
+        }
+      } catch (e) {
+        // Ignorar errores de CORS
+      }
+    }, 500);
+  }, [applyIframeInterceptions]);
+
+  // Cleanup del intervalo cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (interceptorIntervalRef.current) {
+        clearInterval(interceptorIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleIframeError = useCallback(() => {
     setError('Failed to load SCORM content');
@@ -250,7 +311,7 @@ export function SCORMPlayer({
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           allow="autoplay; fullscreen"
           title="SCORM Content"
-          style={{ 
+          style={{
             backgroundColor: '#ffffff',
             colorScheme: 'light',
             filter: 'contrast(1.1) brightness(1.05)'

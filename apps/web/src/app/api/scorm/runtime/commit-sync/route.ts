@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
-import { getSessionCache } from '@/lib/scorm/session-cache';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +12,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
-    const { attemptId } = await req.json();
+    const { attemptId, cacheData } = await req.json();
 
     if (!attemptId) {
       return NextResponse.json(
@@ -22,10 +21,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cache = getSessionCache(attemptId);
-    if (cache.size === 0) {
-      return NextResponse.json({ success: true }); // Nada que guardar
+    if (!cacheData || Object.keys(cacheData).length === 0) {
+      return NextResponse.json({ success: true });
     }
+
+    // Log key values for debugging
+    console.log('[SCORM commit-sync] Received cacheData keys:', Object.keys(cacheData).filter(k =>
+      k.includes('status') || k.includes('score') || k.includes('time') || k.includes('exit')
+    ));
+    console.log('[SCORM commit-sync] Session time from client:', cacheData['cmi.session_time'] || cacheData['cmi.core.session_time']);
+
+    // Convert cacheData object to Map-like operations
+    const cache = new Map<string, string>(Object.entries(cacheData));
 
     // Mapear CMI keys a columnas de DB
     const updateData: Record<string, any> = {
@@ -55,7 +62,6 @@ export async function POST(req: NextRequest) {
       if (cache.has(cmiKey)) {
         const value = cache.get(cmiKey)!;
 
-        // Conversiones especiales
         if (
           dbColumn === 'score_raw' ||
           dbColumn === 'score_min' ||
@@ -74,35 +80,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Manejar lesson_status con prioridad correcta:
-    // Para SCORM 2004: success_status (passed/failed) tiene prioridad sobre completion_status
-    // Para SCORM 1.2: usar lesson_status directamente
+    // Manejar lesson_status con prioridad correcta
     const successStatus = cache.get('cmi.success_status');
     const completionStatus = cache.get('cmi.completion_status');
     const lessonStatus12 = cache.get('cmi.core.lesson_status');
-
-    // Log all status values for debugging
     const scoreRaw = cache.get('cmi.score.raw') || cache.get('cmi.core.score.raw');
     const scoreMax = cache.get('cmi.score.max') || cache.get('cmi.core.score.max');
 
-    console.log('[SCORM commit] Status values:', {
+    console.log('[SCORM commit-sync] Status values:', {
       successStatus,
       completionStatus,
       lessonStatus12,
       scoreRaw,
-      scoreMax,
-      cacheKeys: Array.from(cache.keys()).filter(k => k.includes('status') || k.includes('score'))
+      scoreMax
     });
 
     if (successStatus === 'passed' || successStatus === 'failed') {
-      // SCORM 2004: El resultado del assessment es lo más importante
       updateData.lesson_status = successStatus;
     } else if (lessonStatus12 === 'passed' || lessonStatus12 === 'failed') {
-      // SCORM 1.2: passed/failed
       updateData.lesson_status = lessonStatus12;
     } else if (completionStatus === 'completed' && scoreRaw) {
-      // SCORM 2004: Si hay completion_status='completed' Y un score, el quiz fue enviado
-      // Determinar passed/failed basado en score
       const score = parseFloat(scoreRaw);
       const max = parseFloat(scoreMax || '100');
       const scaledPassingScore = parseFloat(cache.get('cmi.scaled_passing_score') || '0.8');
@@ -110,22 +107,17 @@ export async function POST(req: NextRequest) {
 
       if (!isNaN(score)) {
         updateData.lesson_status = score >= passThreshold ? 'passed' : 'failed';
-        console.log('[SCORM commit] Determined status from score:', updateData.lesson_status);
+        console.log('[SCORM commit-sync] Determined status from score:', updateData.lesson_status);
       } else {
         updateData.lesson_status = completionStatus;
       }
     } else if (lessonStatus12 === 'completed' && scoreRaw) {
-      // SCORM 1.2: completed con score
       updateData.lesson_status = 'passed';
     } else if (lessonStatus12) {
-      // SCORM 1.2: otros estados
       updateData.lesson_status = lessonStatus12;
     } else if (completionStatus) {
-      // SCORM 2004: Solo completion_status sin score
       updateData.lesson_status = completionStatus;
     }
-
-    console.log('[SCORM commit] Final updateData:', updateData);
 
     // Marcar como completado si aplica
     if (
@@ -135,8 +127,7 @@ export async function POST(req: NextRequest) {
       updateData.completed_at = new Date().toISOString();
     }
 
-    // If session_time is provided, we need to add it to total_time
-    // First get the current attempt to get existing total_time
+    // Manejar total_time
     if (updateData.session_time) {
       const { data: currentAttempt } = await supabase
         .from('scorm_attempts')
@@ -150,13 +141,14 @@ export async function POST(req: NextRequest) {
         const sessionSeconds = parseIntervalToSeconds(updateData.session_time);
         const newTotalSeconds = currentTotalSeconds + sessionSeconds;
 
-        // Convert back to interval format
         const hours = Math.floor(newTotalSeconds / 3600);
         const minutes = Math.floor((newTotalSeconds % 3600) / 60);
         const seconds = newTotalSeconds % 60;
         updateData.total_time = `${hours}:${minutes}:${seconds}`;
       }
     }
+
+    console.log('[SCORM commit-sync] Final updateData:', updateData);
 
     // Guardar en DB
     const { error } = await supabase
@@ -166,52 +158,18 @@ export async function POST(req: NextRequest) {
       .eq('user_id', user.id);
 
     if (error) {
+      console.error('[SCORM commit-sync] Error saving:', error);
       return NextResponse.json({ error: 'Failed to save' }, { status: 500 });
     }
 
-    // Procesar interacciones si las hay
+    // Procesar interacciones del cuestionario si las hay
     await saveInteractions(supabase, attemptId, cache);
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('[SCORM commit-sync] Exception:', error);
     return NextResponse.json({ error: 'Failed to commit' }, { status: 500 });
   }
-}
-
-function parseIntervalToSeconds(interval: string | null): number {
-  if (!interval) return 0;
-  const match = interval.match(/(\d+):(\d+):(\d+)/);
-  if (match) {
-    return parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
-  }
-  return 0;
-}
-
-function parseSessionTime(time: string): string {
-  // SCORM 1.2: HHHH:MM:SS.ss → PostgreSQL interval
-  // SCORM 2004: PT#H#M#S → PostgreSQL interval
-  if (time.startsWith('PT')) {
-    // ISO 8601 duration
-    const match = time.match(
-      /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/
-    );
-    if (match) {
-      const hours = match[1] || '0';
-      const minutes = match[2] || '0';
-      const seconds = match[3] || '0';
-      return `${hours}:${minutes}:${seconds}`;
-    }
-  } else if (time.includes(':')) {
-    // SCORM 1.2 format HHHH:MM:SS.ss
-    const parts = time.split(':');
-    if (parts.length >= 3) {
-      const hours = parseInt(parts[0], 10) || 0;
-      const minutes = parseInt(parts[1], 10) || 0;
-      const seconds = parseFloat(parts[2]) || 0;
-      return `${hours}:${minutes}:${Math.floor(seconds)}`;
-    }
-  }
-  return '0:0:0';
 }
 
 async function saveInteractions(
@@ -225,6 +183,8 @@ async function saveInteractions(
   );
 
   if (interactionKeys.length === 0) return;
+
+  console.log('[SCORM commit-sync] Found interaction keys:', interactionKeys.length);
 
   // Agrupar por índice de interacción
   const interactions = new Map<string, Record<string, string>>();
@@ -240,28 +200,70 @@ async function saveInteractions(
     }
   }
 
+  console.log('[SCORM commit-sync] Parsed interactions count:', interactions.size);
+
   // Insertar cada interacción
-  for (const [, data] of interactions) {
+  for (const [index, data] of interactions) {
     if (data.id) {
       try {
-        await supabase.from('scorm_interactions').upsert(
-          {
-            attempt_id: attemptId,
-            interaction_id: data.id,
-            interaction_type: data.type,
-            learner_response: data.learner_response || data.student_response,
-            correct_response: data['correct_responses.0.pattern'] || null,
-            result: data.result,
-            weighting: data.weighting ? parseFloat(data.weighting) : 1,
-            latency: data.latency,
-          },
+        const interactionData = {
+          attempt_id: attemptId,
+          interaction_id: data.id,
+          interaction_type: data.type || null,
+          learner_response: data.learner_response || data.student_response || null,
+          correct_response: data['correct_responses.0.pattern'] || null,
+          result: data.result || null,
+          weighting: data.weighting ? parseFloat(data.weighting) : 1,
+          latency: data.latency || null,
+        };
+
+        console.log(`[SCORM commit-sync] Saving interaction ${index}:`, interactionData);
+
+        const { error } = await supabase.from('scorm_interactions').upsert(
+          interactionData,
           {
             onConflict: 'attempt_id,interaction_id',
           }
         );
-      } catch {
-        // Ignorar errores de interacciones individuales
+
+        if (error) {
+          console.error(`[SCORM commit-sync] Error saving interaction ${index}:`, error);
+        }
+      } catch (err) {
+        console.error(`[SCORM commit-sync] Exception saving interaction ${index}:`, err);
       }
     }
   }
+}
+
+function parseIntervalToSeconds(interval: string | null): number {
+  if (!interval) return 0;
+  const match = interval.match(/(\d+):(\d+):(\d+)/);
+  if (match) {
+    return parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
+  }
+  return 0;
+}
+
+function parseSessionTime(time: string): string {
+  if (time.startsWith('PT')) {
+    const match = time.match(
+      /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/
+    );
+    if (match) {
+      const hours = match[1] || '0';
+      const minutes = match[2] || '0';
+      const seconds = match[3] || '0';
+      return `${hours}:${minutes}:${seconds}`;
+    }
+  } else if (time.includes(':')) {
+    const parts = time.split(':');
+    if (parts.length >= 3) {
+      const hours = parseInt(parts[0], 10) || 0;
+      const minutes = parseInt(parts[1], 10) || 0;
+      const seconds = parseFloat(parts[2]) || 0;
+      return `${hours}:${minutes}:${Math.floor(seconds)}`;
+    }
+  }
+  return '0:0:0';
 }

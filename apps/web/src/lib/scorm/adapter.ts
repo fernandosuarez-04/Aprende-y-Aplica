@@ -14,6 +14,8 @@ export class SCORMAPIAdapter {
   private objectiveIdToIndex: Map<string, number> = new Map();
   // Track session start time for automatic time calculation
   private sessionStartTime: number = 0;
+  // Callback para notificar cuando el usuario quiere salir
+  private onExitCallback: (() => void) | null = null;
 
   constructor(config: SCORMAdapterConfig) {
     this.config = config;
@@ -170,6 +172,11 @@ export class SCORMAPIAdapter {
   }
 
   LMSGetValue(key: string): string {
+    // Log important GetValue calls
+    if (key.includes('status') || key.includes('score') || key === 'cmi.exit' || key === 'cmi.core.exit') {
+      console.log(`[SCORM Adapter] GetValue called: ${key}`);
+    }
+
     // Be permissive - auto-initialize if GetValue is called before Initialize
     if (!this.initialized) {
       this.LMSInitialize('');
@@ -310,6 +317,9 @@ export class SCORMAPIAdapter {
   }
 
   LMSSetValue(key: string, value: string): string {
+    // Log ALL SetValue calls for debugging
+    console.log(`[SCORM Adapter] SetValue called: ${key} = ${value}`);
+
     // Be permissive with initialization state - auto-initialize if needed
     if (!this.initialized) {
       // Auto-initialize if SetValue is called before Initialize
@@ -391,35 +401,56 @@ export class SCORMAPIAdapter {
       this.setValueAsync(key, value);
     }
 
-    // Detectar completado
-    // SCORM 1.2: cmi.core.lesson_status = completed/passed/failed
-    // SCORM 2004: cmi.completion_status = completed AND/OR cmi.success_status = passed/failed
-    const isCompletionKey = key === 'cmi.core.lesson_status' ||
-                            key === 'cmi.completion_status' ||
-                            key === 'cmi.success_status';
+    // Detectar completado - múltiples condiciones según el estándar SCORM
+    //
+    // SCORM 2004 tiene dos elementos separados:
+    // - cmi.completion_status: completed/incomplete (si vio el contenido)
+    // - cmi.success_status: passed/failed/unknown (si pasó la evaluación)
+    //
+    // Algunos paquetes usan success_status, otros solo completion_status con score
 
-    if (isCompletionKey) {
-      // For SCORM 2004, check both completion_status and success_status
-      let finalStatus = value;
-      if (this.config.version === 'SCORM_2004') {
-        const completionStatus = this.cache.get('cmi.completion_status') || '';
-        const successStatus = this.cache.get('cmi.success_status') || '';
-
-        // Determine final status - passed/failed takes precedence over completed
-        if (successStatus === 'passed' || successStatus === 'failed') {
-          finalStatus = successStatus;
-        } else if (completionStatus === 'completed') {
-          finalStatus = 'completed';
-        }
+    if (this.config.version === 'SCORM_2004') {
+      // Caso 1: success_status cambia a passed/failed
+      if (key === 'cmi.success_status' && (value === 'passed' || value === 'failed')) {
+        const score = parseFloat(this.cache.get('cmi.score.raw') || '');
+        console.log('[SCORM Adapter] SCORM 2004 success_status:', value, 'score:', score);
+        this.config.onComplete?.(value, isNaN(score) ? undefined : score);
       }
 
-      if (finalStatus === 'completed' || finalStatus === 'passed' || finalStatus === 'failed') {
-        const scoreKey = this.config.version === 'SCORM_2004'
-          ? 'cmi.score.raw'
-          : 'cmi.core.score.raw';
-        const score = parseFloat(this.cache.get(scoreKey) || '');
-        console.log('[SCORM Adapter] Course completed with status:', finalStatus, 'score:', score);
-        this.config.onComplete?.(finalStatus, isNaN(score) ? undefined : score);
+      // Caso 2: Se establece un score.raw - verificar si hay completion
+      if (key === 'cmi.score.raw' && value) {
+        const scoreValue = parseFloat(value);
+        const completionStatus = this.cache.get('cmi.completion_status');
+        const successStatus = this.cache.get('cmi.success_status');
+
+        // Si hay score y completion_status es 'completed', pero no hay success_status
+        // Esto indica que el quiz fue enviado
+        if (!isNaN(scoreValue) && completionStatus === 'completed' &&
+            (!successStatus || successStatus === 'unknown')) {
+          console.log('[SCORM Adapter] SCORM 2004 score with completion:', scoreValue);
+          // Determinar passed/failed basado en score
+          const scoreMax = parseFloat(this.cache.get('cmi.score.max') || '100');
+          const scaledPassingScore = parseFloat(this.cache.get('cmi.scaled_passing_score') || '0.8');
+          const passThreshold = scoreMax * scaledPassingScore;
+          const status = scoreValue >= passThreshold ? 'passed' : 'failed';
+          this.config.onComplete?.(status, scoreValue);
+        }
+      }
+    } else {
+      // SCORM 1.2: lesson_status puede ser passed, completed, failed, incomplete, etc.
+      if (key === 'cmi.core.lesson_status') {
+        if (value === 'passed' || value === 'failed') {
+          const score = parseFloat(this.cache.get('cmi.core.score.raw') || '');
+          console.log('[SCORM Adapter] SCORM 1.2 course completed:', value, 'score:', score);
+          this.config.onComplete?.(value, isNaN(score) ? undefined : score);
+        } else if (value === 'completed') {
+          // Para SCORM 1.2, 'completed' con score también indica finalización
+          const score = parseFloat(this.cache.get('cmi.core.score.raw') || '');
+          if (!isNaN(score)) {
+            console.log('[SCORM Adapter] SCORM 1.2 completed with score:', score);
+            this.config.onComplete?.('completed', score);
+          }
+        }
       }
     }
 
@@ -519,7 +550,10 @@ export class SCORMAPIAdapter {
   }
 
   LMSCommit(param: string): string {
+    console.log('[SCORM Adapter] LMSCommit called');
+
     if (!this.initialized || this.terminated) {
+      console.log('[SCORM Adapter] LMSCommit rejected - initialized:', this.initialized, 'terminated:', this.terminated);
       this.lastError = '301';
       return 'false';
     }
@@ -547,7 +581,10 @@ export class SCORMAPIAdapter {
   }
 
   LMSFinish(param: string): string {
+    console.log('[SCORM Adapter] LMSFinish/Terminate called');
+
     if (!this.initialized) {
+      console.log('[SCORM Adapter] LMSFinish rejected - not initialized');
       this.lastError = '301';
       return 'false';
     }
@@ -555,26 +592,54 @@ export class SCORMAPIAdapter {
     // If already terminated, just return true to avoid errors
     // Some SCORM content calls Terminate multiple times
     if (this.terminated) {
+      console.log('[SCORM Adapter] LMSFinish - already terminated, returning true');
       this.lastError = '0';
       return 'true';
     }
 
+    console.log('[SCORM Adapter] LMSFinish - proceeding with termination');
     this.terminated = true;
 
-    // Get current completion status and score before terminating
-    const completionStatus = this.cache.get('cmi.completion_status') ||
-                            this.cache.get('cmi.core.lesson_status') ||
-                            'unknown';
-    const scoreKey = this.config.version === 'SCORM_2004'
-      ? 'cmi.score.raw'
-      : 'cmi.core.score.raw';
+    // Get current completion/success status and score before terminating
+    let completionStatus: string;
+    let scoreKey: string;
+
+    if (this.config.version === 'SCORM_2004') {
+      // For SCORM 2004, success_status (passed/failed) is the assessment result
+      // completion_status just means content was viewed
+      const successStatus = this.cache.get('cmi.success_status') || '';
+      const compStatus = this.cache.get('cmi.completion_status') || '';
+
+      // Prioritize success_status for assessment result
+      if (successStatus === 'passed' || successStatus === 'failed') {
+        completionStatus = successStatus;
+      } else {
+        completionStatus = compStatus || 'unknown';
+      }
+      scoreKey = 'cmi.score.raw';
+    } else {
+      // SCORM 1.2
+      completionStatus = this.cache.get('cmi.core.lesson_status') || 'unknown';
+      scoreKey = 'cmi.core.score.raw';
+    }
+
     const score = parseFloat(this.cache.get(scoreKey) || '');
 
-    // Calculate and set session_time if not set by SCORM content
+    // Calculate and set session_time if not set by SCORM content OR if it's zero/empty
     const sessionTimeKey = this.config.version === 'SCORM_2004' ? 'cmi.session_time' : 'cmi.core.session_time';
     const existingSessionTime = this.cache.get(sessionTimeKey);
 
-    if (!existingSessionTime && this.sessionStartTime > 0) {
+    // Force auto-calculation if session time is missing, empty, or zero
+    const needsAutoCalculation = !existingSessionTime ||
+      existingSessionTime === '' ||
+      existingSessionTime === 'PT0S' ||
+      existingSessionTime === 'PT0H0M0S' ||
+      existingSessionTime === '0000:00:00.00' ||
+      existingSessionTime === '0:0:0';
+
+    console.log('[SCORM Adapter] LMSFinish - existingSessionTime:', existingSessionTime, 'sessionStartTime:', this.sessionStartTime, 'needsAutoCalculation:', needsAutoCalculation);
+
+    if (needsAutoCalculation && this.sessionStartTime > 0) {
       const elapsedMs = Date.now() - this.sessionStartTime;
       const elapsedSeconds = Math.floor(elapsedMs / 1000);
       const hours = Math.floor(elapsedSeconds / 3600);
@@ -619,9 +684,12 @@ export class SCORMAPIAdapter {
       }
     }
 
-    // ONLY trigger onComplete callback for ACTUAL completions (passed, completed, failed)
-    // Do NOT trigger for 'incomplete' - the user just exited mid-course
-    if (this.config.onComplete && isCompleted) {
+    // ONLY trigger onComplete for ACTUAL pass/fail - NOT just 'completed'
+    // 'completed' in SCORM 2004 just means content was viewed, not that assessment was done
+    const hasAssessmentResult = completionStatus === 'passed' || completionStatus === 'failed';
+
+    if (this.config.onComplete && hasAssessmentResult) {
+      console.log('[SCORM Adapter] LMSFinish triggering onComplete:', completionStatus, 'score:', score);
       this.config.onComplete(completionStatus, isNaN(score) ? undefined : score);
     }
 
@@ -639,20 +707,64 @@ export class SCORMAPIAdapter {
     // Process any remaining pending setValues
     await this.processPendingSetValues();
 
-    // Commit changes
-    await this.commitAsync();
+    // Commit changes - use synchronous commit for reliability
+    await this.commitSync();
 
     // Only call terminate endpoint if we have an attemptId
     if (!this.attemptId) return;
 
-    try {
-      await fetch('/api/scorm/runtime/terminate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ attemptId: this.attemptId })
-      });
-    } catch (error) {
-      // Silent fail - don't show alerts during page unload
+    // Use sendBeacon for reliable delivery during page unload
+    const data = JSON.stringify({ attemptId: this.attemptId });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/scorm/runtime/terminate', new Blob([data], { type: 'application/json' }));
+    } else {
+      try {
+        await fetch('/api/scorm/runtime/terminate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: data
+        });
+      } catch (error) {
+        // Silent fail - don't show alerts during page unload
+      }
+    }
+  }
+
+  // Synchronous commit using sendBeacon for reliable delivery
+  private async commitSync() {
+    if (!this.attemptId) return;
+
+    // Build the data to send
+    const cacheData: Record<string, string> = {};
+    for (const [key, value] of this.cache.entries()) {
+      cacheData[key] = value;
+    }
+
+    const payload = JSON.stringify({
+      attemptId: this.attemptId,
+      cacheData
+    });
+
+    // Log only key values to avoid console spam
+    const keyValues: Record<string, string> = {};
+    for (const key of ['cmi.completion_status', 'cmi.success_status', 'cmi.score.raw', 'cmi.score.max', 'cmi.session_time', 'cmi.exit', 'cmi.core.lesson_status', 'cmi.core.score.raw', 'cmi.core.session_time', 'cmi.core.exit']) {
+      if (cacheData[key]) {
+        keyValues[key] = cacheData[key];
+      }
+    }
+    console.log('[SCORM Adapter] Committing key values:', keyValues);
+
+    // Use sendBeacon for reliable delivery
+    if (navigator.sendBeacon) {
+      const sent = navigator.sendBeacon('/api/scorm/runtime/commit-sync',
+        new Blob([payload], { type: 'application/json' }));
+      console.log('[SCORM Adapter] sendBeacon result:', sent);
+      if (!sent) {
+        // Fallback to fetch if sendBeacon fails
+        await this.commitAsync();
+      }
+    } else {
+      await this.commitAsync();
     }
   }
 
@@ -717,6 +829,26 @@ export class SCORMAPIAdapter {
       await this.initPromise;
     }
   }
+
+  // Registrar callback de salida para cuando el contenido SCORM quiera cerrar
+  setOnExitCallback(callback: () => void): void {
+    this.onExitCallback = callback;
+  }
+
+  // Terminar y notificar salida (llamado cuando el contenido SCORM quiere salir)
+  terminateAndExit(): void {
+    console.log('[SCORM Adapter] terminateAndExit called');
+    if (!this.terminated) {
+      this.LMSFinish('');
+    }
+    // Notificar al componente para navegar después de un pequeño delay
+    // para asegurar que sendBeacon se envíe
+    setTimeout(() => {
+      if (this.onExitCallback) {
+        this.onExitCallback();
+      }
+    }, 100);
+  }
 }
 
 // Inyectar en window
@@ -725,9 +857,29 @@ export function initializeSCORMAPI(config: SCORMAdapterConfig): SCORMAPIAdapter 
 
   if (config.version === 'SCORM_2004') {
     (window as any).API_1484_11 = adapter;
+    console.log('[SCORM Adapter] API_1484_11 injected into window');
   } else {
     (window as any).API = adapter;
+    console.log('[SCORM Adapter] API injected into window');
   }
+
+  // Also inject into parent frames for nested iframes
+  try {
+    if (window.parent && window.parent !== window) {
+      if (config.version === 'SCORM_2004') {
+        (window.parent as any).API_1484_11 = adapter;
+        console.log('[SCORM Adapter] API_1484_11 also injected into parent window');
+      } else {
+        (window.parent as any).API = adapter;
+        console.log('[SCORM Adapter] API also injected into parent window');
+      }
+    }
+  } catch (e) {
+    // Cross-origin parent, ignore
+  }
+
+  // Debug: Log when any API method is called
+  console.log('[SCORM Adapter] Ready. API object:', config.version === 'SCORM_2004' ? 'API_1484_11' : 'API');
 
   return adapter;
 }
