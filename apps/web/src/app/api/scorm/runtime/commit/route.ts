@@ -82,11 +82,105 @@ export async function POST(req: NextRequest) {
     const lessonStatus12 = cache.get('cmi.core.lesson_status');
 
     // Log all status values for debugging
-    const scoreRaw = cache.get('cmi.score.raw') || cache.get('cmi.core.score.raw');
+    let scoreRaw = cache.get('cmi.score.raw') || cache.get('cmi.core.score.raw');
     const scoreMax = cache.get('cmi.score.max') || cache.get('cmi.core.score.max');
+
+    // Si no hay score general, intentar calcularlo desde los objetivos
+    if (!scoreRaw || scoreRaw === '' || scoreRaw === 'unknown') {
+      const objectiveScores: number[] = [];
+      const objectiveMaxScores: number[] = [];
+      let objectiveIndex = 0;
+
+      while (
+        cache.has(`cmi.objectives.${objectiveIndex}.id`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.success_status`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.score.raw`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.score.scaled`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.completion_status`)
+      ) {
+        const objScore = cache.get(`cmi.objectives.${objectiveIndex}.score.raw`);
+        const objMaxScore = cache.get(`cmi.objectives.${objectiveIndex}.score.max`);
+        if (objScore && objScore !== '') {
+          const parsed = parseFloat(objScore);
+          if (!isNaN(parsed)) {
+            objectiveScores.push(parsed);
+            const maxParsed = parseFloat(objMaxScore || '100');
+            objectiveMaxScores.push(isNaN(maxParsed) ? 100 : maxParsed);
+          }
+        }
+        objectiveIndex++;
+      }
+
+      if (objectiveScores.length > 0) {
+        const totalScore = objectiveScores.reduce((a, b) => a + b, 0);
+        const totalMaxScore = objectiveMaxScores.reduce((a, b) => a + b, 0);
+        const percentage = totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0;
+        scoreRaw = String(percentage);
+        updateData.score_raw = percentage;
+        console.log('[SCORM commit] Calculated score from objectives:', percentage);
+      }
+    }
+
+    // Determinar success_status desde objetivos si no está definido
+    let derivedSuccessStatus = successStatus;
+    if (!derivedSuccessStatus || derivedSuccessStatus === 'unknown') {
+      let objectiveIndex = 0;
+      let passedCount = 0;
+      let failedCount = 0;
+      let totalObjectives = 0;
+
+      while (
+        cache.has(`cmi.objectives.${objectiveIndex}.id`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.success_status`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.score.raw`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.score.scaled`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.completion_status`)
+      ) {
+        const objStatus = cache.get(`cmi.objectives.${objectiveIndex}.success_status`);
+        const objScoreRaw = cache.get(`cmi.objectives.${objectiveIndex}.score.raw`);
+        const objScoreMax = cache.get(`cmi.objectives.${objectiveIndex}.score.max`);
+        const objScoreScaled = cache.get(`cmi.objectives.${objectiveIndex}.score.scaled`);
+
+        // Derivar success_status desde score si no está definido
+        let derivedObjStatus = objStatus;
+        if (!derivedObjStatus || derivedObjStatus === 'unknown') {
+          if (objScoreScaled) {
+            const scaled = parseFloat(objScoreScaled);
+            if (!isNaN(scaled)) {
+              derivedObjStatus = scaled >= 0.8 ? 'passed' : (scaled > 0 ? 'passed' : 'failed');
+            }
+          } else if (objScoreRaw && objScoreMax) {
+            const raw = parseFloat(objScoreRaw);
+            const max = parseFloat(objScoreMax);
+            if (!isNaN(raw) && !isNaN(max) && max > 0) {
+              derivedObjStatus = raw >= max ? 'passed' : (raw > 0 ? 'passed' : 'failed');
+            }
+          }
+        }
+
+        if (derivedObjStatus === 'passed') passedCount++;
+        else if (derivedObjStatus === 'failed') failedCount++;
+        totalObjectives++;
+        objectiveIndex++;
+      }
+
+      if (totalObjectives > 0) {
+        if (passedCount === totalObjectives) {
+          derivedSuccessStatus = 'passed';
+        } else if (failedCount > 0 && passedCount === 0) {
+          derivedSuccessStatus = 'failed';
+        } else if (passedCount > 0) {
+          derivedSuccessStatus = passedCount > failedCount ? 'passed' : 'failed';
+        }
+        console.log('[SCORM commit] Derived success status from objectives:', {
+          derivedSuccessStatus, passedCount, failedCount, totalObjectives
+        });
+      }
+    }
 
     console.log('[SCORM commit] Status values:', {
       successStatus,
+      derivedSuccessStatus,
       completionStatus,
       lessonStatus12,
       scoreRaw,
@@ -94,9 +188,12 @@ export async function POST(req: NextRequest) {
       cacheKeys: Array.from(cache.keys()).filter(k => k.includes('status') || k.includes('score'))
     });
 
-    if (successStatus === 'passed' || successStatus === 'failed') {
-      // SCORM 2004: El resultado del assessment es lo más importante
-      updateData.lesson_status = successStatus;
+    const effectiveSuccessStatus = (successStatus === 'passed' || successStatus === 'failed')
+      ? successStatus
+      : derivedSuccessStatus;
+
+    if (effectiveSuccessStatus === 'passed' || effectiveSuccessStatus === 'failed') {
+      updateData.lesson_status = effectiveSuccessStatus;
     } else if (lessonStatus12 === 'passed' || lessonStatus12 === 'failed') {
       // SCORM 1.2: passed/failed
       updateData.lesson_status = lessonStatus12;

@@ -22,6 +22,17 @@ export function SCORMPlayer({
   const [adapterReady, setAdapterReady] = useState(false);
   const adapterRef = useRef<ReturnType<typeof initializeSCORMAPI> | null>(null);
   const interceptorIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Usar ref para los callbacks para evitar problemas de closures
+  const onExitRef = useRef(onExit);
+  const onCompleteRef = useRef(onComplete);
+  const onErrorRef = useRef(onError);
+
+  // Mantener refs actualizados
+  useEffect(() => {
+    onExitRef.current = onExit;
+    onCompleteRef.current = onComplete;
+    onErrorRef.current = onError;
+  }, [onExit, onComplete, onError]);
 
   // Guardar progreso cuando el usuario intenta salir de la página
   useEffect(() => {
@@ -79,18 +90,19 @@ export function SCORMPlayer({
       objectives, // Pass objectives for immediate initialization in constructor
       onError: (err) => {
         setError(err);
-        onError?.(err);
+        onErrorRef.current?.(err);
       },
       onComplete: (status, score) => {
-        onComplete?.(status, score);
+        console.log('[SCORMPlayer] onComplete callback triggered:', status, score);
+        onCompleteRef.current?.(status, score);
       }
     });
 
     // Registrar callback de salida para cuando el contenido SCORM quiera salir
     adapter.setOnExitCallback(() => {
       console.log('[SCORMPlayer] Exit callback triggered, navigating back...');
-      if (onExit) {
-        onExit();
+      if (onExitRef.current) {
+        onExitRef.current();
       } else {
         window.history.back();
       }
@@ -102,14 +114,14 @@ export function SCORMPlayer({
     return () => {
       // Restaurar console.error original
       console.error = originalConsoleError;
-      
+
       if (adapterRef.current && !adapterRef.current.isTerminated()) {
         adapterRef.current.LMSFinish('');
       }
       cleanupSCORMAPI();
       setAdapterReady(false);
     };
-  }, [packageId, version, objectives, onComplete, onError]);
+  }, [packageId, version, objectives]); // Removido onComplete y onError ya que usamos refs
 
   // Set content URL only AFTER adapter is ready
   useEffect(() => {
@@ -173,6 +185,75 @@ export function SCORMPlayer({
         }
         return originalConfirm?.call(iframeWindow, message);
       };
+
+      // Interceptar clics en botones con texto "Exit" específicamente
+      // Debe ser MUY específico para evitar falsos positivos con otros botones
+      iframeDoc.addEventListener('click', function(event: MouseEvent) {
+        const target = event.target as HTMLElement;
+        if (!target) return;
+
+        // Solo verificar el elemento clickeado directamente (no padres)
+        // y solo si es un botón, enlace, o imagen
+        const tagName = target.tagName?.toLowerCase();
+        const isClickable = tagName === 'button' || tagName === 'a' || tagName === 'input' || tagName === 'img';
+
+        if (!isClickable) return;
+
+        // Obtener texto directo del elemento (sin incluir hijos para evitar falsos positivos)
+        let directText = '';
+
+        if (tagName === 'input') {
+          directText = (target as HTMLInputElement).value?.toLowerCase() || '';
+        } else if (tagName === 'img') {
+          directText = target.getAttribute('alt')?.toLowerCase() || '';
+        } else {
+          // Para botones y enlaces, usar el texto visible pero solo si es corto
+          // (para evitar capturar todo el contenido de la página)
+          const innerText = (target as HTMLElement).innerText?.toLowerCase() || '';
+          if (innerText.length < 50) {
+            directText = innerText;
+          }
+        }
+
+        const title = target.getAttribute('title')?.toLowerCase() || '';
+        const ariaLabel = target.getAttribute('aria-label')?.toLowerCase() || '';
+        const className = target.className?.toLowerCase() || '';
+        const id = target.id?.toLowerCase() || '';
+
+        // Solo detectar si el texto ES "exit" o muy similar (no si lo contiene en una frase larga)
+        const isExitButton = (
+          directText === 'exit' ||
+          directText === 'salir' ||
+          directText === 'exit course' ||
+          directText === 'salir del curso' ||
+          title === 'exit' ||
+          title === 'salir' ||
+          ariaLabel === 'exit' ||
+          ariaLabel === 'salir' ||
+          className.includes('exit-btn') ||
+          className.includes('exit_btn') ||
+          id.includes('exit')
+        );
+
+        if (isExitButton) {
+          console.log('[SCORMPlayer] Exit button detected:', { directText, title, ariaLabel, className, id });
+          // Dar tiempo para que el contenido SCORM procese el clic
+          setTimeout(() => {
+            if (adapterRef.current && adapterRef.current.isInitialized()) {
+              console.log('[SCORMPlayer] Calling terminateAndExit after exit button click');
+              adapterRef.current.terminateAndExit();
+            }
+          }, 200);
+        }
+      }, false); // Bubbling para no interferir con el comportamiento normal
+
+      // También interceptar el evento beforeunload del iframe
+      iframeWindow.addEventListener('beforeunload', function() {
+        console.log('[SCORMPlayer] Iframe beforeunload detected');
+        if (adapterRef.current && !adapterRef.current.isTerminated()) {
+          adapterRef.current.LMSFinish('');
+        }
+      });
 
       // Suprimir console.error y console.warn para objetivos
       if (iframeWindow.console) {

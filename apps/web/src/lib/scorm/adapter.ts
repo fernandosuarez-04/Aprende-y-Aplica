@@ -16,6 +16,8 @@ export class SCORMAPIAdapter {
   private sessionStartTime: number = 0;
   // Callback para notificar cuando el usuario quiere salir
   private onExitCallback: (() => void) | null = null;
+  // Track interactions by ID to preserve all of them even if SCORM content overwrites index 0
+  private interactionsById: Map<string, Record<string, string>> = new Map();
 
   constructor(config: SCORMAdapterConfig) {
     this.config = config;
@@ -320,6 +322,45 @@ export class SCORMAPIAdapter {
     // Log ALL SetValue calls for debugging
     console.log(`[SCORM Adapter] SetValue called: ${key} = ${value}`);
 
+    // Special handling for interactions - track by ID instead of index
+    // This handles the case where SCORM content always uses index 0
+    if (key.startsWith('cmi.interactions.')) {
+      const match = key.match(/^cmi\.interactions\.(\d+)\.(.+)$/);
+      if (match) {
+        const field = match[2];
+
+        // Get current interaction ID or use the one being set
+        let interactionId = '';
+        if (field === 'id') {
+          interactionId = value;
+        } else {
+          // Get the current ID for this index
+          interactionId = this.cache.get('cmi.interactions.0.id') || `temp_${Date.now()}`;
+        }
+
+        // Store in our map keyed by interaction ID
+        if (interactionId) {
+          if (!this.interactionsById.has(interactionId)) {
+            this.interactionsById.set(interactionId, {});
+          }
+          this.interactionsById.get(interactionId)![field] = value;
+
+          // Also store with the correct index based on the number of unique interactions
+          const interactionIndex = Array.from(this.interactionsById.keys()).indexOf(interactionId);
+          if (interactionIndex === -1) {
+            // New interaction
+            const newIndex = this.interactionsById.size - 1;
+            this.cache.set(`cmi.interactions.${newIndex}.${field}`, value);
+          } else {
+            this.cache.set(`cmi.interactions.${interactionIndex}.${field}`, value);
+          }
+
+          // Update the count
+          this.cache.set('cmi.interactions._count', String(this.interactionsById.size));
+        }
+      }
+    }
+
     // Be permissive with initialization state - auto-initialize if needed
     if (!this.initialized) {
       // Auto-initialize if SetValue is called before Initialize
@@ -581,7 +622,7 @@ export class SCORMAPIAdapter {
   }
 
   LMSFinish(param: string): string {
-    console.log('[SCORM Adapter] LMSFinish/Terminate called');
+    console.log('[SCORM Adapter] LMSFinish/Terminate called - initialized:', this.initialized, 'terminated:', this.terminated);
 
     if (!this.initialized) {
       console.log('[SCORM Adapter] LMSFinish rejected - not initialized');
@@ -597,7 +638,15 @@ export class SCORMAPIAdapter {
       return 'true';
     }
 
-    console.log('[SCORM Adapter] LMSFinish - proceeding with termination');
+    console.log('[SCORM Adapter] LMSFinish - FIRST TIME, proceeding with termination');
+    console.log('[SCORM Adapter] Current cache size:', this.cache.size);
+    console.log('[SCORM Adapter] Score in cache:', this.cache.get('cmi.score.raw'));
+    console.log('[SCORM Adapter] Interactions count:', this.interactionsById.size);
+
+    // Detectar si el contenido SCORM quiere salir (cmi.exit = 'logout' o 'normal')
+    const exitValue = this.cache.get('cmi.exit') || this.cache.get('cmi.core.exit') || '';
+    console.log('[SCORM Adapter] Exit value:', exitValue);
+
     this.terminated = true;
 
     // Get current completion/success status and score before terminating
@@ -694,6 +743,19 @@ export class SCORMAPIAdapter {
     }
 
     this.terminateAsync();
+
+    // Si el contenido SCORM quiere salir (logout/normal) O si completó el assessment, disparar el callback
+    // Esto permite que el botón EXIT del contenido SCORM funcione correctamente
+    const shouldExit = exitValue === 'logout' || exitValue === 'normal' || hasAssessmentResult;
+
+    if (shouldExit && this.onExitCallback) {
+      console.log('[SCORM Adapter] LMSFinish - will trigger exit callback. exitValue:', exitValue, 'hasAssessmentResult:', hasAssessmentResult);
+      setTimeout(() => {
+        console.log('[SCORM Adapter] Triggering exit callback now');
+        this.onExitCallback?.();
+      }, 150);
+    }
+
     this.lastError = '0';
     return 'true';
   }
@@ -745,14 +807,25 @@ export class SCORMAPIAdapter {
       cacheData
     });
 
-    // Log only key values to avoid console spam
+    // Log key values and objective scores for debugging
     const keyValues: Record<string, string> = {};
     for (const key of ['cmi.completion_status', 'cmi.success_status', 'cmi.score.raw', 'cmi.score.max', 'cmi.session_time', 'cmi.exit', 'cmi.core.lesson_status', 'cmi.core.score.raw', 'cmi.core.session_time', 'cmi.core.exit']) {
       if (cacheData[key]) {
         keyValues[key] = cacheData[key];
       }
     }
+
+    // Also log objective scores
+    const objectiveScores: Record<string, string> = {};
+    for (const [key, value] of Object.entries(cacheData)) {
+      if (key.includes('objectives') && (key.includes('score') || key.includes('success_status'))) {
+        objectiveScores[key] = value;
+      }
+    }
+
     console.log('[SCORM Adapter] Committing key values:', keyValues);
+    console.log('[SCORM Adapter] Committing objective scores:', objectiveScores);
+    console.log('[SCORM Adapter] Total cache entries:', Object.keys(cacheData).length);
 
     // Use sendBeacon for reliable delivery
     if (navigator.sendBeacon) {
@@ -837,17 +910,18 @@ export class SCORMAPIAdapter {
 
   // Terminar y notificar salida (llamado cuando el contenido SCORM quiere salir)
   terminateAndExit(): void {
-    console.log('[SCORM Adapter] terminateAndExit called');
+    console.log('[SCORM Adapter] terminateAndExit called, terminated:', this.terminated);
     if (!this.terminated) {
       this.LMSFinish('');
     }
-    // Notificar al componente para navegar después de un pequeño delay
-    // para asegurar que sendBeacon se envíe
+    // SIEMPRE notificar al componente para navegar, incluso si ya está terminado
+    // porque el usuario quiere salir explícitamente
     setTimeout(() => {
+      console.log('[SCORM Adapter] Executing exit callback');
       if (this.onExitCallback) {
         this.onExitCallback();
       }
-    }, 100);
+    }, 150);
   }
 }
 

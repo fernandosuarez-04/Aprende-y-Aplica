@@ -84,19 +84,151 @@ export async function POST(req: NextRequest) {
     const successStatus = cache.get('cmi.success_status');
     const completionStatus = cache.get('cmi.completion_status');
     const lessonStatus12 = cache.get('cmi.core.lesson_status');
-    const scoreRaw = cache.get('cmi.score.raw') || cache.get('cmi.core.score.raw');
+    let scoreRaw = cache.get('cmi.score.raw') || cache.get('cmi.core.score.raw');
     const scoreMax = cache.get('cmi.score.max') || cache.get('cmi.core.score.max');
+
+    // Log valores exactos para debugging
+    console.log('[SCORM commit-sync] Raw values from cache:', {
+      'cmi.score.raw': cache.get('cmi.score.raw'),
+      'cmi.core.score.raw': cache.get('cmi.core.score.raw'),
+      'cmi.success_status': successStatus,
+      'cmi.completion_status': completionStatus
+    });
+
+    // Log all objective-related keys for debugging
+    const objectiveKeys = Array.from(cache.keys()).filter(k => k.startsWith('cmi.objectives.'));
+    console.log('[SCORM commit-sync] All objective keys in cache:', objectiveKeys.slice(0, 30));
+
+    // Si no hay score general, intentar calcularlo desde los objetivos
+    if (!scoreRaw || scoreRaw === '' || scoreRaw === 'unknown') {
+      const objectiveScores: number[] = [];
+      const objectiveMaxScores: number[] = [];
+      let objectiveIndex = 0;
+
+      // Buscar objetivos por cualquier campo (id, success_status, score.raw, etc.)
+      while (
+        cache.has(`cmi.objectives.${objectiveIndex}.id`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.success_status`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.score.raw`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.score.scaled`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.completion_status`)
+      ) {
+        const objScore = cache.get(`cmi.objectives.${objectiveIndex}.score.raw`);
+        const objMaxScore = cache.get(`cmi.objectives.${objectiveIndex}.score.max`);
+        console.log(`[SCORM commit-sync] Objective ${objectiveIndex}: score.raw=${objScore}, score.max=${objMaxScore}`);
+
+        if (objScore && objScore !== '') {
+          const parsed = parseFloat(objScore);
+          if (!isNaN(parsed)) {
+            objectiveScores.push(parsed);
+            // Also get max score for percentage calculation
+            const maxParsed = parseFloat(objMaxScore || '100');
+            objectiveMaxScores.push(isNaN(maxParsed) ? 100 : maxParsed);
+          }
+        }
+        objectiveIndex++;
+      }
+
+      if (objectiveScores.length > 0) {
+        // Calculate total score as sum of all objective scores
+        const totalScore = objectiveScores.reduce((a, b) => a + b, 0);
+        const totalMaxScore = objectiveMaxScores.reduce((a, b) => a + b, 0);
+        // Calculate percentage
+        const percentage = totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0;
+        scoreRaw = String(percentage);
+        console.log('[SCORM commit-sync] Calculated score from objectives:', {
+          totalScore, totalMaxScore, percentage, objectiveScores, objectiveMaxScores
+        });
+
+        // También actualizar el updateData con este score
+        updateData.score_raw = percentage;
+      }
+    }
+
+    // Determinar success_status desde objetivos si no está definido
+    let derivedSuccessStatus = successStatus;
+    if (!derivedSuccessStatus || derivedSuccessStatus === 'unknown') {
+      let objectiveIndex = 0;
+      let passedCount = 0;
+      let failedCount = 0;
+      let totalObjectives = 0;
+
+      // Buscar objetivos por cualquier campo (id, success_status, score.raw, etc.)
+      while (
+        cache.has(`cmi.objectives.${objectiveIndex}.id`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.success_status`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.score.raw`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.score.scaled`) ||
+        cache.has(`cmi.objectives.${objectiveIndex}.completion_status`)
+      ) {
+        const objStatus = cache.get(`cmi.objectives.${objectiveIndex}.success_status`);
+        const objScoreRaw = cache.get(`cmi.objectives.${objectiveIndex}.score.raw`);
+        const objScoreMax = cache.get(`cmi.objectives.${objectiveIndex}.score.max`);
+        const objScoreScaled = cache.get(`cmi.objectives.${objectiveIndex}.score.scaled`);
+
+        // Derivar success_status desde score si no está definido
+        let derivedObjStatus = objStatus;
+        if (!derivedObjStatus || derivedObjStatus === 'unknown') {
+          // Si tiene score.scaled >= 0.8 (80%), considerar passed
+          if (objScoreScaled) {
+            const scaled = parseFloat(objScoreScaled);
+            if (!isNaN(scaled)) {
+              derivedObjStatus = scaled >= 0.8 ? 'passed' : (scaled > 0 ? 'passed' : 'failed');
+            }
+          }
+          // O si score.raw >= score.max (100%), considerar passed
+          else if (objScoreRaw && objScoreMax) {
+            const raw = parseFloat(objScoreRaw);
+            const max = parseFloat(objScoreMax);
+            if (!isNaN(raw) && !isNaN(max) && max > 0) {
+              derivedObjStatus = raw >= max ? 'passed' : (raw > 0 ? 'passed' : 'failed');
+            }
+          }
+        }
+
+        console.log(`[SCORM commit-sync] Objective ${objectiveIndex} status: original=${objStatus}, derived=${derivedObjStatus}`);
+
+        if (derivedObjStatus === 'passed') passedCount++;
+        else if (derivedObjStatus === 'failed') failedCount++;
+        totalObjectives++;
+        objectiveIndex++;
+      }
+
+      if (totalObjectives > 0) {
+        // Si todos los objetivos están pasados, marcar como passed
+        // Si hay algún failed, marcar como failed
+        // Si tiene scores pero no status explícito, usar el conteo
+        if (passedCount === totalObjectives) {
+          derivedSuccessStatus = 'passed';
+        } else if (failedCount > 0 && passedCount === 0) {
+          derivedSuccessStatus = 'failed';
+        } else if (passedCount > 0) {
+          // Al menos algunos pasaron - considerar como passed si la mayoría pasó
+          derivedSuccessStatus = passedCount > failedCount ? 'passed' : 'failed';
+        }
+        console.log('[SCORM commit-sync] Derived success status from objectives:', {
+          derivedSuccessStatus, passedCount, failedCount, totalObjectives
+        });
+      }
+    }
 
     console.log('[SCORM commit-sync] Status values:', {
       successStatus,
+      derivedSuccessStatus,
       completionStatus,
       lessonStatus12,
       scoreRaw,
       scoreMax
     });
 
-    if (successStatus === 'passed' || successStatus === 'failed') {
-      updateData.lesson_status = successStatus;
+    // Usar derivedSuccessStatus si el successStatus original no es válido
+    const effectiveSuccessStatus = (successStatus === 'passed' || successStatus === 'failed')
+      ? successStatus
+      : derivedSuccessStatus;
+
+    if (effectiveSuccessStatus === 'passed' || effectiveSuccessStatus === 'failed') {
+      updateData.lesson_status = effectiveSuccessStatus;
+      console.log('[SCORM commit-sync] Using effective success status:', effectiveSuccessStatus);
     } else if (lessonStatus12 === 'passed' || lessonStatus12 === 'failed') {
       updateData.lesson_status = lessonStatus12;
     } else if (completionStatus === 'completed' && scoreRaw) {
@@ -184,19 +316,24 @@ async function saveInteractions(
 
   if (interactionKeys.length === 0) return;
 
-  console.log('[SCORM commit-sync] Found interaction keys:', interactionKeys.length);
+  // Log todas las keys encontradas para debugging
+  console.log('[SCORM commit-sync] Found interaction keys:', interactionKeys);
 
   // Agrupar por índice de interacción
   const interactions = new Map<string, Record<string, string>>();
 
   for (const key of interactionKeys) {
-    const match = key.match(/cmi\.interactions\.(\d+)\.(.+)/);
+    // Regex mejorado para capturar campos anidados como correct_responses.0.pattern
+    const match = key.match(/^cmi\.interactions\.(\d+)\.(.+)$/);
     if (match) {
       const [, index, field] = match;
       if (!interactions.has(index)) {
         interactions.set(index, {});
       }
       interactions.get(index)![field] = cache.get(key)!;
+      console.log(`[SCORM commit-sync] Parsed interaction field: index=${index}, field=${field}, value=${cache.get(key)}`);
+    } else {
+      console.log(`[SCORM commit-sync] Key did not match regex: ${key}`);
     }
   }
 
