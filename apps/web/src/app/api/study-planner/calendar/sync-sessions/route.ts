@@ -495,7 +495,7 @@ async function createGoogleCalendarEvent(
     
     // Usar el calendario secundario de la plataforma si está disponible, sino el primario
     const targetCalendarId = calendarId || 'primary';
-    console.log(`[Google Calendar] Creando evento en calendario: ${targetCalendarId === 'primary' ? 'principal' : 'secundario (Aprende y Aplica)'}`);
+    console.log(`[Google Calendar] Creando evento en calendario: ${targetCalendarId === 'primary' ? 'principal' : 'secundario (SOFIA)'}`);
 
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events`,

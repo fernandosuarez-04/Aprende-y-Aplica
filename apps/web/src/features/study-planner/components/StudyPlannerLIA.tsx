@@ -1479,7 +1479,7 @@ export function StudyPlannerLIA() {
     // Abrir en popup en lugar de redirigir
     const popup = window.open(
       authUrl,
-      'google-calendar-auth',
+      'sofialia-ai-google-calendar-auth',
       'width=600,height=700,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no'
     );
     

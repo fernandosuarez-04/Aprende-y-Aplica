@@ -3,6 +3,16 @@ import { getBaseUrl } from '@/lib/env';
 
 /**
  * Configuración de Google OAuth 2.0
+ * 
+ * IMPORTANTE: El nombre de la aplicación mostrado en la pantalla de consentimiento de Google OAuth
+ * debe configurarse en Google Cloud Console como "sofialia.ai" para que coincida con el dominio.
+ * 
+ * Configuración en Google Cloud Console:
+ * - APIs & Services > OAuth consent screen
+ * - App name: sofialia.ai
+ * - Application home page: https://sofialia.ai
+ * - Application privacy policy link: https://sofialia.ai/privacy
+ * - Application terms of service link: https://sofialia.ai/terms
  */
 export const GOOGLE_OAUTH_CONFIG: GoogleOAuthConfig = {
   clientId: process.env.GOOGLE_OAUTH_CLIENT_ID!,

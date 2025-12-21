@@ -57,7 +57,7 @@ function createAdminClient() {
 }
 
 // Nombre del calendario secundario de la plataforma
-const PLATFORM_CALENDAR_NAME = 'Aprende y Aplica - Sesiones de Estudio';
+const PLATFORM_CALENDAR_NAME = 'SOFIA - Sesiones de Estudio';
 
 export class CalendarIntegrationService {
   /**
