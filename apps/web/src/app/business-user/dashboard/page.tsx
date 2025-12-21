@@ -36,6 +36,9 @@ const ModernStatsCard = lazy(() =>
 const CourseCard3D = lazy(() =>
   import('./components/CourseCard3D').then(m => ({ default: m.CourseCard3D }))
 )
+const BusinessUserOnboardingAgent = lazy(() =>
+  import('./components/BusinessUserOnboardingAgent').then(m => ({ default: m.BusinessUserOnboardingAgent }))
+)
 
 interface DashboardStats {
   total_assigned: number
@@ -685,6 +688,11 @@ export default function BusinessUserDashboardPage() {
           </section>
         </div>
       </main>
+
+      {/* Tour de bienvenida para Business User */}
+      <Suspense fallback={null}>
+        <BusinessUserOnboardingAgent />
+      </Suspense>
     </div>
   )
 }
