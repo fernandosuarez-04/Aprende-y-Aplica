@@ -4,7 +4,7 @@ import { LandingPageContent, BusinessPageContent } from '@aprende-y-aplica/share
 const mockLandingPageContent: LandingPageContent = {
   hero: {
     tag: "➤ SOFIA",
-    title: "Domina la IA que transformará tu",
+    title: "SOFIA: Domina la IA que transformará tu",
     highlightWord: "futuro",
     description: "Conviértete en experto aplicado: fundamentos claros, herramientas que importan, y hábitos de aprendizaje continuo para destacar en la era de la inteligencia artificial.",
     ctaText: "Iniciar Sesión",
