@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,11 +30,16 @@ import { useProfile, UpdateProfileRequest } from '../../features/profile/hooks/u
 import { useRouter } from 'next/navigation'
 import { ChangePasswordSchema, type ChangePasswordInput } from '../../lib/schemas/user.schema'
 import { ProfileService } from '../../features/profile/services/profile.service'
+import { useOrganizationStyles } from '../../features/business-panel/hooks/useOrganizationStyles'
+import { hexToRgb } from '../../features/business-panel/utils/styles'
 
 // ============================================
 // DESIGN SYSTEM COLORS
 // ============================================
-const colors = {
+// ============================================
+// DESIGN SYSTEM COLORS
+// ============================================
+const DEFAULT_COLORS = {
   primary: '#0A2540',
   accent: '#00D4B3',
   success: '#10B981',
@@ -46,6 +51,8 @@ const colors = {
   grayLight: '#E9ECEF',
   grayMedium: '#6C757D',
 }
+
+type ColorPalette = typeof DEFAULT_COLORS
 
 // ============================================
 // TAB NAVIGATION
@@ -73,9 +80,10 @@ interface PremiumInputProps {
   icon?: React.ReactNode
   type?: string
   placeholder?: string
+  colors?: ColorPalette
 }
 
-function PremiumInput({ label, value, onChange, icon, type = 'text', placeholder }: PremiumInputProps) {
+function PremiumInput({ label, value, onChange, icon, type = 'text', placeholder, colors = DEFAULT_COLORS }: PremiumInputProps) {
   const [focused, setFocused] = useState(false)
   const hasValue = value && value.length > 0
 
@@ -100,32 +108,29 @@ function PremiumInput({ label, value, onChange, icon, type = 'text', placeholder
         className={`
           relative rounded-2xl overflow-hidden
           transition-all duration-300 ease-out
-          ${focused
-            ? 'shadow-[0_0_30px_rgba(0,212,179,0.15)]'
-            : 'shadow-none hover:shadow-[0_0_20px_rgba(0,212,179,0.05)]'
-          }
         `}
+        style={{
+          boxShadow: focused
+            ? `0 0 30px ${colors.accent}26` // 0.15 alpha approx
+            : 'none'
+        }}
       >
         {/* Background */}
         <div
-          className={`
-            absolute inset-0 transition-all duration-300
-            ${focused
-              ? 'bg-gradient-to-br from-[#1E2329] to-[#161b22]'
-              : 'bg-[#1E2329]/80'
-            }
-          `}
+          className="absolute inset-0 transition-all duration-300"
+          style={{
+            backgroundColor: focused ? colors.bgSecondary : `${colors.bgSecondary}cc` // 0.8 alpha
+          }}
         />
 
         {/* Border */}
         <div
-          className={`
-            absolute inset-0 rounded-2xl border-2 transition-all duration-300
-            ${focused
-              ? 'border-[#00D4B3]/50'
-              : 'border-white/[0.06] group-hover:border-white/[0.1]'
-            }
-          `}
+          className="absolute inset-0 rounded-2xl border-2 transition-all duration-300"
+          style={{
+            borderColor: focused
+              ? `${colors.accent}80` // 0.5 alpha
+              : 'rgba(255, 255, 255, 0.06)'
+          }}
         />
 
         {/* Content */}
@@ -192,9 +197,10 @@ interface PremiumTextareaProps {
   onChange: (value: string) => void
   maxLength?: number
   rows?: number
+  colors?: ColorPalette
 }
 
-function PremiumTextarea({ label, value, onChange, maxLength = 500, rows = 4 }: PremiumTextareaProps) {
+function PremiumTextarea({ label, value, onChange, maxLength = 500, rows = 4, colors = DEFAULT_COLORS }: PremiumTextareaProps) {
   const [focused, setFocused] = useState(false)
   const hasValue = value && value.length > 0
   const charCount = value?.length || 0
@@ -217,13 +223,19 @@ function PremiumTextarea({ label, value, onChange, maxLength = 500, rows = 4 }: 
       />
 
       <div
-        className={`
-          relative rounded-2xl overflow-hidden transition-all duration-300
-          ${focused ? 'shadow-[0_0_30px_rgba(0,212,179,0.15)]' : 'shadow-none'}
-        `}
+        className="relative rounded-2xl overflow-hidden transition-all duration-300"
+        style={{
+          boxShadow: focused ? `0 0 30px ${colors.accent}26` : 'none'
+        }}
       >
-        <div className={`absolute inset-0 ${focused ? 'bg-gradient-to-br from-[#1E2329] to-[#161b22]' : 'bg-[#1E2329]/80'}`} />
-        <div className={`absolute inset-0 rounded-2xl border-2 transition-colors duration-300 ${focused ? 'border-[#00D4B3]/50' : 'border-white/[0.06]'}`} />
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: focused ? colors.bgSecondary : `${colors.bgSecondary}cc` }}
+        />
+        <div
+          className="absolute inset-0 rounded-2xl border-2 transition-colors duration-300"
+          style={{ borderColor: focused ? `${colors.accent}80` : 'rgba(255, 255, 255, 0.06)' }}
+        />
 
         <div className="relative p-5">
           {/* Label */}
@@ -268,9 +280,10 @@ interface PremiumPasswordProps {
   show: boolean
   onToggle: () => void
   error?: string
+  colors?: ColorPalette
 }
 
-function PremiumPassword({ label, value, onChange, show, onToggle, error }: PremiumPasswordProps) {
+function PremiumPassword({ label, value, onChange, show, onToggle, error, colors = DEFAULT_COLORS }: PremiumPasswordProps) {
   const [focused, setFocused] = useState(false)
   const hasValue = value && value.length > 0
 
@@ -291,9 +304,26 @@ function PremiumPassword({ label, value, onChange, show, onToggle, error }: Prem
         animate={{ opacity: focused ? 1 : 0 }}
       />
 
-      <div className={`relative rounded-2xl overflow-hidden transition-all duration-300 ${focused ? 'shadow-[0_0_30px_rgba(0,212,179,0.15)]' : ''}`}>
-        <div className={`absolute inset-0 ${focused ? 'bg-gradient-to-br from-[#1E2329] to-[#161b22]' : 'bg-[#1E2329]/80'}`} />
-        <div className={`absolute inset-0 rounded-2xl border-2 transition-colors ${error ? 'border-red-500/50' : focused ? 'border-[#00D4B3]/50' : 'border-white/[0.06]'}`} />
+      <div
+        className="relative rounded-2xl overflow-hidden transition-all duration-300"
+        style={{
+          boxShadow: focused ? `0 0 30px ${colors.accent}26` : 'none'
+        }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: focused ? colors.bgSecondary : `${colors.bgSecondary}cc` }}
+        />
+        <div
+          className="absolute inset-0 rounded-2xl border-2 transition-colors"
+          style={{
+            borderColor: error
+              ? `${colors.error}80`
+              : focused
+                ? `${colors.accent}80`
+                : 'rgba(255, 255, 255, 0.06)'
+          }}
+        />
 
         <div className="relative flex items-center">
           <motion.div
@@ -359,6 +389,39 @@ function PremiumPassword({ label, value, onChange, show, onToggle, error }: Prem
 export default function ProfilePage() {
   const router = useRouter()
   const { user } = useAuth()
+  const { styles: orgStyles } = useOrganizationStyles()
+
+  // Calcular colores dinámicos
+  const colors = useMemo(() => {
+    if (!orgStyles?.userDashboard) return DEFAULT_COLORS
+
+    const dashboardStyles = orgStyles.userDashboard
+    const panelStyles = orgStyles.panel
+
+    // Determinar fondo
+    let bgPrimary = dashboardStyles.background_value || DEFAULT_COLORS.bgPrimary
+    // Si es imagen o gradiente complejo, usamos fallback sólido oscuro para legibilidad si necesario,
+    // o permitimos que se use si es un CSS válido para background-color.
+    // Para simplificar y asegurar contraste, si no es hex, usamos default.
+    // Si es imagen o gradiente, lo permitimos tal cual.
+    // Solo si está vacío ponemos el default.
+    if (!bgPrimary) {
+      bgPrimary = DEFAULT_COLORS.bgPrimary
+    }
+
+    const primaryButtonColor = dashboardStyles.primary_button_color || DEFAULT_COLORS.primary
+    const accentColor = dashboardStyles.accent_color || DEFAULT_COLORS.accent
+    const sidebarBg = panelStyles?.sidebar_background || DEFAULT_COLORS.bgSecondary
+
+    return {
+      ...DEFAULT_COLORS,
+      primary: primaryButtonColor,
+      accent: accentColor,
+      bgPrimary: bgPrimary,
+      bgSecondary: (sidebarBg && sidebarBg.startsWith('#')) ? sidebarBg : DEFAULT_COLORS.bgSecondary,
+    }
+  }, [orgStyles])
+
   const {
     profile,
     stats,
@@ -454,7 +517,7 @@ export default function ProfilePage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.bgPrimary }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: colors.bgPrimary }}>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-4">
             <motion.div
@@ -464,7 +527,8 @@ export default function ProfilePage() {
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             />
             <motion.div
-              className="absolute inset-1 rounded-full border-2 border-t-[#00D4B3] border-r-transparent border-b-transparent border-l-transparent"
+              className="absolute inset-1 rounded-full border-2 border-r-transparent border-b-transparent border-l-transparent"
+              style={{ borderTopColor: colors.accent }}
               animate={{ rotate: -360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             />
@@ -502,11 +566,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: colors.bgPrimary }}>
+    <div className="min-h-screen" style={{ background: colors.bgPrimary }}>
       {/* FIXED TOP BAR */}
       <div
         className="fixed top-0 left-0 right-0 z-50 h-16 backdrop-blur-xl border-b"
-        style={{ backgroundColor: `${colors.bgPrimary}e6`, borderColor: 'rgba(255,255,255,0.05)' }}
+        style={{
+          background: colors.bgPrimary.startsWith('#') || colors.bgPrimary.startsWith('rgb')
+            ? colors.bgPrimary
+            : 'rgba(15, 20, 25, 0.9)', // Fallback oscuro si es imagen/gradiente
+          borderColor: 'rgba(255,255,255,0.05)'
+        }}
       >
         <div className="h-full px-6 flex items-center justify-between">
           <motion.button
@@ -524,7 +593,7 @@ export default function ProfilePage() {
             className="flex items-center gap-2 px-5 py-2 rounded-full font-medium text-sm transition-all duration-300"
             style={{
               backgroundColor: saving ? 'rgba(255,255,255,0.1)' : showSaveSuccess ? colors.success : colors.accent,
-              color: saving ? 'rgba(255,255,255,0.5)' : showSaveSuccess ? 'white' : colors.primary,
+              color: saving ? 'rgba(255,255,255,0.5)' : 'white', // Texto blanco siempre para contraste
             }}
             whileHover={!saving ? { scale: 1.02 } : undefined}
             whileTap={!saving ? { scale: 0.98 } : undefined}
@@ -665,14 +734,14 @@ export default function ProfilePage() {
                 className="space-y-8"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  <PremiumInput label="Nombre" value={formData.first_name || ''} onChange={(v) => handleInputChange('first_name', v)} icon={<User className="w-4 h-4" />} />
-                  <PremiumInput label="Apellido" value={formData.last_name || ''} onChange={(v) => handleInputChange('last_name', v)} icon={<User className="w-4 h-4" />} />
-                  <PremiumInput label="Nombre de Usuario" value={formData.username || ''} onChange={(v) => handleInputChange('username', v)} icon={<AtSign className="w-4 h-4" />} />
-                  <PremiumInput label="Rol en la Empresa" value={formData.type_rol || ''} onChange={(v) => handleInputChange('type_rol', v)} icon={<Briefcase className="w-4 h-4" />} />
-                  <PremiumInput label="Teléfono" value={formData.phone || ''} onChange={(v) => handleInputChange('phone', v)} icon={<Phone className="w-4 h-4" />} type="tel" />
-                  <PremiumInput label="Ubicación" value={formData.location || ''} onChange={(v) => handleInputChange('location', v)} icon={<MapPin className="w-4 h-4" />} />
+                  <PremiumInput label="Nombre" value={formData.first_name || ''} onChange={(v) => handleInputChange('first_name', v)} icon={<User className="w-4 h-4" />} colors={colors} />
+                  <PremiumInput label="Apellido" value={formData.last_name || ''} onChange={(v) => handleInputChange('last_name', v)} icon={<User className="w-4 h-4" />} colors={colors} />
+                  <PremiumInput label="Nombre de Usuario" value={formData.username || ''} onChange={(v) => handleInputChange('username', v)} icon={<AtSign className="w-4 h-4" />} colors={colors} />
+                  <PremiumInput label="Rol en la Empresa" value={formData.type_rol || ''} onChange={(v) => handleInputChange('type_rol', v)} icon={<Briefcase className="w-4 h-4" />} colors={colors} />
+                  <PremiumInput label="Teléfono" value={formData.phone || ''} onChange={(v) => handleInputChange('phone', v)} icon={<Phone className="w-4 h-4" />} type="tel" colors={colors} />
+                  <PremiumInput label="Ubicación" value={formData.location || ''} onChange={(v) => handleInputChange('location', v)} icon={<MapPin className="w-4 h-4" />} colors={colors} />
                 </div>
-                <PremiumTextarea label="Biografía" value={formData.bio || ''} onChange={(v) => handleInputChange('bio', v)} maxLength={500} rows={4} />
+                <PremiumTextarea label="Biografía" value={formData.bio || ''} onChange={(v) => handleInputChange('bio', v)} maxLength={500} rows={4} colors={colors} />
               </motion.div>
             )}
 
@@ -743,6 +812,7 @@ export default function ProfilePage() {
                     onChange={(v) => handleInputChange('email', v)}
                     icon={<Mail className="w-4 h-4" />}
                     type="email"
+                    colors={colors}
                   />
                 </div>
 
@@ -769,6 +839,7 @@ export default function ProfilePage() {
                     show={showCurrentPassword}
                     onToggle={() => setShowCurrentPassword(!showCurrentPassword)}
                     error={passwordErrors.current_password?.message}
+                    colors={colors}
                   />
                   <PremiumPassword
                     label="Nueva Contraseña"
@@ -777,6 +848,7 @@ export default function ProfilePage() {
                     show={showNewPassword}
                     onToggle={() => setShowNewPassword(!showNewPassword)}
                     error={passwordErrors.new_password?.message}
+                    colors={colors}
                   />
                   <PremiumPassword
                     label="Confirmar Contraseña"
@@ -785,6 +857,7 @@ export default function ProfilePage() {
                     show={showConfirmPassword}
                     onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
                     error={passwordErrors.confirm_password?.message}
+                    colors={colors}
                   />
                 </div>
 

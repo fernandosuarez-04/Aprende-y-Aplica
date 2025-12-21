@@ -12,6 +12,10 @@ export function ContentWrapper({ children }: { children: React.ReactNode }) {
   // Detectar si estamos en rutas que tienen su propio sistema de temas
   const isCustomThemedRoute = pathname?.startsWith('/business-panel') || pathname?.startsWith('/business-user');
 
+  // Detectar si estamos en rutas que manejan su propio layout de margen para LIA
+  // Estas rutas controlan el margen del contenido internamente para mantener el navbar fijo
+  const handlesOwnLiaLayout = pathname?.startsWith('/business-user');
+
   // Calcular el ancho del panel según el tamaño de pantalla
   useEffect(() => {
     const calculatePanelWidth = () => {
@@ -42,11 +46,15 @@ export function ContentWrapper({ children }: { children: React.ReactNode }) {
   // no aplicar fondo para evitar conflictos con el tema de la organización
   const bgClass = isCustomThemedRoute ? '' : 'bg-[var(--color-bg-dark)]';
 
+  // Si la ruta maneja su propio layout de LIA, no aplicar marginRight aquí
+  // para evitar que el navbar se desplace
+  const shouldApplyMargin = !handlesOwnLiaLayout && isPanelOpen && !isCollapsed;
+
   return (
     <div
       className={`${bgClass} transition-colors duration-300 min-h-full transition-all duration-300 ease-in-out`}
       style={{
-        marginRight: isPanelOpen && !isCollapsed ? `${panelWidth}px` : '0',
+        marginRight: shouldApplyMargin ? `${panelWidth}px` : '0',
       }}
       suppressHydrationWarning
     >

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ChevronDown, LogOut, Building2 } from 'lucide-react'
+import { Menu, X, ChevronDown, LogOut, Building2, User, LayoutDashboard } from 'lucide-react'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -78,11 +78,11 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
   }, [styles?.panel])
 
   const getDisplayName = () => {
-    return userProfile?.display_name || 
-           userProfile?.first_name || 
-           user?.display_name || 
-           user?.username || 
-           'Usuario'
+    return userProfile?.display_name ||
+      userProfile?.first_name ||
+      user?.display_name ||
+      user?.username ||
+      'Usuario'
   }
 
   const getInitials = () => {
@@ -138,26 +138,22 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
 
             <div className="flex items-center gap-2.5">
               {/* Logo */}
-              <div
-                className="relative h-9 w-9 rounded-lg overflow-hidden ring-1 flex-shrink-0"
-                style={{
-                  ringColor: 'rgba(255, 255, 255, 0.1)',
-                }}
-              >
+              {/* Logo */}
+              <div className="relative flex items-center justify-center">
                 {(organization?.brand_favicon_url || organization?.favicon_url) ? (
                   <Image
                     src={organization?.brand_favicon_url || organization?.favicon_url || '/icono.png'}
                     alt={organization?.name || 'Organización'}
-                    width={36}
-                    height={36}
-                    className="w-full h-full object-cover"
+                    width={40}
+                    height={40}
+                    className="object-contain h-10 w-auto"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/icono.png';
                     }}
                   />
                 ) : (
                   <div
-                    className="h-full w-full flex items-center justify-center rounded-lg"
+                    className="h-9 w-9 flex items-center justify-center rounded-lg"
                     style={{
                       background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))'
                     }}
@@ -168,9 +164,9 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
               </div>
 
               {/* Nombre de la Organización */}
-              <h1 
+              <h1
                 className="hidden sm:block text-sm font-semibold truncate max-w-[200px]"
-                style={{ 
+                style={{
                   color: navbarStyle.color || 'rgba(255, 255, 255, 0.95)'
                 }}
               >
@@ -190,7 +186,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <div 
+              <div
                 className="h-8 w-8 rounded-full flex items-center justify-center ring-2 transition-all"
                 style={{
                   background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))',
@@ -211,15 +207,15 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                   </span>
                 )}
               </div>
-              <span 
+              <span
                 className="hidden md:block text-sm font-medium"
                 style={{ color: navbarStyle.color || 'rgba(255, 255, 255, 0.95)' }}
               >
                 {getDisplayName()}
               </span>
-              <ChevronDown 
+              <ChevronDown
                 className="h-4 w-4 transition-transform duration-200 hidden md:block"
-                style={{ 
+                style={{
                   color: navbarStyle.color || 'rgba(255, 255, 255, 0.6)',
                   transform: userDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
                 }}
@@ -249,12 +245,12 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                     }}
                   >
                     {/* User Info */}
-                    <div 
+                    <div
                       className="px-4 py-3 border-b"
                       style={{ borderColor: navbarStyle.borderColor }}
                     >
                       <div className="flex items-center gap-3">
-                        <div 
+                        <div
                           className="h-10 w-10 rounded-full flex items-center justify-center ring-2"
                           style={{
                             background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))',
@@ -276,13 +272,13 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p 
+                          <p
                             className="text-sm font-semibold truncate"
                             style={{ color: navbarStyle.color || undefined }}
                           >
                             {getDisplayName()}
                           </p>
-                          <p 
+                          <p
                             className="text-xs truncate opacity-70"
                             style={{ color: navbarStyle.color || undefined }}
                           >
@@ -294,6 +290,33 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
 
                     {/* Menu Items */}
                     <div className="py-1.5">
+                      <motion.button
+                        onClick={() => {
+                          router.push('/business-user/dashboard')
+                          setUserDropdownOpen(false)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                        style={{ color: navbarStyle.color || 'rgba(255, 255, 255, 0.8)' }}
+                        whileHover={{ x: 2 }}
+                      >
+                        <LayoutDashboard className="h-4 w-4 opacity-70" />
+                        <span>Panel Usuario</span>
+                      </motion.button>
+
+                      <motion.button
+                        onClick={() => {
+                          router.push('/profile')
+                          setUserDropdownOpen(false)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                        style={{ color: navbarStyle.color || 'rgba(255, 255, 255, 0.8)' }}
+                        whileHover={{ x: 2 }}
+                      >
+                        <User className="h-4 w-4 opacity-70" />
+                        <span>Editar perfil</span>
+                      </motion.button>
+
+                      <div className="my-1 border-t border-white/10" />
                       <motion.button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:opacity-80 transition-colors"

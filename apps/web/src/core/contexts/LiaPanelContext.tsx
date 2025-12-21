@@ -16,9 +16,8 @@ export function LiaPanelProvider({ children }: { children: ReactNode }) {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   // Ancho del panel cuando está expandido (en píxeles)
-  // max-w-md = 448px, pero en móvil es w-[90vw]
-  // Usamos 448px como máximo para el desplazamiento del contenido
-  const panelWidth = 448; // max-w-md = 448px
+  // Reducido a 360px para un diseño más compacto
+  const panelWidth = 360; // Previously 448px (max-w-md)
 
   return (
     <LiaPanelContext.Provider

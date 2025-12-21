@@ -42,8 +42,8 @@ const navigation = [
   { name: 'Configuración', href: '/business-panel/settings', icon: Settings },
 ]
 
-export function BusinessPanelSidebar({ 
-  isOpen, 
+export function BusinessPanelSidebar({
+  isOpen,
   onClose,
   isCollapsed,
 }: BusinessPanelSidebarProps) {
@@ -57,10 +57,10 @@ export function BusinessPanelSidebar({
   const organization = businessData?.organization
   const panelStyles = styles?.panel
   const sidebarBackground = panelStyles?.sidebar_background || '#0a0a0a'
-  
+
   const sidebarStyle: React.CSSProperties = useMemo(() => {
     const opacity = panelStyles?.sidebar_opacity || 1
-    
+
     if (!sidebarBackground) {
       return { backgroundColor: `rgba(10, 10, 10, ${opacity})` }
     }
@@ -82,7 +82,7 @@ export function BusinessPanelSidebar({
         backgroundColor: `rgba(${r}, ${g}, ${b}, ${opacity})`,
       }
     }
-    
+
     return {
       backgroundColor: sidebarBackground,
       opacity: opacity,
@@ -149,7 +149,7 @@ export function BusinessPanelSidebar({
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={onClose}
               className="lg:hidden absolute top-4 right-4 z-10 p-2 rounded-lg backdrop-blur-md transition-opacity hover:opacity-80"
-              style={{ 
+              style={{
                 color: panelStyles?.text_color || 'rgba(255, 255, 255, 0.9)',
                 backgroundColor: 'rgba(0, 0, 0, 0.3)'
               }}
@@ -159,41 +159,8 @@ export function BusinessPanelSidebar({
           )}
         </AnimatePresence>
 
-        {/* Logo Section */}
-        <div className="p-6 flex items-center gap-3">
-          <div
-            className="relative h-12 w-12 rounded-xl overflow-hidden flex-shrink-0"
-            style={{
-              background: 'linear-gradient(135deg, var(--org-primary-button-color, #8B5CF6), var(--org-secondary-button-color, #7C3AED))'
-            }}
-          >
-            {(organization?.brand_favicon_url || organization?.favicon_url) ? (
-              <Image
-                src={organization?.brand_favicon_url || organization?.favicon_url || '/icono.png'}
-                alt={organization?.name || 'Organización'}
-                width={48}
-                height={48}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/icono.png'
-                }}
-              />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-white" />
-              </div>
-            )}
-          </div>
-          <h1 
-            className="text-lg font-bold truncate"
-            style={{ color: panelStyles?.text_color || '#ffffff' }}
-          >
-            {organization?.name || 'Panel Admin'}
-          </h1>
-        </div>
-
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-2">
+        <nav className="flex-1 overflow-y-auto px-3 py-6">
           <div className="space-y-1">
             {navigation.map((item, index) => {
               const Icon = item.icon
@@ -204,7 +171,7 @@ export function BusinessPanelSidebar({
                   key={item.name}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ 
+                  transition={{
                     delay: index * 0.03,
                     duration: 0.2,
                   }}
@@ -215,13 +182,13 @@ export function BusinessPanelSidebar({
                     className={`
                       group relative flex items-center gap-3 px-4 py-3 rounded-xl
                       transition-all duration-200
-                      ${isActive 
-                        ? 'text-white' 
+                      ${isActive
+                        ? 'text-white'
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                       }
                     `}
                     style={{
-                      background: isActive 
+                      background: isActive
                         ? 'linear-gradient(90deg, var(--org-primary-button-color, #8B5CF6) 0%, var(--org-secondary-button-color, #7C3AED) 100%)'
                         : undefined,
                     }}

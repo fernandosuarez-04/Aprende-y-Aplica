@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
 import { getBackgroundStyle, generateCSSVariables } from '@/features/business-panel/utils/styles'
+import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 
 // Lazy load components
 const ParticlesBackground = lazy(() =>
@@ -69,6 +70,7 @@ export default function BusinessUserDashboardPage() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const { styles } = useOrganizationStyles()
+  const { isPanelOpen, isCollapsed, panelWidth } = useLiaPanel()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
@@ -78,6 +80,12 @@ export default function BusinessUserDashboardPage() {
   const userDashboardStyles = styles?.userDashboard
   const backgroundStyle = getBackgroundStyle(userDashboardStyles)
   const cssVariables = generateCSSVariables(userDashboardStyles)
+
+  // Colores personalizados de la organización
+  const orgColors = {
+    primary: userDashboardStyles?.primary_button_color || '#0A2540',
+    accent: userDashboardStyles?.accent_color || '#00D4B3'
+  }
 
   const [stats, setStats] = useState<DashboardStats>({
     total_assigned: 0,
@@ -235,8 +243,8 @@ export default function BusinessUserDashboardPage() {
             <motion.div
               className="w-20 h-20 rounded-full"
               style={{
-                background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(16, 185, 129, 0.1))',
-                border: '2px solid rgba(14, 165, 233, 0.3)'
+                background: `linear-gradient(135deg, ${orgColors.primary}15, ${orgColors.accent}15)`,
+                border: `2px solid ${orgColors.accent}50`
               }}
               animate={{
                 scale: [1, 1.1, 1],
@@ -248,7 +256,7 @@ export default function BusinessUserDashboardPage() {
             <motion.div
               className="absolute inset-2 rounded-full"
               style={{
-                background: 'radial-gradient(circle, rgba(14, 165, 233, 0.3), transparent)',
+                background: `radial-gradient(circle, ${orgColors.accent}50, transparent)`,
               }}
               animate={{
                 opacity: [0.3, 0.7, 0.3]
@@ -261,7 +269,7 @@ export default function BusinessUserDashboardPage() {
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <GraduationCap className="w-8 h-8 text-cyan-400" style={{ filter: 'drop-shadow(0 0 8px rgba(14, 165, 233, 0.5))' }} />
+                <GraduationCap className="w-8 h-8" style={{ color: orgColors.accent, filter: `drop-shadow(0 0 8px ${orgColors.accent}80)` }} />
               </motion.div>
             </div>
           </div>
@@ -298,7 +306,11 @@ export default function BusinessUserDashboardPage() {
             onClick={fetchDashboardData}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-medium shadow-lg shadow-cyan-500/30"
+            className="flex items-center gap-2 px-6 py-3 text-white rounded-xl font-medium"
+            style={{
+              background: `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.accent})`,
+              boxShadow: `0 4px 20px ${orgColors.primary}50`
+            }}
           >
             <RefreshCw className="w-4 h-4" />
             Reintentar
@@ -308,16 +320,19 @@ export default function BusinessUserDashboardPage() {
     )
   }
 
+  // Calcular el margen derecho basado en el estado del panel LIA
+  const contentMarginRight = isPanelOpen && !isCollapsed ? `${panelWidth}px` : '0'
+
   return (
     <div
-      className="min-h-screen transition-all duration-300"
+      className="min-h-screen"
       style={{
         ...backgroundStyle,
         ...cssVariables,
         background: backgroundStyle?.background || 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)'
       } as React.CSSProperties}
     >
-      {/* Modern Navbar */}
+      {/* Modern Navbar - Siempre ocupa el ancho completo, NO se desplaza */}
       <Suspense fallback={
         <nav className="sticky top-0 z-50 w-full border-b border-white/5 bg-slate-950/80 backdrop-blur-xl h-16" />
       }>
@@ -332,8 +347,11 @@ export default function BusinessUserDashboardPage() {
         />
       </Suspense>
 
-      {/* Main Content */}
-      <main className="relative overflow-hidden min-h-[calc(100vh-4rem)]">
+      {/* Main Content - Solo este contenido tiene margen cuando LIA está abierto */}
+      <main
+        className="relative overflow-hidden min-h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out"
+        style={{ marginRight: contentMarginRight }}
+      >
         {/* Background Effects */}
         <Suspense fallback={null}>
           <ParticlesBackground />
@@ -417,12 +435,12 @@ export default function BusinessUserDashboardPage() {
                 transition={{ delay: 0.2 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 border"
                 style={{
-                  backgroundColor: 'rgba(14, 165, 233, 0.1)',
-                  borderColor: 'rgba(14, 165, 233, 0.3)'
+                  backgroundColor: `${orgColors.accent}15`,
+                  borderColor: `${orgColors.accent}50`
                 }}
               >
-                <Sparkles className="w-4 h-4 text-cyan-400" />
-                <span className="text-sm font-medium text-cyan-400">Panel de Aprendizaje</span>
+                <Sparkles className="w-4 h-4" style={{ color: orgColors.accent }} />
+                <span className="text-sm font-medium" style={{ color: orgColors.accent }}>Panel de Aprendizaje</span>
               </motion.div>
 
               {/* Greeting */}
@@ -432,7 +450,15 @@ export default function BusinessUserDashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                {getGreeting()}, <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">{user?.first_name || 'Usuario'}</span>
+                {getGreeting()},{' '}
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${orgColors.accent}, ${orgColors.primary})`,
+                  }}
+                >
+                  {user?.first_name || 'Usuario'}
+                </span>
               </motion.h1>
 
               {/* Subtitle */}
@@ -463,11 +489,12 @@ export default function BusinessUserDashboardPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <motion.div
-                    className="w-2 h-2 rounded-full bg-emerald-400"
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: orgColors.accent }}
                     animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
-                  <span className="text-sm font-medium text-emerald-400">Aprendizaje Activo</span>
+                  <span className="text-sm font-medium" style={{ color: orgColors.accent }}>Aprendizaje Activo</span>
                 </div>
               </motion.div>
             </div>
@@ -476,7 +503,7 @@ export default function BusinessUserDashboardPage() {
             <div
               className="absolute inset-0 rounded-3xl pointer-events-none"
               style={{
-                background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.3), transparent, rgba(16, 185, 129, 0.2))',
+                background: `linear-gradient(135deg, ${orgColors.primary}50, transparent, ${orgColors.accent}30)`,
                 padding: '1px',
                 mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                 maskComposite: 'exclude',
@@ -496,8 +523,14 @@ export default function BusinessUserDashboardPage() {
               className="flex items-center justify-between mb-6"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20">
-                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                <div
+                  className="p-2 rounded-xl border"
+                  style={{
+                    background: `linear-gradient(135deg, ${orgColors.accent}25, ${orgColors.accent}08)`,
+                    borderColor: `${orgColors.accent}30`
+                  }}
+                >
+                  <TrendingUp className="w-5 h-5" style={{ color: orgColors.accent }} />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Tu Progreso</h2>
@@ -548,8 +581,14 @@ export default function BusinessUserDashboardPage() {
               className="flex items-center justify-between mb-6"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/20">
-                  <GraduationCap className="w-5 h-5 text-purple-400" />
+                <div
+                  className="p-2 rounded-xl border"
+                  style={{
+                    background: `linear-gradient(135deg, ${orgColors.primary}25, ${orgColors.primary}08)`,
+                    borderColor: `${orgColors.primary}30`
+                  }}
+                >
+                  <GraduationCap className="w-5 h-5" style={{ color: orgColors.primary }} />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Mis Cursos</h2>
@@ -569,7 +608,7 @@ export default function BusinessUserDashboardPage() {
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: 'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08), transparent 60%)'
+                    background: `radial-gradient(circle at 50% 50%, ${orgColors.primary}15, transparent 60%)`
                   }}
                 />
 
@@ -579,8 +618,14 @@ export default function BusinessUserDashboardPage() {
                   transition={{ delay: 0.2, type: 'spring' }}
                   className="relative z-10"
                 >
-                  <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/20 flex items-center justify-center mb-6">
-                    <BookOpen className="w-10 h-10 text-purple-400" />
+                  <div
+                    className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 border"
+                    style={{
+                      background: `linear-gradient(135deg, ${orgColors.primary}25, ${orgColors.primary}08)`,
+                      borderColor: `${orgColors.primary}30`
+                    }}
+                  >
+                    <BookOpen className="w-10 h-10" style={{ color: orgColors.primary }} />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">No tienes cursos asignados aún</h3>
                   <p className="text-gray-400 max-w-md mx-auto">
@@ -589,10 +634,10 @@ export default function BusinessUserDashboardPage() {
 
                   {/* Decorative elements - static */}
                   <div className="absolute top-6 right-6">
-                    <Sparkles className="w-5 h-5 text-purple-400/30" />
+                    <Sparkles className="w-5 h-5" style={{ color: `${orgColors.accent}50` }} />
                   </div>
                   <div className="absolute bottom-8 left-8">
-                    <GraduationCap className="w-6 h-6 text-cyan-400/30" />
+                    <GraduationCap className="w-6 h-6" style={{ color: `${orgColors.primary}50` }} />
                   </div>
                 </motion.div>
 
@@ -600,7 +645,7 @@ export default function BusinessUserDashboardPage() {
                 <div
                   className="absolute inset-0 rounded-2xl pointer-events-none"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), transparent, rgba(14, 165, 233, 0.1))',
+                    background: `linear-gradient(135deg, ${orgColors.primary}30, transparent, ${orgColors.accent}15)`,
                     padding: '1px',
                     mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                     maskComposite: 'exclude',

@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { EmbeddedLiaPanel } from '../EmbeddedLiaPanel/EmbeddedLiaPanel';
+import { useOrganizationStyles } from '../../../features/business-panel/hooks/useOrganizationStyles';
 
 /**
  * Wrapper condicional para EmbeddedLiaPanel que lo oculta en páginas de lecciones
@@ -9,6 +10,7 @@ import { EmbeddedLiaPanel } from '../EmbeddedLiaPanel/EmbeddedLiaPanel';
  */
 export function ConditionalAIChatAgent() {
   const pathname = usePathname();
+  const { styles } = useOrganizationStyles();
 
   // Verificación de pathname (puede ser null durante SSG/prerendering)
   if (!pathname) {
@@ -27,11 +29,28 @@ export function ConditionalAIChatAgent() {
     return null;
   }
 
+  // Obtener colores de la organización si están disponibles
+  // Usamos userDashboard styles para el business-user dashboard
+  const userDashboardStyles = styles?.userDashboard;
+  const panelStyles = styles?.panel;
+
+  // Determinar qué colores usar basado en la ruta
+  const isBusinessUserPage = pathname.startsWith('/business-user');
+  const activeStyles = isBusinessUserPage ? userDashboardStyles : panelStyles;
+
+  const organizationColors = activeStyles ? {
+    primary: activeStyles.primary_button_color || '#0A2540',
+    accent: activeStyles.accent_color || '#00D4B3',
+    cardBackground: activeStyles.card_background || '#1E2329',
+    textColor: activeStyles.text_color || '#FFFFFF',
+  } : undefined;
+
   // Renderizar el nuevo componente embebido con diseño de panel derecho
   return (
     <EmbeddedLiaPanel
       assistantName="LIA"
       assistantAvatar="/lia-avatar.png"
+      organizationColors={organizationColors}
     />
   );
 }

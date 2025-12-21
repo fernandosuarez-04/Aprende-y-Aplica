@@ -42,6 +42,25 @@ export const CourseCard3D = memo(function CourseCard3D({
 }: CourseCard3DProps) {
   const [isHovered, setIsHovered] = useState(false)
 
+  // Colores personalizados de la organización
+  const orgColors = useMemo(() => {
+    const primary = styles?.primary_button_color || '#0A2540'
+    const accent = styles?.accent_color || '#00D4B3'
+    const success = '#10B981' // Verde para completado
+    const warning = '#F59E0B' // Ámbar para pendiente
+
+    return {
+      primary,
+      accent,
+      success,
+      warning,
+      // Gradientes usando colores de la organización
+      primaryGradient: `linear-gradient(135deg, ${primary}, ${accent})`,
+      accentGradient: `linear-gradient(135deg, ${accent}, ${primary})`,
+      successGradient: 'linear-gradient(135deg, #10B981, #34D399)',
+    }
+  }, [styles])
+
   // Calcular estilos de la tarjeta basados en los estilos personalizados
   const cardStyle = useMemo(() => {
     const cardBg = styles?.card_background || '#1E2329'
@@ -68,7 +87,7 @@ export const CourseCard3D = memo(function CourseCard3D({
     switch (course.status) {
       case 'Completado':
         return {
-          gradient: 'linear-gradient(135deg, #10B981, #34D399)',
+          gradient: orgColors.successGradient,
           glow: 'rgba(16, 185, 129, 0.4)',
           bgColor: 'rgba(16, 185, 129, 0.15)',
           textColor: '#34D399',
@@ -77,19 +96,19 @@ export const CourseCard3D = memo(function CourseCard3D({
         }
       case 'En progreso':
         return {
-          gradient: 'linear-gradient(135deg, #0EA5E9, #22D3EE)',
-          glow: 'rgba(14, 165, 233, 0.4)',
-          bgColor: 'rgba(14, 165, 233, 0.15)',
-          textColor: '#22D3EE',
+          gradient: orgColors.primaryGradient,
+          glow: `${orgColors.accent}60`,
+          bgColor: `${orgColors.accent}20`,
+          textColor: orgColors.accent,
           icon: PlayCircle,
           label: 'En progreso'
         }
       default:
         return {
-          gradient: 'linear-gradient(135deg, #8B5CF6, #A855F7)',
-          glow: 'rgba(139, 92, 246, 0.4)',
-          bgColor: 'rgba(139, 92, 246, 0.15)',
-          textColor: '#A855F7',
+          gradient: orgColors.accentGradient,
+          glow: `${orgColors.primary}60`,
+          bgColor: `${orgColors.primary}20`,
+          textColor: orgColors.accent,
           icon: Clock,
           label: 'Asignado'
         }
@@ -104,29 +123,29 @@ export const CourseCard3D = memo(function CourseCard3D({
       return {
         text: 'Ver Certificado',
         icon: Award,
-        gradient: 'linear-gradient(135deg, #10B981, #34D399, #6EE7B7)',
+        gradient: orgColors.successGradient,
         glow: 'rgba(16, 185, 129, 0.5)'
       }
     } else if (course.progress === 100) {
       return {
         text: 'Curso Completado',
         icon: CheckCircle2,
-        gradient: 'linear-gradient(135deg, #10B981, #34D399, #6EE7B7)',
+        gradient: orgColors.successGradient,
         glow: 'rgba(16, 185, 129, 0.5)'
       }
     } else if (course.progress > 0) {
       return {
         text: 'Continuar Curso',
         icon: PlayCircle,
-        gradient: 'linear-gradient(135deg, #0EA5E9, #06B6D4, #22D3EE)',
-        glow: 'rgba(14, 165, 233, 0.5)'
+        gradient: orgColors.primaryGradient,
+        glow: `${orgColors.accent}70`
       }
     } else {
       return {
         text: 'Empezar Ahora',
-        icon: TrendingUp,
-        gradient: 'linear-gradient(135deg, #8B5CF6, #A855F7, #D946EF)',
-        glow: 'rgba(139, 92, 246, 0.5)'
+        icon: Sparkles,
+        gradient: orgColors.primaryGradient,
+        glow: `${orgColors.primary}60`
       }
     }
   }
@@ -299,7 +318,7 @@ export const CourseCard3D = memo(function CourseCard3D({
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
               style={{
-                background: statusConfig.gradient,
+                background: orgColors.primaryGradient,
                 color: '#fff'
               }}
             >
@@ -332,10 +351,12 @@ export const CourseCard3D = memo(function CourseCard3D({
             <ProgressBar3D
               progress={course.progress}
               index={index}
+              primaryColor={orgColors.primary}
+              accentColor={orgColors.accent}
             />
           </div>
 
-          {/* Action Button with premium styling */}
+          {/* Action Button with premium styling using org colors */}
           <motion.button
             onClick={(e) => {
               e.stopPropagation()
