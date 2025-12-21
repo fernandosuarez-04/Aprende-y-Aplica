@@ -40,7 +40,7 @@ export async function GET(
       }, { status: 404 })
     }
 
-    // Obtener miembros
+    // Obtener miembros activos
     const { data: members, error: membersError } = await supabase
       .from('work_team_members')
       .select(`
@@ -54,6 +54,7 @@ export async function GET(
         updated_at
       `)
       .eq('team_id', teamId)
+      .eq('status', 'active')
       .order('joined_at', { ascending: true })
 
     if (membersError) {
@@ -169,50 +170,78 @@ export async function POST(
       }, { status: 400 })
     }
 
-    const validUserIds = orgUsers.map(u => u.user_id)
+    const validUserIds = orgUsers.map((u: any) => u.user_id)
 
-    // Verificar usuarios que ya son miembros
+    // Verificar usuarios que ya son miembros (activos o inactivos)
     const { data: existingMembers } = await supabase
       .from('work_team_members')
-      .select('user_id')
+      .select('id, user_id, status')
       .eq('team_id', teamId)
       .in('user_id', validUserIds)
 
-    const existingUserIds = existingMembers?.map(m => m.user_id) || []
-    const newUserIds = validUserIds.filter(id => !existingUserIds.includes(id))
+    // Separar en miembros activos e inactivos
+    const activeUserIds = existingMembers?.filter((m: any) => m.status === 'active').map((m: any) => m.user_id) || []
+    const inactiveMemberRecords = existingMembers?.filter((m: any) => m.status === 'inactive') || []
+    const inactiveUserIds = inactiveMemberRecords.map((m: any) => m.user_id)
 
-    if (newUserIds.length === 0) {
+    // Usuarios a insertar (completamente nuevos)
+    const newUserIds = validUserIds.filter((id: string) => !activeUserIds.includes(id) && !inactiveUserIds.includes(id))
+
+    // Usuarios a reactivar (existían pero estaban inactivos)
+    const usersToReactivate = validUserIds.filter((id: string) => inactiveUserIds.includes(id))
+    const recordsToReactivate = inactiveMemberRecords.filter((m: any) => usersToReactivate.includes(m.user_id))
+
+    if (newUserIds.length === 0 && usersToReactivate.length === 0) {
       return NextResponse.json({
         success: false,
-        error: 'Todos los usuarios ya son miembros del equipo'
+        error: 'Todos los usuarios ya son miembros activos del equipo'
       }, { status: 400 })
     }
 
+    let addedCount = 0
+
+    // Reactivar miembros inactivos
+    if (recordsToReactivate.length > 0) {
+      const idsToReactivate = recordsToReactivate.map((m: any) => m.id)
+      const { error: reactivateError } = await supabase
+        .from('work_team_members')
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .in('id', idsToReactivate)
+
+      if (reactivateError) {
+        logger.error('Error reactivating team members:', reactivateError)
+      } else {
+        addedCount += recordsToReactivate.length
+      }
+    }
+
     // Insertar nuevos miembros
-    const membersToInsert = newUserIds.map(userId => ({
-      team_id: teamId,
-      user_id: userId,
-      role: role,
-      status: 'active'
-    }))
+    if (newUserIds.length > 0) {
+      const membersToInsert = newUserIds.map((userId: string) => ({
+        team_id: teamId,
+        user_id: userId,
+        role: role,
+        status: 'active'
+      }))
 
-    const { data: insertedMembers, error: insertError } = await supabase
-      .from('work_team_members')
-      .insert(membersToInsert)
-      .select()
+      const { data: insertedMembers, error: insertError } = await supabase
+        .from('work_team_members')
+        .insert(membersToInsert)
+        .select()
 
-    if (insertError || !insertedMembers) {
-      logger.error('Error adding team members:', insertError)
-      return NextResponse.json({
-        success: false,
-        error: 'Error al agregar miembros'
-      }, { status: 500 })
+      if (insertError || !insertedMembers) {
+        logger.error('Error adding team members:', insertError)
+        return NextResponse.json({
+          success: false,
+          error: 'Error al agregar miembros'
+        }, { status: 500 })
+      }
+      addedCount += insertedMembers.length
     }
 
     return NextResponse.json({
       success: true,
-      members: insertedMembers,
-      message: `${insertedMembers.length} miembro(s) agregado(s) exitosamente`
+      message: `${addedCount} miembro(s) agregado(s) exitosamente`
     })
   } catch (error) {
     logger.error('💥 Error in /api/business/teams/[id]/members POST:', error)

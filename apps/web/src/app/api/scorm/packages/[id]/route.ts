@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { SessionService } from '@/features/auth/services/session.service';
 
 export async function GET(
   req: NextRequest,
@@ -8,13 +7,14 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const user = await SessionService.getCurrentUser();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const supabase = await createClient();
 
     const { data, error } = await supabase
       .from('scorm_packages')
@@ -25,9 +25,6 @@ export async function GET(
     if (error || !data) {
       return NextResponse.json({ error: 'Package not found' }, { status: 404 });
     }
-
-    console.log('[SCORM Package GET] manifest_data:', JSON.stringify(data.manifest_data, null, 2));
-    console.log('[SCORM Package GET] objectives in manifest_data:', data.manifest_data?.objectives);
 
     return NextResponse.json({ package: data });
   } catch (error) {
@@ -44,13 +41,14 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const user = await SessionService.getCurrentUser();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const supabase = await createClient();
 
     // Verificar que el paquete existe y obtener storage_path
     const { data: package_ } = await supabase
@@ -101,13 +99,14 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const user = await SessionService.getCurrentUser();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const supabase = await createClient();
 
     const body = await req.json();
     const { title, description, status } = body;

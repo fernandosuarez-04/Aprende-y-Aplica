@@ -13,8 +13,7 @@ import {
   XMarkIcon,
   ChevronRightIcon,
   MapPinIcon,
-  BuildingOffice2Icon,
-  CubeIcon
+  BuildingOffice2Icon
 } from '@heroicons/react/24/outline'
 import { MapPinIcon as MapPinIconSolid } from '@heroicons/react/24/solid'
 import Image from 'next/image'
@@ -37,7 +36,6 @@ const navigation = [
   { name: 'LIA Analytics', href: '/admin/lia-analytics', icon: ChartBarIcon },
   { name: 'Estadísticas de Usuarios', href: '/admin/user-stats', icon: MapPinIcon },
   { name: 'Empresas', href: '/admin/companies', icon: BuildingOffice2Icon },
-  { name: 'Importar SCORM', href: '/admin/scorm', icon: CubeIcon },
   { name: 'Reportes', href: '/admin/reportes', icon: DocumentTextIcon },
 ]
 

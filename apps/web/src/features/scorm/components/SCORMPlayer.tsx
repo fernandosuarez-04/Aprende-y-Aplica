@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { initializeSCORMAPI, cleanupSCORMAPI } from '@/lib/scorm/adapter';
+import { createClient } from '@/lib/supabase/client';
 import { SCORMPlayerProps } from '@/lib/scorm/types';
 
 export function SCORMPlayer({
@@ -11,329 +12,68 @@ export function SCORMPlayer({
   entryPoint,
   onComplete,
   onError,
-  onExit,
-  className = '',
-  objectives = []
-}: SCORMPlayerProps & { onExit?: () => void }) {
+  className = ''
+}: SCORMPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [contentUrl, setContentUrl] = useState<string | null>(null);
-  const [adapterReady, setAdapterReady] = useState(false);
   const adapterRef = useRef<ReturnType<typeof initializeSCORMAPI> | null>(null);
-  const interceptorIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  // Usar ref para los callbacks para evitar problemas de closures
-  const onExitRef = useRef(onExit);
-  const onCompleteRef = useRef(onComplete);
-  const onErrorRef = useRef(onError);
 
-  // Mantener refs actualizados
+  // Obtener URL firmada del contenido
   useEffect(() => {
-    onExitRef.current = onExit;
-    onCompleteRef.current = onComplete;
-    onErrorRef.current = onError;
-  }, [onExit, onComplete, onError]);
+    async function getContentUrl() {
+      try {
+        const supabase = createClient();
 
-  // Guardar progreso cuando el usuario intenta salir de la página
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (adapterRef.current && !adapterRef.current.isTerminated()) {
-        console.log('[SCORMPlayer] Page unload detected. Saving progress...');
-        adapterRef.current.LMSFinish('');
+        const { data, error: urlError } = await supabase.storage
+          .from('scorm-packages')
+          .createSignedUrl(`${storagePath}/${entryPoint}`, 3600);
+
+        if (urlError || !data) {
+          setError('Failed to load content');
+          onError?.('Failed to load content');
+          return;
+        }
+
+        setContentUrl(data.signedUrl);
+      } catch (err) {
+        setError('Failed to load content');
+        onError?.('Failed to load content');
       }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && adapterRef.current && !adapterRef.current.isTerminated()) {
-        console.log('[SCORMPlayer] Page hidden. Committing progress...');
-        adapterRef.current.LMSCommit('');
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  // Initialize SCORM API FIRST, before setting content URL
-  // This ensures objectives are available when SCORM content loads
-  useEffect(() => {
-    console.log('[SCORMPlayer] Initializing adapter with objectives:', objectives);
-    console.log('[SCORMPlayer] Objectives count:', objectives?.length || 0);
-    if (objectives && objectives.length > 0) {
-      console.log('[SCORMPlayer] Objective IDs:', objectives.map(obj => obj.id));
     }
 
-    // Interceptar errores de red en la consola principal para suprimir errores comunes del contenido SCORM
-    const originalConsoleError = console.error;
-    const errorInterceptor = (...args: any[]) => {
-      const message = args.join(' ');
-      // Filtrar errores comunes del contenido SCORM que no son críticos
-      if (
-        (message.includes('404') && message.includes('organizations/login')) ||
-        (message.includes('401') && message.includes('Unauthorized') && !message.includes('/api/scorm/')) ||
-        (message.includes('401') && message.includes('/api/auth/me')) // Suprimir 401 de auth/me (esperado cuando no hay sesión)
-      ) {
-        return; // No mostrar estos errores
-      }
-      originalConsoleError.apply(console, args);
-    };
-    console.error = errorInterceptor;
+    getContentUrl();
+  }, [storagePath, entryPoint, onError]);
+
+  // Inicializar SCORM API
+  useEffect(() => {
+    if (!contentUrl) return;
 
     const adapter = initializeSCORMAPI({
       packageId,
       version,
-      objectives, // Pass objectives for immediate initialization in constructor
       onError: (err) => {
         setError(err);
-        onErrorRef.current?.(err);
+        onError?.(err);
       },
       onComplete: (status, score) => {
-        console.log('[SCORMPlayer] onComplete callback triggered:', status, score);
-        onCompleteRef.current?.(status, score);
-      }
-    });
-
-    // Registrar callback de salida para cuando el contenido SCORM quiera salir
-    adapter.setOnExitCallback(() => {
-      console.log('[SCORMPlayer] Exit callback triggered, navigating back...');
-      if (onExitRef.current) {
-        onExitRef.current();
-      } else {
-        window.history.back();
+        onComplete?.(status, score);
       }
     });
 
     adapterRef.current = adapter;
-    setAdapterReady(true);
 
     return () => {
-      // Restaurar console.error original
-      console.error = originalConsoleError;
-
       if (adapterRef.current && !adapterRef.current.isTerminated()) {
         adapterRef.current.LMSFinish('');
       }
       cleanupSCORMAPI();
-      setAdapterReady(false);
     };
-  }, [packageId, version, objectives]); // Removido onComplete y onError ya que usamos refs
-
-  // Set content URL only AFTER adapter is ready
-  useEffect(() => {
-    if (!adapterReady) return;
-
-    // Use proxy URL to serve content with proper headers
-    const proxyUrl = `/api/scorm/content/${storagePath}/${entryPoint}`;
-    setContentUrl(proxyUrl);
-  }, [adapterReady, storagePath, entryPoint]);
-
-  // Función para aplicar intercepciones al iframe
-  const applyIframeInterceptions = useCallback(() => {
-    try {
-      const iframe = iframeRef.current;
-      if (!iframe || !iframe.contentWindow || !iframe.contentDocument) return;
-
-      const iframeWindow = iframe.contentWindow as any;
-      const iframeDoc = iframe.contentDocument;
-
-      // Marcar que ya se aplicaron las intercepciones para evitar duplicados
-      if (iframeWindow.__scormInterceptionsApplied) return;
-      iframeWindow.__scormInterceptionsApplied = true;
-
-      // Interceptar window.close()
-      iframeWindow.close = function() {
-        console.log('[SCORMPlayer] Content attempted to close window. Saving state and exiting...');
-        if (adapterRef.current) {
-          adapterRef.current.terminateAndExit();
-        }
-      };
-
-      // Interceptar window.alert() para suprimir errores de objetivos SCORM
-      const originalAlert = iframeWindow.alert;
-      iframeWindow.alert = function(message: string) {
-        if (message && (
-          message.includes('could not find objective') ||
-          message.includes('ERROR - could not find objective') ||
-          message.includes('ERROR -') ||
-          (message.includes('objective') && message.includes('not found'))
-        )) {
-          console.log('[SCORMPlayer] Suppressed objective alert:', message);
-          return;
-        }
-        originalAlert?.call(iframeWindow, message);
-      };
-
-      // Interceptar window.confirm() para manejar el botón Exit
-      const originalConfirm = iframeWindow.confirm;
-      iframeWindow.confirm = function(message: string) {
-        if (message && (
-          message.toLowerCase().includes('exit') ||
-          message.toLowerCase().includes('salir') ||
-          message.toLowerCase().includes('leave') ||
-          message.toLowerCase().includes('abandonar')
-        )) {
-          console.log('[SCORMPlayer] Exit confirmation detected. Saving and exiting...');
-          if (adapterRef.current) {
-            adapterRef.current.terminateAndExit();
-          }
-          return true;
-        }
-        return originalConfirm?.call(iframeWindow, message);
-      };
-
-      // Interceptar clics en botones con texto "Exit" específicamente
-      // Debe ser MUY específico para evitar falsos positivos con otros botones
-      iframeDoc.addEventListener('click', function(event: MouseEvent) {
-        const target = event.target as HTMLElement;
-        if (!target) return;
-
-        // Solo verificar el elemento clickeado directamente (no padres)
-        // y solo si es un botón, enlace, o imagen
-        const tagName = target.tagName?.toLowerCase();
-        const isClickable = tagName === 'button' || tagName === 'a' || tagName === 'input' || tagName === 'img';
-
-        if (!isClickable) return;
-
-        // Obtener texto directo del elemento (sin incluir hijos para evitar falsos positivos)
-        let directText = '';
-
-        if (tagName === 'input') {
-          directText = (target as HTMLInputElement).value?.toLowerCase() || '';
-        } else if (tagName === 'img') {
-          directText = target.getAttribute('alt')?.toLowerCase() || '';
-        } else {
-          // Para botones y enlaces, usar el texto visible pero solo si es corto
-          // (para evitar capturar todo el contenido de la página)
-          const innerText = (target as HTMLElement).innerText?.toLowerCase() || '';
-          if (innerText.length < 50) {
-            directText = innerText;
-          }
-        }
-
-        const title = target.getAttribute('title')?.toLowerCase() || '';
-        const ariaLabel = target.getAttribute('aria-label')?.toLowerCase() || '';
-        const className = target.className?.toLowerCase() || '';
-        const id = target.id?.toLowerCase() || '';
-
-        // Solo detectar si el texto ES "exit" o muy similar (no si lo contiene en una frase larga)
-        const isExitButton = (
-          directText === 'exit' ||
-          directText === 'salir' ||
-          directText === 'exit course' ||
-          directText === 'salir del curso' ||
-          title === 'exit' ||
-          title === 'salir' ||
-          ariaLabel === 'exit' ||
-          ariaLabel === 'salir' ||
-          className.includes('exit-btn') ||
-          className.includes('exit_btn') ||
-          id.includes('exit')
-        );
-
-        if (isExitButton) {
-          console.log('[SCORMPlayer] Exit button detected:', { directText, title, ariaLabel, className, id });
-          // Dar tiempo para que el contenido SCORM procese el clic
-          setTimeout(() => {
-            if (adapterRef.current && adapterRef.current.isInitialized()) {
-              console.log('[SCORMPlayer] Calling terminateAndExit after exit button click');
-              adapterRef.current.terminateAndExit();
-            }
-          }, 200);
-        }
-      }, false); // Bubbling para no interferir con el comportamiento normal
-
-      // También interceptar el evento beforeunload del iframe
-      iframeWindow.addEventListener('beforeunload', function() {
-        console.log('[SCORMPlayer] Iframe beforeunload detected');
-        if (adapterRef.current && !adapterRef.current.isTerminated()) {
-          adapterRef.current.LMSFinish('');
-        }
-      });
-
-      // Suprimir console.error y console.warn para objetivos
-      if (iframeWindow.console) {
-        const originalError = iframeWindow.console.error;
-        const originalWarn = iframeWindow.console.warn;
-
-        iframeWindow.console.error = function(...args: any[]) {
-          const message = args.join(' ');
-          if (message.includes('could not find objective') ||
-              message.includes('ERROR - could not find objective') ||
-              (message.includes('404') && message.includes('organizations/login')) ||
-              (message.includes('401') && !message.includes('/api/scorm/'))) {
-            return;
-          }
-          originalError?.apply(iframeWindow.console, args);
-        };
-
-        iframeWindow.console.warn = function(...args: any[]) {
-          const message = args.join(' ');
-          if (message.includes('could not find objective') ||
-              (message.includes('objective') && message.includes('not found')) ||
-              message.includes('scroll-behavior')) {
-            return;
-          }
-          originalWarn?.apply(iframeWindow.console, args);
-        };
-      }
-
-      // Inyectar estilos CSS
-      const iframeHead = iframeDoc.head || iframeDoc.getElementsByTagName('head')[0];
-      if (iframeHead && !iframeDoc.getElementById('scorm-contrast-fix')) {
-        const style = iframeDoc.createElement('style');
-        style.type = 'text/css';
-        style.id = 'scorm-contrast-fix';
-        style.innerHTML = `
-          body { color: #1a1a1a !important; background-color: #ffffff !important; }
-          html, body { background-color: #ffffff !important; }
-        `;
-        iframeHead.appendChild(style);
-      }
-    } catch (e) {
-      // Ignorar errores de CORS
-    }
-  }, []);
+  }, [contentUrl, packageId, version, onComplete, onError]);
 
   const handleIframeLoad = useCallback(() => {
     setIsLoading(false);
-
-    // Aplicar intercepciones al cargar
-    applyIframeInterceptions();
-
-    // Limpiar intervalo anterior si existe
-    if (interceptorIntervalRef.current) {
-      clearInterval(interceptorIntervalRef.current);
-    }
-
-    // Re-aplicar periódicamente para capturar navegaciones internas del SCORM
-    interceptorIntervalRef.current = setInterval(() => {
-      try {
-        const iframe = iframeRef.current;
-        if (iframe && iframe.contentWindow) {
-          const iframeWindow = iframe.contentWindow as any;
-          // Si se detecta que las intercepciones se perdieron, re-aplicarlas
-          if (!iframeWindow.__scormInterceptionsApplied) {
-            applyIframeInterceptions();
-          }
-        }
-      } catch (e) {
-        // Ignorar errores de CORS
-      }
-    }, 500);
-  }, [applyIframeInterceptions]);
-
-  // Cleanup del intervalo cuando el componente se desmonte
-  useEffect(() => {
-    return () => {
-      if (interceptorIntervalRef.current) {
-        clearInterval(interceptorIntervalRef.current);
-      }
-    };
   }, []);
 
   const handleIframeError = useCallback(() => {
@@ -372,12 +112,12 @@ export function SCORMPlayer({
   }
 
   return (
-    <div className={`relative bg-white dark:bg-neutral-900 rounded-lg overflow-hidden border-2 border-neutral-200 dark:border-neutral-700 shadow-lg ${className}`}>
+    <div className={`relative bg-neutral-100 rounded-lg overflow-hidden ${className}`}>
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-neutral-900 z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-neutral-700 dark:text-neutral-200 text-sm font-medium">Cargando curso...</p>
+            <p className="text-neutral-600 text-sm">Cargando curso...</p>
           </div>
         </div>
       )}
@@ -386,17 +126,12 @@ export function SCORMPlayer({
         <iframe
           ref={iframeRef}
           src={contentUrl}
-          className="w-full h-full min-h-[600px] border-0 bg-white dark:bg-neutral-900"
+          className="w-full h-full min-h-[600px] border-0"
           onLoad={handleIframeLoad}
           onError={handleIframeError}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           allow="autoplay; fullscreen"
           title="SCORM Content"
-          style={{
-            backgroundColor: '#ffffff',
-            colorScheme: 'light',
-            filter: 'contrast(1.1) brightness(1.05)'
-          }}
         />
       )}
     </div>

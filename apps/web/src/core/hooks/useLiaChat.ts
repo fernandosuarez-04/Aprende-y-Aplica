@@ -2,12 +2,12 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
-import type { CourseLessonContext, LiaMessage, GeneratedNanoBananaData, ScormLessonContext } from '../types/lia.types';
+import type { CourseLessonContext, LiaMessage, GeneratedNanoBananaData } from '../types/lia.types';
 import { IntentDetectionService } from '../services/intent-detection.service';
 import { useLanguage } from '../providers/I18nProvider';
 
 // Tipos de modo para el chat
-export type LiaChatMode = 'course' | 'prompts' | 'context' | 'nanobana' | 'scorm';
+export type LiaChatMode = 'course' | 'prompts' | 'context' | 'nanobana';
 
 // Interfaz para prompts generados
 export interface GeneratedPrompt {
@@ -27,7 +27,7 @@ export interface UseLiaChatReturn {
   messages: LiaMessage[];
   isLoading: boolean;
   error: Error | null;
-  sendMessage: (message: string, courseContext?: CourseLessonContext, workshopContext?: CourseLessonContext, scormContext?: ScormLessonContext, isSystemMessage?: boolean) => Promise<void>;
+  sendMessage: (message: string, courseContext?: CourseLessonContext, workshopContext?: CourseLessonContext, isSystemMessage?: boolean) => Promise<void>;
   clearHistory: () => void;
   loadConversation: (conversationId: string) => Promise<void>;
   currentConversationId: string | null;
@@ -107,8 +107,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
   const sendMessage = useCallback(async (
     message: string,
     courseContext?: CourseLessonContext,
-    workshopContext?: CourseLessonContext,
-    scormContext?: ScormLessonContext,
+    workshopContext?: CourseLessonContext, // ✅ Nuevo: contexto para talleres
     isSystemMessage: boolean = false
   ) => {
     if (!message.trim() || isLoading) return;
@@ -124,9 +123,7 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
     // ✅ Si es un mensaje del sistema con contexto, forzar el modo correcto
     // Esto permite que los mensajes automáticos de ayuda proactiva usen el contexto apropiado
     if (isSystemMessage) {
-      if (scormContext && scormContext.contextType === 'scorm') {
-        modeForThisMessage = 'scorm'; // SCORM usa su propio modo
-      } else if (workshopContext && workshopContext.contextType === 'workshop') {
+      if (workshopContext && workshopContext.contextType === 'workshop') {
         modeForThisMessage = 'course'; // Talleres usan el mismo modo que cursos
       } else if (courseContext) {
         modeForThisMessage = 'course';
@@ -422,12 +419,8 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
       let effectiveContext = 'general';
       let shouldSendCourseContext = false;
       let shouldSendWorkshopContext = false;
-      let shouldSendScormContext = false;
-
-      if (modeForThisMessage === 'scorm' && scormContext) {
-        effectiveContext = 'scorm';
-        shouldSendScormContext = true;
-      } else if (modeForThisMessage === 'course' && courseContext) {
+      
+      if (modeForThisMessage === 'course' && courseContext) {
         effectiveContext = 'course';
         shouldSendCourseContext = true;
       } else if (workshopContext && workshopContext.contextType === 'workshop') {
@@ -537,8 +530,6 @@ export function useLiaChat(initialMessage?: string | null): UseLiaChatReturn {
           courseContext: shouldSendCourseContext ? courseContext : undefined,
           // ✅ IMPORTANTE: Solo enviar workshopContext si estamos en contexto de workshops
           workshopContext: shouldSendWorkshopContext ? workshopContext : undefined,
-          // 📦 IMPORTANTE: Solo enviar scormContext si estamos en modo scorm
-          scormContext: shouldSendScormContext ? scormContext : undefined,
           isSystemMessage: isSystemMessage,
           // ✅ ANALYTICS: Enviar conversationId existente si lo hay
           conversationId: conversationIdRef.current || undefined

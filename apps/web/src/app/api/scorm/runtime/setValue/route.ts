@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { SessionService } from '@/features/auth/services/session.service';
 import { setSessionValue } from '@/lib/scorm/session-cache';
 import { sanitizeCMIValue, validateCMIKey } from '@/lib/scorm/sanitize';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await SessionService.getCurrentUser();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: '401' }, { status: 401 });
     }
-
-    const supabase = await createClient();
 
     const { attemptId, key, value } = await req.json();
 
@@ -46,11 +46,6 @@ export async function POST(req: NextRequest) {
     // Sanitizar y guardar en cache de sesión
     const sanitizedValue = sanitizeCMIValue(key, String(value));
     setSessionValue(attemptId, key, sanitizedValue);
-
-    // Log important SCORM values for debugging
-    if (key.includes('status') || key.includes('score') || key.includes('exit') || key.includes('time')) {
-      console.log(`[SCORM setValue] ${key} = ${sanitizedValue}`);
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

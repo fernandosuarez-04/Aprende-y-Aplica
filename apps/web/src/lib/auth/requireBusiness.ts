@@ -178,17 +178,6 @@ export async function requireBusiness(): Promise<BusinessAuth | NextResponse> {
       );
     }
 
-    // Intentar obtener organization_id de forma separada (la columna puede no existir)
-    let userOrganizationId: string | null = null;
-    const { data: orgData, error: orgError } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (!orgError && orgData) {
-      userOrganizationId = orgData.organization_id || null;
-    }
 
     // PASO 6: Verificar que el usuario sea Business (flexible con variaciones)
     const normalizedRole = user.cargo_rol?.toLowerCase().trim() || '';
@@ -363,17 +352,6 @@ export async function requireBusinessUser(): Promise<BusinessAuth | NextResponse
       );
     }
 
-    // Intentar obtener organization_id de forma separada (la columna puede no existir)
-    let userOrgId: string | null = null;
-    const { data: orgData } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (orgData) {
-      userOrgId = orgData.organization_id || null;
-    }
 
     // Permitir Business y Business User (flexible con variaciones)
     const normalizedRole = user.cargo_rol?.toLowerCase().trim() || '';

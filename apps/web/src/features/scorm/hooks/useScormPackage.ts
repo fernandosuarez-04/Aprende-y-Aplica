@@ -28,21 +28,13 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
     if (!packageId) return;
 
     try {
-      const response = await fetch(`/api/scorm/packages/${packageId}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`/api/scorm/packages/${packageId}`);
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Error al obtener el paquete');
       }
 
-      console.log('[useScormPackage] Received package data:', data.package);
-      console.log('[useScormPackage] manifest_data:', data.package?.manifest_data);
-      console.log('[useScormPackage] objectives:', data.package?.manifest_data?.objectives);
       setPackage(data.package);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al obtener el paquete');
@@ -55,12 +47,7 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
       if (courseId) params.append('courseId', courseId);
       if (organizationId) params.append('organizationId', organizationId);
 
-      const response = await fetch(`/api/scorm/packages?${params.toString()}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`/api/scorm/packages?${params.toString()}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -79,8 +66,7 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
 
     if (packageId) {
       await fetchPackage();
-    } else if (organizationId) {
-      // Permitir buscar solo por organizationId (courseId es opcional)
+    } else {
       await fetchPackages();
     }
 
@@ -88,16 +74,7 @@ export function useScormPackage(options: UseScormPackageOptions = {}): UseScormP
   };
 
   useEffect(() => {
-    // Solo hacer fetch si hay parámetros válidos
-    if (packageId || organizationId) {
-      refetch();
-    } else {
-      // Si no hay parámetros, no hacer loading
-      setIsLoading(false);
-      setPackages([]);
-      setPackage(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    refetch();
   }, [packageId, courseId, organizationId]);
 
   return {

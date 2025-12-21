@@ -1,13 +1,16 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useState, memo, useMemo } from 'react'
 import Image from 'next/image'
 import {
   Award,
   CheckCircle2,
   PlayCircle,
-  TrendingUp
+  TrendingUp,
+  Clock,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react'
 import { ProgressBar3D } from './ProgressBar3D'
 import { StyleConfig } from '@/features/business-panel/hooks/useOrganizationStyles'
@@ -41,37 +44,15 @@ export const CourseCard3D = memo(function CourseCard3D({
 
   // Calcular estilos de la tarjeta basados en los estilos personalizados
   const cardStyle = useMemo(() => {
-    if (!styles) {
-      return {
-        backgroundColor: 'rgba(30, 41, 59, 0.95)',
-        borderColor: 'rgba(71, 85, 105, 0.5)',
-        color: undefined as string | undefined
-      }
-    }
+    const cardBg = styles?.card_background || '#1E2329'
+    const cardOpacity = styles?.card_opacity !== undefined ? styles.card_opacity : 0.98
+    const borderColor = styles?.border_color || 'rgba(255, 255, 255, 0.08)'
+    const textColor = styles?.text_color || '#FFFFFF'
 
-    const cardBg = styles.card_background || '#1e293b'
-    const cardOpacity = styles.card_opacity !== undefined ? styles.card_opacity : 0.95
-    const borderColor = styles.border_color || 'rgba(71, 85, 105, 0.5)'
-    const textColor = styles.text_color
-
-    // Convertir hex a rgba si es necesario
     let backgroundColor: string
     if (cardBg.startsWith('#')) {
       const rgb = hexToRgb(cardBg)
       backgroundColor = `rgba(${rgb}, ${cardOpacity})`
-    } else if (cardBg.startsWith('rgba')) {
-      // Si ya es rgba, extraer el valor de opacidad y reemplazarlo
-      const rgbaMatch = cardBg.match(/rgba?\(([^)]+)\)/)
-      if (rgbaMatch) {
-        const parts = rgbaMatch[1].split(',')
-        if (parts.length >= 3) {
-          backgroundColor = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${cardOpacity})`
-        } else {
-          backgroundColor = cardBg
-        }
-      } else {
-        backgroundColor = cardBg
-      }
     } else {
       backgroundColor = cardBg
     }
@@ -79,7 +60,7 @@ export const CourseCard3D = memo(function CourseCard3D({
     return {
       backgroundColor,
       borderColor,
-      color: textColor
+      textColor
     }
   }, [styles])
 
@@ -87,27 +68,30 @@ export const CourseCard3D = memo(function CourseCard3D({
     switch (course.status) {
       case 'Completado':
         return {
-          bg: 'bg-green-500/20',
-          text: 'text-green-300',
-          border: 'border-green-500/30',
-          shadow: 'shadow-green-500/20',
-          icon: CheckCircle2
+          gradient: 'linear-gradient(135deg, #10B981, #34D399)',
+          glow: 'rgba(16, 185, 129, 0.4)',
+          bgColor: 'rgba(16, 185, 129, 0.15)',
+          textColor: '#34D399',
+          icon: CheckCircle2,
+          label: 'Completado'
         }
       case 'En progreso':
         return {
-          bg: 'bg-primary/20',
-          text: 'text-primary',
-          border: 'border-primary/30',
-          shadow: 'shadow-primary/20',
-          icon: PlayCircle
+          gradient: 'linear-gradient(135deg, #0EA5E9, #22D3EE)',
+          glow: 'rgba(14, 165, 233, 0.4)',
+          bgColor: 'rgba(14, 165, 233, 0.15)',
+          textColor: '#22D3EE',
+          icon: PlayCircle,
+          label: 'En progreso'
         }
       default:
         return {
-          bg: 'bg-carbon-600/50',
-          text: 'text-gray-300 dark:text-gray-200',
-          border: 'border-carbon-500/30',
-          shadow: '',
-          icon: TrendingUp
+          gradient: 'linear-gradient(135deg, #8B5CF6, #A855F7)',
+          glow: 'rgba(139, 92, 246, 0.4)',
+          bgColor: 'rgba(139, 92, 246, 0.15)',
+          textColor: '#A855F7',
+          icon: Clock,
+          label: 'Asignado'
         }
     }
   }
@@ -120,25 +104,29 @@ export const CourseCard3D = memo(function CourseCard3D({
       return {
         text: 'Ver Certificado',
         icon: Award,
-        gradient: 'from-green-500 via-emerald-500 to-green-600'
+        gradient: 'linear-gradient(135deg, #10B981, #34D399, #6EE7B7)',
+        glow: 'rgba(16, 185, 129, 0.5)'
       }
     } else if (course.progress === 100) {
       return {
         text: 'Curso Completado',
         icon: CheckCircle2,
-        gradient: 'from-green-500 via-emerald-500 to-green-600'
+        gradient: 'linear-gradient(135deg, #10B981, #34D399, #6EE7B7)',
+        glow: 'rgba(16, 185, 129, 0.5)'
       }
     } else if (course.progress > 0) {
       return {
         text: 'Continuar Curso',
         icon: PlayCircle,
-        gradient: 'from-primary via-blue-500 to-success'
+        gradient: 'linear-gradient(135deg, #0EA5E9, #06B6D4, #22D3EE)',
+        glow: 'rgba(14, 165, 233, 0.5)'
       }
     } else {
       return {
-        text: 'Empezar Curso',
+        text: 'Empezar Ahora',
         icon: TrendingUp,
-        gradient: 'from-primary via-blue-500 to-success'
+        gradient: 'linear-gradient(135deg, #8B5CF6, #A855F7, #D946EF)',
+        glow: 'rgba(139, 92, 246, 0.5)'
       }
     }
   }
@@ -148,50 +136,75 @@ export const CourseCard3D = memo(function CourseCard3D({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{
-        delay: index * 0.1,
+        delay: index * 0.08,
         duration: 0.5,
-        ease: 'easeOut'
+        type: "spring",
+        stiffness: 100,
+        damping: 15
       }}
       whileHover={{
-        y: -8,
-        transition: { duration: 0.3 }
+        y: -12,
+        scale: 1.02,
+        transition: { duration: 0.3, type: "spring", stiffness: 300 }
       }}
+      whileTap={{ scale: 0.98 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       onClick={onClick}
-      className="group relative overflow-hidden 
-        rounded-xl 
-        border 
-        backdrop-blur-sm
-        transition-all duration-300 
-        cursor-pointer 
-        shadow-lg
-        hover:shadow-xl hover:border-primary/40"
+      className="group relative overflow-hidden rounded-2xl cursor-pointer backdrop-blur-xl border"
       style={{
         backgroundColor: cardStyle.backgroundColor,
-        borderColor: cardStyle.borderColor,
-        color: cardStyle.color
+        borderColor: isHovered ? statusConfig.textColor : cardStyle.borderColor,
+        perspective: '1000px',
+        transformStyle: 'preserve-3d',
+        boxShadow: isHovered
+          ? `0 25px 50px -12px ${statusConfig.glow}, 0 0 80px -20px ${statusConfig.glow}`
+          : '0 4px 25px rgba(0, 0, 0, 0.2)'
       }}
     >
-      {/* Subtle hover gradient */}
+      {/* Animated gradient border */}
       <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-success/5 opacity-0 group-hover:opacity-100"
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{
+          background: statusConfig.gradient,
+          padding: '1px',
+          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          maskComposite: 'exclude',
+          WebkitMaskComposite: 'xor'
+        }}
+        animate={{ opacity: isHovered ? 1 : 0.2 }}
         transition={{ duration: 0.3 }}
       />
 
+      {/* Shimmer effect */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background: 'linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.1) 50%, transparent 75%)',
+        }}
+        animate={{ x: isHovered ? ['100%', '-100%'] : '-100%' }}
+        transition={{ duration: 1.2, ease: 'easeInOut' }}
+      />
+
+      {/* Corner glow orbs */}
+      <motion.div
+        className="absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl pointer-events-none"
+        style={{ backgroundColor: statusConfig.textColor }}
+        animate={{ opacity: isHovered ? 0.3 : 0.08 }}
+        transition={{ duration: 0.4 }}
+      />
+
       <div className="relative z-10 flex flex-col h-full">
-        {/* Header: Thumbnail and Status */}
-        <div className="relative">
+        {/* Thumbnail with overlay */}
+        <div className="relative overflow-hidden">
           {course.thumbnail.startsWith('http') || course.thumbnail.startsWith('/') ? (
             <div className="relative w-full h-48 overflow-hidden">
               <motion.div
-                animate={{
-                  scale: isHovered ? 1.05 : 1,
-                }}
-                transition={{ duration: 0.4 }}
+                animate={{ scale: isHovered ? 1.1 : 1 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
                 className="w-full h-full"
               >
                 <Image
@@ -201,69 +214,128 @@ export const CourseCard3D = memo(function CourseCard3D({
                   className="object-cover"
                 />
               </motion.div>
+              {/* Enhanced overlay gradient */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `linear-gradient(180deg, 
+                    transparent 0%, 
+                    rgba(0,0,0,0.2) 50%, 
+                    ${cardStyle.backgroundColor} 100%
+                  )`
+                }}
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             </div>
           ) : (
-            <div className="relative w-full h-48 bg-gradient-to-br from-primary/20 via-primary/10 to-success/20 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            <div
+              className="relative w-full h-48 overflow-hidden"
+              style={{ background: statusConfig.gradient }}
+            >
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-6xl opacity-20">{course.thumbnail}</div>
+                <div className="text-6xl opacity-30">{course.thumbnail}</div>
               </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
             </div>
           )}
 
-          {/* Status Badge - Top Right */}
-          <div className="absolute top-4 right-4">
+          {/* Status Badge - Floating */}
+          <motion.div
+            className="absolute top-4 right-4 z-20"
+            animate={{ y: isHovered ? -2 : 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <motion.div
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold backdrop-blur-md border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border} shadow-lg`}
-              animate={{
-                scale: isHovered ? 1.05 : 1,
+              className="px-3 py-1.5 rounded-xl text-xs font-bold backdrop-blur-xl border flex items-center gap-1.5"
+              style={{
+                backgroundColor: statusConfig.bgColor,
+                borderColor: `${statusConfig.textColor}40`,
+                color: statusConfig.textColor,
+                boxShadow: `0 4px 15px ${statusConfig.glow}`
               }}
+              animate={{ scale: isHovered ? 1.05 : 1 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="flex items-center gap-1.5">
-                <StatusIcon className="w-3.5 h-3.5" />
-                <span>{course.status}</span>
-              </div>
+              <StatusIcon className="w-3.5 h-3.5" />
+              <span>{statusConfig.label}</span>
             </motion.div>
-          </div>
+          </motion.div>
+
+          {/* Progress indicator on thumbnail */}
+          {course.progress > 0 && course.progress < 100 && (
+            <motion.div
+              className="absolute bottom-0 left-0 right-0 h-1 overflow-hidden"
+              style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
+            >
+              <motion.div
+                className="h-full"
+                style={{ background: statusConfig.gradient }}
+                initial={{ width: 0 }}
+                animate={{ width: `${course.progress}%` }}
+                transition={{ delay: index * 0.1 + 0.5, duration: 0.8 }}
+              />
+            </motion.div>
+          )}
         </div>
 
         {/* Content */}
-        <div className="p-6 flex-1 flex flex-col">
-          {/* Title */}
-          <h3
-            className="text-xl font-bold mb-2 leading-tight line-clamp-2"
-            style={{ 
-              color: cardStyle.color || undefined,
-              backgroundImage: isHovered
-                ? 'linear-gradient(to right, #3b82f6, #10b981)'
-                : undefined,
+        <div className="p-5 flex-1 flex flex-col">
+          {/* Title with gradient effect on hover */}
+          <motion.h3
+            className="text-lg font-bold mb-2 leading-tight line-clamp-2"
+            style={{
+              color: isHovered ? undefined : cardStyle.textColor,
+              background: isHovered ? statusConfig.gradient : undefined,
               WebkitBackgroundClip: isHovered ? 'text' : undefined,
               WebkitTextFillColor: isHovered ? 'transparent' : undefined,
               backgroundClip: isHovered ? 'text' : undefined,
             }}
           >
             {course.title}
-          </h3>
+          </motion.h3>
 
-          {/* Instructor */}
-          <p 
-            className="text-sm mb-5 opacity-70"
-            style={{ color: cardStyle.color || undefined }}
-          >
-            Por {course.instructor}
-          </p>
+          {/* Instructor with icon */}
+          <div className="flex items-center gap-2 mb-4">
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+              style={{
+                background: statusConfig.gradient,
+                color: '#fff'
+              }}
+            >
+              {course.instructor.charAt(0)}
+            </div>
+            <p
+              className="text-sm opacity-70"
+              style={{ color: cardStyle.textColor }}
+            >
+              {course.instructor}
+            </p>
+          </div>
 
-          {/* Progress Section */}
-          <div className="mb-6 mt-auto">
+          {/* Enhanced Progress Section */}
+          <div className="mb-5 mt-auto">
+            <div className="flex items-center justify-between mb-2">
+              <span
+                className="text-xs font-medium opacity-60"
+                style={{ color: cardStyle.textColor }}
+              >
+                Progreso
+              </span>
+              <span
+                className="text-sm font-bold"
+                style={{ color: statusConfig.textColor }}
+              >
+                {course.progress}%
+              </span>
+            </div>
             <ProgressBar3D
               progress={course.progress}
               index={index}
             />
           </div>
 
-          {/* Action Button */}
+          {/* Action Button with premium styling */}
           <motion.button
             onClick={(e) => {
               e.stopPropagation()
@@ -273,35 +345,74 @@ export const CourseCard3D = memo(function CourseCard3D({
                 onClick()
               }
             }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={`
-              w-full flex items-center justify-center gap-2.5 
-              px-5 py-3.5 
-              bg-gradient-to-r ${buttonConfig.gradient} 
-              rounded-lg 
-              text-white font-semibold text-sm 
-              shadow-lg
-              hover:shadow-xl
-              transition-all duration-300 
-              relative overflow-hidden
-            `}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-white font-semibold text-sm relative overflow-hidden group/btn"
+            style={{
+              background: buttonConfig.gradient,
+              boxShadow: `0 4px 20px ${buttonConfig.glow}`
+            }}
           >
-            {/* Subtle shine on hover */}
+            {/* Shine effect */}
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.25) 50%, transparent 75%)'
+              }}
               initial={{ x: '-100%' }}
-              whileHover={{ x: '200%' }}
-              transition={{ duration: 0.6 }}
+              whileHover={{ x: '100%' }}
+              transition={{ duration: 0.5 }}
             />
 
+            {/* Button content */}
             <div className="relative z-10 flex items-center gap-2.5">
               <ButtonIcon className="w-4 h-4" />
               <span>{buttonConfig.text}</span>
+              <motion.div
+                animate={{ x: isHovered ? 3 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ArrowRight className="w-4 h-4" />
+              </motion.div>
             </div>
           </motion.button>
         </div>
+
+        {/* Sparkles decoration on hover */}
+        <AnimatePresence>
+          {isHovered && (
+            <>
+              <motion.div
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                className="absolute top-16 left-4"
+              >
+                <Sparkles className="w-4 h-4" style={{ color: statusConfig.textColor }} />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                transition={{ delay: 0.1 }}
+                className="absolute top-8 right-16"
+              >
+                <Sparkles className="w-3 h-3" style={{ color: statusConfig.textColor }} />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Decorative corners */}
+      <div
+        className="absolute top-2 left-2 w-6 h-6 border-t border-l rounded-tl-lg opacity-0 group-hover:opacity-30 transition-opacity duration-300 pointer-events-none"
+        style={{ borderColor: statusConfig.textColor }}
+      />
+      <div
+        className="absolute bottom-2 right-2 w-6 h-6 border-b border-r rounded-br-lg opacity-0 group-hover:opacity-30 transition-opacity duration-300 pointer-events-none"
+        style={{ borderColor: statusConfig.textColor }}
+      />
     </motion.div>
   )
 })

@@ -45,6 +45,8 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
     member_ids: [] as string[],
     image_url: ''
   })
+  const [originalMemberIds, setOriginalMemberIds] = useState<string[]>([]) // Para trackear miembros originales en edición
+  const [memberIdToRecordId, setMemberIdToRecordId] = useState<Map<string, string>>(new Map()) // Map user_id -> record id
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingTeam, setIsLoadingTeam] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,12 +62,22 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
         setIsLoadingTeam(true)
         const teamData = await TeamsService.getTeam(teamId)
         const members = await TeamsService.getTeamMembers(teamId)
+        const memberUserIds = members.map(m => m.user_id)
+
+        // Guardar los miembros originales para poder comparar después
+        setOriginalMemberIds(memberUserIds)
+
+        // Crear mapa de user_id -> record id (id del registro en work_team_members)
+        const idMap = new Map<string, string>()
+        members.forEach(m => idMap.set(m.user_id, m.id))
+        setMemberIdToRecordId(idMap)
+
         setFormData({
           name: teamData.name,
           description: teamData.description || '',
           team_leader_id: teamData.team_leader_id || '',
           course_id: teamData.course_id || '',
-          member_ids: members.map(m => m.user_id),
+          member_ids: memberUserIds,
           image_url: teamData.image_url || ''
         })
         if (teamData.image_url) setImagePreview(teamData.image_url)
@@ -82,6 +94,8 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
   useEffect(() => {
     if (!isOpen) {
       setFormData({ name: '', description: '', team_leader_id: '', course_id: '', member_ids: [], image_url: '' })
+      setOriginalMemberIds([])
+      setMemberIdToRecordId(new Map())
       setSearchTerm('')
       setError(null)
       setImagePreview(null)
@@ -141,12 +155,31 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
     setError(null)
     try {
       if (teamId) {
+        // 1. Actualizar información del equipo
         await TeamsService.updateTeam(teamId, {
           name: formData.name.trim(),
           description: formData.description.trim() || undefined,
           team_leader_id: formData.team_leader_id || undefined,
           image_url: formData.image_url || undefined
         })
+
+        // 2. Sincronizar miembros
+        const currentMemberIds = formData.member_ids
+        const membersToAdd = currentMemberIds.filter(id => !originalMemberIds.includes(id))
+        const membersToRemove = originalMemberIds.filter(id => !currentMemberIds.includes(id))
+
+        // Agregar nuevos miembros
+        if (membersToAdd.length > 0) {
+          await TeamsService.addTeamMembers(teamId, { user_ids: membersToAdd })
+        }
+
+        // Eliminar miembros removidos
+        for (const userId of membersToRemove) {
+          const recordId = memberIdToRecordId.get(userId)
+          if (recordId) {
+            await TeamsService.removeTeamMember(teamId, recordId)
+          }
+        }
       } else {
         await TeamsService.createTeam({
           name: formData.name.trim(),

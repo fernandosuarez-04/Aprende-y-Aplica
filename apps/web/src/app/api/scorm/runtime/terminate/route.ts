@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { SessionService } from '@/features/auth/services/session.service';
 import { clearSessionCache } from '@/lib/scorm/session-cache';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await SessionService.getCurrentUser();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: '401' }, { status: 401 });
     }
-
-    const supabase = await createClient();
 
     const { attemptId } = await req.json();
 

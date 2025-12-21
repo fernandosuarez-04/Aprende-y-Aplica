@@ -38,9 +38,7 @@ export function SCORMUploader({
 
     const formData = new FormData();
     formData.append('file', file);
-    if (courseId) {
-      formData.append('courseId', courseId);
-    }
+    formData.append('courseId', courseId);
     formData.append('organizationId', organizationId);
 
     try {
@@ -48,7 +46,6 @@ export function SCORMUploader({
 
       const response = await fetch('/api/scorm/upload', {
         method: 'POST',
-        credentials: 'include',
         body: formData
       });
 

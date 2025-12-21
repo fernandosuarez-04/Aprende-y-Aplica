@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { SessionService } from '@/features/auth/services/session.service';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await SessionService.getCurrentUser();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const supabase = await createClient();
 
     const { packageId } = await req.json();
 
@@ -73,24 +73,10 @@ export async function POST(req: NextRequest) {
       attempt = newAttempt;
     } else {
       // Resuming - actualizar entry
-      // Determine if this should be a resume based on:
-      // 1. Has suspend_data (bookmark data)
-      // 2. Has lesson_location (position in course)
-      // 3. Exit type was 'suspend'
-      // 4. Status is incomplete (not completed/passed/failed)
-      const shouldResume = attempt.suspend_data ||
-                          attempt.lesson_location ||
-                          attempt.exit_type === 'suspend' ||
-                          (attempt.lesson_status &&
-                           attempt.lesson_status !== 'not attempted' &&
-                           attempt.lesson_status !== 'completed' &&
-                           attempt.lesson_status !== 'passed' &&
-                           attempt.lesson_status !== 'failed');
-
       const { error: updateError } = await supabase
         .from('scorm_attempts')
         .update({
-          entry: shouldResume ? 'resume' : 'ab-initio',
+          entry: attempt.suspend_data ? 'resume' : 'ab-initio',
           last_accessed_at: new Date().toISOString(),
         })
         .eq('id', attempt.id);
@@ -98,22 +84,15 @@ export async function POST(req: NextRequest) {
       if (updateError) {
         throw updateError;
       }
-
-      // Update the attempt object for cmiData building
-      attempt.entry = shouldResume ? 'resume' : 'ab-initio';
     }
 
     // Construir datos CMI iniciales
     const cmiData = buildCMIData(attempt, user, package_);
 
-    // Extraer objetivos del manifest si existen
-    const objectives = package_.manifest_data?.objectives || [];
-
     return NextResponse.json({
       success: true,
       attemptId: attempt.id,
       cmiData,
-      objectives,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to initialize';

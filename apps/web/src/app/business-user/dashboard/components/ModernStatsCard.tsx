@@ -29,152 +29,223 @@ export function ModernStatsCard({
 }: ModernStatsCardProps) {
   const [isHovered, setIsHovered] = useState(false)
 
+  // Mapeo de colores con diseño glassmorphism premium
+  const colorConfig = useMemo(() => {
+    const configs: Record<string, {
+      primary: string,
+      secondary: string,
+      glow: string,
+      gradient: string,
+      bgGradient: string,
+      borderColor: string
+    }> = {
+      'from-blue-500 to-cyan-500': {
+        primary: '#0EA5E9',
+        secondary: '#06B6D4',
+        glow: 'rgba(14, 165, 233, 0.4)',
+        gradient: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+        bgGradient: 'linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(6, 182, 212, 0.08))',
+        borderColor: 'rgba(14, 165, 233, 0.25)'
+      },
+      'from-purple-500 to-pink-500': {
+        primary: '#8B5CF6',
+        secondary: '#D946EF',
+        glow: 'rgba(139, 92, 246, 0.4)',
+        gradient: 'linear-gradient(135deg, #8B5CF6, #D946EF)',
+        bgGradient: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(217, 70, 239, 0.08))',
+        borderColor: 'rgba(139, 92, 246, 0.25)'
+      },
+      'from-green-500 to-emerald-500': {
+        primary: '#10B981',
+        secondary: '#34D399',
+        glow: 'rgba(16, 185, 129, 0.4)',
+        gradient: 'linear-gradient(135deg, #10B981, #34D399)',
+        bgGradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(52, 211, 153, 0.08))',
+        borderColor: 'rgba(16, 185, 129, 0.25)'
+      },
+      'from-orange-500 to-red-500': {
+        primary: '#F59E0B',
+        secondary: '#EF4444',
+        glow: 'rgba(245, 158, 11, 0.4)',
+        gradient: 'linear-gradient(135deg, #F59E0B, #EF4444)',
+        bgGradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.08))',
+        borderColor: 'rgba(245, 158, 11, 0.25)'
+      }
+    }
+    return configs[color] || configs['from-blue-500 to-cyan-500']
+  }, [color])
+
   // Calcular estilos de la tarjeta basados en los estilos personalizados
   const cardStyle = useMemo(() => {
-    if (!styles) {
-      return {
-        backgroundColor: 'rgba(255, 255, 255, 0.5)',
-        borderColor: 'rgba(229, 231, 235, 0.2)',
-        color: undefined as string | undefined
-      }
-    }
-
-    const cardBg = styles.card_background || '#1e293b'
-    const cardOpacity = styles.card_opacity !== undefined ? styles.card_opacity : 0.95
-    const borderColor = styles.border_color || 'rgba(229, 231, 235, 0.2)'
-    const textColor = styles.text_color
-
-    // Convertir hex a rgba si es necesario
-    let backgroundColor: string
-    if (cardBg.startsWith('#')) {
-      const rgb = hexToRgb(cardBg)
-      backgroundColor = `rgba(${rgb}, ${cardOpacity})`
-    } else if (cardBg.startsWith('rgba')) {
-      // Si ya es rgba, extraer el valor de opacidad y reemplazarlo
-      const rgbaMatch = cardBg.match(/rgba?\(([^)]+)\)/)
-      if (rgbaMatch) {
-        const parts = rgbaMatch[1].split(',')
-        if (parts.length >= 3) {
-          backgroundColor = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${cardOpacity})`
-        } else {
-          backgroundColor = cardBg
-        }
-      } else {
-        backgroundColor = cardBg
-      }
-    } else {
-      backgroundColor = cardBg
-    }
-
-    return {
-      backgroundColor,
-      borderColor,
-      color: textColor
-    }
+    const textColor = styles?.text_color || '#FFFFFF'
+    return { textColor }
   }, [styles])
-
-  const colorClasses = {
-    'from-blue-500 to-cyan-500': {
-      bg: 'bg-blue-500/10 dark:bg-blue-500/20',
-      border: 'border-blue-500/20 dark:border-blue-500/30',
-      icon: 'text-blue-600 dark:text-blue-400',
-      text: 'text-blue-600 dark:text-blue-400'
-    },
-    'from-purple-500 to-pink-500': {
-      bg: 'bg-purple-500/10 dark:bg-purple-500/20',
-      border: 'border-purple-500/20 dark:border-purple-500/30',
-      icon: 'text-purple-600 dark:text-purple-400',
-      text: 'text-purple-600 dark:text-purple-400'
-    },
-    'from-green-500 to-emerald-500': {
-      bg: 'bg-green-500/10 dark:bg-green-500/20',
-      border: 'border-green-500/20 dark:border-green-500/30',
-      icon: 'text-green-600 dark:text-green-400',
-      text: 'text-green-600 dark:text-green-400'
-    },
-    'from-orange-500 to-red-500': {
-      bg: 'bg-orange-500/10 dark:bg-orange-500/20',
-      border: 'border-orange-500/20 dark:border-orange-500/30',
-      icon: 'text-orange-600 dark:text-orange-400',
-      text: 'text-orange-600 dark:text-orange-400'
-    }
-  }
-
-  const colors = colorClasses[color as keyof typeof colorClasses] || colorClasses['from-blue-500 to-cyan-500']
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 25 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        delay: index * 0.05,
-        duration: 0.4,
-        ease: 'easeOut'
+        delay: index * 0.1,
+        duration: 0.6,
+        type: "spring",
+        stiffness: 80,
+        damping: 15
       }}
+      whileHover={{
+        y: -6,
+        scale: 1.02,
+        transition: { duration: 0.3, type: "spring", stiffness: 300 }
+      }}
+      whileTap={{ scale: 0.98 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       onClick={onClick}
       className={`
-        relative group rounded-xl border p-5 
-        backdrop-blur-sm
-        ${colors.border} 
-        transition-all duration-300
+        relative group overflow-hidden rounded-2xl
         ${isClickable ? 'cursor-pointer' : ''}
-        ${isHovered && isClickable ? `${colors.bg} border-opacity-40` : ''}
       `}
       style={{
-        backgroundColor: cardStyle.backgroundColor,
-        borderColor: cardStyle.borderColor,
-        color: cardStyle.color
+        background: 'linear-gradient(135deg, rgba(15, 20, 25, 0.9), rgba(20, 30, 40, 0.85))',
+        border: `1px solid ${isHovered ? colorConfig.borderColor : 'rgba(255, 255, 255, 0.08)'}`,
+        boxShadow: isHovered
+          ? `0 20px 40px -12px ${colorConfig.glow}, 0 0 0 1px ${colorConfig.borderColor}`
+          : '0 4px 20px rgba(0, 0, 0, 0.3)',
+        backdropFilter: 'blur(12px)',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
       }}
     >
-      {/* Hover effect */}
-      {isHovered && isClickable && (
-        <motion.div
-          className={`absolute inset-0 rounded-xl ${colors.bg} -z-10`}
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        />
-      )}
+      {/* Gradient background overlay on hover */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: colorConfig.bgGradient }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isHovered ? 1 : 0.3 }}
+        transition={{ duration: 0.4 }}
+      />
 
-      <div className="flex items-start justify-between gap-4">
-        {/* Left: Icon and Label */}
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className={`p-2 rounded-lg ${colors.bg} ${colors.border} border flex-shrink-0`}>
-            <Icon className={`h-5 w-5 ${colors.icon}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p 
-              className="text-xs font-medium uppercase tracking-wider mb-1 opacity-70"
-              style={{ color: cardStyle.color || undefined }}
+      {/* Decorative glow orb */}
+      <motion.div
+        className="absolute -top-12 -right-12 w-32 h-32 rounded-full pointer-events-none"
+        style={{
+          background: `radial-gradient(circle, ${colorConfig.primary}20, transparent 70%)`
+        }}
+        animate={{
+          scale: isHovered ? 1.5 : 1,
+          opacity: isHovered ? 0.8 : 0.4
+        }}
+        transition={{ duration: 0.5 }}
+      />
+
+      {/* Content Container */}
+      <div className="relative z-10 p-6">
+        {/* Top row: Label and Icon */}
+        <div className="flex items-start justify-between mb-4">
+          {/* Icon Container - Premium glass design */}
+          <motion.div
+            className="p-3 rounded-xl"
+            style={{
+              background: `linear-gradient(135deg, ${colorConfig.primary}20, ${colorConfig.secondary}10)`,
+              border: `1px solid ${colorConfig.primary}30`,
+              boxShadow: `0 4px 15px ${colorConfig.primary}15`
+            }}
+            animate={{
+              boxShadow: isHovered
+                ? `0 8px 25px ${colorConfig.glow}`
+                : `0 4px 15px ${colorConfig.primary}15`
+            }}
+            transition={{ duration: 0.3 }}
+          >
+            <Icon
+              className="h-6 w-6"
+              style={{
+                color: colorConfig.primary,
+                filter: `drop-shadow(0 0 8px ${colorConfig.primary}50)`
+              }}
+            />
+          </motion.div>
+
+          {/* Visual indicator for clickable cards */}
+          {isClickable && (
+            <motion.div
+              className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium"
+              style={{
+                background: `${colorConfig.primary}15`,
+                color: colorConfig.primary,
+                border: `1px solid ${colorConfig.primary}20`
+              }}
+              animate={{ opacity: isHovered ? 1 : 0.6 }}
+              transition={{ duration: 0.2 }}
             >
-              {label}
-            </p>
-            <div 
-              className={`text-2xl font-bold ${colors.text}`}
-              style={{ color: cardStyle.color || undefined }}
+              <span>Ver más</span>
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Stats section */}
+        <div className="space-y-1">
+          {/* Label */}
+          <motion.p
+            className="text-xs font-semibold tracking-wider uppercase"
+            style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+          >
+            {label}
+          </motion.p>
+
+          {/* Value - Large and prominent */}
+          <motion.div
+            className="flex items-baseline gap-2"
+            initial={{ opacity: 0, x: -15 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.1 + 0.2, duration: 0.5 }}
+          >
+            <span
+              className="text-4xl font-bold tracking-tight"
+              style={{
+                background: colorConfig.gradient,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                filter: isHovered ? `drop-shadow(0 0 12px ${colorConfig.glow})` : 'none',
+                transition: 'filter 0.3s ease'
+              }}
             >
               <AnimatedCounter
                 value={value}
                 duration={1.2}
                 decimals={0}
               />
-            </div>
-          </div>
+            </span>
+          </motion.div>
         </div>
       </div>
 
-      {/* Hover indicator */}
-      {isClickable && isHovered && (
-        <motion.div
-          initial={{ opacity: 0, x: -4 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="absolute right-4 top-1/2 -translate-y-1/2"
-        >
-          <div className={`h-1.5 w-1.5 rounded-full ${colors.bg.replace('/10', '/40')}`} />
-        </motion.div>
-      )}
+      {/* Bottom accent line */}
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 h-1"
+        style={{
+          background: colorConfig.gradient,
+          opacity: 0.6
+        }}
+        animate={{
+          opacity: isHovered ? 1 : 0.6,
+          scaleX: isHovered ? 1 : 0.5
+        }}
+        transition={{ duration: 0.4 }}
+      />
+
+      {/* Subtle inner glow on hover */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{
+          boxShadow: `inset 0 0 30px ${colorConfig.primary}10`
+        }}
+        animate={{ opacity: isHovered ? 1 : 0 }}
+        transition={{ duration: 0.3 }}
+      />
     </motion.div>
   )
 }

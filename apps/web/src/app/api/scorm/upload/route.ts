@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { SessionService } from '@/features/auth/services/session.service';
 import { parseScormManifest, validateScormPackage } from '@/lib/scorm/parser';
 import { validatePackageSecurity } from '@/lib/scorm/validator';
 import JSZip from 'jszip';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await SessionService.getCurrentUser();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const supabase = await createClient();
 
     const formData = await req.formData();
     const file = formData.get('file') as File;
@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!organizationId) {
+    if (!courseId || !organizationId) {
       return NextResponse.json(
-        { error: 'organizationId is required' },
+        { error: 'courseId and organizationId are required' },
         { status: 400 }
       );
     }
@@ -62,9 +62,6 @@ export async function POST(req: NextRequest) {
 
     const manifestXml = await manifestFile.async('string');
     const manifest = await parseScormManifest(manifestXml);
-
-    console.log('[SCORM Upload] Parsed manifest objectives:', manifest.objectives);
-    console.log('[SCORM Upload] Full manifest being saved:', JSON.stringify(manifest, null, 2));
 
     // Validar estructura
     const validation = await validateScormPackage(zip, manifest);
@@ -104,7 +101,7 @@ export async function POST(req: NextRequest) {
       .insert({
         id: packageId,
         organization_id: organizationId,
-        course_id: courseId || null,
+        course_id: courseId,
         title: manifest.title,
         description: manifest.description,
         version: manifest.version,
@@ -124,9 +121,6 @@ export async function POST(req: NextRequest) {
         .remove([storagePath]);
       throw error;
     }
-
-    console.log('[SCORM Upload] Stored package manifest_data:', package_?.manifest_data);
-    console.log('[SCORM Upload] Stored objectives:', package_?.manifest_data?.objectives);
 
     return NextResponse.json({ success: true, package: package_ });
   } catch (error) {

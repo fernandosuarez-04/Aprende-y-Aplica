@@ -182,21 +182,8 @@ export class SessionService {
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned, signature_url, signature_name')
-        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned, signature_url, signature_name')
         .eq('id', userId)
         .single();
-
-      // Intentar obtener organization_id de forma separada (la columna puede no existir)
-      let organizationId: string | null = null;
-      const { data: orgData, error: orgError } = await supabase
-        .from('users')
-        .select('organization_id')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (!orgError && orgData) {
-        organizationId = orgData.organization_id || null;
-      }
 
       if (userError) {
         logger.error('Error obteniendo usuario de la DB:', {
@@ -222,26 +209,20 @@ export class SessionService {
         return null;
       }
 
-      // Combinar usuario con organization_id obtenido de forma separada
-      const userWithOrg = { ...user, organization_id: organizationId };
-
       logger.auth('✅ Usuario obtenido exitosamente', {
-        userId: userWithOrg.id,
-        username: userWithOrg.username,
-        email: userWithOrg.email,
-        cargo_rol: userWithOrg.cargo_rol,
-        organization_id: userWithOrg.organization_id,
-        role: (userWithOrg as any).role
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        cargo_rol: user.cargo_rol
       });
-
 
       // Cachear por token de sesión para evitar consultas repetidas
       const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
       if (sessionToken) {
-        cacheSet(`user-by-session:${sessionToken}`, userWithOrg, 30_000);
+        cacheSet(`user-by-session:${sessionToken}`, user, 30_000);
       }
 
-      return userWithOrg;
+      return user;
     } catch (error) {
       logger.error('💥 Error crítico obteniendo usuario actual:', {
         name: (error as any)?.name,

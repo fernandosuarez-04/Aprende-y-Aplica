@@ -69,24 +69,6 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                // Interceptor global para suprimir errores esperados que no son críticos
-                var originalConsoleError = console.error;
-                console.error = function(...args) {
-                  var message = args.join(' ');
-                  // Filtrar errores esperados que no son críticos
-                  if (
-                    (message.includes('401') && (message.includes('/api/auth/me') || message.includes('Unauthorized'))) ||
-                    (message.includes('404') && message.includes('organizations/login')) ||
-                    (message.includes('Failed to load resource') && (
-                      message.includes('401') && message.includes('/api/auth/me') ||
-                      message.includes('404') && message.includes('organizations/login')
-                    ))
-                  ) {
-                    return; // No mostrar estos errores esperados
-                  }
-                  originalConsoleError.apply(console, args);
-                };
-                
                 // Manejar errores de carga de chunks
                 window.addEventListener('error', function(e) {
                   if (e.message && (

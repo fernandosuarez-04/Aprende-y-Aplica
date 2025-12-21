@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { SessionService } from '@/features/auth/services/session.service';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await SessionService.getCurrentUser();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const supabase = await createClient();
 
     const { searchParams } = new URL(req.url);
     const organizationId = searchParams.get('organizationId');
@@ -26,10 +26,7 @@ export async function GET(req: NextRequest) {
       query = query.eq('organization_id', organizationId);
     }
 
-    if (courseId === 'none') {
-      // Filtrar solo paquetes SIN curso asociado
-      query = query.is('course_id', null);
-    } else if (courseId) {
+    if (courseId) {
       query = query.eq('course_id', courseId);
     }
 

@@ -2,13 +2,14 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
-import { 
-  ChevronDown, 
-  Edit3, 
-  LogOut, 
+import {
+  ChevronDown,
+  Edit3,
+  LogOut,
   Building2,
   Menu,
-  X
+  X,
+  Sparkles
 } from 'lucide-react'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { StyleConfig } from '@/features/business-panel/hooks/useOrganizationStyles'
@@ -51,37 +52,15 @@ export function ModernNavbar({
 
   // Calcular estilos del navbar basados en los estilos personalizados
   const navbarStyle = useMemo(() => {
-    if (!styles) {
-      return {
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderColor: 'rgba(229, 231, 235, 0.1)',
-        color: undefined as string | undefined
-      }
-    }
+    const sidebarBg = styles?.sidebar_background || '#0F172A'
+    const sidebarOpacity = styles?.sidebar_opacity !== undefined ? styles.sidebar_opacity : 0.9
+    const borderColor = styles?.border_color || 'rgba(255, 255, 255, 0.06)'
+    const textColor = styles?.text_color || '#FFFFFF'
 
-    const sidebarBg = styles.sidebar_background || '#1e293b'
-    const sidebarOpacity = styles.sidebar_opacity !== undefined ? styles.sidebar_opacity : 0.8
-    const borderColor = styles.border_color || 'rgba(229, 231, 235, 0.1)'
-    const textColor = styles.text_color
-
-    // Convertir hex a rgba si es necesario
     let backgroundColor: string
     if (sidebarBg.startsWith('#')) {
       const rgb = hexToRgb(sidebarBg)
       backgroundColor = `rgba(${rgb}, ${sidebarOpacity})`
-    } else if (sidebarBg.startsWith('rgba')) {
-      // Si ya es rgba, extraer el valor de opacidad y reemplazarlo
-      const rgbaMatch = sidebarBg.match(/rgba?\(([^)]+)\)/)
-      if (rgbaMatch) {
-        const parts = rgbaMatch[1].split(',')
-        if (parts.length >= 3) {
-          backgroundColor = `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${sidebarOpacity})`
-        } else {
-          backgroundColor = sidebarBg
-        }
-      } else {
-        backgroundColor = sidebarBg
-      }
     } else {
       backgroundColor = sidebarBg
     }
@@ -89,7 +68,7 @@ export function ModernNavbar({
     return {
       backgroundColor,
       borderColor,
-      color: textColor
+      textColor
     }
   }, [styles])
 
@@ -100,20 +79,25 @@ export function ModernNavbar({
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   return (
-    <nav 
-      className="sticky top-0 z-50 w-full border-b backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-gray-950/60"
+    <nav
+      className="sticky top-0 z-50 w-full backdrop-blur-xl border-b"
       style={{
         backgroundColor: navbarStyle.backgroundColor,
         borderColor: navbarStyle.borderColor,
-        color: navbarStyle.color
       }}
     >
+      {/* Subtle gradient line at top */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[1px]"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.3), rgba(16, 185, 129, 0.3), transparent)'
+        }}
+      />
+
       <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20">
         <div className="flex h-16 items-center justify-between">
           {/* Left: Logo y Nombre */}
@@ -125,7 +109,15 @@ export function ModernNavbar({
               className="flex items-center gap-3"
             >
               {(organization?.favicon_url || organization?.logo_url) ? (
-                <div className="relative h-12 w-12 rounded-xl overflow-hidden ring-1 ring-gray-200/30 dark:ring-gray-800/30 shadow-sm">
+                <motion.div
+                  className="relative h-11 w-11 rounded-xl overflow-hidden border shadow-lg"
+                  style={{
+                    borderColor: 'rgba(14, 165, 233, 0.2)',
+                    boxShadow: '0 4px 20px rgba(14, 165, 233, 0.15)'
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 400 }}
+                >
                   <Image
                     src={organization.favicon_url || organization.logo_url || '/icono.png'}
                     alt={organization.name}
@@ -135,25 +127,32 @@ export function ModernNavbar({
                       (e.target as HTMLImageElement).src = '/icono.png';
                     }}
                   />
-                </div>
+                </motion.div>
               ) : (
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center ring-1 ring-gray-200/30 dark:ring-gray-800/30 shadow-sm">
-                  <Building2 className="h-7 w-7 text-white" />
+                <div
+                  className="h-11 w-11 rounded-xl flex items-center justify-center border"
+                  style={{
+                    background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                    borderColor: 'rgba(14, 165, 233, 0.3)',
+                    boxShadow: '0 4px 20px rgba(14, 165, 233, 0.2)'
+                  }}
+                >
+                  <Building2 className="h-6 w-6 text-white" />
                 </div>
               )}
               <div className="hidden sm:block">
-                <h1 
+                <h1
                   className="text-base font-semibold leading-none"
-                  style={{ color: navbarStyle.color || undefined }}
+                  style={{ color: navbarStyle.textColor }}
                 >
                   {organization?.name || 'Mi Organización'}
                 </h1>
-                <p 
-                  className="text-xs mt-0.5 opacity-70"
-                  style={{ color: navbarStyle.color || undefined }}
-                >
-                  Panel de aprendizaje
-                </p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Sparkles className="w-3 h-3 text-cyan-400" />
+                  <p className="text-xs text-cyan-400/80">
+                    Panel de aprendizaje
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -164,11 +163,21 @@ export function ModernNavbar({
             <div className="hidden md:block relative" ref={dropdownRef}>
               <motion.button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
-                whileHover={{ scale: 1.02 }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all duration-300"
+                style={{
+                  backgroundColor: userDropdownOpen ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
+                  borderColor: userDropdownOpen ? 'rgba(14, 165, 233, 0.3)' : 'rgba(255, 255, 255, 0.06)'
+                }}
+                whileHover={{ scale: 1.02, backgroundColor: 'rgba(14, 165, 233, 0.08)' }}
                 whileTap={{ scale: 0.98 }}
               >
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center ring-2 ring-gray-200/50 dark:ring-gray-800/50">
+                <div
+                  className="h-8 w-8 rounded-full flex items-center justify-center border"
+                  style={{
+                    background: 'linear-gradient(135deg, #0EA5E9, #10B981)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                  }}
+                >
                   {user?.profile_picture_url ? (
                     <Image
                       src={user.profile_picture_url}
@@ -178,30 +187,28 @@ export function ModernNavbar({
                       className="h-full w-full rounded-full object-cover"
                     />
                   ) : (
-                    <span className="text-xs font-medium text-white">
+                    <span className="text-xs font-semibold text-white">
                       {getInitials()}
                     </span>
                   )}
                 </div>
                 <div className="text-left hidden lg:block">
-                  <p 
+                  <p
                     className="text-sm font-medium leading-none"
-                    style={{ color: navbarStyle.color || undefined }}
+                    style={{ color: navbarStyle.textColor }}
                   >
                     {getDisplayName()}
                   </p>
-                  <p 
-                    className="text-xs mt-0.5 opacity-70"
-                    style={{ color: navbarStyle.color || undefined }}
-                  >
+                  <p className="text-xs mt-0.5 text-gray-400">
                     {user?.email?.split('@')[0] || 'Usuario'}
                   </p>
                 </div>
-                <ChevronDown 
-                  className={`h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
-                    userDropdownOpen ? 'rotate-180' : ''
-                  }`}
-                />
+                <motion.div
+                  animate={{ rotate: userDropdownOpen ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                </motion.div>
               </motion.button>
 
               {/* Dropdown */}
@@ -212,53 +219,54 @@ export function ModernNavbar({
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="fixed inset-0 z-[998] bg-black/20 backdrop-blur-sm"
+                      className="fixed inset-0 z-[998]"
                       onClick={() => setUserDropdownOpen(false)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-64 rounded-xl border backdrop-blur-xl shadow-xl z-[999] overflow-hidden"
+                      className="absolute right-0 mt-2 w-72 rounded-2xl border backdrop-blur-xl shadow-2xl z-[999] overflow-hidden"
                       style={{
-                        backgroundColor: navbarStyle.backgroundColor,
-                        borderColor: navbarStyle.borderColor,
-                        color: navbarStyle.color
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        borderColor: 'rgba(255, 255, 255, 0.08)',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(14, 165, 233, 0.1)'
                       }}
                     >
-                      {/* User Info */}
-                      <div 
-                        className="px-4 py-3 border-b"
-                        style={{ borderColor: navbarStyle.borderColor }}
+                      {/* User Info Card */}
+                      <div
+                        className="p-4 border-b"
+                        style={{ borderColor: 'rgba(255, 255, 255, 0.06)' }}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center ring-2 ring-gray-200/50 dark:ring-gray-800/50">
+                          <div
+                            className="h-12 w-12 rounded-xl flex items-center justify-center border"
+                            style={{
+                              background: 'linear-gradient(135deg, #0EA5E9, #10B981)',
+                              borderColor: 'rgba(255, 255, 255, 0.2)',
+                              boxShadow: '0 4px 15px rgba(14, 165, 233, 0.3)'
+                            }}
+                          >
                             {user?.profile_picture_url ? (
                               <Image
                                 src={user.profile_picture_url}
                                 alt={getDisplayName()}
-                                width={40}
-                                height={40}
-                                className="h-full w-full rounded-full object-cover"
+                                width={48}
+                                height={48}
+                                className="h-full w-full rounded-xl object-cover"
                               />
                             ) : (
-                              <span className="text-sm font-medium text-white">
+                              <span className="text-lg font-bold text-white">
                                 {getInitials()}
                               </span>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p 
-                              className="text-sm font-semibold truncate"
-                              style={{ color: navbarStyle.color || undefined }}
-                            >
+                            <p className="text-sm font-semibold text-white truncate">
                               {getDisplayName()}
                             </p>
-                            <p 
-                              className="text-xs truncate opacity-70"
-                              style={{ color: navbarStyle.color || undefined }}
-                            >
+                            <p className="text-xs text-gray-400 truncate">
                               {user?.email || ''}
                             </p>
                           </div>
@@ -266,35 +274,53 @@ export function ModernNavbar({
                       </div>
 
                       {/* Menu Items */}
-                      <div className="py-1.5">
+                      <div className="py-2">
                         <motion.button
                           onClick={() => {
                             onProfileClick()
                             setUserDropdownOpen(false)
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:opacity-80"
-                          style={{ color: navbarStyle.color || undefined }}
-                          whileHover={{ x: 2 }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200"
+                          whileHover={{
+                            x: 4,
+                            backgroundColor: 'rgba(14, 165, 233, 0.1)'
+                          }}
                         >
-                          <Edit3 className="h-4 w-4 text-blue-500" />
-                          <span>Editar perfil</span>
+                          <div
+                            className="p-2 rounded-lg"
+                            style={{ backgroundColor: 'rgba(14, 165, 233, 0.15)' }}
+                          >
+                            <Edit3 className="h-4 w-4 text-cyan-400" />
+                          </div>
+                          <div className="text-left">
+                            <span className="text-white font-medium">Editar perfil</span>
+                            <p className="text-xs text-gray-400">Actualiza tu información</p>
+                          </div>
                         </motion.button>
 
-                        <div 
-                          className="h-px my-1.5" 
-                          style={{ backgroundColor: navbarStyle.borderColor }}
-                        />
+                        <div className="h-px mx-4 my-1" style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }} />
 
                         <motion.button
                           onClick={() => {
                             onLogout()
                             setUserDropdownOpen(false)
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                          whileHover={{ x: 2 }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200"
+                          whileHover={{
+                            x: 4,
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                          }}
                         >
-                          <LogOut className="h-4 w-4" />
-                          <span>Cerrar sesión</span>
+                          <div
+                            className="p-2 rounded-lg"
+                            style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
+                          >
+                            <LogOut className="h-4 w-4 text-red-400" />
+                          </div>
+                          <div className="text-left">
+                            <span className="text-red-400 font-medium">Cerrar sesión</span>
+                            <p className="text-xs text-gray-400">Salir de tu cuenta</p>
+                          </div>
                         </motion.button>
                       </div>
                     </motion.div>
@@ -304,16 +330,26 @@ export function ModernNavbar({
             </div>
 
             {/* Mobile Menu Button */}
-            <button
+            <motion.button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
+              className="md:hidden p-2 rounded-xl border transition-all duration-300"
+              style={{
+                backgroundColor: mobileMenuOpen ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
+                borderColor: mobileMenuOpen ? 'rgba(14, 165, 233, 0.3)' : 'rgba(255, 255, 255, 0.06)'
+              }}
+              whileTap={{ scale: 0.95 }}
             >
-              {mobileMenuOpen ? (
-                <X className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-              ) : (
-                <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-              )}
-            </button>
+              <motion.div
+                animate={{ rotate: mobileMenuOpen ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-5 w-5 text-cyan-400" />
+                ) : (
+                  <Menu className="h-5 w-5 text-gray-300" />
+                )}
+              </motion.div>
+            </motion.button>
           </div>
         </div>
       </div>
@@ -325,69 +361,72 @@ export function ModernNavbar({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="md:hidden border-t backdrop-blur-xl"
+            className="md:hidden border-t backdrop-blur-xl overflow-hidden"
             style={{
-              backgroundColor: navbarStyle.backgroundColor,
-              borderColor: navbarStyle.borderColor,
-              color: navbarStyle.color
+              backgroundColor: 'rgba(15, 23, 42, 0.98)',
+              borderColor: 'rgba(255, 255, 255, 0.06)'
             }}
           >
             <div className="px-4 py-4 space-y-3">
-              <div 
-                className="flex items-center gap-3 pb-3 border-b"
-                style={{ borderColor: navbarStyle.borderColor }}
+              {/* User Info */}
+              <div
+                className="flex items-center gap-3 pb-4 border-b"
+                style={{ borderColor: 'rgba(255, 255, 255, 0.06)' }}
               >
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <div
+                  className="h-12 w-12 rounded-xl flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #0EA5E9, #10B981)' }}
+                >
                   {user?.profile_picture_url ? (
                     <Image
                       src={user.profile_picture_url}
                       alt={getDisplayName()}
-                      width={40}
-                      height={40}
-                      className="h-full w-full rounded-full object-cover"
+                      width={48}
+                      height={48}
+                      className="h-full w-full rounded-xl object-cover"
                     />
                   ) : (
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-lg font-bold text-white">
                       {getInitials()}
                     </span>
                   )}
                 </div>
                 <div>
-                  <p 
-                    className="text-sm font-semibold"
-                    style={{ color: navbarStyle.color || undefined }}
-                  >
-                    {getDisplayName()}
-                  </p>
-                  <p 
-                    className="text-xs opacity-70"
-                    style={{ color: navbarStyle.color || undefined }}
-                  >
-                    {user?.email || ''}
-                  </p>
+                  <p className="text-sm font-semibold text-white">{getDisplayName()}</p>
+                  <p className="text-xs text-gray-400">{user?.email || ''}</p>
                 </div>
               </div>
-              <button
+
+              {/* Menu Items */}
+              <motion.button
                 onClick={() => {
                   onProfileClick()
                   setMobileMenuOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:opacity-80 transition-opacity"
-                style={{ color: navbarStyle.color || undefined }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors"
+                whileTap={{ scale: 0.98 }}
+                style={{ backgroundColor: 'rgba(14, 165, 233, 0.05)' }}
               >
-                <Edit3 className="h-4 w-4 text-blue-500" />
-                <span>Editar perfil</span>
-              </button>
-              <button
+                <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(14, 165, 233, 0.15)' }}>
+                  <Edit3 className="h-4 w-4 text-cyan-400" />
+                </div>
+                <span className="text-white font-medium">Editar perfil</span>
+              </motion.button>
+
+              <motion.button
                 onClick={() => {
                   onLogout()
                   setMobileMenuOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors"
+                whileTap={{ scale: 0.98 }}
+                style={{ backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
               >
-                <LogOut className="h-4 w-4" />
-                <span>Cerrar sesión</span>
-              </button>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)' }}>
+                  <LogOut className="h-4 w-4 text-red-400" />
+                </div>
+                <span className="text-red-400 font-medium">Cerrar sesión</span>
+              </motion.button>
             </div>
           </motion.div>
         )}

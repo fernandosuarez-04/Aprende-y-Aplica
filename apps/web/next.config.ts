@@ -105,7 +105,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Aplicar headers de seguridad a todas las rutas (EXCEPTO las que tienen headers más específicos después)
+        // Aplicar headers de seguridad a todas las rutas
         source: '/:path*',
         headers: [
           // Content Security Policy - Protege contra XSS
@@ -158,34 +158,6 @@ const nextConfig: NextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload'
           }] : [])
-        ],
-      },
-      {
-        // Headers permisivos para contenido SCORM (se carga en iframe)
-        // IMPORTANTE: Debe ir DESPUÉS del patrón general para que estos headers tengan prioridad
-        source: '/api/scorm/content/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:",
-              "style-src 'self' 'unsafe-inline' data:",
-              "img-src 'self' data: blob: https:",
-              "font-src 'self' data:",
-              "connect-src 'self' https:",
-              "media-src 'self' data: blob: https:",
-              "frame-ancestors 'self'",
-            ].join('; ')
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
-          },
-          {
-            key: 'Cache-Control',
-            value: 'private, max-age=3600',
-          },
         ],
       },
     ];

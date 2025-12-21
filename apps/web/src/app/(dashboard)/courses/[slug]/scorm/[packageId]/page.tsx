@@ -1,13 +1,12 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { SCORMPlayer, SCORMProgress, useScormPackage, useScormAttempts } from '@/features/scorm';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 
 export default function ScormCoursePage() {
   const params = useParams();
-  const router = useRouter();
   const packageId = params.packageId as string;
   const courseId = params.slug as string;
 
@@ -15,54 +14,10 @@ export default function ScormCoursePage() {
   const { attempts, latestAttempt, refetch: refetchAttempts } = useScormAttempts({ packageId });
 
   const [showHistory, setShowHistory] = useState(false);
-  const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [completionData, setCompletionData] = useState<{ status: string; score?: number } | null>(null);
 
-  // Definir handleComplete antes de usarlo en useEffect
-  const handleComplete = useCallback((status: string, score?: number) => {
+  const handleComplete = (status: string, score?: number) => {
     refetchAttempts();
-    setCompletionData({ status, score });
-    
-    // Mostrar modal de completado siempre que se complete el curso
-    // (incluso si el status es 'unknown', lo tratamos como completado)
-    setShowCompletionModal(true);
-  }, [refetchAttempts]);
-
-  // Debug: Log when package data is loaded
-  useEffect(() => {
-    if (package_) {
-      console.log('[ScormCoursePage] Package loaded:', package_.id);
-      console.log('[ScormCoursePage] manifest_data:', package_.manifest_data);
-      console.log('[ScormCoursePage] objectives:', package_.manifest_data?.objectives);
-    }
-  }, [package_]);
-
-  // Interceptar intentos de cerrar ventana desde el contenido SCORM
-  useEffect(() => {
-    // Interceptar window.close() en la ventana principal como respaldo
-    // (aunque el iframe debería manejar esto primero)
-    const originalClose = window.close;
-    window.close = function() {
-      // Si hay datos de completado, redirigir al curso en su lugar
-      if (completionData) {
-        router.push(`/courses/${courseId}`);
-        return;
-      }
-      // Si no hay datos de completado pero estamos en la página SCORM,
-      // intentar disparar el completado antes de cerrar
-      if (package_) {
-        // El SCORMPlayer debería manejar esto, pero como respaldo:
-        handleComplete('completed', undefined);
-        return;
-      }
-      // Permitir cierre normal en otros casos
-      return originalClose.call(window);
-    };
-
-    return () => {
-      window.close = originalClose;
-    };
-  }, [completionData, courseId, router, package_, handleComplete]);
+  };
 
   const handleError = (error: string) => {
     console.error('SCORM Error:', error);
@@ -107,23 +62,23 @@ export default function ScormCoursePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 bg-white dark:bg-neutral-900 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Breadcrumb */}
       <nav className="mb-4 text-sm">
-        <ol className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+        <ol className="flex items-center gap-2 text-neutral-500">
           <li>
-            <Link href="/courses" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <Link href="/courses" className="hover:text-primary-600 transition-colors">
               Cursos
             </Link>
           </li>
           <li>/</li>
           <li>
-            <Link href={`/courses/${courseId}`} className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <Link href={`/courses/${courseId}`} className="hover:text-primary-600 transition-colors">
               Curso
             </Link>
           </li>
           <li>/</li>
-          <li className="text-neutral-900 dark:text-white font-medium truncate max-w-[200px]">
+          <li className="text-neutral-900 font-medium truncate max-w-[200px]">
             {package_.title}
           </li>
         </ol>
@@ -131,12 +86,12 @@ export default function ScormCoursePage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">{package_.title}</h1>
+        <h1 className="text-2xl font-bold text-neutral-900">{package_.title}</h1>
         {package_.description && (
-          <p className="text-neutral-700 dark:text-neutral-200 mt-2 text-base leading-relaxed">{package_.description}</p>
+          <p className="text-neutral-600 mt-1">{package_.description}</p>
         )}
         <div className="flex items-center gap-4 mt-3 flex-wrap">
-          <span className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm font-medium shadow-sm">
+          <span className="px-2 py-1 bg-neutral-100 text-neutral-600 rounded text-sm">
             {package_.version === 'SCORM_2004' ? 'SCORM 2004' : 'SCORM 1.2'}
           </span>
           {latestAttempt && (
@@ -156,7 +111,7 @@ export default function ScormCoursePage() {
       {/* Historial de intentos */}
       {showHistory && attempts.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-3">Historial de Intentos</h2>
+          <h2 className="text-lg font-semibold text-neutral-900 mb-3">Historial de Intentos</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {attempts.map((attempt) => (
               <SCORMProgress key={attempt.id} attempt={attempt} />
@@ -174,57 +129,7 @@ export default function ScormCoursePage() {
         onComplete={handleComplete}
         onError={handleError}
         className="aspect-video max-h-[700px]"
-        objectives={
-          package_.manifest_data?.objectives
-            ? package_.manifest_data.objectives.map((obj: any) => ({
-                id: obj.id,
-                description: obj.description || ''
-              }))
-            : []
-        }
       />
-
-      {/* Modal de completado */}
-      {showCompletionModal && completionData && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">
-                {completionData.status === 'passed' ? '¡Curso Completado!' : 
-                 completionData.status === 'failed' ? 'Curso Finalizado' : 
-                 'Curso Completado'}
-              </h3>
-              {completionData.score !== undefined && (
-                <p className="text-neutral-600 dark:text-neutral-300 mb-4">
-                  Puntuación: {completionData.score}%
-                </p>
-              )}
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={() => {
-                    setShowCompletionModal(false);
-                    router.push(`/courses/${courseId}`);
-                  }}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  Volver al Curso
-                </button>
-                <button
-                  onClick={() => setShowCompletionModal(false)}
-                  className="px-6 py-2 bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors"
-                >
-                  Continuar Viendo
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,13 +1,6 @@
 import { parseStringPromise } from 'xml2js';
 import JSZip from 'jszip';
 
-export interface ScormObjective {
-  id: string;
-  description?: string;
-  satisfiedByMeasure?: boolean;
-  minNormalizedMeasure?: number;
-}
-
 export interface ScormManifest {
   version: 'SCORM_1.2' | 'SCORM_2004';
   title: string;
@@ -15,7 +8,6 @@ export interface ScormManifest {
   entryPoint: string;
   organizations: ScormOrganization[];
   resources: ScormResource[];
-  objectives: ScormObjective[];
 }
 
 interface ScormOrganization {
@@ -29,7 +21,6 @@ interface ScormItem {
   title: string;
   resourceId?: string;
   children?: ScormItem[];
-  objectives?: ScormObjective[];
 }
 
 interface ScormResource {
@@ -37,19 +28,6 @@ interface ScormResource {
   type: string;
   href?: string;
   files: string[];
-}
-
-// Helper to get a value from an object trying multiple key variations (with/without namespace)
-function getWithNS(obj: any, ...keys: string[]): any {
-  if (!obj) return undefined;
-  for (const key of keys) {
-    if (obj[key] !== undefined) return obj[key];
-    // Try with common namespace prefixes
-    for (const ns of ['imsss:', 'adlseq:', 'adlcp:', 'adlnav:', '']) {
-      if (obj[ns + key] !== undefined) return obj[ns + key];
-    }
-  }
-  return undefined;
 }
 
 export async function parseScormManifest(xml: string): Promise<ScormManifest> {
@@ -93,9 +71,6 @@ export async function parseScormManifest(xml: string): Promise<ScormManifest> {
     manifest.metadata?.lom?.general?.title?.string ||
     'Untitled Course';
 
-  // Extraer objetivos del manifest
-  const objectives = extractObjectives(manifest, organizations);
-
   return {
     version,
     title,
@@ -103,7 +78,6 @@ export async function parseScormManifest(xml: string): Promise<ScormManifest> {
     entryPoint,
     organizations,
     resources,
-    objectives,
   };
 }
 
@@ -115,113 +89,7 @@ function parseItems(items: any): ScormItem[] {
     title: item.title || '',
     resourceId: item['$']?.identifierref,
     children: parseItems(item.item),
-    objectives: parseItemObjectives(item),
   }));
-}
-
-function parseItemObjectives(item: any): ScormObjective[] {
-  const objectives: ScormObjective[] = [];
-
-  // SCORM 2004 objectives can be in various namespaces
-  const sequencing = getWithNS(item, 'sequencing');
-
-  if (sequencing) {
-    const objectivesContainer = getWithNS(sequencing, 'objectives');
-
-    if (objectivesContainer) {
-      // Primary objective
-      const primaryObjective = getWithNS(objectivesContainer, 'primaryObjective');
-
-      if (primaryObjective) {
-        const objId = primaryObjective['$']?.objectiveID;
-        if (objId) {
-          const minMeasure = getWithNS(primaryObjective, 'minNormalizedMeasure');
-          objectives.push({
-            id: objId,
-            satisfiedByMeasure: primaryObjective['$']?.satisfiedByMeasure === 'true',
-            minNormalizedMeasure: parseFloat(minMeasure || '0'),
-          });
-        }
-      }
-
-      // Secondary objectives
-      const otherObjectives = getWithNS(objectivesContainer, 'objective');
-
-      if (otherObjectives) {
-        const objArr = Array.isArray(otherObjectives) ? otherObjectives : [otherObjectives];
-        objArr.forEach((obj: any) => {
-          const objId = obj['$']?.objectiveID;
-          if (objId) {
-            const minMeasure = getWithNS(obj, 'minNormalizedMeasure');
-            objectives.push({
-              id: objId,
-              satisfiedByMeasure: obj['$']?.satisfiedByMeasure === 'true',
-              minNormalizedMeasure: parseFloat(minMeasure || '0'),
-            });
-          }
-        });
-      }
-    }
-  }
-
-  return objectives;
-}
-
-function extractObjectives(manifest: any, organizations: ScormOrganization[]): ScormObjective[] {
-  const allObjectives: ScormObjective[] = [];
-  const seenIds = new Set<string>();
-
-  // Extract objectives from all items in all organizations
-  function collectFromItems(items: ScormItem[]) {
-    for (const item of items) {
-      if (item.objectives) {
-        for (const obj of item.objectives) {
-          if (!seenIds.has(obj.id)) {
-            seenIds.add(obj.id);
-            allObjectives.push(obj);
-          }
-        }
-      }
-      if (item.children) {
-        collectFromItems(item.children);
-      }
-    }
-  }
-
-  for (const org of organizations) {
-    collectFromItems(org.items);
-  }
-
-  // Also check for global objectives in the manifest
-  const globalSeq = getWithNS(manifest, 'sequencingCollection');
-
-  if (globalSeq) {
-    const sequencing = getWithNS(globalSeq, 'sequencing');
-    if (sequencing) {
-      const objectivesContainer = getWithNS(sequencing, 'objectives');
-      if (objectivesContainer) {
-        const globalObjectives = getWithNS(objectivesContainer, 'objective');
-
-        if (globalObjectives) {
-          const objArr = Array.isArray(globalObjectives) ? globalObjectives : [globalObjectives];
-          objArr.forEach((obj: any) => {
-            const objId = obj['$']?.objectiveID;
-            if (objId && !seenIds.has(objId)) {
-              seenIds.add(objId);
-              const minMeasure = getWithNS(obj, 'minNormalizedMeasure');
-              allObjectives.push({
-                id: objId,
-                satisfiedByMeasure: obj['$']?.satisfiedByMeasure === 'true',
-                minNormalizedMeasure: parseFloat(minMeasure || '0'),
-              });
-            }
-          });
-        }
-      }
-    }
-  }
-
-  return allObjectives;
 }
 
 function parseFiles(files: any): string[] {

@@ -19,7 +19,6 @@ const loginSchema = z.object({
 
 export async function loginAction(formData: FormData) {
   try {
-    console.log('🔐 [loginAction] Iniciando login...')
 
     // 1. Validar datos
     const parsed = loginSchema.parse({
@@ -27,8 +26,6 @@ export async function loginAction(formData: FormData) {
       password: formData.get('password'),
       rememberMe: formData.get('rememberMe') === 'true',
     })
-
-    console.log('📧 [loginAction] Buscando usuario:', parsed.emailOrUsername)
 
     // 2. Crear cliente Supabase
     const supabase = await createClient()
@@ -48,7 +45,6 @@ export async function loginAction(formData: FormData) {
 
     let { data: userByUsername, error: usernameError } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
       .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
       .ilike('username', parsed.emailOrUsername)
       .maybeSingle()
@@ -76,39 +72,14 @@ export async function loginAction(formData: FormData) {
     const user = userByUsername || userByEmail
     const error = userByUsername ? usernameError : emailError
 
-    console.log('🔍 [loginAction] Resultado búsqueda:', {
-      userByUsername: userByUsername ? 'encontrado' : 'no encontrado',
-      userByEmail: userByEmail ? 'encontrado' : 'no encontrado',
-      usernameError: usernameError?.message || null,
-      emailError: emailError?.message || null,
-    })
-
     if (error || !user) {
       console.log('❌ [loginAction] Usuario NO encontrado:', {
         usernameError: usernameError?.message,
         emailError: emailError?.message,
         inputProvided: parsed.emailOrUsername
-      });      console.log('❌ [loginAction] Usuario NO encontrado en la base de datos')
+      });
       return { error: 'Credenciales inválidas' }
     }
-
-    // Intentar obtener organization_id de forma separada (la columna puede no existir)
-    let userOrganizationId: string | null = null
-    const { data: orgData, error: orgError } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    if (!orgError && orgData) {
-      userOrganizationId = orgData.organization_id || null
-    } else if (orgError) {
-      // La columna organization_id puede no existir - continuar sin ella
-      console.log('ℹ️ [loginAction] Columna organization_id no disponible:', orgError.message)
-    }
-
-    // Reasignar user con organization_id incluido
-    const user_final = { ...user, organization_id: userOrganizationId } as typeof user & { organization_id: string | null }
 
     console.log('👤 [loginAction] Usuario encontrado:', {
       id: user.id,
@@ -127,20 +98,13 @@ export async function loginAction(formData: FormData) {
 
     // 4. Verificar contraseña con bcrypt (como en tu sistema anterior)
     if (!user.password_hash) {
-      console.log('❌ [loginAction] Usuario sin password_hash configurado')
+
       return { error: 'Error en la configuración de la cuenta. Por favor, contacta al soporte.' }
     }
 
-    console.log('🔑 [loginAction] Verificando contraseña...', {
-      hasPasswordHash: !!user.password_hash,
-      hashLength: user.password_hash.length,
-    })
-
     const passwordValid = await bcrypt.compare(parsed.password, user.password_hash)
-    console.log('🔑 [loginAction] Contraseña válida:', passwordValid)
 
     if (!passwordValid) {
-      console.log('❌ [loginAction] Contraseña incorrecta')
 
       // Crear notificación de intento de inicio de sesión fallido
       try {
@@ -190,8 +154,8 @@ export async function loginAction(formData: FormData) {
         return { error: 'Esta organización no tiene acceso a login personalizado' }
       }
 
-      // Verificar pertenencia a organización (users.organization_id y organization_users)
-      const belongsViaDirect = user_final.organization_id === organizationId
+      // Verificar pertenencia a organización solo via organization_users
+      // (users.organization_id fue eliminada)
 
       // Verificar organization_users
       const { data: orgUser } = await supabase
@@ -219,17 +183,6 @@ export async function loginAction(formData: FormData) {
 
         if (userOrgs && userOrgs.length > 0) {
           correctSlug = userOrgs[0].organizations?.slug || null
-        } else if (user_final.organization_id) {
-          // Prioridad 2: Si no hay en organization_users, usar users.organization_id
-          const { data: userOrg } = await supabase
-            .from('organizations')
-            .select('slug')
-            .eq('id', user_final.organization_id)
-            .single()
-
-          if (userOrg) {
-            correctSlug = userOrg.slug
-          }
         }
 
         // Retornar error con información de redirección
@@ -372,12 +325,16 @@ export async function loginAction(formData: FormData) {
       // No fallar el login si falla la limpieza
     }
 
-    // 7. Redirigir según el rol del usuario (ya autenticado exitosamente)
-    const normalizedRole = user_final.cargo_rol?.trim();
-    console.log('🎯 [loginAction] Determinando redirección según rol:', {
-      cargo_rol: user_final.cargo_rol,
-      normalizedRole,
-      organization_id: user_final.organization_id
+    // 8. REDIRECCIÓN BASADA EN CARGO_ROL (Enfoque B2B)
+    // - Administrador → /admin/dashboard
+    // - Business → /business-panel/dashboard (Panel Admin Empresas) - REQUIERE organización
+    // - Business User → /business-user/dashboard (Dashboard Usuario Business) - REQUIERE organización
+    // - Usuario (o cualquier otro) → /dashboard (Tour SOFIA + Planes)
+
+    const normalizedRole = user.cargo_rol?.trim();
+    console.log('🎯 [loginAction] Determinando redirección según cargo_rol:', {
+      cargo_rol: user.cargo_rol,
+      normalizedRole
     });
 
     // En lugar de usar redirect(), devolver la URL para que el cliente maneje la navegación
