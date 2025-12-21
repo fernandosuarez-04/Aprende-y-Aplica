@@ -56,15 +56,20 @@ function createAdminClient() {
   });
 }
 
+// Nombre del calendario secundario de la plataforma
+const PLATFORM_CALENDAR_NAME = 'Aprende y Aplica - Sesiones de Estudio';
+
 export class CalendarIntegrationService {
   /**
    * Genera la URL de autorización para Google Calendar
-   * Usa calendar.events.owned para permitir crear, modificar y eliminar eventos
+   * Usa scopes completos para crear calendarios secundarios y consultar todos los calendarios
    */
   static getGoogleAuthUrl(userId: string): string {
-    // calendar.events.owned permite: consultar, crear, modificar y borrar eventos en calendarios propios
+    // calendar: permite crear, ver, editar y borrar calendarios y eventos
+    // calendar.settings.readonly: permite consultar configuración del usuario
     const scopes = [
-      'https://www.googleapis.com/auth/calendar.events.owned',
+      'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/calendar.settings.readonly',
     ].join(' ');
     
     const params = new URLSearchParams({
@@ -155,7 +160,7 @@ export class CalendarIntegrationService {
       
       // VERIFICACIÓN DE SEGURIDAD: Obtener el email del usuario del calendario
       const calendarUserEmail = await this.getGoogleUserEmail(tokens.access_token);
-      
+
       if (calendarUserEmail) {
 
         // Si tenemos email esperado, verificar que coincida
@@ -167,9 +172,24 @@ export class CalendarIntegrationService {
           throw new Error(`EMAIL_MISMATCH: El calendario conectado pertenece a "${calendarUserEmail}" pero estás logueado como "${expectedEmail}". Por favor, inicia sesión en Google con la cuenta correcta o cierra la sesión de Google y vuelve a intentar.`);
         }
       }
-      
+
       // Guardar en base de datos con el email del calendario
-      return await this.saveCalendarIntegration(userId, 'google', tokens, calendarUserEmail);
+      const integration = await this.saveCalendarIntegration(userId, 'google', tokens, calendarUserEmail);
+
+      // CREAR CALENDARIO SECUNDARIO: Al conectar por primera vez, crear el calendario de la plataforma
+      if (integration) {
+        console.log('[Calendar Integration] Creando calendario secundario de la plataforma...');
+        const secondaryCalendarId = await this.getOrCreatePlatformCalendar(tokens.access_token);
+
+        if (secondaryCalendarId) {
+          await this.saveSecondaryCalendarId(userId, secondaryCalendarId);
+          console.log('[Calendar Integration] ✅ Calendario secundario creado y guardado:', secondaryCalendarId);
+        } else {
+          console.warn('[Calendar Integration] ⚠️ No se pudo crear el calendario secundario, se usará el principal');
+        }
+      }
+
+      return integration;
       
     } catch (error) {
       console.error('Error conectando Google Calendar:', error);
@@ -191,12 +211,12 @@ export class CalendarIntegrationService {
           Authorization: `Bearer ${accessToken}`,
         },
       });
-      
+
       if (!response.ok) {
         console.error('Error obteniendo info de usuario de Google:', await response.text());
         return null;
       }
-      
+
       const data = await response.json();
       return data.email || null;
     } catch (error) {
@@ -204,7 +224,243 @@ export class CalendarIntegrationService {
       return null;
     }
   }
-  
+
+  /**
+   * Obtiene la lista de todos los calendarios del usuario de Google
+   */
+  static async getGoogleCalendarList(accessToken: string): Promise<Array<{
+    id: string;
+    summary: string;
+    primary: boolean;
+    accessRole: string;
+    backgroundColor?: string;
+  }>> {
+    try {
+      const response = await fetch(
+        'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error('[Calendar] Error obteniendo lista de calendarios:', await response.text());
+        return [];
+      }
+
+      const data = await response.json();
+      return (data.items || []).map((cal: any) => ({
+        id: cal.id,
+        summary: cal.summary || 'Sin nombre',
+        primary: cal.primary || false,
+        accessRole: cal.accessRole || 'reader',
+        backgroundColor: cal.backgroundColor,
+      }));
+    } catch (error) {
+      console.error('[Calendar] Error obteniendo lista de calendarios:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca el calendario secundario de la plataforma por nombre
+   */
+  private static async findPlatformCalendar(accessToken: string): Promise<string | null> {
+    const calendars = await this.getGoogleCalendarList(accessToken);
+    const platformCal = calendars.find(cal => cal.summary === PLATFORM_CALENDAR_NAME);
+    return platformCal?.id || null;
+  }
+
+  /**
+   * Crea un calendario secundario para la plataforma
+   */
+  private static async createPlatformCalendar(accessToken: string): Promise<string | null> {
+    try {
+      const response = await fetch(
+        'https://www.googleapis.com/calendar/v3/calendars',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            summary: PLATFORM_CALENDAR_NAME,
+            description: 'Calendario de sesiones de estudio creado por Aprende y Aplica',
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error('[Calendar] Error creando calendario secundario:', await response.text());
+        return null;
+      }
+
+      const data = await response.json();
+      console.log('[Calendar] Calendario secundario creado:', data.id);
+      return data.id;
+    } catch (error) {
+      console.error('[Calendar] Error creando calendario secundario:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Obtiene o crea el calendario secundario de la plataforma
+   * Retorna el calendarId del calendario secundario
+   */
+  static async getOrCreatePlatformCalendar(accessToken: string): Promise<string | null> {
+    // Primero buscar si ya existe
+    let calendarId = await this.findPlatformCalendar(accessToken);
+
+    if (calendarId) {
+      console.log('[Calendar] Calendario secundario existente encontrado:', calendarId);
+      return calendarId;
+    }
+
+    // Si no existe, crearlo
+    calendarId = await this.createPlatformCalendar(accessToken);
+    return calendarId;
+  }
+
+  /**
+   * Obtiene información de disponibilidad (free/busy) de todos los calendarios del usuario
+   * Usa la API freeBusy para consultar múltiples calendarios en una sola petición
+   */
+  static async getFreeBusyInfo(
+    accessToken: string,
+    startDate: Date,
+    endDate: Date,
+    calendarIds?: string[]
+  ): Promise<{
+    calendars: Record<string, { busy: Array<{ start: string; end: string }> }>;
+    allBusySlots: Array<{ start: Date; end: Date }>;
+  }> {
+    try {
+      // Si no se especifican calendarios, obtener todos
+      let idsToQuery = calendarIds;
+      if (!idsToQuery || idsToQuery.length === 0) {
+        const calendars = await this.getGoogleCalendarList(accessToken);
+        // Consultar todos los calendarios donde el usuario tiene acceso de lectura o superior
+        idsToQuery = calendars
+          .filter(cal => ['owner', 'writer', 'reader'].includes(cal.accessRole))
+          .map(cal => cal.id);
+      }
+
+      if (idsToQuery.length === 0) {
+        return { calendars: {}, allBusySlots: [] };
+      }
+
+      const response = await fetch(
+        'https://www.googleapis.com/calendar/v3/freeBusy',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            timeMin: startDate.toISOString(),
+            timeMax: endDate.toISOString(),
+            items: idsToQuery.map(id => ({ id })),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error('[Calendar] Error obteniendo free/busy:', await response.text());
+        return { calendars: {}, allBusySlots: [] };
+      }
+
+      const data = await response.json();
+      const calendars: Record<string, { busy: Array<{ start: string; end: string }> }> = {};
+      const allBusySlots: Array<{ start: Date; end: Date }> = [];
+
+      // Procesar respuesta
+      for (const [calId, calData] of Object.entries(data.calendars || {})) {
+        const busyInfo = calData as { busy?: Array<{ start: string; end: string }> };
+        calendars[calId] = { busy: busyInfo.busy || [] };
+
+        // Agregar todos los slots ocupados a la lista combinada
+        for (const slot of busyInfo.busy || []) {
+          allBusySlots.push({
+            start: new Date(slot.start),
+            end: new Date(slot.end),
+          });
+        }
+      }
+
+      // Ordenar y fusionar slots superpuestos
+      allBusySlots.sort((a, b) => a.start.getTime() - b.start.getTime());
+      const mergedSlots: Array<{ start: Date; end: Date }> = [];
+
+      for (const slot of allBusySlots) {
+        if (mergedSlots.length === 0) {
+          mergedSlots.push({ ...slot });
+        } else {
+          const last = mergedSlots[mergedSlots.length - 1];
+          if (slot.start <= last.end) {
+            // Slots se superponen, fusionar
+            last.end = new Date(Math.max(last.end.getTime(), slot.end.getTime()));
+          } else {
+            mergedSlots.push({ ...slot });
+          }
+        }
+      }
+
+      return { calendars, allBusySlots: mergedSlots };
+    } catch (error) {
+      console.error('[Calendar] Error obteniendo free/busy:', error);
+      return { calendars: {}, allBusySlots: [] };
+    }
+  }
+
+  /**
+   * Guarda el calendarId del calendario secundario en la integración del usuario
+   */
+  private static async saveSecondaryCalendarId(userId: string, calendarId: string): Promise<void> {
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from('calendar_integrations')
+      .update({
+        metadata: { secondary_calendar_id: calendarId },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('provider', 'google');
+
+    if (error) {
+      console.error('[Calendar] Error guardando secondary_calendar_id:', error);
+    } else {
+      console.log('[Calendar] secondary_calendar_id guardado:', calendarId);
+    }
+  }
+
+  /**
+   * Obtiene el calendarId del calendario secundario guardado en la BD
+   */
+  static async getSecondaryCalendarId(userId: string): Promise<string | null> {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from('calendar_integrations')
+      .select('metadata')
+      .eq('user_id', userId)
+      .eq('provider', 'google')
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    const metadata = data.metadata as { secondary_calendar_id?: string } | null;
+    return metadata?.secondary_calendar_id || null;
+  }
+
   /**
    * Parsea errores de OAuth de Google y devuelve mensajes claros
    */
@@ -587,11 +843,13 @@ export class CalendarIntegrationService {
       const calendarsData = await calendarsResponse.json();
       const calendars = calendarsData.items || [];
 
-      // Obtener eventos de todos los calendarios del propietario
+      // Obtener eventos de TODOS los calendarios del usuario (owner, writer, reader)
+      // para detectar conflictos de horarios completos
       const allEvents: CalendarEvent[] = [];
-      
+
       for (const calendar of calendars) {
-        if (calendar.accessRole === 'owner' || calendar.accessRole === 'writer' || calendar.primary) {
+        // Incluir todos los calendarios donde el usuario tiene acceso de lectura o superior
+        if (['owner', 'writer', 'reader'].includes(calendar.accessRole) || calendar.primary) {
           const events = await this.getEventsFromSingleCalendar(accessToken, calendar.id, startDate, endDate);
           allEvents.push(...events);
         }
@@ -889,24 +1147,218 @@ export class CalendarIntegrationService {
    */
   static async disconnectCalendar(userId: string, provider?: 'google' | 'microsoft'): Promise<boolean> {
     const supabase = createAdminClient();
-    
+
     let query = supabase
       .from('calendar_integrations')
       .delete()
       .eq('user_id', userId);
-    
+
     if (provider) {
       query = query.eq('provider', provider);
     }
-    
+
     const { error } = await query;
-    
+
     if (error) {
       console.error('Error desconectando calendario:', error);
       return false;
     }
-    
+
     return true;
+  }
+
+  // ==========================================
+  // FUNCIONES CRUD PARA EVENTOS DE CALENDARIO
+  // ==========================================
+
+  /**
+   * Crea un evento en el calendario secundario de Google
+   * IMPORTANTE: Los eventos se crean ÚNICAMENTE en el calendario secundario de la plataforma
+   */
+  static async createGoogleEvent(
+    accessToken: string,
+    event: {
+      title: string;
+      description?: string;
+      startTime: string;
+      endTime: string;
+      timezone: string;
+      location?: string;
+    },
+    calendarId: string | null
+  ): Promise<{ id: string; htmlLink?: string } | null> {
+    try {
+      // Usar el calendario secundario si está disponible, sino el primario
+      const targetCalendarId = calendarId || 'primary';
+
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            summary: event.title,
+            description: event.description || '',
+            location: event.location || '',
+            start: {
+              dateTime: event.startTime,
+              timeZone: event.timezone,
+            },
+            end: {
+              dateTime: event.endTime,
+              timeZone: event.timezone,
+            },
+            reminders: {
+              useDefault: false,
+              overrides: [
+                { method: 'popup', minutes: 15 },
+              ],
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error('[Calendar] Error creando evento:', await response.text());
+        return null;
+      }
+
+      const data = await response.json();
+      return { id: data.id, htmlLink: data.htmlLink };
+    } catch (error) {
+      console.error('[Calendar] Error creando evento:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Actualiza un evento en el calendario secundario de Google
+   */
+  static async updateGoogleEvent(
+    accessToken: string,
+    eventId: string,
+    event: {
+      title?: string;
+      description?: string;
+      startTime?: string;
+      endTime?: string;
+      timezone?: string;
+      location?: string;
+    },
+    calendarId: string | null
+  ): Promise<boolean> {
+    try {
+      const targetCalendarId = calendarId || 'primary';
+
+      const updateData: any = {};
+      if (event.title) updateData.summary = event.title;
+      if (event.description !== undefined) updateData.description = event.description;
+      if (event.location !== undefined) updateData.location = event.location;
+      if (event.startTime && event.timezone) {
+        updateData.start = { dateTime: event.startTime, timeZone: event.timezone };
+      }
+      if (event.endTime && event.timezone) {
+        updateData.end = { dateTime: event.endTime, timeZone: event.timezone };
+      }
+
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${eventId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
+
+      if (!response.ok) {
+        console.error('[Calendar] Error actualizando evento:', await response.text());
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[Calendar] Error actualizando evento:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Elimina un evento del calendario secundario de Google
+   */
+  static async deleteGoogleEvent(
+    accessToken: string,
+    eventId: string,
+    calendarId: string | null
+  ): Promise<boolean> {
+    try {
+      const targetCalendarId = calendarId || 'primary';
+
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${eventId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      // 404 significa que el evento ya no existe, lo cual es válido
+      if (!response.ok && response.status !== 404) {
+        console.error('[Calendar] Error eliminando evento:', await response.text());
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[Calendar] Error eliminando evento:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Obtiene el calendario secundario del usuario, creándolo si no existe
+   * Esta función es una conveniencia para obtener todo lo necesario para operaciones de calendario
+   */
+  static async getCalendarIdForUser(userId: string): Promise<{
+    calendarId: string | null;
+    accessToken: string | null;
+    provider: 'google' | 'microsoft' | null;
+  }> {
+    // Refrescar token si es necesario
+    const accessToken = await this.refreshTokenIfNeeded(userId);
+    if (!accessToken) {
+      return { calendarId: null, accessToken: null, provider: null };
+    }
+
+    // Obtener integración
+    const integration = await this.getCalendarIntegration(userId);
+    if (!integration || !integration.isConnected) {
+      return { calendarId: null, accessToken: null, provider: null };
+    }
+
+    // Solo Google tiene calendario secundario
+    if (integration.provider !== 'google') {
+      return { calendarId: null, accessToken, provider: integration.provider };
+    }
+
+    // Obtener o crear calendario secundario
+    let calendarId = await this.getSecondaryCalendarId(userId);
+
+    if (!calendarId) {
+      calendarId = await this.getOrCreatePlatformCalendar(accessToken);
+      if (calendarId) {
+        await this.saveSecondaryCalendarId(userId, calendarId);
+      }
+    }
+
+    return { calendarId, accessToken, provider: integration.provider };
   }
 }
 

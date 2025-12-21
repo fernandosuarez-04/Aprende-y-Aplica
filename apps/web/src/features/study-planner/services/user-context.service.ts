@@ -29,69 +29,103 @@ export class UserContextService {
    * Determina si el usuario es B2B o B2C basado en organization_id
    */
   static async getUserType(userId: string): Promise<UserType> {
-    const supabase = await createClient();
-    
-    const { data, error } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', userId)
-      .single();
-    
-    if (error) {
-      console.error('Error obteniendo tipo de usuario:', error);
-      throw new Error('No se pudo determinar el tipo de usuario');
+    try {
+      const supabase = await createClient();
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('organization_id')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error obteniendo tipo de usuario:', error);
+        // En caso de error, default a B2C en lugar de lanzar excepción
+        console.warn(`[UserContextService] Defaulting to b2c for user ${userId} due to error`);
+        return 'b2c';
+      }
+
+      const userType = data.organization_id ? 'b2b' : 'b2c';
+
+      // Log para debugging
+      console.log(`[UserContextService] Detección de tipo de usuario:`, {
+        userId,
+        organization_id: data.organization_id,
+        userType,
+      });
+
+      return userType;
+    } catch (unexpectedError) {
+      console.error('Error inesperado obteniendo tipo de usuario:', unexpectedError);
+      // Default a B2C si hay error inesperado
+      return 'b2c';
     }
-    
-    const userType = data.organization_id ? 'b2b' : 'b2c';
-    
-    // Log para debugging
-    console.log(`[UserContextService] Detección de tipo de usuario:`, {
-      userId,
-      organization_id: data.organization_id,
-      userType,
-    });
-    
-    return userType;
   }
 
   /**
    * Obtiene la información básica del usuario
    */
   static async getUserBasicInfo(userId: string): Promise<UserBasicInfo> {
-    const supabase = await createClient();
-    
-    const { data, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        username,
-        email,
-        first_name,
-        last_name,
-        display_name,
-        profile_picture_url,
-        cargo_rol,
-        type_rol
-      `)
-      .eq('id', userId)
-      .single();
-    
-    if (error) {
-      console.error('Error obteniendo información básica del usuario:', error);
-      throw new Error('No se pudo obtener la información del usuario');
+    try {
+      const supabase = await createClient();
+
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          username,
+          email,
+          first_name,
+          last_name,
+          display_name,
+          profile_picture_url,
+          cargo_rol,
+          type_rol
+        `)
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error obteniendo información básica del usuario:', error);
+        // Retornar información mínima en lugar de lanzar excepción
+        return {
+          id: userId,
+          username: null,
+          email: null,
+          firstName: null,
+          lastName: null,
+          displayName: null,
+          profilePictureUrl: null,
+          cargoRol: null,
+          typeRol: null,
+        };
+      }
+
+      return {
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        displayName: data.display_name,
+        profilePictureUrl: data.profile_picture_url,
+        cargoRol: data.cargo_rol,
+        typeRol: data.type_rol,
+      };
+    } catch (unexpectedError) {
+      console.error('Error inesperado obteniendo información básica del usuario:', unexpectedError);
+      return {
+        id: userId,
+        username: null,
+        email: null,
+        firstName: null,
+        lastName: null,
+        displayName: null,
+        profilePictureUrl: null,
+        cargoRol: null,
+        typeRol: null,
+      };
     }
-    
-    return {
-      id: data.id,
-      username: data.username,
-      email: data.email,
-      firstName: data.first_name,
-      lastName: data.last_name,
-      displayName: data.display_name,
-      profilePictureUrl: data.profile_picture_url,
-      cargoRol: data.cargo_rol,
-      typeRol: data.type_rol,
-    };
   }
 
   /**

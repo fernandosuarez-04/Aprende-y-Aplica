@@ -2345,9 +2345,96 @@ export function StudyPlannerLIA() {
   // Verificar y preguntar sobre enfoque y fecha antes de analizar calendario
   const checkAndAskStudyPreferences = async (provider: string) => {
     if (!hasAskedApproach || !studyApproach) {
-      // Mostrar mensaje y abrir modal de enfoque
-      const approachMsg = `¡Calendario de ${provider === 'google' ? 'Google' : 'Microsoft'} conectado exitosamente!\n\nAntes de crear tu plan de estudios personalizado, necesito conocer tu preferencia de ritmo de estudio.`;
-      
+      const providerName = provider === 'google' ? 'Google' : 'Microsoft';
+
+      // ✅ CRÍTICO: Si userContext no está disponible, recargarlo ahora
+      let currentUserContext = userContext;
+      let currentAssignedCourses = assignedCourses;
+
+      if (!currentUserContext?.userType) {
+        console.log('⚠️ [checkAndAskStudyPreferences] userContext no disponible, recargando...');
+        try {
+          const userResponse = await fetch('/api/study-planner/user-context');
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            if (userData.success && userData.data) {
+              const userProfile = userData.data;
+              console.log('✅ [checkAndAskStudyPreferences] Contexto recargado:', {
+                userType: userProfile.userType,
+                hasOrganization: !!userProfile.organization,
+              });
+
+              // Actualizar estado
+              setUserContext({
+                userType: userProfile.userType || null,
+                rol: userProfile.professionalProfile?.rol?.nombre || null,
+                area: userProfile.professionalProfile?.area?.nombre || null,
+                nivel: userProfile.professionalProfile?.nivel?.nombre || null,
+                tamanoEmpresa: userProfile.professionalProfile?.tamanoEmpresa?.nombre || null,
+                organizationName: userProfile.organization?.name || null,
+                minEmpleados: userProfile.professionalProfile?.tamanoEmpresa?.minEmpleados || null,
+                maxEmpleados: userProfile.professionalProfile?.tamanoEmpresa?.maxEmpleados || null,
+              });
+
+              currentUserContext = { userType: userProfile.userType };
+
+              // También cargar cursos asignados si es B2B
+              if (userProfile.userType === 'b2b' && userProfile.courses?.length > 0) {
+                const coursesWithDueDates = userProfile.courses
+                  .filter((c: any) => c.dueDate)
+                  .map((c: any) => ({
+                    courseId: c.courseId,
+                    title: c.course?.title || 'Curso sin título',
+                    dueDate: c.dueDate,
+                  }))
+                  .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+                if (coursesWithDueDates.length > 0) {
+                  setAssignedCourses(coursesWithDueDates);
+                  currentAssignedCourses = coursesWithDueDates;
+                  console.log('✅ [checkAndAskStudyPreferences] Cursos asignados recargados:', coursesWithDueDates.length);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('❌ [checkAndAskStudyPreferences] Error recargando contexto:', error);
+        }
+      }
+
+      const isB2B = currentUserContext?.userType === 'b2b';
+
+      let approachMsg: string;
+      let audioMsg: string;
+
+      // Mensaje personalizado para usuarios B2B con cursos asignados
+      if (isB2B && currentAssignedCourses.length > 0) {
+        const nearestCourse = currentAssignedCourses[0]; // Ya están ordenados por fecha
+        const dueDateFormatted = nearestCourse.dueDate
+          ? new Date(nearestCourse.dueDate).toLocaleDateString('es-ES', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            })
+          : 'sin fecha definida';
+
+        if (currentAssignedCourses.length === 1) {
+          approachMsg = `¡Calendario de ${providerName} conectado exitosamente!\n\nHe detectado que tienes **1 curso asignado** por tu organización:\n\n` +
+            `**${nearestCourse.title}**\nFecha límite: **${dueDateFormatted}**\n\n` +
+            `Ahora necesito conocer tu preferencia de ritmo de estudio para crear un plan que te permita completarlo a tiempo.`;
+          audioMsg = `Calendario conectado. He detectado que tienes 1 curso asignado con fecha límite el ${dueDateFormatted}. Ahora selecciona tu ritmo de estudio preferido.`;
+        } else {
+          approachMsg = `¡Calendario de ${providerName} conectado exitosamente!\n\nHe detectado que tienes **${currentAssignedCourses.length} cursos asignados** por tu organización.\n\n` +
+            `Tu fecha límite más próxima es: **${dueDateFormatted}** para el curso "${nearestCourse.title}".\n\n` +
+            `Ahora necesito conocer tu preferencia de ritmo de estudio para crear un plan que respete todas tus fechas límite.`;
+          audioMsg = `Calendario conectado. He detectado ${currentAssignedCourses.length} cursos asignados. Tu fecha límite más próxima es el ${dueDateFormatted}. Selecciona tu ritmo de estudio preferido.`;
+        }
+      } else {
+        // Mensaje genérico para usuarios B2C o B2B sin cursos asignados
+        approachMsg = `¡Calendario de ${providerName} conectado exitosamente!\n\nAntes de crear tu plan de estudios personalizado, necesito conocer tu preferencia de ritmo de estudio.`;
+        audioMsg = 'Calendario conectado exitosamente. Antes de crear tu plan, necesito saber qué tipo de enfoque prefieres: sesiones rápidas, normales o largas.';
+      }
+
       setConversationHistory(prev => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage && lastMessage.content.includes('conectado exitosamente')) {
@@ -2356,14 +2443,14 @@ export function StudyPlannerLIA() {
         return [...prev, { role: 'assistant', content: approachMsg }];
       });
       setHasAskedApproach(true);
-      
+
       // Abrir modal de selección de enfoque
       setTimeout(() => {
         setShowApproachModal(true);
       }, 500);
-      
+
       if (isAudioEnabled) {
-        await speakText('Calendario conectado exitosamente. Antes de crear tu plan, necesito saber qué tipo de enfoque prefieres: sesiones rápidas, normales o largas.');
+        await speakText(audioMsg);
       }
       return false; // No proceder con análisis aún
     } else if (!hasAskedTargetDate || !targetDate) {

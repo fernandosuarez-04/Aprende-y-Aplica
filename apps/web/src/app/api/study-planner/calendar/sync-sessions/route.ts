@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { SessionService } from '../../../../../features/auth/services/session.service';
+import { CalendarIntegrationService } from '../../../../../features/study-planner/services/calendar-integration.service';
 
 // Crear cliente admin para bypass de RLS
 function createAdminClient() {
@@ -133,7 +134,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     }
     
     const integration = integrations[0];
-    
+
+    // Obtener el calendarId del calendario secundario de la plataforma (solo para Google)
+    let secondaryCalendarId: string | null = null;
+    if (integration.provider === 'google') {
+      // Primero intentar obtener de la BD
+      secondaryCalendarId = await CalendarIntegrationService.getSecondaryCalendarId(user.id);
+
+      if (!secondaryCalendarId) {
+        console.log('[Sync Sessions] No hay calendario secundario guardado, se intentará crear...');
+      }
+    }
+
     // ✅ CORRECCIÓN: Verificar si el token ha expirado y refrescarlo si es necesario
     let accessToken = integration.access_token;
     let tokenExpiry: Date | null = null;
@@ -173,7 +185,30 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
 
     } else {
     }
-    
+
+    // Si es Google y no tenemos calendario secundario, intentar crearlo/obtenerlo ahora
+    if (integration.provider === 'google' && !secondaryCalendarId) {
+      console.log('[Sync Sessions] Intentando crear/obtener calendario secundario...');
+      secondaryCalendarId = await CalendarIntegrationService.getOrCreatePlatformCalendar(accessToken);
+
+      if (secondaryCalendarId) {
+        // Guardar el calendarId en la BD para futuras sincronizaciones
+        const supabaseAdmin = createAdminClient();
+        await supabaseAdmin
+          .from('calendar_integrations')
+          .update({
+            metadata: { secondary_calendar_id: secondaryCalendarId },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id)
+          .eq('provider', 'google');
+
+        console.log('[Sync Sessions] ✅ Calendario secundario creado/obtenido:', secondaryCalendarId);
+      } else {
+        console.warn('[Sync Sessions] ⚠️ No se pudo crear el calendario secundario, se usará el principal');
+      }
+    }
+
     // ✅ CORRECCIÓN: Sincronizar sesiones según el proveedor con mejor logging
     let syncedCount = 0;
     let failedCount = 0;
@@ -184,9 +219,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
       try {
 
         let eventId: string | null = null;
-        
+
         if (integration.provider === 'google') {
-          eventId = await createGoogleCalendarEvent(accessToken, session, planTimezone);
+          // Crear eventos en el calendario secundario de la plataforma
+          eventId = await createGoogleCalendarEvent(accessToken, session, planTimezone, secondaryCalendarId);
         } else if (integration.provider === 'microsoft') {
           eventId = await createMicrosoftCalendarEvent(accessToken, session, planTimezone);
         } else {
@@ -380,8 +416,14 @@ function formatDateTimeInTimezone(date: Date, timezone: string): string {
 /**
  * Crea un evento en Google Calendar
  * ✅ CORRECCIÓN: Formatea fechas en la zona horaria correcta sin convertir a UTC
+ * ✅ MEJORA: Crea eventos en el calendario secundario de la plataforma si está disponible
  */
-async function createGoogleCalendarEvent(accessToken: string, session: any, timezone: string = 'UTC'): Promise<string | null> {
+async function createGoogleCalendarEvent(
+  accessToken: string,
+  session: any,
+  timezone: string = 'UTC',
+  calendarId: string | null = null
+): Promise<string | null> {
   try {
     // Formatear descripción con todas las lecciones
     let description = '';
@@ -451,8 +493,12 @@ async function createGoogleCalendarEvent(accessToken: string, session: any, time
     };
 
     
+    // Usar el calendario secundario de la plataforma si está disponible, sino el primario
+    const targetCalendarId = calendarId || 'primary';
+    console.log(`[Google Calendar] Creando evento en calendario: ${targetCalendarId === 'primary' ? 'principal' : 'secundario (Aprende y Aplica)'}`);
+
     const response = await fetch(
-      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events`,
       {
         method: 'POST',
         headers: {
