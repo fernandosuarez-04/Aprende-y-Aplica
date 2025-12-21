@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, ChevronRight, Building2, BookOpen, TrendingUp, Award } from 'lucide-react';
+import { X, Volume2, VolumeX, ChevronRight, Building2, BookOpen, TrendingUp, Award, Calendar, Brain, Sparkles, Rocket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -46,14 +46,31 @@ function useBusinessUserOnboardingSteps() {
     },
     {
       id: 4,
-      title: '¡Estás listo para comenzar!',
-      description: 'Ahora puedes explorar tus cursos y comenzar tu aprendizaje. Estaré aquí para ayudarte en cada paso del camino. ¡Éxito en tu desarrollo profesional!',
-      speech: 'Ahora puedes explorar tus cursos y comenzar tu aprendizaje. Estaré aquí para ayudarte en cada paso del camino. ¡Mucho éxito en tu desarrollo profesional!',
-      icon: <Award className="w-6 h-6" />,
-      action: {
-        label: '¡Comenzar!',
-        path: '/business-user/dashboard'
-      }
+      title: 'Planificador de Estudios Inteligente',
+      description: 'A continuación te llevaré al Planificador de Estudios con IA. Esta herramienta te ayudará a organizar tu tiempo de aprendizaje de forma óptima.',
+      speech: 'A continuación te llevaré al Planificador de Estudios Inteligente. Esta poderosa herramienta con inteligencia artificial te ayudará a organizar tu tiempo de aprendizaje de forma óptima y personalizada.',
+      icon: <Calendar className="w-6 h-6" />
+    },
+    {
+      id: 5,
+      title: '¿Cómo funciona el Planificador?',
+      description: 'El planificador analiza tus cursos asignados, tu disponibilidad horaria y tus preferencias de estudio para crear un plan personalizado que maximice tu aprendizaje.',
+      speech: 'El planificador analiza tus cursos asignados, tu disponibilidad horaria y tus preferencias de estudio. Con esta información, crea un plan completamente personalizado que maximiza tu aprendizaje y se adapta a tu ritmo de vida.',
+      icon: <Brain className="w-6 h-6" />
+    },
+    {
+      id: 6,
+      title: 'Beneficios del Planificador',
+      description: 'Recibirás recordatorios inteligentes, seguimiento de metas, sugerencias de horarios óptimos y reportes de productividad. ¡Todo diseñado para tu éxito!',
+      speech: 'Con el planificador recibirás recordatorios inteligentes, seguimiento de tus metas de aprendizaje, sugerencias de horarios óptimos según tu rendimiento, y reportes de productividad. ¡Todo está diseñado para garantizar tu éxito profesional!',
+      icon: <Sparkles className="w-6 h-6" />
+    },
+    {
+      id: 7,
+      title: '¡Vamos a crear tu plan!',
+      description: 'Ahora te llevaré al Planificador de Estudios para que configures tu primer plan de aprendizaje. Juntos lograremos tus objetivos de desarrollo profesional.',
+      speech: 'Ahora te llevaré al Planificador de Estudios para que configures tu primer plan de aprendizaje personalizado. Juntos lograremos todos tus objetivos de desarrollo profesional. ¡Comencemos!',
+      icon: <Rocket className="w-6 h-6" />
     }
   ] as OnboardingStep[], []);
 }
@@ -322,6 +339,9 @@ export function BusinessUserOnboardingAgent() {
     }
 
     setIsVisible(false);
+
+    // Redirigir al Planificador de Estudios
+    router.push('/study-planner/create');
   };
 
   const toggleAudio = () => {
@@ -712,7 +732,7 @@ export function BusinessUserOnboardingAgent() {
                             transition={{ duration: 0.7, ease: 'easeInOut' }}
                           />
                           <motion.span
-                            className="relative z-10"
+                            className="relative z-10 flex items-center gap-2"
                             animate={{
                               scale: [1, 1.05],
                             }}
@@ -724,7 +744,8 @@ export function BusinessUserOnboardingAgent() {
                               ease: 'easeInOut'
                             }}
                           >
-                            ¡Comenzar!
+                            <Rocket size={18} />
+                            Ir al Planificador
                           </motion.span>
                         </motion.button>
                       )}
