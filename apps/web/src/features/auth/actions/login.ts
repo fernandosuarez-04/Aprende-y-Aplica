@@ -372,58 +372,7 @@ export async function loginAction(formData: FormData) {
       // No fallar el login si falla la limpieza
     }
 
-    // 7. Si NO es login personalizado (login general), verificar si usuario tiene organización
-    // Si tiene organización, redirigir a su login personalizado antes de redirigir según rol
-    if (!organizationId && !organizationSlug) {
-
-      // OPTIMIZACIÓN: Paralelizar búsqueda de organización en ambas tablas
-      let userOrgSlug: string | null = null
-
-      const orgQueries = [
-        // Query 1: Buscar en organization_users (más reciente por joined_at)
-        supabase
-          .from('organization_users')
-          .select('organization_id, joined_at, organizations!inner(slug)')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .order('joined_at', { ascending: false })
-          .limit(1)
-      ];
-
-      // Query 2: Si usuario tiene organization_id, buscar en organizations
-      if (user_final.organization_id) {
-        orgQueries.push(
-          supabase
-            .from('organizations')
-            .select('slug')
-            .eq('id', user_final.organization_id)
-            .single()
-        );
-      }
-
-      // Ejecutar queries en paralelo
-      const orgResults = await Promise.all(orgQueries);
-      const userOrgsResult = orgResults[0];
-      const userOrgResult = orgResults.length > 1 ? orgResults[1] : null;
-
-      // Prioridad 1: organization_users
-      if (userOrgsResult.data && userOrgsResult.data.length > 0) {
-        userOrgSlug = userOrgsResult.data[0].organizations?.slug || null;
-      } else if (userOrgResult && userOrgResult.data) {
-        // Prioridad 2: users.organization_id
-        userOrgSlug = userOrgResult.data.slug;
-      }
-
-      // Si usuario tiene organización, redirigir a su login personalizado
-      if (userOrgSlug) {
-
-        redirect(`/auth/${userOrgSlug}`)
-      } else {
-
-      }
-    }
-
-    // 8. Redirigir según el rol del usuario
+    // 7. Redirigir según el rol del usuario (ya autenticado exitosamente)
     const normalizedRole = user_final.cargo_rol?.trim();
     console.log('🎯 [loginAction] Determinando redirección según rol:', {
       cargo_rol: user_final.cargo_rol,
