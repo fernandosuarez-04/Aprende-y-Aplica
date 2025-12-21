@@ -232,7 +232,7 @@ export default function BusinessUserDashboardPage() {
       <main
         className="min-h-screen flex items-center justify-center"
         style={{
-          background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)'
+          background: '#0F1419'
         }}
       >
         <motion.div
@@ -290,7 +290,7 @@ export default function BusinessUserDashboardPage() {
     return (
       <main
         className="min-h-screen flex items-center justify-center p-6"
-        style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)' }}
+        style={{ background: '#0F1419' }}
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -332,7 +332,7 @@ export default function BusinessUserDashboardPage() {
       style={{
         ...backgroundStyle,
         ...cssVariables,
-        background: backgroundStyle?.background || 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)'
+        background: backgroundStyle?.background || '#0F1419'
       } as React.CSSProperties}
     >
       {/* Modern Navbar - Siempre ocupa el ancho completo, NO se desplaza */}

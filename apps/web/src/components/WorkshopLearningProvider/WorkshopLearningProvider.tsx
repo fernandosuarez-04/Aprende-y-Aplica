@@ -22,35 +22,38 @@
 
 import { useState, useCallback, ReactNode } from 'react';
 import { useDifficultyDetection } from '../../hooks/useDifficultyDetection';
-import { ProactiveLIAAssistant } from '../ProactiveLIAAssistant';
+import { ProactiveLIAAssistant, type OrganizationColors } from '../ProactiveLIAAssistant';
 import { sessionRecorder } from '../../lib/rrweb/session-recorder';
 import type { DifficultyAnalysis } from '../../lib/rrweb/difficulty-pattern-detector';
 
 export interface WorkshopLearningProviderProps {
   /** ID del taller actual */
   workshopId: string;
-  
+
   /** ID de la actividad actual (opcional) */
   activityId?: string;
-  
+
   /** Si está habilitada la detección proactiva (default: true) */
   enabled?: boolean;
-  
+
   /** Intervalo de chequeo en ms (default: 30000 = 30s) */
   checkInterval?: number;
-  
+
   /** Posición del asistente proactivo */
   assistantPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  
+
   /** Modo compacto del asistente */
   assistantCompact?: boolean;
-  
+
   /** Callback cuando se detecta dificultad */
   onDifficultyDetected?: (analysis: DifficultyAnalysis) => void;
-  
+
   /** Callback cuando usuario acepta ayuda */
   onHelpAccepted?: (analysis: DifficultyAnalysis) => void;
-  
+
+  /** Colores personalizados de la organización */
+  colors?: OrganizationColors;
+
   /** Contenido hijo */
   children: ReactNode;
 }
@@ -64,6 +67,7 @@ export function WorkshopLearningProvider({
   assistantCompact = false,
   onDifficultyDetected,
   onHelpAccepted,
+  colors,
   children
 }: WorkshopLearningProviderProps) {
   const [isLoadingHelp, setIsLoadingHelp] = useState(false);
@@ -102,7 +106,7 @@ export function WorkshopLearningProvider({
       if (onHelpAccepted) {
         await onHelpAccepted(analysis);
       }
-      
+
       // Aceptar ayuda localmente (cierra el modal y limpia el estado)
       acceptHelp();
 
@@ -129,6 +133,7 @@ export function WorkshopLearningProvider({
           onDismiss={dismissHelp}
           position={assistantPosition}
           compact={assistantCompact}
+          colors={colors}
         />
       )}
 
@@ -142,7 +147,7 @@ export function WorkshopLearningProvider({
           {analysis && (
             <>
               <div className="mt-2 pt-2 border-t border-gray-600">
-                <div className="font-bold">📊 Análisis:</div>
+              <div className="font-bold">📊 Análisis:</div>
                 <div>Score: {(analysis.overallScore * 100).toFixed(0)}%</div>
                 <div>Patterns: {analysis.patterns.length}</div>
               </div>
