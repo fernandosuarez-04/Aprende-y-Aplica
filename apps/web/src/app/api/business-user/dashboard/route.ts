@@ -23,6 +23,7 @@ interface AssignedCourse {
   due_date?: string
   completed_at?: string
   has_certificate?: boolean
+  source?: 'direct' | 'team' // Para saber si fue asignación directa o por equipo
 }
 
 export async function GET() {
@@ -32,7 +33,7 @@ export async function GET() {
       logger.error('Auth failed in business-user/dashboard:', auth.status)
       return auth
     }
-    
+
     if (!auth.userId) {
       logger.error('No userId in auth object')
       return NextResponse.json(
@@ -49,9 +50,72 @@ export async function GET() {
 
     logger.log('📊 Fetching dashboard data for user:', userId)
 
-    // Obtener todos los cursos asignados al usuario con información del curso
-    // Usar left join en lugar de inner para manejar casos donde el curso no existe
-    const { data: assignments, error: assignmentsError } = await supabase
+    // =====================================================
+    // PASO 1: Obtener los equipos a los que pertenece el usuario
+    // =====================================================
+    const { data: userTeamMemberships, error: teamMembershipsError } = await supabase
+      .from('work_team_members')
+      .select('team_id, status')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+
+    const userTeamIds = userTeamMemberships?.map(m => m.team_id) || []
+
+    logger.log('🔍 DEBUG - User team memberships:', {
+      userId,
+      teamsCount: userTeamIds.length,
+      teamIds: userTeamIds,
+      error: teamMembershipsError?.message || null
+    })
+
+    // =====================================================
+    // PASO 2: Obtener cursos asignados a través de equipos
+    // =====================================================
+    let teamCourseAssignments: any[] = []
+    if (userTeamIds.length > 0) {
+      const { data: teamAssignments, error: teamAssignmentsError } = await supabase
+        .from('work_team_course_assignments')
+        .select(`
+          id,
+          team_id,
+          course_id,
+          status,
+          assigned_at,
+          due_date,
+          message,
+          courses (
+            id,
+            title,
+            slug,
+            thumbnail_url,
+            instructor_id
+          )
+        `)
+        .in('team_id', userTeamIds)
+        .in('status', ['assigned', 'in_progress', 'completed'])
+        .order('assigned_at', { ascending: false })
+
+      teamCourseAssignments = teamAssignments || []
+
+      logger.log('🔍 DEBUG - Team course assignments:', {
+        userId,
+        teamsChecked: userTeamIds.length,
+        assignmentsFound: teamCourseAssignments.length,
+        assignments: teamCourseAssignments.map(a => ({
+          id: a.id,
+          course_id: a.course_id,
+          team_id: a.team_id,
+          status: a.status,
+          title: a.courses?.title
+        })),
+        error: teamAssignmentsError?.message || null
+      })
+    }
+
+    // =====================================================
+    // PASO 3: También obtener asignaciones directas al usuario
+    // =====================================================
+    const { data: directAssignments, error: directAssignmentsError } = await supabase
       .from('organization_course_assignments')
       .select(`
         id,
@@ -73,31 +137,68 @@ export async function GET() {
       .in('status', ['assigned', 'in_progress', 'completed'])
       .order('assigned_at', { ascending: false })
 
-    if (assignmentsError) {
-      logger.error('❌ Error fetching assigned courses:', assignmentsError)
-      // Aún así retornar datos vacíos pero con éxito para que el frontend maneje el estado vacío
-      return NextResponse.json({
-        success: true,
-        error: assignmentsError.message,
-        stats: {
-          total_assigned: 0,
-          in_progress: 0,
-          completed: 0,
-          certificates: 0
-        },
-        courses: []
-      })
+    logger.log('🔍 DEBUG - Direct assignments:', {
+      userId,
+      count: directAssignments?.length || 0,
+      assignments: directAssignments?.map(a => ({
+        id: a.id,
+        course_id: a.course_id,
+        status: a.status,
+        title: a.courses?.title
+      })) || [],
+      error: directAssignmentsError?.message || null
+    })
+
+    // =====================================================
+    // PASO 4: Combinar ambas fuentes evitando duplicados
+    // =====================================================
+    const courseIdSet = new Set<string>()
+    const combinedAssignments: any[] = []
+
+    // Primero agregar asignaciones directas
+    for (const assignment of (directAssignments || [])) {
+      if (assignment.courses && !courseIdSet.has(assignment.course_id)) {
+        courseIdSet.add(assignment.course_id)
+        combinedAssignments.push({
+          ...assignment,
+          source: 'direct'
+        })
+      }
     }
 
-    logger.log('✅ Assignments fetched:', assignments?.length || 0)
+    // Luego agregar asignaciones de equipo que no estén duplicadas
+    for (const teamAssignment of teamCourseAssignments) {
+      if (teamAssignment.courses && !courseIdSet.has(teamAssignment.course_id)) {
+        courseIdSet.add(teamAssignment.course_id)
+        combinedAssignments.push({
+          id: teamAssignment.id,
+          course_id: teamAssignment.course_id,
+          status: teamAssignment.status,
+          completion_percentage: 0,
+          assigned_at: teamAssignment.assigned_at,
+          due_date: teamAssignment.due_date,
+          completed_at: null,
+          courses: teamAssignment.courses,
+          source: 'team'
+        })
+      }
+    }
 
-    // Obtener los course_ids de las asignaciones
-    const courseIds = (assignments || [])
-      .map((a: any) => a.course_id)
-      .filter(Boolean)
+    logger.log('✅ Combined assignments:', {
+      directCount: directAssignments?.length || 0,
+      teamCount: teamCourseAssignments.length,
+      combinedCount: combinedAssignments.length,
+      courseIds: Array.from(courseIdSet)
+    })
+
+    if (directAssignmentsError) {
+      logger.error('❌ Error fetching direct assignments:', directAssignmentsError)
+    }
+
+    // Obtener los course_ids de todas las asignaciones combinadas
+    const courseIds = Array.from(courseIdSet)
 
     // Obtener los enrollments del usuario para estos cursos
-    // Esto nos dará el progreso real actualizado
     let enrollmentsMap = new Map<string, any>()
     if (courseIds.length > 0) {
       const { data: enrollments, error: enrollmentsError } = await supabase
@@ -117,7 +218,7 @@ export async function GET() {
     }
 
     // Obtener IDs de instructores únicos
-    const instructorIds = [...new Set((assignments || [])
+    const instructorIds = [...new Set(combinedAssignments
       .map((a: any) => a.courses?.instructor_id)
       .filter(Boolean))]
 
@@ -130,7 +231,7 @@ export async function GET() {
         .in('id', instructorIds)
 
       if (instructors) {
-        instructors.forEach(instructor => {
+        instructors.forEach((instructor: any) => {
           const fullName = `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim()
           instructorMap.set(instructor.id, {
             name: fullName || instructor.username || 'Instructor'
@@ -156,21 +257,21 @@ export async function GET() {
     })
 
     // Calcular estadísticas usando el progreso real de enrollments
-    const totalAssigned = assignments?.length || 0
-    
+    const totalAssigned = combinedAssignments.length
+
     // Para calcular en_progress y completed, usar el progreso del enrollment si existe
-    const inProgress = assignments?.filter(a => {
+    const inProgress = combinedAssignments.filter(a => {
       const enrollment = enrollmentsMap.get(a.course_id)
       const progress = enrollment?.overall_progress_percentage || a.completion_percentage || 0
       return progress > 0 && progress < 100
-    }).length || 0
-    
-    const completed = assignments?.filter(a => {
+    }).length
+
+    const completed = combinedAssignments.filter(a => {
       const enrollment = enrollmentsMap.get(a.course_id)
       const progress = enrollment?.overall_progress_percentage || a.completion_percentage || 0
       return progress >= 100 || a.status === 'completed' || enrollment?.enrollment_status === 'completed'
-    }).length || 0
-    
+    }).length
+
     const certificatesCount = certificates?.length || 0
 
     const stats: DashboardStats = {
@@ -181,24 +282,23 @@ export async function GET() {
     }
 
     // Transformar asignaciones a formato de cursos
-    // Filtrar asignaciones que no tienen curso asociado (en caso de que el curso haya sido eliminado)
-    const courses: AssignedCourse[] = (assignments || [])
-      .filter((assignment: any) => assignment.courses) // Solo incluir asignaciones con curso válido
+    const courses: AssignedCourse[] = combinedAssignments
+      .filter((assignment: any) => assignment.courses)
       .map((assignment: any) => {
         const course = assignment.courses
         const instructor = course?.instructor_id ? instructorMap.get(course.instructor_id) : null
-        
+
         // Obtener el enrollment correspondiente para obtener el progreso real
         const enrollment = enrollmentsMap.get(assignment.course_id)
-        
+
         // Usar el progreso del enrollment si existe, sino usar el del assignment
         const actualProgress = enrollment?.overall_progress_percentage !== null && enrollment?.overall_progress_percentage !== undefined
           ? Number(enrollment.overall_progress_percentage)
           : (assignment.completion_percentage ? Number(assignment.completion_percentage) : 0)
-        
+
         // Usar el completed_at del enrollment si existe
         const actualCompletedAt = enrollment?.completed_at || assignment.completed_at
-        
+
         // Formatear nombre del instructor
         const instructorName = instructor?.name || 'Instructor'
 
@@ -213,7 +313,6 @@ export async function GET() {
         // Usar thumbnail del curso o un emoji por defecto basado en la categoría
         let thumbnail = course?.thumbnail_url || '📚'
         if (!course?.thumbnail_url) {
-          // Intentar inferir emoji basado en el título
           const title = course?.title?.toLowerCase() || ''
           if (title.includes('python')) thumbnail = '🐍'
           else if (title.includes('ia') || title.includes('ai') || title.includes('generativa')) thumbnail = '🤖'
@@ -228,20 +327,25 @@ export async function GET() {
           course_id: assignment.course_id,
           title: course?.title || 'Curso sin título',
           instructor: instructorName,
-          progress: Math.round(actualProgress * 100) / 100, // Redondear a 2 decimales
+          progress: Math.round(actualProgress * 100) / 100,
           status: status,
           thumbnail: thumbnail,
           slug: course?.slug || '',
           assigned_at: assignment.assigned_at,
           due_date: assignment.due_date || undefined,
           completed_at: actualCompletedAt || undefined,
-          has_certificate: certificatesMap.has(assignment.course_id) || false
+          has_certificate: certificatesMap.has(assignment.course_id) || false,
+          source: assignment.source
         }
       })
 
-    logger.log('✅ Dashboard data prepared:', { 
-      stats, 
-      coursesCount: courses.length 
+    logger.log('✅ Dashboard data prepared:', {
+      stats,
+      coursesCount: courses.length,
+      sources: {
+        direct: courses.filter(c => c.source === 'direct').length,
+        team: courses.filter(c => c.source === 'team').length
+      }
     })
 
     return NextResponse.json({
@@ -252,7 +356,7 @@ export async function GET() {
   } catch (error) {
     logger.error('💥 Error in /api/business-user/dashboard:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Error al obtener datos del dashboard',
         stats: {
@@ -267,4 +371,3 @@ export async function GET() {
     )
   }
 }
-

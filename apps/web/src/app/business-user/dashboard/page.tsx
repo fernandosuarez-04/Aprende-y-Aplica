@@ -1,42 +1,38 @@
 'use client'
 
-import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { 
-      BookOpen, 
-      Clock, 
-      Award, 
-      CheckCircle2, 
-      PlayCircle, 
-      TrendingUp, 
-      Loader2, 
-      AlertCircle,
-      Edit3,
-      LogOut,
-      ChevronDown,
-      User,
-      Building2
-    } from 'lucide-react'
+import {
+  BookOpen,
+  Clock,
+  Award,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  GraduationCap,
+  TrendingUp,
+  RefreshCw
+} from 'lucide-react'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
-import { getBackgroundStyle, generateCSSVariables, hexToRgb } from '@/features/business-panel/utils/styles'
+import { getBackgroundStyle, generateCSSVariables } from '@/features/business-panel/utils/styles'
 
 // Lazy load components
-const ParticlesBackground = lazy(() => 
+const ParticlesBackground = lazy(() =>
   import('./components/ParticlesBackground').then(m => ({ default: m.ParticlesBackground }))
 )
-const Background3DEffects = lazy(() => 
+const Background3DEffects = lazy(() =>
   import('./components/Background3DEffects').then(m => ({ default: m.Background3DEffects }))
 )
-const ModernNavbar = lazy(() => 
+const ModernNavbar = lazy(() =>
   import('./components/ModernNavbar').then(m => ({ default: m.ModernNavbar }))
 )
-const ModernStatsCard = lazy(() => 
+const ModernStatsCard = lazy(() =>
   import('./components/ModernStatsCard').then(m => ({ default: m.ModernStatsCard }))
 )
-const CourseCard3D = lazy(() => 
+const CourseCard3D = lazy(() =>
   import('./components/CourseCard3D').then(m => ({ default: m.CourseCard3D }))
 )
 
@@ -76,13 +72,13 @@ export default function BusinessUserDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
-  
+  const [currentTime, setCurrentTime] = useState(new Date())
+
   // Aplicar estilos personalizados
   const userDashboardStyles = styles?.userDashboard
   const backgroundStyle = getBackgroundStyle(userDashboardStyles)
   const cssVariables = generateCSSVariables(userDashboardStyles)
-  const loadingBackgroundStyle = getBackgroundStyle(userDashboardStyles)
-  
+
   const [stats, setStats] = useState<DashboardStats>({
     total_assigned: 0,
     in_progress: 0,
@@ -91,13 +87,25 @@ export default function BusinessUserDashboardPage() {
   })
   const [assignedCourses, setAssignedCourses] = useState<AssignedCourse[]>([])
 
+  // Time update
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Obtener saludo basado en hora
+  const getGreeting = useCallback(() => {
+    const hour = currentTime.getHours()
+    if (hour < 12) return 'Buenos días'
+    if (hour < 18) return 'Buenas tardes'
+    return 'Buenas noches'
+  }, [currentTime])
+
   // Obtener información de la organización
   useEffect(() => {
     const fetchOrganization = async () => {
       try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include'
-        })
+        const response = await fetch('/api/auth/me', { credentials: 'include' })
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.user?.organization) {
@@ -105,19 +113,18 @@ export default function BusinessUserDashboardPage() {
           }
         }
       } catch (error) {
-        // console.error('Error fetching organization:', error)
+        // Silent fail
       }
     }
     fetchOrganization()
   }, [])
 
-
-  const myStats = [
-    { label: 'Cursos Asignados', value: stats.total_assigned.toString(), icon: BookOpen, color: 'from-blue-500 to-cyan-500' },
-    { label: 'En Progreso', value: stats.in_progress.toString(), icon: Clock, color: 'from-purple-500 to-pink-500' },
-    { label: 'Completados', value: stats.completed.toString(), icon: CheckCircle2, color: 'from-green-500 to-emerald-500' },
-    { label: 'Certificados', value: stats.certificates.toString(), icon: Award, color: 'from-orange-500 to-red-500' },
-  ]
+  const myStats = useMemo(() => [
+    { label: 'Cursos Asignados', value: stats.total_assigned, icon: BookOpen, color: 'from-blue-500 to-cyan-500' },
+    { label: 'En Progreso', value: stats.in_progress, icon: Clock, color: 'from-purple-500 to-pink-500' },
+    { label: 'Completados', value: stats.completed, icon: CheckCircle2, color: 'from-green-500 to-emerald-500' },
+    { label: 'Certificados', value: stats.certificates, icon: Award, color: 'from-orange-500 to-red-500' },
+  ], [stats])
 
   useEffect(() => {
     fetchDashboardData()
@@ -128,14 +135,10 @@ export default function BusinessUserDashboardPage() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('/api/business-user/dashboard', {
-        credentials: 'include'
-      })
-
+      const response = await fetch('/api/business-user/dashboard', { credentials: 'include' })
       const data = await response.json()
 
       if (!response.ok) {
-        // Si la respuesta no es ok, usar el mensaje de error de la API
         throw new Error(data.error || `Error ${response.status}: Error al cargar datos del dashboard`)
       }
 
@@ -143,7 +146,6 @@ export default function BusinessUserDashboardPage() {
         setStats(data.stats)
         setAssignedCourses(data.courses || [])
       } else {
-        // Aún así intentar mostrar datos si están disponibles
         if (data.stats && data.courses) {
           setStats(data.stats)
           setAssignedCourses(data.courses)
@@ -152,15 +154,8 @@ export default function BusinessUserDashboardPage() {
         }
       }
     } catch (err) {
-      // console.error('Error fetching dashboard data:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
-      // Asegurar que siempre tenemos valores por defecto
-      setStats({
-        total_assigned: 0,
-        in_progress: 0,
-        completed: 0,
-        certificates: 0
-      })
+      setStats({ total_assigned: 0, in_progress: 0, completed: 0, certificates: 0 })
       setAssignedCourses([])
     } finally {
       setLoading(false)
@@ -169,7 +164,6 @@ export default function BusinessUserDashboardPage() {
 
   const handleCourseClick = useCallback((course: AssignedCourse, action?: 'start' | 'continue' | 'certificate') => {
     if (action === 'certificate' && course.has_certificate) {
-      // Si tiene certificado, buscar el certificado y redirigir a la página de detalle
       fetch('/api/certificates', { credentials: 'include' })
         .then(res => res.json())
         .then(data => {
@@ -205,65 +199,127 @@ export default function BusinessUserDashboardPage() {
     router.push('/certificates')
   }, [router])
 
-  const getDisplayName = () => {
+  const getDisplayName = useCallback(() => {
     if (user?.first_name && user?.last_name) {
       return `${user.first_name} ${user.last_name}`
     }
     return user?.display_name || user?.username || 'Usuario'
-  }
+  }, [user])
 
-  const getInitials = () => {
+  const getInitials = useCallback(() => {
     const firstName = user?.first_name || ''
     const lastName = user?.last_name || ''
     if (firstName && lastName) {
       return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
     }
     return (user?.username || 'U').charAt(0).toUpperCase()
-  }
+  }, [user])
 
+  // Loading state with premium animation
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-carbon via-carbon to-carbon-dark p-6 lg:p-8 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-          <p className="text-gray-300 dark:text-gray-200 text-lg">Cargando tu panel de aprendizaje...</p>
-        </div>
+      <main
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)'
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-8"
+        >
+          {/* Premium Loading Animation - No rotation */}
+          <div className="relative">
+            {/* Outer ring with pulse */}
+            <motion.div
+              className="w-20 h-20 rounded-full"
+              style={{
+                background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(16, 185, 129, 0.1))',
+                border: '2px solid rgba(14, 165, 233, 0.3)'
+              }}
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: [0.5, 0.8, 0.5]
+              }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            {/* Inner glow */}
+            <motion.div
+              className="absolute inset-2 rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(14, 165, 233, 0.3), transparent)',
+              }}
+              animate={{
+                opacity: [0.3, 0.7, 0.3]
+              }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            {/* Center icon */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <GraduationCap className="w-8 h-8 text-cyan-400" style={{ filter: 'drop-shadow(0 0 8px rgba(14, 165, 233, 0.5))' }} />
+              </motion.div>
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-white text-lg font-semibold">Cargando tu panel</p>
+            <p className="text-gray-400 text-sm mt-2">Preparando tu experiencia de aprendizaje...</p>
+          </div>
+        </motion.div>
       </main>
     )
   }
 
+  // Error state
   if (error) {
     return (
-      <main 
-        className="min-h-screen p-6 lg:p-8 flex items-center justify-center transition-all duration-300"
-        style={loadingBackgroundStyle}
+      <main
+        className="min-h-screen flex items-center justify-center p-6"
+        style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)' }}
       >
-        <div className="flex flex-col items-center gap-4 max-w-md text-center">
-          <AlertCircle className="w-12 h-12 text-red-400" />
-          <p className="text-red-400 text-lg font-semibold">Error al cargar datos</p>
-          <p className="text-gray-300 dark:text-gray-200 text-sm">{error}</p>
-          <button
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center gap-6 max-w-md text-center p-8 rounded-2xl border border-red-500/20 backdrop-blur-xl"
+          style={{ backgroundColor: 'rgba(15, 23, 42, 0.8)' }}
+        >
+          <div className="p-4 rounded-full bg-red-500/10">
+            <AlertCircle className="w-12 h-12 text-red-400" />
+          </div>
+          <div>
+            <p className="text-red-400 text-xl font-semibold">Error al cargar datos</p>
+            <p className="text-gray-400 text-sm mt-2">{error}</p>
+          </div>
+          <motion.button
             onClick={fetchDashboardData}
-            className="mt-4 px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-medium shadow-lg shadow-cyan-500/30"
           >
+            <RefreshCw className="w-4 h-4" />
             Reintentar
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </main>
     )
   }
 
   return (
-    <div 
-      className="min-h-screen bg-white dark:bg-gray-950 transition-all duration-300"
+    <div
+      className="min-h-screen transition-all duration-300"
       style={{
         ...backgroundStyle,
-        ...cssVariables
+        ...cssVariables,
+        background: backgroundStyle?.background || 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)'
       } as React.CSSProperties}
     >
       {/* Modern Navbar */}
       <Suspense fallback={
-        <nav className="sticky top-0 z-50 w-full border-b border-gray-200/10 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl h-16" />
+        <nav className="sticky top-0 z-50 w-full border-b border-white/5 bg-slate-950/80 backdrop-blur-xl h-16" />
       }>
         <ModernNavbar
           organization={organization}
@@ -285,78 +341,272 @@ export default function BusinessUserDashboardPage() {
         </Suspense>
 
         <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20 py-8">
-          {/* Welcome Section */}
+
+          {/* ============================================ */}
+          {/* HERO SECTION - Premium Design */}
+          {/* ============================================ */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="mb-10"
+            transition={{ duration: 0.6 }}
+            className="relative overflow-hidden rounded-3xl p-8 mb-10 group"
           >
-            <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-2">
-              Mi Panel de Aprendizaje
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Continúa tu crecimiento profesional</p>
+            {/* Background with gradient overlay */}
+            <div className="absolute inset-0 z-0">
+              <div
+                className="absolute inset-0 z-10"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(16, 185, 129, 0.1), transparent)'
+                }}
+              />
+              <div
+                className="absolute inset-0 z-10"
+                style={{
+                  background: 'linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.7), transparent)'
+                }}
+              />
+              <Image
+                src="/images/nanobanana-hero.png"
+                alt="Nanobanana Dashboard Background"
+                fill
+                priority
+                unoptimized
+                className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+                sizes="100vw"
+              />
+            </div>
+
+            {/* Animated Orbs */}
+            <motion.div
+              className="absolute top-10 right-10 w-32 h-32 rounded-full blur-3xl pointer-events-none"
+              style={{ backgroundColor: 'rgba(14, 165, 233, 0.3)' }}
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.5, 0.3]
+              }}
+              transition={{ duration: 4, repeat: Infinity }}
+            />
+            <motion.div
+              className="absolute bottom-10 right-40 w-24 h-24 rounded-full blur-3xl pointer-events-none"
+              style={{ backgroundColor: 'rgba(16, 185, 129, 0.3)' }}
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.2, 0.4, 0.2]
+              }}
+              transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+            />
+
+            {/* Floating particles */}
+            <motion.div
+              animate={{ y: [0, -15, 0], opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="absolute top-8 right-24 w-2 h-2 rounded-full bg-cyan-400"
+            />
+            <motion.div
+              animate={{ y: [0, 12, 0], opacity: [0.3, 0.8, 0.3] }}
+              transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+              className="absolute bottom-12 right-32 w-3 h-3 rounded-full bg-emerald-400"
+            />
+
+            {/* Content */}
+            <div className="relative z-10">
+              {/* Badge */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 border"
+                style={{
+                  backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                  borderColor: 'rgba(14, 165, 233, 0.3)'
+                }}
+              >
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+                <span className="text-sm font-medium text-cyan-400">Panel de Aprendizaje</span>
+              </motion.div>
+
+              {/* Greeting */}
+              <motion.h1
+                className="text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                {getGreeting()}, <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">{user?.first_name || 'Usuario'}</span>
+              </motion.h1>
+
+              {/* Subtitle */}
+              <motion.p
+                className="text-lg text-gray-300 max-w-xl mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                Continúa tu camino de aprendizaje y alcanza tus metas profesionales.
+              </motion.p>
+
+              {/* Date and Status */}
+              <motion.div
+                className="flex flex-wrap items-center gap-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <Clock className="w-4 h-4" />
+                  {currentTime.toLocaleDateString('es-MX', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-emerald-400"
+                    animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <span className="text-sm font-medium text-emerald-400">Aprendizaje Activo</span>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Decorative border gradient */}
+            <div
+              className="absolute inset-0 rounded-3xl pointer-events-none"
+              style={{
+                background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.3), transparent, rgba(16, 185, 129, 0.2))',
+                padding: '1px',
+                mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                maskComposite: 'exclude',
+                WebkitMaskComposite: 'xor'
+              }}
+            />
           </motion.div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-10">
-            <Suspense fallback={
-              <>
-                {myStats.map((stat, index) => (
-                  <div
-                    key={stat.label}
-                    className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 p-5 animate-pulse"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-800 mb-3" />
-                    <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded mb-2 w-2/3" />
-                    <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
-                  </div>
-                ))}
-              </>
-            }>
-              {myStats.map((stat, index) => {
-                const isCertificates = stat.label === 'Certificados'
-                const statValue = stat.label === 'Cursos Asignados' ? stats.total_assigned
-                  : stat.label === 'En Progreso' ? stats.in_progress
-                  : stat.label === 'Completados' ? stats.completed
-                  : stats.certificates
-
-                return (
-                  <ModernStatsCard
-                    key={stat.label}
-                    label={stat.label}
-                    value={statValue}
-                    icon={stat.icon}
-                    color={stat.color}
-                    index={index}
-                    onClick={isCertificates && stats.certificates > 0 ? handleCertificatesClick : undefined}
-                    isClickable={isCertificates && stats.certificates > 0}
-                    styles={userDashboardStyles}
-                  />
-                )
-              })}
-            </Suspense>
-          </div>
-
-          {/* Assigned Courses */}
-          <div>
-            <motion.h2 
+          {/* ============================================ */}
+          {/* STATS SECTION - Premium Cards */}
+          {/* ============================================ */}
+          <section className="mb-10">
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-6"
+              transition={{ delay: 0.3 }}
+              className="flex items-center justify-between mb-6"
             >
-              Mis Cursos Asignados
-            </motion.h2>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20">
+                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Tu Progreso</h2>
+                  <p className="text-sm text-gray-400">Métricas de tu aprendizaje</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+              <Suspense fallback={
+                <>
+                  {myStats.map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="rounded-2xl border border-white/5 bg-slate-900/50 p-5 animate-pulse h-32"
+                    />
+                  ))}
+                </>
+              }>
+                {myStats.map((stat, index) => {
+                  const isCertificates = stat.label === 'Certificados'
+                  return (
+                    <ModernStatsCard
+                      key={stat.label}
+                      label={stat.label}
+                      value={stat.value}
+                      icon={stat.icon}
+                      color={stat.color}
+                      index={index}
+                      onClick={isCertificates && stats.certificates > 0 ? handleCertificatesClick : undefined}
+                      isClickable={isCertificates && stats.certificates > 0}
+                      styles={userDashboardStyles}
+                    />
+                  )
+                })}
+              </Suspense>
+            </div>
+          </section>
+
+          {/* ============================================ */}
+          {/* COURSES SECTION - Premium Grid */}
+          {/* ============================================ */}
+          <section>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex items-center justify-between mb-6"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/20">
+                  <GraduationCap className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Mis Cursos</h2>
+                  <p className="text-sm text-gray-400">Continúa donde lo dejaste</p>
+                </div>
+              </div>
+            </motion.div>
+
             {assignedCourses.length === 0 ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-12 text-center"
+                className="relative overflow-hidden rounded-2xl border border-white/5 backdrop-blur-xl p-12 text-center"
+                style={{ backgroundColor: 'rgba(30, 41, 59, 0.5)' }}
               >
-                <BookOpen className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4 opacity-50" />
-                <p className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-2">No tienes cursos asignados aún</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Tu organización te asignará cursos próximamente</p>
+                {/* Decorative gradient */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: 'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08), transparent 60%)'
+                  }}
+                />
+
+                <motion.div
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: 'spring' }}
+                  className="relative z-10"
+                >
+                  <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/20 flex items-center justify-center mb-6">
+                    <BookOpen className="w-10 h-10 text-purple-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">No tienes cursos asignados aún</h3>
+                  <p className="text-gray-400 max-w-md mx-auto">
+                    Tu organización te asignará cursos próximamente. Mientras tanto, explora lo que tenemos preparado para ti.
+                  </p>
+
+                  {/* Decorative elements - static */}
+                  <div className="absolute top-6 right-6">
+                    <Sparkles className="w-5 h-5 text-purple-400/30" />
+                  </div>
+                  <div className="absolute bottom-8 left-8">
+                    <GraduationCap className="w-6 h-6 text-cyan-400/30" />
+                  </div>
+                </motion.div>
+
+                {/* Border gradient */}
+                <div
+                  className="absolute inset-0 rounded-2xl pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), transparent, rgba(14, 165, 233, 0.1))',
+                    padding: '1px',
+                    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                    maskComposite: 'exclude',
+                    WebkitMaskComposite: 'xor'
+                  }}
+                />
               </motion.div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
@@ -365,13 +615,8 @@ export default function BusinessUserDashboardPage() {
                     {assignedCourses.map((_, index) => (
                       <div
                         key={index}
-                        className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 p-6 animate-pulse"
-                      >
-                        <div className="w-16 h-16 rounded-lg bg-gray-200 dark:bg-gray-800 mb-4" />
-                        <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded mb-2 w-3/4" />
-                        <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded mb-4 w-1/2" />
-                        <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded" />
-                      </div>
+                        className="rounded-2xl border border-white/5 bg-slate-900/50 animate-pulse h-80"
+                      />
                     ))}
                   </>
                 }>
@@ -392,10 +637,9 @@ export default function BusinessUserDashboardPage() {
                 </Suspense>
               </div>
             )}
-          </div>
+          </section>
         </div>
       </main>
     </div>
   )
 }
-
