@@ -21,26 +21,19 @@ import { getBackgroundStyle, generateCSSVariables } from '@/features/business-pa
 
 // Lazy load components
 const ParticlesBackground = lazy(() =>
-const ParticlesBackground = lazy(() =>
   import('./components/ParticlesBackground').then(m => ({ default: m.ParticlesBackground }))
 )
-const Background3DEffects = lazy(() =>
 const Background3DEffects = lazy(() =>
   import('./components/Background3DEffects').then(m => ({ default: m.Background3DEffects }))
 )
 const ModernNavbar = lazy(() =>
-const ModernNavbar = lazy(() =>
   import('./components/ModernNavbar').then(m => ({ default: m.ModernNavbar }))
 )
-const ModernStatsCard = lazy(() =>
 const ModernStatsCard = lazy(() =>
   import('./components/ModernStatsCard').then(m => ({ default: m.ModernStatsCard }))
 )
 const CourseCard3D = lazy(() =>
   import('./components/CourseCard3D').then(m => ({ default: m.CourseCard3D }))
-)
-const ScormCoursesSection = lazy(() =>
-  import('./components/ScormCoursesSection').then(m => ({ default: m.ScormCoursesSection }))
 )
 const BusinessUserOnboardingAgent = lazy(() =>
   import('./components/BusinessUserOnboardingAgent').then(m => ({ default: m.BusinessUserOnboardingAgent }))
