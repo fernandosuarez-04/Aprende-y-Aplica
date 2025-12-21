@@ -17,17 +17,17 @@ export async function GET(request: NextRequest): Promise<NextResponse<UserContex
   try {
     // Verificar autenticación
     const user = await SessionService.getCurrentUser();
-    
+
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'No autenticado' },
         { status: 401 }
       );
     }
-    
+
     // Obtener contexto completo del usuario
     const userContext = await UserContextService.getFullUserContext(user.id);
-    
+
     // Enriquecer con información adicional de cursos si es necesario
     const enrichedCourses = await Promise.all(
       userContext.courses.map(async (courseAssignment) => {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<UserContex
           user.id,
           courseAssignment.courseId
         );
-        
+
         return {
           ...courseAssignment,
           completionPercentage: progress.progressPercentage,
@@ -46,24 +46,27 @@ export async function GET(request: NextRequest): Promise<NextResponse<UserContex
         };
       })
     );
-    
+
     const enrichedContext: UserContext = {
       ...userContext,
       userId: user.id, // Incluir userId para detectar cambios de sesión
       courses: enrichedCourses as any,
     };
-    
+
     return NextResponse.json({
       success: true,
       data: enrichedContext,
     });
-    
+
   } catch (error) {
-    console.error('Error obteniendo contexto de usuario:', error);
+    console.error('❌ [user-context] Error COMPLETO:', error);
+    console.error('❌ [user-context] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('❌ [user-context] Error message:', error instanceof Error ? error.message : String(error));
+
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Error interno del servidor' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error interno del servidor'
       },
       { status: 500 }
     );

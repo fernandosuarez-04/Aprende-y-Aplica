@@ -26,31 +26,40 @@ import type {
 
 export class UserContextService {
   /**
-   * Determina si el usuario es B2B o B2C basado en organization_id
+   * Determina si el usuario es B2B o B2C basado en la tabla organizations_users
    */
   static async getUserType(userId: string): Promise<UserType> {
     const supabase = await createClient();
-    
+
+    // Verificar si el usuario existe en organizations_users (es B2B)
     const { data, error } = await supabase
-      .from('users')
+      .from('organization_users')
       .select('organization_id')
-      .eq('id', userId)
-      .single();
-    
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+
     if (error) {
-      console.error('Error obteniendo tipo de usuario:', error);
-      throw new Error('No se pudo determinar el tipo de usuario');
+      console.error('❌ [getUserType] Error de Supabase:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        userId,
+      });
+      throw new Error(`No se pudo determinar el tipo de usuario: ${error.message} (code: ${error.code})`);
     }
-    
-    const userType = data.organization_id ? 'b2b' : 'b2c';
-    
+
+    // Si existe registro en organizations_users, es B2B
+    const userType = data?.organization_id ? 'b2b' : 'b2c';
+
     // Log para debugging
     console.log(`[UserContextService] Detección de tipo de usuario:`, {
       userId,
-      organization_id: data.organization_id,
+      organization_id: data?.organization_id || null,
       userType,
     });
-    
+
     return userType;
   }
 
@@ -59,7 +68,7 @@ export class UserContextService {
    */
   static async getUserBasicInfo(userId: string): Promise<UserBasicInfo> {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase
       .from('users')
       .select(`
@@ -75,12 +84,12 @@ export class UserContextService {
       `)
       .eq('id', userId)
       .single();
-    
+
     if (error) {
       console.error('Error obteniendo información básica del usuario:', error);
       throw new Error('No se pudo obtener la información del usuario');
     }
-    
+
     return {
       id: data.id,
       username: data.username,
@@ -100,7 +109,7 @@ export class UserContextService {
    */
   static async getUserProfile(userId: string): Promise<UserProfessionalProfile | null> {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase
       .from('user_perfil')
       .select(`
@@ -123,7 +132,7 @@ export class UserContextService {
       `)
       .eq('user_id', userId)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') {
         // No existe perfil, retornar null
@@ -132,14 +141,14 @@ export class UserContextService {
       console.error('Error obteniendo perfil del usuario:', error);
       return null;
     }
-    
+
     const profile: UserProfessionalProfile = {
       cargoTitulo: data.cargo_titulo,
       pais: data.pais,
       dificultadId: data.dificultad_id,
       usoIaRespuesta: data.uso_ia_respuesta,
     };
-    
+
     // Mapear rol
     if (data.roles && typeof data.roles === 'object' && !Array.isArray(data.roles)) {
       const rol = data.roles as { id: number; slug: string; nombre: string; area_id?: number };
@@ -150,7 +159,7 @@ export class UserContextService {
         areaId: rol.area_id,
       };
     }
-    
+
     // Mapear nivel
     if (data.niveles && typeof data.niveles === 'object' && !Array.isArray(data.niveles)) {
       const nivel = data.niveles as { id: number; slug: string; nombre: string };
@@ -160,7 +169,7 @@ export class UserContextService {
         nombre: nivel.nombre,
       };
     }
-    
+
     // Mapear área
     if (data.areas && typeof data.areas === 'object' && !Array.isArray(data.areas)) {
       const area = data.areas as { id: number; slug: string; nombre: string };
@@ -170,7 +179,7 @@ export class UserContextService {
         nombre: area.nombre,
       };
     }
-    
+
     // Mapear relación
     if (data.relaciones && typeof data.relaciones === 'object' && !Array.isArray(data.relaciones)) {
       const relacion = data.relaciones as { id: number; slug: string; nombre: string };
@@ -180,7 +189,7 @@ export class UserContextService {
         nombre: relacion.nombre,
       };
     }
-    
+
     // Mapear tamaño de empresa
     if (data.tamanos_empresa && typeof data.tamanos_empresa === 'object' && !Array.isArray(data.tamanos_empresa)) {
       const tamano = data.tamanos_empresa as { id: number; slug: string; nombre: string; min_empleados?: number; max_empleados?: number };
@@ -192,7 +201,7 @@ export class UserContextService {
         maxEmpleados: tamano.max_empleados,
       };
     }
-    
+
     // Mapear sector
     if (data.sectores && typeof data.sectores === 'object' && !Array.isArray(data.sectores)) {
       const sector = data.sectores as { id: number; slug: string; nombre: string };
@@ -202,7 +211,7 @@ export class UserContextService {
         nombre: sector.nombre,
       };
     }
-    
+
     return profile;
   }
 
@@ -211,18 +220,27 @@ export class UserContextService {
    */
   static async getUserOrganization(userId: string): Promise<OrganizationInfo | null> {
     const supabase = await createClient();
-    
-    // Primero obtener el organization_id del usuario
-    const { data: userData, error: userError } = await supabase
-      .from('users')
+
+    // Buscar en organization_users (tabla de relación para B2B)
+    const { data: orgUserData, error: orgUserError } = await supabase
+      .from('organization_users')
       .select('organization_id')
-      .eq('id', userId)
-      .single();
-    
-    if (userError || !userData.organization_id) {
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (orgUserError) {
+      console.error('❌ [getUserOrganization] Error buscando en organization_users:', orgUserError);
       return null;
     }
-    
+
+    if (!orgUserData?.organization_id) {
+      console.log(`[getUserOrganization] Usuario ${userId} no está en ninguna organización`);
+      return null;
+    }
+
+    console.log(`[getUserOrganization] Usuario ${userId} pertenece a org: ${orgUserData.organization_id}`);
+
     // Obtener información de la organización
     const { data, error } = await supabase
       .from('organizations')
@@ -234,14 +252,14 @@ export class UserContextService {
         subscription_plan,
         max_users
       `)
-      .eq('id', userData.organization_id)
+      .eq('id', orgUserData.organization_id)
       .single();
-    
+
     if (error) {
       console.error('Error obteniendo organización:', error);
       return null;
     }
-    
+
     return {
       id: data.id,
       name: data.name,
@@ -260,7 +278,7 @@ export class UserContextService {
    */
   static async getUserWorkTeams(userId: string): Promise<WorkTeam[]> {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase
       .from('work_team_members')
       .select(`
@@ -275,12 +293,12 @@ export class UserContextService {
       `)
       .eq('user_id', userId)
       .eq('status', 'active');
-    
+
     if (error) {
       console.error('Error obteniendo equipos de trabajo:', error);
       return [];
     }
-    
+
     return data.map((item) => {
       const team = item.work_teams as unknown as {
         team_id: string;
@@ -288,7 +306,7 @@ export class UserContextService {
         description?: string;
         course_id?: string;
       };
-      
+
       return {
         teamId: team.team_id,
         name: team.name,
@@ -305,7 +323,7 @@ export class UserContextService {
    */
   static async getB2BCourseAssignments(userId: string): Promise<B2BCourseAssignment[]> {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase
       .from('organization_course_assignments')
       .select(`
@@ -343,12 +361,12 @@ export class UserContextService {
       `)
       .eq('user_id', userId)
       .neq('status', 'cancelled');
-    
+
     if (error) {
       console.error('Error obteniendo asignaciones de cursos B2B:', error);
       return [];
     }
-    
+
     return data.map((item) => {
       const course = item.courses as unknown as {
         id: string;
@@ -365,13 +383,13 @@ export class UserContextService {
         average_rating?: number;
         student_count?: number;
       };
-      
+
       const assigner = item.assigner as unknown as {
         display_name?: string;
         first_name?: string;
         last_name?: string;
       } | null;
-      
+
       return {
         id: item.id,
         organizationId: item.organization_id,
@@ -393,9 +411,9 @@ export class UserContextService {
           studentCount: course.student_count,
         },
         assignedBy: item.assigned_by,
-        assignedByName: assigner?.display_name || 
-          (assigner?.first_name && assigner?.last_name 
-            ? `${assigner.first_name} ${assigner.last_name}` 
+        assignedByName: assigner?.display_name ||
+          (assigner?.first_name && assigner?.last_name
+            ? `${assigner.first_name} ${assigner.last_name}`
             : undefined),
         assignedAt: item.assigned_at,
         dueDate: item.due_date,
@@ -412,20 +430,20 @@ export class UserContextService {
    */
   static async getTeamCourseAssignments(userId: string): Promise<TeamCourseAssignment[]> {
     const supabase = await createClient();
-    
+
     // Primero obtener los equipos del usuario
     const { data: teams, error: teamsError } = await supabase
       .from('work_team_members')
       .select('team_id')
       .eq('user_id', userId)
       .eq('status', 'active');
-    
+
     if (teamsError || !teams.length) {
       return [];
     }
-    
+
     const teamIds = teams.map(t => t.team_id);
-    
+
     // Obtener asignaciones de cursos de esos equipos
     const { data, error } = await supabase
       .from('work_team_course_assignments')
@@ -464,12 +482,12 @@ export class UserContextService {
       `)
       .in('team_id', teamIds)
       .neq('status', 'completed');
-    
+
     if (error) {
       console.error('Error obteniendo asignaciones de equipos:', error);
       return [];
     }
-    
+
     return data.map((item) => {
       const team = item.work_teams as unknown as { name: string };
       const course = item.courses as unknown as {
@@ -487,13 +505,13 @@ export class UserContextService {
         average_rating?: number;
         student_count?: number;
       };
-      
+
       const assigner = item.assigner as unknown as {
         display_name?: string;
         first_name?: string;
         last_name?: string;
       } | null;
-      
+
       return {
         id: item.id,
         teamId: item.team_id,
@@ -515,9 +533,9 @@ export class UserContextService {
           studentCount: course.student_count,
         },
         assignedBy: item.assigned_by,
-        assignedByName: assigner?.display_name || 
-          (assigner?.first_name && assigner?.last_name 
-            ? `${assigner.first_name} ${assigner.last_name}` 
+        assignedByName: assigner?.display_name ||
+          (assigner?.first_name && assigner?.last_name
+            ? `${assigner.first_name} ${assigner.last_name}`
             : undefined),
         assignedAt: item.assigned_at,
         dueDate: item.due_date,
@@ -532,7 +550,7 @@ export class UserContextService {
    */
   static async getB2CCoursePurchases(userId: string): Promise<B2CCoursePurchase[]> {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase
       .from('course_purchases')
       .select(`
@@ -560,12 +578,12 @@ export class UserContextService {
       `)
       .eq('user_id', userId)
       .eq('access_status', 'active');
-    
+
     if (error) {
       console.error('Error obteniendo compras de cursos B2C:', error);
       return [];
     }
-    
+
     // Obtener progreso de enrollments
     const courseIds = data.map(d => d.course_id);
     const { data: enrollments } = await supabase
@@ -573,11 +591,11 @@ export class UserContextService {
       .select('course_id, progress_percentage')
       .eq('user_id', userId)
       .in('course_id', courseIds);
-    
+
     const progressMap = new Map(
       (enrollments || []).map(e => [e.course_id, e.progress_percentage])
     );
-    
+
     return data.map((item) => {
       const course = item.courses as unknown as {
         id: string;
@@ -594,7 +612,7 @@ export class UserContextService {
         average_rating?: number;
         student_count?: number;
       };
-      
+
       return {
         purchaseId: item.purchase_id,
         userId: item.user_id,
@@ -632,10 +650,10 @@ export class UserContextService {
         this.getB2BCourseAssignments(userId),
         this.getTeamCourseAssignments(userId),
       ]);
-      
+
       // Convertir a formato unificado
       const courses: CourseAssignment[] = [];
-      
+
       // Agregar asignaciones de organización
       for (const assignment of orgAssignments) {
         courses.push({
@@ -649,7 +667,7 @@ export class UserContextService {
           source: 'organization',
         });
       }
-      
+
       // Agregar asignaciones de equipo (evitar duplicados)
       for (const assignment of teamAssignments) {
         const exists = courses.some(c => c.courseId === assignment.courseId);
@@ -666,12 +684,12 @@ export class UserContextService {
           });
         }
       }
-      
+
       return courses;
     } else {
       // B2C: obtener cursos comprados
       const purchases = await this.getB2CCoursePurchases(userId);
-      
+
       return purchases.map(purchase => ({
         courseId: purchase.courseId,
         course: purchase.course,
@@ -688,13 +706,13 @@ export class UserContextService {
    */
   static async getStudyPreferences(userId: string): Promise<StudyPreferences | null> {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase
       .from('study_preferences')
       .select('*')
       .eq('user_id', userId)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') {
         return null;
@@ -702,7 +720,7 @@ export class UserContextService {
       console.error('Error obteniendo preferencias de estudio:', error);
       return null;
     }
-    
+
     return {
       id: data.id,
       userId: data.user_id,
@@ -725,13 +743,13 @@ export class UserContextService {
    */
   static async getCalendarIntegration(userId: string): Promise<CalendarIntegration | null> {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase
       .from('calendar_integrations')
       .select('*')
       .eq('user_id', userId)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') {
         return null;
@@ -739,10 +757,10 @@ export class UserContextService {
       console.error('Error obteniendo integración de calendario:', error);
       return null;
     }
-    
-    const isConnected = !!data.access_token && 
+
+    const isConnected = !!data.access_token &&
       (!data.expires_at || new Date(data.expires_at) > new Date());
-    
+
     return {
       id: data.id,
       userId: data.user_id,
@@ -758,7 +776,7 @@ export class UserContextService {
    */
   static async getLearningRoutes(userId: string): Promise<LearningRoute[]> {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase
       .from('learning_routes')
       .select(`
@@ -772,12 +790,12 @@ export class UserContextService {
       `)
       .eq('user_id', userId)
       .eq('is_active', true);
-    
+
     if (error) {
       console.error('Error obteniendo rutas de aprendizaje:', error);
       return [];
     }
-    
+
     // Por ahora retornar sin los cursos específicos de cada ruta
     // Se puede expandir después para incluir los cursos
     return data.map(route => ({
@@ -798,9 +816,9 @@ export class UserContextService {
   static async getFullUserContext(userId: string): Promise<UserContext> {
     // Obtener tipo de usuario primero
     const userType = await this.getUserType(userId);
-    
+
     console.log(`[UserContextService] getFullUserContext - userType detectado: ${userType} para userId: ${userId}`);
-    
+
     // Obtener datos en paralelo
     const [
       user,
@@ -821,7 +839,7 @@ export class UserContextService {
       this.getCalendarIntegration(userId),
       this.getLearningRoutes(userId),
     ]);
-    
+
     const context = {
       user,
       userType,
@@ -833,14 +851,14 @@ export class UserContextService {
       calendarIntegration: calendarIntegration || undefined,
       learningRoutes: learningRoutes.length > 0 ? learningRoutes : undefined,
     };
-    
+
     console.log(`[UserContextService] getFullUserContext - Contexto construido:`, {
       userType: context.userType,
       hasOrganization: !!context.organization,
       organizationName: context.organization?.name,
       coursesCount: context.courses.length,
     });
-    
+
     return context;
   }
 
@@ -849,10 +867,10 @@ export class UserContextService {
    */
   static async getUpcomingDeadlines(userId: string, daysAhead: number = 14): Promise<B2BCourseAssignment[]> {
     const supabase = await createClient();
-    
+
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
-    
+
     const { data, error } = await supabase
       .from('organization_course_assignments')
       .select(`
@@ -886,12 +904,12 @@ export class UserContextService {
       .neq('status', 'completed')
       .neq('status', 'cancelled')
       .order('due_date', { ascending: true });
-    
+
     if (error) {
       console.error('Error obteniendo plazos próximos:', error);
       return [];
     }
-    
+
     return data.map((item) => {
       const course = item.courses as unknown as {
         id: string;
@@ -905,7 +923,7 @@ export class UserContextService {
         duration_total_minutes: number;
         is_active: boolean;
       };
-      
+
       return {
         id: item.id,
         organizationId: item.organization_id,
