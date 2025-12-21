@@ -19,24 +19,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, HelpCircle, AlertCircle } from 'lucide-react';
 import type { DifficultyAnalysis } from '../../lib/rrweb/difficulty-pattern-detector';
 
+export interface OrganizationColors {
+  primary?: string;
+  accent?: string;
+  cardBg?: string;
+  textColor?: string;
+}
+
 export interface ProactiveLIAAssistantProps {
   /** Análisis de dificultad detectado */
   analysis: DifficultyAnalysis | null;
-  
+
   /** Si se debe mostrar el componente */
   show: boolean;
-  
+
   /** Callback cuando usuario acepta ayuda */
   onAccept: () => void;
-  
+
   /** Callback cuando usuario dismissea */
   onDismiss: () => void;
-  
+
   /** Posición del componente (default: 'bottom-right') */
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  
+
   /** Modo compacto (más pequeño) */
   compact?: boolean;
+
+  /** Colores personalizados de la organización */
+  colors?: OrganizationColors;
 }
 
 export function ProactiveLIAAssistant({
@@ -45,9 +55,18 @@ export function ProactiveLIAAssistant({
   onAccept,
   onDismiss,
   position = 'bottom-right',
-  compact = false
+  compact = false,
+  colors
 }: ProactiveLIAAssistantProps) {
   const [isVisible, setIsVisible] = useState(false);
+
+  // Colores con fallback a colores SOFIA por defecto (Modo Oscuro)
+  const themeColors = {
+    primary: colors?.primary || '#00D4B3',
+    accent: colors?.accent || '#00D4B3',
+    cardBg: colors?.cardBg || '#1E2329', // Fondo Dark por defecto
+    text: colors?.textColor || '#FFFFFF', // Texto White por defecto
+  };
 
   useEffect(() => {
     if (show && analysis) {
@@ -77,13 +96,13 @@ export function ProactiveLIAAssistant({
 
   // Variantes de animación
   const containerVariants = {
-    hidden: { 
-      opacity: 0, 
+    hidden: {
+      opacity: 0,
       scale: 0.8,
       y: position.includes('bottom') ? 20 : -20
     },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       scale: 1,
       y: 0,
       transition: {
@@ -92,8 +111,8 @@ export function ProactiveLIAAssistant({
         damping: 20
       }
     },
-    exit: { 
-      opacity: 0, 
+    exit: {
+      opacity: 0,
       scale: 0.8,
       transition: {
         duration: 0.2
@@ -105,19 +124,19 @@ export function ProactiveLIAAssistant({
   const getSeverityIcon = () => {
     const highSeverityPattern = analysis.patterns.find((p: any) => p.severity === 'high');
     if (highSeverityPattern) {
-      return <AlertCircle className="w-5 h-5 text-[#F59E0B]" />; // Ámbar suave
+      return <AlertCircle className="w-5 h-5" style={{ color: '#F59E0B' }} />; // Ámbar suave
     }
-    return <HelpCircle className="w-5 h-5 text-[#0A2540]" />; // Azul Profundo
+    return <HelpCircle className="w-5 h-5" style={{ color: themeColors.primary }} />;
   };
 
   // Color de la barra de progreso según el score
   const getProgressColor = () => {
     if (analysis.overallScore >= 0.7) {
-      return 'bg-[#F59E0B]'; // Ámbar para alta dificultad
+      return '#F59E0B'; // Ámbar para alta dificultad
     } else if (analysis.overallScore >= 0.4) {
-      return 'bg-[#00D4B3]'; // Aqua para dificultad media
+      return themeColors.accent; // Aqua para dificultad media
     }
-    return 'bg-[#10B981]'; // Verde suave para baja dificultad
+    return '#10B981'; // Verde suave para baja dificultad
   };
 
   return (
@@ -131,17 +150,26 @@ export function ProactiveLIAAssistant({
           className={`fixed ${positionClasses[position]} z-50 ${compact ? 'max-w-xs' : 'max-w-md'}`}
         >
           {/* Card principal - diseño minimalista */}
-          <div className="bg-white dark:bg-[#1E2329] rounded-xl shadow-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden">
-            {/* Header minimalista con color Azul Profundo */}
-            <div className="bg-[#0A2540] px-4 py-3">
+          <div
+            className="rounded-xl shadow-lg border overflow-hidden"
+            style={{
+              backgroundColor: themeColors.cardBg,
+              borderColor: `${themeColors.primary}20`
+            }}
+          >
+            {/* Header minimalista */}
+            <div
+              className="px-4 py-3"
+              style={{ backgroundColor: themeColors.primary }}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <motion.div
-                    animate={{ 
+                    animate={{
                       rotate: [0, 5, -5, 5, 0],
                       scale: [1, 1.05, 1]
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 2,
                       repeat: Infinity,
                       repeatDelay: 3
@@ -177,7 +205,10 @@ export function ProactiveLIAAssistant({
                   {getSeverityIcon()}
                 </div>
                 <div className="flex-1">
-                  <p className="text-[#0A2540] dark:text-gray-200 text-sm leading-relaxed">
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{ color: themeColors.text }}
+                  >
                     {analysis.interventionMessage}
                   </p>
                 </div>
@@ -187,13 +218,26 @@ export function ProactiveLIAAssistant({
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={handleAccept}
-                  className="flex-1 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                  className="flex-1 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                  style={{ backgroundColor: themeColors.primary }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                 >
                   Sí, ayúdame
                 </button>
                 <button
                   onClick={handleDismiss}
-                  className="px-4 py-2.5 text-[#0A2540] dark:text-gray-300 hover:text-[#0A2540] dark:hover:text-white font-medium rounded-lg border border-[#0A2540]/20 dark:border-[#6C757D]/50 hover:bg-[#0A2540]/5 dark:hover:bg-[#6C757D]/10 transition-all duration-200"
+                  className="px-4 py-2.5 font-medium rounded-lg border transition-all duration-200"
+                  style={{
+                    color: themeColors.primary,
+                    borderColor: `${themeColors.primary}20`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = `${themeColors.primary}05`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Ahora no
                 </button>
@@ -202,21 +246,28 @@ export function ProactiveLIAAssistant({
 
             {/* Footer con score - diseño minimalista */}
             {!compact && (
-              <div className="bg-white dark:bg-[#1E2329] px-4 py-2.5 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
+              <div
+                className="px-4 py-2.5 border-t"
+                style={{
+                  backgroundColor: themeColors.cardBg,
+                  borderColor: `${themeColors.primary}20`
+                }}
+              >
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#6C757D] dark:text-gray-400 font-normal">
+                  <span style={{ color: `${themeColors.text}80` }}>
                     Nivel de dificultad detectado:
                   </span>
                   <div className="flex items-center gap-2">
-                    <div className="w-20 h-1.5 bg-gray-200 dark:bg-[#0F1419] rounded-full overflow-hidden">
+                    <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: `${themeColors.text}10` }}>
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${analysis.overallScore * 100}%` }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}
-                        className={`h-full rounded-full ${getProgressColor()}`}
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: getProgressColor() }}
                       />
                     </div>
-                    <span className="font-medium text-[#0A2540] dark:text-gray-300 min-w-[2.5rem] text-right">
+                    <span className="font-medium min-w-[2.5rem] text-right" style={{ color: themeColors.primary }}>
                       {Math.round(analysis.overallScore * 100)}%
                     </span>
                   </div>

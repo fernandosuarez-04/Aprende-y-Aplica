@@ -76,6 +76,8 @@ import { useLanguage } from '../../../../core/providers/I18nProvider';
 // ✨ Nuevos imports para integración de modos
 import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
 import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/NanoBananaPreviewPanel';
+import { useOrganizationStyles } from '../../../../features/business-panel/hooks/useOrganizationStyles';
+import { hexToRgb } from '../../../../features/business-panel/utils/styles';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
@@ -124,21 +126,313 @@ export default function CourseLearnPage() {
 
   // Obtener usuario y su rol
   const { user } = useAuth();
-  
+  const { styles: orgStyles } = useOrganizationStyles();
+
+  // Calcular colores dinámicos
+  const colors = useMemo(() => {
+    const DEFAULT_ACCENT = '#00D4B3';
+    const DEFAULT_BG_PRIMARY = '#0F1419';
+    const DEFAULT_BG_SECONDARY = '#1E2329'; // Para paneles laterales
+
+    if (!orgStyles?.userDashboard) {
+      return {
+        accent: DEFAULT_ACCENT,
+        primary: '#0A2540',
+        bgPrimary: DEFAULT_BG_PRIMARY,
+        bgSecondary: DEFAULT_BG_SECONDARY
+      };
+    }
+
+    const { accent_color, primary_button_color, background_value } = orgStyles.userDashboard;
+    const panelStyles = orgStyles.panel;
+
+    // Determinar fondo principal (body)
+    let bgPrimary = background_value || DEFAULT_BG_PRIMARY;
+
+    // Determinar fondo secundario (paneles, tarjetas que eran blancas)
+    const sidebarBg = panelStyles?.sidebar_background || DEFAULT_BG_SECONDARY;
+    const bgSecondary = (sidebarBg && sidebarBg.startsWith('#')) ? sidebarBg : DEFAULT_BG_SECONDARY;
+
+    return {
+      accent: accent_color || DEFAULT_ACCENT,
+      primary: primary_button_color || '#0A2540',
+      bgPrimary,
+      bgSecondary
+    };
+  }, [orgStyles]);
+
   // Hook de traducción con verificación de inicialización
   const { t, i18n, ready } = useTranslation('learn');
   // Detectar idioma seleccionado
   const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
-  
+
   // Obtener steps del tour traducidos
   const courseLearnTourSteps = useCourseLearnTourSteps();
-  
+
   // Estado para evitar errores de hidratación
   const [mounted, setMounted] = useState(false);
-  
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Aplicar estilos personalizados globalmente a esta página mediante CSS injection
+  // Esto sobrescribe las clases de utilidad de Tailwind (verdes/emerald) con el color de la marca
+  useEffect(() => {
+    const styleId = 'custom-course-theme';
+    let styleTag = document.getElementById(styleId);
+
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = styleId;
+      document.head.appendChild(styleTag);
+    }
+
+    const { accent, bgPrimary, bgSecondary } = colors;
+
+    // Helper para convertir hex a rgb string
+    const hexToRgbVals = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(result[3], 16)}` : '0 212 179';
+    }
+    const accentRgb = hexToRgbVals(accent);
+
+    styleTag.innerHTML = `
+      :root {
+        --course-accent: ${accent};
+        --course-accent-rgb: ${accentRgb};
+        color-scheme: dark;
+      }
+      
+      /* SCROLLBARS PERSONALIZADOS */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        background: transparent !important;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent !important;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+      }
+      ::-webkit-scrollbar-corner {
+        background: transparent !important;
+      }
+
+      /* FORZAR TEMA OSCURO PERSONALIZADO */
+      body, .min-h-screen, html { 
+        background: ${bgPrimary} !important; 
+        color: white !important;
+      }
+      
+      /* Reemplazar fondos blancos por el color secundario oscuro */
+      .bg-white, .bg-gray-50, .bg-slate-50, .bg-zinc-50 { 
+        background-color: ${bgSecondary} !important; 
+        border-color: rgba(255,255,255,0.08) !important;
+      }
+
+      /* --- CORRECCIÓN AGRESIVA DE TEXTOS --- */
+      
+      /* 1. Resetear colores oscuros hardcodeados */
+      .text-\\[\\#0A2540\\], .text-\\[\\#1E2329\\] { 
+        color: white !important; 
+      }
+      
+      /* 2. Resetear colores secundarios hardcodeados */
+      .text-\\[\\#6C757D\\] {
+        color: rgba(255,255,255,0.6) !important;
+      }
+
+      /* 3. Resetear todas las escalas de grises oscuras de Tailwind */
+      [class*="text-gray-9"], [class*="text-gray-8"], [class*="text-gray-7"], [class*="text-gray-6"],
+      [class*="text-slate-9"], [class*="text-slate-8"], [class*="text-slate-7"], [class*="text-slate-6"],
+      [class*="text-zinc-9"], [class*="text-zinc-8"], [class*="text-zinc-7"], [class*="text-zinc-6"] {
+         color: rgba(255,255,255,0.9) !important;
+      }
+      
+      /* 4. Resetear escalas medias/claras para legibilidad */
+      [class*="text-gray-5"], [class*="text-gray-4"],
+      [class*="text-slate-5"], [class*="text-slate-4"],
+      [class*="text-zinc-5"], [class*="text-zinc-4"] {
+         color: rgba(255,255,255,0.6) !important;
+      }
+      
+      /* 5. Asegurar headers */
+      h1, h2, h3, h4, h5, h6 { color: white !important; }
+      
+      /* 6. Inputs y Textareas */
+      textarea, input[type="text"], input[type="email"], select {
+        background-color: rgba(0,0,0,0.2) !important;
+        color: white !important;
+        border-color: rgba(255,255,255,0.1) !important;
+      }
+      ::placeholder { color: rgba(255,255,255,0.4) !important; }
+
+      /* Bordes claros a sutiles */
+      .border-gray-200, .border-slate-200, .border-[#E9ECEF] { border-color: rgba(255,255,255,0.1) !important; }
+      
+      /* --- CORRECCIÓN DE BADGES Y BOTONES --- */
+      
+      /* Botones azules/oscuros genéricos: Forzar color primario de la empresa si es diferente */
+      .bg-\\[\\#0A2540\\], .bg-slate-900, .bg-blue-600 {
+        background-color: ${colors.primary} !important;
+        color: white !important;
+      }
+      
+      /* Badges de estado (Transformar fondos claros a transparentes oscuros) */
+      
+      /* Rojo (Pendiente) */
+      .bg-red-100 { background-color: rgba(239, 68, 68, 0.15) !important; color: #fca5a5 !important; border: 1px solid rgba(239,68,68,0.2) !important; }
+      .text-red-800, .text-red-700, .text-red-600 { color: #fca5a5 !important; }
+      .bg-red-500 { background-color: rgba(239, 68, 68, 0.8) !important; color: white !important; }
+      
+      /* Verde (Completado/Quiz) -> Usar Accent */
+      .bg-green-100, .bg-emerald-100 { background-color: rgba(${accentRgb}, 0.15) !important; color: ${accent} !important; border: 1px solid rgba(${accentRgb}, 0.2) !important; }
+      .text-green-800, .text-emerald-800, .text-emerald-700 { color: ${accent} !important; }
+      
+      /* Azul (Reading/Info) */
+      .bg-blue-100 { background-color: rgba(96, 165, 250, 0.15) !important; color: #93c5fd !important; border: 1px solid rgba(96,165,250,0.2) !important; }
+      .text-blue-800, .text-blue-700 { color: #93c5fd !important; }
+      
+      /* Indigo/Violeta */
+      .bg-indigo-100 { background-color: rgba(129, 140, 248, 0.15) !important; color: #a5b4fc !important; }
+      .text-indigo-800 { color: #a5b4fc !important; }
+      
+      /* Botones deshabilitados o grises (como Guardar Nota deshabilitado) */
+      .bg-gray-100, .bg-slate-100, .bg-gray-200, .bg-slate-200, .bg-gray-300, .bg-slate-300 { 
+        background-color: rgba(255,255,255,0.1) !important; 
+        color: rgba(255,255,255,0.8) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+      }
+      
+      /* BOTONES DE ACCIÓN PRINCIPALES (Interactuar con Lia, Avanzar Video) */
+      /* Suelen usar bg-white o bg-slate-200 en el diseño original claro */
+      /* Forzamos que los botones grandes dentro del contenido usen el color Accent o Primary */
+      
+      /* Botón "Interactuar con Lia" y "Avanzar al Siguiente Video" (si usan clases genéricas de botón gris) */
+      button.bg-white.text-gray-900, 
+      button.bg-slate-200, 
+      a.bg-white.text-gray-900 {
+        background-color: ${accent} !important;
+        color: white !important;
+        border: none !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.2) !important;
+      }
+      
+      /* Botones de Modales (Cancelar/Guardar) */
+      /* Cancelar (suelen ser blancos/bordes) */
+      .bg-white.border-gray-300, .bg-white.border {
+        background-color: transparent !important;
+        border-color: rgba(255,255,255,0.2) !important;
+        color: white !important;
+      }
+      .bg-white.border-gray-300:hover {
+        background-color: rgba(255,255,255,0.05) !important;
+      }
+      
+      /* dropdowns flotantes (Modales, Menús de opciones como el de 3 puntos) */
+      /* Atacar divs absolutos blancos que actuan como dropdowns */
+      div.absolute.bg-white.shadow-lg, 
+      div.absolute.bg-white.shadow-xl,
+      div.absolute.z-50.bg-white,
+      [role="menu"].bg-white,
+      [role="dialog"].bg-white {
+        background-color: #1E2329 !important; /* Forzar oscuro (bgSecondary default) */
+        color: white !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+      }
+      
+      /* Elementos dentro del dropdown */
+      div.absolute.bg-white button, 
+      [role="menu"] button {
+         color: white !important;
+      }
+      div.absolute.bg-white button:hover,
+      [role="menu"] button:hover {
+         background-color: rgba(255,255,255,0.1) !important;
+      }
+
+      /* Botón de Micrófono en Chat (si se ve blanco por error) */
+      /* Es probable que tenga una clase específica o estilo inline que necesitemos pisar si es blanco solido */
+      button[title="Grabar audio"], button[title="Enviar mensaje"] {
+        /* Si tiene estilo inline bg-primary-30, aseguramos que el primary sea el correcto via variable CSS si es posible, o forzamos un color sensato */
+        /* No podemos override inline styles con CSS normal a menos que usemos !important y un atributo selector */
+      }
+      /* Forzar que CUALQUIER botón blanco pequeño sea accent o transparente */
+      button.bg-white.w-11.h-11, button.bg-white.rounded-full.shadow-sm {
+         background-color: rgba(255,255,255,0.1) !important;
+         color: white !important;
+         border: 1px solid rgba(255,255,255,0.1) !important;
+      }
+
+      /* Iconos y Contenedores de Iconos (Círculos de actividades) */
+      .bg-blue-50, .bg-indigo-50, .bg-purple-50 {
+        background-color: rgba(${accentRgb}, 0.1) !important;
+        color: ${accent} !important;
+      }
+      .text-blue-500, .text-indigo-500, .text-purple-500 {
+        color: ${accent} !important;
+      }
+      
+      /* Textos específicos en modales o tarjetas */
+      .text-gray-500, .text-slate-500 {
+         color: rgba(255,255,255,0.6) !important;
+      }
+
+      button:disabled {
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+        background-color: rgba(255,255,255,0.1) !important;
+        color: rgba(255,255,255,0.4) !important;
+      }
+      
+      /* Sobrescribir verdes y colores específicos del template por defecto (#00D4B3, emerald, green) */
+      .text-\\[\\#00D4B3\\], .text-emerald-500, .text-green-500, .text-green-400 { color: ${accent} !important; }
+      .bg-\\[\\#00D4B3\\], .bg-emerald-500, .bg-green-500, .bg-green-400 { background-color: ${accent} !important; }
+      .border-\\[\\#00D4B3\\], .border-emerald-500, .border-green-500, .border-green-400, .border-green-600 { border-color: ${accent} !important; }
+      
+      /* Fondos con opacidad */
+      .bg-emerald-50, .bg-green-50, .bg-green-100 { background-color: rgba(${accentRgb}, 0.1) !important; }
+      .bg-emerald-50\\/50, .bg-green-50\\/50 { background-color: rgba(${accentRgb}, 0.05) !important; }
+      .bg-\\[\\#10B981\\]\\/10, .bg-\\[\\#00D4B3\\]\\/10 { background-color: rgba(${accentRgb}, 0.1) !important; }
+      
+      /* Bordes sutiles y dividers */
+      .border-emerald-100, .border-green-100, .border-green-200, .border-\\[\\#10B981\\]\\/30 { border-color: rgba(${accentRgb}, 0.3) !important; }
+      
+      /* Iconos Específicos */
+      .text-green-600, .dark .text-green-400 { color: ${accent} !important; } 
+      
+      /* Hovers */
+      .hover\\:bg-green-100:hover { background-color: rgba(${accentRgb}, 0.15) !important; }
+      
+      /* Gradientes */
+      .from-\\[\\#00D4B3\\], .from-green-400, .from-emerald-400 { --tw-gradient-from: ${accent} !important; }
+      .to-\\[\\#00D4B3\\], .to-green-400, .to-emerald-400 { --tw-gradient-to: ${accent} !important; }
+      
+      /* Sombras */
+      .shadow-\\[\\#00D4B3\\]\\/25 { --tw-shadow-color: rgba(${accentRgb}, 0.25) !important; }
+      
+      /* Inputs y Textareas en modo oscuro forzado */
+      textarea, input[type="text"] {
+        background-color: rgba(255,255,255,0.05) !important;
+        color: white !important;
+        border-color: rgba(255,255,255,0.1) !important;
+      }
+    `;
+
+    return () => {
+      const tag = document.getElementById(styleId);
+      if (tag) tag.remove();
+    };
+  }, [colors]);
 
   // Crear componentes dinámicos con loaders traducidos
   const NotesModal = useMemo(() => dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
@@ -152,18 +446,18 @@ export default function CourseLearnPage() {
   // ✅ Estado para metadatos del taller (módulos y lecciones completos)
   const [workshopMetadata, setWorkshopMetadata] = useState<CourseLessonContext | null>(null);
   const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'questions'>('video');
-  
+
   // Estado para detectar si estamos en móvil
   const [isMobile, setIsMobile] = useState(false);
   // Estado para la altura de la pantalla (para adaptar padding en diferentes dispositivos)
   const [screenHeight, setScreenHeight] = useState(0);
   // Estado para la altura del visualViewport (para manejar el teclado en móvil)
   const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
-  
+
   // Inicializar paneles cerrados en móviles, abiertos en desktop
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
-  
+
   const [isLiaExpanded, setIsLiaExpanded] = useState(false);
   const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
   const [isPromptsCollapsed, setIsPromptsCollapsed] = useState(false);
@@ -212,7 +506,7 @@ export default function CourseLearnPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] = useState(6);
-  
+
   // Hook de LIA sin mensaje inicial
   const {
     messages: liaMessages,
@@ -231,7 +525,7 @@ export default function CourseLearnPage() {
     clearNanoBanana,
     isNanoBananaMode
   } = useLiaChat(null);
-  
+
   // Estado local para el input del mensaje
   const [liaMessage, setLiaMessage] = useState('');
   const [isLiaRecording, setIsLiaRecording] = useState(false);
@@ -242,10 +536,10 @@ export default function CourseLearnPage() {
   const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   // 🎙️ Ref para el reconocimiento de voz
   const recognitionRef = useRef<any>(null);
-  
+
   // 🎙️ Obtener idioma actual para reconocimiento de voz
   const { language } = useLanguage();
-  
+
   // 🎙️ Mapeo de idiomas para reconocimiento de voz
   const speechLanguageMap: Record<string, string> = {
     'es': 'es-ES',
@@ -317,7 +611,7 @@ export default function CourseLearnPage() {
       lessonTitle: currentLesson?.lesson_title,
       metadata
     };
-    
+
     setUserBehaviorLog(prev => {
       const newLog = [...prev, logEntry];
       // Mantener solo las últimas 50 acciones para no sobrecargar memoria
@@ -331,9 +625,9 @@ export default function CourseLearnPage() {
     const recentActions = userBehaviorLog.slice(-10); // Últimas 10 acciones
     const now = Date.now();
     const last5Minutes = recentActions.filter(a => now - a.timestamp < 300000);
-    
+
     let behaviorContext = '';
-    
+
     // Detectar intentos de cambiar de lección sin completar
     const lessonChangeAttempts = last5Minutes.filter(a => a.action === 'attempted_lesson_change_without_completion');
     if (lessonChangeAttempts.length > 0) {
@@ -341,26 +635,26 @@ export default function CourseLearnPage() {
       behaviorContext += `El usuario ha intentado ${lessonChangeAttempts.length} veces cambiar a otra lección sin completar las actividades requeridas. `;
       behaviorContext += `Actividades pendientes: ${attemptDetails.metadata?.pendingActivities || 'desconocidas'}. `;
     }
-    
+
     // Detectar clics repetidos en lecciones bloqueadas
     const blockedAttempts = last5Minutes.filter(a => a.action === 'attempted_locked_lesson');
     if (blockedAttempts.length > 0) {
       behaviorContext += `Ha intentado ${blockedAttempts.length} veces acceder a lecciones bloqueadas. `;
     }
-    
+
     // Detectar expansión/colapso frecuente de materiales
     const expandCollapseActions = last5Minutes.filter(a => a.action === 'expand_lesson_materials' || a.action === 'collapse_lesson_materials');
     if (expandCollapseActions.length > 3) {
       behaviorContext += `Está explorando los materiales de forma repetitiva (${expandCollapseActions.length} veces en 5 min). `;
     }
-    
+
     // Detectar cambios frecuentes de tabs
     const tabChanges = last5Minutes.filter(a => a.action === 'tab_change');
     if (tabChanges.length > 5) {
       const tabs = tabChanges.map(a => a.metadata?.tab).filter(Boolean);
       behaviorContext += `Ha cambiado de sección ${tabChanges.length} veces (${tabs.join(' → ')}), parece estar buscando algo específico. `;
     }
-    
+
     // Detectar tiempo sin interacciones (último registro)
     if (recentActions.length > 0) {
       const lastAction = recentActions[recentActions.length - 1];
@@ -369,13 +663,13 @@ export default function CourseLearnPage() {
         behaviorContext += `Lleva ${Math.floor(timeSinceLastAction / 60)} minutos en la misma acción sin interactuar. `;
       }
     }
-    
+
     // Detectar intentos fallidos de actividades
     const failedAttempts = last5Minutes.filter(a => a.action === 'activity_failed_attempt');
     if (failedAttempts.length > 0) {
       behaviorContext += `Ha fallado ${failedAttempts.length} intentos en actividades. `;
     }
-    
+
     return behaviorContext.trim();
   }, [userBehaviorLog, currentLesson]);
 
@@ -402,7 +696,7 @@ export default function CourseLearnPage() {
     const currentActivities = lessonsActivities[currentLesson.lesson_id] || [];
     const requiredActivities = currentActivities.filter(a => a.is_required);
     const pendingRequired = requiredActivities.filter(a => !a.is_completed);
-    
+
     if (pendingRequired.length > 0) {
       const pendingTitles = pendingRequired.map(a => a.activity_title).join(', ');
       trackUserAction('attempted_lesson_change_without_completion', {
@@ -413,7 +707,7 @@ export default function CourseLearnPage() {
         pendingActivities: pendingTitles,
         pendingCount: pendingRequired.length
       });
-      
+
       console.warn('⚠️ Usuario intenta cambiar de lección con actividades pendientes:', {
         current: currentLesson.lesson_title,
         target: lesson.lesson_title,
@@ -452,7 +746,7 @@ export default function CourseLearnPage() {
       // VALIDAR en segundo plano (async, no bloquea UI)
       // Usar AbortController para poder cancelar si el usuario cambia de lección rápidamente
       const abortController = new AbortController();
-      
+
       markLessonAsCompleted(previousLesson.lesson_id, abortController.signal).then(canComplete => {
         // Si falla la validación, REVERTIR cambio
         if (!canComplete) {
@@ -473,7 +767,7 @@ export default function CourseLearnPage() {
           console.warn('Error en validación de lección (ignorado):', error);
         }
       });
-      
+
       // Limpiar el abort controller cuando se cambie de lección
       // Esto se manejará en un useEffect que limpie cuando currentLesson cambie
       return;
@@ -502,12 +796,12 @@ export default function CourseLearnPage() {
   useEffect(() => {
     const prevLength = prevPromptsLengthRef.current;
     const currentLength = currentActivityPrompts.length;
-    
+
     // Solo resetear si cambió de 0 a tener prompts (nuevos prompts)
     if (prevLength === 0 && currentLength > 0) {
       setIsPromptsCollapsed(false);
     }
-    
+
     prevPromptsLengthRef.current = currentLength;
   }, [currentActivityPrompts.length]);
 
@@ -611,7 +905,7 @@ export default function CourseLearnPage() {
         // El safe-area-inset-bottom se maneja en el padding del área de entrada
         const headerHeight = 56; // Altura del header de LIA
         const bottomNavHeight = isMobileBottomNavVisible ? MOBILE_BOTTOM_NAV_HEIGHT_PX : 0;
-        
+
         // Usar calc() para incluir safe-area-inset-bottom en el cálculo CSS
         // Esto asegura que el textbox siempre esté visible cuando el teclado está abierto
         return `calc(${visualViewportHeight - headerHeight - bottomNavHeight}px - env(safe-area-inset-bottom, 0px))`;
@@ -619,7 +913,7 @@ export default function CourseLearnPage() {
       // Si no hay visualViewport, no retornar height para que se ajuste automáticamente
       return undefined;
     }
-    
+
     // En desktop, usar altura calculada basada en el viewport para asegurar que se muestre el input
     if (desktopLiaHeight) {
       return desktopLiaHeight;
@@ -630,17 +924,17 @@ export default function CourseLearnPage() {
   // Calcular padding dinámico para el área de entrada según altura de pantalla
   const getInputAreaPadding = (): string => {
     if (!isMobile) return '1rem';
-    
+
     // Para pantallas muy pequeñas (menos de 600px de altura), usar padding mínimo
     if (screenHeight < 600) {
       return `calc(0.75rem + max(env(safe-area-inset-bottom, 0px), 4px))`;
     }
-    
+
     // Para pantallas pequeñas (600-800px), usar padding moderado
     if (screenHeight < 800) {
       return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
     }
-    
+
     // Para pantallas normales y grandes, usar padding estándar
     return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
   };
@@ -718,7 +1012,7 @@ export default function CourseLearnPage() {
   // Función para convertir HTML a texto plano con formato mejorado
   const htmlToPlainText = (html: string, addLineBreaks: boolean = true): string => {
     if (!html) return '';
-    
+
     // Verificar que estamos en el cliente
     if (typeof document === 'undefined') {
       // Fallback simple para SSR: eliminar etiquetas HTML básicas
@@ -731,11 +1025,11 @@ export default function CourseLearnPage() {
         .replace(/&quot;/g, '"')
         .trim();
     }
-    
+
     // Crear un elemento temporal para parsear el HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     // Convertir listas a texto legible con saltos de línea
     const lists = tempDiv.querySelectorAll('ul, ol');
     lists.forEach(list => {
@@ -752,7 +1046,7 @@ export default function CourseLearnPage() {
         }
       });
     });
-    
+
     // Convertir <p> y <div> a saltos de línea si está habilitado
     if (addLineBreaks) {
       const paragraphs = tempDiv.querySelectorAll('p, div');
@@ -762,31 +1056,31 @@ export default function CourseLearnPage() {
         }
       });
     }
-    
+
     // Obtener el texto plano
     let text = tempDiv.textContent || tempDiv.innerText || '';
-    
+
     // Limpiar espacios múltiples y saltos de línea excesivos
     if (addLineBreaks) {
       text = text.replace(/\n{3,}/g, '\n\n'); // Máximo 2 saltos de línea consecutivos
     }
-    
+
     return text.trim();
   };
 
   // Función para generar vista previa inteligente
   const generateNotePreview = (html: string, maxLength: number = 50): string => {
     if (!html) return '';
-    
+
     // Verificar que estamos en el cliente
     if (typeof document === 'undefined') {
       const plainText = htmlToPlainText(html, false);
       return plainText.substring(0, maxLength) + (plainText.length > maxLength ? '...' : '');
     }
-    
+
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     // Verificar si el primer elemento es una lista
     const firstChild = tempDiv.firstElementChild;
     if (firstChild && (firstChild.tagName === 'UL' || firstChild.tagName === 'OL')) {
@@ -797,12 +1091,12 @@ export default function CourseLearnPage() {
         const prefix = listType === 'ol' ? '1. ' : '• ';
         const text = firstItem.textContent?.trim() || '';
         const preview = prefix + text;
-        return preview.length > maxLength 
-          ? preview.substring(0, maxLength) + '...' 
+        return preview.length > maxLength
+          ? preview.substring(0, maxLength) + '...'
           : preview + '...';
       }
     }
-    
+
     // Si no es una lista o no tiene elementos, usar el método normal
     const plainText = htmlToPlainText(html, false);
     return plainText.substring(0, maxLength) + (plainText.length > maxLength ? '...' : '');
@@ -822,7 +1116,7 @@ export default function CourseLearnPage() {
     if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
     if (diffDays === 1) return 'Ayer';
     if (diffDays < 7) return `Hace ${diffDays} días`;
-    
+
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
@@ -835,7 +1129,7 @@ export default function CourseLearnPage() {
         // Mapear notas de BD al formato del frontend
         const mappedNotes = notes.map((note: any) => {
           const preview = generateNotePreview(note.note_content, 50);
-          
+
           return {
             id: note.note_id,
             title: note.note_title,
@@ -913,12 +1207,12 @@ export default function CourseLearnPage() {
       setNotesStats((prev) => {
         const currentTotal = prev.totalNotes || 0;
         const newTotal = operation === 'create' ? currentTotal + 1 : Math.max(0, currentTotal - 1);
-        
+
         // Para lecciones con notas, usar el valor anterior y ajustar optimistamente
         // La recarga del servidor corregirá cualquier discrepancia
         const prevLessonsWithNotes = parseInt(prev.lessonsWithNotes.split('/')[0]) || 0;
         let lessonsWithNotes = prevLessonsWithNotes;
-        
+
         if (lessonId && operation === 'create') {
           // Si creamos una nota, asumimos que la lección no tenía notas antes
           // (será corregido por la recarga del servidor si es incorrecto)
@@ -928,7 +1222,7 @@ export default function CourseLearnPage() {
           // (será corregido por la recarga del servidor si es incorrecto)
           lessonsWithNotes = Math.max(0, prevLessonsWithNotes - 1);
         }
-        
+
         return {
           ...prev,
           totalNotes: newTotal,
@@ -949,7 +1243,7 @@ export default function CourseLearnPage() {
         ...prev,
         lastUpdate: 'Ahora'
       }));
-      
+
       setTimeout(async () => {
         await loadNotesStats(slug);
       }, 500);
@@ -992,7 +1286,7 @@ export default function CourseLearnPage() {
     if (!currentLesson || !course) return undefined;
 
     // Encontrar el módulo actual
-    const currentModule = modules.find(m => 
+    const currentModule = modules.find(m =>
       m.lessons.some(l => l.lesson_id === currentLesson.lesson_id)
     );
 
@@ -1030,19 +1324,19 @@ export default function CourseLearnPage() {
       // Resetear altura para calcular scrollHeight correctamente
       liaTextareaRef.current.style.height = 'auto';
       liaTextareaRef.current.style.overflowY = 'hidden';
-      
+
       const scrollHeight = liaTextareaRef.current.scrollHeight;
-      
+
       // Altura mínima igual al botón de enviar (48px = h-12)
       const minHeight = 48; // Igual al botón (h-12)
-      
+
       // Alturas calculadas para cada línea
       // Con padding de 12px arriba + 12px abajo = 24px
       // Fuente 14px * line-height 1.5 = 21px por línea
       const height1Line = 21 + 24; // 45px (pero usamos 48px para igualar botón)
       const height2Line = (21 * 2) + 24; // 66px
       const height3Line = (21 * 3) + 24; // 87px - altura máxima antes del scroll
-      
+
       // Solo activar scroll si el contenido supera las 3 líneas
       if (scrollHeight > height3Line) {
         // Contenido mayor a 3 líneas: fijar altura máxima y activar scroll
@@ -1072,15 +1366,15 @@ export default function CourseLearnPage() {
   // ✨ Función para convertir enlaces Markdown [texto](url) en hipervínculos HTML
   const parseMarkdownLinks = useCallback((text: string) => {
     if (!text) return text;
-    
+
     // Expresión regular para detectar enlaces Markdown: [texto](url)
     const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    
+
     // Dividir el texto en partes: enlaces y texto normal
     const parts = [];
     let lastIndex = 0;
     let match;
-    
+
     while ((match = markdownLinkRegex.exec(text)) !== null) {
       // Agregar texto antes del enlace
       if (match.index > lastIndex) {
@@ -1089,17 +1383,17 @@ export default function CourseLearnPage() {
           content: text.substring(lastIndex, match.index)
         });
       }
-      
+
       // Agregar el enlace
       parts.push({
         type: 'link',
         text: match[1], // El texto del enlace
         url: match[2]   // La URL
       });
-      
+
       lastIndex = match.index + match[0].length;
     }
-    
+
     // Agregar el texto restante después del último enlace
     if (lastIndex < text.length) {
       parts.push({
@@ -1107,7 +1401,7 @@ export default function CourseLearnPage() {
         content: text.substring(lastIndex)
       });
     }
-    
+
     return parts.length > 0 ? parts : [{ type: 'text', content: text }];
   }, []);
 
@@ -1139,15 +1433,15 @@ export default function CourseLearnPage() {
   // 🎙️ Inicializar reconocimiento de voz cuando cambia el idioma
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
+
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
       recognition.lang = speechLanguageMap[language] || 'es-ES';
       recognition.continuous = false;
       recognition.interimResults = false;
-      
+
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         if (transcript.trim()) {
@@ -1155,23 +1449,23 @@ export default function CourseLearnPage() {
         }
         setIsLiaRecording(false);
       };
-      
+
       recognition.onerror = (event: any) => {
         console.warn('Speech recognition error:', event.error);
         setIsLiaRecording(false);
-        
+
         if (event.error === 'not-allowed') {
           alert(t('voice.microphoneError') || 'Se necesita permiso para usar el micrófono');
         }
       };
-      
+
       recognition.onend = () => {
         setIsLiaRecording(false);
       };
-      
+
       recognitionRef.current = recognition;
     }
-    
+
     return () => {
       if (recognitionRef.current) {
         try {
@@ -1182,14 +1476,14 @@ export default function CourseLearnPage() {
       }
     };
   }, [language, t]);
-  
+
   // 🎙️ Función para activar/desactivar grabación de voz
   const toggleRecording = useCallback(async () => {
     if (!recognitionRef.current) {
       alert(t('voice.speechNotSupported') || 'El reconocimiento de voz no está disponible en tu navegador');
       return;
     }
-    
+
     if (isLiaRecording) {
       try {
         recognitionRef.current.stop();
@@ -1201,16 +1495,16 @@ export default function CourseLearnPage() {
       try {
         // Solicitar permisos del micrófono primero
         await navigator.mediaDevices.getUserMedia({ audio: true });
-        
+
         // Actualizar el idioma del reconocimiento
         recognitionRef.current.lang = speechLanguageMap[language] || 'es-ES';
-        
+
         recognitionRef.current.start();
         setIsLiaRecording(true);
       } catch (error: any) {
         console.error('Error starting speech recognition:', error);
         setIsLiaRecording(false);
-        
+
         if (error?.name === 'NotAllowedError') {
           alert(t('voice.microphoneError') || 'Se necesita permiso para usar el micrófono');
         }
@@ -1226,7 +1520,7 @@ export default function CourseLearnPage() {
     }
 
     setIsSavingPrompt(true);
-    
+
     try {
       const response = await fetch('/api/ai-directory/prompts/save-from-chat', {
         method: 'POST',
@@ -1245,14 +1539,14 @@ export default function CourseLearnPage() {
       }
 
       const data = await response.json();
-      
+
       // Notificar éxito
       alert(`✅ Prompt guardado exitosamente: "${draft.title}"\n\nEste prompt está vinculado al curso "${course?.title || course?.course_title}"`);
-      
+
       // Cerrar el panel de preview
       setShowPromptPreview(false);
       clearPrompt();
-      
+
       // Opcional: Navegar al prompt guardado
       if (data.redirectUrl) {
         const shouldNavigate = confirm('¿Quieres ver el prompt en el directorio?\n\n(Se abrirá en una nueva pestaña para no perder tu progreso)');
@@ -1425,7 +1719,7 @@ CONTENIDO ADAPTADO:`;
     // ✅ OPTIMIZACIÓN: Usar contenido original inmediatamente, adaptar en background si es necesario
     const userRole = user?.type_rol;
     let adaptedContent = activityContent; // Usar contenido original por defecto (más rápido)
-    
+
     // Adaptar contenido en background si hay rol del usuario (no bloquea la interacción inicial)
     if (userRole) {
       adaptActivityContentForRole(activityContent, activityTitle, userRole)
@@ -1441,7 +1735,7 @@ CONTENIDO ADAPTADO:`;
     }
 
     // Construir el prompt profesional para LIA con GUARDRAILS
-    const roleInfo = userRole 
+    const roleInfo = userRole
       ? `\n## ROL DEL USUARIO
 - El usuario tiene el rol profesional: "${userRole}"
 - DEBES adaptar todos los ejemplos, casos de uso y referencias al contexto profesional de este rol
@@ -1561,7 +1855,7 @@ Antes de cada respuesta, pregúntate:
   const handleToggleLiaExpanded = () => {
     const newExpandedState = !isLiaExpanded;
     setIsLiaExpanded(newExpandedState);
-    
+
     // Si se está expandiendo, cerrar el panel izquierdo
     if (newExpandedState && isLeftPanelOpen) {
       setIsLeftPanelOpen(false);
@@ -1584,7 +1878,7 @@ Antes de cada respuesta, pregúntate:
   // Máximo 5 conversaciones por usuario
   const loadConversations = useCallback(async () => {
     if (!slug) return;
-    
+
     setLoadingConversations(true);
     try {
       // Limitar a 5 conversaciones (máximo permitido)
@@ -1618,8 +1912,8 @@ Antes de cada respuesta, pregúntate:
 
       if (response.ok) {
         // Actualizar en el estado local
-        setConversations(prev => 
-          prev.map(conv => 
+        setConversations(prev =>
+          prev.map(conv =>
             conv.conversation_id === conversationId
               ? { ...conv, conversation_title: title.trim() || null }
               : conv
@@ -1645,12 +1939,12 @@ Antes de cada respuesta, pregúntate:
       if (response.ok) {
         // Remover del estado local
         setConversations(prev => prev.filter(conv => conv.conversation_id !== conversationId));
-        
+
         // Si era la conversación actual, limpiar el historial
         if (currentConversationId === conversationId) {
           clearLiaHistory();
         }
-        
+
         setDeletingConversationId(null);
       } else {
         console.error('Error eliminando conversación');
@@ -1664,7 +1958,7 @@ Antes de cada respuesta, pregúntate:
   const handleLoadConversation = useCallback(async (conversationId: string) => {
     await loadConversation(conversationId);
     setShowHistory(false);
-    
+
     // Scroll al final de los mensajes
     setTimeout(() => {
       liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1710,21 +2004,21 @@ Antes de cada respuesta, pregúntate:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(notePayload)
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
           alert(`Error al actualizar la nota: ${errorData.error || 'Error desconocido'}`);
           return;
         }
-        
+
         // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
         const updatedNote = await response.json();
         if (updatedNote && updatedNote.note_id) {
           addNoteToLocalState(updatedNote, currentLesson.lesson_id);
-          
+
           // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
           await updateNotesStatsOptimized('update', currentLesson.lesson_id);
-          
+
           // Cerrar modal solo después de que todo se haya guardado correctamente
           setIsNotesModalOpen(false);
           setEditingNote(null);
@@ -1738,22 +2032,22 @@ Antes de cada respuesta, pregúntate:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(notePayload)
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
           const errorMessage = errorData.error || errorData.message || 'Error desconocido';
           alert(`Error al guardar la nota: ${errorMessage}`);
           throw new Error(errorMessage);
         }
-        
+
         // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
         const newNote = await response.json();
         if (newNote && newNote.note_id) {
           addNoteToLocalState(newNote, currentLesson.lesson_id);
-          
+
           // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
           await updateNotesStatsOptimized('create', currentLesson.lesson_id);
-          
+
           // Cerrar modal solo después de que todo se haya guardado correctamente
           setIsNotesModalOpen(false);
           setEditingNote(null);
@@ -1774,7 +2068,7 @@ Antes de cada respuesta, pregúntate:
   // ⚡ OPTIMIZADO: Función para eliminar nota con actualización optimista
   const handleDeleteNote = async (noteId: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) return;
-    
+
     try {
       if (!currentLesson?.lesson_id || !slug) {
         alert('No se puede eliminar la nota: lección no seleccionada');
@@ -1783,19 +2077,19 @@ Antes de cada respuesta, pregúntate:
 
       // ⚡ OPTIMIZACIÓN: Eliminar del estado local inmediatamente (actualización optimista)
       removeNoteFromLocalState(noteId);
-      
+
       // ⚡ OPTIMIZACIÓN: Actualizar estadísticas optimistamente
       await updateNotesStatsOptimized('delete', currentLesson.lesson_id);
 
       const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${noteId}`, {
         method: 'DELETE'
       });
-      
+
       if (!response.ok) {
         // Si falla, recargar desde el servidor para revertir el cambio optimista
         await loadLessonNotes(currentLesson.lesson_id, slug);
         await loadNotesStats(slug);
-        
+
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
         alert(`Error al eliminar la nota: ${errorData.error || 'Error desconocido'}`);
       }
@@ -1840,7 +2134,7 @@ Antes de cada respuesta, pregúntate:
         // Extraer datos del response unificado
         if (learnData.course) {
           setCourse(learnData.course);
-          
+
           // ✅ Cargar metadatos del taller (módulos y lecciones completos) para LIA
           // Esto permite que LIA tenga acceso a TODOS los módulos y lecciones
           if (learnData.course.id || learnData.course.course_id) {
@@ -1982,8 +2276,8 @@ Antes de cada respuesta, pregúntate:
       const modulesResponse: Module[] = Array.isArray(data)
         ? data
         : Array.isArray(data?.modules)
-        ? data.modules
-        : [];
+          ? data.modules
+          : [];
 
       setModules(modulesResponse);
 
@@ -2107,12 +2401,12 @@ Antes de cada respuesta, pregúntate:
   // Función para toggle de expandir/colapsar lección
   const toggleLessonExpand = async (lessonId: string) => {
     const isExpanded = expandedLessons.has(lessonId);
-    
+
     if (!isExpanded) {
       // Si se está expandiendo, cargar actividades y materiales
       await loadLessonActivitiesAndMaterials(lessonId);
     }
-    
+
     setExpandedLessons(prev => {
       const newSet = new Set(prev);
       if (newSet.has(lessonId)) {
@@ -2140,10 +2434,10 @@ Antes de cada respuesta, pregúntate:
   // Expandir automáticamente el módulo que contiene la lección actual
   useEffect(() => {
     if (currentLesson && modules.length > 0) {
-      const moduleWithCurrentLesson = modules.find(module => 
+      const moduleWithCurrentLesson = modules.find(module =>
         module.lessons.some(lesson => lesson.lesson_id === currentLesson.lesson_id)
       );
-      
+
       if (moduleWithCurrentLesson) {
         setExpandedModules(prev => {
           const newSet = new Set(prev);
@@ -2172,7 +2466,7 @@ Antes de cada respuesta, pregúntate:
         .filter(lesson => {
           // Solo precargar si no está ya cargado
           return lessonsActivities[lesson.lesson_id] === undefined ||
-                 lessonsMaterials[lesson.lesson_id] === undefined;
+            lessonsMaterials[lesson.lesson_id] === undefined;
         });
 
       // Limitar a máximo 3 lecciones para no sobrecargar
@@ -2195,10 +2489,10 @@ Antes de cada respuesta, pregúntate:
   // Función para encontrar todas las lecciones ordenadas en una lista plana
   const getAllLessonsOrdered = (): Array<{ lesson: Lesson; module: Module }> => {
     const allLessons: Array<{ lesson: Lesson; module: Module }> = [];
-    
+
     // Ordenar módulos por module_order_index
     const sortedModules = [...modules].sort((a, b) => a.module_order_index - b.module_order_index);
-    
+
     sortedModules.forEach((module) => {
       // Ordenar lecciones por lesson_order_index dentro de cada módulo
       const sortedLessons = [...module.lessons].sort((a, b) => a.lesson_order_index - b.lesson_order_index);
@@ -2206,50 +2500,50 @@ Antes de cada respuesta, pregúntate:
         allLessons.push({ lesson, module });
       });
     });
-    
+
     return allLessons;
   };
 
   // Función para encontrar la lección anterior
   const getPreviousLesson = (): Lesson | null => {
     if (!currentLesson || modules.length === 0) return null;
-    
+
     const allLessons = getAllLessonsOrdered();
     const currentIndex = allLessons.findIndex(
       (item) => item.lesson.lesson_id === currentLesson.lesson_id
     );
-    
+
     if (currentIndex === -1 || currentIndex === 0) return null;
-    
+
     return allLessons[currentIndex - 1].lesson;
   };
 
   // Función para encontrar la lección siguiente
   const getNextLesson = (): Lesson | null => {
     if (!currentLesson || modules.length === 0) return null;
-    
+
     const allLessons = getAllLessonsOrdered();
     const currentIndex = allLessons.findIndex(
       (item) => item.lesson.lesson_id === currentLesson.lesson_id
     );
-    
+
     if (currentIndex === -1 || currentIndex === allLessons.length - 1) return null;
-    
+
     return allLessons[currentIndex + 1].lesson;
   };
 
   // Función para verificar si una lección puede ser completada
   const canCompleteLesson = (lessonId: string): boolean => {
     if (!lessonId || modules.length === 0) return false;
-    
+
     const allLessons = getAllLessonsOrdered();
     const lessonIndex = allLessons.findIndex(
       (item) => item.lesson.lesson_id === lessonId
     );
-    
+
     // Si es la primera lección del curso, puede ser completada
     if (lessonIndex === 0) return true;
-    
+
     // Si no es la primera, verificar que la anterior esté completada
     const previousLesson = allLessons[lessonIndex - 1].lesson;
     return previousLesson.is_completed;
@@ -2261,12 +2555,12 @@ Antes de cada respuesta, pregúntate:
       const response = await fetch(`/api/courses/${params.slug}/lessons/${lessonId}/quiz/status`, {
         signal, // Pasar el signal para poder cancelar la petición
       });
-      
+
       // Si la petición fue cancelada, retornar sin error
       if (signal?.aborted) {
         return { canComplete: true };
       }
-      
+
       if (!response.ok) {
         // Si hay error HTTP, permitir completar (retrocompatibilidad)
         // No loguear errores 404/401 ya que pueden ser normales
@@ -2277,7 +2571,7 @@ Antes de cada respuesta, pregúntate:
       }
 
       const data = await response.json();
-      
+
       if (!data.hasRequiredQuizzes) {
         return { canComplete: true }; // No hay quizzes obligatorios
       }
@@ -2300,7 +2594,7 @@ Antes de cada respuesta, pregúntate:
       if (error?.name === 'AbortError' || signal?.aborted) {
         return { canComplete: true };
       }
-      
+
       // Ignorar errores de red (Failed to fetch) - pueden ocurrir si la página se está desmontando
       // o si hay problemas de conectividad temporales
       if (error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')) {
@@ -2310,7 +2604,7 @@ Antes de cada respuesta, pregúntate:
         }
         return { canComplete: true }; // En caso de error de red, permitir completar
       }
-      
+
       // Para otros errores, loguear pero permitir completar
       if (process.env.NODE_ENV === 'development') {
         console.error('Error verificando estado de quizzes:', error);
@@ -2366,7 +2660,7 @@ Antes de cada respuesta, pregúntate:
           return new Response(null, { status: 200, statusText: 'Network Error (ignored)' });
         })
       ]);
-      
+
       // Si la petición fue cancelada, retornar true (el estado local ya se actualizó)
       if (signal?.aborted) {
         return true;
@@ -2448,10 +2742,10 @@ Antes de cada respuesta, pregúntate:
 
             const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
             const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
-            const totalProgress = allLessons.length > 0 
+            const totalProgress = allLessons.length > 0
               ? Math.round((completedLessons.length / allLessons.length) * 100)
               : 0;
-            
+
             setCourseProgress(totalProgress);
             return updatedModules;
           });
@@ -2488,7 +2782,7 @@ Antes de cada respuesta, pregúntate:
               isOpen: true,
               title: 'Hace falta realizar actividad',
               message: responseData?.details?.message || responseData?.error || 'Debes completar y aprobar todos los quizzes obligatorios para continuar.',
-              details: responseData?.details 
+              details: responseData?.details
                 ? `Completados: ${responseData.details.passed} de ${responseData.details.totalRequired}`
                 : undefined,
               type: 'activity',
@@ -2519,7 +2813,7 @@ Antes de cada respuesta, pregúntate:
 
       // Si la respuesta es exitosa, procesar el resultado
       const result = responseData;
-      
+
       // Actualizar progreso con el valor del servidor si está disponible
       if (result.progress?.overall_progress !== undefined) {
         setCourseProgress(Math.round(result.progress.overall_progress));
@@ -2531,7 +2825,7 @@ Antes de cada respuesta, pregúntate:
       if (error?.name === 'AbortError' || signal?.aborted) {
         return true;
       }
-      
+
       // Para errores de red, también permitir continuar
       if (error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')) {
         if (process.env.NODE_ENV === 'development') {
@@ -2540,7 +2834,7 @@ Antes de cada respuesta, pregúntate:
         // El estado local ya se actualizó, así que permitir continuar
         return true;
       }
-      
+
       // Para otros errores, loguear pero permitir continuar
       if (process.env.NODE_ENV === 'development') {
         console.warn('Error al guardar progreso en BD (ignorado):', error);
@@ -2568,10 +2862,10 @@ Antes de cada respuesta, pregúntate:
     if (nextLesson && currentLesson) {
       // Guardar la lección anterior antes de cambiar
       const previousLesson = currentLesson;
-      
+
       // Intentar marcar la lección anterior como completada ANTES de cambiar
       const canComplete = await markLessonAsCompleted(previousLesson.lesson_id);
-      
+
       // Solo cambiar de lección si se pudo completar la anterior
       if (canComplete) {
         setCurrentLesson(nextLesson);
@@ -2610,8 +2904,8 @@ Antes de cada respuesta, pregúntate:
         <div className="text-center">
           <h1 className="text-3xl font-bold text-[#0A2540] dark:text-white mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{t('errors.courseNotFound')}</h1>
           <p className="text-[#6C757D] dark:text-white/80 mb-8" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('errors.courseNotFoundMessage')}</p>
-          <button 
-            onClick={() => router.push('/my-courses')} 
+          <button
+            onClick={() => router.push('/my-courses')}
             className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-colors"
           >
             {t('navigation.backToCourses')}
@@ -2636,20 +2930,20 @@ Antes de cada respuesta, pregúntate:
 
         // Abrir el panel de LIA (panel derecho)
         setIsRightPanelOpen(true);
-        
+
         // Generar mensaje personalizado basado en los patrones detectados
         const generatePersonalizedMessage = (patterns: any[]) => {
           // Priorizar patrones por severidad
           const highSeverityPatterns = patterns.filter(p => p.severity === 'high');
           const mediumSeverityPatterns = patterns.filter(p => p.severity === 'medium');
-          
+
           // Usar el patrón de mayor severidad primero
           const primaryPattern = highSeverityPatterns[0] || mediumSeverityPatterns[0] || patterns[0];
-          
+
           if (!primaryPattern) {
             return 'Necesito ayuda con esta lección';
           }
-          
+
           // Mensajes específicos por tipo de patrón
           const messageMap: Record<string, string> = {
             'inactivity': 'Llevo varios minutos sin poder avanzar en esta lección',
@@ -2660,22 +2954,22 @@ Antes de cada respuesta, pregúntate:
             'erroneous_clicks': 'He intentado varias opciones pero no consigo avanzar',
             'back_navigation': 'Necesito revisar contenido anterior porque no entiendo esta parte'
           };
-          
+
           // Si hay múltiples patrones de alta severidad, combinarlos
           if (highSeverityPatterns.length > 1) {
             const mainIssue = messageMap[primaryPattern.type] || 'Estoy teniendo dificultades con esta lección';
             return `${mainIssue} y estoy un poco bloqueado`;
           }
-          
+
           return messageMap[primaryPattern.type] || 'Necesito ayuda con esta lección';
         };
-        
+
         // Construir mensaje visible personalizado para el usuario
         const visibleUserMessage = generatePersonalizedMessage(analysis.patterns);
-        
+
         // 🎯 ANÁLISIS PROFUNDO DEL COMPORTAMIENTO DEL USUARIO
         const behaviorAnalysis = analyzeUserBehavior();
-        
+
         // Obtener información sobre actividades pendientes
         const currentActivities = currentLesson ? (lessonsActivities[currentLesson.lesson_id] || []) : [];
         const requiredActivities = currentActivities.filter(a => a.is_required);
@@ -2701,7 +2995,7 @@ Antes de cada respuesta, pregúntate:
         const progressPercentage = totalLessonsInCourse > 0
           ? Math.round(((currentLessonIndex + 1) / totalLessonsInCourse) * 100)
           : 0;
-        
+
         // Construir contexto enriquecido de la lección con información de la dificultad detectada
         // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
         const baseContext = workshopMetadata ? {
@@ -2721,7 +3015,7 @@ Antes de cada respuesta, pregúntate:
           lessonDescription: currentLesson.lesson_description,
           durationSeconds: currentLesson.duration_seconds,
         } : undefined);
-        
+
         const enrichedLessonContext = baseContext ? {
           ...baseContext,
           userRole: user?.type_rol || undefined,
@@ -2808,7 +3102,7 @@ Antes de cada respuesta, pregúntate:
             })()
           }
         } : getLessonContext();
-        
+
         try {
           // Enviar mensaje con contexto enriquecido en segundo plano
           // ✅ isSystemMessage=true: El mensaje NO se mostrará en el chat como mensaje del usuario
@@ -2824,2165 +3118,2144 @@ Antes de cada respuesta, pregúntate:
         }
       }}
     >
-    <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 overflow-hidden">
-      {/* Header superior con nueva estructura - Responsive */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
-      >
-        <div className="flex items-center justify-between w-full gap-2">
-          {/* Sección izquierda: Botón regresar | Nombre del taller */}
-          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-            {/* Botón de regreso */}
-            <button
-              onClick={() => router.back()}
-              className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-              aria-label={t('header.backButton')}
-              title={t('header.backButton')}
-            >
-              <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
-            </button>
+      <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 overflow-hidden">
+        {/* Header superior con nueva estructura - Responsive */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
+        >
+          <div className="flex items-center justify-between w-full gap-2">
+            {/* Sección izquierda: Botón regresar | Nombre del taller */}
+            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+              {/* Botón de regreso */}
+              <button
+                onClick={() => router.back()}
+                className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
+                aria-label={t('header.backButton')}
+                title={t('header.backButton')}
+              >
+                <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
+              </button>
 
-            {/* Nombre del taller */}
-            <div className="min-w-0 flex-1">
-              <h1 className="text-sm md:text-base font-bold text-[#0A2540] dark:text-white truncate" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                {course.title || course.course_title}
-              </h1>
-              <p className="hidden md:block text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('header.workshop')}</p>
-            </div>
-          </div>
-
-          {/* Sección central: Progreso - Solo porcentaje compacto en móviles */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Barra de progreso - Oculto en móviles */}
-            <div className="hidden md:flex items-center gap-2">
-              <div className="w-32 lg:w-40 h-1.5 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${courseProgress}%` }}
-                  transition={{ duration: 1 }}
-                  className="h-full bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] rounded-full shadow-lg"
-                />
+              {/* Nombre del taller */}
+              <div className="min-w-0 flex-1">
+                <h1 className="text-sm md:text-base font-bold text-[#0A2540] dark:text-white truncate" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                  {course.title || course.course_title}
+                </h1>
+                <p className="hidden md:block text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('header.workshop')}</p>
               </div>
             </div>
-            {/* Porcentaje compacto - Visible siempre */}
-            <span className="text-xs text-[#0A2540] dark:text-white font-medium bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-              {courseProgress}%
-            </span>
-          </div>
 
-          {/* Sección derecha: Botón de Tour */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => {
-                // Disparar evento personalizado para abrir el tour manualmente
-                const eventName = 'open-tour-course-learn';
-                window.dispatchEvent(new CustomEvent(eventName));
-              }}
-              className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-              title={t('tour.replayLabel')}
-              aria-label={t('tour.replayLabel')}
-            >
-              <Compass className="w-5 h-5 text-[#0A2540] dark:text-white" />
-            </button>
-          </div>
-        </div>
-      </motion.div>
+            {/* Sección central: Progreso - Solo porcentaje compacto en móviles */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Barra de progreso - Oculto en móviles */}
+              <div className="hidden md:flex items-center gap-2">
+                <div className="w-32 lg:w-40 h-1.5 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${courseProgress}%` }}
+                    transition={{ duration: 1 }}
+                    className="h-full bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] rounded-full shadow-lg"
+                  />
+                </div>
+              </div>
+              {/* Porcentaje compacto - Visible siempre */}
+              <span className="text-xs text-[#0A2540] dark:text-white font-medium bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                {courseProgress}%
+              </span>
+            </div>
 
-      {/* Contenido principal - 3 paneles - Responsive */}
-      <div 
-        ref={swipeRef}
-        className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white dark:bg-[#0F1419] relative z-10"
-      >
-        {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
-        <AnimatePresence>
-          {isLeftPanelOpen && (
-            <>
-              {/* Overlay oscuro en móvil */}
-              {isMobile && (
+            {/* Sección derecha: Botón de Tour */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => {
+                  // Disparar evento personalizado para abrir el tour manualmente
+                  const eventName = 'open-tour-course-learn';
+                  window.dispatchEvent(new CustomEvent(eventName));
+                }}
+                className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
+                title={t('tour.replayLabel')}
+                aria-label={t('tour.replayLabel')}
+              >
+                <Compass className="w-5 h-5 text-[#0A2540] dark:text-white" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Contenido principal - 3 paneles - Responsive */}
+        <div
+          ref={swipeRef}
+          className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white dark:bg-[#0F1419] relative z-10"
+        >
+          {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
+          <AnimatePresence>
+            {isLeftPanelOpen && (
+              <>
+                {/* Overlay oscuro en móvil */}
+                {isMobile && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsLeftPanelOpen(false)}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+                  />
+                )}
+
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsLeftPanelOpen(false)}
-                  className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
-                />
-              )}
-              
-              <motion.div
-                initial={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
-                animate={isMobile ? { x: 0 } : { width: 320, opacity: 1 }}
-                exit={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className={`
-                  ${isMobile 
-                    ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none' 
-                    : 'relative h-full'
-                  }
+                  initial={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
+                  animate={isMobile ? { x: 0 } : { width: 320, opacity: 1 }}
+                  exit={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className={`
+                  ${isMobile
+                      ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none'
+                      : 'relative h-full'
+                    }
                   bg-white dark:bg-[#1E2329] rounded-xl md:rounded-xl flex flex-col overflow-hidden shadow-sm
                   ${isMobile ? 'my-0 ml-0 md:my-2 md:ml-2' : 'my-2 ml-2'}
                   border border-[#E9ECEF] dark:border-[#6C757D]/30
                 `}
-              >
-                {/* Header con línea separadora alineada con panel central */}
-                <div className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between p-3 rounded-t-xl shrink-0 h-[56px]">
-                  <h2 className="text-base font-semibold text-[#0A2540] dark:text-white flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
-                    <BookOpen className="w-4 h-4 text-[#00D4B3]" />
-                    {t('leftPanel.title')}
-                  </h2>
-                  <button
-                    onClick={() => setIsLeftPanelOpen(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                  >
-                    {isMobile ? (
-                      <X className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
-                    ) : (
-                      <ChevronLeft className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
-                    )}
-                  </button>
-                </div>
-
-              {/* Contenido con scroll */}
-              <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
-                {/* Sección de Material del Curso */}
-                <div className="mb-8">
-                  {/* Header de Contenido con botón de colapsar */}
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-[#0A2540] dark:text-white flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                      <Layers className="w-5 h-5 text-[#00D4B3]" />
-                      {t('leftPanel.content')}
-                    </h3>
+                >
+                  {/* Header con línea separadora alineada con panel central */}
+                  <div className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between p-3 rounded-t-xl shrink-0 h-[56px]">
+                    <h2 className="text-base font-semibold text-[#0A2540] dark:text-white flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                      <BookOpen className="w-4 h-4 text-[#00D4B3]" />
+                      {t('leftPanel.title')}
+                    </h2>
                     <button
-                      onClick={() => setIsMaterialCollapsed(!isMaterialCollapsed)}
-                      className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                      title={isMaterialCollapsed ? t('leftPanel.expandContent') : t('leftPanel.collapseContent')}
+                      onClick={() => setIsLeftPanelOpen(false)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                     >
-                      {isMaterialCollapsed ? (
-                        <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
+                      {isMobile ? (
+                        <X className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                       ) : (
-                        <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
+                        <ChevronLeft className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                       )}
                     </button>
                   </div>
 
-                  {/* Contenido de Material del Curso - Colapsable */}
-                  <AnimatePresence>
-                    {!isMaterialCollapsed && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden"
-                      >
-                {[...modules]
-                  .sort((a, b) => {
-                    // Función para extraer número del módulo del título
-                    const extractModuleNumber = (title: string): number => {
-                      const match = title.match(/Módulo\s*(\d+)/i);
-                      return match ? parseInt(match[1], 10) : 999;
-                    };
-
-                    const aNumber = extractModuleNumber(a.module_title);
-                    const bNumber = extractModuleNumber(b.module_title);
-
-                    // Si ambos tienen número en el título, priorizar ese número
-                    if (aNumber !== 999 && bNumber !== 999) {
-                      return aNumber - bNumber;
-                    }
-
-                    // Si solo uno tiene número, priorizarlo
-                    if (aNumber !== 999 && bNumber === 999) return -1;
-                    if (aNumber === 999 && bNumber !== 999) return 1;
-
-                    // Si ninguno tiene número o ambos tienen, usar module_order_index
-                    const orderDiff = (a.module_order_index || 0) - (b.module_order_index || 0);
-                    if (orderDiff !== 0) return orderDiff;
-
-                    // Último recurso: ordenar por título alfabéticamente
-                    return a.module_title.localeCompare(b.module_title);
-                  })
-                  .map((module, moduleIndex) => {
-                  const isModuleExpanded = expandedModules.has(module.module_id);
-                  
-                  // Ordenar lecciones dentro del módulo por lesson_order_index
-                  const sortedLessons = [...(module.lessons || [])].sort(
-                    (a, b) => (a.lesson_order_index || 0) - (b.lesson_order_index || 0)
-                  );
-                  
-                  // Calcular estadísticas del módulo
-                  const completedLessons = sortedLessons.filter(l => l.is_completed).length;
-                  const totalLessons = sortedLessons.length;
-                  const completionPercentage = totalLessons > 0 
-                    ? Math.round((completedLessons / totalLessons) * 100) 
-                    : 0;
-
-                  return (
-                    <div key={module.module_id} className="mb-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center flex-shrink-0">
-                            <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
-                          </div>
-                          <h3 className="font-semibold text-[#0A2540] dark:text-white text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{module.module_title}</h3>
-                        </div>
+                  {/* Contenido con scroll */}
+                  <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
+                    {/* Sección de Material del Curso */}
+                    <div className="mb-8">
+                      {/* Header de Contenido con botón de colapsar */}
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-[#0A2540] dark:text-white flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                          <Layers className="w-5 h-5 text-[#00D4B3]" />
+                          {t('leftPanel.content')}
+                        </h3>
                         <button
-                          onClick={() => toggleModuleExpand(module.module_id)}
-                          className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
-                          title={isModuleExpanded ? t('leftPanel.collapseModule') : t('leftPanel.expandModule')}
+                          onClick={() => setIsMaterialCollapsed(!isMaterialCollapsed)}
+                          className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                          title={isMaterialCollapsed ? t('leftPanel.expandContent') : t('leftPanel.collapseContent')}
                         >
-                          {isModuleExpanded ? (
-                            <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                          {isMaterialCollapsed ? (
+                            <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                           ) : (
-                            <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                            <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                           )}
                         </button>
                       </div>
 
-                      {/* Contenido del módulo - Colapsable */}
+                      {/* Contenido de Material del Curso - Colapsable */}
                       <AnimatePresence>
-                        {isModuleExpanded && (
+                        {!isMaterialCollapsed && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
+                            animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
+                            transition={{ duration: 0.3 }}
                             className="overflow-hidden"
                           >
-                            {/* Estadísticas del módulo mejoradas */}
-                            <div className="flex gap-3 mb-4">
-                              <span className="px-3 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] text-xs rounded-full border border-[#10B981]/30 font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                                {completedLessons}/{totalLessons} {t('leftPanel.completed')}
-                              </span>
-                              <span className="px-3 py-1 bg-[#00D4B3]/20 text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 font-medium">
-                                {completionPercentage}% {t('leftPanel.completedPercentage')}
-                              </span>
-                            </div>
+                            {[...modules]
+                              .sort((a, b) => {
+                                // Función para extraer número del módulo del título
+                                const extractModuleNumber = (title: string): number => {
+                                  const match = title.match(/Módulo\s*(\d+)/i);
+                                  return match ? parseInt(match[1], 10) : 999;
+                                };
 
-                            {/* Lista de lecciones mejorada - Estilo Minimalista */}
-                            <div className="space-y-2">
-                      {sortedLessons.length > 0 ? sortedLessons.map((lesson, lessonIndex) => {
-                        const isActive = currentLesson?.lesson_id === lesson.lesson_id;
-                        const isCompleted = lesson.is_completed;
-                        const isExpanded = expandedLessons.has(lesson.lesson_id);
-                        const activities = lessonsActivities[lesson.lesson_id] || [];
-                        const materials = lessonsMaterials[lesson.lesson_id] || [];
-                        const hasContent = activities.length > 0 || materials.length > 0;
-                        const isContentLoaded = lessonsActivities[lesson.lesson_id] !== undefined && lessonsMaterials[lesson.lesson_id] !== undefined;
+                                const aNumber = extractModuleNumber(a.module_title);
+                                const bNumber = extractModuleNumber(b.module_title);
 
-                        return (
-                          <div key={lesson.lesson_id} className="w-full">
-                            <div className="flex items-start gap-2">
-                              <motion.button
-                                whileHover={{ opacity: 0.8 }}
-                                whileTap={{ scale: 0.99 }}
-                                onClick={() => handleLessonChange(lesson)}
-                                className={`flex-1 flex items-start gap-3 p-3 rounded-lg transition-all duration-200 ${
-                                  isActive
-                                    ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-l-2 border-[#00D4B3]'
-                                    : 'hover:bg-gray-50/50 dark:hover:bg-slate-700/30 border-l-2 border-transparent'
-                                }`}
-                              >
-                                <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${
-                                  isCompleted 
-                                    ? 'text-green-500 dark:text-green-400' 
-                                    : isActive 
-                                      ? 'text-[#00D4B3] dark:text-[#00D4B3]' 
-                                      : 'text-[#6C757D] dark:text-white/50'
-                                }`}>
-                                  {isCompleted ? (
-                                    <CheckCircle2 className="w-5 h-5" />
-                                  ) : (
-                                    <Play className="w-4 h-4" />
-                                  )}
-                                </div>
-                                
-                                <div className="flex-1 text-left min-w-0">
-                                  <p className={`text-sm leading-relaxed line-clamp-3 ${isActive ? 'text-[#0A2540] dark:text-white font-medium' : 'text-[#0A2540] dark:text-white/80'}`} style={{ fontFamily: 'Inter, sans-serif', fontWeight: isActive ? 500 : 400 }}>
-                                    {lesson.lesson_title}
-                                  </p>
-                                  <div className="flex items-center gap-1.5 mt-2">
-                                    <Clock className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/50 flex-shrink-0" />
-                                    <span className="text-xs text-[#6C757D] dark:text-white/60 whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{formatDuration(lesson.duration_seconds)}</span>
-                                  </div>
-                                </div>
-                              </motion.button>
+                                // Si ambos tienen número en el título, priorizar ese número
+                                if (aNumber !== 999 && bNumber !== 999) {
+                                  return aNumber - bNumber;
+                                }
 
-                              {/* Botón para expandir/colapsar actividades y materiales */}
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  // Si no se han cargado las actividades y materiales, cargarlas primero
-                                  if (!isContentLoaded) {
-                                    await loadLessonActivitiesAndMaterials(lesson.lesson_id);
-                                  }
-                                  toggleLessonExpand(lesson.lesson_id);
-                                }}
-                                className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
-                                title={isExpanded ? t('activities.collapse') : t('activities.expandCollapse')}
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                )}
-                              </button>
-                            </div>
+                                // Si solo uno tiene número, priorizarlo
+                                if (aNumber !== 999 && bNumber === 999) return -1;
+                                if (aNumber === 999 && bNumber !== 999) return 1;
 
-                            {/* Actividades y Materiales desplegables */}
-                            <AnimatePresence>
-                              {/* 🚀 SKELETON LOADING - Mientras carga el contenido */}
-                              {isExpanded && !isContentLoaded && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
-                                    {/* Skeleton items */}
-                                    {[1, 2].map((i) => (
-                                      <div
-                                        key={i}
-                                        className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-3 animate-pulse"
+                                // Si ninguno tiene número o ambos tienen, usar module_order_index
+                                const orderDiff = (a.module_order_index || 0) - (b.module_order_index || 0);
+                                if (orderDiff !== 0) return orderDiff;
+
+                                // Último recurso: ordenar por título alfabéticamente
+                                return a.module_title.localeCompare(b.module_title);
+                              })
+                              .map((module, moduleIndex) => {
+                                const isModuleExpanded = expandedModules.has(module.module_id);
+
+                                // Ordenar lecciones dentro del módulo por lesson_order_index
+                                const sortedLessons = [...(module.lessons || [])].sort(
+                                  (a, b) => (a.lesson_order_index || 0) - (b.lesson_order_index || 0)
+                                );
+
+                                // Calcular estadísticas del módulo
+                                const completedLessons = sortedLessons.filter(l => l.is_completed).length;
+                                const totalLessons = sortedLessons.length;
+                                const completionPercentage = totalLessons > 0
+                                  ? Math.round((completedLessons / totalLessons) * 100)
+                                  : 0;
+
+                                return (
+                                  <div key={module.module_id} className="mb-6">
+                                    <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center gap-3 flex-1">
+                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center flex-shrink-0">
+                                          <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
+                                        </div>
+                                        <h3 className="font-semibold text-[#0A2540] dark:text-white text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{module.module_title}</h3>
+                                      </div>
+                                      <button
+                                        onClick={() => toggleModuleExpand(module.module_id)}
+                                        className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
+                                        title={isModuleExpanded ? t('leftPanel.collapseModule') : t('leftPanel.expandModule')}
                                       >
-                                        <div className="flex items-start gap-3">
-                                          <div className="w-8 h-8 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg flex-shrink-0"></div>
-                                          <div className="flex-1 space-y-2">
-                                            <div className="h-4 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-3/4"></div>
-                                            <div className="h-3 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-1/4"></div>
+                                        {isModuleExpanded ? (
+                                          <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                        )}
+                                      </button>
+                                    </div>
+
+                                    {/* Contenido del módulo - Colapsable */}
+                                    <AnimatePresence>
+                                      {isModuleExpanded && (
+                                        <motion.div
+                                          initial={{ height: 0, opacity: 0 }}
+                                          animate={{ height: 'auto', opacity: 1 }}
+                                          exit={{ height: 0, opacity: 0 }}
+                                          transition={{ duration: 0.2 }}
+                                          className="overflow-hidden"
+                                        >
+                                          {/* Estadísticas del módulo mejoradas */}
+                                          <div className="flex gap-3 mb-4">
+                                            <span className="px-3 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] text-xs rounded-full border border-[#10B981]/30 font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                                              {completedLessons}/{totalLessons} {t('leftPanel.completed')}
+                                            </span>
+                                            <span className="px-3 py-1 bg-[#00D4B3]/20 text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 font-medium">
+                                              {completionPercentage}% {t('leftPanel.completedPercentage')}
+                                            </span>
+                                          </div>
+
+                                          {/* Lista de lecciones mejorada - Estilo Minimalista */}
+                                          <div className="space-y-2">
+                                            {sortedLessons.length > 0 ? sortedLessons.map((lesson, lessonIndex) => {
+                                              const isActive = currentLesson?.lesson_id === lesson.lesson_id;
+                                              const isCompleted = lesson.is_completed;
+                                              const isExpanded = expandedLessons.has(lesson.lesson_id);
+                                              const activities = lessonsActivities[lesson.lesson_id] || [];
+                                              const materials = lessonsMaterials[lesson.lesson_id] || [];
+                                              const hasContent = activities.length > 0 || materials.length > 0;
+                                              const isContentLoaded = lessonsActivities[lesson.lesson_id] !== undefined && lessonsMaterials[lesson.lesson_id] !== undefined;
+
+                                              return (
+                                                <div key={lesson.lesson_id} className="w-full">
+                                                  <div className="flex items-start gap-2">
+                                                    <motion.button
+                                                      whileHover={{ opacity: 0.8 }}
+                                                      whileTap={{ scale: 0.99 }}
+                                                      onClick={() => handleLessonChange(lesson)}
+                                                      className={`flex-1 flex items-start gap-3 p-3 rounded-lg transition-all duration-200 ${isActive
+                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-l-2 border-[#00D4B3]'
+                                                        : 'hover:bg-gray-50/50 dark:hover:bg-slate-700/30 border-l-2 border-transparent'
+                                                        }`}
+                                                    >
+                                                      <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${isCompleted
+                                                        ? 'text-green-500 dark:text-green-400'
+                                                        : isActive
+                                                          ? 'text-[#00D4B3] dark:text-[#00D4B3]'
+                                                          : 'text-[#6C757D] dark:text-white/50'
+                                                        }`}>
+                                                        {isCompleted ? (
+                                                          <CheckCircle2 className="w-5 h-5" />
+                                                        ) : (
+                                                          <Play className="w-4 h-4" />
+                                                        )}
+                                                      </div>
+
+                                                      <div className="flex-1 text-left min-w-0">
+                                                        <p className={`text-sm leading-relaxed line-clamp-3 ${isActive ? 'text-[#0A2540] dark:text-white font-medium' : 'text-[#0A2540] dark:text-white/80'}`} style={{ fontFamily: 'Inter, sans-serif', fontWeight: isActive ? 500 : 400 }}>
+                                                          {lesson.lesson_title}
+                                                        </p>
+                                                        <div className="flex items-center gap-1.5 mt-2">
+                                                          <Clock className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/50 flex-shrink-0" />
+                                                          <span className="text-xs text-[#6C757D] dark:text-white/60 whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{formatDuration(lesson.duration_seconds)}</span>
+                                                        </div>
+                                                      </div>
+                                                    </motion.button>
+
+                                                    {/* Botón para expandir/colapsar actividades y materiales */}
+                                                    <button
+                                                      onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        // Si no se han cargado las actividades y materiales, cargarlas primero
+                                                        if (!isContentLoaded) {
+                                                          await loadLessonActivitiesAndMaterials(lesson.lesson_id);
+                                                        }
+                                                        toggleLessonExpand(lesson.lesson_id);
+                                                      }}
+                                                      className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
+                                                      title={isExpanded ? t('activities.collapse') : t('activities.expandCollapse')}
+                                                    >
+                                                      {isExpanded ? (
+                                                        <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                                      ) : (
+                                                        <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                                      )}
+                                                    </button>
+                                                  </div>
+
+                                                  {/* Actividades y Materiales desplegables */}
+                                                  <AnimatePresence>
+                                                    {/* 🚀 SKELETON LOADING - Mientras carga el contenido */}
+                                                    {isExpanded && !isContentLoaded && (
+                                                      <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        className="overflow-hidden"
+                                                      >
+                                                        <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
+                                                          {/* Skeleton items */}
+                                                          {[1, 2].map((i) => (
+                                                            <div
+                                                              key={i}
+                                                              className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-3 animate-pulse"
+                                                            >
+                                                              <div className="flex items-start gap-3">
+                                                                <div className="w-8 h-8 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg flex-shrink-0"></div>
+                                                                <div className="flex-1 space-y-2">
+                                                                  <div className="h-4 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-3/4"></div>
+                                                                  <div className="h-3 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-1/4"></div>
+                                                                </div>
+                                                              </div>
+                                                            </div>
+                                                          ))}
+                                                        </div>
+                                                      </motion.div>
+                                                    )}
+
+                                                    {/* Contenido cargado */}
+                                                    {isExpanded && isContentLoaded && hasContent && (
+                                                      <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        className="overflow-hidden"
+                                                      >
+                                                        <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
+                                                          {/* Actividades */}
+                                                          {activities.length > 0 && (
+                                                            <div className="space-y-2">
+                                                              {activities.map((activity) => {
+                                                                const isQuiz = activity.activity_type === 'quiz';
+                                                                const isRequired = activity.is_required;
+
+                                                                return (
+                                                                  <div
+                                                                    key={activity.activity_id}
+                                                                    className="group relative bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 rounded-xl p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                                  >
+                                                                    <div className="flex items-start gap-3">
+                                                                      {/* Icono mejorado con fondo */}
+                                                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isQuiz
+                                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
+                                                                        : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]'
+                                                                        }`}>
+                                                                        {isQuiz ? (
+                                                                          <FileText className="w-4 h-4" />
+                                                                        ) : (
+                                                                          <Activity className="w-4 h-4" />
+                                                                        )}
+                                                                      </div>
+
+                                                                      {/* Contenido principal */}
+                                                                      <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
+                                                                          {activity.activity_title}
+                                                                        </p>
+
+                                                                        {/* Badges en fila con wrap */}
+                                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                                          {/* Badge de tipo */}
+                                                                          <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors ${isQuiz
+                                                                            ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] border border-[#00D4B3]/20'
+                                                                            : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/20'
+                                                                            }`}>
+                                                                            {activity.activity_type}
+                                                                          </span>
+
+                                                                          {/* Badge Requerida */}
+                                                                          {isRequired && (
+                                                                            <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
+                                                                              {t('activities.required')}
+                                                                            </span>
+                                                                          )}
+                                                                        </div>
+                                                                      </div>
+                                                                    </div>
+
+                                                                    {/* Indicador de estado para quizzes (si está disponible) */}
+                                                                    {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
+                                                                      const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
+                                                                      if (quizInfo) {
+                                                                        return (
+                                                                          <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
+                                                                            {quizInfo.isPassed ? (
+                                                                              <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                                                <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
+                                                                              </div>
+                                                                            ) : quizInfo.isCompleted ? (
+                                                                              <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                                                <X className="w-3.5 h-3.5" />
+                                                                                <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
+                                                                              </div>
+                                                                            ) : (
+                                                                              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                                                <Clock className="w-3.5 h-3.5" />
+                                                                                <span>Pendiente</span>
+                                                                              </div>
+                                                                            )}
+                                                                          </div>
+                                                                        );
+                                                                      }
+                                                                      return null;
+                                                                    })()}
+                                                                  </div>
+                                                                );
+                                                              })}
+                                                            </div>
+                                                          )}
+
+                                                          {/* Materiales */}
+                                                          {materials.length > 0 && (
+                                                            <div className="space-y-2">
+                                                              {materials.map((material) => {
+                                                                const isQuiz = material.material_type === 'quiz';
+                                                                const isReading = material.material_type === 'reading';
+                                                                const isRequired = material.is_required;
+
+                                                                return (
+                                                                  <div
+                                                                    key={material.material_id}
+                                                                    className="group relative bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#10B981] dark:hover:border-[#10B981]/50 rounded-xl p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                                  >
+                                                                    <div className="flex items-start gap-3">
+                                                                      {/* Icono mejorado con fondo según tipo */}
+                                                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isQuiz
+                                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
+                                                                        : isReading
+                                                                          ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981]'
+                                                                          : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60'
+                                                                        }`}>
+                                                                        {isQuiz ? (
+                                                                          <FileText className="w-4 h-4" />
+                                                                        ) : isReading ? (
+                                                                          <BookOpen className="w-4 h-4" />
+                                                                        ) : (
+                                                                          <FileText className="w-4 h-4" />
+                                                                        )}
+                                                                      </div>
+
+                                                                      {/* Contenido principal */}
+                                                                      <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
+                                                                          {material.material_title}
+                                                                        </p>
+
+                                                                        {/* Badges en fila con wrap para evitar cortes */}
+                                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                                          {/* Badge Requerida primero */}
+                                                                          {isRequired && (
+                                                                            <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
+                                                                              Requerida
+                                                                            </span>
+                                                                          )}
+
+                                                                          {/* Badge de tipo */}
+                                                                          <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors whitespace-nowrap ${isQuiz
+                                                                            ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] border border-[#00D4B3]/20'
+                                                                            : isReading
+                                                                              ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border border-[#10B981]/20'
+                                                                              : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                                                                            }`} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                                                                            {material.material_type}
+                                                                          </span>
+                                                                        </div>
+                                                                      </div>
+                                                                    </div>
+
+                                                                    {/* Indicador de estado para quizzes (si está disponible) */}
+                                                                    {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
+                                                                      const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
+                                                                      if (quizInfo) {
+                                                                        return (
+                                                                          <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
+                                                                            {quizInfo.isPassed ? (
+                                                                              <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                                                <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
+                                                                              </div>
+                                                                            ) : quizInfo.isCompleted ? (
+                                                                              <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                                                <X className="w-3.5 h-3.5" />
+                                                                                <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
+                                                                              </div>
+                                                                            ) : (
+                                                                              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                                                <Clock className="w-3.5 h-3.5" />
+                                                                                <span>Pendiente</span>
+                                                                              </div>
+                                                                            )}
+                                                                          </div>
+                                                                        );
+                                                                      }
+                                                                      return null;
+                                                                    })()}
+                                                                  </div>
+                                                                );
+                                                              })}
+                                                            </div>
+                                                          )}
+                                                        </div>
+                                                      </motion.div>
+                                                    )}
+                                                  </AnimatePresence>
+                                                </div>
+                                              );
+                                            }) : (
+                                              <div className="text-center py-4 text-gray-500 dark:text-slate-400 text-sm">
+                                                Este módulo aún no tiene lecciones
+                                              </div>
+                                            )}
+                                          </div>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+                                );
+                              })}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Línea separadora entre Material y Notas */}
+                    <div className="border-b border-[#E9ECEF] dark:border-[#6C757D]/30 mb-6"></div>
+
+                    {/* Sección de Notas */}
+                    <div className="space-y-4">
+                      {/* Header de Notas con botones de colapsar y nueva nota */}
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-[#0A2540] dark:text-white flex items-center gap-2 text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                          <FileText className="w-5 h-5 text-[#00D4B3]" />
+                          {t('leftPanel.notesSection.myNotes')}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          {!isNotesCollapsed && (
+                            <button
+                              onClick={openNewNoteModal}
+                              className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                              title={t('leftPanel.notesSection.newNote')}
+                            >
+                              <span className="text-sm font-bold text-gray-700 dark:text-white/70">+</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setIsNotesCollapsed(!isNotesCollapsed)}
+                            className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                            title={isNotesCollapsed ? t('leftPanel.notesSection.expandNotes') : t('leftPanel.notesSection.collapseNotes')}
+                          >
+                            {isNotesCollapsed ? (
+                              <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                            ) : (
+                              <ChevronUp className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Contenido de Notas - Colapsable */}
+                      <AnimatePresence>
+                        {!isNotesCollapsed && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                          >
+
+                            {/* Notas guardadas */}
+                            <div className="space-y-3 mb-6">
+                              <h3 className="text-[#0A2540] dark:text-white font-semibold text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('leftPanel.notesSection.savedNotes')}</h3>
+                              <div className="space-y-2">
+                                {savedNotes.length === 0 ? (
+                                  <div className="bg-white dark:bg-[#1E2329] rounded-xl p-4 border border-[#E9ECEF] dark:border-[#6C757D]/30 text-center">
+                                    <p className="text-sm text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('leftPanel.notesSection.noSavedNotes')}</p>
+                                    <p className="text-xs text-[#6C757D] dark:text-white/60 mt-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('leftPanel.notesSection.saveFirstNote')}</p>
+                                  </div>
+                                ) : (
+                                  savedNotes.map((note) => (
+                                    <div
+                                      key={note.id}
+                                      className="bg-white dark:bg-[#1E2329] rounded-xl p-3 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 transition-colors group"
+                                    >
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm text-[#0A2540] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{note.title}</span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{note.timestamp}</span>
+                                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditNoteModal(note);
+                                              }}
+                                              className="p-1 hover:bg-[#00D4B3]/20 rounded text-[#00D4B3] hover:text-[#00D4B3] transition-colors"
+                                              title={t('leftPanel.notesSection.editNote')}
+                                            >
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                              </svg>
+                                            </button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteNote(note.id);
+                                              }}
+                                              className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
+                                              title={t('leftPanel.notesSection.deleteNote')}
+                                            >
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                              </svg>
+                                            </button>
                                           </div>
                                         </div>
                                       </div>
-                                    ))}
-                                  </div>
-                                </motion.div>
-                              )}
-
-                              {/* Contenido cargado */}
-                              {isExpanded && isContentLoaded && hasContent && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
-                                    {/* Actividades */}
-                                    {activities.length > 0 && (
-                                      <div className="space-y-2">
-                                        {activities.map((activity) => {
-                                          const isQuiz = activity.activity_type === 'quiz';
-                                          const isRequired = activity.is_required;
-                                          
-                                          return (
-                                            <div
-                                              key={activity.activity_id}
-                                              className="group relative bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 rounded-xl p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                      <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2 whitespace-pre-line">
+                                        {note.content || generateNotePreview(note.fullContent || '', 50)}
+                                      </p>
+                                      {note.tags && note.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                          {note.tags.map((tag) => (
+                                            <span
+                                              key={tag}
+                                              className="inline-block px-2 py-0.5 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs rounded border border-[#00D4B3]/30"
                                             >
-                                              <div className="flex items-start gap-3">
-                                                {/* Icono mejorado con fondo */}
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                                                  isQuiz 
-                                                    ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]' 
-                                                    : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]'
-                                                }`}>
-                                                  {isQuiz ? (
-                                                    <FileText className="w-4 h-4" />
-                                                  ) : (
-                                                    <Activity className="w-4 h-4" />
-                                                  )}
-                                                </div>
-                                                
-                                                {/* Contenido principal */}
-                                                <div className="flex-1 min-w-0">
-                                                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
-                                                    {activity.activity_title}
-                                                  </p>
-                                                  
-                                                  {/* Badges en fila con wrap */}
-                                                  <div className="flex flex-wrap items-center gap-1.5">
-                                                    {/* Badge de tipo */}
-                                                    <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors ${
-                                                      isQuiz
-                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] border border-[#00D4B3]/20'
-                                                        : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/20'
-                                                    }`}>
-                                                      {activity.activity_type}
-                                                    </span>
-                                                    
-                                                    {/* Badge Requerida */}
-                                                    {isRequired && (
-                                                      <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
-                                                        {t('activities.required')}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              </div>
-                                              
-                                              {/* Indicador de estado para quizzes (si está disponible) */}
-                                              {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
-                                                const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
-                                                if (quizInfo) {
-                                                  return (
-                                                    <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
-                                                      {quizInfo.isPassed ? (
-                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-                                                          <CheckCircle className="w-3.5 h-3.5" />
-                                                          <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
-                                                        </div>
-                                                      ) : quizInfo.isCompleted ? (
-                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
-                                                          <X className="w-3.5 h-3.5" />
-                                                          <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
-                                                        </div>
-                                                      ) : (
-                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
-                                                          <Clock className="w-3.5 h-3.5" />
-                                                          <span>Pendiente</span>
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  );
-                                                }
-                                                return null;
-                                              })()}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
+                                              {tag}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
 
-                                    {/* Materiales */}
-                                    {materials.length > 0 && (
-                                      <div className="space-y-2">
-                                        {materials.map((material) => {
-                                          const isQuiz = material.material_type === 'quiz';
-                                          const isReading = material.material_type === 'reading';
-                                          const isRequired = material.is_required;
-                                          
-                                          return (
-                                            <div
-                                              key={material.material_id}
-                                              className="group relative bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#10B981] dark:hover:border-[#10B981]/50 rounded-xl p-3 transition-all duration-200 shadow-sm hover:shadow-md"
-                                            >
-                                              <div className="flex items-start gap-3">
-                                                {/* Icono mejorado con fondo según tipo */}
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                                                  isQuiz
-                                                    ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
-                                                    : isReading
-                                                    ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981]'
-                                                    : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60'
-                                                }`}>
-                                                  {isQuiz ? (
-                                                    <FileText className="w-4 h-4" />
-                                                  ) : isReading ? (
-                                                    <BookOpen className="w-4 h-4" />
-                                                  ) : (
-                                                    <FileText className="w-4 h-4" />
-                                                  )}
-                                                </div>
-                                                
-                                                {/* Contenido principal */}
-                                                <div className="flex-1 min-w-0">
-                                                  <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
-                                                    {material.material_title}
-                                                  </p>
-                                                  
-                                                  {/* Badges en fila con wrap para evitar cortes */}
-                                                  <div className="flex flex-wrap items-center gap-1.5">
-                                                    {/* Badge Requerida primero */}
-                                                    {isRequired && (
-                                                      <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
-                                                        Requerida
-                                                      </span>
-                                                    )}
-                                                    
-                                                    {/* Badge de tipo */}
-                                                    <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors whitespace-nowrap ${
-                                                      isQuiz
-                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] border border-[#00D4B3]/20'
-                                                        : isReading
-                                                        ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border border-[#10B981]/20'
-                                                        : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 border border-[#E9ECEF] dark:border-[#6C757D]/30'
-                                                    }`} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                                                      {material.material_type}
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                              
-                                              {/* Indicador de estado para quizzes (si está disponible) */}
-                                              {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
-                                                const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
-                                                if (quizInfo) {
-                                                  return (
-                                                    <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
-                                                      {quizInfo.isPassed ? (
-                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-                                                          <CheckCircle className="w-3.5 h-3.5" />
-                                                          <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
-                                                        </div>
-                                                      ) : quizInfo.isCompleted ? (
-                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
-                                                          <X className="w-3.5 h-3.5" />
-                                                          <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
-                                                        </div>
-                                                      ) : (
-                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
-                                                          <Clock className="w-3.5 h-3.5" />
-                                                          <span>Pendiente</span>
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  );
-                                                }
-                                                return null;
-                                              })()}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      }) : (
-                        <div className="text-center py-4 text-gray-500 dark:text-slate-400 text-sm">
-                          Este módulo aún no tiene lecciones
-                        </div>
-                      )}
+                            {/* Progreso de Notas */}
+                            <div className="bg-gradient-to-r from-[#10B981]/10 to-[#00D4B3]/10 border border-[#10B981]/30 rounded-xl p-4">
+                              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
+                                <TrendingUp className="w-4 h-4 text-green-400" />
+                                {t('leftPanel.notesSection.notesProgress')}
+                              </h3>
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.notesCreated')}</span>
+                                  <span className="text-green-600 dark:text-green-400 font-medium">{notesStats.totalNotes}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lessonsWithNotes')}</span>
+                                  <span className="text-[#00D4B3] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{notesStats.lessonsWithNotes}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lastUpdate')}</span>
+                                  <span className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{notesStats.lastUpdate}</span>
+                                </div>
+                              </div>
                             </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
                     </div>
-                  );
-                })}
-            </motion.div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
+          {/* Barra vertical para abrir panel izquierdo - Oculto en móviles */}
+          {!isLeftPanelOpen && (
+            <div className="hidden md:flex w-12 bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 ml-2 z-10 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+              <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
+                <button
+                  onClick={() => {
+                    setIsLeftPanelOpen(true);
+                    setIsMaterialCollapsed(false);
+                    setIsNotesCollapsed(false);
+                    // Si LIA está abierto, ponerlo en tamaño pequeño
+                    if (isRightPanelOpen) {
+                      setIsLiaExpanded(false);
+                    }
+                  }}
+                  className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                  title="Mostrar material del curso"
+                >
+                  <ChevronRight className="w-5 h-5 text-[#6C757D] dark:text-white" />
+                </button>
+              </div>
+
+              {/* Botones visibles solo cuando el panel está colapsado */}
+              <div className="flex-1 flex flex-col items-center gap-2 p-2">
+                {/* Abrir lecciones y cerrar notas */}
+                <button
+                  onClick={() => {
+                    setIsLeftPanelOpen(true);
+                    setIsMaterialCollapsed(false);
+                    setIsNotesCollapsed(true);
+                    // Si LIA está abierto, ponerlo en tamaño pequeño
+                    if (isRightPanelOpen) {
+                      setIsLiaExpanded(false);
+                    }
+                  }}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                  title="Ver lecciones"
+                >
+                  <Layers className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
+                </button>
+
+                {/* Abrir notas y cerrar lecciones */}
+                <button
+                  onClick={() => {
+                    setIsLeftPanelOpen(true);
+                    setIsMaterialCollapsed(true);
+                    setIsNotesCollapsed(false);
+                    // Si LIA está abierto, ponerlo en tamaño pequeño
+                    if (isRightPanelOpen) {
+                      setIsLiaExpanded(false);
+                    }
+                  }}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                  title={t('leftPanel.notesSection.viewNotes')}
+                >
+                  <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
+                </button>
+
+                {/* Abrir notas, cerrar lecciones y abrir modal de nueva nota */}
+                <button
+                  onClick={() => {
+                    setIsLeftPanelOpen(true);
+                    setIsMaterialCollapsed(true);
+                    setIsNotesCollapsed(false);
+                    openNewNoteModal();
+                    // Si LIA está abierto, ponerlo en tamaño pequeño
+                    if (isRightPanelOpen) {
+                      setIsLiaExpanded(false);
+                    }
+                  }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[#00D4B3] hover:bg-[#00b8a0] transition-colors shadow-lg shadow-[#00D4B3]/25"
+                  title={t('leftPanel.notesSection.newNote')}
+                >
+                  <Plus className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            </div>
           )}
-        </AnimatePresence>
-          </div>
 
-                {/* Línea separadora entre Material y Notas */}
-                <div className="border-b border-[#E9ECEF] dark:border-[#6C757D]/30 mb-6"></div>
+          {/* Panel Central - Contenido del video */}
+          <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg shadow-xl my-0 md:my-2 mx-0 md:mx-2 border-2 border-[#E9ECEF] dark:border-[#6C757D]/30">
+            {modules.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4 border border-[#0A2540]/30">
+                    <BookOpen className="w-10 h-10 text-[#00D4B3]" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Este curso aún no tiene contenido</h3>
+                  <p className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Los módulos y lecciones se agregarán pronto</p>
+                </div>
+              </div>
+            ) : currentLesson ? (
+              <>
+                {/* Tabs mejorados - Responsive */}
+                <div className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-xl h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth" style={{ scrollPaddingLeft: '0.5rem', scrollPaddingRight: '0.5rem', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+                  <div className="flex gap-1 md:gap-2 items-center min-w-max">
+                    {tabs.map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      // En móvil: siempre encoger excepto el activo; En PC: encoger solo cuando LIA está expandido
+                      const shouldHideText = !isActive && (isMobile || (isLiaExpanded && !isMobile));
 
-                {/* Sección de Notas */}
-                <div className="space-y-4">
-                  {/* Header de Notas con botones de colapsar y nueva nota */}
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-[#0A2540] dark:text-white flex items-center gap-2 text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                      <FileText className="w-5 h-5 text-[#00D4B3]" />
-                      {t('leftPanel.notesSection.myNotes')}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      {!isNotesCollapsed && (
+                      return (
                         <button
-                          onClick={openNewNoteModal}
-                          className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                          title={t('leftPanel.notesSection.newNote')}
-                        >
-                          <span className="text-sm font-bold text-gray-700 dark:text-white/70">+</span>
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setIsNotesCollapsed(!isNotesCollapsed)}
-                        className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                        title={isNotesCollapsed ? t('leftPanel.notesSection.expandNotes') : t('leftPanel.notesSection.collapseNotes')}
-                      >
-                        {isNotesCollapsed ? (
-                          <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                        ) : (
-                          <ChevronUp className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                        )}
-                      </button>
-                    </div>
-        </div>
-
-                  {/* Contenido de Notas - Colapsable */}
-                  <AnimatePresence>
-                    {!isNotesCollapsed && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden"
-                      >
-
-            {/* Notas guardadas */}
-            <div className="space-y-3 mb-6">
-              <h3 className="text-[#0A2540] dark:text-white font-semibold text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('leftPanel.notesSection.savedNotes')}</h3>
-              <div className="space-y-2">
-                {savedNotes.length === 0 ? (
-                  <div className="bg-white dark:bg-[#1E2329] rounded-xl p-4 border border-[#E9ECEF] dark:border-[#6C757D]/30 text-center">
-                    <p className="text-sm text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('leftPanel.notesSection.noSavedNotes')}</p>
-                    <p className="text-xs text-[#6C757D] dark:text-white/60 mt-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('leftPanel.notesSection.saveFirstNote')}</p>
-                  </div>
-                ) : (
-                  savedNotes.map((note) => (
-                    <div 
-                      key={note.id} 
-                            className="bg-white dark:bg-[#1E2329] rounded-xl p-3 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 transition-colors group"
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-[#0A2540] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{note.title}</span>
-                              <div className="flex items-center gap-2">
-                        <span className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{note.timestamp}</span>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEditNoteModal(note);
-                                    }}
-                                    className="p-1 hover:bg-[#00D4B3]/20 rounded text-[#00D4B3] hover:text-[#00D4B3] transition-colors"
-                                    title={t('leftPanel.notesSection.editNote')}
-                                  >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteNote(note.id);
-                                    }}
-                                    className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
-                                    title={t('leftPanel.notesSection.deleteNote')}
-                                  >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              </div>
-                      </div>
-                      <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2 whitespace-pre-line">
-                        {note.content || generateNotePreview(note.fullContent || '', 50)}
-                      </p>
-                      {note.tags && note.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {note.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="inline-block px-2 py-0.5 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs rounded border border-[#00D4B3]/30"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-                    </div>
-                  </div>
-
-            {/* Progreso de Notas */}
-                  <div className="bg-gradient-to-r from-[#10B981]/10 to-[#00D4B3]/10 border border-[#10B981]/30 rounded-xl p-4">
-              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
-                      <TrendingUp className="w-4 h-4 text-green-400" />
-                      {t('leftPanel.notesSection.notesProgress')}
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.notesCreated')}</span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">{notesStats.totalNotes}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lessonsWithNotes')}</span>
-                  <span className="text-[#00D4B3] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{notesStats.lessonsWithNotes}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lastUpdate')}</span>
-                  <span className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{notesStats.lastUpdate}</span>
-                    </div>
-                    </div>
-                  </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* Barra vertical para abrir panel izquierdo - Oculto en móviles */}
-        {!isLeftPanelOpen && (
-          <div className="hidden md:flex w-12 bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 ml-2 z-10 border border-[#E9ECEF] dark:border-[#6C757D]/30">
-            <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
-              <button
-                onClick={() => {
-                  setIsLeftPanelOpen(true);
-                  setIsMaterialCollapsed(false);
-                  setIsNotesCollapsed(false);
-                  // Si LIA está abierto, ponerlo en tamaño pequeño
-                  if (isRightPanelOpen) {
-                    setIsLiaExpanded(false);
-                  }
-                }}
-                className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                title="Mostrar material del curso"
-              >
-                <ChevronRight className="w-5 h-5 text-[#6C757D] dark:text-white" />
-              </button>
-            </div>
-
-            {/* Botones visibles solo cuando el panel está colapsado */}
-            <div className="flex-1 flex flex-col items-center gap-2 p-2">
-              {/* Abrir lecciones y cerrar notas */}
-              <button
-                onClick={() => {
-                  setIsLeftPanelOpen(true);
-                  setIsMaterialCollapsed(false);
-                  setIsNotesCollapsed(true);
-                  // Si LIA está abierto, ponerlo en tamaño pequeño
-                  if (isRightPanelOpen) {
-                    setIsLiaExpanded(false);
-                  }
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
-                title="Ver lecciones"
-              >
-                <Layers className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
-              </button>
-
-              {/* Abrir notas y cerrar lecciones */}
-              <button
-                onClick={() => {
-                  setIsLeftPanelOpen(true);
-                  setIsMaterialCollapsed(true);
-                  setIsNotesCollapsed(false);
-                  // Si LIA está abierto, ponerlo en tamaño pequeño
-                  if (isRightPanelOpen) {
-                    setIsLiaExpanded(false);
-                  }
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
-                title={t('leftPanel.notesSection.viewNotes')}
-              >
-                <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
-              </button>
-
-              {/* Abrir notas, cerrar lecciones y abrir modal de nueva nota */}
-              <button
-                onClick={() => {
-                  setIsLeftPanelOpen(true);
-                  setIsMaterialCollapsed(true);
-                  setIsNotesCollapsed(false);
-                  openNewNoteModal();
-                  // Si LIA está abierto, ponerlo en tamaño pequeño
-                  if (isRightPanelOpen) {
-                    setIsLiaExpanded(false);
-                  }
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#00D4B3] hover:bg-[#00b8a0] transition-colors shadow-lg shadow-[#00D4B3]/25"
-                title={t('leftPanel.notesSection.newNote')}
-              >
-                <Plus className="w-4 h-4 text-white" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Panel Central - Contenido del video */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg shadow-xl my-0 md:my-2 mx-0 md:mx-2 border-2 border-[#E9ECEF] dark:border-[#6C757D]/30">
-          {modules.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4 border border-[#0A2540]/30">
-                  <BookOpen className="w-10 h-10 text-[#00D4B3]" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Este curso aún no tiene contenido</h3>
-                <p className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Los módulos y lecciones se agregarán pronto</p>
-              </div>
-            </div>
-          ) : currentLesson ? (
-            <>
-              {/* Tabs mejorados - Responsive */}
-              <div className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-xl h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth" style={{ scrollPaddingLeft: '0.5rem', scrollPaddingRight: '0.5rem', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
-                <div className="flex gap-1 md:gap-2 items-center min-w-max">
-                  {tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    // En móvil: siempre encoger excepto el activo; En PC: encoger solo cuando LIA está expandido
-                    const shouldHideText = !isActive && (isMobile || (isLiaExpanded && !isMobile));
-
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
-                          shouldHideText
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${shouldHideText
                             ? 'px-2 py-2 hover:px-3 hover:gap-2'
                             : 'px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit'
-                        } ${
-                          isActive
-                            ? 'bg-[#0A2540] text-white shadow-lg shadow-[#0A2540]/25'
-                            : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                        }`}
-                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: isActive ? 600 : 500 }}
-                        style={{ scrollSnapAlign: 'start' }}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <span 
-                          className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
-                            shouldHideText
+                            } ${isActive
+                              ? 'bg-[#0A2540] text-white shadow-lg shadow-[#0A2540]/25'
+                              : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
+                            }`}
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: isActive ? 600 : 500 }}
+                          style={{ scrollSnapAlign: 'start' }}
+                        >
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span
+                            className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${shouldHideText
                               ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100'
                               : ''
-                          }`}
-                        >
-                          {tab.label}
-                        </span>
-                      </button>
-                    );
-                  })}
+                              }`}
+                          >
+                            {tab.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Contenido del tab activo */}
+                <div
+                  className="flex-1 overflow-y-auto md:pb-0"
+                  style={{
+                    paddingBottom: isMobile ? mobileContentPaddingBottom : undefined,
+                  }}
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeTab}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="min-h-full p-3 md:p-6 flex flex-col gap-4"
+                    >
+                      {activeTab === 'video' && (
+                        <VideoContent
+                          lesson={currentLesson}
+                          modules={modules}
+                          onNavigatePrevious={navigateToPreviousLesson}
+                          onNavigateNext={navigateToNextLesson}
+                          getPreviousLesson={getPreviousLesson}
+                          getNextLesson={getNextLesson}
+                          markLessonAsCompleted={markLessonAsCompleted}
+                          canCompleteLesson={canCompleteLesson}
+                          onCourseCompleted={() => setIsCourseCompletedModalOpen(true)}
+                          onCannotComplete={() => setIsCannotCompleteModalOpen(true)}
+                        />
+                      )}
+                      {activeTab === 'transcript' && (
+                        <TranscriptContent
+                          lesson={currentLesson}
+                          slug={slug}
+                          onNoteCreated={addNoteToLocalState}
+                          onStatsUpdate={updateNotesStatsOptimized}
+                        />
+                      )}
+                      {activeTab === 'summary' && currentLesson && <SummaryContent lesson={currentLesson} slug={slug} />}
+                      {activeTab === 'activities' && (
+                        <ActivitiesContent
+                          lesson={currentLesson}
+                          slug={slug}
+                          onPromptsChange={handlePromptsChange}
+                          onStartInteraction={handleStartActivityInteraction}
+                          userRole={user?.type_rol}
+                          generateRoleBasedPrompts={generateRoleBasedPrompts}
+                          onNavigateNext={navigateToNextLesson}
+                          hasNextLesson={!!getNextLesson()}
+                          selectedLang={selectedLang}
+                        />
+                      )}
+                      {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.lesson')}</p>
                 </div>
               </div>
+            )}
+          </div>
 
-              {/* Contenido del tab activo */}
-              <div
-                className="flex-1 overflow-y-auto md:pb-0"
-                style={{
-                  paddingBottom: isMobile ? mobileContentPaddingBottom : undefined,
-                }}
-              >
-                <AnimatePresence mode="wait">
+          {/* Panel Derecho - Solo LIA - Drawer en móvil */}
+          <AnimatePresence>
+            {isRightPanelOpen && (
+              <>
+                {/* Overlay oscuro en móvil */}
+                {isMobile && (
                   <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                  className="min-h-full p-3 md:p-6 flex flex-col gap-4"
-                  >
-                    {activeTab === 'video' && (
-                      <VideoContent 
-                        lesson={currentLesson} 
-                        modules={modules}
-                        onNavigatePrevious={navigateToPreviousLesson}
-                        onNavigateNext={navigateToNextLesson}
-                        getPreviousLesson={getPreviousLesson}
-                        getNextLesson={getNextLesson}
-                        markLessonAsCompleted={markLessonAsCompleted}
-                        canCompleteLesson={canCompleteLesson}
-                        onCourseCompleted={() => setIsCourseCompletedModalOpen(true)}
-                        onCannotComplete={() => setIsCannotCompleteModalOpen(true)}
-                      />
-                    )}
-                    {activeTab === 'transcript' && (
-                      <TranscriptContent 
-                        lesson={currentLesson} 
-                        slug={slug}
-                        onNoteCreated={addNoteToLocalState}
-                        onStatsUpdate={updateNotesStatsOptimized}
-                      />
-                    )}
-                    {activeTab === 'summary' && currentLesson && <SummaryContent lesson={currentLesson} slug={slug} />}
-                    {activeTab === 'activities' && (
-                      <ActivitiesContent
-                        lesson={currentLesson}
-                        slug={slug}
-                        onPromptsChange={handlePromptsChange}
-                        onStartInteraction={handleStartActivityInteraction}
-                        userRole={user?.type_rol}
-                        generateRoleBasedPrompts={generateRoleBasedPrompts}
-                        onNavigateNext={navigateToNextLesson}
-                        hasNextLesson={!!getNextLesson()}
-                        selectedLang={selectedLang}
-                      />
-                    )}
-                    {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.lesson')}</p>
-              </div>
-            </div>
-          )}
-        </div>
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsRightPanelOpen(false)}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+                  />
+                )}
 
-        {/* Panel Derecho - Solo LIA - Drawer en móvil */}
-        <AnimatePresence>
-          {isRightPanelOpen && (
-            <>
-              {/* Overlay oscuro en móvil */}
-              {isMobile && (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsRightPanelOpen(false)}
-                  className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
-                />
-              )}
-              
-              <motion.div
-                ref={liaPanelRef}
-                initial={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
-                animate={isMobile 
-                  ? { x: 0 } 
-                  : { width: isLiaExpanded ? 640 : 320, opacity: 1 }
-                }
-                exit={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className={`
-                  ${isMobile 
-                    ? 'fixed top-0 right-0 bottom-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none' 
-                    : 'relative h-full'
+                  ref={liaPanelRef}
+                  initial={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
+                  animate={isMobile
+                    ? { x: 0 }
+                    : { width: isLiaExpanded ? 640 : 320, opacity: 1 }
                   }
+                  exit={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className={`
+                  ${isMobile
+                      ? 'fixed top-0 right-0 bottom-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none'
+                      : 'relative h-full'
+                    }
                   bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
                   ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
                   border border-[#E9ECEF] dark:border-[#6C757D]/30
                 `}
-                style={
-                  isMobile
-                    ? {
+                  style={
+                    isMobile
+                      ? {
                         ...(calculateLiaMaxHeight && {
                           height: calculateLiaMaxHeight,
                           maxHeight: calculateLiaMaxHeight,
                         }),
                       }
-                    : {
+                      : {
                         // En desktop, no usar altura calculada, dejar que h-full de la clase maneje la altura
                         // para que coincida con los otros paneles
                       }
-                }
-              >
-                {/* Header Lia con línea separadora alineada con panel central */}
-                <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg shrink-0">
-                      <Image
-                        src="/lia-avatar.png"
-                        alt="Lia"
-                        fill
-                        className="object-cover"
-                        sizes="32px"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-[#0A2540] dark:text-white text-sm leading-tight" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.title')}</h3>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-[#6C757D] dark:text-white/60 leading-tight" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.subtitle')}</p>
-                        {/* ✨ Badge de Modo Actual - MÁS VISIBLE */}
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-sm transition-all ${
-                          currentMode === 'course' 
-                            ? 'bg-[#0A2540] text-white' 
+                  }
+                >
+                  {/* Header Lia con línea separadora alineada con panel central */}
+                  <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg shrink-0">
+                        <Image
+                          src="/lia-avatar.png"
+                          alt="Lia"
+                          fill
+                          className="object-cover"
+                          sizes="32px"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-[#0A2540] dark:text-white text-sm leading-tight" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.title')}</h3>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-[#6C757D] dark:text-white/60 leading-tight" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.subtitle')}</p>
+                          {/* ✨ Badge de Modo Actual - MÁS VISIBLE */}
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-sm transition-all ${currentMode === 'course'
+                            ? 'bg-[#0A2540] text-white'
                             : currentMode === 'prompts'
-                            ? 'bg-[#00D4B3] text-white animate-pulse'
-                            : currentMode === 'nanobana'
-                            ? 'bg-[#F59E0B] text-white animate-pulse'
-                            : 'bg-[#00D4B3] text-white'
-                        }`}>
-                          {currentMode === 'course' ? 'Curso' 
-                            : currentMode === 'prompts' ? 'Prompts'
-                            : currentMode === 'nanobana' ? 'NanoBanana'
-                            : 'Contexto'}
-                        </span>
+                              ? 'bg-[#00D4B3] text-white animate-pulse'
+                              : currentMode === 'nanobana'
+                                ? 'bg-[#F59E0B] text-white animate-pulse'
+                                : 'bg-[#00D4B3] text-white'
+                            }`}>
+                            {currentMode === 'course' ? 'Curso'
+                              : currentMode === 'prompts' ? 'Prompts'
+                                : currentMode === 'nanobana' ? 'NanoBanana'
+                                  : 'Contexto'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1 relative">
-                    {/* Menú de opciones (tres puntos) */}
-                    <div className="relative">
-                      <button
-                        ref={liaMenuButtonRef}
-                        onClick={() => setShowLiaMenu(!showLiaMenu)}
-                        className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-                        title={t('lia.moreOptions')}
-                      >
-                        <MoreVertical className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
-                      </button>
-                      
-                      {/* Menú dropdown - Renderizado con portal fuera del stacking context */}
-                      {showLiaMenu && liaMenuPosition && typeof window !== 'undefined' && createPortal(
-                        <>
-                          {/* Overlay para cerrar el menú al hacer clic fuera */}
-                          <div
-                            className="fixed inset-0 z-[190]"
-                            onClick={() => setShowLiaMenu(false)}
-                          />
-                          <div 
-                            className="fixed w-48 rounded-lg shadow-2xl z-[200] overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30"
-                            style={{ 
-                              top: `${liaMenuPosition.top}px`,
-                              right: `${liaMenuPosition.right}px`,
-                              backgroundColor: 'rgb(255, 255, 255)',
-                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-                            }}
-                          >
-                            <div 
-                              className="hidden dark:block absolute inset-0 rounded-lg"
-                              style={{ backgroundColor: 'rgb(30, 35, 41)' }}
+                    <div className="flex items-center gap-1 relative">
+                      {/* Menú de opciones (tres puntos) */}
+                      <div className="relative">
+                        <button
+                          ref={liaMenuButtonRef}
+                          onClick={() => setShowLiaMenu(!showLiaMenu)}
+                          className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
+                          title={t('lia.moreOptions')}
+                        >
+                          <MoreVertical className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
+                        </button>
+
+                        {/* Menú dropdown - Renderizado con portal fuera del stacking context */}
+                        {showLiaMenu && liaMenuPosition && typeof window !== 'undefined' && createPortal(
+                          <>
+                            {/* Overlay para cerrar el menú al hacer clic fuera */}
+                            <div
+                              className="fixed inset-0 z-[190]"
+                              onClick={() => setShowLiaMenu(false)}
                             />
-                            <div className="relative">
-                              {/* ✨ Sección: Modos de LIA */}
-                              <div className="px-3 py-2 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
-                                <p className="text-xs font-semibold text-[#6C757D] dark:text-white/60 uppercase tracking-wide" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
-                                  Modo de Chat
-                                </p>
-                              </div>
-                              
-                              {/* ✨ Modo Curso */}
-                              <button
-                                onClick={() => {
-                                  setMode('course');
-                                  setShowLiaMenu(false);
-                                }}
-                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
-                                  currentMode === 'course'
+                            <div
+                              className="fixed w-48 rounded-lg shadow-2xl z-[200] overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                              style={{
+                                top: `${liaMenuPosition.top}px`,
+                                right: `${liaMenuPosition.right}px`,
+                                backgroundColor: 'rgb(255, 255, 255)',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                              }}
+                            >
+                              <div
+                                className="hidden dark:block absolute inset-0 rounded-lg"
+                                style={{ backgroundColor: 'rgb(30, 35, 41)' }}
+                              />
+                              <div className="relative">
+                                {/* ✨ Sección: Modos de LIA */}
+                                <div className="px-3 py-2 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+                                  <p className="text-xs font-semibold text-[#6C757D] dark:text-white/60 uppercase tracking-wide" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                                    Modo de Chat
+                                  </p>
+                                </div>
+
+                                {/* ✨ Modo Curso */}
+                                <button
+                                  onClick={() => {
+                                    setMode('course');
+                                    setShowLiaMenu(false);
+                                  }}
+                                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${currentMode === 'course'
                                     ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/30 text-[#0A2540] dark:text-[#00D4B3] font-medium'
                                     : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                                }`}
-                              >
-                                <BookOpen className="w-4 h-4" />
-                                Modo Curso
-                                {currentMode === 'course' && <CheckCircle className="w-4 h-4 ml-auto" />}
-                              </button>
+                                    }`}
+                                >
+                                  <BookOpen className="w-4 h-4" />
+                                  Modo Curso
+                                  {currentMode === 'course' && <CheckCircle className="w-4 h-4 ml-auto" />}
+                                </button>
 
-                              {/* ✨ Modo Prompts */}
-                              <button
-                                onClick={() => {
-                                  setMode('prompts');
-                                  setShowLiaMenu(false);
-                                }}
-                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
-                                  currentMode === 'prompts'
+                                {/* ✨ Modo Prompts */}
+                                <button
+                                  onClick={() => {
+                                    setMode('prompts');
+                                    setShowLiaMenu(false);
+                                  }}
+                                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${currentMode === 'prompts'
                                     ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/30 text-[#00D4B3] dark:text-[#00D4B3] font-medium'
                                     : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                                }`}
-                              >
-                                <Sparkles className="w-4 h-4" />
-                                Crear Prompts
-                                {currentMode === 'prompts' && <CheckCircle className="w-4 h-4 ml-auto" />}
-                              </button>
+                                    }`}
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                  Crear Prompts
+                                  {currentMode === 'prompts' && <CheckCircle className="w-4 h-4 ml-auto" />}
+                                </button>
 
-                              {/* ✨ Modo Contexto */}
-                              <button
-                                onClick={() => {
-                                  setMode('context');
-                                  setShowLiaMenu(false);
-                                }}
-                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
-                                  currentMode === 'context'
+                                {/* ✨ Modo Contexto */}
+                                <button
+                                  onClick={() => {
+                                    setMode('context');
+                                    setShowLiaMenu(false);
+                                  }}
+                                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${currentMode === 'context'
                                     ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 font-medium'
                                     : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                                }`}
-                              >
-                                <Brain className="w-4 h-4" />
-                                Contexto Persistente
-                                {currentMode === 'context' && <CheckCircle className="w-4 h-4 ml-auto" />}
-                              </button>
+                                    }`}
+                                >
+                                  <Brain className="w-4 h-4" />
+                                  PRL-1.0 Mini
+                                  {currentMode === 'context' && <CheckCircle className="w-4 h-4 ml-auto" />}
+                                </button>
 
-                              {/* 🎨 Modo NanoBanana */}
-                              <button
-                                onClick={() => {
-                                  setMode('nanobana');
-                                  setShowLiaMenu(false);
-                                }}
-                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${
-                                  currentMode === 'nanobana'
+                                {/* 🎨 Modo NanoBanana */}
+                                <button
+                                  onClick={() => {
+                                    setMode('nanobana');
+                                    setShowLiaMenu(false);
+                                  }}
+                                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${currentMode === 'nanobana'
                                     ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium'
                                     : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                                }`}
-                              >
-                                <Palette className="w-4 h-4" />
-                                NanoBanana Pro
-                                {currentMode === 'nanobana' && <CheckCircle className="w-4 h-4 ml-auto" />}
-                              </button>
+                                    }`}
+                                >
+                                  <Palette className="w-4 h-4" />
+                                  NanoBanana Pro
+                                  {currentMode === 'nanobana' && <CheckCircle className="w-4 h-4 ml-auto" />}
+                                </button>
 
-                              {/* Separador */}
-                              <div className="border-t border-[#E9ECEF] dark:border-[#6C757D]/30 my-1"></div>
+                                {/* Separador */}
+                                <div className="border-t border-[#E9ECEF] dark:border-[#6C757D]/30 my-1"></div>
 
-                              {/* Opciones Originales */}
-                              <button
-                                onClick={() => {
-                                  clearLiaHistory();
-                                  setShowHistory(true);
-                                  loadConversations();
-                                  setShowLiaMenu(false);
-                                }}
-                                className="w-full px-4 py-2.5 text-left text-sm text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
-                              >
-                                <Plus className="w-4 h-4" />
-                                Nueva conversación
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowHistory(!showHistory);
-                                  if (!showHistory) {
+                                {/* Opciones Originales */}
+                                <button
+                                  onClick={() => {
+                                    clearLiaHistory();
+                                    setShowHistory(true);
                                     loadConversations();
-                                  }
-                                  setShowLiaMenu(false);
-                                }}
-                                className="w-full px-4 py-2.5 text-left text-sm text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
-                              >
-                                <History className="w-4 h-4" />
-                                Ver historial
-                              </button>
-                              <button
-                                onClick={() => {
-                                  handleOpenClearHistoryModal();
-                                  setShowLiaMenu(false);
-                                }}
-                                className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Reiniciar conversación
-                              </button>
+                                    setShowLiaMenu(false);
+                                  }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Nueva conversación
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setShowHistory(!showHistory);
+                                    if (!showHistory) {
+                                      loadConversations();
+                                    }
+                                    setShowLiaMenu(false);
+                                  }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
+                                >
+                                  <History className="w-4 h-4" />
+                                  Ver historial
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleOpenClearHistoryModal();
+                                    setShowLiaMenu(false);
+                                  }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Reiniciar conversación
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        </>,
-                        document.body
-                      )}
-                    </div>
+                          </>,
+                          document.body
+                        )}
+                      </div>
 
-                    {/* Botón de expandir/minimizar - siempre visible */}
-                    {!isMobile && (
+                      {/* Botón de expandir/minimizar - siempre visible */}
+                      {!isMobile && (
+                        <button
+                          onClick={handleToggleLiaExpanded}
+                          className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
+                          title={isLiaExpanded ? t('lia.minimize') : t('lia.expand')}
+                        >
+                          {isLiaExpanded ? (
+                            <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                          ) : (
+                            <Maximize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                          )}
+                        </button>
+                      )}
+
+                      {/* Botón de cerrar */}
                       <button
-                        onClick={handleToggleLiaExpanded}
+                        onClick={() => setIsRightPanelOpen(false)}
                         className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-                        title={isLiaExpanded ? t('lia.minimize') : t('lia.expand')}
                       >
-                        {isLiaExpanded ? (
-                          <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                        {isMobile ? (
+                          <X className="w-4 h-4 text-gray-700 dark:text-white/70" />
                         ) : (
-                          <Maximize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                          <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
                         )}
                       </button>
-                    )}
-                    
-                    {/* Botón de cerrar */}
-                    <button
-                      onClick={() => setIsRightPanelOpen(false)}
-                      className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-                    >
-                      {isMobile ? (
-                        <X className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Panel de historial de conversaciones */}
-                {showHistory && (
-                  <div className="absolute top-14 right-0 w-80 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
-                    <div className="p-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between shrink-0">
-                      <h3 className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.conversationHistory')}</h3>
-                      <button
-                        onClick={() => setShowHistory(false)}
-                        className="p-1 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded transition-colors"
-                        title={t('lia.closeHistory')}
-                      >
-                        <X className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                      </button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-2">
-                      {loadingConversations ? (
-                        <div className="p-4 text-center text-[#6C757D] dark:text-white/60">
-                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#00D4B3]" />
-                          <p className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.conversations')}</p>
-                        </div>
-                      ) : conversations.length === 0 ? (
-                        <div className="p-4 text-center text-[#6C757D] dark:text-white/60">
-                          <p className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.noConversations')}</p>
-                        </div>
-                      ) : (
-                        conversations.map((conv) => (
-                          <div
-                            key={conv.conversation_id}
-                            className={`group relative bg-[#E9ECEF]/30 dark:bg-[#0F1419] hover:bg-[#E9ECEF]/50 dark:hover:bg-[#1E2329] rounded-lg p-3 mb-2 transition-colors ${
-                              currentConversationId === conv.conversation_id ? 'ring-2 ring-[#00D4B3] dark:ring-[#00D4B3]' : ''
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <button
-                                onClick={() => handleLoadConversation(conv.conversation_id)}
-                                className="flex-1 text-left min-w-0"
-                              >
-                                <div className="flex-1 min-w-0">
-                                  {editingConversationId === conv.conversation_id ? (
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <input
-                                        type="text"
-                                        value={editingTitle}
-                                        onChange={(e) => setEditingTitle(e.target.value)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
+                  </div>
+
+                  {/* Panel de historial de conversaciones */}
+                  {showHistory && (
+                    <div className="absolute top-14 right-0 w-80 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
+                      <div className="p-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between shrink-0">
+                        <h3 className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.conversationHistory')}</h3>
+                        <button
+                          onClick={() => setShowHistory(false)}
+                          className="p-1 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded transition-colors"
+                          title={t('lia.closeHistory')}
+                        >
+                          <X className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-2">
+                        {loadingConversations ? (
+                          <div className="p-4 text-center text-[#6C757D] dark:text-white/60">
+                            <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#00D4B3]" />
+                            <p className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.conversations')}</p>
+                          </div>
+                        ) : conversations.length === 0 ? (
+                          <div className="p-4 text-center text-[#6C757D] dark:text-white/60">
+                            <p className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.noConversations')}</p>
+                          </div>
+                        ) : (
+                          conversations.map((conv) => (
+                            <div
+                              key={conv.conversation_id}
+                              className={`group relative bg-[#E9ECEF]/30 dark:bg-[#0F1419] hover:bg-[#E9ECEF]/50 dark:hover:bg-[#1E2329] rounded-lg p-3 mb-2 transition-colors ${currentConversationId === conv.conversation_id ? 'ring-2 ring-[#00D4B3] dark:ring-[#00D4B3]' : ''
+                                }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <button
+                                  onClick={() => handleLoadConversation(conv.conversation_id)}
+                                  className="flex-1 text-left min-w-0"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    {editingConversationId === conv.conversation_id ? (
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <input
+                                          type="text"
+                                          value={editingTitle}
+                                          onChange={(e) => setEditingTitle(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              updateConversationTitle(conv.conversation_id, editingTitle);
+                                            } else if (e.key === 'Escape') {
+                                              setEditingConversationId(null);
+                                              setEditingTitle('');
+                                            }
+                                          }}
+                                          className="flex-1 px-2 py-1 text-sm bg-white dark:bg-[#0F1419] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded text-[#0A2540] dark:text-white"
+                                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                                          autoFocus
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
                                             updateConversationTitle(conv.conversation_id, editingTitle);
-                                          } else if (e.key === 'Escape') {
+                                          }}
+                                          className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors"
+                                        >
+                                          <Save className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
                                             setEditingConversationId(null);
                                             setEditingTitle('');
-                                          }
-                                        }}
-                                        className="flex-1 px-2 py-1 text-sm bg-white dark:bg-[#0F1419] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded text-[#0A2540] dark:text-white"
-                                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
-                                        autoFocus
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          updateConversationTitle(conv.conversation_id, editingTitle);
-                                        }}
-                                        className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors"
-                                      >
-                                        <Save className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingConversationId(null);
-                                          setEditingTitle('');
-                                        }}
-                                        className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors"
-                                      >
-                                        <X className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <p className="text-sm font-medium text-[#0A2540] dark:text-white truncate mb-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                                        {conv.conversation_title || conv.course?.title || t('lia.generalConversation')}
-                                      </p>
-                                      <p className="text-xs text-[#6C757D] dark:text-white/60 mb-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                        {new Date(conv.started_at).toLocaleDateString('es-ES', {
-                                          day: 'numeric',
-                                          month: 'short',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })}
-                                      </p>
-                                      <p className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                        {conv.total_messages} {conv.total_messages !== 1 ? t('lia.messagesPlural') : t('lia.messages')}
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-                              </button>
-                              {editingConversationId !== conv.conversation_id && (
-                                <div className="flex items-center gap-1 shrink-0">
+                                          }}
+                                          className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors"
+                                        >
+                                          <X className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <p className="text-sm font-medium text-[#0A2540] dark:text-white truncate mb-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                                          {conv.conversation_title || conv.course?.title || t('lia.generalConversation')}
+                                        </p>
+                                        <p className="text-xs text-[#6C757D] dark:text-white/60 mb-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                                          {new Date(conv.started_at).toLocaleDateString('es-ES', {
+                                            day: 'numeric',
+                                            month: 'short',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                        </p>
+                                        <p className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                                          {conv.total_messages} {conv.total_messages !== 1 ? t('lia.messagesPlural') : t('lia.messages')}
+                                        </p>
+                                      </>
+                                    )}
+                                  </div>
+                                </button>
+                                {editingConversationId !== conv.conversation_id && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingConversationId(conv.conversation_id);
+                                        setEditingTitle(conv.conversation_title || '');
+                                      }}
+                                      className="p-1 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                      title={t('lia.editName')}
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/60" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeletingConversationId(conv.conversation_id);
+                                      }}
+                                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                      title={t('lia.deleteConversation')}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modal de confirmación para eliminar conversación */}
+                  {deletingConversationId && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+                      <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6 max-w-md w-full">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.deleteConfirmTitle')}</h3>
+                            <p className="text-sm text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.deleteConfirmSubtitle')}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-[#0A2540] dark:text-white mb-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                          {t('lia.deleteConfirmMessage')}
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setDeletingConversationId(null)}
+                            className="flex-1 px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-colors font-medium shadow-sm hover:shadow-md"
+                            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                          >
+                            {t('lia.cancel')}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (deletingConversationId) {
+                                deleteConversation(deletingConversationId);
+                              }
+                            }}
+                            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                          >
+                            {t('lia.delete')}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chat de Lia expandido */}
+                  <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+                    {/* Área de mensajes */}
+                    <div
+                      className="flex-1 overflow-y-auto p-4 space-y-4"
+                      style={{
+                        paddingBottom: currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen
+                          ? (isPromptsCollapsed ? '5.5rem' : '6rem')
+                          : '1rem'
+                      }}
+                    >
+                      {liaMessages.map((message) => (
+                        <div
+                          key={message.id}
+                          className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 relative group ${message.role === 'user'
+                              ? 'bg-[#0A2540] text-white'
+                              : 'bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white/90 border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                              }`}
+                          >
+                            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">
+                              {parseMarkdownLinks(message.content).map((part, index) => {
+                                if (part.type === 'link') {
+                                  return (
+                                    <a
+                                      key={index}
+                                      href={part.url}
+                                      target={part.url.startsWith('http') ? '_blank' : '_self'}
+                                      rel={part.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+                                      className={`${message.role === 'user'
+                                        ? 'text-white underline hover:text-white/80 font-semibold'
+                                        : 'text-[#00D4B3] dark:text-[#00D4B3] underline hover:text-[#00b8a0] dark:hover:text-[#00b8a0] font-semibold'
+                                        } transition-colors`}
+                                      onClick={(e) => {
+                                        // Si es una ruta interna, usar router de Next.js
+                                        if (!part.url.startsWith('http')) {
+                                          e.preventDefault();
+                                          router.push(part.url);
+                                        }
+                                      }}
+                                    >
+                                      {part.text}
+                                    </a>
+                                  );
+                                }
+                                return <span key={index}>{part.content}</span>;
+                              })}
+                            </div>
+                            <div className="flex items-center justify-between mt-2">
+                              <p className="text-xs opacity-70">
+                                {message.timestamp.toLocaleTimeString('es-ES', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                              {message.role === 'assistant' && (
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingConversationId(conv.conversation_id);
-                                      setEditingTitle(conv.conversation_title || '');
+                                    onClick={async () => {
+                                      try {
+                                        await navigator.clipboard.writeText(message.content);
+                                        setCopiedMessageId(message.id);
+                                        setTimeout(() => setCopiedMessageId(null), 2000);
+                                      } catch (err) {
+                                        // Fallback para navegadores que no soportan clipboard API
+                                        const textArea = document.createElement('textarea');
+                                        textArea.value = message.content;
+                                        textArea.style.position = 'fixed';
+                                        textArea.style.opacity = '0';
+                                        document.body.appendChild(textArea);
+                                        textArea.select();
+                                        document.execCommand('copy');
+                                        document.body.removeChild(textArea);
+                                        setCopiedMessageId(message.id);
+                                        setTimeout(() => setCopiedMessageId(null), 2000);
+                                      }
                                     }}
-                                    className="p-1 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded transition-colors opacity-0 group-hover:opacity-100"
-                                    title={t('lia.editName')}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                                    title={t('lia.copyMessage')}
                                   >
-                                    <Edit2 className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/60" />
+                                    {copiedMessageId === message.id ? (
+                                      <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                    ) : (
+                                      <Copy className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                    )}
                                   </button>
                                   <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDeletingConversationId(conv.conversation_id);
+                                    onClick={() => {
+                                      // Crear nota automáticamente con el contenido del mensaje
+                                      const noteTitle = message.content.substring(0, 50).replace(/\n/g, ' ').trim() + (message.content.length > 50 ? '...' : '');
+                                      setEditingNote({
+                                        id: '',
+                                        title: noteTitle,
+                                        content: message.content,
+                                        tags: ['Lia', 'Chat']
+                                      });
+                                      setIsNotesModalOpen(true);
                                     }}
-                                    className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors opacity-0 group-hover:opacity-100"
-                                    title={t('lia.deleteConversation')}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                                    title={t('lia.createNote')}
                                   >
-                                    <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                                    <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
                                   </button>
                                 </div>
                               )}
                             </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
 
-                {/* Modal de confirmación para eliminar conversación */}
-                {deletingConversationId && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-                    <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6 max-w-md w-full">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                          <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                            {/* 🎨 Botón para reabrir panel NanoBanana si el mensaje tiene uno generado */}
+                            {message.role === 'assistant' && message.generatedNanoBanana && (
+                              <button
+                                onClick={() => {
+
+                                  // Restaurar los datos del NanoBanana al estado global
+                                  // y abrir el panel
+                                  setShowNanoBananaPreview(true);
+                                }}
+                                className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
+                              >
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Ver JSON NanoBanana
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.deleteConfirmTitle')}</h3>
-                          <p className="text-sm text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.deleteConfirmSubtitle')}</p>
+                      ))}
+
+                      {/* Indicador de carga */}
+                      {isLiaLoading && (
+                        <div className="flex justify-start">
+                          <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                            <div className="flex gap-1">
+                              <div className="w-2 h-2 bg-[#00D4B3] dark:bg-[#00D4B3] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <p className="text-sm text-[#0A2540] dark:text-white mb-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                        {t('lia.deleteConfirmMessage')}
-                      </p>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => setDeletingConversationId(null)}
-                          className="flex-1 px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-colors font-medium shadow-sm hover:shadow-md"
-                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                        >
-                          {t('lia.cancel')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (deletingConversationId) {
-                              deleteConversation(deletingConversationId);
+                      )}
+
+                      {/* Elemento de anclaje para scroll automático */}
+                      <div ref={liaMessagesEndRef} />
+                    </div>
+
+                    {/* Prompts Flotantes tipo NotebookLM */}
+                    <AnimatePresence>
+                      {(() => {
+                        const shouldShow = currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen;
+
+                        return shouldShow;
+                      })() && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.2 }}
+                            className={`absolute ${isPromptsCollapsed ? 'bottom-24' : 'bottom-20'} left-4 right-4 z-10`}
+                          >
+                            {isPromptsCollapsed ? (
+                              // Versión colapsada - más compacta
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="bg-gradient-to-br from-[#0A2540]/10 to-[#00D4B3]/10 dark:from-[#0A2540]/20 dark:to-[#00D4B3]/20 backdrop-blur-xl rounded-xl shadow-lg border border-[#0A2540]/30 dark:border-[#0A2540]/30 p-2"
+                              >
+                                <button
+                                  onClick={() => setIsPromptsCollapsed(false)}
+                                  className="w-full flex items-center justify-between hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg px-2 py-1.5 transition-colors group"
+                                >
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center shadow-md shrink-0">
+                                      <HelpCircle className="w-3 h-3 text-white" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <h4 className="font-semibold text-xs text-gray-900 dark:text-white truncate">Prompts Sugeridos</h4>
+                                      <p className="text-[10px] text-gray-600 dark:text-slate-400 truncate">{currentActivityPrompts.length} {currentActivityPrompts.length === 1 ? 'disponible' : 'disponibles'}</p>
+                                    </div>
+                                  </div>
+                                  <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/80 group-hover:text-[#0A2540] dark:group-hover:text-[#00D4B3] transition-colors shrink-0 ml-2" />
+                                </button>
+                              </motion.div>
+                            ) : (
+                              // Versión expandida
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="bg-gradient-to-br from-[#00D4B3]/10 to-[#0A2540]/10 dark:from-[#00D4B3]/20 dark:to-[#0A2540]/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 max-h-[300px]"
+                              >
+                                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/40 dark:border-white/10 bg-white/20 dark:bg-white/5 rounded-t-2xl">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-[#00D4B3] flex items-center justify-center shadow-lg">
+                                      <HelpCircle className="w-4 h-4 text-white" />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
+                                      <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a Lia</p>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => setIsPromptsCollapsed(true)}
+                                    className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                                    title="Minimizar prompts"
+                                  >
+                                    <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
+                                  </button>
+                                </div>
+                                <div className="space-y-2 p-4 overflow-y-auto max-h-[210px] pr-2 custom-scroll">
+                                  {currentActivityPrompts.map((prompt, index) => (
+                                    <motion.button
+                                      key={index}
+                                      initial={{ opacity: 0, x: -20 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: index * 0.05 }}
+                                      onClick={() => {
+                                        setLiaMessage(prompt);
+                                        setTimeout(() => {
+                                          handleSendLiaMessage();
+                                          setIsPromptsCollapsed(true);
+                                        }, 100);
+                                      }}
+                                      className="w-full text-left px-4 py-3 bg-white/80 dark:bg-[#1E2329]/80 hover:bg-white dark:hover:bg-[#0A2540]/30 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-6 h-6 rounded-full bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-[#00D4B3]/20 dark:group-hover:bg-[#00D4B3]/30 transition-colors">
+                                          <span className="text-[#00D4B3] dark:text-[#00D4B3] text-xs font-bold" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{index + 1}</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                            {prompt}
+                                          </p>
+                                        </div>
+                                        <Send className="w-4 h-4 text-[#00D4B3] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                                      </div>
+                                    </motion.button>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Área de entrada - Similar a LIA general con mejor manejo de altura */}
+                    <div
+                      className={`border-t border-[#E9ECEF] dark:border-[#6C757D]/30 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
+                      style={isMobile ? {
+                        // Asegurar padding suficiente para safe area y evitar que se corte
+                        // El padding bottom debe incluir el safe area para dispositivos con notch
+                        paddingBottom: `calc(${getInputAreaPadding()} + max(env(safe-area-inset-bottom, 0px), 8px))`,
+                      } : undefined}
+                    >
+                      <div className="flex gap-2 items-end min-w-0">
+                        <textarea
+                          ref={liaTextareaRef}
+                          placeholder={t('lia.placeholder')}
+                          value={liaMessage}
+                          onChange={(e) => {
+                            setLiaMessage(e.target.value);
+                            // Ajustar altura inmediatamente al cambiar el contenido
+                            setTimeout(() => adjustLiaTextareaHeight(), 0);
+                          }}
+                          onFocus={(e) => {
+                            // En móvil, asegurar que el textarea sea visible cuando se enfoca
+                            // El visualViewport ya maneja el ajuste de altura, pero esto ayuda
+                            // a asegurar que el scroll se haga correctamente
+                            if (isMobile && window.visualViewport) {
+                              // Pequeño delay para permitir que el teclado se abra
+                              setTimeout(() => {
+                                e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                              }, 300);
                             }
                           }}
-                          className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey && !isLiaLoading) {
+                              e.preventDefault();
+                              handleSendLiaMessage();
+                            }
+                          }}
+                          disabled={isLiaLoading}
+                          className="flex-1 min-w-0 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl px-4 py-2.5 text-sm text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent resize-none lia-textarea-scrollbar shadow-sm hover:shadow-md"
+                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                          style={{ fontSize: '14px', lineHeight: '1.5', minHeight: '48px', maxHeight: '87px', height: '48px', overflowY: 'hidden' }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (liaMessage.trim()) {
+                              // Si hay texto, enviar mensaje
+                              handleSendLiaMessage();
+                            } else {
+                              // Si no hay texto, activar/desactivar grabación
+                              toggleRecording();
+                            }
+                          }}
+                          disabled={isLiaLoading && !!liaMessage.trim()}
+                          className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 shrink-0 ${liaMessage.trim()
+                            ? 'bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg hover:shadow-[#0A2540]/50'
+                            : isLiaRecording
+                              ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/50'
+                              : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/30'
+                            } ${isLiaLoading && liaMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                          {t('lia.delete')}
+                          {isLiaLoading && liaMessage.trim() ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : liaMessage.trim() ? (
+                            <Send className="w-5 h-5" />
+                          ) : isLiaRecording ? (
+                            <MicOff className="w-5 h-5" />
+                          ) : (
+                            <Mic className="w-5 h-5" />
+                          )}
                         </button>
                       </div>
                     </div>
                   </div>
-                )}
+                </motion.div>
 
-              {/* Chat de Lia expandido */}
-              <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-                {/* Área de mensajes */}
-                <div
-                  className="flex-1 overflow-y-auto p-4 space-y-4"
-                  style={{
-                    paddingBottom: currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen
-                      ? (isPromptsCollapsed ? '5.5rem' : '6rem')
-                      : '1rem'
-                  }}
-                >
-                  {liaMessages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 relative group ${
-                          message.role === 'user'
-                            ? 'bg-[#0A2540] text-white'
-                            : 'bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white/90 border border-[#E9ECEF] dark:border-[#6C757D]/30'
-                        }`}
-                      >
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">
-                          {parseMarkdownLinks(message.content).map((part, index) => {
-                            if (part.type === 'link') {
-                              return (
-                                <a
-                                  key={index}
-                                  href={part.url}
-                                  target={part.url.startsWith('http') ? '_blank' : '_self'}
-                                  rel={part.url.startsWith('http') ? 'noopener noreferrer' : undefined}
-                                  className={`${
-                                    message.role === 'user'
-                                      ? 'text-white underline hover:text-white/80 font-semibold'
-                                      : 'text-[#00D4B3] dark:text-[#00D4B3] underline hover:text-[#00b8a0] dark:hover:text-[#00b8a0] font-semibold'
-                                  } transition-colors`}
-                                  onClick={(e) => {
-                                    // Si es una ruta interna, usar router de Next.js
-                                    if (!part.url.startsWith('http')) {
-                                      e.preventDefault();
-                                      router.push(part.url);
-                                    }
-                                  }}
-                                >
-                                  {part.text}
-                                </a>
-                              );
-                            }
-                            return <span key={index}>{part.content}</span>;
-                          })}
-                        </div>
-                        <div className="flex items-center justify-between mt-2">
-                          <p className="text-xs opacity-70">
-                            {message.timestamp.toLocaleTimeString('es-ES', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </p>
-                          {message.role === 'assistant' && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await navigator.clipboard.writeText(message.content);
-                                    setCopiedMessageId(message.id);
-                                    setTimeout(() => setCopiedMessageId(null), 2000);
-                                  } catch (err) {
-                                    // Fallback para navegadores que no soportan clipboard API
-                                    const textArea = document.createElement('textarea');
-                                    textArea.value = message.content;
-                                    textArea.style.position = 'fixed';
-                                    textArea.style.opacity = '0';
-                                    document.body.appendChild(textArea);
-                                    textArea.select();
-                                    document.execCommand('copy');
-                                    document.body.removeChild(textArea);
-                                    setCopiedMessageId(message.id);
-                                    setTimeout(() => setCopiedMessageId(null), 2000);
-                                  }
-                                }}
-                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                                title={t('lia.copyMessage')}
-                              >
-                                {copiedMessageId === message.id ? (
-                                  <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                ) : (
-                                  <Copy className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  // Crear nota automáticamente con el contenido del mensaje
-                                  const noteTitle = message.content.substring(0, 50).replace(/\n/g, ' ').trim() + (message.content.length > 50 ? '...' : '');
-                                  setEditingNote({
-                                    id: '',
-                                    title: noteTitle,
-                                    content: message.content,
-                                    tags: ['Lia', 'Chat']
-                                  });
-                                  setIsNotesModalOpen(true);
-                                }}
-                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                                title={t('lia.createNote')}
-                              >
-                                <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* 🎨 Botón para reabrir panel NanoBanana si el mensaje tiene uno generado */}
-                        {message.role === 'assistant' && message.generatedNanoBanana && (
-                          <button
-                            onClick={() => {
-
-                              // Restaurar los datos del NanoBanana al estado global
-                              // y abrir el panel
-                              setShowNanoBananaPreview(true);
-                            }}
-                            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Ver JSON NanoBanana
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* Indicador de carga */}
-                  {isLiaLoading && (
-                    <div className="flex justify-start">
-                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] border border-[#E9ECEF] dark:border-[#6C757D]/30">
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-[#00D4B3] dark:bg-[#00D4B3] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Elemento de anclaje para scroll automático */}
-                  <div ref={liaMessagesEndRef} />
-                </div>
-
-                {/* Prompts Flotantes tipo NotebookLM */}
+                {/* ✨ Panel de Vista Previa de Prompts Generados */}
                 <AnimatePresence>
-                  {(() => {
-                    const shouldShow = currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen;
-
-                    return shouldShow;
-                  })() && (
+                  {showPromptPreview && generatedPrompt && currentMode === 'prompts' && (
                     <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className={`absolute ${isPromptsCollapsed ? 'bottom-24' : 'bottom-20'} left-4 right-4 z-10`}
+                      className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                      onClick={() => {
+                        setShowPromptPreview(false);
+                      }}
                     >
-                      {isPromptsCollapsed ? (
-                        // Versión colapsada - más compacta
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="bg-gradient-to-br from-[#0A2540]/10 to-[#00D4B3]/10 dark:from-[#0A2540]/20 dark:to-[#00D4B3]/20 backdrop-blur-xl rounded-xl shadow-lg border border-[#0A2540]/30 dark:border-[#0A2540]/30 p-2"
-                        >
-                          <button
-                            onClick={() => setIsPromptsCollapsed(false)}
-                            className="w-full flex items-center justify-between hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg px-2 py-1.5 transition-colors group"
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center shadow-md shrink-0">
-                                <HelpCircle className="w-3 h-3 text-white" />
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="font-semibold text-xs text-gray-900 dark:text-white truncate">Prompts Sugeridos</h4>
-                                <p className="text-[10px] text-gray-600 dark:text-slate-400 truncate">{currentActivityPrompts.length} {currentActivityPrompts.length === 1 ? 'disponible' : 'disponibles'}</p>
-                              </div>
-                            </div>
-                            <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/80 group-hover:text-[#0A2540] dark:group-hover:text-[#00D4B3] transition-colors shrink-0 ml-2" />
-                          </button>
-                        </motion.div>
-                      ) : (
-                        // Versión expandida
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="bg-gradient-to-br from-[#00D4B3]/10 to-[#0A2540]/10 dark:from-[#00D4B3]/20 dark:to-[#0A2540]/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 max-h-[300px]"
-                        >
-                          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/40 dark:border-white/10 bg-white/20 dark:bg-white/5 rounded-t-2xl">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-lg bg-[#00D4B3] flex items-center justify-center shadow-lg">
-                                <HelpCircle className="w-4 h-4 text-white" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
-                                <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a Lia</p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => setIsPromptsCollapsed(true)}
-                              className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                              title="Minimizar prompts"
-                            >
-                              <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
-                            </button>
-                          </div>
-                          <div className="space-y-2 p-4 overflow-y-auto max-h-[210px] pr-2 custom-scroll">
-                            {currentActivityPrompts.map((prompt, index) => (
-                              <motion.button
-                                key={index}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                onClick={() => {
-                                  setLiaMessage(prompt);
-                                  setTimeout(() => {
-                                    handleSendLiaMessage();
-                                    setIsPromptsCollapsed(true);
-                                  }, 100);
-                                }}
-                                className="w-full text-left px-4 py-3 bg-white/80 dark:bg-[#1E2329]/80 hover:bg-white dark:hover:bg-[#0A2540]/30 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
-                              >
-                                <div className="flex items-start gap-3">
-                                  <div className="w-6 h-6 rounded-full bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-[#00D4B3]/20 dark:group-hover:bg-[#00D4B3]/30 transition-colors">
-                                    <span className="text-[#00D4B3] dark:text-[#00D4B3] text-xs font-bold" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{index + 1}</span>
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-                                      {prompt}
-                                    </p>
-                                  </div>
-                                  <Send className="w-4 h-4 text-[#00D4B3] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
-                                </div>
-                              </motion.button>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <PromptPreviewPanel
+                          draft={generatedPrompt as PromptDraft}
+                          onSave={handleSavePrompt}
+                          onClose={() => {
+                            setShowPromptPreview(false);
+                            clearPrompt();
+                          }}
+                          onEdit={(edited) => {
+                            // Nota: Para editar, el usuario tendría que modificar el prompt generado
+                            // Esto podría implementarse con un modal de edición más adelante
+
+                          }}
+                          isSaving={isSavingPrompt}
+                        />
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* Área de entrada - Similar a LIA general con mejor manejo de altura */}
-                <div
-                  className={`border-t border-[#E9ECEF] dark:border-[#6C757D]/30 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
-                  style={isMobile ? {
-                    // Asegurar padding suficiente para safe area y evitar que se corte
-                    // El padding bottom debe incluir el safe area para dispositivos con notch
-                    paddingBottom: `calc(${getInputAreaPadding()} + max(env(safe-area-inset-bottom, 0px), 8px))`,
-                  } : undefined}
-                >
-                  <div className="flex gap-2 items-end min-w-0">
-                    <textarea
-                      ref={liaTextareaRef}
-                      placeholder={t('lia.placeholder')}
-                      value={liaMessage}
-                      onChange={(e) => {
-                        setLiaMessage(e.target.value);
-                        // Ajustar altura inmediatamente al cambiar el contenido
-                        setTimeout(() => adjustLiaTextareaHeight(), 0);
+                {/* 🎨 Panel de Vista Previa de NanoBanana Generados */}
+                {showNanoBananaPreview && generatedNanoBanana && isNanoBananaMode && (
+                  <div
+                    className="fixed right-4 top-20 z-[301]"
+                    style={{
+                      width: 'min(400px, calc(100vw - 2rem))',
+                      maxHeight: 'calc(100vh - 6rem)'
+                    }}
+                  >
+                    <NanoBananaPreviewPanel
+                      schema={generatedNanoBanana.schema}
+                      jsonString={generatedNanoBanana.jsonString}
+                      domain={generatedNanoBanana.domain}
+                      outputFormat={generatedNanoBanana.outputFormat}
+                      isOpen={showNanoBananaPreview}
+                      onClose={() => {
+                        setShowNanoBananaPreview(false);
                       }}
-                      onFocus={(e) => {
-                        // En móvil, asegurar que el textarea sea visible cuando se enfoca
-                        // El visualViewport ya maneja el ajuste de altura, pero esto ayuda
-                        // a asegurar que el scroll se haga correctamente
-                        if (isMobile && window.visualViewport) {
-                          // Pequeño delay para permitir que el teclado se abra
-                          setTimeout(() => {
-                            e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                          }, 300);
-                        }
+                      onCopy={() => {
+
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey && !isLiaLoading) {
-                          e.preventDefault();
-                          handleSendLiaMessage();
-                        }
+                      onDownload={() => {
+
                       }}
-                      disabled={isLiaLoading}
-                      className="flex-1 min-w-0 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl px-4 py-2.5 text-sm text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent resize-none lia-textarea-scrollbar shadow-sm hover:shadow-md"
-                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
-                      style={{ fontSize: '14px', lineHeight: '1.5', minHeight: '48px', maxHeight: '87px', height: '48px', overflowY: 'hidden' }}
+                      onRegenerate={() => {
+                        // Reabrir el input para regenerar
+
+                      }}
                     />
-                    <button
-                      onClick={() => {
-                        if (liaMessage.trim()) {
-                          // Si hay texto, enviar mensaje
-                          handleSendLiaMessage();
-                        } else {
-                          // Si no hay texto, activar/desactivar grabación
-                          toggleRecording();
-                        }
-                      }}
-                      disabled={isLiaLoading && !!liaMessage.trim()}
-                      className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 shrink-0 ${
-                        liaMessage.trim()
-                          ? 'bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg hover:shadow-[#0A2540]/50'
-                          : isLiaRecording
-                          ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/50'
-                          : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/30'
-                      } ${isLiaLoading && liaMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {isLiaLoading && liaMessage.trim() ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : liaMessage.trim() ? (
-                        <Send className="w-5 h-5" />
-                      ) : isLiaRecording ? (
-                        <MicOff className="w-5 h-5" />
-                      ) : (
-                        <Mic className="w-5 h-5" />
-                      )}
-                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </AnimatePresence>
+
+          {/* Barra vertical para abrir panel derecho - Oculto en móviles */}
+          {!isRightPanelOpen && (
+            <div className="hidden md:flex w-12 bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 mr-2 z-10 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+              <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
+                <button
+                  onClick={() => {
+                    setIsRightPanelOpen(true);
+                    setIsLiaExpanded(false);
+                  }}
+                  className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                  title="Mostrar Lia"
+                >
+                  <ChevronLeft className="w-5 h-5 text-[#6C757D] dark:text-white" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Barra de navegación inferior flotante para móviles */}
+        {isMobileBottomNavVisible && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-lg border-t border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl"
+            style={{
+              paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
+              height: 'calc(70px + max(env(safe-area-inset-bottom), 8px))'
+            }}
+          >
+            <div className="flex items-center justify-around px-4 py-3">
+              {/* Botón Material del Curso */}
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                  setIsRightPanelOpen(false);
+                }}
+                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${isLeftPanelOpen
+                  ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]'
+                  : 'text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
+                  }`}
+              >
+                <BookOpen className="w-5 h-5" />
+                <span className="text-xs font-medium">Material</span>
+              </button>
+
+              {/* Botón Lección Anterior */}
+              {getPreviousLesson() && (
+                <button
+                  onClick={navigateToPreviousLesson}
+                  className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="text-xs font-medium">Anterior</span>
+                </button>
+              )}
+
+              {/* Botón Lección Siguiente */}
+              {getNextLesson() && (
+                <button
+                  onClick={navigateToNextLesson}
+                  className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                  <span className="text-xs font-medium">Siguiente</span>
+                </button>
+              )}
+
+              {/* Botón Lia */}
+              <button
+                onClick={() => {
+                  setIsRightPanelOpen(true);
+                  setIsLeftPanelOpen(false);
+                }}
+                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${isRightPanelOpen
+                  ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
+                  : 'text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
+                  }`}
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span className="text-xs font-medium">Lia</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        <NotesModal
+          isOpen={isNotesModalOpen}
+          onClose={() => {
+            setIsNotesModalOpen(false);
+            setEditingNote(null);
+          }}
+          onSave={handleSaveNote}
+          initialNote={editingNote}
+          isEditing={!!editingNote}
+        />
+
+        {/* Modal de Curso Completado */}
+        <AnimatePresence>
+          {isCourseCompletedModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={() => setIsCourseCompletedModalOpen(false)}
+            >
+              {/* Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+              >
+                {/* Icono de éxito */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
+                    <CheckCircle2 className="w-10 h-10 text-white" />
                   </div>
                 </div>
-              </div>
-            </motion.div>
 
-            {/* ✨ Panel de Vista Previa de Prompts Generados */}
-            <AnimatePresence>
-              {showPromptPreview && generatedPrompt && currentMode === 'prompts' && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                  className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-                  onClick={() => {
-                    setShowPromptPreview(false);
+                {/* Título */}
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+                  ¡Felicidades!
+                </h3>
+
+                {/* Mensaje */}
+                <p className="text-gray-600 dark:text-slate-300 text-center mb-4">
+                  Has completado el curso exitosamente. ¡Buen trabajo!
+                </p>
+
+                {/* Mensaje informativo sobre certificado */}
+                <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-3 mb-6">
+                  <p className="text-[#0A2540] dark:text-white text-center text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                    📜 A continuación, completa una breve encuesta para acceder a tu certificado
+                  </p>
+                </div>
+
+                {/* Botón de cerrar */}
+                <button
+                  onClick={async () => {
+                    setIsCourseCompletedModalOpen(false);
+                    // Verificar si el usuario ya calificó después de cerrar el modal de completado
+                    if (!hasUserRated && slug) {
+                      try {
+                        const ratingCheck = await CourseRatingService.checkUserRating(slug);
+                        if (!ratingCheck.hasRating) {
+                          // Mostrar modal de rating después de un breve delay
+                          setTimeout(() => {
+                            setIsRatingModalOpen(true);
+                          }, 500);
+                        } else {
+                          setHasUserRated(true);
+                        }
+                      } catch (error) {
+                        // Si hay error, no mostrar el modal
+                        console.error('Error checking rating:', error);
+                      }
+                    }
                   }}
+                  className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                 >
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <PromptPreviewPanel
-                      draft={generatedPrompt as PromptDraft}
-                      onSave={handleSavePrompt}
-                      onClose={() => {
-                        setShowPromptPreview(false);
-                        clearPrompt();
-                      }}
-                      onEdit={(edited) => {
-                        // Nota: Para editar, el usuario tendría que modificar el prompt generado
-                        // Esto podría implementarse con un modal de edición más adelante
-
-                      }}
-                      isSaving={isSavingPrompt}
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* 🎨 Panel de Vista Previa de NanoBanana Generados */}
-            {showNanoBananaPreview && generatedNanoBanana && isNanoBananaMode && (
-              <div 
-                className="fixed right-4 top-20 z-[301]"
-                style={{
-                  width: 'min(400px, calc(100vw - 2rem))',
-                  maxHeight: 'calc(100vh - 6rem)'
-                }}
-              >
-                <NanoBananaPreviewPanel
-                  schema={generatedNanoBanana.schema}
-                  jsonString={generatedNanoBanana.jsonString}
-                  domain={generatedNanoBanana.domain}
-                  outputFormat={generatedNanoBanana.outputFormat}
-                  isOpen={showNanoBananaPreview}
-                  onClose={() => {
-                    setShowNanoBananaPreview(false);
-                  }}
-                  onCopy={() => {
-
-                  }}
-                  onDownload={() => {
-
-                  }}
-                  onRegenerate={() => {
-                    // Reabrir el input para regenerar
-
-                  }}
-                />
-              </div>
-            )}
-            </>
+                  Aceptar
+                </button>
+              </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Barra vertical para abrir panel derecho - Oculto en móviles */}
-        {!isRightPanelOpen && (
-          <div className="hidden md:flex w-12 bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 mr-2 z-10 border border-[#E9ECEF] dark:border-[#6C757D]/30">
-            <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
-            <button
-              onClick={() => {
-                setIsRightPanelOpen(true);
-                setIsLiaExpanded(false);
-              }}
-              className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-              title="Mostrar Lia"
-            >
-              <ChevronLeft className="w-5 h-5 text-[#6C757D] dark:text-white" />
-            </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Barra de navegación inferior flotante para móviles */}
-      {isMobileBottomNavVisible && (
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-lg border-t border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl"
-          style={{
-            paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
-            height: 'calc(70px + max(env(safe-area-inset-bottom), 8px))'
-          }}
-        >
-          <div className="flex items-center justify-around px-4 py-3">
-            {/* Botón Material del Curso */}
-            <button
-              onClick={() => {
-                setIsLeftPanelOpen(true);
-                setIsRightPanelOpen(false);
-              }}
-              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
-                isLeftPanelOpen
-                  ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]'
-                  : 'text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-              }`}
-            >
-              <BookOpen className="w-5 h-5" />
-              <span className="text-xs font-medium">Material</span>
-            </button>
-
-            {/* Botón Lección Anterior */}
-            {getPreviousLesson() && (
-              <button
-                onClick={navigateToPreviousLesson}
-                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
-              >
-                <ChevronLeft className="w-5 h-5" />
-                <span className="text-xs font-medium">Anterior</span>
-              </button>
-            )}
-
-            {/* Botón Lección Siguiente */}
-            {getNextLesson() && (
-              <button
-                onClick={navigateToNextLesson}
-                className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
-              >
-                <ChevronRight className="w-5 h-5" />
-                <span className="text-xs font-medium">Siguiente</span>
-              </button>
-            )}
-
-            {/* Botón Lia */}
-            <button
-              onClick={() => {
-                setIsRightPanelOpen(true);
-                setIsLeftPanelOpen(false);
-              }}
-              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
-                isRightPanelOpen
-                  ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
-                  : 'text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-              }`}
-            >
-              <MessageSquare className="w-5 h-5" />
-              <span className="text-xs font-medium">Lia</span>
-            </button>
-          </div>
-        </motion.div>
-      )}
-
-      <NotesModal
-        isOpen={isNotesModalOpen}
-        onClose={() => {
-          setIsNotesModalOpen(false);
-          setEditingNote(null);
-        }}
-        onSave={handleSaveNote}
-        initialNote={editingNote}
-        isEditing={!!editingNote}
-      />
-
-      {/* Modal de Curso Completado */}
-      <AnimatePresence>
-        {isCourseCompletedModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={() => setIsCourseCompletedModalOpen(false)}
-          >
-            {/* Overlay */}
+        {/* Modal de No Puede Completar */}
+        <AnimatePresence>
+          {isCannotCompleteModalOpen && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={() => setIsCannotCompleteModalOpen(false)}
             >
-              {/* Icono de éxito */}
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
-                  <CheckCircle2 className="w-10 h-10 text-white" />
+              {/* Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+              >
+                {/* Icono de advertencia */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] flex items-center justify-center shadow-lg shadow-[#F59E0B]/25">
+                    <HelpCircle className="w-10 h-10 text-white" />
+                  </div>
                 </div>
-              </div>
 
-              {/* Título */}
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                ¡Felicidades!
-              </h3>
+                {/* Título */}
+                <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                  No puedes completar esta lección
+                </h3>
 
-              {/* Mensaje */}
-              <p className="text-gray-600 dark:text-slate-300 text-center mb-4">
-                Has completado el curso exitosamente. ¡Buen trabajo!
-              </p>
-
-              {/* Mensaje informativo sobre certificado */}
-              <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-3 mb-6">
-                <p className="text-[#0A2540] dark:text-white text-center text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                  📜 A continuación, completa una breve encuesta para acceder a tu certificado
+                {/* Mensaje */}
+                <p className="text-[#6C757D] dark:text-white/80 text-center mb-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                  Tienes lecciones pendientes que debes completar antes de terminar el curso. Completa todas las lecciones anteriores en orden.
                 </p>
-              </div>
 
-              {/* Botón de cerrar */}
-              <button
-                onClick={async () => {
-                  setIsCourseCompletedModalOpen(false);
-                  // Verificar si el usuario ya calificó después de cerrar el modal de completado
-                  if (!hasUserRated && slug) {
-                    try {
-                      const ratingCheck = await CourseRatingService.checkUserRating(slug);
-                      if (!ratingCheck.hasRating) {
-                        // Mostrar modal de rating después de un breve delay
-                        setTimeout(() => {
-                          setIsRatingModalOpen(true);
-                        }, 500);
-                      } else {
-                        setHasUserRated(true);
-                      }
-                    } catch (error) {
-                      // Si hay error, no mostrar el modal
-                      console.error('Error checking rating:', error);
-                    }
-                  }
-                }}
-                className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-              >
-                Aceptar
-              </button>
+                {/* Botón de cerrar */}
+                <button
+                  onClick={() => setIsCannotCompleteModalOpen(false)}
+                  className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                >
+                  Entendido
+                </button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {/* Modal de No Puede Completar */}
-      <AnimatePresence>
-        {isCannotCompleteModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={() => setIsCannotCompleteModalOpen(false)}
-          >
-            {/* Overlay */}
+        {/* Modal de Validación (Actividades/Video/Quiz) */}
+        <AnimatePresence>
+          {validationModal.isOpen && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={() => setValidationModal({ ...validationModal, isOpen: false })}
             >
-              {/* Icono de advertencia */}
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] flex items-center justify-center shadow-lg shadow-[#F59E0B]/25">
-                  <HelpCircle className="w-10 h-10 text-white" />
-                </div>
-              </div>
+              {/* Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
 
-              {/* Título */}
-              <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                No puedes completar esta lección
-              </h3>
-
-              {/* Mensaje */}
-              <p className="text-[#6C757D] dark:text-white/80 text-center mb-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                Tienes lecciones pendientes que debes completar antes de terminar el curso. Completa todas las lecciones anteriores en orden.
-              </p>
-
-              {/* Botón de cerrar */}
-              <button
-                onClick={() => setIsCannotCompleteModalOpen(false)}
-                className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
               >
-                Entendido
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Modal de Validación (Actividades/Video/Quiz) */}
-      <AnimatePresence>
-        {validationModal.isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={() => setValidationModal({ ...validationModal, isOpen: false })}
-          >
-            {/* Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
-            >
-              {/* Icono según el tipo de validación */}
-              <div className="flex justify-center mb-4">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
-                  validationModal.type === 'activity' || validationModal.type === 'quiz'
+                {/* Icono según el tipo de validación */}
+                <div className="flex justify-center mb-4">
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${validationModal.type === 'activity' || validationModal.type === 'quiz'
                     ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/25'
                     : validationModal.type === 'video'
-                    ? 'bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-[#0A2540]/25'
-                    : 'bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] shadow-[#F59E0B]/25'
-                }`}>
-                  {validationModal.type === 'activity' || validationModal.type === 'quiz' ? (
-                    <AlertCircle className="w-10 h-10 text-white" />
-                  ) : validationModal.type === 'video' ? (
-                    <Info className="w-10 h-10 text-white" />
-                  ) : (
-                    <XCircle className="w-10 h-10 text-white" />
-                  )}
+                      ? 'bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-[#0A2540]/25'
+                      : 'bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] shadow-[#F59E0B]/25'
+                    }`}>
+                    {validationModal.type === 'activity' || validationModal.type === 'quiz' ? (
+                      <AlertCircle className="w-10 h-10 text-white" />
+                    ) : validationModal.type === 'video' ? (
+                      <Info className="w-10 h-10 text-white" />
+                    ) : (
+                      <XCircle className="w-10 h-10 text-white" />
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Título */}
-              <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                {validationModal.title}
-              </h3>
+                {/* Título */}
+                <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                  {validationModal.title}
+                </h3>
 
-              {/* Mensaje */}
-              <p className="text-[#6C757D] dark:text-white/80 text-center mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                {validationModal.message}
-              </p>
+                {/* Mensaje */}
+                <p className="text-[#6C757D] dark:text-white/80 text-center mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                  {validationModal.message}
+                </p>
 
-              {/* Detalles adicionales si existen */}
-              {validationModal.details && (
-                <div className="mb-6 p-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
-                  <p className="text-[#0A2540] dark:text-white text-sm text-center font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                    {validationModal.details}
-                  </p>
-                </div>
-              )}
+                {/* Detalles adicionales si existen */}
+                {validationModal.details && (
+                  <div className="mb-6 p-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                    <p className="text-[#0A2540] dark:text-white text-sm text-center font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                      {validationModal.details}
+                    </p>
+                  </div>
+                )}
 
-              {/* Botón de cerrar */}
-              <button
-                onClick={() => {
-                  // Cerrar el modal
-                  const lessonIdToShow = validationModal.lessonId;
-                  setValidationModal({ ...validationModal, isOpen: false });
-                  
-                  // Si hay una lección guardada, cambiar a esa lección y abrir actividades
-                  if (lessonIdToShow) {
-                    // Buscar la lección en todos los módulos
-                    const allLessons = getAllLessonsOrdered();
-                    const lessonToShow = allLessons.find(
-                      (item) => item.lesson.lesson_id === lessonIdToShow
-                    );
-                    
-                    if (lessonToShow) {
-                      // Cambiar a la lección correspondiente
-                      setCurrentLesson(lessonToShow.lesson);
-                      // Cambiar al tab de actividades
-                      setActiveTab('activities');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                {/* Botón de cerrar */}
+                <button
+                  onClick={() => {
+                    // Cerrar el modal
+                    const lessonIdToShow = validationModal.lessonId;
+                    setValidationModal({ ...validationModal, isOpen: false });
+
+                    // Si hay una lección guardada, cambiar a esa lección y abrir actividades
+                    if (lessonIdToShow) {
+                      // Buscar la lección en todos los módulos
+                      const allLessons = getAllLessonsOrdered();
+                      const lessonToShow = allLessons.find(
+                        (item) => item.lesson.lesson_id === lessonIdToShow
+                      );
+
+                      if (lessonToShow) {
+                        // Cambiar a la lección correspondiente
+                        setCurrentLesson(lessonToShow.lesson);
+                        // Cambiar al tab de actividades
+                        setActiveTab('activities');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
                     }
-                  }
-                }}
-                className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-              >
-                Entendido
-              </button>
+                  }}
+                  className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                >
+                  Entendido
+                </button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {/* Modal de Confirmación para Limpiar Historial de LIA */}
-      <AnimatePresence>
-        {isClearHistoryModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={() => setIsClearHistoryModalOpen(false)}
-          >
-            {/* Overlay */}
+        {/* Modal de Confirmación para Limpiar Historial de LIA */}
+        <AnimatePresence>
+          {isClearHistoryModalOpen && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={() => setIsClearHistoryModalOpen(false)}
             >
-              {/* Avatar */}
-              <div className="flex justify-center mb-4">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden shadow-lg shadow-blue-500/25">
-                  <Image
-                    src="/lia-avatar.png"
-                    alt="Lia"
-                    fill
-                    className="object-cover"
-                    sizes="64px"
-                  />
+              {/* Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+              >
+                {/* Avatar */}
+                <div className="flex justify-center mb-4">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden shadow-lg shadow-blue-500/25">
+                    <Image
+                      src="/lia-avatar.png"
+                      alt="Lia"
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Título */}
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                {t('modals.resetConversation.title')}
-              </h3>
+                {/* Título */}
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+                  {t('modals.resetConversation.title')}
+                </h3>
 
-              {/* Mensaje */}
-              <p className="text-gray-600 dark:text-slate-300 text-center mb-6">
-                {t('modals.resetConversation.message')}
-              </p>
+                {/* Mensaje */}
+                <p className="text-gray-600 dark:text-slate-300 text-center mb-6">
+                  {t('modals.resetConversation.message')}
+                </p>
 
-              {/* Botones */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setIsClearHistoryModalOpen(false)}
-                  className="flex-1 px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                >
-                  {t('modals.resetConversation.cancel')}
-                </button>
-                <button
-                  onClick={handleConfirmClearHistory}
-                  className="flex-1 px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                >
-                  {t('modals.resetConversation.confirm')}
-                </button>
-              </div>
+                {/* Botones */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsClearHistoryModalOpen(false)}
+                    className="flex-1 px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                  >
+                    {t('modals.resetConversation.cancel')}
+                  </button>
+                  <button
+                    onClick={handleConfirmClearHistory}
+                    className="flex-1 px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                  >
+                    {t('modals.resetConversation.confirm')}
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {/* Modal de Rating */}
-      <CourseRatingModal
-        isOpen={isRatingModalOpen}
-        onClose={() => setIsRatingModalOpen(false)}
-        courseSlug={slug}
-        courseTitle={course?.title || course?.course_title}
-        onRatingSubmitted={() => {
-          setHasUserRated(true);
-          setIsRatingModalOpen(false);
-          // Redirigir a la página de certificados después de completar la encuesta
-          router.push('/certificates');
-        }}
-      />
+        {/* Modal de Rating */}
+        <CourseRatingModal
+          isOpen={isRatingModalOpen}
+          onClose={() => setIsRatingModalOpen(false)}
+          courseSlug={slug}
+          courseTitle={course?.title || course?.course_title}
+          onRatingSubmitted={() => {
+            setHasUserRated(true);
+            setIsRatingModalOpen(false);
+            // Redirigir a la página de certificados después de completar la encuesta
+            router.push('/certificates');
+          }}
+        />
 
-      {/* Tour de voz contextual para la página de aprendizaje */}
-      <ContextualVoiceGuide
-        tourId="course-learn"
-        steps={courseLearnTourSteps}
-        triggerPaths={['/courses']}
-        isReplayable={true}
-        showDelay={2000}
-        replayButtonLabel={t('tour.courseLearnLabel')}
-        requireAuth={true}
-      />
+        {/* Tour de voz contextual para la página de aprendizaje */}
+        <ContextualVoiceGuide
+          tourId="course-learn"
+          steps={courseLearnTourSteps}
+          triggerPaths={['/courses']}
+          isReplayable={true}
+          showDelay={2000}
+          replayButtonLabel={t('tour.courseLearnLabel')}
+          requireAuth={true}
+        />
 
-    </div>
+      </div>
     </WorkshopLearningProvider>
   );
 }
 
 // Componentes de contenido
-function VideoContent({ 
-  lesson, 
-  modules, 
-  onNavigatePrevious, 
+function VideoContent({
+  lesson,
+  modules,
+  onNavigatePrevious,
   onNavigateNext,
   getPreviousLesson,
   getNextLesson,
@@ -4990,7 +5263,7 @@ function VideoContent({
   canCompleteLesson,
   onCourseCompleted,
   onCannotComplete
-}: { 
+}: {
   lesson: Lesson;
   modules: Module[];
   onNavigatePrevious: () => void;
@@ -5004,22 +5277,22 @@ function VideoContent({
 }) {
   // Verificar si la lección tiene video
   const hasVideo = lesson.video_provider && lesson.video_provider_id;
-  
+
   // Obtener lecciones anterior y siguiente
   const previousLesson = getPreviousLesson();
   const nextLesson = getNextLesson();
-  
+
   // Determinar si hay lección anterior y siguiente (con o sin video)
   const hasPreviousLesson = previousLesson !== null;
   const hasNextLesson = nextLesson !== null;
-  
+
   // Determinar si hay video anterior y siguiente
   const hasPreviousVideo = hasPreviousLesson && previousLesson.video_provider && previousLesson.video_provider_id;
   const hasNextVideo = hasNextLesson && nextLesson.video_provider && nextLesson.video_provider_id;
-  
+
   // Determinar si es la última lección
   const isLastLesson = !hasNextLesson;
-  
+
   // Debug logging
   // console.log('VideoContent - Lesson data:', {
   //   lesson_id: lesson.lesson_id,
@@ -5031,7 +5304,7 @@ function VideoContent({
   //   hasNextVideo,
   //   fullLesson: lesson
   // });
-  
+
   return (
     <div className="space-y-6 pb-16 md:pb-6">
       <div className="relative w-full">
@@ -5043,7 +5316,7 @@ function VideoContent({
               title={lesson.lesson_title}
               className="w-full h-full"
             />
-            
+
             {/* Botones de navegación - Centrados verticalmente */}
             <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-2 sm:px-4">
               {/* Botón anterior - lado izquierdo */}
@@ -5058,7 +5331,7 @@ function VideoContent({
                   </span>
                 </button>
               )}
-              
+
               {/* Botón siguiente o terminar - lado derecho */}
               {(hasNextVideo || isLastLesson) && (
                 <button
@@ -5079,9 +5352,8 @@ function VideoContent({
                       onCannotComplete();
                     }
                   } : onNavigateNext}
-                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
-                    isLastLesson ? 'bg-[#10B981]/50 hover:bg-[#10B981]/70' : ''
-                  }`}
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${isLastLesson ? 'bg-[#10B981]/50 hover:bg-[#10B981]/70' : ''
+                    }`}
                 >
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
                     {isLastLesson ? 'Terminar' : 'Siguiente'}
@@ -5104,7 +5376,7 @@ function VideoContent({
               </div>
               <p className="text-gray-700 dark:text-white/70">Video no disponible</p>
             </div>
-            
+
             {/* Botones de navegación incluso si no hay video - Centrados verticalmente */}
             <div className="absolute inset-0 flex items-center justify-between pointer-events-none px-2 sm:px-4">
               {/* Botón anterior - lado izquierdo */}
@@ -5119,7 +5391,7 @@ function VideoContent({
                   </span>
                 </button>
               )}
-              
+
               {/* Botón siguiente o terminar - lado derecho */}
               {(hasNextVideo || isLastLesson) && (
                 <button
@@ -5140,9 +5412,8 @@ function VideoContent({
                       onCannotComplete();
                     }
                   } : onNavigateNext}
-                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
-                    isLastLesson ? 'bg-[#10B981]/50 hover:bg-[#10B981]/70' : ''
-                  }`}
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${isLastLesson ? 'bg-[#10B981]/50 hover:bg-[#10B981]/70' : ''
+                    }`}
                 >
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
                     {isLastLesson ? 'Terminar' : 'Siguiente'}
@@ -5162,8 +5433,8 @@ function VideoContent({
       <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6">
         <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{lesson.lesson_title}</h2>
         {lesson.lesson_description && (
-          <ExpandableText 
-            text={lesson.lesson_description} 
+          <ExpandableText
+            text={lesson.lesson_description}
             maxLines={2}
             className="mt-2"
           />
@@ -5173,13 +5444,13 @@ function VideoContent({
   );
 }
 
-function TranscriptContent({ 
-  lesson, 
+function TranscriptContent({
+  lesson,
   slug,
   onNoteCreated,
   onStatsUpdate
-}: { 
-  lesson: Lesson | null; 
+}: {
+  lesson: Lesson | null;
   slug: string;
   onNoteCreated: (noteData: any, lessonId: string) => void;
   onStatsUpdate: (operation: 'create' | 'update' | 'delete', lessonId?: string) => Promise<void>;
@@ -5221,16 +5492,16 @@ function TranscriptContent({
 
   // Verificar si existe contenido de transcripción
   const hasTranscript = transcriptContent && transcriptContent.trim().length > 0;
-  
+
   // Calcular tiempo de lectura estimado (palabras por minuto promedio: 200)
-  const estimatedReadingTime = transcriptContent 
+  const estimatedReadingTime = transcriptContent
     ? Math.ceil(transcriptContent.split(/\s+/).length / 200)
     : 0;
-  
+
   // Función para descargar la transcripción
   const handleDownloadTranscript = () => {
     if (!transcriptContent || !lesson) return;
-    
+
     const blob = new Blob([transcriptContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -5241,11 +5512,11 @@ function TranscriptContent({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
-  
+
   // Función para copiar al portapapeles
   const handleCopyToClipboard = async () => {
     if (!transcriptContent) return;
-    
+
     try {
       await navigator.clipboard.writeText(transcriptContent);
       setIsCopied(true);
@@ -5255,13 +5526,13 @@ function TranscriptContent({
       alert('Error al copiar al portapapeles');
     }
   };
-  
+
   // Función para guardar en notas
   const handleSaveToNotes = async () => {
     if (!transcriptContent || !lesson) return;
-    
+
     setIsSaving(true);
-    
+
     try {
       // Preparar payload según el formato que espera la API REST
       const notePayload = {
@@ -5277,22 +5548,22 @@ function TranscriptContent({
 
       const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         body: JSON.stringify(notePayload)
       });
-      
+
       // console.log('Respuesta del servidor:', response.status, response.statusText);
       // console.log('Headers de respuesta:', Object.fromEntries(response.headers.entries()));
-      
+
       if (!response.ok) {
         let errorData;
         try {
           const responseText = await response.text();
           // console.log('Respuesta del servidor (texto):', responseText);
-          
+
           if (responseText) {
             errorData = JSON.parse(responseText);
           } else {
@@ -5302,25 +5573,25 @@ function TranscriptContent({
           // console.error('Error al parsear respuesta JSON:', parseError);
           errorData = { error: 'Error al procesar respuesta del servidor' };
         }
-        
+
         // console.error('Error detallado del servidor:', errorData);
         alert(`Error al guardar la transcripción en notas:\n\n${errorData.error || 'Error desconocido'}\n\nDetalles: ${errorData.message || 'Sin detalles adicionales'}\n\nCódigo de estado: ${response.status}`);
         return;
       }
-      
+
       const newNote = await response.json();
       // console.log('Nota creada exitosamente:', newNote);
       // console.log('=== FIN DEBUG ===');
-      
+
       // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
       if (lesson?.lesson_id) {
         onNoteCreated(newNote, lesson.lesson_id);
         await onStatsUpdate('create', lesson.lesson_id);
       }
-      
+
       // Mostrar mensaje de éxito
       alert('✅ Transcripción guardada exitosamente en notas');
-      
+
     } catch (error) {
       // console.error('Error al guardar transcripción en notas:', error);
       // console.log('=== FIN DEBUG (ERROR) ===');
@@ -5329,7 +5600,7 @@ function TranscriptContent({
       setIsSaving(false);
     }
   };
-  
+
   if (!lesson) {
     return (
       <div className="space-y-6 pb-24 md:pb-6">
@@ -5372,7 +5643,7 @@ function TranscriptContent({
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
       </div>
-      
+
       {hasTranscript ? (
         <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
           {/* Header de la transcripción mejorado */}
@@ -5399,7 +5670,7 @@ function TranscriptContent({
               </div>
             </div>
           </div>
-          
+
           {/* Contenido de la transcripción */}
           <div className="p-6 bg-white dark:bg-[#0F1419]">
             <div className="prose dark:prose-invert max-w-none">
@@ -5408,26 +5679,26 @@ function TranscriptContent({
               </div>
             </div>
           </div>
-          
+
           {/* Footer con acciones mejorado */}
           <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center space-x-3 flex-wrap">
-                <button 
+                <button
                   onClick={handleCopyToClipboard}
                   className="flex items-center space-x-2 text-[#0A2540] dark:text-white/80 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-4 py-2 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md transition-all"
                 >
                   {isCopied ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4" />}
                   <span className="text-sm font-medium">{isCopied ? 'Copiado!' : 'Copiar'}</span>
                 </button>
-                <button 
+                <button
                   onClick={handleDownloadTranscript}
                   className="flex items-center space-x-2 text-[#0A2540] dark:text-white/80 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-4 py-2 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md transition-all"
                 >
                   <FileDown className="w-4 h-4" />
                   <span className="text-sm font-medium">Descargar</span>
                 </button>
-                <button 
+                <button
                   onClick={handleSaveToNotes}
                   disabled={isSaving}
                   className="flex items-center space-x-2 text-[#0A2540] dark:text-white/80 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-colors hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-4 py-2 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -5499,9 +5770,9 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
   // Verificar si existe contenido de resumen
   const hasSummary = summaryContent && summaryContent.trim().length > 0;
-  
+
   // Calcular tiempo de lectura estimado (palabras por minuto promedio: 200)
-  const estimatedReadingTime = summaryContent 
+  const estimatedReadingTime = summaryContent
     ? Math.ceil(summaryContent.split(/\s+/).length / 200)
     : 0;
 
@@ -5529,7 +5800,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Resumen del Video</h2>
           <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
         </div>
-        
+
         <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg p-8 text-center">
           <div className="w-16 h-16 bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-[#F59E0B]" />
@@ -5553,7 +5824,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
       </div>
-      
+
       <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
         {/* Header del resumen mejorado */}
         <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
@@ -5579,7 +5850,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
             </div>
           </div>
         </div>
-        
+
         {/* Contenido del resumen */}
         <div className="p-6 bg-white dark:bg-[#0F1419]">
           <div className="prose dark:prose-invert max-w-none">
@@ -5594,8 +5865,8 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 }
 
 // Componente para renderizar quizzes
-function QuizRenderer({ 
-  quizData, 
+function QuizRenderer({
+  quizData,
   totalPoints,
   lessonId,
   slug,
@@ -5710,9 +5981,9 @@ function QuizRenderer({
   const normalizedQuizData = quizData.map((question) => {
     if (question.questionType === 'true_false') {
       // Si no tiene opciones o tiene opciones incorrectas, inicializar con las correctas
-      if (!question.options || question.options.length !== 2 || 
-          (question.options[0] !== 'Verdadero' && question.options[0] !== 'Falso') ||
-          (question.options[1] !== 'Verdadero' && question.options[1] !== 'Falso')) {
+      if (!question.options || question.options.length !== 2 ||
+        (question.options[0] !== 'Verdadero' && question.options[0] !== 'Falso') ||
+        (question.options[1] !== 'Verdadero' && question.options[1] !== 'Falso')) {
         return {
           ...question,
           options: ['Verdadero', 'Falso']
@@ -5867,22 +6138,20 @@ function QuizRenderer({
           return (
             <div
               key={question.id}
-              className={`bg-white dark:bg-[#1E2329] rounded-lg p-5 border-2 ${
-                showResults
-                  ? isCorrect
-                    ? 'border-[#10B981]/50 bg-[#10B981]/10 dark:bg-[#10B981]/20 dark:border-[#10B981]/50'
-                    : 'border-red-500/50 bg-red-50 dark:bg-red-500/20 dark:border-red-500/50'
-                  : 'border-[#E9ECEF] dark:border-[#6C757D]/30'
-              }`}
+              className={`bg-white dark:bg-[#1E2329] rounded-lg p-5 border-2 ${showResults
+                ? isCorrect
+                  ? 'border-[#10B981]/50 bg-[#10B981]/10 dark:bg-[#10B981]/20 dark:border-[#10B981]/50'
+                  : 'border-red-500/50 bg-red-50 dark:bg-red-500/20 dark:border-red-500/50'
+                : 'border-[#E9ECEF] dark:border-[#6C757D]/30'
+                }`}
             >
               <div className="flex items-start gap-3 mb-4">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${
-                  showResults
-                    ? isCorrect
-                      ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border border-[#10B981]/30 dark:border-[#10B981]/50'
-                      : 'bg-red-500/20 dark:bg-red-500/30 text-red-600 dark:text-red-400 border border-red-500/30 dark:border-red-500/50'
-                    : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/30 dark:border-[#0A2540]/50'
-                }`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${showResults
+                  ? isCorrect
+                    ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border border-[#10B981]/30 dark:border-[#10B981]/50'
+                    : 'bg-red-500/20 dark:bg-red-500/30 text-red-600 dark:text-red-400 border border-red-500/30 dark:border-red-500/50'
+                  : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/30 dark:border-[#0A2540]/50'
+                  }`}>
                   {index + 1}
                 </div>
                 <div className="flex-1">
@@ -5896,7 +6165,7 @@ function QuizRenderer({
                       </span>
                     )}
                   </div>
-                  
+
                   {/* Opciones */}
                   <div className="space-y-2">
                     {question.options.map((option, optIndex) => {
@@ -5920,21 +6189,20 @@ function QuizRenderer({
                           isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
                         }
                       }
-                      
+
                       return (
                         <label
                           key={optIndex}
-                          className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                            showResults
-                              ? isCorrectOption
-                                ? 'bg-green-50 dark:bg-green-500/20 border-green-300 dark:border-green-500/60'
-                                : isSelected && !isCorrectOption
+                          className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${showResults
+                            ? isCorrectOption
+                              ? 'bg-green-50 dark:bg-green-500/20 border-green-300 dark:border-green-500/60'
+                              : isSelected && !isCorrectOption
                                 ? 'bg-red-50 dark:bg-red-500/20 border-red-300 dark:border-red-500/60'
                                 : 'bg-[#E9ECEF]/30 dark:bg-[#0F1419] border-[#E9ECEF] dark:border-[#6C757D]/30'
-                              : isSelected
+                            : isSelected
                               ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-[#00D4B3] dark:border-[#00D4B3]/60'
                               : 'bg-white dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50'
-                          }`}
+                            }`}
                         >
                           <input
                             type="radio"
@@ -5964,11 +6232,10 @@ function QuizRenderer({
 
                   {/* Explicación */}
                   {showExplanation && question.explanation && (
-                    <div className={`mt-4 p-4 rounded-lg ${
-                      isCorrect
-                        ? 'bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50'
-                        : 'bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50'
-                    }`}>
+                    <div className={`mt-4 p-4 rounded-lg ${isCorrect
+                      ? 'bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50'
+                      : 'bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50'
+                      }`}>
                       <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1">
                         {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
                       </p>
@@ -6015,28 +6282,25 @@ function QuizRenderer({
       {/* Resultados */}
       {showResults && (
         <>
-          <div className={`mt-6 p-6 rounded-lg border-2 ${
-            passed
-              ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
-              : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
-          }`}>
+          <div className={`mt-6 p-6 rounded-lg border-2 ${passed
+            ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
+            : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
+            }`}>
             <div className="text-center">
               {/* Mensaje informativo del servidor */}
               {serverMessage && (
-                <div className={`mb-4 p-3 rounded-lg border ${
-                  serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                    ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
-                    : passed
+                <div className={`mb-4 p-3 rounded-lg border ${serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
+                  ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
+                  : passed
                     ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
                     : 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-[#00D4B3]/30 dark:border-[#00D4B3]/40'
-                }`}>
-                  <p className={`text-sm ${
-                    serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                      ? 'text-yellow-800 dark:text-yellow-200'
-                      : passed
+                  }`}>
+                  <p className={`text-sm ${serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
+                    ? 'text-yellow-800 dark:text-yellow-200'
+                    : passed
                       ? 'text-green-800 dark:text-green-200'
                       : 'text-blue-800 dark:text-blue-200'
-                  }`}>
+                    }`}>
                     {serverMessage}
                   </p>
                 </div>
@@ -6057,7 +6321,7 @@ function QuizRenderer({
               </p>
             </div>
           </div>
-          
+
           {/* Botón de reiniciar cuestionario */}
           <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 mt-6">
             <button
@@ -6131,7 +6395,7 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
         {promptsList.map((prompt, index) => {
           // Limpiar el prompt (remover comillas si las tiene)
           const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
-          
+
           return (
             <button
               key={index}
@@ -6166,12 +6430,12 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
 // Componente específico para renderizar lecturas preservando formato original
 function ReadingContentRenderer({ content }: { content: any }) {
   let readingContent = content;
-  
+
   // Si el contenido es un objeto con propiedades, intentar extraer el texto
   if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
     // Buscar propiedades comunes que contengan el texto
     readingContent = content.text || content.content || content.body || content.description || content.title || '';
-    
+
     // Si no encontramos contenido, intentar convertir todo el objeto a string
     if (!readingContent || readingContent === '') {
       readingContent = JSON.stringify(content, null, 2);
@@ -6198,25 +6462,25 @@ function ReadingContentRenderer({ content }: { content: any }) {
   // Preservar saltos de línea y formato original
   // Dividir por saltos de línea pero mantener líneas vacías para preservar párrafos
   const lines = readingContent.split('\n');
-  
+
   return (
     <div className="bg-white dark:bg-[#1E2329] rounded-lg p-6 md:p-8 border border-[#E9ECEF] dark:border-[#6C757D]/30">
       <div className="prose prose-lg dark:prose-invert max-w-none">
         <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
           {lines.map((line: string, index: number) => {
             const trimmedLine = line.trim();
-            
+
             // Si la línea está vacía, renderizar un espacio para separar párrafos
             if (trimmedLine === '') {
               return <div key={`line-${index}`} className="h-4" />;
             }
-            
+
             // Detectar títulos principales (Introducción:, Cuerpo:, etc.)
             const mainSectionMatch = trimmedLine.match(/^(Introducción|Cuerpo|Cierre|Conclusión|Resumen):?\s*$/i);
             if (mainSectionMatch) {
               return (
-                <h1 
-                  key={`line-${index}`} 
+                <h1
+                  key={`line-${index}`}
                   className="text-[#0A2540] dark:text-white font-bold text-3xl mb-4 mt-8 first:mt-0 border-b-2 border-[#00D4B3]/40 pb-3"
                   style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                 >
@@ -6224,14 +6488,14 @@ function ReadingContentRenderer({ content }: { content: any }) {
                 </h1>
               );
             }
-            
+
             // Detectar subtítulos numerados (1. Título, 2. Título, etc.)
             const numberedMatch = trimmedLine.match(/^(\d+)[\.\)]\s+(.+)$/);
             if (numberedMatch && trimmedLine.length < 150) {
               const [, number, title] = numberedMatch;
               return (
-                <h2 
-                  key={`line-${index}`} 
+                <h2
+                  key={`line-${index}`}
                   className="text-[#0A2540] dark:text-white font-semibold text-2xl mb-3 mt-6 border-b border-[#00D4B3]/20 pb-2"
                   style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                 >
@@ -6239,14 +6503,14 @@ function ReadingContentRenderer({ content }: { content: any }) {
                 </h2>
               );
             }
-            
+
             // Detectar subtítulos con formato "1.1 - Título" o "1.1 - Título:"
             const subsectionMatch = trimmedLine.match(/^(\d+\.\d+)\s*[-–]\s*(.+?):?\s*$/);
             if (subsectionMatch && trimmedLine.length < 150) {
               const [, number, title] = subsectionMatch;
               return (
-                <h3 
-                  key={`line-${index}`} 
+                <h3
+                  key={`line-${index}`}
                   className="text-[#0A2540] dark:text-white font-semibold text-xl mb-3 mt-5"
                   style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                 >
@@ -6254,12 +6518,12 @@ function ReadingContentRenderer({ content }: { content: any }) {
                 </h3>
               );
             }
-            
+
             // Detectar títulos sin numeración (líneas cortas que terminan con dos puntos)
             if (trimmedLine.endsWith(':') && trimmedLine.length < 100 && trimmedLine.length > 5) {
               return (
-                <h3 
-                  key={`line-${index}`} 
+                <h3
+                  key={`line-${index}`}
                   className="text-[#0A2540] dark:text-white font-semibold text-xl mb-3 mt-5"
                   style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                 >
@@ -6267,11 +6531,11 @@ function ReadingContentRenderer({ content }: { content: any }) {
                 </h3>
               );
             }
-            
+
             // Párrafos normales
             return (
-              <p 
-                key={`line-${index}`} 
+              <p
+                key={`line-${index}`}
                 className="text-[#0A2540] dark:text-white leading-relaxed mb-4 text-base"
                 style={{ lineHeight: '1.8', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
               >
@@ -6286,15 +6550,15 @@ function ReadingContentRenderer({ content }: { content: any }) {
 }
 
 // Componente para renderizar items de checklist
-function ChecklistItem({ 
-  content, 
-  checked: initialChecked, 
-  activityId, 
-  lineIndex 
-}: { 
-  content: string; 
-  checked: boolean; 
-  activityId?: string; 
+function ChecklistItem({
+  content,
+  checked: initialChecked,
+  activityId,
+  lineIndex
+}: {
+  content: string;
+  checked: boolean;
+  activityId?: string;
   lineIndex: number;
 }) {
   const storageKey = activityId ? `checklist-${activityId}-${lineIndex}` : `checklist-global-${lineIndex}`;
@@ -6320,8 +6584,8 @@ function ChecklistItem({
         onClick={handleToggle}
         className={`
           mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200
-          ${checked 
-            ? 'bg-[#00D4B3] border-[#00D4B3] dark:bg-[#00D4B3] dark:border-[#00D4B3]' 
+          ${checked
+            ? 'bg-[#00D4B3] border-[#00D4B3] dark:bg-[#00D4B3] dark:border-[#00D4B3]'
             : 'bg-white dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]'
           }
           focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:ring-offset-1
@@ -6337,24 +6601,24 @@ function ChecklistItem({
         }}
       >
         {checked && (
-          <svg 
-            className="w-3 h-3 text-white" 
-            fill="none" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth="3" 
-            viewBox="0 0 24 24" 
+          <svg
+            className="w-3 h-3 text-white"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            viewBox="0 0 24 24"
             stroke="currentColor"
           >
             <path d="M5 13l4 4L19 7" />
           </svg>
         )}
       </button>
-      <p 
+      <p
         className={`
           flex-1 text-base leading-relaxed cursor-pointer
-          ${checked 
-            ? 'text-gray-600 dark:text-slate-400 line-through' 
+          ${checked
+            ? 'text-gray-600 dark:text-slate-400 line-through'
             : 'text-gray-800 dark:text-slate-200'
           }
         `}
@@ -6368,12 +6632,12 @@ function ChecklistItem({
 
 function FormattedContentRenderer({ content, activityId }: { content: any; activityId?: string }) {
   let readingContent = content;
-  
+
   // Si el contenido es un objeto con propiedades, intentar extraer el texto
   if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
     // Buscar propiedades comunes que contengan el texto
     readingContent = content.text || content.content || content.body || content.description || content.title || '';
-    
+
     // Si no encontramos contenido, intentar convertir todo el objeto a string
     if (!readingContent || readingContent === '') {
       readingContent = JSON.stringify(content, null, 2);
@@ -6399,7 +6663,7 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
 
   // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
   const lines = readingContent.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
-  const formattedContent: Array<{ 
+  const formattedContent: Array<{
     type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight' | 'checklist';
     content: string;
     level?: number;
@@ -6409,29 +6673,29 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
 
   lines.forEach((line: string, index: number) => {
     const trimmedLine = line.trim();
-    
+
     // Detectar checklists: [] o [ ] o [x] o [X] al inicio de línea
     const checklistPattern = /^\[([\sxX])\]\s*(.+)$/;
     const checklistMatch = trimmedLine.match(checklistPattern);
     if (checklistMatch) {
       const [, checkboxContent, checklistText] = checklistMatch;
       const isChecked = checkboxContent.toLowerCase() === 'x';
-      formattedContent.push({ 
-        type: 'checklist', 
-        content: checklistText.trim(), 
+      formattedContent.push({
+        type: 'checklist',
+        content: checklistText.trim(),
         checked: isChecked,
         originalLine: trimmedLine
       });
       return;
     }
-    
+
     // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
     const mainSections = /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen|Introducción:|Cuerpo:|Cierre:|Conclusión:|Resumen:)$/i;
     if (mainSections.test(trimmedLine)) {
       formattedContent.push({ type: 'main-title', content: trimmedLine.replace(/[:]$/, ''), level: 1 });
       return;
     }
-    
+
     // Detectar subtítulos numerados principales (1. Los Datos, 2. El Modelo, etc.)
     const numberedSubsection = /^(\d+)[\.\)]\s+([A-ZÁÉÍÓÚÑ][^.!?]*)$/;
     const numberedMatch = trimmedLine.match(numberedSubsection);
@@ -6439,36 +6703,36 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
       formattedContent.push({ type: 'subsection-title', content: trimmedLine, level: 2 });
       return;
     }
-    
+
     // Detectar títulos de sección (líneas cortas sin punto, con mayúsculas al inicio)
-    if (trimmedLine.length > 0 && trimmedLine.length < 80 && 
-        trimmedLine.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*$/) && 
-        !trimmedLine.match(/^\d+[\.\)]/) &&
-        !trimmedLine.includes(':') &&
-        index < lines.length - 1 && // No es la última línea
-        lines[index + 1] && lines[index + 1].length > 50) { // La siguiente línea es un párrafo largo
+    if (trimmedLine.length > 0 && trimmedLine.length < 80 &&
+      trimmedLine.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*$/) &&
+      !trimmedLine.match(/^\d+[\.\)]/) &&
+      !trimmedLine.includes(':') &&
+      index < lines.length - 1 && // No es la última línea
+      lines[index + 1] && lines[index + 1].length > 50) { // La siguiente línea es un párrafo largo
       formattedContent.push({ type: 'section-title', content: trimmedLine, level: 1 });
       return;
     }
-    
+
     // Detectar ejemplos (líneas que contienen "Ejemplo:", "Ejemplos:", "Por ejemplo", etc.)
     if (trimmedLine.match(/^Ejemplos?[:]?/i) || trimmedLine.match(/Por ejemplo/i)) {
       formattedContent.push({ type: 'example', content: trimmedLine });
       return;
     }
-    
+
     // Detectar texto destacado (líneas cortas con comillas o entre comillas)
     if (trimmedLine.match(/^["']|["']$/) && trimmedLine.length < 100) {
       formattedContent.push({ type: 'highlight', content: trimmedLine });
       return;
     }
-    
+
     // Detectar listas (líneas que empiezan con - o • o números seguidos de guión)
     if (trimmedLine.match(/^[-•]\s/) || trimmedLine.match(/^\d+[\.\)]\s+[-•]/)) {
       formattedContent.push({ type: 'list', content: trimmedLine });
       return;
     }
-    
+
     // Párrafos normales
     formattedContent.push({ type: 'paragraph', content: trimmedLine });
   });
@@ -6488,12 +6752,12 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 </div>
               );
             }
-            
+
             // Título de sección
             if (item.type === 'section-title') {
               return (
-                <h2 
-                  key={`item-${index}`} 
+                <h2
+                  key={`item-${index}`}
                   className="text-[#0A2540] dark:text-white font-bold text-2xl mb-4 mt-8 border-b border-[#00D4B3]/20 pb-2"
                   style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                 >
@@ -6501,7 +6765,7 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 </h2>
               );
             }
-            
+
             // Subtítulo numerado (1. Los Datos, 2. El Modelo)
             if (item.type === 'subsection-title') {
               const numberMatch = item.content.match(/^(\d+)[\.\)]\s+(.+)$/);
@@ -6519,8 +6783,8 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 );
               }
               return (
-                <h3 
-                  key={`item-${index}`} 
+                <h3
+                  key={`item-${index}`}
                   className="text-[#00D4B3] font-semibold text-xl mb-3 mt-6"
                   style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                 >
@@ -6528,7 +6792,7 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 </h3>
               );
             }
-            
+
             // Ejemplos
             if (item.type === 'example') {
               return (
@@ -6539,7 +6803,7 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 </div>
               );
             }
-            
+
             // Texto destacado
             if (item.type === 'highlight') {
               return (
@@ -6550,7 +6814,7 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 </div>
               );
             }
-            
+
             // Checklists
             if (item.type === 'checklist') {
               return (
@@ -6563,7 +6827,7 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 />
               );
             }
-            
+
             // Listas
             if (item.type === 'list') {
               const cleanedContent = item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
@@ -6574,12 +6838,12 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 </div>
               );
             }
-            
+
             // Párrafos normales
             // Detectar si el párrafo contiene ejemplos o información destacada
             const hasExamples = item.content.match(/Ejemplos?[:]?/i);
             const hasQuotes = item.content.match(/["']/g);
-            
+
             if (hasExamples && hasQuotes && hasQuotes.length >= 2) {
               // Párrafo con ejemplos entre comillas
               const parts = item.content.split(/(["'][^"']+["'])/g);
@@ -6598,10 +6862,10 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 </p>
               );
             }
-            
+
             return (
-              <p 
-                key={`item-${index}`} 
+              <p
+                key={`item-${index}`}
                 className="text-[#0A2540] dark:text-white leading-relaxed mb-6 text-base"
                 style={{ lineHeight: '1.9', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
               >
@@ -6665,7 +6929,7 @@ function ActivitiesContent({
   const [collapsedMaterials, setCollapsedMaterials] = useState<Set<string>>(new Set());
   const [activitiesInitialized, setActivitiesInitialized] = useState(false);
   const [materialsInitialized, setMaterialsInitialized] = useState(false);
-  
+
   // Resetear estados de inicialización cuando cambia la lección
   useEffect(() => {
     setActivitiesInitialized(false);
@@ -6673,7 +6937,7 @@ function ActivitiesContent({
     setCollapsedActivities(new Set());
     setCollapsedMaterials(new Set());
   }, [lesson?.lesson_id]);
-  
+
   // Inicializar todas las actividades como colapsadas cuando se cargan por primera vez
   useEffect(() => {
     if (activities.length > 0 && !activitiesInitialized) {
@@ -6681,7 +6945,7 @@ function ActivitiesContent({
       setActivitiesInitialized(true);
     }
   }, [activities, activitiesInitialized]);
-  
+
   // Inicializar todos los materiales como colapsados cuando se cargan por primera vez
   useEffect(() => {
     if (materials.length > 0 && !materialsInitialized) {
@@ -6704,7 +6968,7 @@ function ActivitiesContent({
       percentage: number;
     }>;
   } | null>(null);
-  
+
   // Feedback de la lección completa
   const [lessonFeedback, setLessonFeedback] = useState<'like' | 'dislike' | null>(null);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
@@ -6718,7 +6982,7 @@ function ActivitiesContent({
 
       try {
         setLoading(true);
-        
+
         // Cargar actividades, materiales y estado de quizzes en paralelo
         const [activitiesResponse, materialsResponse, quizStatusResponse] = await Promise.all([
           fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`),
@@ -6729,7 +6993,7 @@ function ActivitiesContent({
         // Procesar actividades con traducción
         if (activitiesResponse.ok) {
           let activitiesData = await activitiesResponse.json();
-          
+
           // Aplicar traducciones si no es español
           if (selectedLang !== 'es' && activitiesData && activitiesData.length > 0) {
             activitiesData = await ContentTranslationService.translateArray(
@@ -6739,7 +7003,7 @@ function ActivitiesContent({
               selectedLang as any
             );
           }
-          
+
           setActivities(activitiesData || []);
         } else {
           setActivities([]);
@@ -6981,8 +7245,8 @@ function ActivitiesContent({
   const hasContent = hasActivities || hasMaterials;
 
   if (loading) {
-  return (
-    <div className="space-y-6 pb-24 md:pb-6">
+    return (
+      <div className="space-y-6 pb-24 md:pb-6">
         <div>
           <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Actividades</h2>
           <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
@@ -7004,11 +7268,11 @@ function ActivitiesContent({
           <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Actividades</h2>
           <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
         </div>
-        
+
         <div className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
           <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-[#00D4B3]" />
-      </div>
+          </div>
           <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Actividades no disponibles</h3>
           <p className="text-[#6C757D] dark:text-white/80 mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
             Esta lección aún no tiene actividades disponibles. Las actividades se agregarán próximamente.
@@ -7027,7 +7291,7 @@ function ActivitiesContent({
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
         <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
-        </div>
+      </div>
 
       {/* Actividades */}
       {hasActivities && (
@@ -7052,260 +7316,260 @@ function ActivitiesContent({
               </div>
             </div>
           </div>
-          
+
           {/* Contenido de actividades */}
           <div className="p-6 space-y-4 bg-white dark:bg-[#0F1419]">
             {activities.map((activity) => {
               const isCollapsed = collapsedActivities.has(activity.activity_id);
-              
+
               return (
-              <div
-                key={activity.activity_id}
-                className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50"
-              >
-                {/* Header de la actividad mejorado */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCollapsedActivities(prev => {
-                      const newSet = new Set(prev);
-                      if (newSet.has(activity.activity_id)) {
-                        newSet.delete(activity.activity_id);
-                      } else {
-                        newSet.add(activity.activity_id);
-                      }
-                      return newSet;
-                    });
-                  }}
-                  className="w-full flex items-center justify-between p-5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                <div
+                  key={activity.activity_id}
+                  className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50"
                 >
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h4 className="text-[#0A2540] dark:text-white font-semibold text-lg group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{activity.activity_title}</h4>
-                      {activity.is_required && (
-                        <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm">
-                          Requerida
-                        </span>
-                      )}
-                      <span className="px-2.5 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs font-medium rounded-full border border-[#00D4B3]/30 shadow-sm capitalize" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                        {activity.activity_type}
-                      </span>
-                      {/* Indicador de quiz obligatorio */}
-                      {activity.activity_type === 'quiz' && activity.is_required && quizStatus && quizStatus.quizzes && (() => {
-                        const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
-                        if (quizInfo) {
-                          if (quizInfo.isPassed) {
-                            return (
-                              <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm flex items-center gap-1.5">
-                                <CheckCircle className="w-3.5 h-3.5" />
-                                Aprobado
-                              </span>
-                            );
-                          } else if (quizInfo.isCompleted) {
-                            return (
-                              <span className="px-2.5 py-1 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded-full border border-yellow-500/30 shadow-sm flex items-center gap-1.5">
-                                <X className="w-3.5 h-3.5" />
-                                Reprobado ({quizInfo.percentage}%)
-                              </span>
-                            );
-                          } else {
-                            return (
-                              <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm flex items-center gap-1.5">
-                                <Activity className="w-3.5 h-3.5" />
-                                Pendiente
-                              </span>
-                            );
-                          }
+                  {/* Header de la actividad mejorado */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCollapsedActivities(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(activity.activity_id)) {
+                          newSet.delete(activity.activity_id);
+                        } else {
+                          newSet.add(activity.activity_id);
                         }
-                        return null;
-                      })()}
-                    </div>
-                    {activity.activity_description && !isCollapsed && (
-                      <p className="text-[#6C757D] dark:text-white/80 text-sm mt-2 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{activity.activity_description}</p>
-                    )}
-                  </div>
-                  
-                  {/* Botón de colapsar/expandir mejorado */}
-                  <div className="ml-4 flex-shrink-0 flex items-center gap-2">
-                    <span className="text-xs font-medium text-[#6C757D] dark:text-white/60 hidden sm:inline transition-opacity" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                      {isCollapsed ? 'Expandir' : 'Colapsar'}
-                    </span>
-                    <div className="p-2 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg group-hover:bg-[#00D4B3]/10 dark:group-hover:bg-[#00D4B3]/20 transition-colors">
-                      {isCollapsed ? (
-                        <ChevronDown className="w-5 h-5 text-[#0A2540] dark:text-white/80 group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" />
-                      ) : (
-                        <ChevronUp className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" />
+                        return newSet;
+                      });
+                    }}
+                    className="w-full flex items-center justify-between p-5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                  >
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h4 className="text-[#0A2540] dark:text-white font-semibold text-lg group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{activity.activity_title}</h4>
+                        {activity.is_required && (
+                          <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm">
+                            Requerida
+                          </span>
+                        )}
+                        <span className="px-2.5 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs font-medium rounded-full border border-[#00D4B3]/30 shadow-sm capitalize" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                          {activity.activity_type}
+                        </span>
+                        {/* Indicador de quiz obligatorio */}
+                        {activity.activity_type === 'quiz' && activity.is_required && quizStatus && quizStatus.quizzes && (() => {
+                          const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
+                          if (quizInfo) {
+                            if (quizInfo.isPassed) {
+                              return (
+                                <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm flex items-center gap-1.5">
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  Aprobado
+                                </span>
+                              );
+                            } else if (quizInfo.isCompleted) {
+                              return (
+                                <span className="px-2.5 py-1 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded-full border border-yellow-500/30 shadow-sm flex items-center gap-1.5">
+                                  <X className="w-3.5 h-3.5" />
+                                  Reprobado ({quizInfo.percentage}%)
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm flex items-center gap-1.5">
+                                  <Activity className="w-3.5 h-3.5" />
+                                  Pendiente
+                                </span>
+                              );
+                            }
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      {activity.activity_description && !isCollapsed && (
+                        <p className="text-[#6C757D] dark:text-white/80 text-sm mt-2 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{activity.activity_description}</p>
                       )}
                     </div>
-                  </div>
-                </button>
 
-                {/* Contenido de la actividad (colapsable) */}
-                <AnimatePresence initial={false}>
-                  {!isCollapsed && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden border-t border-gray-100 dark:border-slate-700"
-                    >
-                      <div className="px-6 py-6 bg-gray-50 dark:bg-slate-900/40">
-                {/* Botón especial para actividades ai_chat */}
-                {activity.activity_type === 'ai_chat' ? (
-                  <div className="bg-gradient-to-br from-[#00D4B3]/10 to-[#0A2540]/10 dark:from-[#00D4B3]/20 dark:to-[#0A2540]/20 backdrop-blur-sm rounded-xl p-8 border-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40 text-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-[#00D4B3]/50 dark:shadow-[#00D4B3]/50">
-                        <Image
-                          src="/lia-avatar.png"
-                          alt="Lia"
-                          fill
-                          className="object-cover"
-                          sizes="64px"
-                        />
+                    {/* Botón de colapsar/expandir mejorado */}
+                    <div className="ml-4 flex-shrink-0 flex items-center gap-2">
+                      <span className="text-xs font-medium text-[#6C757D] dark:text-white/60 hidden sm:inline transition-opacity" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                        {isCollapsed ? 'Expandir' : 'Colapsar'}
+                      </span>
+                      <div className="p-2 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg group-hover:bg-[#00D4B3]/10 dark:group-hover:bg-[#00D4B3]/20 transition-colors">
+                        {isCollapsed ? (
+                          <ChevronDown className="w-5 h-5 text-[#0A2540] dark:text-white/80 group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" />
+                        ) : (
+                          <ChevronUp className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" />
+                        )}
                       </div>
-
-                      <div>
-                        <h3 className="text-xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                          Actividad Interactiva con Lia
-                        </h3>
-                        <p className="text-[#0A2540] dark:text-white text-sm mb-6 max-w-md mx-auto" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                          Esta es una actividad guiada por Lia, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          if (onStartInteraction) {
-                            onStartInteraction(activity.activity_content, activity.activity_title);
-                          }
-                        }}
-                        className="group relative px-8 py-4 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#0A2540]/50 dark:hover:shadow-[#0A2540]/50 hover:scale-105"
-                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-                      >
-                        <span className="flex items-center gap-3">
-                          <div className="relative w-5 h-5">
-                            <Image
-                              src="/lia-avatar.png"
-                              alt="Lia"
-                              fill
-                              className="object-cover rounded-full group-hover:animate-pulse"
-                              sizes="20px"
-                            />
-                          </div>
-                          <span>Interactuar con Lia</span>
-                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </span>
-                      </button>
-
-                      <p className="text-xs text-[#6C757D] dark:text-white/60 mt-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                        Lia te guiará a través de {activity.activity_title.toLowerCase()}
-                      </p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="bg-white dark:bg-[#1E2329] rounded-lg p-4 mb-3 border border-[#E9ECEF] dark:border-[#6C757D]/30">
-                  {activity.activity_type === 'quiz' && (() => {
-                    try {
-                      // Intentar parsear el contenido como JSON si es un quiz
-                      let quizData = activity.activity_content;
+                  </button>
 
-                      // Si es string, intentar parsearlo
-                      if (typeof quizData === 'string') {
-                        try {
-                          quizData = JSON.parse(quizData);
-                        } catch (e) {
-                          // console.warn('⚠️ Quiz content is not valid JSON:', e);
-                          return (
-                            <div className="prose dark:prose-invert max-w-none">
-                              <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
-                              <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                {activity.activity_content}
+                  {/* Contenido de la actividad (colapsable) */}
+                  <AnimatePresence initial={false}>
+                    {!isCollapsed && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden border-t border-gray-100 dark:border-slate-700"
+                      >
+                        <div className="px-6 py-6 bg-gray-50 dark:bg-slate-900/40">
+                          {/* Botón especial para actividades ai_chat */}
+                          {activity.activity_type === 'ai_chat' ? (
+                            <div className="bg-gradient-to-br from-[#00D4B3]/10 to-[#0A2540]/10 dark:from-[#00D4B3]/20 dark:to-[#0A2540]/20 backdrop-blur-sm rounded-xl p-8 border-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40 text-center">
+                              <div className="flex flex-col items-center gap-4">
+                                <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-[#00D4B3]/50 dark:shadow-[#00D4B3]/50">
+                                  <Image
+                                    src="/lia-avatar.png"
+                                    alt="Lia"
+                                    fill
+                                    className="object-cover"
+                                    sizes="64px"
+                                  />
+                                </div>
+
+                                <div>
+                                  <h3 className="text-xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                                    Actividad Interactiva con Lia
+                                  </h3>
+                                  <p className="text-[#0A2540] dark:text-white text-sm mb-6 max-w-md mx-auto" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                                    Esta es una actividad guiada por Lia, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
+                                  </p>
+                                </div>
+
+                                <button
+                                  onClick={() => {
+                                    if (onStartInteraction) {
+                                      onStartInteraction(activity.activity_content, activity.activity_title);
+                                    }
+                                  }}
+                                  className="group relative px-8 py-4 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#0A2540]/50 dark:hover:shadow-[#0A2540]/50 hover:scale-105"
+                                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                                >
+                                  <span className="flex items-center gap-3">
+                                    <div className="relative w-5 h-5">
+                                      <Image
+                                        src="/lia-avatar.png"
+                                        alt="Lia"
+                                        fill
+                                        className="object-cover rounded-full group-hover:animate-pulse"
+                                        sizes="20px"
+                                      />
+                                    </div>
+                                    <span>Interactuar con Lia</span>
+                                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                  </span>
+                                </button>
+
+                                <p className="text-xs text-[#6C757D] dark:text-white/60 mt-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                                  Lia te guiará a través de {activity.activity_title.toLowerCase()}
+                                </p>
                               </div>
                             </div>
-                          );
-                        }
-                      }
+                          ) : (
+                            <div className="bg-white dark:bg-[#1E2329] rounded-lg p-4 mb-3 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                              {activity.activity_type === 'quiz' && (() => {
+                                try {
+                                  // Intentar parsear el contenido como JSON si es un quiz
+                                  let quizData = activity.activity_content;
 
-                      // Detectar si tiene estructura {questions: [...], totalPoints: N}
-                      let questionsArray: any = quizData;
-                      let totalPoints: number | undefined = undefined;
+                                  // Si es string, intentar parsearlo
+                                  if (typeof quizData === 'string') {
+                                    try {
+                                      quizData = JSON.parse(quizData);
+                                    } catch (e) {
+                                      // console.warn('⚠️ Quiz content is not valid JSON:', e);
+                                      return (
+                                        <div className="prose dark:prose-invert max-w-none">
+                                          <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
+                                          <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                                            {activity.activity_content}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                  }
 
-                      if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                        const quizObj = quizData as { questions?: any[]; totalPoints?: number };
-                        if (quizObj.questions && Array.isArray(quizObj.questions)) {
-                          questionsArray = quizObj.questions;
-                          totalPoints = quizObj.totalPoints;
-                        }
-                      }
+                                  // Detectar si tiene estructura {questions: [...], totalPoints: N}
+                                  let questionsArray: any = quizData;
+                                  let totalPoints: number | undefined = undefined;
 
-                      // Verificar que es un array con preguntas
-                      if (Array.isArray(questionsArray) && questionsArray.length > 0) {
-                        // Verificar que cada elemento tiene la estructura de pregunta
-                        const hasValidStructure = questionsArray.every((q: any) =>
-                          q && typeof q === 'object' && (q.question || q.id)
-                        );
+                                  if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
+                                    const quizObj = quizData as { questions?: any[]; totalPoints?: number };
+                                    if (quizObj.questions && Array.isArray(quizObj.questions)) {
+                                      questionsArray = quizObj.questions;
+                                      totalPoints = quizObj.totalPoints;
+                                    }
+                                  }
 
-                        if (hasValidStructure) {
-                          return (
-                            <QuizRenderer 
-                              quizData={questionsArray} 
-                              totalPoints={totalPoints}
-                              lessonId={lesson.lesson_id}
-                              slug={slug}
-                              activityId={activity.activity_id}
-                            />
-                          );
-                        }
-                      }
+                                  // Verificar que es un array con preguntas
+                                  if (Array.isArray(questionsArray) && questionsArray.length > 0) {
+                                    // Verificar que cada elemento tiene la estructura de pregunta
+                                    const hasValidStructure = questionsArray.every((q: any) =>
+                                      q && typeof q === 'object' && (q.question || q.id)
+                                    );
 
-                      // Si llegamos aquí, mostrar como texto normal con mensaje de debug
-                      return (
-                        <div className="prose prose-invert dark:prose-invert max-w-none">
-                          <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
-                          <details className="mb-4">
-                            <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
-                            <pre className="text-xs text-[#6C757D] dark:text-white/80 mt-2 p-2 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded overflow-auto border border-[#E9ECEF] dark:border-[#6C757D]/30" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                              {typeof activity.activity_content === 'string'
-                                ? activity.activity_content
-                                : JSON.stringify(activity.activity_content, null, 2)}
-                            </pre>
-                          </details>
+                                    if (hasValidStructure) {
+                                      return (
+                                        <QuizRenderer
+                                          quizData={questionsArray}
+                                          totalPoints={totalPoints}
+                                          lessonId={lesson.lesson_id}
+                                          slug={slug}
+                                          activityId={activity.activity_id}
+                                        />
+                                      );
+                                    }
+                                  }
+
+                                  // Si llegamos aquí, mostrar como texto normal con mensaje de debug
+                                  return (
+                                    <div className="prose prose-invert dark:prose-invert max-w-none">
+                                      <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
+                                      <details className="mb-4">
+                                        <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
+                                        <pre className="text-xs text-[#6C757D] dark:text-white/80 mt-2 p-2 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded overflow-auto border border-[#E9ECEF] dark:border-[#6C757D]/30" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                                          {typeof activity.activity_content === 'string'
+                                            ? activity.activity_content
+                                            : JSON.stringify(activity.activity_content, null, 2)}
+                                        </pre>
+                                      </details>
+                                    </div>
+                                  );
+                                } catch (e) {
+                                  // console.error('❌ Error processing quiz:', e);
+                                  return (
+                                    <div className="prose prose-invert dark:prose-invert max-w-none">
+                                      <p className="text-red-600 dark:text-red-400 mb-2">❌ Error al procesar el quiz</p>
+                                      <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                                        {activity.activity_content}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              })()}
+                              {activity.activity_type !== 'quiz' && (
+                                <FormattedContentRenderer content={activity.activity_content} activityId={activity.activity_id} />
+                              )}
+                            </div>
+                          )}
+
+                          {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
+                            <div className="mt-4 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
+                              <div className="flex items-center gap-2 mb-4">
+                                <HelpCircle className="w-4 h-4 text-[#00D4B3]" />
+                                <h5 className="text-[#00D4B3] font-semibold text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Prompts y Ejercicios</h5>
+                              </div>
+                              <PromptsRenderer prompts={activity.ai_prompts} />
+                            </div>
+                          )}
                         </div>
-                      );
-                    } catch (e) {
-                      // console.error('❌ Error processing quiz:', e);
-                      return (
-                        <div className="prose prose-invert dark:prose-invert max-w-none">
-                          <p className="text-red-600 dark:text-red-400 mb-2">❌ Error al procesar el quiz</p>
-                          <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                            {activity.activity_content}
-                          </div>
-                        </div>
-                      );
-                    }
-                  })()}
-                  {activity.activity_type !== 'quiz' && (
-                    <FormattedContentRenderer content={activity.activity_content} activityId={activity.activity_id} />
-                  )}
-                  </div>
-                )}
-
-                {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
-                  <div className="mt-4 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
-                    <div className="flex items-center gap-2 mb-4">
-                      <HelpCircle className="w-4 h-4 text-[#00D4B3]" />
-                      <h5 className="text-[#00D4B3] font-semibold text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Prompts y Ejercicios</h5>
-                    </div>
-                    <PromptsRenderer prompts={activity.ai_prompts} />
-                  </div>
-                )}
-              </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
             })}
           </div>
         </div>
@@ -7334,202 +7598,202 @@ function ActivitiesContent({
               </div>
             </div>
           </div>
-          
+
           {/* Contenido de materiales */}
           <div className="p-6 space-y-4 bg-white dark:bg-[#0F1419]">
             {materials.map((material) => {
               const isCollapsed = collapsedMaterials.has(material.material_id);
-              
+
               return (
-              <div
-                key={material.material_id}
-                className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:border-[#10B981] dark:hover:border-[#10B981]/50"
-              >
-                {/* Header del material mejorado */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCollapsedMaterials(prev => {
-                      const newSet = new Set(prev);
-                      if (newSet.has(material.material_id)) {
-                        newSet.delete(material.material_id);
-                      } else {
-                        newSet.add(material.material_id);
-                      }
-                      return newSet;
-                    });
-                  }}
-                  className="w-full flex items-center justify-between p-5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                <div
+                  key={material.material_id}
+                  className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:border-[#10B981] dark:hover:border-[#10B981]/50"
                 >
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h4 className="text-[#0A2540] dark:text-white font-semibold text-lg group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{material.material_title}</h4>
-                      <span className="px-2.5 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] text-xs font-medium rounded-full border border-[#10B981]/30 shadow-sm capitalize" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                        {material.material_type}
-                      </span>
-                      {material.is_downloadable && (
-                        <span className="px-2.5 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs font-medium rounded-full border border-[#00D4B3]/30 shadow-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                          Descargable
+                  {/* Header del material mejorado */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCollapsedMaterials(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(material.material_id)) {
+                          newSet.delete(material.material_id);
+                        } else {
+                          newSet.add(material.material_id);
+                        }
+                        return newSet;
+                      });
+                    }}
+                    className="w-full flex items-center justify-between p-5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                  >
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h4 className="text-[#0A2540] dark:text-white font-semibold text-lg group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{material.material_title}</h4>
+                        <span className="px-2.5 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] text-xs font-medium rounded-full border border-[#10B981]/30 shadow-sm capitalize" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                          {material.material_type}
                         </span>
-                      )}
-                      {/* Indicador de quiz obligatorio */}
-                      {material.material_type === 'quiz' && quizStatus && quizStatus.quizzes && (() => {
-                        const quizInfo = quizStatus.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
-                        if (quizInfo) {
-                          if (quizInfo.isPassed) {
-                            return (
-                              <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm flex items-center gap-1.5">
-                                <CheckCircle className="w-3.5 h-3.5" />
-                                Aprobado
-                              </span>
-                            );
-                          } else if (quizInfo.isCompleted) {
-                            return (
-                              <span className="px-2.5 py-1 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded-full border border-yellow-500/30 shadow-sm flex items-center gap-1.5">
-                                <X className="w-3.5 h-3.5" />
-                                Reprobado ({quizInfo.percentage}%)
-                              </span>
-                            );
-                          } else {
-                            return (
-                              <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm flex items-center gap-1.5">
-                                <Activity className="w-3.5 h-3.5" />
-                                Pendiente
-                              </span>
-                            );
+                        {material.is_downloadable && (
+                          <span className="px-2.5 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs font-medium rounded-full border border-[#00D4B3]/30 shadow-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                            Descargable
+                          </span>
+                        )}
+                        {/* Indicador de quiz obligatorio */}
+                        {material.material_type === 'quiz' && quizStatus && quizStatus.quizzes && (() => {
+                          const quizInfo = quizStatus.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
+                          if (quizInfo) {
+                            if (quizInfo.isPassed) {
+                              return (
+                                <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm flex items-center gap-1.5">
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  Aprobado
+                                </span>
+                              );
+                            } else if (quizInfo.isCompleted) {
+                              return (
+                                <span className="px-2.5 py-1 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded-full border border-yellow-500/30 shadow-sm flex items-center gap-1.5">
+                                  <X className="w-3.5 h-3.5" />
+                                  Reprobado ({quizInfo.percentage}%)
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm flex items-center gap-1.5">
+                                  <Activity className="w-3.5 h-3.5" />
+                                  Pendiente
+                                </span>
+                              );
+                            }
                           }
-                        }
-                        return null;
-                      })()}
-                    </div>
-                    {material.material_description && material.material_type !== 'reading' && !isCollapsed && (
-                      <p className="text-[#6C757D] dark:text-white/80 text-sm mt-2 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{material.material_description}</p>
-                    )}
-                  </div>
-                  
-                  {/* Botón de colapsar/expandir mejorado */}
-                  <div className="ml-4 flex-shrink-0 flex items-center gap-2">
-                    <span className="text-xs font-medium text-[#6C757D] dark:text-white/60 hidden sm:inline transition-opacity" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                      {isCollapsed ? 'Expandir' : 'Colapsar'}
-                    </span>
-                    <div className="p-2 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg group-hover:bg-[#10B981]/10 dark:group-hover:bg-[#10B981]/20 transition-colors">
-                      {isCollapsed ? (
-                        <ChevronDown className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" />
-                      ) : (
-                        <ChevronUp className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" />
+                          return null;
+                        })()}
+                      </div>
+                      {material.material_description && material.material_type !== 'reading' && !isCollapsed && (
+                        <p className="text-[#6C757D] dark:text-white/80 text-sm mt-2 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{material.material_description}</p>
                       )}
                     </div>
-                  </div>
-                </button>
-                
-                {/* Contenido del material (colapsable) */}
-                <AnimatePresence initial={false}>
-                  {!isCollapsed && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="overflow-hidden border-t border-[#E9ECEF] dark:border-[#6C757D]/30"
-                    >
-                      <div className="px-6 py-6 bg-white dark:bg-[#0F1419]">
-                {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
-                          <div className="w-full">
-                    {material.material_type === 'quiz' && (() => {
-                      try {
-                        let quizData = material.content_data;
 
-                        // Si es string, intentar parsearlo
-                        if (typeof quizData === 'string') {
-                          try {
-                            quizData = JSON.parse(quizData);
-                          } catch (e) {
-                            // console.warn('Quiz content is not valid JSON:', e);
-                            return null;
-                          }
-                        }
+                    {/* Botón de colapsar/expandir mejorado */}
+                    <div className="ml-4 flex-shrink-0 flex items-center gap-2">
+                      <span className="text-xs font-medium text-[#6C757D] dark:text-white/60 hidden sm:inline transition-opacity" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                        {isCollapsed ? 'Expandir' : 'Colapsar'}
+                      </span>
+                      <div className="p-2 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg group-hover:bg-[#10B981]/10 dark:group-hover:bg-[#10B981]/20 transition-colors">
+                        {isCollapsed ? (
+                          <ChevronDown className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" />
+                        ) : (
+                          <ChevronUp className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" />
+                        )}
+                      </div>
+                    </div>
+                  </button>
 
-                        // Detectar si tiene estructura {questions: [...], totalPoints: N}
-                        let questionsArray = quizData;
-                        let totalPoints = undefined;
-
-                        if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                          if (quizData.questions && Array.isArray(quizData.questions)) {
-                            questionsArray = quizData.questions;
-                            totalPoints = quizData.totalPoints;
-                          }
-                        }
-
-                        // Verificar que es un array con preguntas
-                        if (Array.isArray(questionsArray) && questionsArray.length > 0) {
-                          // Verificar que cada elemento tiene la estructura de pregunta
-                          const hasValidStructure = questionsArray.every((q: any) =>
-                            q && typeof q === 'object' && (q.question || q.id)
-                          );
-
-                          if (hasValidStructure) {
-                            return (
-                              <QuizRenderer 
-                                quizData={questionsArray} 
-                                totalPoints={totalPoints}
-                                lessonId={lesson.lesson_id}
-                                slug={slug}
-                                materialId={material.material_id}
-                              />
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        // console.warn('Error parsing quiz data:', e);
-                      }
-                      return null;
-                    })()}
-                    {material.material_type === 'reading' && (
-                      <ReadingContentRenderer 
-                        content={material.content_data || material.material_description} 
-                      />
-                    )}
-                    {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
-                      <FormattedContentRenderer content={material.content_data} activityId={material.material_id} />
-                    )}
-                  </div>
-                )}
-
-                {/* Enlaces y acciones */}
-                {(material.external_url || material.file_url) && (
-                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
-                    {material.external_url && (
-                      <a
-                        href={material.external_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-colors border border-[#0A2540] shadow-sm hover:shadow-md"
-                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                  {/* Contenido del material (colapsable) */}
+                  <AnimatePresence initial={false}>
+                    {!isCollapsed && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden border-t border-[#E9ECEF] dark:border-[#6C757D]/30"
                       >
-                        <FileDown className="w-4 h-4" />
-                        <span className="text-sm">Abrir enlace</span>
-                      </a>
+                        <div className="px-6 py-6 bg-white dark:bg-[#0F1419]">
+                          {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
+                            <div className="w-full">
+                              {material.material_type === 'quiz' && (() => {
+                                try {
+                                  let quizData = material.content_data;
+
+                                  // Si es string, intentar parsearlo
+                                  if (typeof quizData === 'string') {
+                                    try {
+                                      quizData = JSON.parse(quizData);
+                                    } catch (e) {
+                                      // console.warn('Quiz content is not valid JSON:', e);
+                                      return null;
+                                    }
+                                  }
+
+                                  // Detectar si tiene estructura {questions: [...], totalPoints: N}
+                                  let questionsArray = quizData;
+                                  let totalPoints = undefined;
+
+                                  if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
+                                    if (quizData.questions && Array.isArray(quizData.questions)) {
+                                      questionsArray = quizData.questions;
+                                      totalPoints = quizData.totalPoints;
+                                    }
+                                  }
+
+                                  // Verificar que es un array con preguntas
+                                  if (Array.isArray(questionsArray) && questionsArray.length > 0) {
+                                    // Verificar que cada elemento tiene la estructura de pregunta
+                                    const hasValidStructure = questionsArray.every((q: any) =>
+                                      q && typeof q === 'object' && (q.question || q.id)
+                                    );
+
+                                    if (hasValidStructure) {
+                                      return (
+                                        <QuizRenderer
+                                          quizData={questionsArray}
+                                          totalPoints={totalPoints}
+                                          lessonId={lesson.lesson_id}
+                                          slug={slug}
+                                          materialId={material.material_id}
+                                        />
+                                      );
+                                    }
+                                  }
+                                } catch (e) {
+                                  // console.warn('Error parsing quiz data:', e);
+                                }
+                                return null;
+                              })()}
+                              {material.material_type === 'reading' && (
+                                <ReadingContentRenderer
+                                  content={material.content_data || material.material_description}
+                                />
+                              )}
+                              {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
+                                <FormattedContentRenderer content={material.content_data} activityId={material.material_id} />
+                              )}
+                            </div>
+                          )}
+
+                          {/* Enlaces y acciones */}
+                          {(material.external_url || material.file_url) && (
+                            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
+                              {material.external_url && (
+                                <a
+                                  href={material.external_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-colors border border-[#0A2540] shadow-sm hover:shadow-md"
+                                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                                >
+                                  <FileDown className="w-4 h-4" />
+                                  <span className="text-sm">Abrir enlace</span>
+                                </a>
+                              )}
+                              {material.file_url && (
+                                <a
+                                  href={material.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl transition-colors border border-[#10B981] shadow-sm hover:shadow-md"
+                                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                                >
+                                  <FileDown className="w-4 h-4" />
+                                  <span className="text-sm">Ver archivo</span>
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
                     )}
-                    {material.file_url && (
-                      <a
-                        href={material.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl transition-colors border border-[#10B981] shadow-sm hover:shadow-md"
-                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                      >
-                        <FileDown className="w-4 h-4" />
-                        <span className="text-sm">Ver archivo</span>
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
+                  </AnimatePresence>
+                </div>
+              );
             })}
           </div>
         </div>
@@ -7560,11 +7824,10 @@ function ActivitiesContent({
               <button
                 onClick={() => handleLessonFeedback('like')}
                 disabled={feedbackLoading}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${
-                  lessonFeedback === 'like'
-                    ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border-2 border-[#10B981]/50 shadow-lg shadow-[#10B981]/20'
-                    : 'bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50'
-                } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${lessonFeedback === 'like'
+                  ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border-2 border-[#10B981]/50 shadow-lg shadow-[#10B981]/20'
+                  : 'bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50'
+                  } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                 title="Me gustó la lección"
               >
                 {feedbackLoading && lessonFeedback === null ? (
@@ -7577,11 +7840,10 @@ function ActivitiesContent({
               <button
                 onClick={() => handleLessonFeedback('dislike')}
                 disabled={feedbackLoading}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${
-                  lessonFeedback === 'dislike'
-                    ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50 shadow-lg shadow-red-500/20'
-                    : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
-                } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${lessonFeedback === 'dislike'
+                  ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50 shadow-lg shadow-red-500/20'
+                  : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
+                  } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                 title="No me gustó la lección"
               >
                 {feedbackLoading && lessonFeedback === null ? (
@@ -7679,7 +7941,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
       setLoading(true);
       setOffset(0);
       setHasMore(true);
-      
+
       // Construir URL con búsqueda y límite inicial para carga más rápida
       const params = new URLSearchParams();
       if (activeSearchQuery) params.append('search', activeSearchQuery);
@@ -7689,24 +7951,24 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
       const url = `/api/courses/${slug}/questions?${params.toString()}`;
       const response = await fetch(url);
-      
+
       if (response.ok) {
         const data = await response.json();
         setQuestions(data || []);
-        
+
         // Extraer courseId de la primera pregunta si está disponible
         if (data && data.length > 0 && data[0].course_id && !courseId) {
           setCourseId(data[0].course_id);
         }
-        
+
         // Verificar si hay más preguntas
         setHasMore(data && data.length === 20);
-        
+
         // Optimización: Las reacciones del usuario ya vienen del servidor en user_reaction
         if (data && data.length > 0) {
           const reactionsMap: Record<string, string> = {};
           const countsMap: Record<string, number> = {};
-          
+
           // Extraer reacciones del usuario y contadores desde los datos del servidor
           data.forEach((q: any) => {
             countsMap[q.id] = q.reaction_count || 0;
@@ -7718,7 +7980,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
               setCourseId(q.course_id);
             }
           });
-          
+
           setUserReactions(reactionsMap);
           setReactionCounts(countsMap);
         }
@@ -7923,7 +8185,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     try {
       setLoadingMore(true);
       const nextOffset = offset + 20;
-      
+
       const params = new URLSearchParams();
       if (activeSearchQuery) params.append('search', activeSearchQuery);
       params.append('limit', '20');
@@ -7931,29 +8193,29 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
       const url = `/api/courses/${slug}/questions?${params.toString()}`;
       const response = await fetch(url);
-      
+
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data && data.length > 0) {
           // Agregar nuevas preguntas a las existentes
           setQuestions(prev => [...prev, ...data]);
           setOffset(nextOffset);
-          
+
           // Verificar si hay más preguntas
           setHasMore(data.length === 20);
-          
+
           // Actualizar reacciones y contadores con las nuevas preguntas
           const newReactionsMap: Record<string, string> = {};
           const newCountsMap: Record<string, number> = {};
-          
+
           data.forEach((q: any) => {
             newCountsMap[q.id] = q.reaction_count || 0;
             if (q.user_reaction) {
               newReactionsMap[q.id] = q.user_reaction;
             }
           });
-          
+
           setUserReactions(prev => ({ ...prev, ...newReactionsMap }));
           setReactionCounts(prev => ({ ...prev, ...newCountsMap }));
         } else {
@@ -7971,10 +8233,10 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
   };
 
   const getUserDisplayName = (user: any) => {
-    return user?.display_name || 
-           (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
-           user?.username || 
-           'Usuario';
+    return user?.display_name ||
+      (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+      user?.username ||
+      'Usuario';
   };
 
   const getUserInitials = (user: any) => {
@@ -8001,15 +8263,15 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
   const handleReaction = async (questionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     const currentReaction = userReactions[questionId];
     const isCurrentlyLiked = currentReaction === 'like';
     const currentCount = reactionCounts[questionId] ?? 0;
-    
+
     // Actualización optimista - aplicar cambios inmediatamente
     const newCount = isCurrentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
     const newReactionState = isCurrentlyLiked ? null : 'like';
-    
+
     // Actualizar estado optimista
     setReactionCounts(prev => ({ ...prev, [questionId]: newCount }));
     setUserReactions(prev => {
@@ -8021,17 +8283,17 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         return updated;
       }
     });
-    
+
     try {
       const response = await fetch(`/api/courses/${slug}/questions/${questionId}/reactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           reaction_type: 'like',
           action: 'toggle'
         })
       });
-      
+
       if (!response.ok) {
         // Revertir en caso de error
         setReactionCounts(prev => ({ ...prev, [questionId]: currentCount }));
@@ -8047,21 +8309,21 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
       } else {
         // Sincronizar estado con el servidor - verificar si realmente se agregó o eliminó
         const result = await response.json();
-        
+
         // Recargar reacciones del usuario para esta pregunta específica
         try {
           const userResponse = await fetch('/api/auth/me', { credentials: 'include' });
           if (userResponse.ok) {
             const userData = await userResponse.json();
             const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
-            
+
             if (userId) {
               const { createClient } = await import('@supabase/supabase-js');
               const supabase = createClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
               );
-              
+
               // Verificar estado actual de la reacción después de la actualización
               const { data: currentReaction } = await supabase
                 .from('course_question_reactions')
@@ -8070,7 +8332,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                 .eq('question_id', questionId)
                 .eq('reaction_type', 'like')
                 .maybeSingle();
-              
+
               // Actualizar estado de reacción según el servidor (estado real)
               setUserReactions(prev => {
                 if (currentReaction) {
@@ -8081,7 +8343,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                   return updated;
                 }
               });
-              
+
               // Obtener contador actualizado de la pregunta desde el servidor
               const questionResponse = await fetch(`/api/courses/${slug}/questions`);
               if (questionResponse.ok) {
@@ -8090,8 +8352,8 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                 if (updatedQuestion) {
                   // Reemplazar el contador con el valor real del servidor (sin sumar/restar)
                   setReactionCounts(prev => ({ ...prev, [questionId]: updatedQuestion.reaction_count || 0 }));
-                  setQuestions(prev => prev.map(q => 
-                    q.id === questionId 
+                  setQuestions(prev => prev.map(q =>
+                    q.id === questionId
                       ? { ...q, reaction_count: updatedQuestion.reaction_count || 0 }
                       : q
                   ));
@@ -8302,19 +8564,18 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
                 {/* Action Buttons - Estilo Facebook */}
                 <div className="flex items-center justify-around py-2 border-t-2 border-[#E9ECEF] dark:border-[#6C757D]/30 mt-2">
-                  <button 
+                  <button
                     onClick={(e) => handleReaction(question.id, e)}
-                    className={`flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 font-medium ${
-                      userReactions[question.id] === 'like'
-                        ? 'text-red-600 dark:text-red-400'
-                        : 'text-[#6C757D] dark:text-white/60 hover:text-red-600 dark:hover:text-red-400'
-                    }`}
+                    className={`flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 font-medium ${userReactions[question.id] === 'like'
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-[#6C757D] dark:text-white/60 hover:text-red-600 dark:hover:text-red-400'
+                      }`}
                     style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                   >
                     <Heart className={`w-5 h-5 ${userReactions[question.id] === 'like' ? 'fill-current' : ''}`} />
                     <span>Me gusta</span>
                   </button>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
@@ -8326,7 +8587,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                   </button>
                 </div>
               </div>
-              
+
               {/* Question Detail - Se expande cuando está seleccionada */}
               {selectedQuestion === question.id && (
                 <QuestionDetail
@@ -8337,7 +8598,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
               )}
             </motion.div>
           ))}
-          
+
           {/* Botón "Cargar más" */}
           {hasMore && (
             <div className="flex justify-center pt-6">
@@ -8564,11 +8825,11 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
             if (responsesRes.ok) {
               const responsesData = await responsesRes.json();
               setResponses(responsesData || []);
-              
+
               // Actualizar contadores de reacciones
               const countsMap: Record<string, number> = {};
               const reactionsMap: Record<string, string> = {};
-              
+
               const initCountsFromResponses = (responses: any[]) => {
                 responses.forEach((r: any) => {
                   if (r.id) {
@@ -8582,7 +8843,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                   }
                 });
               };
-              
+
               initCountsFromResponses(responsesData);
               setResponseReactionCounts(countsMap);
               setResponseReactions(reactionsMap);
@@ -8847,8 +9108,8 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
       if (response.ok) {
         const newReplyData = await response.json();
-        setResponses(prev => prev.map(r => 
-          r.id === parentId 
+        setResponses(prev => prev.map(r =>
+          r.id === parentId
             ? { ...r, replies: [...(r.replies || []), newReplyData] }
             : r
         ));
@@ -9053,16 +9314,15 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                     </span>
                   </div>
                   <p className="text-[#0A2540] dark:text-white mb-4 leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{response.content}</p>
-                  
+
                   {/* Botones de acción - Me gusta y Responder */}
                   <div className="flex items-center gap-4 mt-3">
                     <button
                       onClick={(e) => handleResponseReaction(response.id, e)}
-                      className={`flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 ${
-                        responseReactions[response.id] === 'like'
-                          ? 'text-red-600 dark:text-red-400'
-                          : 'text-[#6C757D] dark:text-white/60 hover:text-red-600 dark:hover:text-red-400'
-                      }`}
+                      className={`flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 ${responseReactions[response.id] === 'like'
+                        ? 'text-red-600 dark:text-red-400'
+                        : 'text-[#6C757D] dark:text-white/60 hover:text-red-600 dark:hover:text-red-400'
+                        }`}
                       style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                     >
                       <Heart className={`w-4 h-4 ${responseReactions[response.id] === 'like' ? 'fill-current' : ''}`} />
@@ -9156,16 +9416,15 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                 </span>
                               </div>
                               <p className="text-[#0A2540] dark:text-white text-sm whitespace-pre-wrap mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{reply.content}</p>
-                              
+
                               {/* Botones de acción para comentarios anidados */}
                               <div className="flex items-center gap-3 mt-2">
                                 <button
                                   onClick={(e) => handleResponseReaction(reply.id, e)}
-                                  className={`flex items-center gap-1.5 transition-colors ${
-                                    responseReactions[reply.id] === 'like'
-                                      ? 'text-red-600 dark:text-red-400'
-                                      : 'text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'
-                                  }`}
+                                  className={`flex items-center gap-1.5 transition-colors ${responseReactions[reply.id] === 'like'
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'
+                                    }`}
                                 >
                                   <Heart className={`w-3.5 h-3.5 ${responseReactions[reply.id] === 'like' ? 'fill-current' : ''}`} />
                                   <span className="text-xs font-medium">
@@ -9318,14 +9577,14 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       {/* Overlay - No cubre el navbar (z-40) */}
       <div className="absolute top-14 left-0 right-0 bottom-0 bg-black/70 backdrop-blur-sm" />
-      
+
       {/* Modal Content */}
-      <div 
-        className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 w-full max-w-2xl p-6 mx-4 shadow-2xl" 
+      <div
+        className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 w-full max-w-2xl p-6 mx-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-gray-900 dark:text-white font-semibold text-xl mb-4">Hacer una Pregunta</h3>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-700 dark:text-slate-300 text-sm mb-2">Título (opcional)</label>
@@ -9337,7 +9596,7 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
               className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-700/80 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
-          
+
           <div>
             <label className="block text-gray-700 dark:text-slate-300 text-sm mb-2">Contenido *</label>
             <textarea

@@ -7,12 +7,16 @@ interface ProgressBar3DProps {
   progress: number
   index?: number
   className?: string
+  primaryColor?: string
+  accentColor?: string
 }
 
 export function ProgressBar3D({
   progress,
   index = 0,
   className = '',
+  primaryColor = '#0A2540',
+  accentColor = '#00D4B3'
 }: ProgressBar3DProps) {
   const [displayProgress, setDisplayProgress] = useState(0)
   const [isAnimating, setIsAnimating] = useState(true)
@@ -28,22 +32,22 @@ export function ProgressBar3D({
 
   const clampedProgress = Math.min(Math.max(displayProgress, 0), 100)
 
-  // Dynamic gradient based on progress
+  // Dynamic gradient based on progress using org colors
   const getProgressGradient = () => {
     if (clampedProgress === 100) {
-      return 'linear-gradient(90deg, #10B981, #34D399, #6EE7B7)'
+      return 'linear-gradient(90deg, #10B981, #34D399, #6EE7B7)' // Verde para completado
     } else if (clampedProgress >= 50) {
-      return 'linear-gradient(90deg, #0EA5E9, #22D3EE, #67E8F9)'
+      return `linear-gradient(90deg, ${primaryColor}, ${accentColor}, ${accentColor}CC)`
     } else if (clampedProgress > 0) {
-      return 'linear-gradient(90deg, #8B5CF6, #A855F7, #C084FC)'
+      return `linear-gradient(90deg, ${primaryColor}, ${accentColor})`
     }
     return 'linear-gradient(90deg, #6B7280, #9CA3AF)'
   }
 
   const getGlowColor = () => {
     if (clampedProgress === 100) return 'rgba(16, 185, 129, 0.5)'
-    if (clampedProgress >= 50) return 'rgba(14, 165, 233, 0.4)'
-    if (clampedProgress > 0) return 'rgba(139, 92, 246, 0.4)'
+    if (clampedProgress >= 50) return `${accentColor}60`
+    if (clampedProgress > 0) return `${primaryColor}50`
     return 'rgba(107, 114, 128, 0.3)'
   }
 
@@ -149,7 +153,7 @@ export function ProgressBar3D({
       {/* Edge decorations */}
       <motion.div
         className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full"
-        style={{ backgroundColor: clampedProgress > 0 ? getProgressGradient().split(',')[1] : 'transparent' }}
+        style={{ backgroundColor: clampedProgress > 0 ? accentColor : 'transparent' }}
         animate={{ scale: clampedProgress > 0 ? [1, 1.2, 1] : 1 }}
         transition={{ duration: 2, repeat: Infinity }}
       />

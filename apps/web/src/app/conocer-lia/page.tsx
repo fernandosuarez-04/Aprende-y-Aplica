@@ -4,11 +4,11 @@ import React, { useRef } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  ArrowLeft, 
-  Brain, 
-  MessageSquare, 
-  Zap, 
+import {
+  ArrowLeft,
+  Brain,
+  MessageSquare,
+  Zap,
   Lightbulb,
   Cpu,
   Network,
@@ -31,7 +31,7 @@ export default function ConocerLiaPage() {
   const capabilitiesRef = useRef<HTMLElement>(null);
   const metaphorsRef = useRef<HTMLElement>(null);
   const featuresRef = useRef<HTMLElement>(null);
-  
+
   const heroInView = useInView(heroRef, { once: true, amount: 0.3 });
   const capabilitiesInView = useInView(capabilitiesRef, { once: false, amount: 0.2 });
   const metaphorsInView = useInView(metaphorsRef, { once: false, amount: 0.2 });
@@ -97,21 +97,9 @@ export default function ConocerLiaPage() {
   const capabilities = [
     {
       icon: MessageSquare,
-      title: 'Contexto Persistente',
-      description: 'LIA recuerda tus conversaciones anteriores, manteniendo el contexto completo de tu aprendizaje y adaptándose a tu progreso.',
-      examples: ['Recuerda tus dudas anteriores', 'Mantiene el hilo de la conversación', 'Aprende de tus preferencias']
-    },
-    {
-      icon: Code2,
-      title: 'Diseñador de Prompts',
-      description: 'Crea y optimiza prompts para obtener mejores resultados con herramientas de IA. LIA te ayuda a perfeccionar tus consultas.',
-      examples: ['Optimiza tus prompts', 'Sugiere mejoras', 'Prueba diferentes enfoques']
-    },
-    {
-      icon: Zap,
-      title: 'Generador de Imágenes',
-      description: 'Genera imágenes personalizadas usando inteligencia artificial de última generación. Visualiza conceptos y crea contenido visual.',
-      examples: ['Crea imágenes personalizadas', 'Visualiza conceptos complejos', 'Genera contenido visual']
+      title: 'PRL-1.0 Mini',
+      description: 'Modelo conversacional con contexto de página. Resuelve dudas, explica conceptos y te guía en tu aprendizaje de forma personalizada.',
+      examples: ['Contexto inteligente de página', 'Resuelve dudas al instante', 'Explica conceptos complejos']
     },
     {
       icon: BookOpen,
@@ -166,14 +154,14 @@ export default function ConocerLiaPage() {
       {/* Global Background Effects - Fixed position to avoid clipping */}
       <div className="fixed inset-0 pointer-events-none z-0" style={{ overflow: 'visible', clipPath: 'none' }}>
         {/* Subtle Background Pattern */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03]"
           style={{
             backgroundImage: `linear-gradient(#0A2540 1px, transparent 1px), linear-gradient(90deg, #0A2540 1px, transparent 1px)`,
             backgroundSize: '50px 50px',
           }}
         />
-        
+
         {/* Global Gradient Orbs - Extended beyond viewport in all directions */}
         <motion.div
           className="absolute -top-[400px] -left-[400px] w-[1000px] h-[1000px] bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full blur-3xl"
@@ -242,7 +230,7 @@ export default function ConocerLiaPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Link 
+          <Link
             href="/"
             className="inline-flex items-center gap-2 text-[#6C757D] dark:text-white/70 hover:text-[#0A2540] dark:hover:text-white transition-colors"
             style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
@@ -254,7 +242,7 @@ export default function ConocerLiaPage() {
       </div>
 
       {/* Hero Section */}
-      <section 
+      <section
         ref={heroRef}
         className="container mx-auto px-4 py-16 lg:py-24 relative z-10"
       >
@@ -272,7 +260,7 @@ export default function ConocerLiaPage() {
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}
               initial={{ opacity: 0, scale: 0.5 }}
               animate={heroInView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ 
+              transition={{
                 duration: 0.8,
                 type: 'spring',
                 stiffness: 100
@@ -326,7 +314,7 @@ export default function ConocerLiaPage() {
                   ease: 'easeInOut'
                 }}
               />
-              
+
               {/* Middle Ring */}
               <motion.div
                 className="absolute inset-0 rounded-full border-4 border-[#00D4B3]/30"
@@ -339,7 +327,7 @@ export default function ConocerLiaPage() {
                   ease: 'linear'
                 }}
               />
-              
+
               {/* Inner Circle with Image */}
               <motion.div
                 className="absolute inset-4 rounded-full bg-gradient-to-br from-[#00D4B3] to-[#0A2540] flex items-center justify-center shadow-2xl overflow-hidden"
@@ -361,7 +349,7 @@ export default function ConocerLiaPage() {
       </section>
 
       {/* Metáforas Centrales Section */}
-      <section 
+      <section
         ref={metaphorsRef}
         className="py-32 relative bg-white dark:bg-[#0F1419]"
       >
@@ -373,14 +361,14 @@ export default function ConocerLiaPage() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.8 }}
           >
-            <h2 
+            <h2
               className="text-4xl lg:text-6xl font-bold mb-6 text-[#0A2540] dark:text-white"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}
             >
               LIA: Tu{' '}
               <span className="text-[#00D4B3]">Sabiduría Aumentada</span>
             </h2>
-            <p 
+            <p
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
@@ -398,7 +386,7 @@ export default function ConocerLiaPage() {
                   initial={{ opacity: 0, y: 100, rotateX: -15 }}
                   whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
                   viewport={{ once: true, amount: 0.2 }}
-                  transition={{ 
+                  transition={{
                     delay: index * 0.1,
                     duration: 0.8,
                     type: 'spring',
@@ -411,15 +399,15 @@ export default function ConocerLiaPage() {
                     <motion.div
                       className={`absolute inset-0 bg-gradient-to-br ${metaphor.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}
                     />
-                    
+
                     {/* Icon */}
                     <div className="relative z-10 mb-6">
-                      <div 
+                      <div
                         className="w-16 h-16 rounded-2xl flex items-center justify-center"
                         style={{ backgroundColor: `${metaphor.color}20` }}
                       >
-                        <IconComponent 
-                          className="w-8 h-8" 
+                        <IconComponent
+                          className="w-8 h-8"
                           style={{ color: metaphor.color }}
                         />
                       </div>
@@ -427,13 +415,13 @@ export default function ConocerLiaPage() {
 
                     {/* Content */}
                     <div className="relative z-10">
-                      <h3 
+                      <h3
                         className="text-2xl font-bold mb-4 text-[#0A2540] dark:text-white"
                         style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                       >
                         {metaphor.title}
                       </h3>
-                      <p 
+                      <p
                         className="text-[#6C757D] dark:text-white/70 leading-relaxed"
                         style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                       >
@@ -442,7 +430,7 @@ export default function ConocerLiaPage() {
                     </div>
 
                     {/* Decorative Corner */}
-                    <div 
+                    <div
                       className="absolute top-0 right-0 w-32 h-32 opacity-5"
                       style={{
                         background: `linear-gradient(135deg, ${metaphor.color} 0%, transparent 70%)`
@@ -457,7 +445,7 @@ export default function ConocerLiaPage() {
       </section>
 
       {/* Capacidades de LIA Section */}
-      <section 
+      <section
         ref={capabilitiesRef}
         className="py-32 relative bg-gradient-to-b from-white to-[#F8F9FA] dark:from-[#0F1419] dark:to-[#0A0D12]"
       >
@@ -469,7 +457,7 @@ export default function ConocerLiaPage() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.8 }}
           >
-            <h2 
+            <h2
               className="text-4xl lg:text-6xl font-bold mb-6 text-[#0A2540] dark:text-white"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}
             >
@@ -477,7 +465,7 @@ export default function ConocerLiaPage() {
               <span className="text-[#00D4B3]">LIA</span>
               {' '}por ti?
             </h2>
-            <p 
+            <p
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
@@ -495,7 +483,7 @@ export default function ConocerLiaPage() {
                   initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, amount: 0.2 }}
-                  transition={{ 
+                  transition={{
                     delay: index * 0.1,
                     duration: 0.6
                   }}
@@ -510,13 +498,13 @@ export default function ConocerLiaPage() {
                     </div>
 
                     {/* Content */}
-                    <h3 
+                    <h3
                       className="text-xl font-bold mb-3 text-[#0A2540] dark:text-white"
                       style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                     >
                       {capability.title}
                     </h3>
-                    <p 
+                    <p
                       className="text-[#6C757D] dark:text-white/70 leading-relaxed mb-4"
                       style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                     >
@@ -550,14 +538,14 @@ export default function ConocerLiaPage() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.8 }}
           >
-            <h2 
+            <h2
               className="text-4xl lg:text-6xl font-bold mb-6 text-[#0A2540] dark:text-white"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}
             >
               Planificador de{' '}
               <span className="text-[#00D4B3]">Estudios</span>
             </h2>
-            <p 
+            <p
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
@@ -654,25 +642,25 @@ export default function ConocerLiaPage() {
                   <div className="relative h-full bg-white dark:bg-[#1E2329] rounded-2xl p-8 border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-lg hover:shadow-xl transition-all duration-300">
                     {/* Icon */}
                     <div className="mb-6">
-                      <div 
+                      <div
                         className="w-14 h-14 rounded-xl flex items-center justify-center"
                         style={{ backgroundColor: `${feature.color}20` }}
                       >
-                        <IconComponent 
-                          className="w-7 h-7" 
+                        <IconComponent
+                          className="w-7 h-7"
                           style={{ color: feature.color }}
                         />
                       </div>
                     </div>
 
                     {/* Content */}
-                    <h3 
+                    <h3
                       className="text-xl font-bold mb-3 text-[#0A2540] dark:text-white"
                       style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                     >
                       {feature.title}
                     </h3>
-                    <p 
+                    <p
                       className="text-[#6C757D] dark:text-white/70 leading-relaxed mb-4"
                       style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                     >
@@ -697,7 +685,7 @@ export default function ConocerLiaPage() {
       </section>
 
       {/* Personalidad de LIA Section */}
-      <section 
+      <section
         ref={featuresRef}
         className="py-32 relative bg-gradient-to-b from-white to-[#F8F9FA] dark:from-[#0F1419] dark:to-[#0A0D12]"
       >
@@ -709,7 +697,7 @@ export default function ConocerLiaPage() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.8 }}
           >
-            <h2 
+            <h2
               className="text-4xl lg:text-6xl font-bold mb-6 text-[#0A2540] dark:text-white"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}
             >
@@ -717,7 +705,7 @@ export default function ConocerLiaPage() {
               <span className="text-[#00D4B3]">Personalidad</span>
               {' '}de LIA
             </h2>
-            <p 
+            <p
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
@@ -739,23 +727,23 @@ export default function ConocerLiaPage() {
                 >
                   <div className="relative h-full bg-white dark:bg-[#1E2329] rounded-2xl p-8 border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-lg hover:shadow-xl transition-all duration-300">
                     <div className="flex items-start gap-4">
-                      <div 
+                      <div
                         className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: `${feature.color}20` }}
                       >
-                        <IconComponent 
-                          className="w-6 h-6" 
+                        <IconComponent
+                          className="w-6 h-6"
                           style={{ color: feature.color }}
                         />
                       </div>
                       <div>
-                        <h3 
+                        <h3
                           className="text-xl font-bold mb-2 text-[#0A2540] dark:text-white"
                           style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                         >
                           {feature.title}
                         </h3>
-                        <p 
+                        <p
                           className="text-[#6C757D] dark:text-white/70 leading-relaxed"
                           style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                         >
@@ -795,7 +783,7 @@ export default function ConocerLiaPage() {
             >
               ¿Listo para comenzar con LIA?
             </motion.h2>
-            <p 
+            <p
               className="text-xl lg:text-2xl mb-12 text-white/90"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >

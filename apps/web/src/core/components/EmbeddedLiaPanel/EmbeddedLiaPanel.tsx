@@ -2,12 +2,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Mic, MicOff, Send, X, Loader2, User, ChevronDown, Check, Image as ImageIcon, FileText, MessageSquare } from 'lucide-react';
+import { ChevronRight, Mic, MicOff, Send, X, Loader2, User, ChevronDown, Check, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLiaChat } from '../../hooks/useLiaChat';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { useLanguage } from '../../providers/I18nProvider';
+import { useOrganizationStylesContext } from '../../../features/business-panel/contexts/OrganizationStylesContext';
 import { useLiaPanel } from '../../contexts/LiaPanelContext';
 import type { LiaChatMode } from '../../hooks/useLiaChat';
 
@@ -34,10 +35,10 @@ function renderTextWithLinks(text: string, router: ReturnType<typeof useRouter>)
     // Agregar el enlace como elemento <a>
     const linkText = match[1];
     const linkUrl = match[2];
-    
+
     // Verificar si es una URL relativa (empieza con /) o absoluta
     const isRelative = linkUrl.startsWith('/');
-    
+
     parts.push(
       <a
         key={`link-${key++}`}
@@ -69,17 +70,36 @@ function renderTextWithLinks(text: string, router: ReturnType<typeof useRouter>)
   return parts.length > 0 ? parts : text;
 }
 
+interface OrganizationColors {
+  primary?: string;
+  accent?: string;
+  cardBackground?: string;
+  textColor?: string;
+}
+
 interface EmbeddedLiaPanelProps {
   assistantName?: string;
   assistantAvatar?: string;
   initialMessage?: string | null;
+  organizationColors?: OrganizationColors;
 }
 
 export function EmbeddedLiaPanel({
   assistantName = 'LIA',
   assistantAvatar = '/lia-avatar.png',
   initialMessage = null,
+  organizationColors,
 }: EmbeddedLiaPanelProps) {
+  const { styles } = useOrganizationStylesContext();
+  const themeStyles = styles?.panel;
+
+  // Colores con prioridad: Tema Global > Props > Defaults SOFIA
+  const colors = {
+    primary: themeStyles?.accent_color || organizationColors?.primary || '#00D4B3', // Lia = Aqua
+    accent: themeStyles?.secondary_button_color || organizationColors?.accent || '#6C757D', // User = Neutral
+    cardBg: themeStyles?.card_background || organizationColors?.cardBackground || '#1E2329', // Card/Panel BG
+    text: themeStyles?.text_color || organizationColors?.textColor || '#FFFFFF',
+  };
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
@@ -88,28 +108,28 @@ export function EmbeddedLiaPanel({
   // Detectar qué navbar está activo para ajustar el padding-top del header
   const getNavbarHeight = () => {
     if (!pathname) return '4rem'; // 64px por defecto
-    
+
     // DashboardNavbar y BusinessNavbar: h-20 (80px = 5rem)
-    const isDashboardPage = pathname.startsWith('/dashboard') || 
-                           pathname.startsWith('/my-courses') ||
-                           pathname.startsWith('/courses') ||
-                           pathname.startsWith('/communities') ||
-                           pathname.startsWith('/news') ||
-                           pathname.startsWith('/statistics') ||
-                           pathname.startsWith('/questionnaire') ||
-                           pathname.startsWith('/cart') ||
-                           pathname.startsWith('/subscriptions') ||
-                           pathname.startsWith('/payment-methods') ||
-                           pathname.startsWith('/purchase-history') ||
-                           pathname.startsWith('/account-settings') ||
-                           pathname.startsWith('/certificates');
-    
+    const isDashboardPage = pathname.startsWith('/dashboard') ||
+      pathname.startsWith('/my-courses') ||
+      pathname.startsWith('/courses') ||
+      pathname.startsWith('/communities') ||
+      pathname.startsWith('/news') ||
+      pathname.startsWith('/statistics') ||
+      pathname.startsWith('/questionnaire') ||
+      pathname.startsWith('/cart') ||
+      pathname.startsWith('/subscriptions') ||
+      pathname.startsWith('/payment-methods') ||
+      pathname.startsWith('/purchase-history') ||
+      pathname.startsWith('/account-settings') ||
+      pathname.startsWith('/certificates');
+
     const isBusinessPage = pathname.startsWith('/business');
-    
+
     if (isDashboardPage || isBusinessPage) {
       return '5rem'; // 80px para DashboardNavbar y BusinessNavbar
     }
-    
+
     // Navbar regular: h-16 en móvil, h-20 en desktop
     // Usamos 5rem (80px) para cubrir ambos casos
     return '5rem'; // 80px
@@ -152,31 +172,17 @@ export function EmbeddedLiaPanel({
     id: LiaChatMode;
     name: string;
     description: string;
-    icon: React.ElementType;
+    icon: React.ElementType | null;
     color: string;
   }> = [
-    {
-      id: 'context',
-      name: 'Contexto Persistente',
-      description: 'Mantiene los últimos 7 mensajes entre páginas',
-      icon: MessageSquare,
-      color: '#10B981', // Verde
-    },
-    {
-      id: 'prompts',
-      name: 'Diseñador de Prompts',
-      description: 'Crea y refina prompts profesionales guiados por LIA',
-      icon: FileText,
-      color: '#8B5CF6', // Púrpura
-    },
-    {
-      id: 'nanobana',
-      name: 'Generador de Imágenes',
-      description: 'Genera JSON estructurado para renderizado visual preciso',
-      icon: ImageIcon,
-      color: '#F59E0B', // Naranja
-    },
-  ];
+      {
+        id: 'context',
+        name: 'PRL-1.0 Mini',
+        description: 'Tu asistente inteligente con contexto de página. Resuelve dudas, explica conceptos y te guía en tu aprendizaje.',
+        icon: null, // Usaremos el avatar de LIA en lugar de un icono
+        color: colors.accent,
+      },
+    ];
 
   // Calcular posición del dropdown cuando se abre
   useEffect(() => {
@@ -194,7 +200,7 @@ export function EmbeddedLiaPanel({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        modeDropdownRef.current && 
+        modeDropdownRef.current &&
         !modeDropdownRef.current.contains(event.target as Node) &&
         modeButtonRef.current &&
         !modeButtonRef.current.contains(event.target as Node)
@@ -209,8 +215,8 @@ export function EmbeddedLiaPanel({
     }
   }, [isModeDropdownOpen]);
 
-  // Ancho del panel (siempre panel lateral, no fullscreen)
-  const expandedWidth = 'w-[90vw] sm:w-96 max-w-md';
+  // Ancho del panel (siempre panel lateral, no fullscreen) - Reducido para menos intrusividad
+  const expandedWidth = 'w-[85vw] sm:w-[360px] max-w-[360px]';
 
 
   // Scroll automático al final de los mensajes
@@ -252,7 +258,7 @@ export function EmbeddedLiaPanel({
     }
 
     const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-    
+
     if (!recognitionRef.current) {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
@@ -310,7 +316,7 @@ export function EmbeddedLiaPanel({
         )}
       </AnimatePresence>
 
-      {/* Panel Derecho - LIA Contexto Persistente (solo cuando está expandido) */}
+      {/* Panel Derecho - PRL-1.0 Mini (solo cuando está expandido) */}
       <AnimatePresence>
         {isPanelOpen && !isCollapsed && (
           <motion.div
@@ -320,17 +326,34 @@ export function EmbeddedLiaPanel({
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             onClick={(e) => e.stopPropagation()}
-            className={`fixed right-0 top-0 h-full z-40 bg-white dark:bg-[#1E2329] shadow-2xl flex flex-col ${expandedWidth} transition-all duration-300 ease-in-out border-l border-[#E9ECEF] dark:border-[#6C757D]/30`}
+            className={`fixed right-0 top-0 h-full z-40 shadow-2xl flex flex-col ${expandedWidth} transition-all duration-300 ease-in-out`}
+            style={{
+              backgroundColor: colors.cardBg,
+              borderLeft: `1px solid ${colors.primary}20`
+            }}
           >
+            {/* Fondo superior para cubrir el área del navbar */}
+            <div
+              className="absolute left-0 right-0 top-0"
+              style={{
+                height: navbarHeight,
+                backgroundColor: colors.cardBg
+              }}
+            />
+
             {/* Header del Panel de LIA - Rediseñado */}
-            <div 
+            <div
               className="absolute left-0 right-0 z-[60] px-3 pb-2"
               style={{ top: navbarHeight, paddingTop: '0.75rem' }}
             >
               <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl shadow-lg border border-[#E9ECEF]/50 dark:border-[#6C757D]/30"
+                className="backdrop-blur-md rounded-2xl shadow-lg"
+                style={{
+                  backgroundColor: `${colors.cardBg}F5`,
+                  border: `1px solid ${colors.primary}30`
+                }}
               >
                 {/* Primera fila: Avatar, título (clickeable) y botones */}
                 <div className="flex items-center justify-between px-3 py-2.5">
@@ -338,10 +361,16 @@ export function EmbeddedLiaPanel({
                     <button
                       ref={modeButtonRef}
                       onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
-                      className="w-full flex items-center gap-2.5 hover:bg-[#F8F9FA] dark:hover:bg-[#0A2540]/30 rounded-lg px-2 py-1.5 transition-colors group"
+                      className="w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors group"
+                      style={{ backgroundColor: 'transparent' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${colors.primary}15`}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       {/* Avatar de LIA */}
-                      <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-[#0A2540]/20 dark:ring-[#00D4B3]/30 flex-shrink-0">
+                      <div
+                        className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
+                        style={{ boxShadow: `0 0 0 2px ${colors.accent}50` }}
+                      >
                         <Image
                           src={assistantAvatar}
                           alt={assistantName}
@@ -352,7 +381,10 @@ export function EmbeddedLiaPanel({
                       </div>
                       {/* Título y modo */}
                       <div className="min-w-0 flex-1 text-left">
-                        <h3 className="text-[#0A2540] dark:text-white font-semibold text-xs leading-tight">
+                        <h3
+                          className="font-semibold text-xs leading-tight"
+                          style={{ color: colors.text }}
+                        >
                           {assistantName}
                         </h3>
                         <div className="flex items-center gap-1.5">
@@ -361,22 +393,24 @@ export function EmbeddedLiaPanel({
                             const Icon = currentModeData?.icon || MessageSquare;
                             return (
                               <>
-                                <Icon 
+                                <Icon
                                   className="w-3 h-3 flex-shrink-0"
                                   style={{ color: currentModeData?.color }}
                                 />
-                                <span className="text-[10px] text-[#6C757D] dark:text-gray-400 leading-tight truncate">
-                                  {currentModeData?.name || 'Contexto Persistente'}
+                                <span
+                                  className="text-[10px] leading-tight truncate"
+                                  style={{ color: `${colors.text}80` }}
+                                >
+                                  {currentModeData?.name || 'PRL-1.0 Mini'}
                                 </span>
                               </>
                             );
                           })()}
                         </div>
                       </div>
-                      <ChevronDown 
-                        className={`w-3.5 h-3.5 text-[#6C757D] dark:text-gray-400 transition-transform flex-shrink-0 ${
-                          isModeDropdownOpen ? 'rotate-180' : ''
-                        }`}
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform flex-shrink-0 ${isModeDropdownOpen ? 'rotate-180' : ''}`}
+                        style={{ color: `${colors.text}80` }}
                       />
                     </button>
 
@@ -387,14 +421,36 @@ export function EmbeddedLiaPanel({
                       onClick={() => {
                         clearHistory();
                       }}
-                      className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors flex-shrink-0 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white"
+                      className="p-1.5 rounded-lg transition-colors flex-shrink-0"
+                      style={{
+                        color: `${colors.text}80`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${colors.primary}15`;
+                        e.currentTarget.style.color = colors.primary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = `${colors.text}80`;
+                      }}
                       title="Limpiar conversación"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => setIsCollapsed(true)}
-                      className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors flex-shrink-0 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white"
+                      className="p-1.5 rounded-lg transition-colors flex-shrink-0"
+                      style={{
+                        color: `${colors.text}80`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${colors.primary}15`;
+                        e.currentTarget.style.color = colors.primary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = `${colors.text}80`;
+                      }}
                       title="Colapsar"
                     >
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -427,13 +483,14 @@ export function EmbeddedLiaPanel({
                       top: `${dropdownPosition.top}px`,
                       left: `${dropdownPosition.left}px`,
                       width: `${dropdownPosition.width}px`,
+                      backgroundColor: colors.cardBg,
+                      border: `1px solid ${colors.primary}30`,
                     }}
-                    className="bg-white dark:bg-[#1E2329] rounded-lg shadow-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden z-[60]"
+                    className="rounded-xl shadow-2xl overflow-hidden z-[60]"
                   >
                     {availableModes.map((mode) => {
-                      const Icon = mode.icon;
                       const isActive = currentMode === mode.id;
-                      
+
                       return (
                         <button
                           key={mode.id}
@@ -441,28 +498,54 @@ export function EmbeddedLiaPanel({
                             setMode(mode.id);
                             setIsModeDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-3 py-2.5 text-xs transition-colors hover:bg-[#F8F9FA] dark:hover:bg-[#0A2540]/30 flex items-start gap-3 ${
-                            isActive
-                              ? 'bg-[#F8F9FA] dark:bg-[#0A2540]/30'
-                              : ''
-                          }`}
+                          className="w-full text-left px-3 py-3 text-xs transition-colors flex items-start gap-3"
+                          style={{
+                            backgroundColor: isActive ? `${colors.primary}15` : 'transparent',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isActive) {
+                              e.currentTarget.style.backgroundColor = `${colors.primary}10`;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isActive) {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }
+                          }}
                         >
                           <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <Icon 
-                              className="w-4 h-4 flex-shrink-0 mt-0.5"
-                              style={{ color: mode.color }}
-                            />
+                            {/* Avatar de LIA en lugar de icono */}
+                            <div
+                              className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0"
+                              style={{ boxShadow: `0 0 0 2px ${colors.accent}50` }}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={assistantAvatar || '/lia-avatar.png'}
+                                alt={assistantName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/lia-avatar.png';
+                                }}
+                              />
+                            </div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-[#0A2540] dark:text-white mb-0.5">
+                              <div
+                                className="font-semibold mb-0.5"
+                                style={{ color: colors.text }}
+                              >
                                 {mode.name}
                               </div>
-                              <div className="text-[10px] text-[#6C757D] dark:text-gray-400 leading-tight">
+                              <div
+                                className="text-[10px] leading-tight"
+                                style={{ color: `${colors.text}70` }}
+                              >
                                 {mode.description}
                               </div>
                             </div>
                           </div>
                           {isActive && (
-                            <Check className="w-4 h-4 text-[#00D4B3] flex-shrink-0 mt-0.5" />
+                            <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: colors.accent }} />
                           )}
                         </button>
                       );
@@ -473,9 +556,12 @@ export function EmbeddedLiaPanel({
             </AnimatePresence>
 
             {/* Contenido del Panel de LIA - Chat */}
-            <div 
-              className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-[#0F1419]"
-              style={{ paddingTop: `calc(${navbarHeight} + 5rem)` }}
+            <div
+              className="flex-1 overflow-hidden flex flex-col"
+              style={{
+                paddingTop: `calc(${navbarHeight} + 5rem)`,
+                backgroundColor: colors.cardBg
+              }}
             >
               {/* Área de mensajes de LIA */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 relative">
@@ -483,39 +569,46 @@ export function EmbeddedLiaPanel({
                 {messages.length === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center px-6 pointer-events-none">
                     <div className="max-w-sm text-center">
-                      {/* Icono grande del modo */}
-                      <div className="mx-auto mb-4 w-20 h-20 flex items-center justify-center">
-                        {(() => {
-                          const currentModeData = availableModes.find(m => m.id === currentMode);
-                          const Icon = currentModeData?.icon || MessageSquare;
-                          return (
-                            <div 
-                              className="w-full h-full rounded-full flex items-center justify-center"
-                              style={{ 
-                                backgroundColor: `${currentModeData?.color || '#10B981'}20`,
-                                border: `2px solid ${currentModeData?.color || '#10B981'}40`
-                              }}
-                            >
-                              <Icon 
-                                className="w-10 h-10"
-                                style={{ color: currentModeData?.color || '#10B981' }}
-                              />
-                            </div>
-                          );
-                        })()}
+                      {/* Avatar de LIA grande */}
+                      <div className="mx-auto mb-4 w-24 h-24 flex items-center justify-center">
+                        <div
+                          className="w-full h-full rounded-full flex items-center justify-center overflow-hidden"
+                          style={{
+                            backgroundColor: `${colors.accent}15`,
+                            border: `3px solid ${colors.accent}`,
+                            boxShadow: `0 0 40px ${colors.accent}40, 0 0 80px ${colors.accent}20`
+                          }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={assistantAvatar || '/lia-avatar.png'}
+                            alt={assistantName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback si la imagen no carga
+                              e.currentTarget.src = '/lia-avatar.png';
+                            }}
+                          />
+                        </div>
                       </div>
                       {/* Título del modo */}
-                      <h3 className="font-semibold text-[#0A2540] dark:text-white mb-2 text-lg">
-                        {availableModes.find(m => m.id === currentMode)?.name || 'Contexto Persistente'}
+                      <h3
+                        className="font-bold mb-2 text-xl"
+                        style={{ color: colors.text }}
+                      >
+                        {availableModes.find(m => m.id === currentMode)?.name || 'PRL-1.0 Mini'}
                       </h3>
                       {/* Descripción del modo */}
-                      <p className="text-sm text-[#6C757D] dark:text-gray-400 leading-relaxed">
-                        {availableModes.find(m => m.id === currentMode)?.description || 'Mantiene la conversación activa entre páginas. Guarda automáticamente los últimos 7 mensajes para continuar donde lo dejaste.'}
+                      <p
+                        className="text-sm leading-relaxed"
+                        style={{ color: `${colors.text}80` }}
+                      >
+                        {availableModes.find(m => m.id === currentMode)?.description || 'Tu asistente inteligente con contexto de página. Resuelve dudas, explica conceptos y te guía en tu aprendizaje.'}
                       </p>
                     </div>
                   </div>
                 )}
-                
+
                 {/* Mensajes del chat */}
                 {messages.length > 0 && (
                   <>
@@ -538,7 +631,10 @@ export function EmbeddedLiaPanel({
                                 sizes="36px"
                               />
                             ) : (
-                              <div className="w-full h-full bg-gradient-to-r from-[#0A2540] to-[#00D4B3] flex items-center justify-center">
+                              <div
+                                className="w-full h-full flex items-center justify-center"
+                                style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})` }}
+                              >
                                 <User className="w-5 h-5 text-white" />
                               </div>
                             )}
@@ -557,11 +653,11 @@ export function EmbeddedLiaPanel({
 
                         {/* Contenido del mensaje */}
                         <div
-                          className={`flex-1 rounded-2xl px-3.5 py-3 shadow-lg ${
-                            msg.role === 'user'
-                              ? 'bg-[#10B981] text-white'
-                              : 'bg-[#0A2540] text-white dark:bg-[#0A2540]'
-                          }`}
+                          className="flex-1 rounded-2xl px-3.5 py-3 shadow-lg"
+                          style={{
+                            backgroundColor: msg.role === 'user' ? colors.accent : colors.primary,
+                            color: '#FFFFFF'
+                          }}
                         >
                           <p className="text-[13px] leading-relaxed whitespace-pre-wrap font-medium">
                             {renderTextWithLinks(msg.content, router)}
@@ -642,11 +738,22 @@ export function EmbeddedLiaPanel({
                       placeholder="Escribe tu pregunta..."
                       rows={1}
                       disabled={isLoading}
-                      className="w-full resize-none bg-white dark:bg-[#1E2329] rounded-xl px-4 py-2.5 shadow-sm hover:shadow-md border border-[#E9ECEF] dark:border-[#6C757D]/30 min-h-[44px] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] text-sm font-normal focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all duration-200 max-h-[60px] overflow-y-auto leading-5"
+                      className="w-full resize-none rounded-xl px-4 py-2.5 shadow-sm hover:shadow-md min-h-[44px] text-sm font-normal focus:outline-none transition-all duration-200 max-h-[60px] overflow-y-auto leading-5"
                       style={{
                         minHeight: '44px',
                         lineHeight: '20px',
                         fontFamily: 'Inter, sans-serif',
+                        backgroundColor: colors.cardBg,
+                        border: `1px solid ${colors.primary}30`,
+                        color: colors.text,
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.boxShadow = `0 0 0 2px ${colors.accent}50`;
+                        e.currentTarget.style.borderColor = 'transparent';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.borderColor = `${colors.primary}30`;
                       }}
                     />
                   </div>
@@ -663,13 +770,15 @@ export function EmbeddedLiaPanel({
                       }
                     }}
                     disabled={isLoading && !!message.trim()}
-                    className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
-                      message.trim()
-                        ? 'bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-sm'
+                    className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ${isLoading && message.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    style={{
+                      backgroundColor: message.trim()
+                        ? colors.primary
                         : isRecording
-                        ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
-                        : 'bg-[#E9ECEF] dark:bg-[#6C757D] hover:bg-[#6C757D]/20 dark:hover:bg-[#6C757D]/80 text-[#6C757D] dark:text-gray-300'
-                    } ${isLoading && message.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          ? '#EF4444'
+                          : 'rgba(255, 255, 255, 0.05)', // Fondo sutil oscuro por defecto
+                      color: message.trim() || isRecording ? '#FFFFFF' : colors.primary
+                    }}
                     title={message.trim() ? 'Enviar mensaje' : isRecording ? 'Detener grabación' : 'Grabar audio'}
                   >
                     {isLoading && message.trim() ? (
@@ -702,7 +811,7 @@ export function EmbeddedLiaPanel({
               setIsCollapsed(false);
             }}
             className="fixed right-4 bottom-4 z-[100] w-16 h-16 rounded-full shadow-2xl hover:shadow-[#0A2540]/50 dark:hover:shadow-[#00D4B3]/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden ring-4 ring-[#0A2540]/20 dark:ring-[#00D4B3]/30"
-            title={`Abrir ${assistantName} Contexto Persistente`}
+            title={`Abrir ${assistantName}`}
           >
             {/* Avatar de LIA en la burbuja */}
             <div className="relative w-full h-full">

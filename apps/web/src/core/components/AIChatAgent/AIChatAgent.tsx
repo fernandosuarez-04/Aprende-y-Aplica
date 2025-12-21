@@ -132,19 +132,19 @@ function extractPageContent(): {
   const title = document.title || '';
 
   // Extraer meta description
-  const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute('content') || 
-                   document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
+  const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute('content') ||
+    document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
 
   // Extraer los principales encabezados (h1, h2)
   const headings: string[] = [];
   const h1Elements = document.querySelectorAll('h1');
   const h2Elements = document.querySelectorAll('h2');
-  
+
   h1Elements.forEach(h => {
     const text = h.textContent?.trim();
     if (text && text.length > 0) headings.push(text);
   });
-  
+
   h2Elements.forEach(h => {
     const text = h.textContent?.trim();
     if (text && text.length > 0 && headings.length < 5) headings.push(text);
@@ -152,7 +152,7 @@ function extractPageContent(): {
 
   // Extraer texto visible del contenido principal
   let mainText = '';
-  
+
   // Intentar encontrar el contenido principal por selectores comunes
   const mainSelectors = [
     'main',
@@ -174,13 +174,13 @@ function extractPageContent(): {
   if (mainElement) {
     // Clonar el elemento para no afectar el DOM real
     const clone = mainElement.cloneNode(true) as Element;
-    
+
     // Remover elementos que no queremos (scripts, estilos, navegación)
     const unwantedSelectors = ['script', 'style', 'nav', 'header', 'footer', '.nav', '.navbar'];
     unwantedSelectors.forEach(sel => {
       clone.querySelectorAll(sel).forEach(el => el.remove());
     });
-    
+
     mainText = clone.textContent?.trim() || '';
   } else {
     // Fallback: usar el body pero excluir navegación y footer
@@ -231,10 +231,10 @@ function renderTextWithLinks(text: string): React.ReactNode {
     // Agregar el enlace como elemento <a>
     const linkText = match[1];
     const linkUrl = match[2];
-    
+
     // Verificar si es una URL relativa (empieza con /) o absoluta
     const isRelative = linkUrl.startsWith('/');
-    
+
     parts.push(
       <a
         key={`link-${key++}`}
@@ -276,14 +276,14 @@ export function AIChatAgent({
   const pathname = usePathname();
   const { language } = useLanguage();
   const { t: tCommon } = useTranslation('common');
-  
+
   // Estados para el modo prompt (declarados temprano para poder usarlos en placeholderText)
   const [isPromptMode, setIsPromptMode] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState<GeneratedPrompt | null>(null);
   const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
   const [selectedPromptMessageId, setSelectedPromptMessageId] = useState<string | null>(null);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
-  
+
   // Estados para el modo NanoBanana
   const [isNanoBananaMode, setIsNanoBananaMode] = useState(false);
   const [nanoBananaSchema, setNanoBananaSchema] = useState<NanoBananaSchema | null>(null);
@@ -293,14 +293,14 @@ export function AIChatAgent({
   const [isNanoBananaPanelOpen, setIsNanoBananaPanelOpen] = useState(false);
   const [nanoBananaMessages, setNanoBananaMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  
+
   // Estados del chat (declarados temprano para poder usarlos en useMemo)
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  
+
   // Traducciones i18n para el agente LIA
   const translatedInitialMessage = initialMessage ?? tCommon('aiChat.initialMessage');
-  const placeholderText = isPromptMode 
+  const placeholderText = isPromptMode
     ? tCommon('aiChat.promptMode.placeholder')
     : (promptPlaceholder ?? tCommon('aiChat.placeholder'));
   const onlineLabel = tCommon('aiChat.online');
@@ -312,14 +312,14 @@ export function AIChatAgent({
   const helpPrompt = tCommon('aiChat.helpPrompt');
   const helpFallback = tCommon('aiChat.helpFallback');
   const helpError = tCommon('aiChat.helpError');
-  
+
   // Traducciones adicionales para UI
   const clearConversationLabel = tCommon('aiChat.clearConversation');
   const changeModeLabel = tCommon('aiChat.changeMode');
   const clearContextLabel = tCommon('aiChat.clearContext');
   const clearContextConfirmLabel = tCommon('aiChat.clearContextConfirm');
   const reportProblemLabel = tCommon('aiChat.reportProblem');
-  
+
   // Traducciones para modos
   const promptModeTitle = tCommon('aiChat.promptMode.title');
   const promptModeDesc = tCommon('aiChat.promptMode.description');
@@ -333,7 +333,7 @@ export function AIChatAgent({
   const contextModeEmptyDesc = tCommon('aiChat.contextMode.emptyDescription', { count: MAX_CONTEXT_MESSAGES });
   const assistantModeTitle = tCommon('aiChat.assistantMode.title');
   const assistantModeEmptyDesc = tCommon('aiChat.assistantMode.emptyDescription');
-  
+
   // Traducciones para voz
   const voiceListening = tCommon('aiChat.voice.listening');
   const voiceProcessing = tCommon('aiChat.voice.processing');
@@ -345,7 +345,7 @@ export function AIChatAgent({
 
   // Detectar si estamos en página de comunidades
   const isCommunitiesPage = pathname?.includes('/communities');
-  
+
   // Detectar si la página usa el DashboardNavbar (sticky)
   const hasDashboardNavbar = useMemo(() => {
     if (!pathname) return false;
@@ -444,12 +444,12 @@ export function AIChatAgent({
     if (isCommunitiesPage && !isDesktop) {
       return 'calc(100vh - 5.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
     }
-    
+
     if (hasDashboardNavbar) {
       const navbarHeight = !isDesktop ? '4.875rem' : '4.5rem';
       return `calc(100vh - ${navbarHeight} - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)`;
     }
-    
+
     return 'calc(100vh - 1.5rem - env(safe-area-inset-bottom, 0px) - 1.5rem)';
   }, [isCommunitiesPage, hasDashboardNavbar, isDesktop, widgetHeight]);
 
@@ -501,7 +501,7 @@ export function AIChatAgent({
   // Conversaciones separadas para cada modo
   const [normalMessages, setNormalMessages] = useState<Message[]>([]);
   const [promptMessages, setPromptMessages] = useState<Message[]>([]);
-  
+
   // Obtener los mensajes según el modo actual
   const messages = isNanoBananaMode ? nanoBananaMessages : isPromptMode ? promptMessages : normalMessages;
 
@@ -515,7 +515,7 @@ export function AIChatAgent({
     try {
       // Tomar solo los últimos N mensajes (últimos 7)
       const recentMessages = messagesToSave.slice(-MAX_CONTEXT_MESSAGES);
-      
+
       const serialized = JSON.stringify(recentMessages.map(msg => ({
         ...msg,
         timestamp: msg.timestamp.toISOString()
@@ -531,7 +531,7 @@ export function AIChatAgent({
     try {
       const stored = localStorage.getItem(STORAGE_KEY_CONTEXT_MESSAGES);
       if (!stored) return [];
-      
+
       const parsed = JSON.parse(stored);
       return parsed.map((msg: any) => ({
         ...msg,
@@ -593,7 +593,7 @@ export function AIChatAgent({
     if (isOpen) {
       return;
     }
-    
+
     // Extraer contenido después de un pequeño delay para asegurar que el DOM esté completamente cargado
     const timer = setTimeout(() => {
       const content = extractPageContent();
@@ -621,7 +621,7 @@ export function AIChatAgent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const { user } = useAuth();
-  
+
   // 🎙️ Mapeo de idiomas para reconocimiento de voz
   const speechLanguageMap: Record<string, string> = {
     'es': 'es-ES',
@@ -640,7 +640,7 @@ export function AIChatAgent({
     }
 
     setIsSavingPrompt(true);
-    
+
     try {
       const response = await fetch('/api/ai-directory/prompts/save-from-chat', {
         method: 'POST',
@@ -659,13 +659,13 @@ export function AIChatAgent({
       }
 
       const data = await response.json();
-      
+
       // Notificar éxito
       alert(`✅ Prompt guardado exitosamente: "${draft.title}"`);
-      
+
       // Cerrar el panel de preview
       setIsPromptPanelOpen(false);
-      
+
       // Opcional: Navegar al prompt guardado
       if (data.redirectUrl) {
         const shouldNavigate = confirm('¿Quieres ver el prompt en el directorio?');
@@ -693,7 +693,7 @@ export function AIChatAgent({
     };
 
     window.addEventListener('lia-navigate', handleLiaNavigate as EventListener);
-    
+
     return () => {
       window.removeEventListener('lia-navigate', handleLiaNavigate as EventListener);
     };
@@ -771,7 +771,7 @@ export function AIChatAgent({
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      
+
       // Guardar una última vez al desmontar el componente
       if (useContextMode && !isPromptMode && normalMessages.length > 0) {
         // Usar una copia de los valores actuales para evitar problemas con el closure
@@ -814,10 +814,10 @@ export function AIChatAgent({
       // Agregar el enlace como elemento <a>
       const linkText = match[1];
       const linkUrl = match[2];
-      
+
       // Verificar si es una URL relativa (empieza con /) o absoluta
       const isRelative = linkUrl.startsWith('/');
-      
+
       parts.push(
         <a
           key={`link-${key++}`}
@@ -880,15 +880,15 @@ export function AIChatAgent({
     }
     e.stopPropagation();
     const rect = containerRef.current.getBoundingClientRect();
-    
+
     // Guardar posición inicial del mouse para detectar si se arrastró
     dragStartPos.current = { x: e.clientX, y: e.clientY };
     hasMoved.current = false;
-    
+
     // Calcular offset basado en la posición del click dentro del elemento
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
-    
+
     // Si está en posición inicial (usando right/bottom), guardar la posición real
     if (position.x === 0 && position.y === 0) {
       // Calcular posición real desde el viewport y guardarla en ref
@@ -899,7 +899,7 @@ export function AIChatAgent({
     } else {
       initialPositionRef.current = null;
     }
-    
+
     setDragOffset({
       x: offsetX,
       y: offsetY
@@ -915,7 +915,7 @@ export function AIChatAgent({
     const rect = containerRef.current.getBoundingClientRect();
     const offsetX = touch.clientX - rect.left;
     const offsetY = touch.clientY - rect.top;
-    
+
     // Si está en posición inicial (usando right/bottom), guardar la posición real
     if (position.x === 0 && position.y === 0) {
       initialPositionRef.current = {
@@ -925,7 +925,7 @@ export function AIChatAgent({
     } else {
       initialPositionRef.current = null;
     }
-    
+
     setDragOffset({
       x: offsetX,
       y: offsetY
@@ -939,7 +939,7 @@ export function AIChatAgent({
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return;
       e.preventDefault();
-      
+
       // Detectar si realmente se está arrastrando (movimiento > 5px)
       if (dragStartPos.current) {
         const dx = Math.abs(e.clientX - dragStartPos.current.x);
@@ -952,11 +952,11 @@ export function AIChatAgent({
         hasMoved.current = true;
         dragStartPos.current = null;
       }
-      
+
       // Calcular nueva posición basada en coordenadas del mouse menos el offset
       let newX = e.clientX - dragOffset.x;
       let newY = e.clientY - dragOffset.y;
-      
+
       // Si acabamos de empezar a arrastrar desde posición inicial (right/bottom),
       // convertir a coordenadas left/top y actualizar la posición una vez
       if (initialPositionRef.current) {
@@ -966,17 +966,17 @@ export function AIChatAgent({
         // Limpiar la ref para que no se vuelva a ejecutar
         initialPositionRef.current = null;
       }
-      
+
       // Limitar a los bordes de la ventana
       const containerWidth = containerRef.current.offsetWidth || 384;
       const containerHeight = containerRef.current.offsetHeight || (isMinimized ? 80 : 600);
       const maxX = window.innerWidth - containerWidth;
       const maxY = window.innerHeight - containerHeight;
-      
+
       // Asegurar que no se salga de los límites
       newX = Math.max(0, Math.min(newX, maxX));
       newY = Math.max(0, Math.min(newY, maxY));
-      
+
       setPosition({
         x: newX,
         y: newY
@@ -987,25 +987,25 @@ export function AIChatAgent({
       if (!containerRef.current) return;
       e.preventDefault();
       const touch = e.touches[0];
-      
+
       let newX = touch.clientX - dragOffset.x;
       let newY = touch.clientY - dragOffset.y;
-      
+
       // Si acabamos de empezar a arrastrar desde posición inicial, convertir a left/top
       if (initialPositionRef.current) {
         newX = touch.clientX - dragOffset.x;
         newY = touch.clientY - dragOffset.y;
         initialPositionRef.current = null;
       }
-      
+
       const containerWidth = containerRef.current.offsetWidth || 384;
       const containerHeight = containerRef.current.offsetHeight || (isMinimized ? 80 : 600);
       const maxX = window.innerWidth - containerWidth;
       const maxY = window.innerHeight - containerHeight;
-      
+
       newX = Math.max(0, Math.min(newX, maxX));
       newY = Math.max(0, Math.min(newY, maxY));
-      
+
       setPosition({
         x: newX,
         y: newY
@@ -1055,7 +1055,7 @@ export function AIChatAgent({
       const paddingBottom = parseFloat(computedStyle.paddingBottom) || 12;
       const singleLineHeight = lineHeight + paddingTop + paddingBottom;
       const maxHeight = singleLineHeight * 3; // 3 renglones
-      
+
       inputRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
       inputRef.current.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
     }
@@ -1082,7 +1082,7 @@ export function AIChatAgent({
     let shouldDeactivateNanoBananaMode = false;
     let detectedNanoBananaDomain: NanoBananaDomain = 'ui';
     let detectedNanoBananaFormat: OutputFormat = 'wireframe';
-    
+
     try {
       const intentResult = await IntentDetectionService.detectIntent(inputMessage);
       console.log('[LIA Agent] 🔍 Detección de intención:', {
@@ -1091,12 +1091,12 @@ export function AIChatAgent({
         currentMode: isNanoBananaMode ? 'nanobana' : isPromptMode ? 'prompts' : 'normal',
         entities: intentResult.entities
       });
-      
+
       // CASO 0: Detectar intención de NanoBanana (prioridad alta)
       if (!isNanoBananaMode && !isPromptMode && intentResult.intent === 'nanobana' && intentResult.confidence >= 0.65) {
 
         shouldActivateNanoBananaMode = true;
-        
+
         // Usar dominio y formato detectados si están disponibles
         if (intentResult.entities?.nanobananaDomain) {
           detectedNanoBananaDomain = intentResult.entities.nanobananaDomain;
@@ -1104,13 +1104,13 @@ export function AIChatAgent({
         if (intentResult.entities?.outputFormat) {
           detectedNanoBananaFormat = intentResult.entities.outputFormat;
         }
-        
+
         const domainNames: Record<NanoBananaDomain, string> = {
           ui: 'UI/Interfaz',
           photo: 'Fotografía',
           diagram: 'Diagrama'
         };
-        
+
         // No agregar mensaje automático - mostrar info en fondo vacío
         setIsNanoBananaMode(true);
         setNanoBananaDomain(detectedNanoBananaDomain);
@@ -1119,14 +1119,14 @@ export function AIChatAgent({
       // CASO 0.5: Si estamos en modo NanoBanana, detectar intenciones para cambiar a CUALQUIER otro modo
       else if (isNanoBananaMode) {
         const messageLower = inputMessage.toLowerCase().trim();
-        
+
         // 🎯 Detectar si quiere cambiar a MODO PROMPTS
         if (intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
           shouldDeactivateNanoBananaMode = true;
           shouldActivatePromptMode = true;
           setIsNanoBananaMode(false);
           setIsPromptMode(true);
-          
+
           const systemMessage: Message = {
             id: `system-${Date.now()}`,
             role: 'assistant',
@@ -1139,7 +1139,7 @@ export function AIChatAgent({
         else if (intentResult.intent === 'navigate') {
           shouldDeactivateNanoBananaMode = true;
           setIsNanoBananaMode(false);
-          
+
           const systemMessage: Message = {
             id: `system-${Date.now()}`,
             role: 'assistant',
@@ -1165,7 +1165,7 @@ export function AIChatAgent({
             'cuántos', 'cuantos', 'cuántas', 'cuantas', 'aprendo', 'aprender', 'enseña',
             'material', 'materiales', 'duración', 'duracion'
           ];
-          
+
           // Patrones de preguntas generales
           const generalQuestionPatterns = [
             /\bcuántos?\b/i, /\bcuantos?\b/i,
@@ -1173,14 +1173,14 @@ export function AIChatAgent({
             /\bcómo\s+(funciona|puedo|hago)\b/i, /\bcomo\s+(funciona|puedo|hago)\b/i,
             /\bdónde\s+(está|encuentro)\b/i, /\bdonde\s+(esta|encuentro)\b/i
           ];
-          
+
           const isNonNanoBananaQuestion = nonNanoBananaKeywords.some(keyword => messageLower.includes(keyword)) ||
-                                          generalQuestionPatterns.some(p => p.test(messageLower));
-          
+            generalQuestionPatterns.some(p => p.test(messageLower));
+
           if (isNonNanoBananaQuestion) {
             shouldDeactivateNanoBananaMode = true;
             setIsNanoBananaMode(false);
-            
+
             const systemMessage: Message = {
               id: `system-${Date.now()}`,
               role: 'assistant',
@@ -1202,13 +1202,13 @@ export function AIChatAgent({
             /\bdame\s+(el\s+)?(link|enlace)\b/i,
             /\bquiero\s+(ir|ver|acceder)\s+a\b/i
           ];
-          
+
           const isExplicitExit = explicitExitPatterns.some(p => p.test(messageLower));
-          
+
           if (isExplicitExit) {
             shouldDeactivateNanoBananaMode = true;
             setIsNanoBananaMode(false);
-            
+
             const systemMessage: Message = {
               id: `system-${Date.now()}`,
               role: 'assistant',
@@ -1225,7 +1225,7 @@ export function AIChatAgent({
       else if (!isPromptMode && !isNanoBananaMode && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
 
         shouldActivatePromptMode = true;
-        
+
         // Agregar mensaje del sistema notificando el cambio
         const systemMessage: Message = {
           id: `system-${Date.now()}`,
@@ -1233,14 +1233,14 @@ export function AIChatAgent({
           content: "✨ He detectado que quieres crear un prompt. He activado el Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?",
           timestamp: new Date()
         };
-        
+
         setPromptMessages(prev => [...prev, systemMessage]);
         setIsPromptMode(true);
       }
       // CASO 2: Si ESTAMOS en modo prompts, MANTENER el modo a menos que sea EXPLÍCITAMENTE una petición de navegación
       else if (isPromptMode && intentResult.intent !== 'create_prompt') {
         const messageLower = inputMessage.toLowerCase().trim();
-        
+
         // Solo salir del modo prompts si es una petición EXPLÍCITA de navegación o quiere NanoBanana
         const explicitExitPatterns = [
           /\b(ll[eé]vame|llevame|llévame)\b/i,
@@ -1251,7 +1251,7 @@ export function AIChatAgent({
           /\b(salir|salte|terminar|cancelar)\b.*\b(prompt|modo)\b/i,
           /\b(no\s+quiero|ya\s+no)\b.*\bprompt\b/i
         ];
-        
+
         // 🎨 Patrones mejorados para detectar intención de NanoBanana (generación visual/imágenes)
         const nanoBananaKeywords = [
           /\bnanobana(na)?\b/i,
@@ -1270,19 +1270,19 @@ export function AIChatAgent({
           shouldActivateNanoBananaMode = true;
           setIsPromptMode(false);
           setIsNanoBananaMode(true);
-          
+
           // No agregar mensaje automático - mostrar info en fondo vacío
         } else if (isExplicitExit) {
 
           shouldDeactivatePromptMode = true;
-          
+
           const systemMessage: Message = {
             id: `system-${Date.now()}`,
             role: 'assistant',
             content: "🧠 He cambiado al modo normal para ayudarte.",
             timestamp: new Date()
           };
-          
+
           setNormalMessages(prev => [...prev, systemMessage]);
           setIsPromptMode(false);
         } else {
@@ -1308,7 +1308,7 @@ export function AIChatAgent({
     // 🎯 IMPORTANTE: Solo esperar sin responder si se ACTIVÓ un modo especial (NanoBanana/Prompts)
     // Si se DESACTIVÓ (salió) de un modo especial CON una pregunta, debe continuar y responder
     const shouldWaitForDescription = shouldActivateNanoBananaMode || shouldActivatePromptMode;
-    
+
     if (shouldWaitForDescription) {
 
       // Agregar el mensaje del usuario al historial correspondiente
@@ -1329,7 +1329,7 @@ export function AIChatAgent({
       }, 0);
       return; // NO llamar al API, esperar que el usuario describa lo que quiere
     }
-    
+
     // Si se DESACTIVÓ un modo especial, continuar para responder la pregunta
     if (shouldDeactivateNanoBananaMode || shouldDeactivatePromptMode) {
 
@@ -1343,7 +1343,7 @@ export function AIChatAgent({
     } else {
       setNormalMessages(prev => [...prev, userMessage]);
     }
-    
+
     setInputMessage('');
     // Resetear altura del textarea
     setTimeout(() => {
@@ -1381,7 +1381,7 @@ export function AIChatAgent({
         }
 
         const data = await response.json();
-        
+
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -1394,7 +1394,7 @@ export function AIChatAgent({
           const jsonStr = data.jsonString || JSON.stringify(data.generatedSchema, null, 2);
           const domainValue = data.domain || 'ui';
           const formatValue = data.outputFormat || 'wireframe';
-          
+
           // Guardar en el mensaje para poder reabrirlo
           assistantMessage.generatedNanoBanana = {
             schema: data.generatedSchema,
@@ -1402,7 +1402,7 @@ export function AIChatAgent({
             domain: domainValue,
             outputFormat: formatValue
           };
-          
+
           // Guardar en el estado global
           setNanoBananaSchema(data.generatedSchema);
           setNanoBananaJsonString(jsonStr);
@@ -1410,7 +1410,7 @@ export function AIChatAgent({
           setNanoBananaFormat(formatValue);
           setIsNanoBananaPanelOpen(true);
         }
-        
+
         setNanoBananaMessages(prev => [...prev, assistantMessage]);
       }
       // Si está en modo prompt efectivo (activado o recién activado, y no desactivándose)
@@ -1436,16 +1436,16 @@ export function AIChatAgent({
         }
 
         const data = await response.json();
-        
+
         // Determinar el contenido del mensaje
         let messageContent = data.response || responseFallback;
-        
+
         // Si hay un prompt generado, mostrar un mensaje amigable en lugar del JSON
         if (data.generatedPrompt) {
           const promptTitle = data.generatedPrompt.title || 'Tu prompt';
           messageContent = `¡Listo! He generado el prompt "${promptTitle}". Puedes verlo, copiarlo o guardarlo en tu biblioteca usando el panel que aparece arriba. ¿Necesitas algún ajuste o tienes otra idea de prompt?`;
         }
-        
+
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -1460,7 +1460,7 @@ export function AIChatAgent({
           setIsPromptPanelOpen(true);
           setSelectedPromptMessageId(assistantMessage.id);
         }
-        
+
         setPromptMessages(prev => [...prev, assistantMessage]);
       } else {
         // Modo normal de chat
@@ -1517,7 +1517,7 @@ export function AIChatAgent({
         }
 
         const data = await response.json();
-        
+
         // ✅ ANALYTICS: Guardar conversationId que viene del backend
         if (data.conversationId && !conversationId) {
           setConversationId(data.conversationId);
@@ -1546,7 +1546,7 @@ export function AIChatAgent({
         content: errorContent,
         timestamp: new Date()
       };
-      
+
       // Usar el setter correcto según el modo
       if (isPromptMode) {
         setPromptMessages(prev => [...prev, errorMessage]);
@@ -1568,15 +1568,15 @@ export function AIChatAgent({
   // 🎙️ Inicializar reconocimiento de voz cuando cambia el idioma
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
+
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
       recognition.lang = speechLanguageMap[language] || 'es-ES';
       recognition.continuous = false;
       recognition.interimResults = false;
-      
+
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         if (transcript.trim()) {
@@ -1584,23 +1584,23 @@ export function AIChatAgent({
         }
         setIsRecording(false);
       };
-      
+
       recognition.onerror = (event: any) => {
         console.warn('Speech recognition error:', event.error);
         setIsRecording(false);
-        
+
         if (event.error === 'not-allowed') {
           alert(tCommon('aiChat.voice.microphoneError'));
         }
       };
-      
+
       recognition.onend = () => {
         setIsRecording(false);
       };
-      
+
       recognitionRef.current = recognition;
     }
-    
+
     return () => {
       if (recognitionRef.current) {
         try {
@@ -1611,13 +1611,13 @@ export function AIChatAgent({
       }
     };
   }, [language, tCommon]);
-  
+
   const toggleRecording = useCallback(async () => {
     if (!recognitionRef.current) {
       alert(tCommon('aiChat.voice.speechNotSupported'));
       return;
     }
-    
+
     if (isRecording) {
       try {
         recognitionRef.current.stop();
@@ -1629,16 +1629,16 @@ export function AIChatAgent({
       try {
         // Solicitar permisos del micrófono primero
         await navigator.mediaDevices.getUserMedia({ audio: true });
-        
+
         // Actualizar el idioma del reconocimiento
         recognitionRef.current.lang = speechLanguageMap[language] || 'es-ES';
-        
+
         recognitionRef.current.start();
         setIsRecording(true);
       } catch (error: any) {
         console.error('Error starting speech recognition:', error);
         setIsRecording(false);
-        
+
         if (error?.name === 'NotAllowedError') {
           alert(tCommon('aiChat.voice.microphoneError'));
         }
@@ -1709,7 +1709,7 @@ export function AIChatAgent({
       }
 
       const data = await response.json();
-      
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -1798,7 +1798,7 @@ export function AIChatAgent({
       e.stopPropagation();
       e.preventDefault();
     }
-    
+
     // Si se está arrastrando o se movió el mouse, no ejecutar el toggle
     if (isDragging || hasMoved.current) {
       return;
@@ -1842,7 +1842,7 @@ export function AIChatAgent({
       setShowClearConfirm(true);
       return;
     }
-    
+
     executeClearConversation();
   };
 
@@ -1855,7 +1855,7 @@ export function AIChatAgent({
       if (useContextMode) {
         try {
           localStorage.removeItem(STORAGE_KEY_CONTEXT_MESSAGES);
-        } catch {}
+        } catch { }
       }
     }
     setGeneratedPrompt(null);
@@ -2015,7 +2015,7 @@ Fecha: ${new Date().toLocaleString()}
                   title={reportProblemLabel}
                 >
                   <Bug className="w-6 h-6 text-white" />
-                  
+
                   {/* Tooltip */}
                   <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                     Reportar problema
@@ -2043,7 +2043,7 @@ Fecha: ${new Date().toLocaleString()}
             >
               <ChevronUp className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
             </motion.div>
-            
+
             {/* Tooltip */}
             <div className="absolute right-full mr-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
               {areButtonsExpanded ? "Ocultar opciones" : "Mostrar opciones"}
@@ -2085,9 +2085,9 @@ Fecha: ${new Date().toLocaleString()}
                   ease: "easeInOut"
                 }}
               />
-              
+
               <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-full">
-                <img 
+                <img
                   src={assistantAvatar}
                   alt={assistantName}
                   className="w-full h-full object-cover"
@@ -2127,7 +2127,7 @@ Fecha: ${new Date().toLocaleString()}
           >
             <div className="rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-[#0A2540]/30 flex flex-col bg-white dark:bg-[#1E2329] h-full">
               {/* Header del modal de prompt */}
-              <motion.div 
+              <motion.div
                 className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 p-4 relative overflow-hidden flex-shrink-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -2145,7 +2145,7 @@ Fecha: ${new Date().toLocaleString()}
                     ease: "linear"
                   }}
                 />
-                
+
                 <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1">
                     <div className="relative p-2 rounded-lg bg-white/20 backdrop-blur-sm">
@@ -2153,7 +2153,7 @@ Fecha: ${new Date().toLocaleString()}
                     </div>
                     <h3 className="text-lg font-bold text-white">Prompt Generado</h3>
                   </div>
-                  
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2167,9 +2167,9 @@ Fecha: ${new Date().toLocaleString()}
                   </button>
                 </div>
               </motion.div>
-              
+
               {/* Contenido del prompt */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0a0a0a] min-h-0 overscroll-contain" style={{ 
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0a0a0a] min-h-0 overscroll-contain" style={{
                 scrollBehavior: 'smooth',
                 WebkitOverflowScrolling: 'touch'
               }}>
@@ -2182,7 +2182,7 @@ Fecha: ${new Date().toLocaleString()}
                   </div>
                   <p className="text-gray-700 dark:text-slate-300 text-sm break-words">{generatedPrompt.title}</p>
                 </div>
-                
+
                 <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-600/30">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                     <MessageSquare className="w-4 h-4 text-[#00D4B3] dark:text-[#00D4B3]" />
@@ -2192,7 +2192,7 @@ Fecha: ${new Date().toLocaleString()}
                     <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm leading-relaxed break-words">{generatedPrompt.content}</pre>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-2">
                   {generatedPrompt.tags.slice(0, 3).map((tag, index) => (
                     <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-full text-xs">
@@ -2200,7 +2200,7 @@ Fecha: ${new Date().toLocaleString()}
                     </span>
                   ))}
                 </div>
-                
+
                 <motion.button
                   onClick={handleDownloadPrompt}
                   whileHover={{ scale: 1.02 }}
@@ -2235,463 +2235,456 @@ Fecha: ${new Date().toLocaleString()}
               maxHeight: calculateMaxHeight,
             }}
           >
-        <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-[#0A2540]/30 flex flex-col bg-white dark:bg-[#1E2329] h-full`}>
-          {/* Header con gradiente - compacto */}
-          <motion.div 
-            className={`${theme.header} px-2 py-2 relative flex-shrink-0`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 min-w-0" ref={modeMenuRef}>
-                {/* Avatar */}
-                <div className="relative w-8 h-8">
-                  <Image
-                    src={assistantAvatar}
-                    alt={assistantName}
-                    fill
-                    className="rounded-full object-cover border border-white/60"
-                    sizes="32px"
-                  />
-                  {/* Indicador de estado en línea */}
-                  <motion.div
-                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#00D4B3] rounded-full border border-white/70"
-                    animate={{
-                      scale: [1, 1.2, 1],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  />
-                </div>
-                
-                {/* Botón clickeable para seleccionar modo (similar a ChatGPT) */}
-                <button
-                  onClick={() => setModeMenuOpen(!modeMenuOpen)}
-                  className="flex items-center gap-2 leading-none min-w-0 hover:opacity-80 transition-opacity group"
-                >
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-white font-semibold text-sm">{assistantName}</h3>
-                    <span className={`text-[11px] px-2 py-1 rounded-full border truncate max-w-[140px] font-medium ${
-                      currentMode === 'nanobana' 
-                        ? 'text-amber-100 bg-amber-500/40 border-amber-400/60' 
-                        : currentMode === 'prompt'
-                        ? 'text-purple-100 bg-purple-500/40 border-purple-400/60'
-                        : currentMode === 'analysis'
-                        ? 'text-white bg-white/25 border-white/40'
-                        : 'text-white bg-white/25 border-white/40'
-                    }`}>
-                      {currentMode === 'nanobana' ? 'Generador de Imágenes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
-                    </span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-white/70 transition-transform ${modeMenuOpen ? 'rotate-180' : ''}`} />
-                  </div>
-                </button>
-
-                {/* Menú desplegable - Ahora aparece debajo del nombre/tag */}
-                <AnimatePresence>
-                  {modeMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute left-0 top-12 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-xl overflow-hidden z-50 min-w-[280px]"
-                    >
-                      <div className="py-2">
-                        {/* Header del modal con X a la derecha */}
-                        <div className="px-4 py-2 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between">
-                          <div className="text-sm font-semibold text-[#0A2540] dark:text-white">LIA</div>
-                          <button
-                            onClick={() => setModeMenuOpen(false)}
-                            className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors text-[#6C757D] dark:text-white/60"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                        
-                        <div className="py-1">
-                        {/* NANOBANA */}
-                        <button
-                            className={`w-full text-left px-4 py-3 hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors ${
-                              currentMode === 'nanobana' ? 'bg-[#F8F9FA] dark:bg-[#1E2329]/30' : ''
-                            }`}
-                          onClick={() => { 
-                            setIsNanoBananaMode(true); 
-                            setIsPromptMode(false); 
-                            setUseContextMode(false); 
-                            setModeMenuOpen(false);
-                          }}
-                        >
-                          <div className="flex items-start gap-3">
-                              <div className="mt-0.5 w-2 h-2 rounded-full bg-amber-500"></div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <div className={`text-sm font-medium ${currentMode==='nanobana' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>
-                                    Generador de Imágenes
-                                </div>
-                                <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-full font-medium">
-                                  NEW
-                                </span>
-                                  {currentMode === 'nanobana' && (
-                                    <CheckCircle2 className="w-4 h-4 text-[#00D4B3] ml-auto" />
-                                  )}
-                              </div>
-                                <div className="text-xs text-[#6C757D] dark:text-white/60">{nanobanaDesc}</div>
-                            </div>
-                          </div>
-                        </button>
-                        {/* PROMPT */}
-                        <button
-                            className={`w-full text-left px-4 py-3 hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors ${
-                              currentMode === 'prompt' ? 'bg-[#F8F9FA] dark:bg-[#1E2329]/30' : ''
-                            }`}
-                          onClick={() => { setIsPromptMode(true); setIsNanoBananaMode(false); setUseContextMode(false); setModeMenuOpen(false); if (promptMessages.length===0) handleOpenPromptMode(); }}
-                        >
-                          <div className="flex items-start gap-3">
-                              <div className="mt-0.5 w-2 h-2 rounded-full bg-purple-500"></div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <div className={`text-sm font-medium ${currentMode==='prompt' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>{promptModeTitle}</div>
-                                  {currentMode === 'prompt' && (
-                                    <CheckCircle2 className="w-4 h-4 text-[#00D4B3] ml-auto" />
-                                  )}
-                                </div>
-                                <div className="text-xs text-[#6C757D] dark:text-white/60">{promptModeDesc}</div>
-                            </div>
-                          </div>
-                        </button>
-                        {/* CONTEXTO PERSISTENTE */}
-                        <button
-                            className={`w-full text-left px-4 py-3 hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors ${
-                              currentMode === 'analysis' ? 'bg-[#F8F9FA] dark:bg-[#1E2329]/30' : ''
-                            }`}
-                          onClick={() => { setUseContextMode(true); setIsPromptMode(false); setIsNanoBananaMode(false); setModeMenuOpen(false); }}
-                        >
-                          <div className="flex items-start gap-3">
-                              <div className="mt-0.5 w-2 h-2 rounded-full bg-[#00D4B3]"></div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <div className={`text-sm font-medium ${currentMode==='analysis' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>
-                                  {contextModeTitle}
-                                </div>
-                                {normalMessages.length > 0 && useContextMode && (
-                                    <span className="text-[10px] px-1.5 py-0.5 bg-[#00D4B3]/20 text-[#00D4B3] rounded-full font-medium">
-                                    {normalMessages.length} msg
-                                  </span>
-                                )}
-                                  {currentMode === 'analysis' && (
-                                    <CheckCircle2 className="w-4 h-4 text-[#00D4B3] ml-auto" />
-                                  )}
-                              </div>
-                                <div className="text-xs text-[#6C757D] dark:text-white/60">
-                                {contextModeDesc}
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              
-              <div className="flex items-center gap-1">
-                {/* Botón limpiar conversación */}
-                <button
-                  onClick={handleClearConversation}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
-                  aria-label={clearConversationLabel}
-                  title={clearConversationLabel}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={handleClose}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-          
-          {/* Contenedor principal del chat */}
-          <div className="flex flex-col w-full h-full flex-1 min-h-0 overflow-hidden">
-
-          {/* Mensajes */}
-          {(
-            <motion.div 
-              className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0a0a0a] min-h-0 overscroll-contain relative"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              style={{ 
-                scrollBehavior: 'smooth'
-              }}
-            >
-              {/* 🎯 INDICADOR DE CONTEXTO PREVIO */}
-              {useContextMode && messages.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="sticky top-0 z-10 mb-2"
-                >
-                  <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2 backdrop-blur-sm">
-                    <div className="flex items-center gap-2 text-xs text-[#00D4B3] dark:text-[#00D4B3]">
-                      <Brain className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="font-medium">
-                        Contexto activo: {messages.length} mensaje{messages.length !== 1 ? 's' : ''} {messages.length > MAX_CONTEXT_MESSAGES ? `(mostrando últimos ${MAX_CONTEXT_MESSAGES})` : ''}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(clearContextConfirmLabel)) {
-                          clearContextMessages();
-                        }
-                      }}
-                      className="text-[#00D4B3] dark:text-[#00D4B3] hover:text-[#00b89a] dark:hover:text-[#00b89a] transition-colors"
-                      title={clearContextLabel}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Fondo informativo del modelo */}
-              {messages.length === 0 && (
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-6">
-                  <div className="max-w-sm text-center opacity-80">
-                    <div className="mx-auto mb-3 w-16 h-16 rounded-full flex items-center justify-center shadow-lg overflow-hidden bg-transparent">
-                      {/* Usa el logo/avatares reales si existen */}
-                      <img src="/Logo.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
-                    </div>
-                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1 text-base">
-                      {currentMode === 'nanobana' ? 'Generador de Imágenes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
-                    </h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                      {currentMode === 'nanobana'
-                        ? nanobanaDesc
-                        : currentMode === 'prompt'
-                        ? promptModeEmptyDesc
-                        : currentMode === 'analysis'
-                        ? contextModeEmptyDesc
-                        : assistantModeEmptyDesc}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {messages.map((message, index) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                >
-                  {/* Avatar del mensaje */}
-                  {message.role === 'user' ? (
-                  <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border ${theme.borderUser} relative`}>
-                      {user?.profile_picture_url ? (
-                        <Image
-                          src={user.profile_picture_url}
-                          alt={user.display_name || user.username || 'Usuario'}
-                          fill
-                          className="object-cover"
-                          sizes="40px"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-r from-[#0A2540] to-[#00D4B3] flex items-center justify-center">
-                          <User className="w-6 h-6 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border ${theme.borderUser} relative`}>
+            <div className={`rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-[#0A2540]/30 flex flex-col bg-white dark:bg-[#1E2329] h-full`}>
+              {/* Header con gradiente - compacto */}
+              <motion.div
+                className={`${theme.header} px-2 py-2 relative flex-shrink-0`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1 min-w-0" ref={modeMenuRef}>
+                    {/* Avatar */}
+                    <div className="relative w-8 h-8">
                       <Image
                         src={assistantAvatar}
                         alt={assistantName}
                         fill
-                        className="object-cover"
-                        sizes="40px"
+                        className="rounded-full object-cover border border-white/60"
+                        sizes="32px"
+                      />
+                      {/* Indicador de estado en línea */}
+                      <motion.div
+                        className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#00D4B3] rounded-full border border-white/70"
+                        animate={{
+                          scale: [1, 1.2, 1],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
                       />
                     </div>
-                  )}
-                  
-                  {/* Contenido del mensaje */}
-                  <div className={`flex-1 rounded-2xl px-3.5 py-3 shadow-lg ${
-                    message.role === 'user'
-                      ? 'bg-[#10B981] text-white' // Verde Suave SOFIA para mensajes del usuario
-                      : 'bg-[#0A2540] text-white dark:bg-[#0A2540]' // Azul Profundo SOFIA para mensajes de LIA
-                  }`}>
-                    <p className="text-[13px] leading-relaxed whitespace-pre-wrap font-medium">
-                      {renderTextWithLinks(message.content)}
-                    </p>
-                    
-                    {/* Botón para reabrir prompt si el mensaje tiene un prompt generado */}
-                    {message.role === 'assistant' && message.generatedPrompt && isPromptMode && (
+
+                    {/* Botón clickeable para seleccionar modo (similar a ChatGPT) */}
+                    <button
+                      onClick={() => setModeMenuOpen(!modeMenuOpen)}
+                      className="flex items-center gap-2 leading-none min-w-0 hover:opacity-80 transition-opacity group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-white font-semibold text-sm">{assistantName}</h3>
+                        <span className={`text-[11px] px-2 py-1 rounded-full border truncate max-w-[140px] font-medium ${currentMode === 'nanobana'
+                          ? 'text-amber-100 bg-amber-500/40 border-amber-400/60'
+                          : currentMode === 'prompt'
+                            ? 'text-purple-100 bg-purple-500/40 border-purple-400/60'
+                            : currentMode === 'analysis'
+                              ? 'text-white bg-white/25 border-white/40'
+                              : 'text-white bg-white/25 border-white/40'
+                          }`}>
+                          {currentMode === 'nanobana' ? 'Generador de Imágenes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
+                        </span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-white/70 transition-transform ${modeMenuOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+
+                    {/* Menú desplegable - Ahora aparece debajo del nombre/tag */}
+                    <AnimatePresence>
+                      {modeMenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute left-0 top-12 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-xl overflow-hidden z-50 min-w-[280px]"
+                        >
+                          <div className="py-2">
+                            {/* Header del modal con X a la derecha */}
+                            <div className="px-4 py-2 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between">
+                              <div className="text-sm font-semibold text-[#0A2540] dark:text-white">LIA</div>
+                              <button
+                                onClick={() => setModeMenuOpen(false)}
+                                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors text-[#6C757D] dark:text-white/60"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="py-1">
+                              {/* NANOBANA */}
+                              <button
+                                className={`w-full text-left px-4 py-3 hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors ${currentMode === 'nanobana' ? 'bg-[#F8F9FA] dark:bg-[#1E2329]/30' : ''
+                                  }`}
+                                onClick={() => {
+                                  setIsNanoBananaMode(true);
+                                  setIsPromptMode(false);
+                                  setUseContextMode(false);
+                                  setModeMenuOpen(false);
+                                }}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="mt-0.5 w-2 h-2 rounded-full bg-amber-500"></div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <div className={`text-sm font-medium ${currentMode === 'nanobana' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>
+                                        Generador de Imágenes
+                                      </div>
+                                      <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-full font-medium">
+                                        NEW
+                                      </span>
+                                      {currentMode === 'nanobana' && (
+                                        <CheckCircle2 className="w-4 h-4 text-[#00D4B3] ml-auto" />
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-[#6C757D] dark:text-white/60">{nanobanaDesc}</div>
+                                  </div>
+                                </div>
+                              </button>
+                              {/* PROMPT */}
+                              <button
+                                className={`w-full text-left px-4 py-3 hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors ${currentMode === 'prompt' ? 'bg-[#F8F9FA] dark:bg-[#1E2329]/30' : ''
+                                  }`}
+                                onClick={() => { setIsPromptMode(true); setIsNanoBananaMode(false); setUseContextMode(false); setModeMenuOpen(false); if (promptMessages.length === 0) handleOpenPromptMode(); }}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="mt-0.5 w-2 h-2 rounded-full bg-purple-500"></div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <div className={`text-sm font-medium ${currentMode === 'prompt' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>{promptModeTitle}</div>
+                                      {currentMode === 'prompt' && (
+                                        <CheckCircle2 className="w-4 h-4 text-[#00D4B3] ml-auto" />
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-[#6C757D] dark:text-white/60">{promptModeDesc}</div>
+                                  </div>
+                                </div>
+                              </button>
+                              {/* CONTEXTO PERSISTENTE */}
+                              <button
+                                className={`w-full text-left px-4 py-3 hover:bg-[#F8F9FA] dark:hover:bg-[#1E2329]/50 transition-colors ${currentMode === 'analysis' ? 'bg-[#F8F9FA] dark:bg-[#1E2329]/30' : ''
+                                  }`}
+                                onClick={() => { setUseContextMode(true); setIsPromptMode(false); setIsNanoBananaMode(false); setModeMenuOpen(false); }}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="mt-0.5 w-2 h-2 rounded-full bg-[#00D4B3]"></div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <div className={`text-sm font-medium ${currentMode === 'analysis' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>
+                                        {contextModeTitle}
+                                      </div>
+                                      {normalMessages.length > 0 && useContextMode && (
+                                        <span className="text-[10px] px-1.5 py-0.5 bg-[#00D4B3]/20 text-[#00D4B3] rounded-full font-medium">
+                                          {normalMessages.length} msg
+                                        </span>
+                                      )}
+                                      {currentMode === 'analysis' && (
+                                        <CheckCircle2 className="w-4 h-4 text-[#00D4B3] ml-auto" />
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-[#6C757D] dark:text-white/60">
+                                      {contextModeDesc}
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {/* Botón limpiar conversación */}
+                    <button
+                      onClick={handleClearConversation}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
+                      aria-label={clearConversationLabel}
+                      title={clearConversationLabel}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={handleClose}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Contenedor principal del chat */}
+              <div className="flex flex-col w-full h-full flex-1 min-h-0 overflow-hidden">
+
+                {/* Mensajes */}
+                {(
+                  <motion.div
+                    className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0a0a0a] min-h-0 overscroll-contain relative"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    style={{
+                      scrollBehavior: 'smooth'
+                    }}
+                  >
+                    {/* 🎯 INDICADOR DE CONTEXTO PREVIO */}
+                    {useContextMode && messages.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="sticky top-0 z-10 mb-2"
+                      >
+                        <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/30 rounded-lg px-3 py-2 flex items-center justify-between gap-2 backdrop-blur-sm">
+                          <div className="flex items-center gap-2 text-xs text-[#00D4B3] dark:text-[#00D4B3]">
+                            <Brain className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="font-medium">
+                              Contexto activo: {messages.length} mensaje{messages.length !== 1 ? 's' : ''} {messages.length > MAX_CONTEXT_MESSAGES ? `(mostrando últimos ${MAX_CONTEXT_MESSAGES})` : ''}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(clearContextConfirmLabel)) {
+                                clearContextMessages();
+                              }
+                            }}
+                            className="text-[#00D4B3] dark:text-[#00D4B3] hover:text-[#00b89a] dark:hover:text-[#00b89a] transition-colors"
+                            title={clearContextLabel}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Fondo informativo del modelo */}
+                    {messages.length === 0 && (
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-6">
+                        <div className="max-w-sm text-center opacity-80">
+                          <div className="mx-auto mb-3 w-16 h-16 rounded-full flex items-center justify-center shadow-lg overflow-hidden bg-transparent">
+                            {/* Usa el logo/avatares reales si existen */}
+                            <img src="/Logo.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
+                          </div>
+                          <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1 text-base">
+                            {currentMode === 'nanobana' ? 'Generador de Imágenes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
+                          </h3>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                            {currentMode === 'nanobana'
+                              ? nanobanaDesc
+                              : currentMode === 'prompt'
+                                ? promptModeEmptyDesc
+                                : currentMode === 'analysis'
+                                  ? contextModeEmptyDesc
+                                  : assistantModeEmptyDesc}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {messages.map((message, index) => (
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                      >
+                        {/* Avatar del mensaje */}
+                        {message.role === 'user' ? (
+                          <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border ${theme.borderUser} relative`}>
+                            {user?.profile_picture_url ? (
+                              <Image
+                                src={user.profile_picture_url}
+                                alt={user.display_name || user.username || 'Usuario'}
+                                fill
+                                className="object-cover"
+                                sizes="40px"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-r from-[#0A2540] to-[#00D4B3] flex items-center justify-center">
+                                <User className="w-6 h-6 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border ${theme.borderUser} relative`}>
+                            <Image
+                              src={assistantAvatar}
+                              alt={assistantName}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
+                          </div>
+                        )}
+
+                        {/* Contenido del mensaje */}
+                        <div className={`flex-1 rounded-2xl px-3.5 py-3 shadow-lg ${message.role === 'user'
+                          ? 'bg-[#10B981] text-white' // Verde Suave SOFIA para mensajes del usuario
+                          : 'bg-[#0A2540] text-white dark:bg-[#0A2540]' // Azul Profundo SOFIA para mensajes de LIA
+                          }`}>
+                          <p className="text-[13px] leading-relaxed whitespace-pre-wrap font-medium">
+                            {renderTextWithLinks(message.content)}
+                          </p>
+
+                          {/* Botón para reabrir prompt si el mensaje tiene un prompt generado */}
+                          {message.role === 'assistant' && message.generatedPrompt && isPromptMode && (
+                            <motion.button
+                              onClick={() => {
+                                setGeneratedPrompt(message.generatedPrompt!);
+                                setIsPromptPanelOpen(true);
+                                setSelectedPromptMessageId(message.id);
+                              }}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              {tCommon('aiChat.promptMode.viewGenerated')}
+                            </motion.button>
+                          )}
+
+                          {/* Botón para reabrir NanoBanana JSON si el mensaje tiene uno generado */}
+                          {message.role === 'assistant' && message.generatedNanoBanana && (
+                            <motion.button
+                              onClick={() => {
+
+                                setNanoBananaSchema(message.generatedNanoBanana!.schema);
+                                setNanoBananaJsonString(message.generatedNanoBanana!.jsonString);
+                                setNanoBananaDomain(message.generatedNanoBanana!.domain);
+                                setNanoBananaFormat(message.generatedNanoBanana!.outputFormat);
+                                setIsNanoBananaPanelOpen(true);
+
+                              }}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
+                            >
+                              <Download className="w-3 h-3" />
+                              Ver JSON NanoBanana
+                            </motion.button>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    {/* Indicador de escritura */}
+                    {isTyping && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex gap-2 items-center"
+                      >
+                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
+                          <Image
+                            src={assistantAvatar}
+                            alt={assistantName}
+                            fill
+                            className="object-cover"
+                            sizes="40px"
+                          />
+                        </div>
+                        <div className="bg-white dark:bg-[#1E2329] border border-gray-200 dark:border-[#0A2540]/30 rounded-2xl px-4 py-3">
+                          <div className="flex gap-1">
+                            <motion.div
+                              className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
+                              animate={{ y: [0, -8, 0] }}
+                              transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                            />
+                            <motion.div
+                              className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
+                              animate={{ y: [0, -8, 0] }}
+                              transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                            />
+                            <motion.div
+                              className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
+                              animate={{ y: [0, -8, 0] }}
+                              transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    <div ref={messagesEndRef} />
+                  </motion.div>
+                )}
+
+                {/* Input */}
+                {(
+                  <motion.div
+                    className="p-2 border-t border-gray-200 dark:border-[#0A2540]/30 bg-white dark:bg-[#1E2329] flex-shrink-0"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <textarea
+                        ref={inputRef}
+                        value={inputMessage}
+                        onChange={(e) => {
+                          setInputMessage(e.target.value);
+                          // Ajustar altura dinámicamente usando la función helper
+                          setTimeout(() => adjustTextareaHeight(), 0);
+                        }}
+                        onKeyDown={handleKeyPress}
+                        placeholder={useContextMode ? "Escribe tu pregunta..." : (promptPlaceholder ?? placeholderText)}
+                        disabled={isTyping}
+                        rows={1}
+                        className={`flex-1 px-3 py-2 border ${useContextMode
+                          ? 'bg-white/90 dark:bg-[#1E2329] border-[#00D4B3] dark:border-[#00D4B3] ring-2 ring-[#00D4B3]/30'
+                          : `bg-white/90 dark:bg-[#1E2329] ${currentMode === 'prompt' ? 'border-purple-300 ring-2 ring-purple-300/30' : currentMode === 'analysis' ? 'border-[#00D4B3] ring-2 ring-[#00D4B3]/30' : 'border-[#00D4B3] ring-2 ring-[#00D4B3]/30'}`
+                          } rounded-lg focus:outline-none focus:ring-2 ${theme.ring} text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all resize-none`}
+                        style={{
+                          minHeight: '38px',
+                          lineHeight: '1.5'
+                        }}
+                      />
+
+                      {/* 🎬 Botón para activar/desactivar modo contextual */}
+                      {/* Botón de cerebro eliminado - el modo Análisis se controla con los chips */}
+
+                      {/* Botón dinámico: micrófono cuando está vacío, enviar cuando hay texto */}
                       <motion.button
                         onClick={() => {
-                          setGeneratedPrompt(message.generatedPrompt!);
-                          setIsPromptPanelOpen(true);
-                          setSelectedPromptMessageId(message.id);
+                          if (inputMessage.trim()) {
+                            // Si hay texto, enviar mensaje
+                            handleSendMessage();
+                          } else {
+                            // Si no hay texto, activar/desactivar grabación
+                            toggleRecording();
+                          }
                         }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
+                        disabled={isTyping && !!inputMessage.trim()}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300 ${inputMessage.trim()
+                          ? useContextMode
+                            ? 'bg-gradient-to-r from-[#00D4B3] to-[#00b89a] text-white hover:opacity-90 shadow-lg'
+                            : `bg-gradient-to-r ${theme.bubbleUser} text-white hover:opacity-90 shadow-lg`
+                          : isRecording
+                            ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/50'
+                            : `${currentMode === 'prompt' ? 'bg-purple-100 text-purple-600' : currentMode === 'analysis' ? 'bg-[#00D4B3]/20 text-[#00D4B3]' : 'bg-[#00D4B3]/20 text-[#00D4B3]'} hover:opacity-90` /* Aqua para botón de envío */
+                          } ${isTyping && !!inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        <Sparkles className="w-3 h-3" />
-                        {tCommon('aiChat.promptMode.viewGenerated')}
+                        {isTyping && inputMessage.trim() ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : inputMessage.trim() ? (
+                          <Send className="w-4 h-4" />
+                        ) : isRecording ? (
+                          <MicOff className="w-4 h-4" />
+                        ) : (
+                          <Mic className="w-4 h-4" />
+                        )}
                       </motion.button>
-                    )}
-                    
-                    {/* Botón para reabrir NanoBanana JSON si el mensaje tiene uno generado */}
-                    {message.role === 'assistant' && message.generatedNanoBanana && (
-                      <motion.button
-                        onClick={() => {
-
-                          setNanoBananaSchema(message.generatedNanoBanana!.schema);
-                          setNanoBananaJsonString(message.generatedNanoBanana!.jsonString);
-                          setNanoBananaDomain(message.generatedNanoBanana!.domain);
-                          setNanoBananaFormat(message.generatedNanoBanana!.outputFormat);
-                          setIsNanoBananaPanelOpen(true);
-
-                        }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
-                      >
-                        <Download className="w-3 h-3" />
-                        Ver JSON NanoBanana
-                      </motion.button>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-              
-              {/* Indicador de escritura */}
-              {isTyping && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex gap-2 items-center"
-                >
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 relative">
-                    <Image
-                      src={assistantAvatar}
-                      alt={assistantName}
-                      fill
-                      className="object-cover"
-                      sizes="40px"
-                    />
-                  </div>
-                  <div className="bg-white dark:bg-[#1E2329] border border-gray-200 dark:border-[#0A2540]/30 rounded-2xl px-4 py-3">
-                    <div className="flex gap-1">
-                      <motion.div
-                        className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                      />
-                      <motion.div
-                        className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                      />
-                      <motion.div
-                        className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full"
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                      />
                     </div>
-                  </div>
-                </motion.div>
-              )}
-              
-              <div ref={messagesEndRef} />
-            </motion.div>
-          )}
 
-          {/* Input */}
-          {(
-            <motion.div 
-              className="p-2 border-t border-gray-200 dark:border-[#0A2540]/30 bg-white dark:bg-[#1E2329] flex-shrink-0"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="flex items-center gap-2">
-                <textarea
-                  ref={inputRef}
-                  value={inputMessage}
-                  onChange={(e) => {
-                    setInputMessage(e.target.value);
-                    // Ajustar altura dinámicamente usando la función helper
-                    setTimeout(() => adjustTextareaHeight(), 0);
-                  }}
-                  onKeyDown={handleKeyPress}
-                  placeholder={useContextMode ? "Escribe tu pregunta..." : (promptPlaceholder ?? placeholderText)}
-                  disabled={isTyping}
-                  rows={1}
-                  className={`flex-1 px-3 py-2 border ${
-                    useContextMode 
-                      ? 'bg-white/90 dark:bg-[#1E2329] border-[#00D4B3] dark:border-[#00D4B3] ring-2 ring-[#00D4B3]/30' 
-                      : `bg-white/90 dark:bg-[#1E2329] ${currentMode==='prompt' ? 'border-purple-300 ring-2 ring-purple-300/30' : currentMode==='analysis' ? 'border-[#00D4B3] ring-2 ring-[#00D4B3]/30' : 'border-[#00D4B3] ring-2 ring-[#00D4B3]/30'}`
-                  } rounded-lg focus:outline-none focus:ring-2 ${theme.ring} text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium shadow-inner transition-all resize-none`}
-                  style={{
-                    minHeight: '38px',
-                    lineHeight: '1.5'
-                  }}
-                />
-                
-                {/* 🎬 Botón para activar/desactivar modo contextual */}
-                {/* Botón de cerebro eliminado - el modo Análisis se controla con los chips */}
-                
-                {/* Botón dinámico: micrófono cuando está vacío, enviar cuando hay texto */}
-                <motion.button
-                  onClick={() => {
-                    if (inputMessage.trim()) {
-                      // Si hay texto, enviar mensaje
-                      handleSendMessage();
-                    } else {
-                      // Si no hay texto, activar/desactivar grabación
-                      toggleRecording();
-                    }
-                  }}
-                  disabled={isTyping && !!inputMessage.trim()}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                    inputMessage.trim()
-                      ? useContextMode
-                        ? 'bg-gradient-to-r from-[#00D4B3] to-[#00b89a] text-white hover:opacity-90 shadow-lg'
-                        : `bg-gradient-to-r ${theme.bubbleUser} text-white hover:opacity-90 shadow-lg`
-                      : isRecording
-                      ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/50'
-                      : `${currentMode==='prompt' ? 'bg-purple-100 text-purple-600' : currentMode==='analysis' ? 'bg-[#00D4B3]/20 text-[#00D4B3]' : 'bg-[#00D4B3]/20 text-[#00D4B3]'} hover:opacity-90` /* Aqua para botón de envío */
-                  } ${isTyping && !!inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {isTyping && inputMessage.trim() ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : inputMessage.trim() ? (
-                    <Send className="w-4 h-4" />
-                  ) : isRecording ? (
-                    <MicOff className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </motion.button>
+                  </motion.div>
+                )}
               </div>
-
-            </motion.div>
-          )}
-          </div>
-        </div>
-      </motion.div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -2727,7 +2720,7 @@ Fecha: ${new Date().toLocaleString()}
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-white">Limpiar Contexto</h3>
-                    <p className="text-white/80 text-sm">Contexto Persistente activo</p>
+                    <p className="text-white/80 text-sm">PRL-1.0 Mini activo</p>
                   </div>
                 </div>
               </div>
@@ -2779,7 +2772,7 @@ Fecha: ${new Date().toLocaleString()}
 
       {/* 🎨 NanoBanana Preview Panel - Posicionado a la derecha, ENCIMA del chat */}
       {nanoBananaSchema && isNanoBananaPanelOpen && (
-        <div 
+        <div
           className="fixed right-4 top-20 z-[100001]"
           style={{
             width: 'min(400px, calc(100vw - 2rem))',

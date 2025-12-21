@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import { ElementType, useState, useMemo } from 'react'
 import { AnimatedCounter } from './AnimatedCounter'
 import { StyleConfig } from '@/features/business-panel/hooks/useOrganizationStyles'
-import { hexToRgb } from '@/features/business-panel/utils/styles'
 
 interface ModernStatsCardProps {
   label: string
@@ -21,16 +20,27 @@ export function ModernStatsCard({
   label,
   value,
   icon: Icon,
-  color,
   index,
   onClick,
   isClickable = false,
-  styles
+  styles,
+  color
 }: ModernStatsCardProps) {
   const [isHovered, setIsHovered] = useState(false)
 
-  // Mapeo de colores con diseño glassmorphism premium
+  // Obtener colores personalizados de la organización
+  const orgColors = useMemo(() => {
+    const primary = styles?.primary_button_color || '#0A2540'
+    const accent = styles?.accent_color || '#00D4B3'
+    return { primary, accent }
+  }, [styles])
+
+  // Mapeo de colores con soporte para colores de organización
   const colorConfig = useMemo(() => {
+    // Colores base usando los colores de la organización
+    const orgPrimary = orgColors.primary
+    const orgAccent = orgColors.accent
+
     const configs: Record<string, {
       primary: string,
       secondary: string,
@@ -39,22 +49,25 @@ export function ModernStatsCard({
       bgGradient: string,
       borderColor: string
     }> = {
+      // Cursos Asignados - Usa colores de la organización
       'from-blue-500 to-cyan-500': {
-        primary: '#0EA5E9',
-        secondary: '#06B6D4',
-        glow: 'rgba(14, 165, 233, 0.4)',
-        gradient: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-        bgGradient: 'linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(6, 182, 212, 0.08))',
-        borderColor: 'rgba(14, 165, 233, 0.25)'
+        primary: orgPrimary,
+        secondary: orgAccent,
+        glow: `${orgPrimary}60`,
+        gradient: `linear-gradient(135deg, ${orgPrimary}, ${orgAccent})`,
+        bgGradient: `linear-gradient(135deg, ${orgPrimary}20, ${orgAccent}10)`,
+        borderColor: `${orgPrimary}40`
       },
+      // En Progreso - Usa colores de la organización invertidos
       'from-purple-500 to-pink-500': {
-        primary: '#8B5CF6',
-        secondary: '#D946EF',
-        glow: 'rgba(139, 92, 246, 0.4)',
-        gradient: 'linear-gradient(135deg, #8B5CF6, #D946EF)',
-        bgGradient: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(217, 70, 239, 0.08))',
-        borderColor: 'rgba(139, 92, 246, 0.25)'
+        primary: orgAccent,
+        secondary: orgPrimary,
+        glow: `${orgAccent}60`,
+        gradient: `linear-gradient(135deg, ${orgAccent}, ${orgPrimary})`,
+        bgGradient: `linear-gradient(135deg, ${orgAccent}20, ${orgPrimary}10)`,
+        borderColor: `${orgAccent}40`
       },
+      // Completados - Verde éxito (mantener)
       'from-green-500 to-emerald-500': {
         primary: '#10B981',
         secondary: '#34D399',
@@ -63,23 +76,18 @@ export function ModernStatsCard({
         bgGradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(52, 211, 153, 0.08))',
         borderColor: 'rgba(16, 185, 129, 0.25)'
       },
+      // Certificados - Dorado/Ámbar (mantener para destacar logros)
       'from-orange-500 to-red-500': {
         primary: '#F59E0B',
-        secondary: '#EF4444',
+        secondary: '#FBBF24',
         glow: 'rgba(245, 158, 11, 0.4)',
-        gradient: 'linear-gradient(135deg, #F59E0B, #EF4444)',
-        bgGradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.08))',
+        gradient: 'linear-gradient(135deg, #F59E0B, #FBBF24)',
+        bgGradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.08))',
         borderColor: 'rgba(245, 158, 11, 0.25)'
       }
     }
     return configs[color] || configs['from-blue-500 to-cyan-500']
-  }, [color])
-
-  // Calcular estilos de la tarjeta basados en los estilos personalizados
-  const cardStyle = useMemo(() => {
-    const textColor = styles?.text_color || '#FFFFFF'
-    return { textColor }
-  }, [styles])
+  }, [color, orgColors])
 
   return (
     <motion.div
@@ -106,7 +114,7 @@ export function ModernStatsCard({
         ${isClickable ? 'cursor-pointer' : ''}
       `}
       style={{
-        background: 'linear-gradient(135deg, rgba(15, 20, 25, 0.9), rgba(20, 30, 40, 0.85))',
+        background: styles?.card_background || '#1E2329',
         border: `1px solid ${isHovered ? colorConfig.borderColor : 'rgba(255, 255, 255, 0.08)'}`,
         boxShadow: isHovered
           ? `0 20px 40px -12px ${colorConfig.glow}, 0 0 0 1px ${colorConfig.borderColor}`
