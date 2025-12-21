@@ -317,6 +317,36 @@ export function CTASection() {
             </div>
           </motion.div>
         </motion.div>
+
+        {/* Footer with Legal Links */}
+        <motion.footer
+          className="mt-12 lg:mt-16 pt-8 border-t border-[#E9ECEF] dark:border-[#6C757D]/30"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.9, duration: 0.6 }}
+        >
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 text-sm">
+            <p className="text-[#6C757D] dark:text-white/60">
+              © {new Date().getFullYear()} Aprende y Aplica. Todos los derechos reservados.
+            </p>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/privacy"
+                className="text-[#0A2540] dark:text-[#00D4B3] hover:underline transition-colors font-medium"
+              >
+                Política de Privacidad
+              </Link>
+              <span className="text-[#6C757D] dark:text-white/40">•</span>
+              <Link
+                href="/terms"
+                className="text-[#0A2540] dark:text-[#00D4B3] hover:underline transition-colors font-medium"
+              >
+                Términos de Servicio
+              </Link>
+            </div>
+          </div>
+        </motion.footer>
       </div>
     </section>
   );
