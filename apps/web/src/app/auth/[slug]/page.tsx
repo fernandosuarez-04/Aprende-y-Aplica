@@ -16,6 +16,8 @@ interface Organization {
   brand_color_secondary?: string | null;
   brand_font_family?: string | null;
   brand_favicon_url?: string | null;
+  google_login_enabled?: boolean;
+  microsoft_login_enabled?: boolean;
 }
 
 export default function OrganizationLoginPage() {
@@ -109,6 +111,8 @@ export default function OrganizationLoginPage() {
         <OrganizationLoginForm
           organizationId={organization.id}
           organizationSlug={organization.slug || slug}
+          googleLoginEnabled={organization.google_login_enabled}
+          microsoftLoginEnabled={organization.microsoft_login_enabled}
         />
       </div>
     </OrganizationAuthLayout>

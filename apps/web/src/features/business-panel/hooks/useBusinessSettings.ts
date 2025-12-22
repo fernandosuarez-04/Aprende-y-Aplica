@@ -21,6 +21,8 @@ export interface OrganizationData {
   is_active?: boolean
   created_at?: string
   updated_at?: string
+  google_login_enabled?: boolean
+  microsoft_login_enabled?: boolean
 }
 
 export interface SubscriptionData {

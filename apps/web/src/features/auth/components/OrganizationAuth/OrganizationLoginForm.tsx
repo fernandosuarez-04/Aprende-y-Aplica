@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, AlertCircle, Eye, EyeOff, Lock, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { GoogleLoginButton } from '../GoogleLoginButton/GoogleLoginButton';
+import { MicrosoftLoginButton } from '../MicrosoftLoginButton/MicrosoftLoginButton';
 import { LoginFormData } from '../../types/auth.types';
 import { loginSchema } from '../LoginForm/LoginForm.schema';
 import { loginAction } from '../../actions/login';
@@ -17,6 +19,8 @@ import type { StyleConfig } from '../../../business-panel/hooks/useOrganizationS
 interface OrganizationLoginFormProps {
   organizationId: string;
   organizationSlug: string;
+  googleLoginEnabled?: boolean;
+  microsoftLoginEnabled?: boolean;
 }
 
 interface LoginStyles {
@@ -30,6 +34,8 @@ interface LoginStyles {
 export function OrganizationLoginForm({
   organizationId,
   organizationSlug,
+  googleLoginEnabled,
+  microsoftLoginEnabled,
 }: OrganizationLoginFormProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -274,6 +280,7 @@ export function OrganizationLoginForm({
   const rememberMe = watch('rememberMe');
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Welcome Message - Minimalista */}
       <motion.div
@@ -653,7 +660,6 @@ export function OrganizationLoginForm({
             boxShadow: `0 6px 20px -2px ${primaryColor}50`,
           }}
           whileTap={{ scale: 0.99 }}
-          disabled={isPending}
         >
           {/* Subtle shimmer on hover */}
           <motion.div
@@ -687,5 +693,48 @@ export function OrganizationLoginForm({
         </motion.button>
       </motion.div>
     </form>
+      
+      {/* Social Login */}
+      {(googleLoginEnabled || microsoftLoginEnabled) && (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="mt-6"
+        >
+             <div className="relative py-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200 dark:border-gray-700" style={{ borderColor: `${borderColor}` }}></div>
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-4 text-xs font-medium" style={{ color: `${textColor}90`, backgroundColor: cardBg.startsWith('#') ? cardBg : 'transparent' }}>
+                    O continuar con
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-3">
+                {googleLoginEnabled && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1, duration: 0.3 }}
+                    >
+                      <GoogleLoginButton />
+                    </motion.div>
+                )}
+                {microsoftLoginEnabled && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.15, duration: 0.3 }}
+                    >
+                      <MicrosoftLoginButton />
+                    </motion.div>
+                )}
+              </div>
+        </motion.div>
+      )}
+    </>
   );
 }

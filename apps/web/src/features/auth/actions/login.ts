@@ -331,7 +331,7 @@ export async function loginAction(formData: FormData) {
     // - Business User → /business-user/dashboard (Dashboard Usuario Business) - REQUIERE organización
     // - Usuario (o cualquier otro) → /dashboard (Tour SOFIA + Planes)
 
-    const normalizedRole = user.cargo_rol?.trim();
+    const normalizedRole = user.cargo_rol?.toLowerCase().trim();
     console.log('🎯 [loginAction] Determinando redirección según cargo_rol:', {
       cargo_rol: user.cargo_rol,
       normalizedRole
@@ -341,9 +341,9 @@ export async function loginAction(formData: FormData) {
     // Esto evita problemas de "redirect count exceeded" en Next.js
     let redirectTo = '/dashboard'; // Default
 
-    if (normalizedRole === 'Administrador') {
+    if (normalizedRole === 'administrador') {
       redirectTo = '/admin/dashboard';
-    } else if (normalizedRole === 'Business' || normalizedRole === 'Business User') {
+    } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
       // Para roles de empresa, verificar que pertenezca a una organización
       const { data: userOrg, error: orgError } = await supabase
         .from('organization_users')
@@ -368,7 +368,7 @@ export async function loginAction(formData: FormData) {
         })
 
         // Redirigir según el rol específico
-        if (normalizedRole === 'Business') {
+        if (normalizedRole === 'business') {
           redirectTo = '/business-panel/dashboard';
         } else {
           redirectTo = '/business-user/dashboard';

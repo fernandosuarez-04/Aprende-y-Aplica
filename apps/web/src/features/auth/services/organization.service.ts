@@ -23,6 +23,8 @@ export interface Organization {
   brand_font_family?: string | null;
   brand_logo_url?: string | null;
   brand_favicon_url?: string | null;
+  google_login_enabled?: boolean;
+  microsoft_login_enabled?: boolean;
 }
 
 /**

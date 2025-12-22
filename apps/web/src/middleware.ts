@@ -229,8 +229,11 @@ export async function middleware(request: NextRequest) {
   try {
     // PASO 1: Intentar con refresh tokens primero (sistema nuevo)
     if (hasRefreshTokenSession && refreshTokenCookie) {
-      const crypto = await import('crypto')
-      const tokenHash = crypto.createHash('sha256').update(refreshTokenCookie.value).digest('hex')
+      const encoder = new TextEncoder()
+      const data = encoder.encode(refreshTokenCookie.value)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      const tokenHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
       const { data: tokenData, error: tokenError } = await supabase
         .from('refresh_tokens')

@@ -136,6 +136,9 @@ export async function PUT(request: NextRequest) {
       updateData.max_users = maxUsersNum
     }
 
+    if (body.google_login_enabled !== undefined) updateData.google_login_enabled = body.google_login_enabled
+    if (body.microsoft_login_enabled !== undefined) updateData.microsoft_login_enabled = body.microsoft_login_enabled
+
     const { data: updatedOrganization, error: updateError } = await supabase
       .from('organizations')
       .update(updateData)

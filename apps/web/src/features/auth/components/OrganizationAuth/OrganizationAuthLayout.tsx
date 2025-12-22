@@ -92,7 +92,7 @@ export function OrganizationAuthLayout({
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center relative overflow-hidden transition-all duration-500"
+      className="min-h-screen flex items-center justify-center relative overflow-y-auto transition-all duration-500 bg-[#0f172a]"
       style={{
         ...backgroundStyle,
         ...cssVariables
@@ -102,40 +102,40 @@ export function OrganizationAuthLayout({
       {!loginStyles?.background_type && (
         <>
           <motion.div
-            className="absolute inset-0 z-0"
+            className="absolute inset-0 z-0 fixed"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1 }}
           >
             {/* Large gradient orbs */}
             <motion.div
-              className="absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl opacity-20"
+              className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full blur-[120px] opacity-20"
               style={{
-                background: `radial-gradient(circle, ${finalPrimaryColor}, transparent)`,
+                background: `radial-gradient(circle, ${finalPrimaryColor}, transparent 60%)`,
               }}
               animate={{
-                x: [0, 100, 0],
-                y: [0, 50, 0],
-                scale: [1, 1.2, 1],
+                x: [0, 50, 0],
+                y: [0, 30, 0],
+                scale: [1, 1.1, 1],
               }}
               transition={{
-                duration: 20,
+                duration: 15,
                 repeat: Infinity,
                 ease: 'easeInOut',
               }}
             />
             <motion.div
-              className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-20"
+              className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full blur-[120px] opacity-20"
               style={{
-                background: `radial-gradient(circle, ${finalSecondaryColor}, transparent)`,
+                background: `radial-gradient(circle, ${finalSecondaryColor}, transparent 60%)`,
               }}
               animate={{
-                x: [0, -100, 0],
-                y: [0, -50, 0],
-                scale: [1, 1.2, 1],
+                x: [0, -50, 0],
+                y: [0, -30, 0],
+                scale: [1, 1.1, 1],
               }}
               transition={{
-                duration: 25,
+                duration: 18,
                 repeat: Infinity,
                 ease: 'easeInOut',
                 delay: 1,
@@ -146,13 +146,13 @@ export function OrganizationAuthLayout({
       )}
 
       {/* Two-Column Layout Container */}
-      <div className="w-full h-screen flex items-center justify-center p-4 lg:p-8 relative z-10">
-        <div className="w-full max-w-7xl h-full max-h-[600px] flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12">
+      <div className="w-full min-h-screen flex items-center justify-center p-4 lg:p-8 relative z-10 py-12 lg:py-0">
+        <div className="w-full max-w-7xl flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-20">
           
           {/* LEFT SIDE - 3D Floating Logo */}
           {!isLoading && (
             <motion.div
-              className="flex-1 flex items-center justify-center relative"
+              className="flex-1 flex items-center justify-center relative w-full lg:w-auto mb-8 lg:mb-0"
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
@@ -161,8 +161,7 @@ export function OrganizationAuthLayout({
               <motion.div
                 className="relative"
                 animate={{
-                  y: [-15, 15, -15],
-                  rotateY: [0, 10, 0, -10, 0],
+                  y: [-10, 10, -10],
                 }}
                 transition={{
                   duration: 6,
@@ -170,54 +169,42 @@ export function OrganizationAuthLayout({
                   ease: 'easeInOut',
                 }}
               >
-                {/* 3D Logo Container - No Rings */}
-                <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] lg:w-[360px] lg:h-[360px]">
+                {/* 3D Logo Container - Clean */}
+                <div className="relative w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] lg:w-[400px] lg:h-[400px] flex items-center justify-center">
 
                   {/* Logo/Favicon - Center */}
                   <motion.div
-                    className="absolute inset-0 flex items-center justify-center"
-                    whileHover={{ scale: 1.1, rotate: 8 }}
+                    className="relative w-full h-full flex items-center justify-center"
+                    whileHover={{ scale: 1.05 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
-                    <div 
-                      className="relative w-40 h-40 sm:w-48 sm:h-48 lg:w-56 lg:h-56 rounded-3xl overflow-hidden shadow-2xl"
-                      style={{
-                        boxShadow: `0 30px 60px -15px ${finalPrimaryColor}70, 0 0 40px ${finalSecondaryColor}50`,
-                      }}
-                    >
-                      <Image
+                     <Image
                         src={faviconUrl}
                         alt={`${organization.name} Logo`}
                         fill
-                        className="object-cover"
-                        sizes="224px"
-                        style={{
-                          objectFit: 'cover',
-                          objectPosition: 'center',
-                        }}
+                        className="object-contain drop-shadow-2xl"
+                        sizes="(max-width: 768px) 240px, 400px"
+                        priority
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/icono.png';
                         }}
-                        priority
                       />
-                    </div>
                   </motion.div>
 
-                  {/* Pulsing Glow Effect */}
+                  {/* Subtle Glow Effect behind logo */}
                   <motion.div
-                    className="absolute inset-0 rounded-full pointer-events-none"
+                    className="absolute inset-0 rounded-full pointer-events-none -z-10 blur-[60px]"
                     style={{
-                      background: `radial-gradient(circle, ${finalPrimaryColor}50, transparent 70%)`,
+                      background: `radial-gradient(circle, ${finalPrimaryColor}40, transparent 70%)`,
                     }}
                     animate={{
-                      scale: [1, 1.4, 1],
-                      opacity: [0.4, 0.7, 0.4],
+                      scale: [0.8, 1.2, 0.8],
+                      opacity: [0.3, 0.6, 0.3],
                     }}
                     transition={{
                       duration: 4,
                       repeat: Infinity,
                       ease: 'easeInOut',
-                      delay: 0.5,
                     }}
                   />
                 </div>
@@ -227,14 +214,14 @@ export function OrganizationAuthLayout({
 
           {/* RIGHT SIDE - Login Form Panel */}
           <motion.div
-            className="flex-1 w-full max-w-md lg:max-w-lg"
+            className="flex-1 w-full max-w-md lg:max-w-[480px]"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
           >
             {/* Login Card */}
             <div 
-              className="relative backdrop-blur-2xl p-8 lg:p-10 shadow-2xl rounded-3xl border overflow-hidden"
+              className="relative backdrop-blur-xl p-8 lg:p-10 shadow-2xl rounded-3xl border overflow-hidden"
               style={{
                 backgroundColor: cardBackgroundColor,
                 borderColor: borderColor,
@@ -251,17 +238,18 @@ export function OrganizationAuthLayout({
 
               {/* Shimmer effect */}
               <motion.div
-                className="absolute inset-0 opacity-20 pointer-events-none"
+                className="absolute inset-0 opacity-10 pointer-events-none"
                 style={{
-                  background: `linear-gradient(135deg, transparent 30%, ${finalPrimaryColor}30 50%, transparent 70%)`,
+                  background: `linear-gradient(135deg, transparent 30%, ${finalPrimaryColor}20 50%, transparent 70%)`,
                 }}
                 animate={{
                   x: ['-100%', '100%'],
                 }}
                 transition={{
-                  duration: 3,
+                  duration: 5,
                   repeat: Infinity,
                   ease: 'linear',
+                  delay: 2
                 }}
               />
 
@@ -276,19 +264,18 @@ export function OrganizationAuthLayout({
                     transition={{ delay: 0.4, duration: 0.6 }}
                   >
                     <motion.h1 
-                      className="text-3xl lg:text-4xl font-bold mb-2"
+                      className="text-3xl lg:text-4xl font-bold mb-3 tracking-tight"
                       style={{
                         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                         color: finalPrimaryColor,
-                        textShadow: `0 0 20px ${finalPrimaryColor}30`,
                       }}
                     >
                       {organization.name}
                     </motion.h1>
                     {organization.description && (
                       <motion.p 
-                        className="text-sm opacity-70"
-                        style={{ color: textColor }}
+                        className="text-sm font-medium leading-relaxed"
+                        style={{ color: `${textColor}90` }}
                       >
                         {organization.description}
                       </motion.p>
@@ -304,9 +291,10 @@ export function OrganizationAuthLayout({
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-6 p-4 rounded-2xl bg-red-500/20 border border-red-500/50"
+                    className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3"
                   >
-                    <p className="text-red-400 text-sm text-center">{error}</p>
+                    <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                    <p className="text-red-400 text-sm font-medium">{error}</p>
                   </motion.div>
                 )}
 

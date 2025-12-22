@@ -57,6 +57,8 @@ export async function GET(
         brand_color_accent: organization.brand_color_accent,
         brand_font_family: organization.brand_font_family,
         brand_favicon_url: organization.brand_favicon_url,
+        google_login_enabled: organization.google_login_enabled,
+        microsoft_login_enabled: organization.microsoft_login_enabled,
       }
     });
   } catch (error) {
