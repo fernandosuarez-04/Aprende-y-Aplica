@@ -7,7 +7,10 @@ import { useLiaPanel } from '../../contexts/LiaPanelContext';
 export function ContentWrapper({ children }: { children: React.ReactNode }) {
   const { isPanelOpen, isCollapsed } = useLiaPanel();
   const pathname = usePathname();
-  const [panelWidth, setPanelWidth] = useState(448); // max-w-md = 448px por defecto
+  // Inicializar con 0 para evitar mismatch de hidratación
+  // El valor real se calculará en useEffect después del montaje
+  const [panelWidth, setPanelWidth] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Detectar si estamos en rutas que tienen su propio sistema de temas
   const isCustomThemedRoute = pathname?.startsWith('/business-panel') || pathname?.startsWith('/business-user');
@@ -18,6 +21,8 @@ export function ContentWrapper({ children }: { children: React.ReactNode }) {
 
   // Calcular el ancho del panel según el tamaño de pantalla
   useEffect(() => {
+    setIsMounted(true);
+
     const calculatePanelWidth = () => {
       if (typeof window === 'undefined') return;
 
@@ -48,11 +53,12 @@ export function ContentWrapper({ children }: { children: React.ReactNode }) {
 
   // Si la ruta maneja su propio layout de LIA, no aplicar marginRight aquí
   // para evitar que el navbar se desplace
-  const shouldApplyMargin = !handlesOwnLiaLayout && isPanelOpen && !isCollapsed;
+  // Solo aplicar margen después de que el componente esté montado para evitar hidratación
+  const shouldApplyMargin = isMounted && !handlesOwnLiaLayout && isPanelOpen && !isCollapsed;
 
   return (
     <div
-      className={`${bgClass} transition-colors duration-300 min-h-full transition-all duration-300 ease-in-out`}
+      className={`${bgClass} min-h-full transition-all duration-300 ease-in-out`}
       style={{
         marginRight: shouldApplyMargin ? `${panelWidth}px` : '0',
       }}

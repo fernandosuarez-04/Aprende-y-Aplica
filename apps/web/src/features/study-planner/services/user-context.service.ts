@@ -792,7 +792,10 @@ export class UserContextService {
       .eq('is_active', true);
 
     if (error) {
-      console.error('Error obteniendo rutas de aprendizaje:', error);
+      // Ignorar error si la tabla no existe (42P01)
+      if (error.code !== '42P01') {
+        console.error('Error obteniendo rutas de aprendizaje:', error);
+      }
       return [];
     }
 

@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  BookOpenIcon, 
-  PlusIcon, 
+import {
+  BookOpenIcon,
+  PlusIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
   PlayIcon,
@@ -36,8 +36,8 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: {
       duration: 0.4,
@@ -65,11 +65,11 @@ function WorkshopThumbnail({ thumbnailUrl, title }: { thumbnailUrl?: string; tit
           }}></div>
         </div>
         <motion.div
-          animate={{ 
+          animate={{
             scale: [1, 1.15, 1],
             rotate: [0, 10, -10, 0]
           }}
-          transition={{ 
+          transition={{
             duration: 4,
             repeat: Infinity,
             ease: "easeInOut"
@@ -128,14 +128,14 @@ export function AdminWorkshopsPage() {
 
   const filteredWorkshops = workshops.filter(workshop => {
     const matchesSearch = workshop.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         workshop.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (workshop.instructor_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    
+      workshop.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (workshop.instructor_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+
     const matchesCategory = filterCategory === 'all' || workshop.category === filterCategory
-    const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'active' && workshop.is_active) ||
-                         (filterStatus === 'inactive' && !workshop.is_active)
-    
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'active' && workshop.is_active) ||
+      (filterStatus === 'inactive' && !workshop.is_active)
+
     return matchesSearch && matchesCategory && matchesStatus
   })
 
@@ -218,6 +218,28 @@ export function AdminWorkshopsPage() {
       case 'advanced': return 'Avanzado'
       default: return level
     }
+  }
+
+  /**
+   * Formatea la duración en minutos a un formato legible
+   * - Menos de 60 min: "X min"
+   * - 60 min o más: "Xh Ym" o "Xh" si son horas exactas
+   */
+  const formatDuration = (minutes: number): string => {
+    if (!minutes || minutes <= 0) return '0 min'
+
+    if (minutes < 60) {
+      return `${minutes} min`
+    }
+
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+
+    if (remainingMinutes === 0) {
+      return `${hours}h`
+    }
+
+    return `${hours}h ${remainingMinutes}min`
   }
 
   if (isLoading) {
@@ -319,7 +341,7 @@ export function AdminWorkshopsPage() {
               </div>
             </div>
           </motion.div>
-          
+
           <motion.div variants={itemVariants} className="p-4 bg-gradient-to-br from-[#10B981] to-[#10B981]/80 dark:from-[#10B981]/20 dark:to-[#10B981]/10 rounded-xl border border-[#10B981]/20 shadow-lg">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 dark:bg-[#10B981]/20 rounded-lg">
@@ -333,7 +355,7 @@ export function AdminWorkshopsPage() {
               </div>
             </div>
           </motion.div>
-          
+
           <motion.div variants={itemVariants} className="p-4 bg-gradient-to-br from-[#00D4B3] to-[#00D4B3]/80 dark:from-[#00D4B3]/20 dark:to-[#00D4B3]/10 rounded-xl border border-[#00D4B3]/20 shadow-lg">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 dark:bg-[#00D4B3]/20 rounded-lg">
@@ -347,7 +369,7 @@ export function AdminWorkshopsPage() {
               </div>
             </div>
           </motion.div>
-          
+
           <motion.div variants={itemVariants} className="p-4 bg-gradient-to-br from-[#F59E0B] to-[#F59E0B]/80 dark:from-[#F59E0B]/20 dark:to-[#F59E0B]/10 rounded-xl border border-[#F59E0B]/20 shadow-lg">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 dark:bg-[#F59E0B]/20 rounded-lg">
@@ -437,7 +459,7 @@ export function AdminWorkshopsPage() {
             {filteredWorkshops.map((workshop, index) => {
               const levelColors = getLevelColor(workshop.level)
               const categoryColors = getCategoryColor(workshop.category)
-              
+
               // Obtener iniciales del instructor para el fallback
               const getInstructorInitials = () => {
                 if (!workshop.instructor_name || workshop.instructor_name === 'Sin instructor') return 'SI'
@@ -447,7 +469,7 @@ export function AdminWorkshopsPage() {
                 }
                 return workshop.instructor_name.substring(0, 2).toUpperCase()
               }
-              
+
               return (
                 <motion.div
                   key={workshop.id}
@@ -470,11 +492,10 @@ export function AdminWorkshopsPage() {
                       transition={{ delay: index * 0.05, type: 'spring', stiffness: 200 }}
                       className="absolute top-4 right-4 z-10"
                     >
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border backdrop-blur-md shadow-xl ${
-                        workshop.is_active
-                          ? 'bg-[#10B981]/95 dark:bg-[#10B981]/40 text-white dark:text-[#10B981] border-[#10B981]/50 shadow-[#10B981]/30'
-                          : 'bg-[#6C757D]/95 dark:bg-[#6C757D]/40 text-white dark:text-[#6C757D] border-[#6C757D]/50 shadow-[#6C757D]/30'
-                      }`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border backdrop-blur-md shadow-xl ${workshop.is_active
+                        ? 'bg-[#10B981]/95 dark:bg-[#10B981]/40 text-white dark:text-[#10B981] border-[#10B981]/50 shadow-[#10B981]/30'
+                        : 'bg-[#6C757D]/95 dark:bg-[#6C757D]/40 text-white dark:text-[#6C757D] border-[#6C757D]/50 shadow-[#6C757D]/30'
+                        }`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${workshop.is_active ? 'bg-white animate-pulse' : 'bg-white/70'}`}></div>
                         {workshop.is_active ? 'Activo' : 'Inactivo'}
                       </span>
@@ -560,7 +581,7 @@ export function AdminWorkshopsPage() {
                       </div>
                       <div className="flex items-center gap-2 ml-4 flex-shrink-0 px-3 py-1.5 bg-[#E9ECEF]/50 dark:bg-[#0A0D12] rounded-lg">
                         <ClockIcon className="h-4 w-4 text-[#6C757D] dark:text-white/60" />
-                        <span className="text-sm font-medium text-[#0A2540] dark:text-white">{workshop.duration_total_minutes} min</span>
+                        <span className="text-sm font-medium text-[#0A2540] dark:text-white">{formatDuration(workshop.duration_total_minutes)}</span>
                       </div>
                     </motion.div>
 

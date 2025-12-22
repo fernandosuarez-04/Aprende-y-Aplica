@@ -8,6 +8,7 @@ export interface AdminLesson {
   video_provider_id: string
   video_provider: 'youtube' | 'vimeo' | 'direct' | 'custom'
   duration_seconds: number
+  total_duration_minutes: number // Tiempo total: video + materiales + actividades
   transcript_content: string | null
   summary_content: string | null
   is_published: boolean
@@ -57,6 +58,7 @@ export class AdminLessonsService {
           video_provider_id,
           video_provider,
           duration_seconds,
+          total_duration_minutes,
           transcript_content,
           summary_content,
           is_published,
@@ -77,16 +79,16 @@ export class AdminLessonsService {
       const lessonsWithInstructors = await Promise.all(
         (data || []).map(async (lesson: any) => {
           let instructorName = 'Instructor no asignado'
-          
+
           if (lesson.instructor_id) {
             const { data: instructor } = await supabase
               .from('users')
               .select('display_name, first_name, last_name')
               .eq('id', lesson.instructor_id)
               .single()
-            
+
             if (instructor) {
-              instructorName = (instructor as any).display_name || 
+              instructorName = (instructor as any).display_name ||
                 `${(instructor as any).first_name || ''} ${(instructor as any).last_name || ''}`.trim() ||
                 'Instructor'
             }
@@ -145,9 +147,9 @@ export class AdminLessonsService {
           .select('display_name, first_name, last_name')
           .eq('id', (data as any).instructor_id)
           .single()
-        
+
         if (instructor) {
-          (data as any).instructor_name = (instructor as any).display_name || 
+          (data as any).instructor_name = (instructor as any).display_name ||
             `${(instructor as any).first_name || ''} ${(instructor as any).last_name || ''}`.trim() ||
             'Instructor'
         }
@@ -258,9 +260,9 @@ export class AdminLessonsService {
           .select('display_name, first_name, last_name')
           .eq('id', createdLesson.instructor_id)
           .single()
-        
+
         if (instructor) {
-          createdLesson.instructor_name = (instructor as any).display_name || 
+          createdLesson.instructor_name = (instructor as any).display_name ||
             `${(instructor as any).first_name || ''} ${(instructor as any).last_name || ''}`.trim() ||
             'Instructor'
         }
@@ -341,9 +343,9 @@ export class AdminLessonsService {
           .select('display_name, first_name, last_name')
           .eq('id', updatedLesson.instructor_id)
           .single()
-        
+
         if (instructor) {
-          updatedLesson.instructor_name = (instructor as any).display_name || 
+          updatedLesson.instructor_name = (instructor as any).display_name ||
             `${(instructor as any).first_name || ''} ${(instructor as any).last_name || ''}`.trim() ||
             'Instructor'
         }
@@ -459,14 +461,42 @@ export class AdminLessonsService {
     const supabase = await createClient()
 
     try {
-      // Sumar duración de todas las lecciones
+      // Obtener todas las lecciones del módulo con sus IDs y duraciones
       const { data: lessons } = await supabase
         .from('course_lessons')
-        .select('duration_seconds')
+        .select('lesson_id, duration_seconds')
         .eq('module_id', moduleId)
 
-      const totalSeconds = (lessons as any[])?.reduce((sum: number, lesson: any) => sum + (lesson.duration_seconds || 0), 0) || 0
-      const totalMinutes = Math.round(totalSeconds / 60)
+      const lessonsList = lessons as any[] || []
+      const lessonIds = lessonsList.map((l: any) => l.lesson_id)
+
+      // Sumar duración de videos (en segundos, convertidos a minutos)
+      const totalVideoSeconds = lessonsList.reduce((sum: number, lesson: any) => sum + (lesson.duration_seconds || 0), 0)
+      const videoMinutes = Math.round(totalVideoSeconds / 60)
+
+      let materialsMinutes = 0
+      let activitiesMinutes = 0
+
+      if (lessonIds.length > 0) {
+        // Sumar tiempo estimado de materiales
+        const { data: materials } = await supabase
+          .from('lesson_materials')
+          .select('estimated_time_minutes')
+          .in('lesson_id', lessonIds)
+
+        materialsMinutes = (materials as any[] || []).reduce((sum: number, m: any) => sum + (m.estimated_time_minutes || 0), 0)
+
+        // Sumar tiempo estimado de actividades
+        const { data: activities } = await supabase
+          .from('lesson_activities')
+          .select('estimated_time_minutes')
+          .in('lesson_id', lessonIds)
+
+        activitiesMinutes = (activities as any[] || []).reduce((sum: number, a: any) => sum + (a.estimated_time_minutes || 0), 0)
+      }
+
+      // Total = videos + materiales + actividades
+      const totalMinutes = videoMinutes + materialsMinutes + activitiesMinutes
 
       // Actualizar duración del módulo
       const moduleUpdateData = {
@@ -519,6 +549,123 @@ export class AdminLessonsService {
         .eq('id', courseId)
     } catch (error) {
       // console.error('Error in AdminLessonsService.updateCourseDuration:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Recalcula la duración total de TODAS las lecciones en la base de datos.
+   * Útil para corregir datos existentes que no fueron calculados correctamente.
+   * 
+   * Esta función:
+   * 1. Obtiene todas las lecciones
+   * 2. Para cada lección, suma: video + materiales + actividades
+   * 3. Actualiza el campo total_duration_minutes
+   * 4. Recalcula la duración de todos los módulos y cursos afectados
+   */
+  static async recalculateAllLessonDurations(): Promise<{ updated: number; errors: string[] }> {
+    const supabase = await createClient()
+    const errors: string[] = []
+    let updated = 0
+
+    try {
+      // Obtener todas las lecciones
+      const { data: lessons, error: lessonsError } = await supabase
+        .from('course_lessons')
+        .select('lesson_id, duration_seconds, module_id')
+        .order('lesson_id')
+
+      if (lessonsError) {
+        throw lessonsError
+      }
+
+      if (!lessons || lessons.length === 0) {
+        return { updated: 0, errors: [] }
+      }
+
+      console.log(`[AdminLessonsService] Recalculating durations for ${lessons.length} lessons...`)
+
+      // Obtener TODOS los materiales y actividades de una sola vez (más eficiente)
+      const lessonIds = lessons.map((l: any) => l.lesson_id)
+
+      const { data: allMaterials } = await supabase
+        .from('lesson_materials')
+        .select('lesson_id, estimated_time_minutes')
+        .in('lesson_id', lessonIds)
+
+      const { data: allActivities } = await supabase
+        .from('lesson_activities')
+        .select('lesson_id, estimated_time_minutes')
+        .in('lesson_id', lessonIds)
+
+      // Crear mapas para acceso rápido
+      const materialsByLesson = new Map<string, number>()
+      const activitiesByLesson = new Map<string, number>()
+
+      // Agrupar tiempos de materiales por lección
+      for (const m of (allMaterials || [])) {
+        const current = materialsByLesson.get((m as any).lesson_id) || 0
+        materialsByLesson.set((m as any).lesson_id, current + ((m as any).estimated_time_minutes || 0))
+      }
+
+      // Agrupar tiempos de actividades por lección
+      for (const a of (allActivities || [])) {
+        const current = activitiesByLesson.get((a as any).lesson_id) || 0
+        activitiesByLesson.set((a as any).lesson_id, current + ((a as any).estimated_time_minutes || 0))
+      }
+
+      // Actualizar cada lección
+      const moduleIds = new Set<string>()
+
+      for (const lesson of lessons) {
+        try {
+          const lessonId = (lesson as any).lesson_id
+          const moduleId = (lesson as any).module_id
+          const videoSeconds = (lesson as any).duration_seconds || 0
+          const videoMinutes = Math.round(videoSeconds / 60)
+
+          const materialsMinutes = materialsByLesson.get(lessonId) || 0
+          const activitiesMinutes = activitiesByLesson.get(lessonId) || 0
+
+          const totalDurationMinutes = videoMinutes + materialsMinutes + activitiesMinutes
+
+          const { error: updateError } = await supabase
+            .from('course_lessons')
+            .update({
+              total_duration_minutes: totalDurationMinutes,
+              updated_at: new Date().toISOString()
+            } as any)
+            .eq('lesson_id', lessonId)
+
+          if (updateError) {
+            errors.push(`Lesson ${lessonId}: ${updateError.message}`)
+          } else {
+            updated++
+            console.log(`  ✓ Lesson ${lessonId}: video=${videoMinutes}min + materials=${materialsMinutes}min + activities=${activitiesMinutes}min = ${totalDurationMinutes}min`)
+
+            if (moduleId) {
+              moduleIds.add(moduleId)
+            }
+          }
+        } catch (err) {
+          errors.push(`Lesson ${(lesson as any).lesson_id}: ${err instanceof Error ? err.message : String(err)}`)
+        }
+      }
+
+      // Recalcular duración de los módulos afectados
+      console.log(`[AdminLessonsService] Recalculating ${moduleIds.size} module durations...`)
+      for (const moduleId of moduleIds) {
+        try {
+          await this.updateModuleDuration(moduleId)
+        } catch (err) {
+          errors.push(`Module ${moduleId}: ${err instanceof Error ? err.message : String(err)}`)
+        }
+      }
+
+      console.log(`[AdminLessonsService] Recalculation complete: ${updated} lessons updated, ${errors.length} errors`)
+      return { updated, errors }
+    } catch (error) {
+      console.error('Error in AdminLessonsService.recalculateAllLessonDurations:', error)
       throw error
     }
   }

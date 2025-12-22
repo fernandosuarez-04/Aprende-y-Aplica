@@ -1,3 +1,5 @@
+import { getMicrosoftRedirectUri } from '@/lib/oauth/microsoft';
+
 export interface MicrosoftTokens {
   access_token: string;
   refresh_token?: string;
@@ -21,7 +23,7 @@ export class MicrosoftOAuthService {
     const tenant = process.env.MICROSOFT_TENANT_ID || 'common';
     const clientId = process.env.MICROSOFT_OAUTH_CLIENT_ID!;
     const clientSecret = process.env.MICROSOFT_OAUTH_CLIENT_SECRET!;
-    const redirectUri = process.env.MICROSOFT_OAUTH_REDIRECT_URI!;
+    const redirectUri = getMicrosoftRedirectUri();
 
     const res = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
       method: 'POST',

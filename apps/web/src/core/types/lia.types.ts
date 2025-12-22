@@ -22,6 +22,7 @@ export interface LessonInfo {
   lessonDescription?: string;
   lessonOrderIndex: number;
   durationSeconds?: number;
+  totalDurationMinutes?: number; // Tiempo total: video + materiales + actividades
 }
 
 /**
@@ -31,30 +32,30 @@ export interface LessonInfo {
 export interface CourseLessonContext {
   // Tipo de contexto para diferenciar entre curso y taller
   contextType?: 'course' | 'workshop';
-  
+
   // Información del curso/taller
   courseId?: string;
   courseSlug?: string;
   courseTitle?: string;
   courseDescription?: string;
-  
+
   // Módulo y lección actual
   moduleTitle?: string;
   lessonTitle?: string;
   lessonDescription?: string;
-  
+
   // Contenido de la lección actual
   transcriptContent?: string;
   summaryContent?: string;
   videoTime?: number;
   durationSeconds?: number;
-  
+
   // Metadatos completos del curso/taller (módulos y lecciones disponibles)
   allModules?: ModuleInfo[];
-  
+
   // Información del usuario
   userRole?: string;
-  
+
   // Detección de dificultades
   difficultyDetected?: {
     patterns: Array<{
@@ -66,7 +67,7 @@ export interface CourseLessonContext {
     shouldIntervene: boolean;
     suggestedHelpType?: string;
   };
-  
+
   // Contexto de actividades
   activitiesContext?: {
     totalActivities: number;
@@ -87,10 +88,10 @@ export interface CourseLessonContext {
       description: string;
     } | null;
   };
-  
+
   // Contexto de comportamiento del usuario
   userBehaviorContext?: string;
-  
+
   // Contexto de progreso de aprendizaje
   learningProgressContext?: {
     currentLessonNumber: number;

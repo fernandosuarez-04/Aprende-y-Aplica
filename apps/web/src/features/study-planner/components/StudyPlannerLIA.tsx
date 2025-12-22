@@ -2386,11 +2386,14 @@ INSTRUCCIONES:
             }
 
             // ✅ CORRECCIÓN: Normalizar lecciones de snake_case a camelCase para consistencia
+            // Ahora incluye total_duration_minutes que incluye video + materiales + actividades
             const normalizedLessons = allLessons.map((lesson: any) => ({
               lessonId: lesson.lesson_id || lesson.lessonId,
               lessonTitle: lesson.lesson_title || lesson.lessonTitle || '',
               lessonOrderIndex: lesson.lesson_order_index !== undefined ? lesson.lesson_order_index : (lesson.lessonOrderIndex !== undefined ? lesson.lessonOrderIndex : 0),
               durationSeconds: lesson.duration_seconds || lesson.durationSeconds || 0,
+              // Tiempo total de la lección (video + materiales + actividades)
+              totalDurationMinutes: lesson.total_duration_minutes || lesson.totalDurationMinutes || Math.ceil((lesson.duration_seconds || lesson.durationSeconds || 0) / 60),
               is_published: lesson.is_published !== false
             })).filter((lesson: any) => lesson.lessonId && lesson.lessonTitle && lesson.is_published);
 
@@ -2398,11 +2401,12 @@ INSTRUCCIONES:
             const publishedLessons = normalizedLessons;
 
             // Calcular duración total en minutos
-            // ✅ CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
+            // ✅ CORRECCIÓN: Usar totalDurationMinutes que incluye video + materiales + actividades
             if (publishedLessons.length > 0) {
               totalDurationMinutes = publishedLessons.reduce((sum: number, lesson: any) => {
-                const durationSeconds = lesson.durationSeconds || 0;
-                return sum + Math.ceil(durationSeconds / 60); // Convertir segundos a minutos
+                // Usar totalDurationMinutes si está disponible, sino calcular desde durationSeconds
+                const lessonMinutes = lesson.totalDurationMinutes || Math.ceil((lesson.durationSeconds || 0) / 60);
+                return sum + lessonMinutes;
               }, 0);
             } else {
               // Estimación conservadora si no tenemos datos: asumir 30 minutos por lección
@@ -2990,6 +2994,8 @@ INSTRUCCIONES:
                   moduleTitle: string;
                   moduleOrderIndex: number;
                   lessonOrderIndex: number;
+                  durationSeconds: number;
+                  totalDurationMinutes: number;
                 }> = [];
 
                 modules.forEach((module: any, moduleIdx: number) => {
@@ -3003,6 +3009,8 @@ INSTRUCCIONES:
                         moduleTitle: module.moduleTitle || `Módulo ${moduleIdx + 1}`,
                         moduleOrderIndex: module.moduleOrderIndex || moduleIdx,
                         lessonOrderIndex: lesson.lessonOrderIndex || lessonIdx,
+                        durationSeconds: lesson.durationSeconds || 0,
+                        totalDurationMinutes: lesson.totalDurationMinutes || Math.ceil((lesson.durationSeconds || 0) / 60)
                       });
                     }
                   });
@@ -3018,7 +3026,7 @@ INSTRUCCIONES:
 
                 console.log(`📚 [B2B] Lecciones PENDIENTES del curso "${course.title}":`);
                 pendingLessonsDetails.slice(0, 5).forEach((l, i) => {
-                  console.log(`   ${i + 1}. [${l.moduleTitle}] ${l.lessonTitle}`);
+                  console.log(`   ${i + 1}. [${l.moduleTitle}] ${l.lessonTitle} - Duración: ${l.totalDurationMinutes} min`);
                 });
                 if (pendingLessonsDetails.length > 5) {
                   console.log(`   ... y ${pendingLessonsDetails.length - 5} más`);
@@ -3080,7 +3088,7 @@ INSTRUCCIONES:
               moduleTitle: lesson.moduleTitle,
               moduleOrderIndex: lesson.moduleOrderIndex,
               lessonOrderIndex: lesson.lessonOrderIndex,
-              durationMinutes: 15, // Duración estimada por lección
+              durationMinutes: lesson.totalDurationMinutes || 15,
             });
           });
         }
@@ -4229,11 +4237,13 @@ INSTRUCCIONES:
                         if (modulesData.modules && Array.isArray(modulesData.modules)) {
                           const allLessons = modulesData.modules.flatMap((module: any) => module.lessons || []);
                           // ✅ CORRECCIÓN: Normalizar lecciones de snake_case a camelCase para consistencia
+                          // Incluye totalDurationMinutes que incluye video + materiales + actividades
                           const normalizedLessons = allLessons.map((lesson: any) => ({
                             lessonId: lesson.lesson_id || lesson.lessonId,
                             lessonTitle: lesson.lesson_title || lesson.lessonTitle || '',
                             lessonOrderIndex: lesson.lesson_order_index !== undefined ? lesson.lesson_order_index : (lesson.lessonOrderIndex !== undefined ? lesson.lessonOrderIndex : 0),
                             durationSeconds: lesson.duration_seconds || lesson.durationSeconds || 0,
+                            totalDurationMinutes: lesson.total_duration_minutes || lesson.totalDurationMinutes || Math.ceil((lesson.duration_seconds || lesson.durationSeconds || 0) / 60),
                             is_published: lesson.is_published !== false
                           })).filter((lesson: any) => lesson.lessonId && lesson.lessonTitle && lesson.is_published);
 
@@ -4573,7 +4583,7 @@ INSTRUCCIONES:
 
       // 5. Calcular metas semanales basadas en cursos seleccionados y fecha objetivo
 
-      const weeklyGoals = selectedCourseIds.length > 0 && weeklyAvailableMinutes > 0 && studyApproach && weeksUntilTarget > 0 && totalLessonsNeeded > 0
+      const weeklyGoals = selectedCourseIds.length > 0 && weeklyAvailableMinutes > 0 && effectiveApproach && weeksUntilTarget > 0 && totalLessonsNeeded > 0
         ? await calculateWeeklyGoals(
           selectedCourseIds,
           weeklyAvailableMinutes,
@@ -4585,7 +4595,7 @@ INSTRUCCIONES:
 
       if (!weeklyGoals) {
         console.warn('⚠️ No se pudieron calcular las metas semanales. Verificar condiciones.');
-        console.warn(`   Condiciones: selectedCourseIds=${selectedCourseIds.length > 0}, weeklyAvailableMinutes=${weeklyAvailableMinutes > 0}, studyApproach=${!!studyApproach}, weeksUntilTarget=${weeksUntilTarget > 0}, totalLessonsNeeded=${totalLessonsNeeded > 0}`);
+        console.warn(`   Condiciones: selectedCourseIds=${selectedCourseIds.length > 0}, weeklyAvailableMinutes=${weeklyAvailableMinutes > 0}, studyApproach=${!!effectiveApproach}, weeksUntilTarget=${weeksUntilTarget > 0}, totalLessonsNeeded=${totalLessonsNeeded > 0}`);
       }
 
       // 6. Construir información del perfil
@@ -4809,7 +4819,7 @@ INSTRUCCIONES:
           }
 
           // ✅ PASO 1: Crear lista plana de todas las lecciones pendientes de todos los cursos
-          // Estructura: { courseId, courseTitle, lessonId, lessonTitle, lessonOrderIndex, moduleOrderIndex, durationSeconds }
+          // Estructura: { courseId, courseTitle, lessonId, lessonTitle, lessonOrderIndex, moduleOrderIndex, durationSeconds, durationMinutes }
           const allPendingLessons: Array<{
             courseId: string;
             courseTitle: string;
@@ -4818,6 +4828,7 @@ INSTRUCCIONES:
             lessonOrderIndex: number;
             moduleOrderIndex: number;
             durationSeconds: number;
+            durationMinutes: number;
           }> = [];
 
           // ✅ PASO 1.1: Rastrear lessonIds agregados para evitar duplicados desde el inicio
@@ -4880,7 +4891,8 @@ INSTRUCCIONES:
                 lessonTitle: lesson.lessonTitle.trim(), // Asegurar que no tenga espacios extra
                 lessonOrderIndex: orderIndex,
                 moduleOrderIndex: moduleOrderIndex,
-                durationSeconds: lesson.durationSeconds || 0
+                durationSeconds: lesson.durationSeconds || 0,
+                durationMinutes: (lesson as any).totalDurationMinutes || Math.ceil((lesson.durationSeconds || 0) / 60)
               });
 
               // ✅ Marcar como agregada para evitar duplicados
@@ -5043,37 +5055,87 @@ INSTRUCCIONES:
 
           // ✅ CORRECCIÓN: Usar solo lecciones válidas para la distribución
 
-          const MINUTES_PER_LESSON = 25; // Asumir 25 minutos por lección como solicita el usuario
+          // --------------------------------------------------------------------------------
+          // ✅ NUEVA LÓGICA DE DISTRIBUCIÓN (Greedy Packing v2) - Simplificada y Precisa
+          // --------------------------------------------------------------------------------
 
-          // Calcular capacidad total disponible en todos los slots
-          const totalSlotsAvailable = slotsUntilTarget.length;
-          const totalLessons = validPendingLessons.length;
+          // 1. Configurar Multiplicador
+          const approachMultiplier = effectiveApproach === 'rapido' ? 1.0 : effectiveApproach === 'normal' ? 1.4 : 1.8;
+          console.log(`⚡ [Distribución] Iniciando con Multiplicador: ${approachMultiplier} (Enfoque: ${effectiveApproach})`);
 
-          // Calcular capacidad total de todos los slots (cuántas lecciones caben en total)
-          let totalCapacity = 0;
-          slotsUntilTarget.forEach(slot => {
-            const maxLessonsInSlot = Math.max(1, Math.floor(slot.durationMinutes / MINUTES_PER_LESSON));
-            totalCapacity += maxLessonsInSlot;
+          // 2. Variables de estado para la distribución (usando las ya declaradas arriba)
+          lessonDistribution.length = 0;
+          assignedLessonIds.clear();
+          currentLessonIndex = 0;
+
+          // 3. Iterar por cada slot disponible (Greedy: llenar cada slot hasta su tope)
+          slotsUntilTarget.forEach((slot, slotIndex) => {
+            // Si ya asignamos todas las lecciones, terminar
+            if (currentLessonIndex >= validPendingLessons.length) return;
+
+            const slotDuration = slot.durationMinutes;
+            let usedDurationInSlot = 0;
+            const lessonsForSlot: any[] = [];
+
+            // Intentar meter lecciones mientras quepan y haya disponibles
+            while (currentLessonIndex < validPendingLessons.length) {
+              const lesson = validPendingLessons[currentLessonIndex];
+
+              // Ignorar duplicados o inválidos
+              if (!lesson || !lesson.lessonId || assignedLessonIds.has(lesson.lessonId)) {
+                currentLessonIndex++;
+                continue;
+              }
+
+              // Calcular duración real
+              const baseDuration = lesson.durationMinutes || 15;
+              const finalDuration = Math.ceil(baseDuration * approachMultiplier);
+
+              // Lógica de encaje:
+              // 1. Si el slot está vacío, aceptamos la lección aunque se pase un poco (para no bloquear lecciones largas)
+              // 2. Si ya tiene contenido, solo aceptamos si cabe estrictamente
+              const fits = (usedDurationInSlot + finalDuration <= slotDuration);
+              const isSlotEmpty = lessonsForSlot.length === 0;
+
+              if (isSlotEmpty || fits) {
+                // Asignar
+                lessonsForSlot.push({
+                  courseTitle: lesson.courseTitle || 'Curso',
+                  lessonTitle: lesson.lessonTitle.trim(),
+                  lessonOrderIndex: (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) ? lesson.lessonOrderIndex : 0,
+                  durationMinutes: finalDuration
+                });
+                assignedLessonIds.add(lesson.lessonId);
+                usedDurationInSlot += finalDuration;
+                currentLessonIndex++;
+
+                // Log de verificación (solo al principio para debugging)
+                if (slotIndex === 0 && lessonsForSlot.length <= 3) {
+                  console.log(`⚡ [Greedy] Asignada: "${lesson.lessonTitle.substring(0, 30)}..." | Base: ${baseDuration}m | Final: ${finalDuration}m`);
+                }
+              } else {
+                // No cabe -> Pasar al siguiente slot
+                break;
+              }
+            }
+
+            // Guardar el slot si tiene lecciones
+            if (lessonsForSlot.length > 0) {
+              lessonDistribution.push({ slot, lessons: lessonsForSlot });
+            }
           });
 
-          // ✅ SIMPLIFICADO: Distribuir uniformemente a lo largo del periodo
-          const hasEnoughCapacity = totalCapacity >= totalLessons;
+          // 4. Verificación final de lecciones sin asignar
+          const unassignedCount = validPendingLessons.length - assignedLessonIds.size;
+          if (unassignedCount > 0) {
+            console.warn(`⚠️ [Distribución] Quedaron ${unassignedCount} lecciones sin asignar por falta de espacio en el calendario.`);
+          } else {
+            console.log(`✅ [Distribución] Éxito: Todas las lecciones asignadas correctamente.`);
+          }
 
-          slotsUntilTarget.forEach((slot, slotIndex) => {
-            const slotDurationMinutes = slot.durationMinutes;
-
-            // Calcular cuántas lecciones caben en el slot basado en 25 min por lección
-            const maxLessonsInSlot = Math.max(1, Math.floor(slotDurationMinutes / MINUTES_PER_LESSON));
-
-            // Calcular cuántas lecciones quedan por asignar (usar solo lecciones válidas)
-            const remainingLessons = validPendingLessons.length - currentLessonIndex;
-            const remainingSlots = slotsUntilTarget.length - slotIndex;
-
-            // ✅ USAR EXACTAMENTE LA MISMA LÓGICA QUE B2C: Agrupar lecciones eficientemente
-            // B2C agrupa múltiples lecciones por slot cuando hay capacidad
-            let lessonsToAssign: number;
-
-            if (remainingLessons === 0) {
+          /* LEGACY LOGIC START - TO BE REMOVED
+          let lessonsToAssign: number;
+          if (remainingLessons === 0) {
               lessonsToAssign = 0;
             } else if (remainingSlots === 1) {
               // Último slot: asignar todas las lecciones restantes (hasta capacidad)
@@ -5093,7 +5155,12 @@ INSTRUCCIONES:
             }
 
             // Asignar lecciones a este slot (solo lecciones válidas)
-            const lessonsForSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
+            const lessonsForSlot: Array<{
+              courseTitle: string;
+              lessonTitle: string;
+              lessonOrderIndex: number;
+              durationMinutes: number;
+            }> = [];
 
             // ✅ CORRECCIÓN: Asignar solo lecciones válidas (ya filtradas previamente) y evitar duplicados
             let assignedInSlot = 0;
@@ -5135,10 +5202,18 @@ INSTRUCCIONES:
                 ? lesson.lessonOrderIndex
                 : 0;
 
+              const durationWithMultiplier = Math.ceil((lesson.durationMinutes || 15) * approachMultiplier);
+
+              // ✅ LOGGING: Verificar multiplicador (mostrar primeras lecciones)
+              if (assignedInSlot < 3 && slotIndex === 0) {
+                console.log(`⚡ [Multiplicador] Lección: "${lesson.lessonTitle.substring(0, 30)}..." | Base: ${lesson.durationMinutes || 15}m | Enfoque: ${effectiveApproach} (x${approachMultiplier}) | Final: ${durationWithMultiplier}m`);
+              }
+
               lessonsForSlot.push({
                 courseTitle: lesson.courseTitle || 'Curso',
                 lessonTitle: lesson.lessonTitle.trim(),
-                lessonOrderIndex: orderIndex
+                lessonOrderIndex: orderIndex,
+                durationMinutes: durationWithMultiplier
               });
 
               // ✅ Marcar como asignada para evitar duplicados
@@ -5178,7 +5253,12 @@ INSTRUCCIONES:
               if (currentLessonIndex >= validPendingLessons.length) break;
 
               const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / MINUTES_PER_LESSON));
-              const lessonsForUnusedSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
+              const lessonsForUnusedSlot: Array<{
+                courseTitle: string;
+                lessonTitle: string;
+                lessonOrderIndex: number;
+                durationMinutes: number;
+              }> = [];
 
               for (let i = 0; i < slotCapacity && currentLessonIndex < validPendingLessons.length; i++) {
                 const lesson = validPendingLessons[currentLessonIndex];
@@ -5198,10 +5278,12 @@ INSTRUCCIONES:
                     ? lesson.lessonOrderIndex
                     : 0;
 
+                  const durationWithMultiplier = Math.ceil((lesson.durationMinutes || 15) * approachMultiplier);
                   lessonsForUnusedSlot.push({
                     courseTitle: lesson.courseTitle || 'Curso',
                     lessonTitle: lesson.lessonTitle.trim(),
-                    lessonOrderIndex: orderIndex
+                    lessonOrderIndex: orderIndex,
+                    durationMinutes: durationWithMultiplier
                   });
 
                   // ✅ Marcar como asignada para evitar duplicados
@@ -5374,7 +5456,12 @@ INSTRUCCIONES:
                 );
               }
 
-              const lessonsForSlot: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }> = [];
+              const lessonsForSlot: Array<{
+                courseTitle: string;
+                lessonTitle: string;
+                lessonOrderIndex: number;
+                durationMinutes: number;
+              }> = [];
 
               for (let i = 0; i < lessonsToAssignInSlot && currentLessonIndex < validPendingLessons.length; i++) {
                 // Buscar la siguiente lección NO asignada
@@ -5401,7 +5488,8 @@ INSTRUCCIONES:
                   lessonsForSlot.push({
                     courseTitle: lesson.courseTitle || 'Curso',
                     lessonTitle: lesson.lessonTitle.trim(),
-                    lessonOrderIndex: orderIndex
+                    lessonOrderIndex: orderIndex,
+                    durationMinutes: Math.ceil((lesson.durationMinutes || 15) * approachMultiplier)
                   });
 
                   assignedLessonIds.add(lesson.lessonId);
@@ -5488,10 +5576,7 @@ INSTRUCCIONES:
             const finalRemaining = validPendingLessons.length - currentLessonIndex;
             if (finalRemaining > 0) {
               console.error(`❌ CRÍTICO: Aún quedan ${finalRemaining} lecciones sin asignar después de usar TODOS los slots disponibles`);
-            } else {
-              console.log(`✅ ÉXITO: Todas las ${validPendingLessons.length} lecciones han sido asignadas`);
-            }
-          }
+          */
 
           // Guardar distribución en el estado para usar en el resumen final
           // Convertir a formato almacenable con validación estricta de datos
@@ -5517,7 +5602,8 @@ INSTRUCCIONES:
                 return {
                   courseTitle: lesson.courseTitle || 'Curso',
                   lessonTitle: lesson.lessonTitle.trim(), // Asegurar sin espacios extra
-                  lessonOrderIndex: orderIndex
+                  lessonOrderIndex: orderIndex,
+                  durationMinutes: (lesson as any).durationMinutes || 0
                 };
               });
 
@@ -5557,45 +5643,53 @@ INSTRUCCIONES:
 
           // ✅ MOSTRAR SOLO LOS SLOTS QUE TIENEN LECCIONES ASIGNADAS
           // No mostrar todos los slots disponibles, solo los que realmente se van a usar
-          const slotsWithLessons = lessonDistribution.map(dist => dist.slot);
+          // Formatear mensaje detallado para LIA con tiempos reales
+          const distByDay = new Map<string, typeof lessonDistribution>();
 
-          // Agrupar por fecha para mostrar los slots con lecciones
-          const slotsByDay = new Map<string, FreeSlotWithDay[]>();
-
-          slotsWithLessons.forEach(slot => {
-            if (!slotsByDay.has(slot.dateStr)) {
-              slotsByDay.set(slot.dateStr, []);
+          lessonDistribution.forEach(dist => {
+            if (!distByDay.has(dist.slot.dateStr)) {
+              distByDay.set(dist.slot.dateStr, []);
             }
-            slotsByDay.get(slot.dateStr)!.push(slot);
+            distByDay.get(dist.slot.dateStr)!.push(dist);
           });
 
           // Ordenar las fechas cronológicamente
-          const sortedDays = Array.from(slotsByDay.keys()).sort((a, b) => {
+          const sortedDays = Array.from(distByDay.keys()).sort((a, b) => {
             return new Date(a).getTime() - new Date(b).getTime();
           });
 
-          // Mostrar todos los días con sus horarios (solo slots con lecciones asignadas)
+          // Mostrar todos los días con sus horarios ajustados y lista de lecciones
           sortedDays.forEach(dateStr => {
-            const slots = slotsByDay.get(dateStr)!;
-
+            const distributions = distByDay.get(dateStr)!;
             // Ordenar slots del día por hora de inicio
-            slots.sort((a, b) => a.start.getTime() - b.start.getTime());
+            distributions.sort((a, b) => a.slot.start.getTime() - b.slot.start.getTime());
 
-            // Mostrar cada slot del día
-            slots.forEach(slot => {
-              const startTime = slot.start.toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-              });
-              const endTime = slot.end.toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-              });
+            // Mostrar encabezado del día
+            const dayDate = new Date(dateStr);
+            // Usar el nombre del día del primer slot
+            const dayName = distributions[0].slot.dayName;
+            const formattedDate = dayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
 
-              // Solo mostrar el horario, sin lecciones
-              calendarMessage += `• ${slot.dayName} ${slot.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} a las ${startTime} - ${endTime}\n`;
+            calendarMessage += `\n📅 **${dayName} ${formattedDate}:**\n`;
+
+            distributions.forEach(dist => {
+              // Calcular duración real basada en la suma de las lecciones asignadas
+              const realDurationMinutes = dist.lessons.reduce((sum, l) => sum + (l.durationMinutes || 15), 0);
+              console.log(`[StudyPlannerLIA] Slot ${dist.slot.start.toLocaleTimeString()} - Duración real: ${realDurationMinutes} min (Lecciones: ${dist.lessons.map(l => `${l.lessonTitle} (${l.durationMinutes})`).join(', ')})`);
+
+              // Calcular hora de fin ajustada
+              const startTime = dist.slot.start;
+              const adjustedEndTime = new Date(startTime.getTime() + realDurationMinutes * 60000);
+
+              const startTimeStr = startTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+              const endTimeStr = adjustedEndTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+              calendarMessage += `   ⏰ HORARIO EXACTO: ${startTimeStr} - ${endTimeStr} (${realDurationMinutes} min):\n`;
+
+              dist.lessons.forEach(l => {
+                calendarMessage += `      • [${l.courseTitle}] ${l.lessonTitle} (Duración: ${l.durationMinutes || 15} min)\n`;
+              });
+              calendarMessage += `\n`; // Espacio entre slots
             });
           });
 
@@ -5638,12 +5732,14 @@ INSTRUCCIONES:
           }
 
           // Agregar datos crudos para que LIA calcule las metas semanales AUTOMÁTICAMENTE
-          if (selectedCourseIds.length > 0 && totalLessonsNeeded > 0 && weeksUntilTarget > 0 && studyApproach && targetDate) {
+          if (selectedCourseIds.length > 0 && totalLessonsNeeded > 0 && weeksUntilTarget > 0 && effectiveApproach && targetDate) {
             // Calcular metas automáticamente
             const lessonsPerWeekCalc = Math.ceil(totalLessonsNeeded / weeksUntilTarget);
-            const hoursPerWeekCalc = Math.ceil(lessonsPerWeekCalc * 1.5);
-            const sessionDurationMinutes = effectiveApproach === 'rapido' ? 25 : effectiveApproach === 'normal' ? 45 : 60;
-            const breakMinutes = effectiveApproach === 'rapido' ? 5 : effectiveApproach === 'normal' ? 10 : 15;
+            // Multiplicador según enfoque: rapido=1.0, normal=1.4, largo=1.8
+            const approachMultiplier = effectiveApproach === 'rapido' ? 1.0 : effectiveApproach === 'normal' ? 1.4 : 1.8;
+            // Estimar horas basándose en el tiempo promedio de lección y el multiplicador
+            const avgLessonMinutes = 15; // Promedio estimado si no tenemos datos exactos
+            const hoursPerWeekCalc = Math.ceil((lessonsPerWeekCalc * avgLessonMinutes * approachMultiplier) / 60);
 
             // Enviar datos en formato estructurado para LIA (sin instrucciones visibles)
             calendarMessage += `\n`;
@@ -7429,7 +7525,7 @@ Cuéntame:
         }
       });
       distributionSummary += `\n`;
-      distributionSummary += `**Enfoque de estudio:** ${studyApproach === 'rapido' ? 'Sesiones rápidas (25 min + 5 min descanso)' : studyApproach === 'normal' ? 'Sesiones normales (45 min + 10 min descanso)' : 'Sesiones largas (60 min + 15 min descanso)'}\n`;
+      distributionSummary += `**Enfoque de estudio:** ${studyApproach === 'rapido' ? 'Sesiones rápidas (x1.0 - tiempo exacto de la lección)' : studyApproach === 'normal' ? 'Sesiones normales (x1.4 - ritmo equilibrado)' : 'Sesiones largas (x1.8 - profundización)'}\n`;
       distributionSummary += `**Fecha límite para completar:** ${savedTargetDate || 'No especificada'}\n`;
       distributionSummary += `\n`;
 
@@ -7769,6 +7865,7 @@ Cuéntame:
                   moduleTitle: l.moduleTitle,
                   lessonTitle: l.lessonTitle,
                   courseTitle: l.courseTitle,
+                  durationMinutes: l.durationMinutes || 15 // Enviar duración real o 15m por defecto
                 }))
                 : null,
               totalPendingLessons: pendingLessonsRef.current.length,
@@ -7792,6 +7889,7 @@ Cuéntame:
                   moduleTitle: l.moduleTitle,
                   lessonTitle: l.lessonTitle,
                   courseTitle: l.courseTitle,
+                  durationMinutes: l.durationMinutes || 15 // Enviar duración real o 15m por defecto
                 }))
                 : null,
               totalPendingLessons: pendingLessonsRef.current.length,
@@ -8652,167 +8750,283 @@ Cuéntame:
               </motion.div>
             </div>
           </>
-        )}
-      </AnimatePresence>
+        )
+        }
+      </AnimatePresence >
 
       {/* Interfaz de conversación con LIA */}
-      {showConversation && (
-        <div className="h-screen bg-white dark:bg-[#0F1419] flex flex-col overflow-hidden" suppressHydrationWarning>
-          {/* Header */}
-          <div className="flex-shrink-0 z-10 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
-            <div className="max-w-4xl mx-auto flex items-center gap-4">
-              <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#0A2540]/20 dark:border-[#00D4B3]/30">
-                <Image
-                  src="/lia-avatar.png"
-                  alt="LIA"
-                  fill
-                  sizes="48px"
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex-1">
-                <h1 className="text-lg font-bold text-[#0A2540] dark:text-white">LIA - Planificador de Estudios</h1>
-                <p className="text-sm text-[#6C757D] dark:text-gray-400">Tu asistente para crear planes personalizados</p>
-              </div>
+      {
+        showConversation && (
+          <div className="h-screen bg-white dark:bg-[#0F1419] flex flex-col overflow-hidden" suppressHydrationWarning>
+            {/* Header */}
+            <div className="flex-shrink-0 z-10 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
+              <div className="max-w-4xl mx-auto flex items-center gap-4">
+                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#0A2540]/20 dark:border-[#00D4B3]/30">
+                  <Image
+                    src="/lia-avatar.png"
+                    alt="LIA"
+                    fill
+                    sizes="48px"
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-lg font-bold text-[#0A2540] dark:text-white">LIA - Planificador de Estudios</h1>
+                  <p className="text-sm text-[#6C757D] dark:text-gray-400">Tu asistente para crear planes personalizados</p>
+                </div>
 
-              {/* Botones de acción como iconos que se expanden con texto */}
-              <div className="flex items-center gap-2">
-                {/* Botón Calendario conectado / Conectar calendario */}
-                {connectedCalendar ? (
+                {/* Botones de acción como iconos que se expanden con texto */}
+                <div className="flex items-center gap-2">
+                  {/* Botón Calendario conectado / Conectar calendario */}
+                  {connectedCalendar ? (
+                    <motion.button
+                      layout
+                      onClick={() => setShowCalendarModal(true)}
+                      disabled={isProcessing}
+                      onMouseEnter={() => setHoveredButton('calendar-connected')}
+                      onMouseLeave={() => setHoveredButton(null)}
+                      whileTap={{ scale: 0.95 }}
+                      className={`rounded-lg transition-colors disabled:opacity-50 bg-white/10 hover:bg-white/20 border border-white/20 flex items-center ${isProcessing ? 'cursor-not-allowed' : ''
+                        }`}
+                    >
+                      <div className="p-2.5 flex-shrink-0 flex items-center justify-center">
+                        {connectedCalendar === 'google' ? <GoogleIcon /> : <MicrosoftIcon />}
+                      </div>
+                      <AnimatePresence>
+                        {hoveredButton === 'calendar-connected' && (
+                          <motion.span
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: 180, opacity: 1 }}
+                            exit={{ width: 0, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeInOut' }}
+                            className="pr-3 whitespace-nowrap text-sm font-medium text-white overflow-hidden inline-block"
+                          >
+                            {connectedCalendar === 'google' ? 'Google' : 'Microsoft'} conectado
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      layout
+                      onClick={() => setShowCalendarModal(true)}
+                      disabled={isProcessing || showCalendarModal}
+                      onMouseEnter={() => setHoveredButton('calendar')}
+                      onMouseLeave={() => setHoveredButton(null)}
+                      whileTap={{ scale: 0.95 }}
+                      className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${isProcessing || showCalendarModal
+                        ? 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
+                        : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 hover:bg-[#0A2540]/20 dark:hover:bg-[#0A2540]/30 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/20 dark:border-[#00D4B3]/30'
+                        }`}
+                    >
+                      <div className="p-2.5 flex-shrink-0">
+                        <Calendar size={20} />
+                      </div>
+                      <AnimatePresence>
+                        {hoveredButton === 'calendar' && (
+                          <motion.span
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: 160, opacity: 1 }}
+                            exit={{ width: 0, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeInOut' }}
+                            className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+                          >
+                            Conectar calendario
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
+                  )}
+
+                  {/* Botón ¿Cómo funciona? */}
                   <motion.button
                     layout
-                    onClick={() => setShowCalendarModal(true)}
+                    onClick={() => handleSendMessage('¿Cómo funciona?')}
                     disabled={isProcessing}
-                    onMouseEnter={() => setHoveredButton('calendar-connected')}
+                    onMouseEnter={() => setHoveredButton('help')}
                     onMouseLeave={() => setHoveredButton(null)}
                     whileTap={{ scale: 0.95 }}
-                    className={`rounded-lg transition-colors disabled:opacity-50 bg-white/10 hover:bg-white/20 border border-white/20 flex items-center ${isProcessing ? 'cursor-not-allowed' : ''
-                      }`}
-                  >
-                    <div className="p-2.5 flex-shrink-0 flex items-center justify-center">
-                      {connectedCalendar === 'google' ? <GoogleIcon /> : <MicrosoftIcon />}
-                    </div>
-                    <AnimatePresence>
-                      {hoveredButton === 'calendar-connected' && (
-                        <motion.span
-                          initial={{ width: 0, opacity: 0 }}
-                          animate={{ width: 180, opacity: 1 }}
-                          exit={{ width: 0, opacity: 0 }}
-                          transition={{ duration: 0.2, ease: 'easeInOut' }}
-                          className="pr-3 whitespace-nowrap text-sm font-medium text-white overflow-hidden inline-block"
-                        >
-                          {connectedCalendar === 'google' ? 'Google' : 'Microsoft'} conectado
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </motion.button>
-                ) : (
-                  <motion.button
-                    layout
-                    onClick={() => setShowCalendarModal(true)}
-                    disabled={isProcessing || showCalendarModal}
-                    onMouseEnter={() => setHoveredButton('calendar')}
-                    onMouseLeave={() => setHoveredButton(null)}
-                    whileTap={{ scale: 0.95 }}
-                    className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${isProcessing || showCalendarModal
+                    className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${isProcessing
                       ? 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
-                      : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 hover:bg-[#0A2540]/20 dark:hover:bg-[#0A2540]/30 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/20 dark:border-[#00D4B3]/30'
+                      : 'bg-[#E9ECEF] dark:bg-[#0A2540]/10 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/20 text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
                       }`}
                   >
                     <div className="p-2.5 flex-shrink-0">
-                      <Calendar size={20} />
+                      <HelpCircle size={20} />
                     </div>
                     <AnimatePresence>
-                      {hoveredButton === 'calendar' && (
+                      {hoveredButton === 'help' && (
                         <motion.span
                           initial={{ width: 0, opacity: 0 }}
-                          animate={{ width: 160, opacity: 1 }}
+                          animate={{ width: 140, opacity: 1 }}
                           exit={{ width: 0, opacity: 0 }}
                           transition={{ duration: 0.2, ease: 'easeInOut' }}
                           className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
                         >
-                          Conectar calendario
+                          ¿Cómo funciona?
                         </motion.span>
                       )}
                     </AnimatePresence>
                   </motion.button>
-                )}
 
-                {/* Botón ¿Cómo funciona? */}
-                <motion.button
-                  layout
-                  onClick={() => handleSendMessage('¿Cómo funciona?')}
-                  disabled={isProcessing}
-                  onMouseEnter={() => setHoveredButton('help')}
-                  onMouseLeave={() => setHoveredButton(null)}
-                  whileTap={{ scale: 0.95 }}
-                  className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${isProcessing
-                    ? 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
-                    : 'bg-[#E9ECEF] dark:bg-[#0A2540]/10 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/20 text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
-                    }`}
-                >
-                  <div className="p-2.5 flex-shrink-0">
-                    <HelpCircle size={20} />
-                  </div>
-                  <AnimatePresence>
-                    {hoveredButton === 'help' && (
-                      <motion.span
-                        initial={{ width: 0, opacity: 0 }}
-                        animate={{ width: 140, opacity: 1 }}
-                        exit={{ width: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: 'easeInOut' }}
-                        className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
-                      >
-                        ¿Cómo funciona?
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-
-                {/* Botón de audio */}
-                <motion.button
-                  layout
-                  onClick={toggleAudio}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`p-2.5 rounded-lg transition-colors ${isAudioEnabled
-                    ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
-                    : 'bg-[#E9ECEF] dark:bg-[#6C757D] text-[#6C757D] dark:text-gray-400 hover:bg-[#6C757D]/20 dark:hover:bg-[#6C757D]/80'
-                    }`}
-                >
-                  {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-                </motion.button>
+                  {/* Botón de audio */}
+                  <motion.button
+                    layout
+                    onClick={toggleAudio}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`p-2.5 rounded-lg transition-colors ${isAudioEnabled
+                      ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
+                      : 'bg-[#E9ECEF] dark:bg-[#6C757D] text-[#6C757D] dark:text-gray-400 hover:bg-[#6C757D]/20 dark:hover:bg-[#6C757D]/80'
+                      }`}
+                  >
+                    {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                  </motion.button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Área de mensajes */}
-          <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
-            <div className="max-w-4xl mx-auto space-y-3">
-              {conversationHistory.map((msg, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{
-                    duration: 0.4,
-                    ease: [0.16, 1, 0.3, 1],
-                    delay: idx * 0.05
-                  }}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group`}
-                >
-                  <div className={`flex items-end gap-2.5 max-w-[78%] sm:max-w-[75%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                    {msg.role === 'assistant' && (
+            {/* Área de mensajes */}
+            <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
+              <div className="max-w-4xl mx-auto space-y-3">
+                {conversationHistory.map((msg, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{
+                      duration: 0.4,
+                      ease: [0.16, 1, 0.3, 1],
+                      delay: idx * 0.05
+                    }}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group`}
+                  >
+                    <div className={`flex items-end gap-2.5 max-w-[78%] sm:max-w-[75%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                      {msg.role === 'assistant' && (
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{
+                            delay: idx * 0.05 + 0.1,
+                            type: 'spring',
+                            stiffness: 200,
+                            damping: 15
+                          }}
+                          className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20"
+                        >
+                          <Image
+                            src="/lia-avatar.png"
+                            alt="LIA"
+                            fill
+                            sizes="40px"
+                            className="object-cover"
+                          />
+                        </motion.div>
+                      )}
                       <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
                         transition={{
-                          delay: idx * 0.05 + 0.1,
+                          delay: idx * 0.05 + 0.15,
                           type: 'spring',
-                          stiffness: 200,
-                          damping: 15
+                          stiffness: 300,
+                          damping: 20
                         }}
-                        className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20"
+                        className={`relative ${msg.role === 'user'
+                          ? 'bg-[#10B981] text-white'
+                          : 'bg-[#0A2540]/10 dark:bg-[#1E2329] text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                          } px-4 py-2.5 sm:px-5 sm:py-3 rounded-[20px] sm:rounded-[22px] shadow-sm ${msg.role === 'user'
+                            ? 'shadow-[#10B981]/25 rounded-br-[6px]'
+                            : 'shadow-[#0A2540]/10 dark:shadow-[#00D4B3]/10 rounded-bl-[6px]'
+                          } overflow-hidden`}
+                      >
+                        {/* Cola de burbuja estilo WhatsApp/Messenger mejorada */}
+                        {msg.role === 'user' ? (
+                          <svg
+                            className="absolute -right-[8px] bottom-0 h-[20px] w-[8px] text-[#10B981]"
+                            viewBox="0 0 8 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M0 0C0 11.046 0 15.046 0 20C4.046 20 8.046 20 8 20C8 15.046 8 11.046 8 0C4.046 0 0 0 0 0Z"
+                              fill="currentColor"
+                              className="drop-shadow-lg"
+                            />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-[#0A2540]/10 dark:text-[#1E2329]"
+                            viewBox="0 0 8 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M8 0C8 11.046 8 15.046 8 20C3.954 20 0 20 0 20C0 15.046 0 11.046 0 0C3.954 0 8 0 8 0Z"
+                              fill="currentColor"
+                              className="drop-shadow-lg"
+                            />
+                          </svg>
+                        )}
+
+                        {/* Efecto de brillo sutil al hover */}
+                        <motion.div
+                          className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${msg.role === 'user'
+                            ? 'bg-gradient-to-r from-transparent via-white/15 to-transparent'
+                            : 'bg-gradient-to-r from-transparent via-white/8 to-transparent'
+                            }`}
+                          animate={{
+                            x: ['-100%', '200%']
+                          }}
+                          transition={{
+                            duration: 2.5,
+                            repeat: Infinity,
+                            repeatDelay: 4,
+                            ease: 'linear'
+                          }}
+                        />
+
+                        {/* Contenido del mensaje */}
+                        <div className="relative z-10">
+                          {msg.role === 'assistant' ? (
+                            <div className="font-body text-[15px] sm:text-[16px] leading-[1.75] text-[#0A2540] dark:text-white tracking-wide">
+                              {formatLIAMessage(msg.content)}
+                            </div>
+                          ) : (
+                            <p className="font-body text-[15px] sm:text-[16px] leading-[1.75] font-medium whitespace-pre-wrap text-white tracking-wide">{msg.content}</p>
+                          )}
+                        </div>
+
+                        {/* Efecto de profundidad sutil */}
+                        <div className={`absolute inset-0 rounded-[22px] pointer-events-none ${msg.role === 'user'
+                          ? 'bg-gradient-to-br from-white/10 via-white/5 to-transparent'
+                          : 'bg-gradient-to-br from-white/5 via-white/2 to-transparent'
+                          }`} />
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                ))}
+
+                {/* Indicador de procesamiento */}
+                {isProcessing && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex justify-start group"
+                  >
+                    <div className="flex items-end gap-2.5">
+                      <motion.div
+                        className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20"
+                        animate={{
+                          scale: [1, 1.05, 1],
+                          boxShadow: [
+                            '0 0 0px rgba(10, 37, 64, 0.2)',
+                            '0 0 20px rgba(10, 37, 64, 0.4)',
+                            '0 0 0px rgba(10, 37, 64, 0.2)'
+                          ]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
                       >
                         <Image
                           src="/lia-avatar.png"
@@ -8822,39 +9036,13 @@ Cuéntame:
                           className="object-cover"
                         />
                       </motion.div>
-                    )}
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{
-                        delay: idx * 0.05 + 0.15,
-                        type: 'spring',
-                        stiffness: 300,
-                        damping: 20
-                      }}
-                      className={`relative ${msg.role === 'user'
-                        ? 'bg-[#10B981] text-white'
-                        : 'bg-[#0A2540]/10 dark:bg-[#1E2329] text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
-                        } px-4 py-2.5 sm:px-5 sm:py-3 rounded-[20px] sm:rounded-[22px] shadow-sm ${msg.role === 'user'
-                          ? 'shadow-[#10B981]/25 rounded-br-[6px]'
-                          : 'shadow-[#0A2540]/10 dark:shadow-[#00D4B3]/10 rounded-bl-[6px]'
-                        } overflow-hidden`}
-                    >
-                      {/* Cola de burbuja estilo WhatsApp/Messenger mejorada */}
-                      {msg.role === 'user' ? (
-                        <svg
-                          className="absolute -right-[8px] bottom-0 h-[20px] w-[8px] text-[#10B981]"
-                          viewBox="0 0 8 20"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M0 0C0 11.046 0 15.046 0 20C4.046 20 8.046 20 8 20C8 15.046 8 11.046 8 0C4.046 0 0 0 0 0Z"
-                            fill="currentColor"
-                            className="drop-shadow-lg"
-                          />
-                        </svg>
-                      ) : (
+                      <motion.div
+                        className="relative bg-[#0A2540]/10 dark:bg-[#1E2329] px-4 py-3 sm:px-5 sm:py-3.5 rounded-[20px] sm:rounded-[22px] shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-bl-[6px] overflow-hidden"
+                        initial={{ scale: 0.9 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                      >
+                        {/* Cola de burbuja */}
                         <svg
                           className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-[#0A2540]/10 dark:text-[#1E2329]"
                           viewBox="0 0 8 20"
@@ -8867,162 +9055,607 @@ Cuéntame:
                             className="drop-shadow-lg"
                           />
                         </svg>
-                      )}
 
-                      {/* Efecto de brillo sutil al hover */}
-                      <motion.div
-                        className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${msg.role === 'user'
-                          ? 'bg-gradient-to-r from-transparent via-white/15 to-transparent'
-                          : 'bg-gradient-to-r from-transparent via-white/8 to-transparent'
-                          }`}
-                        animate={{
-                          x: ['-100%', '200%']
-                        }}
-                        transition={{
-                          duration: 2.5,
-                          repeat: Infinity,
-                          repeatDelay: 4,
-                          ease: 'linear'
-                        }}
-                      />
+                        {/* Efecto de brillo */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
 
-                      {/* Contenido del mensaje */}
-                      <div className="relative z-10">
-                        {msg.role === 'assistant' ? (
-                          <div className="font-body text-[15px] sm:text-[16px] leading-[1.75] text-[#0A2540] dark:text-white tracking-wide">
-                            {formatLIAMessage(msg.content)}
-                          </div>
-                        ) : (
-                          <p className="font-body text-[15px] sm:text-[16px] leading-[1.75] font-medium whitespace-pre-wrap text-white tracking-wide">{msg.content}</p>
-                        )}
-                      </div>
+                        {/* Puntos animados mejorados */}
+                        <div className="relative z-10 flex gap-1.5 items-center">
+                          <motion.div
+                            animate={{
+                              scale: [1, 1.3, 1],
+                              y: [0, -4, 0]
+                            }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: 0, ease: 'easeInOut' }}
+                            className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
+                          />
+                          <motion.div
+                            animate={{
+                              scale: [1, 1.3, 1],
+                              y: [0, -4, 0]
+                            }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: 0.2, ease: 'easeInOut' }}
+                            className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
+                          />
+                          <motion.div
+                            animate={{
+                              scale: [1, 1.3, 1],
+                              y: [0, -4, 0]
+                            }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: 0.4, ease: 'easeInOut' }}
+                            className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
+                          />
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
 
-                      {/* Efecto de profundidad sutil */}
-                      <div className={`absolute inset-0 rounded-[22px] pointer-events-none ${msg.role === 'user'
-                        ? 'bg-gradient-to-br from-white/10 via-white/5 to-transparent'
-                        : 'bg-gradient-to-br from-white/5 via-white/2 to-transparent'
-                        }`} />
-                    </motion.div>
-                  </div>
-                </motion.div>
-              ))}
-
-              {/* Indicador de procesamiento */}
-              {isProcessing && (
-                <motion.div
-                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="flex justify-start group"
-                >
-                  <div className="flex items-end gap-2.5">
-                    <motion.div
-                      className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20"
-                      animate={{
-                        scale: [1, 1.05, 1],
-                        boxShadow: [
-                          '0 0 0px rgba(10, 37, 64, 0.2)',
-                          '0 0 20px rgba(10, 37, 64, 0.4)',
-                          '0 0 0px rgba(10, 37, 64, 0.2)'
-                        ]
-                      }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Image
-                        src="/lia-avatar.png"
-                        alt="LIA"
-                        fill
-                        sizes="40px"
-                        className="object-cover"
-                      />
-                    </motion.div>
-                    <motion.div
-                      className="relative bg-[#0A2540]/10 dark:bg-[#1E2329] px-4 py-3 sm:px-5 sm:py-3.5 rounded-[20px] sm:rounded-[22px] shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-bl-[6px] overflow-hidden"
-                      initial={{ scale: 0.9 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    >
-                      {/* Cola de burbuja */}
-                      <svg
-                        className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-[#0A2540]/10 dark:text-[#1E2329]"
-                        viewBox="0 0 8 20"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M8 0C8 11.046 8 15.046 8 20C3.954 20 0 20 0 20C0 15.046 0 11.046 0 0C3.954 0 8 0 8 0Z"
-                          fill="currentColor"
-                          className="drop-shadow-lg"
-                        />
-                      </svg>
-
-                      {/* Efecto de brillo */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
-
-                      {/* Puntos animados mejorados */}
-                      <div className="relative z-10 flex gap-1.5 items-center">
-                        <motion.div
-                          animate={{
-                            scale: [1, 1.3, 1],
-                            y: [0, -4, 0]
-                          }}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: 0, ease: 'easeInOut' }}
-                          className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
-                        />
-                        <motion.div
-                          animate={{
-                            scale: [1, 1.3, 1],
-                            y: [0, -4, 0]
-                          }}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.2, ease: 'easeInOut' }}
-                          className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
-                        />
-                        <motion.div
-                          animate={{
-                            scale: [1, 1.3, 1],
-                            y: [0, -4, 0]
-                          }}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: 0.4, ease: 'easeInOut' }}
-                          className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
-                        />
-                      </div>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Indicador de escucha */}
-              {isListening && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex justify-center"
-                >
-                  <div className="bg-[#10B981]/10 dark:bg-[#10B981]/20 border border-[#10B981]/30 px-4 py-2 rounded-full flex items-center gap-2">
-                    <motion.div
-                      animate={{ scale: [1, 1.3, 1] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                      className="w-3 h-3 bg-[#10B981] rounded-full"
-                    />
-                    <span className="text-[#10B981] text-sm">Escuchando...</span>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Selector de cursos - Modal mejorado */}
-              {showCourseSelector && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                >
-                  {/* Overlay con blur */}
+                {/* Indicador de escucha */}
+                {isListening && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="absolute inset-0 bg-black/70 backdrop-blur-md"
+                    className="flex justify-center"
+                  >
+                    <div className="bg-[#10B981]/10 dark:bg-[#10B981]/20 border border-[#10B981]/30 px-4 py-2 rounded-full flex items-center gap-2">
+                      <motion.div
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                        className="w-3 h-3 bg-[#10B981] rounded-full"
+                      />
+                      <span className="text-[#10B981] text-sm">Escuchando...</span>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Selector de cursos - Modal mejorado */}
+                {showCourseSelector && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                  >
+                    {/* Overlay con blur */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 bg-black/70 backdrop-blur-md"
+                    />
+
+                    {/* Modal */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                      className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+                    >
+                      {/* Header mejorado */}
+                      <div className="relative p-5 pb-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10">
+                        <div className="flex items-start gap-3 mb-4">
+                          <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30">
+                            <BookOpen className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona tus cursos</h3>
+                            <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige los cursos que quieres incluir en tu plan de estudios</p>
+                          </div>
+                        </div>
+
+                        {/* Barra de búsqueda - Siempre visible */}
+                        {availableCourses.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="relative mt-4"
+                          >
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6C757D]" />
+                            <input
+                              type="text"
+                              suppressHydrationWarning
+                              value={courseSearchQuery}
+                              onChange={(e) => setCourseSearchQuery(e.target.value)}
+                              placeholder="Buscar cursos..."
+                              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 transition-all"
+                            />
+                            {courseSearchQuery && (
+                              <motion.button
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                onClick={() => setCourseSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#6C757D] hover:text-[#0A2540] dark:hover:text-white transition-colors rounded hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
+                                title="Limpiar búsqueda"
+                              >
+                                <X size={16} />
+                              </motion.button>
+                            )}
+                          </motion.div>
+                        )}
+                      </div>
+
+                      {/* Contenido */}
+                      <div className="flex-1 overflow-hidden flex flex-col">
+                        {isLoadingCourses ? (
+                          <div className="flex flex-col items-center justify-center py-16 px-6">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            >
+                              <Loader2 className="w-12 h-12 text-[#0A2540] dark:text-[#00D4B3]" />
+                            </motion.div>
+                            <p className="text-[#6C757D] dark:text-gray-400 mt-4 text-sm">Cargando tus cursos...</p>
+                          </div>
+                        ) : availableCourses.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-16 px-6">
+                            <div className="w-20 h-20 rounded-full bg-[#E9ECEF] dark:bg-[#0A2540]/20 flex items-center justify-center mb-4">
+                              <BookOpen className="w-10 h-10 text-[#6C757D] dark:text-gray-400" />
+                            </div>
+                            <h4 className="text-[#0A2540] dark:text-white font-semibold mb-2">No tienes cursos disponibles</h4>
+                            <p className="text-[#6C757D] dark:text-gray-400 text-sm text-center max-w-sm">
+                              Adquiere cursos para poder crear tu plan de estudios personalizado
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Lista de cursos con scroll */}
+                            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 custom-scrollbar">
+                              {(() => {
+                                // Filtrar cursos según la búsqueda
+                                const filteredCourses = availableCourses.filter(course =>
+                                  course.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
+                                );
+
+                                if (filteredCourses.length === 0 && courseSearchQuery) {
+                                  return (
+                                    <div className="flex flex-col items-center justify-center py-12">
+                                      <Search className="w-12 h-12 text-[#6C757D] dark:text-gray-400 mb-3" />
+                                      <p className="text-[#6C757D] dark:text-gray-400 text-sm">No se encontraron cursos</p>
+                                      <p className="text-[#6C757D] dark:text-gray-500 text-xs mt-1">Intenta con otro término de búsqueda</p>
+                                    </div>
+                                  );
+                                }
+
+                                return filteredCourses.map((course, index) => {
+                                  const isSelected = selectedCourseIds.includes(course.id);
+                                  return (
+                                    <motion.div
+                                      key={course.id}
+                                      initial={{ opacity: 0, x: -20 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: index * 0.05 }}
+                                    >
+                                      <motion.button
+                                        onClick={() => toggleCourseSelection(course.id)}
+                                        whileHover={{ scale: 1.02, x: 4 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all relative overflow-hidden group ${isSelected
+                                          ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
+                                          : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
+                                          }`}
+                                      >
+                                        {/* Efecto de brillo en hover */}
+                                        {!isSelected && (
+                                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                        )}
+
+                                        {/* Checkbox mejorado */}
+                                        <motion.div
+                                          className={`relative w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${isSelected
+                                            ? 'bg-[#0A2540] dark:bg-[#0A2540] shadow-sm'
+                                            : 'bg-[#E9ECEF] dark:bg-[#6C757D] border-2 border-[#6C757D]/30'
+                                            }`}
+                                          animate={isSelected ? { scale: [1, 1.1, 1] } : {}}
+                                          transition={{ duration: 0.3 }}
+                                        >
+                                          {isSelected && (
+                                            <motion.div
+                                              initial={{ scale: 0, rotate: -180 }}
+                                              animate={{ scale: 1, rotate: 0 }}
+                                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                            >
+                                              <Check className="w-4 h-4 text-white font-bold" strokeWidth={3} />
+                                            </motion.div>
+                                          )}
+                                        </motion.div>
+
+                                        {/* Información del curso */}
+                                        <div className="flex-1 text-left min-w-0">
+                                          <p className={`font-semibold text-sm mb-1 line-clamp-2 ${isSelected ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-gray-200'
+                                            }`}>
+                                            {course.title}
+                                          </p>
+                                          {course.progress > 0 && (
+                                            <div className="flex items-center gap-2 mt-1">
+                                              <div className="w-20 h-1.5 bg-[#E9ECEF] dark:bg-[#6C757D]/30 rounded-full overflow-hidden">
+                                                <motion.div
+                                                  className="h-full bg-[#0A2540] dark:bg-[#00D4B3]"
+                                                  initial={{ width: 0 }}
+                                                  animate={{ width: `${course.progress}%` }}
+                                                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                                                />
+                                              </div>
+                                              <span className={`text-xs font-medium ${isSelected ? 'text-[#0A2540] dark:text-[#00D4B3]' : 'text-[#6C757D] dark:text-gray-400'
+                                                }`}>
+                                                {course.progress}% completado
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Indicador de selección */}
+                                        {isSelected && (
+                                          <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
+                                          />
+                                        )}
+                                      </motion.button>
+                                    </motion.div>
+                                  );
+                                });
+                              })()}
+                            </div>
+
+                            {/* Footer mejorado */}
+                            <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedCourseIds.length > 0
+                                    ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border border-[#0A2540]/20 dark:border-[#00D4B3]/30'
+                                    : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
+                                    }`}>
+                                    <span className={`text-sm font-bold ${selectedCourseIds.length > 0 ? 'text-[#0A2540] dark:text-[#00D4B3]' : 'text-[#6C757D]'
+                                      }`}>
+                                      {selectedCourseIds.length}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-[#0A2540] dark:text-white">
+                                      {selectedCourseIds.length === 0
+                                        ? 'Ningún curso seleccionado'
+                                        : selectedCourseIds.length === 1
+                                          ? '1 curso seleccionado'
+                                          : `${selectedCourseIds.length} cursos seleccionados`
+                                      }
+                                    </p>
+                                    <p className="text-xs text-[#6C757D] dark:text-gray-400">
+                                      {selectedCourseIds.length > 0
+                                        ? 'Listo para crear tu plan'
+                                        : 'Selecciona al menos un curso'
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex gap-3">
+                                  <motion.button
+                                    onClick={confirmCourseSelection}
+                                    disabled={selectedCourseIds.length === 0}
+                                    whileHover={selectedCourseIds.length > 0 ? { scale: 1.05 } : {}}
+                                    whileTap={selectedCourseIds.length > 0 ? { scale: 0.95 } : {}}
+                                    className={`px-5 py-2.5 rounded-md text-sm font-semibold transition-all ${selectedCourseIds.length > 0
+                                      ? 'bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white shadow-sm'
+                                      : 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
+                                      }`}
+                                  >
+                                    Aceptar
+                                  </motion.button>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+
+                {/* Modal de conexión de calendario */}
+                {showCalendarModal && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                  >
+                    {/* Overlay - Para B2B no debe cerrar el modal */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                      onClick={userContext?.userType === 'b2b' ? undefined : skipCalendarConnection}
+                      style={{ cursor: userContext?.userType === 'b2b' ? 'default' : 'pointer' }}
+                    />
+
+                    {/* Modal */}
+                    <motion.div
+                      initial={{ y: 20 }}
+                      animate={{ y: 0 }}
+                      className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-5 max-w-md w-full shadow-2xl"
+                    >
+                      {/* Header */}
+                      <div className="text-center mb-5">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                          className="w-16 h-16 mx-auto mb-3 rounded-xl bg-[#0A2540]/10 dark:bg-[#0A2540]/20 flex items-center justify-center shadow-sm border border-[#0A2540]/20 dark:border-[#00D4B3]/30"
+                        >
+                          <Calendar className="w-8 h-8 text-[#0A2540] dark:text-[#00D4B3]" />
+                        </motion.div>
+                        <h3 className="text-xl font-bold text-[#0A2540] dark:text-white mb-2">
+                          Conecta tu calendario
+                        </h3>
+                        <p className="text-[#6C757D] dark:text-gray-400 text-sm max-w-sm mx-auto">
+                          {userContext?.userType === 'b2b'
+                            ? 'Como usuario empresarial, es necesario conectar tu calendario para adaptar el plan a tus horarios de trabajo y cumplir con los plazos asignados.'
+                            : 'Analizo tu calendario para encontrar los mejores horarios para estudiar'}
+                        </p>
+                      </div>
+
+                      {/* Opciones de calendario */}
+                      <div className="space-y-4 mb-6">
+                        {/* Google Calendar */}
+                        <div className="relative group">
+                          <motion.button
+                            onClick={() => {
+                              if (connectedCalendar === 'google') {
+                                // Si ya está conectado, desconectar primero
+                                disconnectCalendar('google');
+                              } else {
+                                // Si hay otro calendario conectado, desconectarlo primero
+                                if (connectedCalendar === 'microsoft') {
+                                  disconnectCalendar('microsoft').then(() => {
+                                    setTimeout(() => connectGoogleCalendar(), 500);
+                                  });
+                                } else {
+                                  connectGoogleCalendar();
+                                }
+                              }
+                            }}
+                            disabled={isConnectingCalendar}
+                            whileHover={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
+                            whileTap={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 0.98 }}
+                            className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden ${connectedCalendar === 'google'
+                              ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 border-2 border-[#10B981]/30 shadow-sm'
+                              : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
+                              } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            {/* Efecto de brillo en hover */}
+                            {connectedCalendar !== 'google' && (
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                            )}
+
+                            {/* Icono de Google */}
+                            <motion.div
+                              className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${connectedCalendar === 'google'
+                                ? 'bg-white ring-2 ring-green-500/50'
+                                : 'bg-white'
+                                }`}
+                              whileHover={connectedCalendar !== 'google' ? { rotate: [0, -5, 5, -5, 0] } : {}}
+                              transition={{ duration: 0.5 }}
+                            >
+                              {/* Icono de Google/Microsoft */}
+                              {connectedCalendar === 'google' ? <GoogleIcon /> : <MicrosoftIcon />}
+                            </motion.div>
+
+                            {/* Contenido del botón */}
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-[#0A2540] dark:text-white font-semibold text-sm">Google Calendar</p>
+                                {connectedCalendar === 'google' && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
+                                  />
+                                )}
+                              </div>
+                              {connectedCalendar === 'google' ? (
+                                <div className="text-[#10B981] text-xs flex items-center gap-2 font-medium">
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 500 }}
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </motion.div>
+                                  <span>Conectado exitosamente</span>
+                                </div>
+                              ) : (
+                                <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Google</p>
+                              )}
+                            </div>
+
+                            {/* Icono de acción */}
+                            {connectedCalendar !== 'google' && (
+                              <motion.div
+                                className="w-8 h-8 rounded-full bg-[#E9ECEF] dark:bg-[#6C757D]/30 flex items-center justify-center group-hover:bg-[#6C757D]/20 dark:group-hover:bg-[#6C757D]/50 transition-colors"
+                                whileHover={{ rotate: 45 }}
+                              >
+                                <ExternalLink className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" />
+                              </motion.div>
+                            )}
+                          </motion.button>
+
+                          {/* Botón de desconectar mejorado */}
+                          {connectedCalendar === 'google' && (
+                            <motion.button
+                              initial={{ opacity: 0, scale: 0 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              onClick={() => disconnectCalendar('google')}
+                              disabled={isConnectingCalendar}
+                              whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+                              whileTap={{ scale: 0.9 }}
+                              className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 backdrop-blur-sm z-10"
+                              title="Desconectar Google Calendar"
+                            >
+                              <X className="w-4 h-4" />
+                            </motion.button>
+                          )}
+                        </div>
+
+                        {/* Microsoft Calendar */}
+                        <div className="relative group">
+                          <motion.button
+                            onClick={() => {
+                              if (connectedCalendar === 'microsoft') {
+                                // Si ya está conectado, desconectar primero
+                                disconnectCalendar('microsoft');
+                              } else {
+                                // Si hay otro calendario conectado, desconectarlo primero
+                                if (connectedCalendar === 'google') {
+                                  disconnectCalendar('google').then(() => {
+                                    setTimeout(() => connectMicrosoftCalendar(), 500);
+                                  });
+                                } else {
+                                  connectMicrosoftCalendar();
+                                }
+                              }
+                            }}
+                            disabled={isConnectingCalendar}
+                            whileHover={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
+                            whileTap={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 0.98 }}
+                            className={`w-full flex items-center gap-4 p-5 rounded-2xl transition-all relative overflow-hidden ${connectedCalendar === 'microsoft'
+                              ? 'bg-gradient-to-r from-green-500/20 via-green-500/15 to-green-500/20 border-2 border-green-500/60 shadow-lg shadow-green-500/20'
+                              : 'bg-gradient-to-r from-slate-700/50 to-slate-800/50 hover:from-slate-700/70 hover:to-slate-800/70 border border-slate-600/50 hover:border-slate-500/50'
+                              } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            {/* Efecto de brillo en hover */}
+                            {connectedCalendar !== 'microsoft' && (
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                            )}
+
+                            {/* Icono de Microsoft */}
+                            <motion.div
+                              className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${connectedCalendar === 'microsoft'
+                                ? 'bg-white ring-2 ring-green-500/50'
+                                : 'bg-white'
+                                }`}
+                              whileHover={connectedCalendar !== 'microsoft' ? { rotate: [0, -5, 5, -5, 0] } : {}}
+                              transition={{ duration: 0.5 }}
+                            >
+                              <svg viewBox="0 0 23 23" className="w-8 h-8">
+                                <path fill="#f25022" d="M1 1h10v10H1z" />
+                                <path fill="#00a4ef" d="M12 1h10v10H12z" />
+                                <path fill="#7fba00" d="M1 12h10v10H1z" />
+                                <path fill="#ffb900" d="M12 12h10v10H12z" />
+                              </svg>
+                            </motion.div>
+
+                            {/* Contenido del botón */}
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-[#0A2540] dark:text-white font-semibold text-sm">Microsoft Outlook</p>
+                                {connectedCalendar === 'microsoft' && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
+                                  />
+                                )}
+                              </div>
+                              {connectedCalendar === 'microsoft' ? (
+                                <div className="text-[#10B981] text-xs flex items-center gap-2 font-medium">
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 500 }}
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </motion.div>
+                                  <span>Conectado exitosamente</span>
+                                </div>
+                              ) : (
+                                <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Microsoft</p>
+                              )}
+                            </div>
+
+                            {/* Icono de acción */}
+                            {connectedCalendar !== 'microsoft' && (
+                              <motion.div
+                                className="w-8 h-8 rounded-full bg-[#E9ECEF] dark:bg-[#6C757D]/30 flex items-center justify-center group-hover:bg-[#6C757D]/20 dark:group-hover:bg-[#6C757D]/50 transition-colors"
+                                whileHover={{ rotate: 45 }}
+                              >
+                                <ExternalLink className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" />
+                              </motion.div>
+                            )}
+                          </motion.button>
+
+                          {/* Botón de desconectar mejorado */}
+                          {connectedCalendar === 'microsoft' && (
+                            <motion.button
+                              initial={{ opacity: 0, scale: 0 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              onClick={() => disconnectCalendar('microsoft')}
+                              disabled={isConnectingCalendar}
+                              whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+                              whileTap={{ scale: 0.9 }}
+                              className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 backdrop-blur-sm z-10"
+                              title="Desconectar Microsoft Calendar"
+                            >
+                              <X className="w-4 h-4" />
+                            </motion.button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Botón para saltar - Solo para B2C */}
+                      {userContext?.userType !== 'b2b' && (
+                        <div className="text-center pt-2">
+                          <motion.button
+                            onClick={skipCalendarConnection}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white text-xs font-medium transition-colors px-4 py-2 rounded-md hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
+                          >
+                            Omitir por ahora
+                          </motion.button>
+                        </div>
+                      )}
+
+                      {/* Botón cerrar - Solo para B2C */}
+                      {userContext?.userType !== 'b2b' && (
+                        <motion.button
+                          onClick={skipCalendarConnection}
+                          whileHover={{ scale: 1.1, rotate: 90 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="absolute top-4 right-4 p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
+                          title="Cerrar modal de calendario"
+                          aria-label="Cerrar"
+                        >
+                          <X size={20} />
+                        </motion.button>
+                      )}
+
+                      {/* Mensaje informativo para B2B */}
+                      {userContext?.userType === 'b2b' && (
+                        <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                          <p className="text-blue-400 text-xs text-center">
+                            ⚠️ La conexión del calendario es obligatoria para usuarios empresariales
+                          </p>
+                        </div>
+                      )}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal de selección de enfoque de estudio */}
+            <AnimatePresence>
+              {showApproachModal && (
+                <>
+                  {/* Overlay */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9998]"
                   />
 
                   {/* Modal */}
@@ -9031,1013 +9664,480 @@ Cuéntame:
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 20, scale: 0.95 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
                   >
-                    {/* Header mejorado */}
-                    <div className="relative p-5 pb-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10">
-                      <div className="flex items-start gap-3 mb-4">
-                        <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30">
-                          <BookOpen className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona tus cursos</h3>
-                          <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige los cursos que quieres incluir en tu plan de estudios</p>
+                    <motion.div
+                      className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden pointer-events-auto"
+                    >
+                      {/* Header */}
+                      <div className="relative p-5 pb-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30">
+                            <BookOpen className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona tu enfoque de estudio</h3>
+                            <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige el tipo de sesiones que prefieres para tu plan de estudios</p>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Barra de búsqueda - Siempre visible */}
-                      {availableCourses.length > 0 && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="relative mt-4"
+                      {/* Opciones de enfoque */}
+                      <div className="p-6 space-y-4">
+                        {/* Sesiones rápidas */}
+                        <motion.button
+                          onClick={() => handleApproachSelection('rapido')}
+                          whileHover={{ scale: 1.02, x: 4 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${studyApproach === 'rapido'
+                            ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
+                            : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
+                            }`}
                         >
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6C757D]" />
-                          <input
-                            type="text"
-                            suppressHydrationWarning
-                            value={courseSearchQuery}
-                            onChange={(e) => setCourseSearchQuery(e.target.value)}
-                            placeholder="Buscar cursos..."
-                            className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 transition-all"
-                          />
-                          {courseSearchQuery && (
-                            <motion.button
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              onClick={() => setCourseSearchQuery('')}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#6C757D] hover:text-[#0A2540] dark:hover:text-white transition-colors rounded hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
-                              title="Limpiar búsqueda"
-                            >
-                              <X size={16} />
-                            </motion.button>
-                          )}
-                        </motion.div>
-                      )}
-                    </div>
-
-                    {/* Contenido */}
-                    <div className="flex-1 overflow-hidden flex flex-col">
-                      {isLoadingCourses ? (
-                        <div className="flex flex-col items-center justify-center py-16 px-6">
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          >
-                            <Loader2 className="w-12 h-12 text-[#0A2540] dark:text-[#00D4B3]" />
-                          </motion.div>
-                          <p className="text-[#6C757D] dark:text-gray-400 mt-4 text-sm">Cargando tus cursos...</p>
-                        </div>
-                      ) : availableCourses.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 px-6">
-                          <div className="w-20 h-20 rounded-full bg-[#E9ECEF] dark:bg-[#0A2540]/20 flex items-center justify-center mb-4">
-                            <BookOpen className="w-10 h-10 text-[#6C757D] dark:text-gray-400" />
-                          </div>
-                          <h4 className="text-[#0A2540] dark:text-white font-semibold mb-2">No tienes cursos disponibles</h4>
-                          <p className="text-[#6C757D] dark:text-gray-400 text-sm text-center max-w-sm">
-                            Adquiere cursos para poder crear tu plan de estudios personalizado
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Lista de cursos con scroll */}
-                          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 custom-scrollbar">
-                            {(() => {
-                              // Filtrar cursos según la búsqueda
-                              const filteredCourses = availableCourses.filter(course =>
-                                course.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
-                              );
-
-                              if (filteredCourses.length === 0 && courseSearchQuery) {
-                                return (
-                                  <div className="flex flex-col items-center justify-center py-12">
-                                    <Search className="w-12 h-12 text-[#6C757D] dark:text-gray-400 mb-3" />
-                                    <p className="text-[#6C757D] dark:text-gray-400 text-sm">No se encontraron cursos</p>
-                                    <p className="text-[#6C757D] dark:text-gray-500 text-xs mt-1">Intenta con otro término de búsqueda</p>
-                                  </div>
-                                );
-                              }
-
-                              return filteredCourses.map((course, index) => {
-                                const isSelected = selectedCourseIds.includes(course.id);
-                                return (
-                                  <motion.div
-                                    key={course.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: index * 0.05 }}
-                                  >
-                                    <motion.button
-                                      onClick={() => toggleCourseSelection(course.id)}
-                                      whileHover={{ scale: 1.02, x: 4 }}
-                                      whileTap={{ scale: 0.98 }}
-                                      className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all relative overflow-hidden group ${isSelected
-                                        ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
-                                        : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
-                                        }`}
-                                    >
-                                      {/* Efecto de brillo en hover */}
-                                      {!isSelected && (
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                                      )}
-
-                                      {/* Checkbox mejorado */}
-                                      <motion.div
-                                        className={`relative w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${isSelected
-                                          ? 'bg-[#0A2540] dark:bg-[#0A2540] shadow-sm'
-                                          : 'bg-[#E9ECEF] dark:bg-[#6C757D] border-2 border-[#6C757D]/30'
-                                          }`}
-                                        animate={isSelected ? { scale: [1, 1.1, 1] } : {}}
-                                        transition={{ duration: 0.3 }}
-                                      >
-                                        {isSelected && (
-                                          <motion.div
-                                            initial={{ scale: 0, rotate: -180 }}
-                                            animate={{ scale: 1, rotate: 0 }}
-                                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                                          >
-                                            <Check className="w-4 h-4 text-white font-bold" strokeWidth={3} />
-                                          </motion.div>
-                                        )}
-                                      </motion.div>
-
-                                      {/* Información del curso */}
-                                      <div className="flex-1 text-left min-w-0">
-                                        <p className={`font-semibold text-sm mb-1 line-clamp-2 ${isSelected ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-gray-200'
-                                          }`}>
-                                          {course.title}
-                                        </p>
-                                        {course.progress > 0 && (
-                                          <div className="flex items-center gap-2 mt-1">
-                                            <div className="w-20 h-1.5 bg-[#E9ECEF] dark:bg-[#6C757D]/30 rounded-full overflow-hidden">
-                                              <motion.div
-                                                className="h-full bg-[#0A2540] dark:bg-[#00D4B3]"
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${course.progress}%` }}
-                                                transition={{ duration: 0.5, delay: index * 0.1 }}
-                                              />
-                                            </div>
-                                            <span className={`text-xs font-medium ${isSelected ? 'text-[#0A2540] dark:text-[#00D4B3]' : 'text-[#6C757D] dark:text-gray-400'
-                                              }`}>
-                                              {course.progress}% completado
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* Indicador de selección */}
-                                      {isSelected && (
-                                        <motion.div
-                                          initial={{ scale: 0 }}
-                                          animate={{ scale: 1 }}
-                                          className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
-                                        />
-                                      )}
-                                    </motion.button>
-                                  </motion.div>
-                                );
-                              });
-                            })()}
-                          </div>
-
-                          {/* Footer mejorado */}
-                          <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedCourseIds.length > 0
-                                  ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border border-[#0A2540]/20 dark:border-[#00D4B3]/30'
-                                  : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
-                                  }`}>
-                                  <span className={`text-sm font-bold ${selectedCourseIds.length > 0 ? 'text-[#0A2540] dark:text-[#00D4B3]' : 'text-[#6C757D]'
-                                    }`}>
-                                    {selectedCourseIds.length}
-                                  </span>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-[#0A2540] dark:text-white">
-                                    {selectedCourseIds.length === 0
-                                      ? 'Ningún curso seleccionado'
-                                      : selectedCourseIds.length === 1
-                                        ? '1 curso seleccionado'
-                                        : `${selectedCourseIds.length} cursos seleccionados`
-                                    }
-                                  </p>
-                                  <p className="text-xs text-[#6C757D] dark:text-gray-400">
-                                    {selectedCourseIds.length > 0
-                                      ? 'Listo para crear tu plan'
-                                      : 'Selecciona al menos un curso'
-                                    }
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex gap-3">
-                                <motion.button
-                                  onClick={confirmCourseSelection}
-                                  disabled={selectedCourseIds.length === 0}
-                                  whileHover={selectedCourseIds.length > 0 ? { scale: 1.05 } : {}}
-                                  whileTap={selectedCourseIds.length > 0 ? { scale: 0.95 } : {}}
-                                  className={`px-5 py-2.5 rounded-md text-sm font-semibold transition-all ${selectedCourseIds.length > 0
-                                    ? 'bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white shadow-sm'
-                                    : 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
-                                    }`}
-                                >
-                                  Aceptar
-                                </motion.button>
+                          <div className="flex items-start gap-4">
+                            <div className={`p-2 rounded-lg ${studyApproach === 'rapido'
+                              ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
+                              : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
+                              }`}>
+                              <ChevronRight className={`w-5 h-5 ${studyApproach === 'rapido'
+                                ? 'text-[#0A2540] dark:text-[#00D4B3]'
+                                : 'text-[#6C757D] dark:text-gray-400'
+                                }`} />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones rápidas</h4>
+                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Avanza rápido: cada sesión dura el tiempo exacto de la lección</p>
+                              <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
+                                <span>• Multiplicador x1.0</span>
+                                <span>• Ritmo intenso</span>
                               </div>
                             </div>
+                            {studyApproach === 'rapido' && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="w-6 h-6 rounded-full bg-[#0A2540] dark:bg-[#0A2540] flex items-center justify-center"
+                              >
+                                <Check className="w-4 h-4 text-white" />
+                              </motion.div>
+                            )}
                           </div>
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
+                        </motion.button>
 
-              {/* Modal de conexión de calendario */}
-              {showCalendarModal && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                >
-                  {/* Overlay - Para B2B no debe cerrar el modal */}
+                        {/* Sesiones normales */}
+                        <motion.button
+                          onClick={() => handleApproachSelection('normal')}
+                          whileHover={{ scale: 1.02, x: 4 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`w-full p-5 rounded-xl border-2 transition-all text-left ${studyApproach === 'normal'
+                            ? 'bg-gradient-to-r from-purple-600/30 to-blue-600/30 border-purple-500 shadow-lg shadow-purple-500/20'
+                            : 'bg-slate-700/30 border-slate-600/50 hover:border-purple-500/50 hover:bg-slate-700/50'
+                            }`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className={`p-2 rounded-lg ${studyApproach === 'normal'
+                              ? 'bg-purple-500/20'
+                              : 'bg-slate-600/30'
+                              }`}>
+                              <ChevronRight className={`w-5 h-5 ${studyApproach === 'normal'
+                                ? 'text-purple-400'
+                                : 'text-slate-400'
+                                }`} />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones normales</h4>
+                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Un ritmo equilibrado para mejor comprensión del contenido</p>
+                              <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
+                                <span>• Multiplicador x1.4</span>
+                                <span>• Ritmo equilibrado</span>
+                              </div>
+                            </div>
+                            {studyApproach === 'normal' && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="w-6 h-6 rounded-full bg-[#0A2540] dark:bg-[#0A2540] flex items-center justify-center"
+                              >
+                                <Check className="w-4 h-4 text-white" />
+                              </motion.div>
+                            )}
+                          </div>
+                        </motion.button>
+
+                        {/* Sesiones largas */}
+                        <motion.button
+                          onClick={() => handleApproachSelection('largo')}
+                          whileHover={{ scale: 1.02, x: 4 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`w-full p-5 rounded-xl border-2 transition-all text-left ${studyApproach === 'largo'
+                            ? 'bg-gradient-to-r from-purple-600/30 to-blue-600/30 border-purple-500 shadow-lg shadow-purple-500/20'
+                            : 'bg-slate-700/30 border-slate-600/50 hover:border-purple-500/50 hover:bg-slate-700/50'
+                            }`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className={`p-2 rounded-lg ${studyApproach === 'largo'
+                              ? 'bg-purple-500/20'
+                              : 'bg-slate-600/30'
+                              }`}>
+                              <ChevronRight className={`w-5 h-5 ${studyApproach === 'largo'
+                                ? 'text-purple-400'
+                                : 'text-slate-400'
+                                }`} />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones largas</h4>
+                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Más tiempo por lección para profundizar y comprender mejor</p>
+                              <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
+                                <span>• Multiplicador x1.8</span>
+                                <span>• Ritmo pausado</span>
+                              </div>
+                            </div>
+                            {studyApproach === 'largo' && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="w-6 h-6 rounded-full bg-[#0A2540] dark:bg-[#0A2540] flex items-center justify-center"
+                              >
+                                <Check className="w-4 h-4 text-white" />
+                              </motion.div>
+                            )}
+                          </div>
+                        </motion.button>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
+                        <p className="text-xs text-[#6C757D] dark:text-gray-400 text-center">
+                          Esta selección ayudará a calcular cuánto tiempo necesitarás para completar tus cursos
+                        </p>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+
+            {/* Modal de selección de fecha estimada */}
+            <AnimatePresence>
+              {showDateModal && (
+                <>
+                  {/* Overlay */}
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                    onClick={userContext?.userType === 'b2b' ? undefined : skipCalendarConnection}
-                    style={{ cursor: userContext?.userType === 'b2b' ? 'default' : 'pointer' }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9998]"
                   />
 
                   {/* Modal */}
                   <motion.div
-                    initial={{ y: 20 }}
-                    animate={{ y: 0 }}
-                    className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-5 max-w-md w-full shadow-2xl"
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
                   >
-                    {/* Header */}
-                    <div className="text-center mb-5">
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                        className="w-16 h-16 mx-auto mb-3 rounded-xl bg-[#0A2540]/10 dark:bg-[#0A2540]/20 flex items-center justify-center shadow-sm border border-[#0A2540]/20 dark:border-[#00D4B3]/30"
-                      >
-                        <Calendar className="w-8 h-8 text-[#0A2540] dark:text-[#00D4B3]" />
-                      </motion.div>
-                      <h3 className="text-xl font-bold text-[#0A2540] dark:text-white mb-2">
-                        Conecta tu calendario
-                      </h3>
-                      <p className="text-[#6C757D] dark:text-gray-400 text-sm max-w-sm mx-auto">
-                        {userContext?.userType === 'b2b'
-                          ? 'Como usuario empresarial, es necesario conectar tu calendario para adaptar el plan a tus horarios de trabajo y cumplir con los plazos asignados.'
-                          : 'Analizo tu calendario para encontrar los mejores horarios para estudiar'}
-                      </p>
-                    </div>
-
-                    {/* Opciones de calendario */}
-                    <div className="space-y-4 mb-6">
-                      {/* Google Calendar */}
-                      <div className="relative group">
-                        <motion.button
-                          onClick={() => {
-                            if (connectedCalendar === 'google') {
-                              // Si ya está conectado, desconectar primero
-                              disconnectCalendar('google');
-                            } else {
-                              // Si hay otro calendario conectado, desconectarlo primero
-                              if (connectedCalendar === 'microsoft') {
-                                disconnectCalendar('microsoft').then(() => {
-                                  setTimeout(() => connectGoogleCalendar(), 500);
-                                });
-                              } else {
-                                connectGoogleCalendar();
-                              }
-                            }
-                          }}
-                          disabled={isConnectingCalendar}
-                          whileHover={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
-                          whileTap={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 0.98 }}
-                          className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden ${connectedCalendar === 'google'
-                            ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 border-2 border-[#10B981]/30 shadow-sm'
-                            : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
-                            } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {/* Efecto de brillo en hover */}
-                          {connectedCalendar !== 'google' && (
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                          )}
-
-                          {/* Icono de Google */}
-                          <motion.div
-                            className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${connectedCalendar === 'google'
-                              ? 'bg-white ring-2 ring-green-500/50'
-                              : 'bg-white'
-                              }`}
-                            whileHover={connectedCalendar !== 'google' ? { rotate: [0, -5, 5, -5, 0] } : {}}
-                            transition={{ duration: 0.5 }}
-                          >
-                            {/* Icono de Google/Microsoft */}
-                            {connectedCalendar === 'google' ? <GoogleIcon /> : <MicrosoftIcon />}
-                          </motion.div>
-
-                          {/* Contenido del botón */}
-                          <div className="flex-1 text-left min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-[#0A2540] dark:text-white font-semibold text-sm">Google Calendar</p>
-                              {connectedCalendar === 'google' && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
-                                />
-                              )}
-                            </div>
-                            {connectedCalendar === 'google' ? (
-                              <div className="text-[#10B981] text-xs flex items-center gap-2 font-medium">
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: 'spring', stiffness: 500 }}
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                </motion.div>
-                                <span>Conectado exitosamente</span>
-                              </div>
-                            ) : (
-                              <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Google</p>
-                            )}
+                    <motion.div
+                      className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-2xl w-full max-w-md overflow-hidden pointer-events-auto"
+                    >
+                      {/* Header */}
+                      <div className="relative p-5 pb-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30">
+                            <Calendar className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                           </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona fecha estimada</h3>
+                            <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige cuándo quieres terminar tus cursos</p>
+                          </div>
+                        </div>
+                      </div>
 
-                          {/* Icono de acción */}
-                          {connectedCalendar !== 'google' && (
-                            <motion.div
-                              className="w-8 h-8 rounded-full bg-[#E9ECEF] dark:bg-[#6C757D]/30 flex items-center justify-center group-hover:bg-[#6C757D]/20 dark:group-hover:bg-[#6C757D]/50 transition-colors"
-                              whileHover={{ rotate: 45 }}
-                            >
-                              <ExternalLink className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" />
-                            </motion.div>
-                          )}
-                        </motion.button>
-
-                        {/* Botón de desconectar mejorado */}
-                        {connectedCalendar === 'google' && (
+                      {/* Calendario */}
+                      <div className="p-6">
+                        {/* Navegación del mes */}
+                        <div className="flex items-center justify-between mb-4">
                           <motion.button
-                            initial={{ opacity: 0, scale: 0 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            onClick={() => disconnectCalendar('google')}
-                            disabled={isConnectingCalendar}
-                            whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+                            onClick={() => {
+                              if (!currentMonth) return;
+                              // Normalizar fecha antes de cambiar mes - asegurar día 1
+                              const year = currentMonth.getFullYear();
+                              const month = currentMonth.getMonth();
+                              const newMonth = new Date(year, month - 1, 1);
+                              setCurrentMonthNormalized(newMonth);
+                            }}
+                            whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
-                            className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 backdrop-blur-sm z-10"
-                            title="Desconectar Google Calendar"
+                            className="p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
                           >
-                            <X className="w-4 h-4" />
+                            <ChevronLeft size={20} />
                           </motion.button>
+                          <h4 className="text-base font-semibold text-[#0A2540] dark:text-white">
+                            {currentMonth ? currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) : 'Cargando...'}
+                          </h4>
+                          <motion.button
+                            onClick={() => {
+                              if (!currentMonth) return;
+                              // Normalizar fecha antes de cambiar mes - asegurar día 1
+                              const year = currentMonth.getFullYear();
+                              const month = currentMonth.getMonth();
+                              const newMonth = new Date(year, month + 1, 1);
+                              setCurrentMonthNormalized(newMonth);
+                            }}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
+                          >
+                            <ChevronRight size={20} />
+                          </motion.button>
+                        </div>
+
+                        {/* Días de la semana */}
+                        <div className="grid grid-cols-7 gap-1 mb-2">
+                          {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, idx) => (
+                            <div key={idx} className="text-center text-xs font-semibold text-[#6C757D] dark:text-gray-400 py-2">
+                              {day}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Días del mes */}
+                        <div className="grid grid-cols-7 gap-1">
+                          {(() => {
+                            // ✅ CORRECCIÓN: Verificar que currentMonth no sea null
+                            if (!currentMonth) {
+                              return <div className="col-span-7 text-center text-[#6C757D] dark:text-gray-400 py-4">Cargando calendario...</div>;
+                            }
+
+                            // Obtener año y mes directamente de currentMonth
+                            // Asegurar que siempre trabajemos con valores limpios
+                            const year = currentMonth.getFullYear();
+                            const month = currentMonth.getMonth();
+
+                            // Crear fecha del primer día del mes de forma explícita y directa
+                            // IMPORTANTE: Usar solo año, mes y día sin especificar hora
+                            const firstDayOfMonth = new Date(year, month, 1);
+                            const lastDayOfMonth = new Date(year, month + 1, 0);
+                            const daysInMonth = lastDayOfMonth.getDate();
+
+                            // Obtener el día de la semana del primer día
+                            // getDay() retorna: 0 = domingo, 1 = lunes, ..., 6 = sábado
+                            const startingDayOfWeek = firstDayOfMonth.getDay();
+
+                            // Validación crítica: si startingDayOfWeek es siempre 0, hay un problema
+                            if (startingDayOfWeek < 0 || startingDayOfWeek > 6) {
+                              console.error('❌ ERROR: startingDayOfWeek fuera de rango:', startingDayOfWeek);
+                            }
+
+                            const today = new Date();
+                            const todayYear = today.getFullYear();
+                            const todayMonth = today.getMonth();
+                            const todayDay = today.getDate();
+
+                            const days = [];
+
+                            // Debug: Verificar el valor de startingDayOfWeek antes de crear días vacíos
+
+                            // Días vacíos al inicio (domingo = 0, lunes = 1, etc.)
+                            // IMPORTANTE: Usar un div vacío en lugar de null para que React lo renderice correctamente
+                            for (let i = 0; i < startingDayOfWeek; i++) {
+                              days.push(<div key={`empty-${i}`} className="p-2"></div>);
+                            }
+
+                            // Debug: Verificar cuántos días vacíos se agregaron
+
+                            // Días del mes
+                            for (let day = 1; day <= daysInMonth; day++) {
+                              // Crear fecha para comparación y selección (usar mediodía para consistencia)
+                              const date = new Date(year, month, day, 12, 0, 0, 0);
+
+                              // Comparar fechas normalizadas (solo año, mes, día)
+                              const isPast = year < todayYear ||
+                                (year === todayYear && month < todayMonth) ||
+                                (year === todayYear && month === todayMonth && day < todayDay);
+
+                              // Comparar con selectedDate normalizado
+                              let isSelected = false;
+                              if (selectedDate) {
+                                const selectedNormalized = new Date(
+                                  selectedDate.getFullYear(),
+                                  selectedDate.getMonth(),
+                                  selectedDate.getDate()
+                                );
+                                const dateNormalized = new Date(year, month, day);
+                                isSelected = selectedNormalized.getTime() === dateNormalized.getTime();
+                              }
+
+                              days.push(
+                                <motion.button
+                                  key={day}
+                                  onClick={() => {
+                                    if (!isPast) {
+                                      // Crear nueva fecha limpia (sin hora)
+                                      const selectedDateClean = new Date(year, month, day);
+                                      setSelectedDate(selectedDateClean);
+                                    }
+                                  }}
+                                  disabled={isPast}
+                                  whileHover={!isPast ? { scale: 1.1 } : {}}
+                                  whileTap={!isPast ? { scale: 0.9 } : {}}
+                                  className={`p-2 rounded-lg text-sm font-medium transition-all ${isPast
+                                    ? 'text-[#6C757D] cursor-not-allowed'
+                                    : isSelected
+                                      ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white shadow-sm'
+                                      : 'text-[#0A2540] dark:text-gray-300 hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/20 hover:text-[#0A2540] dark:hover:text-white'
+                                    }`}
+                                >
+                                  {day}
+                                </motion.button>
+                              );
+                            }
+
+                            return days;
+                          })()}
+                        </div>
+
+                        {/* Fecha seleccionada */}
+                        {selectedDate && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-4 p-3 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border border-[#0A2540]/20 dark:border-[#00D4B3]/30 rounded-lg"
+                          >
+                            <p className="text-sm text-[#0A2540] dark:text-gray-300">
+                              <span className="text-[#0A2540] dark:text-[#00D4B3] font-semibold">Fecha seleccionada:</span>{' '}
+                              {selectedDate.toLocaleDateString('es-ES', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </p>
+                          </motion.div>
                         )}
                       </div>
 
-                      {/* Microsoft Calendar */}
-                      <div className="relative group">
+                      {/* Footer con botones */}
+                      <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] flex items-center justify-between gap-3">
                         <motion.button
-                          onClick={() => {
-                            if (connectedCalendar === 'microsoft') {
-                              // Si ya está conectado, desconectar primero
-                              disconnectCalendar('microsoft');
-                            } else {
-                              // Si hay otro calendario conectado, desconectarlo primero
-                              if (connectedCalendar === 'google') {
-                                disconnectCalendar('google').then(() => {
-                                  setTimeout(() => connectMicrosoftCalendar(), 500);
-                                });
-                              } else {
-                                connectMicrosoftCalendar();
-                              }
-                            }
-                          }}
-                          disabled={isConnectingCalendar}
-                          whileHover={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
-                          whileTap={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 0.98 }}
-                          className={`w-full flex items-center gap-4 p-5 rounded-2xl transition-all relative overflow-hidden ${connectedCalendar === 'microsoft'
-                            ? 'bg-gradient-to-r from-green-500/20 via-green-500/15 to-green-500/20 border-2 border-green-500/60 shadow-lg shadow-green-500/20'
-                            : 'bg-gradient-to-r from-slate-700/50 to-slate-800/50 hover:from-slate-700/70 hover:to-slate-800/70 border border-slate-600/50 hover:border-slate-500/50'
-                            } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {/* Efecto de brillo en hover */}
-                          {connectedCalendar !== 'microsoft' && (
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                          )}
-
-                          {/* Icono de Microsoft */}
-                          <motion.div
-                            className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${connectedCalendar === 'microsoft'
-                              ? 'bg-white ring-2 ring-green-500/50'
-                              : 'bg-white'
-                              }`}
-                            whileHover={connectedCalendar !== 'microsoft' ? { rotate: [0, -5, 5, -5, 0] } : {}}
-                            transition={{ duration: 0.5 }}
-                          >
-                            <svg viewBox="0 0 23 23" className="w-8 h-8">
-                              <path fill="#f25022" d="M1 1h10v10H1z" />
-                              <path fill="#00a4ef" d="M12 1h10v10H12z" />
-                              <path fill="#7fba00" d="M1 12h10v10H1z" />
-                              <path fill="#ffb900" d="M12 12h10v10H12z" />
-                            </svg>
-                          </motion.div>
-
-                          {/* Contenido del botón */}
-                          <div className="flex-1 text-left min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-[#0A2540] dark:text-white font-semibold text-sm">Microsoft Outlook</p>
-                              {connectedCalendar === 'microsoft' && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
-                                />
-                              )}
-                            </div>
-                            {connectedCalendar === 'microsoft' ? (
-                              <div className="text-[#10B981] text-xs flex items-center gap-2 font-medium">
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: 'spring', stiffness: 500 }}
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                </motion.div>
-                                <span>Conectado exitosamente</span>
-                              </div>
-                            ) : (
-                              <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Microsoft</p>
-                            )}
-                          </div>
-
-                          {/* Icono de acción */}
-                          {connectedCalendar !== 'microsoft' && (
-                            <motion.div
-                              className="w-8 h-8 rounded-full bg-[#E9ECEF] dark:bg-[#6C757D]/30 flex items-center justify-center group-hover:bg-[#6C757D]/20 dark:group-hover:bg-[#6C757D]/50 transition-colors"
-                              whileHover={{ rotate: 45 }}
-                            >
-                              <ExternalLink className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" />
-                            </motion.div>
-                          )}
-                        </motion.button>
-
-                        {/* Botón de desconectar mejorado */}
-                        {connectedCalendar === 'microsoft' && (
-                          <motion.button
-                            initial={{ opacity: 0, scale: 0 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            onClick={() => disconnectCalendar('microsoft')}
-                            disabled={isConnectingCalendar}
-                            whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
-                            whileTap={{ scale: 0.9 }}
-                            className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 backdrop-blur-sm z-10"
-                            title="Desconectar Microsoft Calendar"
-                          >
-                            <X className="w-4 h-4" />
-                          </motion.button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Botón para saltar - Solo para B2C */}
-                    {userContext?.userType !== 'b2b' && (
-                      <div className="text-center pt-2">
-                        <motion.button
-                          onClick={skipCalendarConnection}
+                          onClick={() => handleDateSelection(null, true)}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          className="text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white text-xs font-medium transition-colors px-4 py-2 rounded-md hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
+                          className="px-4 py-2 text-xs text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white transition-colors"
                         >
-                          Omitir por ahora
+                          Sin fecha específica
+                        </motion.button>
+                        <motion.button
+                          onClick={() => selectedDate && handleDateSelection(selectedDate)}
+                          disabled={!selectedDate}
+                          whileHover={selectedDate ? { scale: 1.05 } : {}}
+                          whileTap={selectedDate ? { scale: 0.95 } : {}}
+                          className={`px-5 py-2 rounded-md text-xs font-semibold transition-all ${selectedDate
+                            ? 'bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white shadow-sm'
+                            : 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
+                            }`}
+                        >
+                          Confirmar
                         </motion.button>
                       </div>
-                    )}
-
-                    {/* Botón cerrar - Solo para B2C */}
-                    {userContext?.userType !== 'b2b' && (
-                      <motion.button
-                        onClick={skipCalendarConnection}
-                        whileHover={{ scale: 1.1, rotate: 90 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="absolute top-4 right-4 p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
-                        title="Cerrar modal de calendario"
-                        aria-label="Cerrar"
-                      >
-                        <X size={20} />
-                      </motion.button>
-                    )}
-
-                    {/* Mensaje informativo para B2B */}
-                    {userContext?.userType === 'b2b' && (
-                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                        <p className="text-blue-400 text-xs text-center">
-                          ⚠️ La conexión del calendario es obligatoria para usuarios empresariales
-                        </p>
-                      </div>
-                    )}
+                    </motion.div>
                   </motion.div>
-                </motion.div>
+                </>
               )}
-            </div>
-          </div>
+            </AnimatePresence>
 
-          {/* Modal de selección de enfoque de estudio */}
-          <AnimatePresence>
-            {showApproachModal && (
-              <>
-                {/* Overlay */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9998]"
-                />
+            {/* Área de input */}
+            <div className="flex-shrink-0 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-t border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex items-center gap-3">
+                  {/* Input de texto */}
+                  <input
+                    type="text"
+                    value={userMessage}
+                    onChange={(e) => setUserMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && userMessage.trim()) {
+                        e.preventDefault();
+                        handleSendMessage(userMessage);
+                        setUserMessage('');
+                      }
+                    }}
+                    placeholder="Escribe tu mensaje o usa el micrófono..."
+                    disabled={isProcessing || isListening}
+                    className="flex-1 px-4 py-3 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 disabled:opacity-50 shadow-sm"
+                  />
 
-                {/* Modal */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
-                >
-                  <motion.div
-                    className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden pointer-events-auto"
+                  {/* Botón dinámico fusionado: micrófono cuando está vacío, enviar cuando hay texto */}
+                  <motion.button
+                    onClick={() => {
+                      if (userMessage.trim()) {
+                        // Si hay texto, enviar mensaje
+                        handleSendMessage(userMessage);
+                        setUserMessage('');
+                      } else {
+                        // Si no hay texto, activar/desactivar grabación
+                        toggleListening();
+                      }
+                    }}
+                    disabled={isProcessing || (isListening && !!userMessage.trim())}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm ${userMessage.trim()
+                      ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
+                      : isListening
+                        ? 'bg-[#10B981] text-white hover:bg-[#10B981]/90'
+                        : 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
+                      } ${isProcessing || (isListening && userMessage.trim()) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    {/* Header */}
-                    <div className="relative p-5 pb-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30">
-                          <BookOpen className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona tu enfoque de estudio</h3>
-                          <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige el tipo de sesiones que prefieres para tu plan de estudios</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Opciones de enfoque */}
-                    <div className="p-6 space-y-4">
-                      {/* Sesiones rápidas */}
-                      <motion.button
-                        onClick={() => handleApproachSelection('rapido')}
-                        whileHover={{ scale: 1.02, x: 4 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`w-full p-4 rounded-xl border-2 transition-all text-left ${studyApproach === 'rapido'
-                          ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
-                          : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
-                          }`}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className={`p-2 rounded-lg ${studyApproach === 'rapido'
-                            ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
-                            : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
-                            }`}>
-                            <ChevronRight className={`w-5 h-5 ${studyApproach === 'rapido'
-                              ? 'text-[#0A2540] dark:text-[#00D4B3]'
-                              : 'text-[#6C757D] dark:text-gray-400'
-                              }`} />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones rápidas</h4>
-                            <p className="text-xs text-[#6C757D] dark:text-gray-300">Sesiones cortas e intensas para avanzar rápido en los cursos</p>
-                            <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                              <span>• 25 minutos por sesión</span>
-                              <span>• Descansos de 5 minutos</span>
-                            </div>
-                          </div>
-                          {studyApproach === 'rapido' && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="w-6 h-6 rounded-full bg-[#0A2540] dark:bg-[#0A2540] flex items-center justify-center"
-                            >
-                              <Check className="w-4 h-4 text-white" />
-                            </motion.div>
-                          )}
-                        </div>
-                      </motion.button>
-
-                      {/* Sesiones normales */}
-                      <motion.button
-                        onClick={() => handleApproachSelection('normal')}
-                        whileHover={{ scale: 1.02, x: 4 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`w-full p-5 rounded-xl border-2 transition-all text-left ${studyApproach === 'normal'
-                          ? 'bg-gradient-to-r from-purple-600/30 to-blue-600/30 border-purple-500 shadow-lg shadow-purple-500/20'
-                          : 'bg-slate-700/30 border-slate-600/50 hover:border-purple-500/50 hover:bg-slate-700/50'
-                          }`}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className={`p-2 rounded-lg ${studyApproach === 'normal'
-                            ? 'bg-purple-500/20'
-                            : 'bg-slate-600/30'
-                            }`}>
-                            <ChevronRight className={`w-5 h-5 ${studyApproach === 'normal'
-                              ? 'text-purple-400'
-                              : 'text-slate-400'
-                              }`} />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones normales</h4>
-                            <p className="text-xs text-[#6C757D] dark:text-gray-300">Un ritmo equilibrado entre estudio y descanso</p>
-                            <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                              <span>• 30 minutos por sesión</span>
-                              <span>• Descansos de 10 minutos</span>
-                            </div>
-                          </div>
-                          {studyApproach === 'normal' && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="w-6 h-6 rounded-full bg-[#0A2540] dark:bg-[#0A2540] flex items-center justify-center"
-                            >
-                              <Check className="w-4 h-4 text-white" />
-                            </motion.div>
-                          )}
-                        </div>
-                      </motion.button>
-
-                      {/* Sesiones largas */}
-                      <motion.button
-                        onClick={() => handleApproachSelection('largo')}
-                        whileHover={{ scale: 1.02, x: 4 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`w-full p-5 rounded-xl border-2 transition-all text-left ${studyApproach === 'largo'
-                          ? 'bg-gradient-to-r from-purple-600/30 to-blue-600/30 border-purple-500 shadow-lg shadow-purple-500/20'
-                          : 'bg-slate-700/30 border-slate-600/50 hover:border-purple-500/50 hover:bg-slate-700/50'
-                          }`}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className={`p-2 rounded-lg ${studyApproach === 'largo'
-                            ? 'bg-purple-500/20'
-                            : 'bg-slate-600/30'
-                            }`}>
-                            <ChevronRight className={`w-5 h-5 ${studyApproach === 'largo'
-                              ? 'text-purple-400'
-                              : 'text-slate-400'
-                              }`} />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones largas</h4>
-                            <p className="text-xs text-[#6C757D] dark:text-gray-300">Sesiones más extensas para profundizar en el contenido</p>
-                            <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                              <span>• 60 minutos por sesión</span>
-                              <span>• Descansos de 15 minutos</span>
-                            </div>
-                          </div>
-                          {studyApproach === 'largo' && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="w-6 h-6 rounded-full bg-[#0A2540] dark:bg-[#0A2540] flex items-center justify-center"
-                            >
-                              <Check className="w-4 h-4 text-white" />
-                            </motion.div>
-                          )}
-                        </div>
-                      </motion.button>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
-                      <p className="text-xs text-[#6C757D] dark:text-gray-400 text-center">
-                        Esta selección ayudará a calcular cuánto tiempo necesitarás para completar tus cursos
-                      </p>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-
-          {/* Modal de selección de fecha estimada */}
-          <AnimatePresence>
-            {showDateModal && (
-              <>
-                {/* Overlay */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9998]"
-                />
-
-                {/* Modal */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
-                >
-                  <motion.div
-                    className="relative bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-2xl w-full max-w-md overflow-hidden pointer-events-auto"
-                  >
-                    {/* Header */}
-                    <div className="relative p-5 pb-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg border border-[#0A2540]/20 dark:border-[#00D4B3]/30">
-                          <Calendar className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona fecha estimada</h3>
-                          <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige cuándo quieres terminar tus cursos</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Calendario */}
-                    <div className="p-6">
-                      {/* Navegación del mes */}
-                      <div className="flex items-center justify-between mb-4">
-                        <motion.button
-                          onClick={() => {
-                            if (!currentMonth) return;
-                            // Normalizar fecha antes de cambiar mes - asegurar día 1
-                            const year = currentMonth.getFullYear();
-                            const month = currentMonth.getMonth();
-                            const newMonth = new Date(year, month - 1, 1);
-                            setCurrentMonthNormalized(newMonth);
-                          }}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
-                        >
-                          <ChevronLeft size={20} />
-                        </motion.button>
-                        <h4 className="text-base font-semibold text-[#0A2540] dark:text-white">
-                          {currentMonth ? currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) : 'Cargando...'}
-                        </h4>
-                        <motion.button
-                          onClick={() => {
-                            if (!currentMonth) return;
-                            // Normalizar fecha antes de cambiar mes - asegurar día 1
-                            const year = currentMonth.getFullYear();
-                            const month = currentMonth.getMonth();
-                            const newMonth = new Date(year, month + 1, 1);
-                            setCurrentMonthNormalized(newMonth);
-                          }}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
-                        >
-                          <ChevronRight size={20} />
-                        </motion.button>
-                      </div>
-
-                      {/* Días de la semana */}
-                      <div className="grid grid-cols-7 gap-1 mb-2">
-                        {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, idx) => (
-                          <div key={idx} className="text-center text-xs font-semibold text-[#6C757D] dark:text-gray-400 py-2">
-                            {day}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Días del mes */}
-                      <div className="grid grid-cols-7 gap-1">
-                        {(() => {
-                          // ✅ CORRECCIÓN: Verificar que currentMonth no sea null
-                          if (!currentMonth) {
-                            return <div className="col-span-7 text-center text-[#6C757D] dark:text-gray-400 py-4">Cargando calendario...</div>;
-                          }
-
-                          // Obtener año y mes directamente de currentMonth
-                          // Asegurar que siempre trabajemos con valores limpios
-                          const year = currentMonth.getFullYear();
-                          const month = currentMonth.getMonth();
-
-                          // Crear fecha del primer día del mes de forma explícita y directa
-                          // IMPORTANTE: Usar solo año, mes y día sin especificar hora
-                          const firstDayOfMonth = new Date(year, month, 1);
-                          const lastDayOfMonth = new Date(year, month + 1, 0);
-                          const daysInMonth = lastDayOfMonth.getDate();
-
-                          // Obtener el día de la semana del primer día
-                          // getDay() retorna: 0 = domingo, 1 = lunes, ..., 6 = sábado
-                          const startingDayOfWeek = firstDayOfMonth.getDay();
-
-                          // Validación crítica: si startingDayOfWeek es siempre 0, hay un problema
-                          if (startingDayOfWeek < 0 || startingDayOfWeek > 6) {
-                            console.error('❌ ERROR: startingDayOfWeek fuera de rango:', startingDayOfWeek);
-                          }
-
-                          const today = new Date();
-                          const todayYear = today.getFullYear();
-                          const todayMonth = today.getMonth();
-                          const todayDay = today.getDate();
-
-                          const days = [];
-
-                          // Debug: Verificar el valor de startingDayOfWeek antes de crear días vacíos
-
-                          // Días vacíos al inicio (domingo = 0, lunes = 1, etc.)
-                          // IMPORTANTE: Usar un div vacío en lugar de null para que React lo renderice correctamente
-                          for (let i = 0; i < startingDayOfWeek; i++) {
-                            days.push(<div key={`empty-${i}`} className="p-2"></div>);
-                          }
-
-                          // Debug: Verificar cuántos días vacíos se agregaron
-
-                          // Días del mes
-                          for (let day = 1; day <= daysInMonth; day++) {
-                            // Crear fecha para comparación y selección (usar mediodía para consistencia)
-                            const date = new Date(year, month, day, 12, 0, 0, 0);
-
-                            // Comparar fechas normalizadas (solo año, mes, día)
-                            const isPast = year < todayYear ||
-                              (year === todayYear && month < todayMonth) ||
-                              (year === todayYear && month === todayMonth && day < todayDay);
-
-                            // Comparar con selectedDate normalizado
-                            let isSelected = false;
-                            if (selectedDate) {
-                              const selectedNormalized = new Date(
-                                selectedDate.getFullYear(),
-                                selectedDate.getMonth(),
-                                selectedDate.getDate()
-                              );
-                              const dateNormalized = new Date(year, month, day);
-                              isSelected = selectedNormalized.getTime() === dateNormalized.getTime();
-                            }
-
-                            days.push(
-                              <motion.button
-                                key={day}
-                                onClick={() => {
-                                  if (!isPast) {
-                                    // Crear nueva fecha limpia (sin hora)
-                                    const selectedDateClean = new Date(year, month, day);
-                                    setSelectedDate(selectedDateClean);
-                                  }
-                                }}
-                                disabled={isPast}
-                                whileHover={!isPast ? { scale: 1.1 } : {}}
-                                whileTap={!isPast ? { scale: 0.9 } : {}}
-                                className={`p-2 rounded-lg text-sm font-medium transition-all ${isPast
-                                  ? 'text-[#6C757D] cursor-not-allowed'
-                                  : isSelected
-                                    ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white shadow-sm'
-                                    : 'text-[#0A2540] dark:text-gray-300 hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/20 hover:text-[#0A2540] dark:hover:text-white'
-                                  }`}
-                              >
-                                {day}
-                              </motion.button>
-                            );
-                          }
-
-                          return days;
-                        })()}
-                      </div>
-
-                      {/* Fecha seleccionada */}
-                      {selectedDate && (
+                    <AnimatePresence mode="wait">
+                      {isProcessing && userMessage.trim() ? (
                         <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-4 p-3 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border border-[#0A2540]/20 dark:border-[#00D4B3]/30 rounded-lg"
+                          key="loading"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.2 }}
                         >
-                          <p className="text-sm text-[#0A2540] dark:text-gray-300">
-                            <span className="text-[#0A2540] dark:text-[#00D4B3] font-semibold">Fecha seleccionada:</span>{' '}
-                            {selectedDate.toLocaleDateString('es-ES', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
+                          <Loader2 size={20} className="animate-spin" />
+                        </motion.div>
+                      ) : userMessage.trim() ? (
+                        <motion.div
+                          key="send"
+                          initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
+                          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                          exit={{ opacity: 0, scale: 0.8, rotate: 90 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Send size={20} />
+                        </motion.div>
+                      ) : isListening ? (
+                        <motion.div
+                          key="mic-off"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <MicOff size={20} />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="mic"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Mic size={20} />
                         </motion.div>
                       )}
-                    </div>
-
-                    {/* Footer con botones */}
-                    <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329] flex items-center justify-between gap-3">
-                      <motion.button
-                        onClick={() => handleDateSelection(null, true)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="px-4 py-2 text-xs text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white transition-colors"
-                      >
-                        Sin fecha específica
-                      </motion.button>
-                      <motion.button
-                        onClick={() => selectedDate && handleDateSelection(selectedDate)}
-                        disabled={!selectedDate}
-                        whileHover={selectedDate ? { scale: 1.05 } : {}}
-                        whileTap={selectedDate ? { scale: 0.95 } : {}}
-                        className={`px-5 py-2 rounded-md text-xs font-semibold transition-all ${selectedDate
-                          ? 'bg-[#0A2540] dark:bg-[#0A2540] hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d] text-white shadow-sm'
-                          : 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
-                          }`}
-                      >
-                        Confirmar
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-
-          {/* Área de input */}
-          <div className="flex-shrink-0 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-t border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center gap-3">
-                {/* Input de texto */}
-                <input
-                  type="text"
-                  value={userMessage}
-                  onChange={(e) => setUserMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && userMessage.trim()) {
-                      e.preventDefault();
-                      handleSendMessage(userMessage);
-                      setUserMessage('');
-                    }
-                  }}
-                  placeholder="Escribe tu mensaje o usa el micrófono..."
-                  disabled={isProcessing || isListening}
-                  className="flex-1 px-4 py-3 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 disabled:opacity-50 shadow-sm"
-                />
-
-                {/* Botón dinámico fusionado: micrófono cuando está vacío, enviar cuando hay texto */}
-                <motion.button
-                  onClick={() => {
-                    if (userMessage.trim()) {
-                      // Si hay texto, enviar mensaje
-                      handleSendMessage(userMessage);
-                      setUserMessage('');
-                    } else {
-                      // Si no hay texto, activar/desactivar grabación
-                      toggleListening();
-                    }
-                  }}
-                  disabled={isProcessing || (isListening && !!userMessage.trim())}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm ${userMessage.trim()
-                    ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
-                    : isListening
-                      ? 'bg-[#10B981] text-white hover:bg-[#10B981]/90'
-                      : 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
-                    } ${isProcessing || (isListening && userMessage.trim()) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  <AnimatePresence mode="wait">
-                    {isProcessing && userMessage.trim() ? (
-                      <motion.div
-                        key="loading"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Loader2 size={20} className="animate-spin" />
-                      </motion.div>
-                    ) : userMessage.trim() ? (
-                      <motion.div
-                        key="send"
-                        initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
-                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                        exit={{ opacity: 0, scale: 0.8, rotate: 90 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Send size={20} />
-                      </motion.div>
-                    ) : isListening ? (
-                      <motion.div
-                        key="mic-off"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <MicOff size={20} />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="mic"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Mic size={20} />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
               </div>
             </div>
-          </div>
-        </div >
-      )
+          </div >
+        )
       }
     </>
   );

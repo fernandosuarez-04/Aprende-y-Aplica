@@ -192,9 +192,44 @@ export async function GET(
           .eq('is_published', true)
           .order('lesson_order_index', { ascending: true })
 
+        const lessonsList = lessons || []
+        const lessonIds = lessonsList.map((l: any) => l.lesson_id)
+
+        // Obtener tiempo de materiales y actividades para todas las lecciones del módulo
+        let materialsMinutes = 0
+        let activitiesMinutes = 0
+
+        if (lessonIds.length > 0) {
+          // Obtener materiales
+          const { data: materials } = await supabase
+            .from('lesson_materials')
+            .select('estimated_time_minutes')
+            .in('lesson_id', lessonIds)
+
+          materialsMinutes = (materials || []).reduce((sum: number, m: any) =>
+            sum + (m.estimated_time_minutes || 0), 0)
+
+          // Obtener actividades
+          const { data: activities } = await supabase
+            .from('lesson_activities')
+            .select('estimated_time_minutes')
+            .in('lesson_id', lessonIds)
+
+          activitiesMinutes = (activities || []).reduce((sum: number, a: any) =>
+            sum + (a.estimated_time_minutes || 0), 0)
+        }
+
+        // Calcular duración total del módulo (videos + materiales + actividades)
+        const videoSeconds = lessonsList.reduce((sum: number, l: any) =>
+          sum + (l.duration_seconds || 0), 0)
+        const videoMinutes = Math.round(videoSeconds / 60)
+        const totalModuleDuration = videoMinutes + materialsMinutes + activitiesMinutes
+
         return {
           ...module,
-          lessons: lessons || []
+          lessons: lessonsList,
+          // Guardar duración total calculada para uso en el frontend
+          calculated_duration_minutes: totalModuleDuration
         }
       })
     )
@@ -232,13 +267,10 @@ export async function GET(
 
     // Calcular estadísticas de módulos y lecciones
     const totalModules = modulesWithLessons.length
-    const totalLessons = modulesWithLessons.reduce((sum, m) => sum + (m.lessons?.length || 0), 0)
-    const totalDuration = modulesWithLessons.reduce((sum, m) => {
-      const moduleDuration = m.module_duration_minutes || 0
-      const lessonsDuration = (m.lessons || []).reduce((s: number, l: any) =>
-        s + (l.duration_seconds ? Math.floor(l.duration_seconds / 60) : 0), 0
-      )
-      return sum + Math.max(moduleDuration, lessonsDuration)
+    const totalLessons = modulesWithLessons.reduce((sum: number, m: any) => sum + (m.lessons?.length || 0), 0)
+    // Usar calculated_duration_minutes que ya incluye videos + materiales + actividades
+    const totalDuration = modulesWithLessons.reduce((sum: number, m: any) => {
+      return sum + (m.calculated_duration_minutes || m.module_duration_minutes || 0)
     }, 0)
 
     // Verificar membresía y estado de compra a nivel de organización
