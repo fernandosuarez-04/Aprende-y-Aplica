@@ -16,27 +16,28 @@ export interface StudyPlanConfig {
   organizationId?: string | null;
   name: string;
   description?: string;
-  
+
   // Cursos seleccionados
   selectedCourseIds: string[];
   learningRoute: LearningRoute;
-  
+
   // Configuración de tiempos
   minSessionMinutes: number;
   maxSessionMinutes: number;
   preferredSessionType: 'short' | 'medium' | 'long';
-  
+  studyApproach?: 'rapido' | 'normal' | 'largo'; // Nuevo: enfoque de estudio para multiplicadores
+
   // Configuración de días y horarios
   selectedDays: string[];
   timeBlocks: TimeBlock[];
-  
+
   // Descansos
   breakSchedule: BreakSchedule[];
-  
+
   // Fechas
   startDate: Date;
   targetEndDate?: Date;
-  
+
   // B2B
   assignments?: B2BAssignment[];
 }
@@ -106,26 +107,26 @@ export class PlanGeneratorService {
    */
   static async generatePlan(config: StudyPlanConfig): Promise<GeneratedPlan> {
     const warnings: string[] = [];
-    
+
     // Validar configuración básica
     this.validateConfig(config, warnings);
-    
+
     // Generar sesiones
     const sessions = await this.generateSessions(config);
-    
+
     // Calcular resumen
     const summary = this.calculateSummary(config, sessions);
-    
+
     // Validar plazos B2B si aplica
     let b2bValidation: B2BValidationResult | undefined;
     if (config.userType === 'b2b' && config.assignments && config.assignments.length > 0) {
       b2bValidation = this.validateB2BDeadlines(config, summary);
-      
+
       if (!b2bValidation.canMeetAllDeadlines) {
         warnings.push('⚠️ Algunos plazos corporativos podrían no cumplirse con la configuración actual.');
       }
     }
-    
+
     return {
       config,
       sessions,
@@ -142,15 +143,15 @@ export class PlanGeneratorService {
     if (config.selectedCourseIds.length === 0) {
       warnings.push('No se han seleccionado cursos para el plan.');
     }
-    
+
     if (config.selectedDays.length === 0) {
       warnings.push('No se han seleccionado días para estudiar.');
     }
-    
+
     if (config.timeBlocks.length === 0) {
       warnings.push('No se han configurado bloques de tiempo.');
     }
-    
+
     if (config.minSessionMinutes > config.maxSessionMinutes) {
       warnings.push('El tiempo mínimo es mayor al máximo. Se ajustará automáticamente.');
     }
@@ -161,56 +162,59 @@ export class PlanGeneratorService {
    */
   private static async generateSessions(config: StudyPlanConfig): Promise<PlannedSession[]> {
     const sessions: PlannedSession[] = [];
-    
+
     // Obtener tiempo total necesario
     const timeAnalysis = await LessonTimeService.analyzeCoursesTime(config.selectedCourseIds);
-    
+
     // Ordenar cursos según la ruta de aprendizaje
     const orderedCourses = config.learningRoute.items.sort((a, b) => a.order - b.order);
-    
+
     // Calcular sesiones necesarias
     let currentDate = new Date(config.startDate);
     let sessionCount = 0;
     let courseIndex = 0;
     let lessonIndex = 0;
-    
+
     // Máximo de sesiones para evitar loops infinitos (1 año de sesiones)
     const maxSessions = 365 * config.selectedDays.length;
-    
+
     while (courseIndex < orderedCourses.length && sessionCount < maxSessions) {
       const currentCourse = orderedCourses[courseIndex];
       const courseTime = timeAnalysis.courses.find(c => c.courseId === currentCourse.courseId);
-      
+
       if (!courseTime || lessonIndex >= courseTime.lessons.length) {
         // Pasar al siguiente curso
         courseIndex++;
         lessonIndex = 0;
         continue;
       }
-      
+
       // Verificar si el día actual es un día de estudio
       const dayName = this.getDayName(currentDate.getDay());
-      
+
       if (config.selectedDays.includes(dayName)) {
         // Encontrar el bloque de tiempo para este día
         const timeBlock = config.timeBlocks.find(tb => tb.day === dayName);
-        
+
         if (timeBlock) {
           const currentLesson = courseTime.lessons[lessonIndex];
-          
-          // Calcular duración de la sesión
+
+          // Calcular duración de la sesión usando el multiplicador del enfoque de estudio
+          // rapido: x1.0, normal: x1.4, largo: x1.8
+          const multiplier = LessonTimeService.getApproachMultiplier(config.studyApproach || 'normal');
+          const lessonSessionTime = Math.ceil(currentLesson.totalMinutes * multiplier);
           const sessionDuration = Math.min(
-            Math.max(currentLesson.totalMinutes, config.minSessionMinutes),
+            Math.max(lessonSessionTime, config.minSessionMinutes),
             config.maxSessionMinutes
           );
-          
+
           // Calcular descansos
           const breaks = SessionValidatorService.calculateBreakSchedule(sessionDuration)
             .map(b => ({
               afterMinutes: b.breakAfterMinutes,
               durationMinutes: b.breakDurationMinutes
             }));
-          
+
           // Crear sesión
           const session: PlannedSession = {
             id: `session-${sessionCount + 1}`,
@@ -218,8 +222,8 @@ export class PlanGeneratorService {
             dayOfWeek: dayName,
             startTime: this.formatTime(timeBlock.startHour, timeBlock.startMinute || 0),
             endTime: this.calculateEndTime(
-              timeBlock.startHour, 
-              timeBlock.startMinute || 0, 
+              timeBlock.startHour,
+              timeBlock.startMinute || 0,
               sessionDuration
             ),
             durationMinutes: sessionDuration,
@@ -230,22 +234,22 @@ export class PlanGeneratorService {
             breaks,
             status: 'planned'
           };
-          
+
           sessions.push(session);
           sessionCount++;
           lessonIndex++;
         }
       }
-      
+
       // Avanzar al siguiente día
       currentDate.setDate(currentDate.getDate() + 1);
-      
+
       // Verificar si hemos superado la fecha objetivo
       if (config.targetEndDate && currentDate > config.targetEndDate) {
         break;
       }
     }
-    
+
     return sessions;
   }
 
@@ -254,27 +258,27 @@ export class PlanGeneratorService {
    */
   private static calculateSummary(config: StudyPlanConfig, sessions: PlannedSession[]): PlanSummary {
     const totalStudyMinutes = sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
-    const totalBreakMinutes = sessions.reduce((sum, s) => 
+    const totalBreakMinutes = sessions.reduce((sum, s) =>
       sum + s.breaks.reduce((bSum, b) => bSum + b.durationMinutes, 0), 0
     );
-    
+
     // Calcular sesiones por semana
     const weeksSpanned = sessions.length > 0
       ? Math.ceil((sessions[sessions.length - 1].date.getTime() - sessions[0].date.getTime()) / (7 * 24 * 60 * 60 * 1000)) || 1
       : 1;
     const sessionsPerWeek = Math.round(sessions.length / weeksSpanned);
-    
+
     // Calcular lecciones por curso
     const lessonsPerCourse: Record<string, number> = {};
     sessions.forEach(session => {
       lessonsPerCourse[session.courseId] = (lessonsPerCourse[session.courseId] || 0) + 1;
     });
-    
+
     // Fecha estimada de finalización
     const estimatedEndDate = sessions.length > 0
       ? sessions[sessions.length - 1].date
       : new Date(config.startDate);
-    
+
     return {
       totalSessions: sessions.length,
       totalStudyMinutes,
@@ -291,30 +295,30 @@ export class PlanGeneratorService {
    * Valida los plazos B2B
    */
   private static validateB2BDeadlines(
-    config: StudyPlanConfig, 
+    config: StudyPlanConfig,
     summary: PlanSummary
   ): B2BValidationResult {
     const deadlineStatus: B2BValidationResult['deadlineStatus'] = [];
     let canMeetAllDeadlines = true;
-    
+
     if (!config.assignments) {
       return { canMeetAllDeadlines: true, deadlineStatus: [] };
     }
-    
+
     for (const assignment of config.assignments) {
       if (!assignment.due_date || !config.selectedCourseIds.includes(assignment.course_id)) {
         continue;
       }
-      
+
       const deadline = new Date(assignment.due_date);
       const estimatedCompletion = summary.estimatedEndDate;
       const daysMargin = Math.ceil((deadline.getTime() - estimatedCompletion.getTime()) / (24 * 60 * 60 * 1000));
       const canMeet = estimatedCompletion <= deadline;
-      
+
       if (!canMeet) {
         canMeetAllDeadlines = false;
       }
-      
+
       deadlineStatus.push({
         courseId: assignment.course_id,
         courseTitle: assignment.course_title,
@@ -324,7 +328,7 @@ export class PlanGeneratorService {
         daysMargin
       });
     }
-    
+
     return { canMeetAllDeadlines, deadlineStatus };
   }
 
@@ -367,12 +371,13 @@ export class PlanGeneratorService {
       minSessionMinutes: number;
       maxSessionMinutes: number;
       preferredSessionType: 'short' | 'medium' | 'long';
+      studyApproach?: 'rapido' | 'normal' | 'largo'; // Nuevo: enfoque de estudio
       startDate?: Date;
       targetEndDate?: Date;
     }
   ): StudyPlanConfig {
     const breakSchedule = SessionValidatorService.calculateBreakSchedule(preferences.maxSessionMinutes);
-    
+
     return {
       userId: userContext.userId,
       userType: userContext.userType,
@@ -383,6 +388,7 @@ export class PlanGeneratorService {
       minSessionMinutes: preferences.minSessionMinutes,
       maxSessionMinutes: preferences.maxSessionMinutes,
       preferredSessionType: preferences.preferredSessionType,
+      studyApproach: preferences.studyApproach || 'normal', // Default: normal
       selectedDays: preferences.selectedDays,
       timeBlocks: preferences.timeBlocks,
       breakSchedule,

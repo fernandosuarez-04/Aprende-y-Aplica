@@ -10,6 +10,7 @@ export interface AdminActivity {
   ai_prompts: string | null
   activity_order_index: number
   is_required: boolean
+  estimated_time_minutes: number | null
   lesson_id: string
   created_at: string
 }
@@ -21,6 +22,7 @@ export interface CreateActivityData {
   activity_content: string
   ai_prompts?: string
   is_required?: boolean
+  estimated_time_minutes?: number
 }
 
 export interface UpdateActivityData {
@@ -30,6 +32,7 @@ export interface UpdateActivityData {
   activity_content?: string
   ai_prompts?: string
   is_required?: boolean
+  estimated_time_minutes?: number
 }
 
 export class AdminActivitiesService {
@@ -100,6 +103,7 @@ export class AdminActivitiesService {
           ai_prompts: activityData.ai_prompts,
           activity_order_index: nextOrderIndex,
           is_required: activityData.is_required ?? false,
+          estimated_time_minutes: activityData.estimated_time_minutes || 5, // Default 5 min
           created_at: new Date().toISOString()
         })
         .select()
@@ -125,11 +129,14 @@ export class AdminActivitiesService {
         )
       } catch (translationError) {
         // No fallar la creación de la actividad si falla la traducción
-        logger.error('Error en traducción automática de la actividad', { 
+        logger.error('Error en traducción automática de la actividad', {
           error: translationError instanceof Error ? translationError.message : String(translationError),
-          activityId: data.activity_id 
+          activityId: data.activity_id
         })
       }
+
+      // Recalcular duración del módulo
+      await this.updateModuleDurationFromLesson(lessonId)
 
       return data
     } catch (error) {
@@ -154,6 +161,12 @@ export class AdminActivitiesService {
         throw error
       }
 
+      // Recalcular duración del módulo si cambió el tiempo estimado
+      if (activityData.estimated_time_minutes !== undefined) {
+        const lessonId = data.lesson_id
+        await this.updateModuleDurationFromLesson(lessonId)
+      }
+
       return data
     } catch (error) {
       logger.error('Error in AdminActivitiesService.updateActivity', { error: error instanceof Error ? error.message : String(error), activityId })
@@ -165,6 +178,15 @@ export class AdminActivitiesService {
     const supabase = await createClient()
 
     try {
+      // Obtener lesson_id antes de eliminar para recalcular duración
+      const { data: activity } = await supabase
+        .from('lesson_activities')
+        .select('lesson_id')
+        .eq('activity_id', activityId)
+        .single()
+
+      const lessonId = (activity as any)?.lesson_id
+
       const { error } = await supabase
         .from('lesson_activities')
         .delete()
@@ -173,6 +195,11 @@ export class AdminActivitiesService {
       if (error) {
         logger.error('Error deleting activity', { error: error.message, activityId })
         throw error
+      }
+
+      // Recalcular duración del módulo
+      if (lessonId) {
+        await this.updateModuleDurationFromLesson(lessonId)
       }
     } catch (error) {
       logger.error('Error in AdminActivitiesService.deleteActivity', { error: error instanceof Error ? error.message : String(error), activityId })
@@ -201,6 +228,104 @@ export class AdminActivitiesService {
     } catch (error) {
       logger.error('Error in AdminActivitiesService.reorderActivities', { error: error instanceof Error ? error.message : String(error), lessonId })
       throw error
+    }
+  }
+
+  /**
+   * Helper para recalcular la duración del módulo cuando cambian las actividades
+   */
+  static async updateModuleDurationFromLesson(lessonId: string): Promise<void> {
+    const supabase = await createClient()
+
+    try {
+      // PRIMERO: Recalcular la duración TOTAL de la lección
+      await this.recalculateLessonDuration(lessonId)
+
+      // SEGUNDO: Obtener el module_id de la lección
+      const { data: lesson } = await supabase
+        .from('course_lessons')
+        .select('module_id')
+        .eq('lesson_id', lessonId)
+        .single()
+
+      if ((lesson as any)?.module_id) {
+        // Importar el servicio de lecciones para recalcular la duración del módulo
+        const { AdminLessonsService } = await import('./adminLessons.service')
+        await AdminLessonsService.updateModuleDuration((lesson as any).module_id)
+      }
+    } catch (error) {
+      // No fallar si hay error recalculando duración
+      logger.error('Error updating module duration from lesson', {
+        error: error instanceof Error ? error.message : String(error),
+        lessonId
+      })
+    }
+  }
+
+  /**
+   * Recalcula la duración total de una lección individual (video + materiales + actividades)
+   * y actualiza el campo total_duration_minutes en course_lessons
+   */
+  static async recalculateLessonDuration(lessonId: string): Promise<void> {
+    const supabase = await createClient()
+
+    try {
+      // 1. Obtener la duración del video de la lección
+      const { data: lesson } = await supabase
+        .from('course_lessons')
+        .select('duration_seconds')
+        .eq('lesson_id', lessonId)
+        .single()
+
+      const videoSeconds = (lesson as any)?.duration_seconds || 0
+      const videoMinutes = Math.round(videoSeconds / 60)
+
+      // 2. Sumar tiempo estimado de todos los materiales de esta lección
+      const { data: materials } = await supabase
+        .from('lesson_materials')
+        .select('estimated_time_minutes')
+        .eq('lesson_id', lessonId)
+
+      const materialsMinutes = (materials as any[] || []).reduce(
+        (sum: number, m: any) => sum + (m.estimated_time_minutes || 0),
+        0
+      )
+
+      // 3. Sumar tiempo estimado de todas las actividades de esta lección
+      const { data: activities } = await supabase
+        .from('lesson_activities')
+        .select('estimated_time_minutes')
+        .eq('lesson_id', lessonId)
+
+      const activitiesMinutes = (activities as any[] || []).reduce(
+        (sum: number, a: any) => sum + (a.estimated_time_minutes || 0),
+        0
+      )
+
+      // 4. Calcular total y actualizar la lección
+      const totalDurationMinutes = videoMinutes + materialsMinutes + activitiesMinutes
+
+      await supabase
+        .from('course_lessons')
+        .update({
+          total_duration_minutes: totalDurationMinutes,
+          updated_at: new Date().toISOString()
+        } as any)
+        .eq('lesson_id', lessonId)
+
+      logger.debug('Lesson duration recalculated', {
+        lessonId,
+        videoMinutes,
+        materialsMinutes,
+        activitiesMinutes,
+        totalDurationMinutes
+      })
+    } catch (error) {
+      logger.error('Error recalculating lesson duration', {
+        error: error instanceof Error ? error.message : String(error),
+        lessonId
+      })
+      // No propagar el error para no fallar la operación principal
     }
   }
 }

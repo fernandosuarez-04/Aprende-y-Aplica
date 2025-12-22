@@ -567,7 +567,10 @@ export default function BusinessCourseDetailPage() {
                         <div className="space-y-3">
                           {course.modules.map((module, moduleIndex) => {
                             const isExpanded = expandedModules.has(module.module_id)
-                            const totalDuration = module.lessons.reduce((sum, l) => sum + l.duration_seconds, 0)
+                            // Usar calculated_duration_minutes que incluye videos + materiales + actividades
+                            const moduleDurationMinutes = (module as any).calculated_duration_minutes ||
+                              module.module_duration_minutes ||
+                              Math.round(module.lessons.reduce((sum, l) => sum + l.duration_seconds, 0) / 60)
 
                             return (
                               <motion.div
@@ -592,7 +595,7 @@ export default function BusinessCourseDetailPage() {
                                     <div className="text-left">
                                       <h4 className="font-semibold" style={{ color: textColor }}>{module.module_title}</h4>
                                       <p className="text-sm" style={{ color: `${textColor}50` }}>
-                                        {module.lessons.length} lecciones • {formatDurationSeconds(totalDuration)}
+                                        {module.lessons.length} lecciones • {formatDuration(moduleDurationMinutes)}
                                       </p>
                                     </div>
                                   </div>

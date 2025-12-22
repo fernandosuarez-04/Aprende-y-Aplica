@@ -93,6 +93,7 @@ export async function getWorkshopMetadata(workshopId: string): Promise<WorkshopM
         lesson_description,
         lesson_order_index,
         duration_seconds,
+        total_duration_minutes,
         module_id
       `)
       .in('module_id', moduleIds)
@@ -119,7 +120,7 @@ export async function getWorkshopMetadata(workshopId: string): Promise<WorkshopM
 
     // 4. Agrupar lecciones por módulo
     const lessonsByModule = new Map<string, LessonInfo[]>();
-    (allLessons || []).forEach(lesson => {
+    (allLessons || []).forEach((lesson: any) => {
       if (!lessonsByModule.has(lesson.module_id)) {
         lessonsByModule.set(lesson.module_id, []);
       }
@@ -128,7 +129,9 @@ export async function getWorkshopMetadata(workshopId: string): Promise<WorkshopM
         lessonTitle: lesson.lesson_title,
         lessonDescription: lesson.lesson_description || undefined,
         lessonOrderIndex: lesson.lesson_order_index,
-        durationSeconds: lesson.duration_seconds || undefined
+        durationSeconds: lesson.duration_seconds || undefined,
+        // Tiempo total (video + materiales + actividades)
+        totalDurationMinutes: lesson.total_duration_minutes || Math.ceil((lesson.duration_seconds || 0) / 60)
       });
     });
 

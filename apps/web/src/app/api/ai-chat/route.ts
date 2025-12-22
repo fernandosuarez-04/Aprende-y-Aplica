@@ -1441,12 +1441,13 @@ Si recibes información de factibilidad con "isFeasible: false", DEBES:
 5. NO crear un plan si no es factible - Prioriza la honestidad y advierte al usuario
 
 REGLAS CRÍTICAS:
-- Los tiempos de sesión YA están definidos según el enfoque: rápido=25min, normal=45min, largo=60min
+- Los tiempos de sesión SON DINÁMICOS y YA INCLUYEN el multiplicador de enfoque seleccionado (Rápido x1.0, Normal x1.4, Largo x1.8). La duración indicada es la FINAL y debe respetarse.
+- ⚠️ REGLA DE ORO DE TIEMPOS: Copia y pega EXACTAMENTE los horarios que te indico. No los redondees.
+- Si ves "HORARIO EXACTO: 08:00 - 08:38", TU RESPUESTA DEBE DECIR "08:00 - 08:38". No lo cambies a 08:30.
 - ⚠️ PROHIBIDO: NO preguntes sobre el enfoque de estudio (rápido/normal/largo) en el chat
 - ⚠️ PROHIBIDO: NO preguntes sobre tiempos de sesión (25min/45min/60min) en el chat
 - El modal de selección de enfoque se abre automáticamente - NO necesitas preguntar nada
 - Si el usuario aún no ha seleccionado el enfoque, simplemente presenta el análisis de contexto y espera
-- Los tiempos de descanso son automáticos: rápido=5min, normal=10min, largo=15min
 - Para B2B: SIEMPRE validar que los tiempos permitan cumplir los plazos del administrador
 - Para B2C: Dar recomendaciones basadas en los datos del sistema
 - Todos los cálculos deben hacerse con los datos proporcionados, NO preguntar datos que ya tienes
@@ -1503,17 +1504,13 @@ Cuando el usuario confirme los horarios (dice "sí", "me sirven", "confirmo", et
    - Enfoque de estudio (rápido/normal/largo con duración)
    - Fecha límite para completar
 
-2. **DISTRIBUCIÓN DE LECCIONES POR HORARIO:**
-   Mostrar CADA horario con sus lecciones asignadas EXACTAMENTE como te las doy.
-   IMPORTANTE: Usa los NOMBRES EXACTOS de las lecciones que te proporciono, NO uses placeholders como "[nombre de la lección]".
-   
-   Ejemplo de formato correcto:
-   **Lunes 15 de diciembre de 02:00 p.m. a 04:30 p.m.**
+2. 
+   Ejemplo de formato correcto
    Lecciones a estudiar:
-   • Lección 4: Introducción a los modelos de lenguaje
-   • Lección 5: Aplicaciones prácticas de GPT
+   • Lección 4: Introducción a los modelos de lenguaje (Duración: 45 min)
+   • Lección 5: Aplicaciones prácticas de GPT (Duración: 52 min)
    
-   ⚠️ CRÍTICO: Copia los nombres de las lecciones EXACTAMENTE como aparecen en la información que te doy.
+   ⚠️ CRÍTICO: Copia los nombres y DURACIONES de las lecciones EXACTAMENTE como aparecen en la información que te doy.
    
    (continuar con TODOS los horarios proporcionados)
 
@@ -1524,10 +1521,6 @@ Cuando el usuario confirme los horarios (dice "sí", "me sirven", "confirmo", et
 4. **PREGUNTA FINAL:**
    "¿Te parece bien este plan? Puedo proceder a confirmar estos horarios en tu calendario."
 
-TIEMPOS YA CONFIGURADOS (no preguntar):
-- Sesiones rápidas: 25 min estudio + 5 min descanso (Técnica Pomodoro)
-- Sesiones normales: 45 min estudio + 10 min descanso
-- Sesiones largas: 60 min estudio + 15 min descanso
 
 DATOS QUE YA TIENES DEL SISTEMA:
 - Perfil profesional del usuario (rol, empresa, área)
@@ -1711,11 +1704,23 @@ En este caso debes:
 3. Si el calendario YA está conectado, indicar que procederás a analizar su disponibilidad
 4. Ser amigable y motivador
 
-REGLAS PARA GENERAR HORARIOS DE ESTUDIO:
-Los horarios deben considerar SIEMPRE el tiempo de descanso entre sesiones:
-- Sesiones rápidas: 25 min estudio + 5 min descanso = bloques de 30 min
-- Sesiones normales: 45 min estudio + 10 min descanso = bloques de 55 min
-- Sesiones largas: 60 min estudio + 15 min descanso = bloques de 75 min
+REGLAS PARA GENERAR HORARIOS DE ESTUDIO (CRÍTICO):
+Los horarios deben calcularse con precisión matemática usando la duración base de la lección y un multiplicador según el enfoque:
+
+FÓRMULA: Duración Final = Duración Base de Lección * Multiplicador
+
+MULTIPLICADORES:
+- Enfoque Rápido: Multiplicador 1.0 (Duración exacta de la lección)
+- Enfoque Normal: Multiplicador 1.4 (Lección + 40% de repaso/descanso)
+- Enfoque Largo: Multiplicador 1.8 (Lección + 80% de repaso/práctica)
+
+EJEMPLO:
+Si una lección dura 38 minutos y el enfoque es "Normal" (1.4):
+38 * 1.4 = 53.2 minutos -> Redondear a 54 minutos.
+El bloque debe ser de 54 minutos EXACTOS (ej: 08:00 - 08:54).
+
+🚨 PROHIBIDO usar bloques fijos de 30, 45 o 60 minutos si el cálculo da otro valor.
+🚨 USA SIEMPRE la duración específica de cada lección provista en el contexto.
 
 Al sugerir horarios:
 - Distribuye las sesiones a lo largo de toda la semana (no solo 3 días)
@@ -2157,8 +2162,9 @@ export async function POST(request: NextRequest) {
         contextPrompt += `IMPORTANTE: Usa estos nombres EXACTOS al generar el plan de estudios. NUNCA uses "Sesión 1, 2, 3...".\n\n`;
 
         // Agrupar por módulo
-        const lessonsByModule: Record<string, Array<{ moduleTitle: string, lessonTitle: string, courseTitle: string }>> = {};
-        pendingLessons.forEach((lesson: { moduleTitle: string, lessonTitle: string, courseTitle: string }) => {
+        // Agrupar por módulo
+        const lessonsByModule: Record<string, Array<{ moduleTitle: string, lessonTitle: string, courseTitle: string, durationMinutes?: number }>> = {};
+        pendingLessons.forEach((lesson: any) => {
           if (!lessonsByModule[lesson.moduleTitle]) {
             lessonsByModule[lesson.moduleTitle] = [];
           }
@@ -2168,13 +2174,14 @@ export async function POST(request: NextRequest) {
         Object.entries(lessonsByModule).forEach(([moduleTitle, lessons]) => {
           contextPrompt += `📁 ${moduleTitle}:\n`;
           lessons.forEach((lesson, idx) => {
-            contextPrompt += `   ${idx + 1}. ${lesson.lessonTitle}\n`;
+            const dur = lesson.durationMinutes ? ` (${lesson.durationMinutes} min base)` : '';
+            contextPrompt += `   ${idx + 1}. ${lesson.lessonTitle}${dur}\n`;
           });
           contextPrompt += `\n`;
         });
 
-        contextPrompt += `\n⚠️ INSTRUCCIÓN: Al generar horarios, usa EXACTAMENTE los nombres de lecciones listados arriba.\n`;
-        contextPrompt += `Formato correcto: "10:00 - 10:30: [${Object.keys(lessonsByModule)[0] || 'Módulo'}] ${pendingLessons[0]?.lessonTitle || 'Nombre de lección'}"\n`;
+        contextPrompt += `\n⚠️ INSTRUCCIÓN: Al generar horarios, usa EXACTAMENTE los nombres de lecciones listados arriba y CALCULA LA DURACIÓN FINAL usando el multiplicador seleccionado.\n`;
+        contextPrompt += `Ejemplo: Si la lección dice "(30 min base)" y el multiplicador es 1.4, el bloque dura 42 min (ej: 10:00 - 10:42).\n`;
 
         logger.info('📚 Lecciones pendientes agregadas al contexto', {
           totalLessons: totalPending,
@@ -2298,6 +2305,9 @@ export async function POST(request: NextRequest) {
     if (openaiApiKey) {
       try {
         const startTime = Date.now();
+        if (context === 'study-planner' || context === 'study-planner-availability') {
+          logger.info('📋 [STUDY_PLANNER] Mensaje enviado a OpenAI (FULL):', message);
+        }
         logger.info('🔥 Llamando a OpenAI', { message: message.substring(0, 50), hasKey: !!openaiApiKey });
         // ✅ OPTIMIZACIÓN: Pasar contexto a callOpenAI para optimizaciones específicas
         // FORZAR ESPAÑOL para study-planner siempre

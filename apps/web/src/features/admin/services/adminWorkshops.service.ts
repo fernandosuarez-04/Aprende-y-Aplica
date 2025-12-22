@@ -73,9 +73,13 @@ export class AdminWorkshopsService {
         throw error
       }
 
-      // Obtener información del instructor para cada taller
+      // Obtener información del instructor y duración real de módulos para cada taller
       const workshopsWithInstructors = await Promise.all(
         (data || []).map(async (workshop) => {
+          // Obtener instructor
+          let instructorName = 'Instructor no asignado'
+          let instructorProfilePicture: string | null = null
+
           if (workshop.instructor_id) {
             const { data: instructor } = await supabase
               .from('users')
@@ -83,18 +87,33 @@ export class AdminWorkshopsService {
               .eq('id', workshop.instructor_id)
               .single()
 
-            return {
-              ...workshop,
-              instructor_name: instructor?.display_name || 
-                             `${instructor?.first_name || ''} ${instructor?.last_name || ''}`.trim() ||
-                             'Instructor no asignado',
-              instructor_profile_picture_url: instructor?.profile_picture_url || null
+            if (instructor) {
+              instructorName = instructor.display_name ||
+                `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+                'Instructor no asignado'
+              instructorProfilePicture = instructor.profile_picture_url || null
             }
           }
+
+          // Calcular duración total real desde los módulos
+          const { data: modules } = await supabase
+            .from('course_modules')
+            .select('module_duration_minutes')
+            .eq('course_id', workshop.id)
+
+          const calculatedDuration = (modules || []).reduce(
+            (sum: number, m: any) => sum + (m.module_duration_minutes || 0),
+            0
+          )
+
+          // Usar la duración calculada si es mayor que 0, sino usar la almacenada
+          const realDuration = calculatedDuration > 0 ? calculatedDuration : (workshop.duration_total_minutes || 0)
+
           return {
             ...workshop,
-            instructor_name: 'Instructor no asignado',
-            instructor_profile_picture_url: null
+            duration_total_minutes: realDuration,
+            instructor_name: instructorName,
+            instructor_profile_picture_url: instructorProfilePicture
           }
         })
       )
@@ -163,7 +182,7 @@ export class AdminWorkshopsService {
     try {
       // ✅ SEGURIDAD: Sanitizar y generar slug único
       let slug: string;
-      
+
       if (workshopData.slug) {
         slug = sanitizeSlug(workshopData.slug);
       } else if (workshopData.title) {
@@ -247,7 +266,7 @@ export class AdminWorkshopsService {
       // para evitar que se interrumpa cuando la página se refresca
 
       // EJECUTAR TRADUCCIÓN DE FORMA SÍNCRONA - NO CONTINUAR HASTA QUE TERMINE
-      
+
       try {
 
         const translationModule = await import('@/core/services/courseTranslation.service');
@@ -267,7 +286,7 @@ export class AdminWorkshopsService {
           supabase // Pasar el cliente de Supabase existente
         );
 
-        
+
         if (!translationResult.success) {
           console.error('[AdminWorkshopsService] ❌ La traducción NO fue exitosa');
           console.error('[AdminWorkshopsService] Errores:', translationResult.errors);
@@ -328,20 +347,20 @@ export class AdminWorkshopsService {
       // Campos de aprobación
       if (workshopData.approval_status !== undefined) {
         updateData.approval_status = workshopData.approval_status
-        
+
         // Si se aprueba, establecer approved_by y approved_at
         if (workshopData.approval_status === 'approved') {
           updateData.approved_by = adminUserId
           updateData.approved_at = new Date().toISOString()
           updateData.rejection_reason = null // Limpiar razón de rechazo si se aprueba
         }
-        
+
         // Si se rechaza, limpiar approved_by y approved_at
         if (workshopData.approval_status === 'rejected') {
           updateData.approved_by = null
           updateData.approved_at = null
         }
-        
+
         // Si vuelve a pending, limpiar todo
         if (workshopData.approval_status === 'pending') {
           updateData.approved_by = null
@@ -349,7 +368,7 @@ export class AdminWorkshopsService {
           updateData.rejection_reason = null
         }
       }
-      
+
       if (workshopData.rejection_reason !== undefined) {
         updateData.rejection_reason = workshopData.rejection_reason
       }
@@ -465,9 +484,9 @@ export class AdminWorkshopsService {
 
       return (data || []).map(user => ({
         id: user.id,
-        name: user.display_name || 
-              `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
-              'Instructor sin nombre'
+        name: user.display_name ||
+          `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+          'Instructor sin nombre'
       }))
     } catch (error) {
       // console.error('Error in AdminWorkshopsService.getInstructors:', error)

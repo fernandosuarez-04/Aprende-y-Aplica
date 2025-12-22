@@ -13,6 +13,7 @@ export interface SessionConfig {
   maxSessionMinutes: number;
   startDate: Date;
   endDate?: Date;
+  studyApproach?: 'rapido' | 'normal' | 'largo'; // Nuevo: enfoque de estudio para calcular duración de sesiones
 }
 
 export interface TimeBlockConfig {
@@ -73,7 +74,7 @@ export class SessionGeneratorService {
 
     // Obtener lecciones de todos los cursos
     const allLessons = await this.getAllLessons(courseIds);
-    
+
     if (allLessons.length === 0) {
       return {
         sessions: [],
@@ -87,7 +88,7 @@ export class SessionGeneratorService {
 
     // Ordenar días según preferencia
     const sortedDays = this.sortDays(config.selectedDays);
-    
+
     // Generar sesiones
     let currentDate = new Date(config.startDate);
     let lessonIndex = 0;
@@ -97,18 +98,19 @@ export class SessionGeneratorService {
 
     while (lessonIndex < allLessons.length && iterations < maxIterations) {
       const dayName = this.getDayName(currentDate.getDay());
-      
+
       if (sortedDays.includes(dayName)) {
         const timeBlock = config.timeBlocks.find(tb => tb.day === dayName);
-        
+
         if (timeBlock && lessonIndex < allLessons.length) {
           const lesson = allLessons[lessonIndex];
-          
-          // Calcular duración de sesión
+
+          // Calcular duración de sesión usando el enfoque de estudio
           const sessionDuration = this.calculateSessionDuration(
             lesson.durationMinutes,
             config.minSessionMinutes,
-            config.maxSessionMinutes
+            config.maxSessionMinutes,
+            config.studyApproach || 'normal'
           );
 
           // Calcular descansos
@@ -158,7 +160,7 @@ export class SessionGeneratorService {
 
     // Calcular totales
     const totalStudyMinutes = sessions.reduce((sum, s) => sum + s.netStudyMinutes, 0);
-    const totalBreakMinutes = sessions.reduce((sum, s) => 
+    const totalBreakMinutes = sessions.reduce((sum, s) =>
       sum + s.breaks.reduce((bSum, b) => bSum + b.breakDurationMinutes, 0), 0
     );
 
@@ -167,8 +169,8 @@ export class SessionGeneratorService {
       totalSessions: sessions.length,
       totalStudyMinutes,
       totalBreakMinutes,
-      estimatedEndDate: sessions.length > 0 
-        ? sessions[sessions.length - 1].date 
+      estimatedEndDate: sessions.length > 0
+        ? sessions[sessions.length - 1].date
         : config.startDate,
       warnings
     };
@@ -182,7 +184,7 @@ export class SessionGeneratorService {
 
     for (const courseId of courseIds) {
       const courseTime = await LessonTimeService.getCourseTimeEstimate(courseId);
-      
+
       if (courseTime) {
         for (const lesson of courseTime.lessons) {
           lessons.push({
@@ -200,15 +202,26 @@ export class SessionGeneratorService {
   }
 
   /**
-   * Calcula la duración óptima de la sesión
+   * Calcula la duración óptima de la sesión basada en el enfoque de estudio
+   * - rapido: x1.0 - Tiempo exacto de la lección
+   * - normal: x1.4 - Ritmo equilibrado para mejor comprensión
+   * - largo: x1.8 - Profundización y mejor retención
    */
   private static calculateSessionDuration(
     lessonMinutes: number,
     minSession: number,
-    maxSession: number
+    maxSession: number,
+    studyApproach: 'rapido' | 'normal' | 'largo' = 'normal'
   ): number {
-    // La sesión debe cubrir al menos la lección completa
-    const requiredMinutes = Math.max(lessonMinutes, minSession);
+    // Usar multiplicador según el enfoque de estudio
+    const multiplier = LessonTimeService.getApproachMultiplier(studyApproach);
+
+    // Calcular duración de sesión = tiempo de lección × multiplicador
+    const sessionDuration = Math.ceil(lessonMinutes * multiplier);
+
+    // La sesión debe cubrir al menos el mínimo configurado
+    const requiredMinutes = Math.max(sessionDuration, minSession);
+
     // Pero no exceder el máximo
     return Math.min(requiredMinutes, maxSession);
   }
@@ -243,8 +256,8 @@ export class SessionGeneratorService {
    * Calcula hora de fin
    */
   private static calculateEndTime(
-    startHour: number, 
-    startMinute: number, 
+    startHour: number,
+    startMinute: number,
     durationMinutes: number
   ): string {
     const totalMinutes = startHour * 60 + startMinute + durationMinutes;
@@ -258,17 +271,17 @@ export class SessionGeneratorService {
    */
   static groupSessionsByWeek(sessions: GeneratedSession[]): Map<string, GeneratedSession[]> {
     const weeks = new Map<string, GeneratedSession[]>();
-    
+
     for (const session of sessions) {
       const weekStart = this.getWeekStart(session.date);
       const weekKey = weekStart.toISOString().split('T')[0];
-      
+
       if (!weeks.has(weekKey)) {
         weeks.set(weekKey, []);
       }
       weeks.get(weekKey)!.push(session);
     }
-    
+
     return weeks;
   }
 
@@ -303,7 +316,7 @@ export class SessionGeneratorService {
     }
 
     const totalStudy = sessions.reduce((sum, s) => sum + s.netStudyMinutes, 0);
-    const totalBreaks = sessions.reduce((sum, s) => 
+    const totalBreaks = sessions.reduce((sum, s) =>
       sum + s.breaks.reduce((bSum, b) => bSum + b.breakDurationMinutes, 0), 0
     );
 

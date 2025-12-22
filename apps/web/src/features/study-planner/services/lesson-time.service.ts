@@ -44,6 +44,55 @@ export class LessonTimeService {
   private static readonly INTERACTION_TIME_MINUTES = 3;
 
   /**
+   * Multiplicadores de tiempo por enfoque de estudio
+   * - rapido: x1.0 - Tiempo exacto de la lección (ritmo intenso)
+   * - normal: x1.4 - Ritmo equilibrado para mejor comprensión
+   * - largo: x1.8 - Profundización y mejor retención
+   */
+  static readonly STUDY_APPROACH_MULTIPLIERS = {
+    rapido: 1.0,
+    normal: 1.4,
+    largo: 1.8
+  } as const;
+
+  /**
+   * Obtiene el multiplicador para un enfoque de estudio
+   */
+  static getApproachMultiplier(approach: 'rapido' | 'normal' | 'largo'): number {
+    return this.STUDY_APPROACH_MULTIPLIERS[approach] || 1.0;
+  }
+
+  /**
+   * Calcula la duración de sesión para una lección según el enfoque de estudio
+   * @param lessonTotalMinutes - Tiempo total de la lección (video + materiales + actividades)
+   * @param approach - Enfoque de estudio (rapido, normal, largo)
+   * @returns Duración de la sesión en minutos
+   */
+  static getSessionDurationForLesson(
+    lessonTotalMinutes: number,
+    approach: 'rapido' | 'normal' | 'largo'
+  ): number {
+    const multiplier = this.getApproachMultiplier(approach);
+    return Math.ceil(lessonTotalMinutes * multiplier);
+  }
+
+  /**
+   * Calcula la duración total de sesiones para múltiples lecciones
+   * @param lessons - Array de lecciones con sus tiempos
+   * @param approach - Enfoque de estudio
+   * @returns Duración total de todas las sesiones
+   */
+  static getTotalSessionsDuration(
+    lessons: { totalMinutes: number }[],
+    approach: 'rapido' | 'normal' | 'largo'
+  ): number {
+    const multiplier = this.getApproachMultiplier(approach);
+    return lessons.reduce((total, lesson) => {
+      return total + Math.ceil(lesson.totalMinutes * multiplier);
+    }, 0);
+  }
+
+  /**
    * Obtiene los tiempos estimados para un curso específico
    */
   static async getCourseTimeEstimate(courseId: string): Promise<CourseTimeEstimate | null> {
@@ -225,8 +274,8 @@ export class LessonTimeService {
 
     // El tiempo mínimo de sesión debe permitir completar al menos una lección
     // Usamos el tiempo máximo de lección para asegurar que cualquier lección pueda completarse
-    const recommendedMinSessionMinutes = globalMaxLessonMinutes > 0 
-      ? globalMaxLessonMinutes 
+    const recommendedMinSessionMinutes = globalMaxLessonMinutes > 0
+      ? globalMaxLessonMinutes
       : 30; // Default de 30 minutos si no hay datos
 
     return {
@@ -244,7 +293,7 @@ export class LessonTimeService {
    * Verifica si un tiempo de sesión es válido para un conjunto de cursos
    */
   static async validateSessionTime(
-    sessionMinutes: number, 
+    sessionMinutes: number,
     courseIds: string[]
   ): Promise<{ isValid: boolean; minRequired: number; message: string }> {
     const analysis = await this.analyzeCoursesTime(courseIds);
@@ -286,7 +335,7 @@ export class LessonTimeService {
   ): { weeks: number; estimatedEndDate: Date } {
     const weeklyStudyMinutes = sessionsPerWeek * sessionDurationMinutes;
     const weeks = Math.ceil(totalMinutes / weeklyStudyMinutes);
-    
+
     const estimatedEndDate = new Date();
     estimatedEndDate.setDate(estimatedEndDate.getDate() + (weeks * 7));
 

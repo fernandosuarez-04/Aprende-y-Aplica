@@ -86,6 +86,7 @@ export async function GET(
       lesson_description?: string;
       lesson_order_index: number;
       duration_seconds: number;
+      total_duration_minutes?: number; // Tiempo total (video + materiales + actividades)
       video_provider_id?: string;
       video_provider?: string;
       is_published: boolean;
@@ -105,6 +106,7 @@ export async function GET(
           lesson_description,
           lesson_order_index,
           duration_seconds,
+          total_duration_minutes,
           video_provider_id,
           video_provider,
           is_published,
@@ -190,13 +192,13 @@ export async function GET(
             is_published: l.is_published
           }))
         });
-        
+
         const publishedLessons = moduleLessons.filter(
           (lesson) => lesson.is_published === true
         );
         const lessons =
           publishedLessons.length > 0 ? publishedLessons : moduleLessons;
-        
+
         // Traducir lecciones
         const translatedLessons = await Promise.all(
           lessons.map(async (lesson) => {
@@ -208,7 +210,7 @@ export async function GET(
               language,
               supabase
             );
-            
+
             return {
               ...lesson,
               lesson_title: translatedLesson.lesson_title || lesson.lesson_title,
@@ -216,7 +218,7 @@ export async function GET(
             };
           })
         );
-        
+
         console.log(`[modules/route] Lecciones finales para módulo ${module.module_id}:`, {
           count: translatedLessons.length,
           lessons: translatedLessons.map(l => ({
@@ -225,50 +227,52 @@ export async function GET(
           }))
         });
 
-      const lessonsWithProgress = translatedLessons.map((lesson) => {
-        let videoUrl = lesson.video_provider_id;
+        const lessonsWithProgress = translatedLessons.map((lesson) => {
+          let videoUrl = lesson.video_provider_id;
 
-        if (
-          lesson.video_provider === 'direct' &&
-          videoUrl &&
-          !videoUrl.startsWith('http')
-        ) {
-          if (!videoUrl.includes('/')) {
-            videoUrl = `${supabaseUrl}/storage/v1/object/public/course-videos/videos/${videoUrl}`;
-          } else if (!videoUrl.startsWith('course-videos/')) {
-            videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
-          } else {
-            videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
+          if (
+            lesson.video_provider === 'direct' &&
+            videoUrl &&
+            !videoUrl.startsWith('http')
+          ) {
+            if (!videoUrl.includes('/')) {
+              videoUrl = `${supabaseUrl}/storage/v1/object/public/course-videos/videos/${videoUrl}`;
+            } else if (!videoUrl.startsWith('course-videos/')) {
+              videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
+            } else {
+              videoUrl = `${supabaseUrl}/storage/v1/object/public/${videoUrl}`;
+            }
           }
-        }
 
-        const progress =
-          progressMap.get(lesson.lesson_id) || ({} as { is_completed?: boolean; video_progress_percentage?: number });
+          const progress =
+            progressMap.get(lesson.lesson_id) || ({} as { is_completed?: boolean; video_progress_percentage?: number });
+
+          return {
+            lesson_id: lesson.lesson_id,
+            lesson_title: lesson.lesson_title,
+            lesson_description: lesson.lesson_description,
+            lesson_order_index: lesson.lesson_order_index,
+            duration_seconds: lesson.duration_seconds,
+            // Tiempo total: video + materiales + actividades (o calcular desde duration_seconds)
+            total_duration_minutes: lesson.total_duration_minutes || Math.ceil((lesson.duration_seconds || 0) / 60),
+            video_provider_id: videoUrl,
+            video_provider: lesson.video_provider,
+            is_completed: progress?.is_completed || false,
+            progress_percentage: progress?.video_progress_percentage || 0,
+            transcript_content: (lesson as any).transcript_content,
+            summary_content: (lesson as any).summary_content,
+          };
+        });
 
         return {
-          lesson_id: lesson.lesson_id,
-          lesson_title: lesson.lesson_title,
-          lesson_description: lesson.lesson_description,
-          lesson_order_index: lesson.lesson_order_index,
-          duration_seconds: lesson.duration_seconds,
-          video_provider_id: videoUrl,
-          video_provider: lesson.video_provider,
-          is_completed: progress?.is_completed || false,
-          progress_percentage: progress?.video_progress_percentage || 0,
-          transcript_content: lesson.transcript_content,
-          summary_content: lesson.summary_content,
+          module_id: module.module_id,
+          module_title: translatedModule.module_title || module.module_title,
+          module_description: translatedModule.module_description || module.module_description,
+          module_order_index: module.module_order_index,
+          module_duration_minutes: module.module_duration_minutes,
+          is_published: module.is_published,
+          lessons: lessonsWithProgress,
         };
-      });
-
-      return {
-        module_id: module.module_id,
-        module_title: translatedModule.module_title || module.module_title,
-        module_description: translatedModule.module_description || module.module_description,
-        module_order_index: module.module_order_index,
-        module_duration_minutes: module.module_duration_minutes,
-        is_published: module.is_published,
-        lessons: lessonsWithProgress,
-      };
       })
     );
 
@@ -288,7 +292,7 @@ export async function GET(
   } catch (error) {
     // console.error('Error in modules API:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Error interno del servidor',
         details: error instanceof Error ? error.message : 'Error desconocido'
       },

@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
-import { FileText, Link as LinkIcon, BookOpen, FileQuestion, PenTool, Clock } from 'lucide-react'
+import { FileText, Link as LinkIcon, BookOpen, FileQuestion, PenTool, Clock, Sparkles, Type } from 'lucide-react'
 import { AdminMaterial } from '../services/adminMaterials.service'
 import { PDFUpload } from './PDFUpload'
 import { QuizBuilder } from './QuizBuilder'
+import { calculateReadingTimeDetailed, countWords, READING_SPEEDS } from '@/lib/utils/readingTime'
 
 interface MaterialModalProps {
   material?: AdminMaterial | null
@@ -16,6 +17,119 @@ interface MaterialModalProps {
 }
 
 type TabType = 'basic' | 'content'
+
+/**
+ * Componente para editar contenido de lectura con cálculo automático de tiempo.
+ * Detecta el número de palabras y calcula el tiempo estimado usando 180 PPM (lectura reflexiva).
+ */
+interface ReadingContentEditorProps {
+  value: string
+  onChange: (text: string, calculatedMinutes: number) => void
+}
+
+function ReadingContentEditor({ value, onChange }: ReadingContentEditorProps) {
+  const [localValue, setLocalValue] = useState(value)
+
+  // Calcular información de lectura
+  const readingInfo = useMemo(() => {
+    return calculateReadingTimeDetailed(localValue, 'slow')
+  }, [localValue])
+
+  // Sincronizar valor externo
+  useEffect(() => {
+    setLocalValue(value)
+  }, [value])
+
+  // Manejar cambios con debounce implícito
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value
+    setLocalValue(newText)
+
+    // Calcular tiempo y notificar al padre
+    const info = calculateReadingTimeDetailed(newText, 'slow')
+    onChange(newText, info.estimatedMinutes)
+  }, [onChange])
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+        Contenido de Lectura
+      </label>
+
+      <div className="relative">
+        <textarea
+          rows={10}
+          value={localValue}
+          onChange={handleChange}
+          className="w-full px-4 py-3 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 resize-none font-mono text-sm leading-relaxed"
+          placeholder="Pega o escribe el contenido de la lectura aquí. El tiempo estimado se calculará automáticamente..."
+        />
+      </div>
+
+      {/* Panel de información de lectura */}
+      <motion.div
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-wrap items-center gap-4 p-3 bg-gradient-to-r from-[#00D4B3]/10 to-[#0A2540]/10 dark:from-[#00D4B3]/20 dark:to-[#0A2540]/20 rounded-xl border border-[#00D4B3]/20"
+      >
+        {/* Contador de palabras */}
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#00D4B3]/20 flex items-center justify-center">
+            <Type className="w-4 h-4 text-[#00D4B3]" />
+          </div>
+          <div>
+            <p className="text-xs text-[#6C757D] dark:text-white/60">Palabras</p>
+            <p className="text-sm font-bold text-[#0A2540] dark:text-white">
+              {readingInfo.wordCount.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        {/* Separador */}
+        <div className="w-px h-8 bg-[#E9ECEF] dark:bg-[#6C757D]/30" />
+
+        {/* Tiempo estimado */}
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#00D4B3]/20 flex items-center justify-center">
+            <Clock className="w-4 h-4 text-[#00D4B3]" />
+          </div>
+          <div>
+            <p className="text-xs text-[#6C757D] dark:text-white/60">Tiempo Estimado</p>
+            <p className="text-sm font-bold text-[#0A2540] dark:text-white">
+              {readingInfo.formattedTime}
+            </p>
+          </div>
+        </div>
+
+        {/* Separador */}
+        <div className="w-px h-8 bg-[#E9ECEF] dark:bg-[#6C757D]/30" />
+
+        {/* Indicador de cálculo automático */}
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#00D4B3]/20 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-[#00D4B3]" />
+          </div>
+          <div>
+            <p className="text-xs text-[#6C757D] dark:text-white/60">Velocidad</p>
+            <p className="text-xs font-medium text-[#0A2540] dark:text-white/80">
+              {READING_SPEEDS.slow.wordsPerMinute} ppm (lectura reflexiva)
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Nota explicativa */}
+      <p className="text-xs text-[#6C757D] dark:text-white/50 flex items-start gap-1.5">
+        <Sparkles className="w-3.5 h-3.5 text-[#00D4B3] mt-0.5 flex-shrink-0" />
+        <span>
+          El tiempo se calcula automáticamente usando una velocidad de lectura reflexiva (180 palabras/min),
+          ideal para contenido educativo que requiere comprensión profunda.
+        </span>
+      </p>
+    </div>
+  )
+}
+
 
 export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialModalProps) {
   const [formData, setFormData] = useState({
@@ -32,6 +146,7 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>('basic')
+  const [autoCalculatedTime, setAutoCalculatedTime] = useState(false)
 
   const tabs: { id: TabType; label: string; icon: typeof FileText }[] = [
     { id: 'basic', label: 'Básica', icon: FileText },
@@ -58,8 +173,8 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
           if (q.questionType === 'true_false') {
             // Si no tiene opciones o tiene opciones incorrectas, inicializar con las correctas
             if (!q.options || q.options.length !== 2 ||
-                (q.options[0] !== 'Verdadero' && q.options[0] !== 'Falso') ||
-                (q.options[1] !== 'Verdadero' && q.options[1] !== 'Falso')) {
+              (q.options[0] !== 'Verdadero' && q.options[0] !== 'Falso') ||
+              (q.options[1] !== 'Verdadero' && q.options[1] !== 'Falso')) {
               return {
                 ...q,
                 options: ['Verdadero', 'Falso']
@@ -80,7 +195,7 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
 
     try {
       const dataToSave = { ...formData }
-      
+
       // Si es un quiz, incluir las preguntas en content_data
       if (formData.material_type === 'quiz') {
         dataToSave.content_data = {
@@ -182,11 +297,10 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
                         onClick={() => setActiveTab(tab.id)}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                          isActive
-                            ? 'text-[#00D4B3] bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20'
-                            : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329]'
-                        }`}
+                        className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
+                          ? 'text-[#00D4B3] bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20'
+                          : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329]'
+                          }`}
                       >
                         <Icon className="h-4 w-4" />
                         <span>{tab.label}</span>
@@ -283,8 +397,14 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
                           </div>
 
                           <div className="group">
-                            <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                            <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide flex items-center gap-2">
                               Tiempo Estimado (minutos) *
+                              {formData.material_type === 'reading' && autoCalculatedTime && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#00D4B3]/10 text-[#00D4B3] text-[10px] font-medium rounded-full">
+                                  <Sparkles className="w-3 h-3" />
+                                  Auto-calculado
+                                </span>
+                              )}
                             </label>
                             <div className="relative">
                               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -296,13 +416,29 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
                                 min="1"
                                 max="480"
                                 value={formData.estimated_time_minutes}
-                                onChange={(e) => setFormData(prev => ({ ...prev, estimated_time_minutes: parseInt(e.target.value) || 1 }))}
-                                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200"
+                                onChange={(e) => {
+                                  setFormData(prev => ({ ...prev, estimated_time_minutes: parseInt(e.target.value) || 1 }))
+                                  // Si el usuario edita manualmente, desactivar el indicador de auto-calculado
+                                  setAutoCalculatedTime(false)
+                                }}
+                                className={`w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0D12] border rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 ${formData.material_type === 'reading' && autoCalculatedTime
+                                    ? 'border-[#00D4B3]/50 dark:border-[#00D4B3]/30'
+                                    : 'border-[#E9ECEF] dark:border-[#6C757D]/30'
+                                  }`}
                                 placeholder="Ej: 15"
                               />
                             </div>
                             <p className="text-xs text-[#6C757D] dark:text-white/60 mt-1.5 ml-1">
-                              Tiempo estimado para completar este material ({formData.material_type === 'reading' ? 'leer' : formData.material_type === 'quiz' ? 'completar quiz' : formData.material_type === 'link' ? 'revisar enlace' : 'revisar material'}). Mínimo 1 minuto, máximo 480 minutos (8 horas).
+                              {formData.material_type === 'reading' ? (
+                                <>
+                                  Para lecturas, el tiempo se calcula automáticamente basado en el conteo de palabras (180 ppm).
+                                  <span className="block mt-1 text-[#00D4B3]/80">Puedes ajustarlo manualmente si lo deseas.</span>
+                                </>
+                              ) : (
+                                <>
+                                  Tiempo estimado para completar este material ({formData.material_type === 'quiz' ? 'completar quiz' : formData.material_type === 'link' ? 'revisar enlace' : 'revisar material'}). Mínimo 1 minuto, máximo 480 minutos (8 horas).
+                                </>
+                              )}
                               <span className="flex items-center gap-1.5 mt-1 text-[#00D4B3] font-medium">
                                 <Clock className="w-3.5 h-3.5" />
                                 Requerido para el Planificador de Estudio IA
@@ -398,18 +534,17 @@ export function MaterialModal({ material, lessonId, onClose, onSave }: MaterialM
                           )}
 
                           {formData.material_type === 'reading' && (
-                            <div>
-                              <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
-                                Contenido de Lectura
-                              </label>
-                              <textarea
-                                rows={8}
-                                value={formData.material_description}
-                                onChange={(e) => setFormData(prev => ({ ...prev, material_description: e.target.value }))}
-                                className="w-full px-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 resize-none"
-                                placeholder="Escribe el contenido de la lectura aquí..."
-                              />
-                            </div>
+                            <ReadingContentEditor
+                              value={formData.material_description}
+                              onChange={(text, calculatedMinutes) => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  material_description: text,
+                                  estimated_time_minutes: calculatedMinutes
+                                }))
+                                setAutoCalculatedTime(true)
+                              }}
+                            />
                           )}
 
                           {formData.material_type === 'exercise' && (
