@@ -130,17 +130,34 @@ export default function CourseLearnPage() {
 
   // Calcular colores dinámicos
   const colors = useMemo(() => {
-    // Definir colores por defecto (los verdes actuales)
-    const DEFAULT_ACCENT = '#00D4B3'; // El color accent que vi en otros archivos
+    const DEFAULT_ACCENT = '#00D4B3';
+    const DEFAULT_BG_PRIMARY = '#0F1419';
+    const DEFAULT_BG_SECONDARY = '#1E2329'; // Para paneles laterales
 
     if (!orgStyles?.userDashboard) {
-      return { accent: DEFAULT_ACCENT, primary: '#0A2540' };
+      return {
+        accent: DEFAULT_ACCENT,
+        primary: '#0A2540',
+        bgPrimary: DEFAULT_BG_PRIMARY,
+        bgSecondary: DEFAULT_BG_SECONDARY
+      };
     }
 
-    const { accent_color, primary_button_color } = orgStyles.userDashboard;
+    const { accent_color, primary_button_color, background_value } = orgStyles.userDashboard;
+    const panelStyles = orgStyles.panel;
+
+    // Determinar fondo principal (body)
+    let bgPrimary = background_value || DEFAULT_BG_PRIMARY;
+
+    // Determinar fondo secundario (paneles, tarjetas que eran blancas)
+    const sidebarBg = panelStyles?.sidebar_background || DEFAULT_BG_SECONDARY;
+    const bgSecondary = (sidebarBg && sidebarBg.startsWith('#')) ? sidebarBg : DEFAULT_BG_SECONDARY;
+
     return {
       accent: accent_color || DEFAULT_ACCENT,
-      primary: primaryButtonColor || '#0A2540',
+      primary: primary_button_color || '#0A2540',
+      bgPrimary,
+      bgSecondary
     };
   }, [orgStyles]);
 
@@ -171,7 +188,7 @@ export default function CourseLearnPage() {
       document.head.appendChild(styleTag);
     }
 
-    const accent = colors.accent;
+    const { accent, bgPrimary, bgSecondary } = colors;
 
     // Helper para convertir hex a rgb string
     const hexToRgbVals = (hex: string) => {
@@ -184,12 +201,203 @@ export default function CourseLearnPage() {
       :root {
         --course-accent: ${accent};
         --course-accent-rgb: ${accentRgb};
+        color-scheme: dark;
+      }
+      
+      /* SCROLLBARS PERSONALIZADOS */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        background: transparent !important;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent !important;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3) !important;
+      }
+      ::-webkit-scrollbar-corner {
+        background: transparent !important;
+      }
+
+      /* FORZAR TEMA OSCURO PERSONALIZADO */
+      body, .min-h-screen, html { 
+        background: ${bgPrimary} !important; 
+        color: white !important;
+      }
+      
+      /* Reemplazar fondos blancos por el color secundario oscuro */
+      .bg-white, .bg-gray-50, .bg-slate-50, .bg-zinc-50 { 
+        background-color: ${bgSecondary} !important; 
+        border-color: rgba(255,255,255,0.08) !important;
+      }
+
+      /* --- CORRECCIÓN AGRESIVA DE TEXTOS --- */
+      
+      /* 1. Resetear colores oscuros hardcodeados */
+      .text-\\[\\#0A2540\\], .text-\\[\\#1E2329\\] { 
+        color: white !important; 
+      }
+      
+      /* 2. Resetear colores secundarios hardcodeados */
+      .text-\\[\\#6C757D\\] {
+        color: rgba(255,255,255,0.6) !important;
+      }
+
+      /* 3. Resetear todas las escalas de grises oscuras de Tailwind */
+      [class*="text-gray-9"], [class*="text-gray-8"], [class*="text-gray-7"], [class*="text-gray-6"],
+      [class*="text-slate-9"], [class*="text-slate-8"], [class*="text-slate-7"], [class*="text-slate-6"],
+      [class*="text-zinc-9"], [class*="text-zinc-8"], [class*="text-zinc-7"], [class*="text-zinc-6"] {
+         color: rgba(255,255,255,0.9) !important;
+      }
+      
+      /* 4. Resetear escalas medias/claras para legibilidad */
+      [class*="text-gray-5"], [class*="text-gray-4"],
+      [class*="text-slate-5"], [class*="text-slate-4"],
+      [class*="text-zinc-5"], [class*="text-zinc-4"] {
+         color: rgba(255,255,255,0.6) !important;
+      }
+      
+      /* 5. Asegurar headers */
+      h1, h2, h3, h4, h5, h6 { color: white !important; }
+      
+      /* 6. Inputs y Textareas */
+      textarea, input[type="text"], input[type="email"], select {
+        background-color: rgba(0,0,0,0.2) !important;
+        color: white !important;
+        border-color: rgba(255,255,255,0.1) !important;
+      }
+      ::placeholder { color: rgba(255,255,255,0.4) !important; }
+
+      /* Bordes claros a sutiles */
+      .border-gray-200, .border-slate-200, .border-[#E9ECEF] { border-color: rgba(255,255,255,0.1) !important; }
+      
+      /* --- CORRECCIÓN DE BADGES Y BOTONES --- */
+      
+      /* Botones azules/oscuros genéricos: Forzar color primario de la empresa si es diferente */
+      .bg-\\[\\#0A2540\\], .bg-slate-900, .bg-blue-600 {
+        background-color: ${colors.primary} !important;
+        color: white !important;
+      }
+      
+      /* Badges de estado (Transformar fondos claros a transparentes oscuros) */
+      
+      /* Rojo (Pendiente) */
+      .bg-red-100 { background-color: rgba(239, 68, 68, 0.15) !important; color: #fca5a5 !important; border: 1px solid rgba(239,68,68,0.2) !important; }
+      .text-red-800, .text-red-700, .text-red-600 { color: #fca5a5 !important; }
+      .bg-red-500 { background-color: rgba(239, 68, 68, 0.8) !important; color: white !important; }
+      
+      /* Verde (Completado/Quiz) -> Usar Accent */
+      .bg-green-100, .bg-emerald-100 { background-color: rgba(${accentRgb}, 0.15) !important; color: ${accent} !important; border: 1px solid rgba(${accentRgb}, 0.2) !important; }
+      .text-green-800, .text-emerald-800, .text-emerald-700 { color: ${accent} !important; }
+      
+      /* Azul (Reading/Info) */
+      .bg-blue-100 { background-color: rgba(96, 165, 250, 0.15) !important; color: #93c5fd !important; border: 1px solid rgba(96,165,250,0.2) !important; }
+      .text-blue-800, .text-blue-700 { color: #93c5fd !important; }
+      
+      /* Indigo/Violeta */
+      .bg-indigo-100 { background-color: rgba(129, 140, 248, 0.15) !important; color: #a5b4fc !important; }
+      .text-indigo-800 { color: #a5b4fc !important; }
+      
+      /* Botones deshabilitados o grises (como Guardar Nota deshabilitado) */
+      .bg-gray-100, .bg-slate-100, .bg-gray-200, .bg-slate-200, .bg-gray-300, .bg-slate-300 { 
+        background-color: rgba(255,255,255,0.1) !important; 
+        color: rgba(255,255,255,0.8) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+      }
+      
+      /* BOTONES DE ACCIÓN PRINCIPALES (Interactuar con Lia, Avanzar Video) */
+      /* Suelen usar bg-white o bg-slate-200 en el diseño original claro */
+      /* Forzamos que los botones grandes dentro del contenido usen el color Accent o Primary */
+      
+      /* Botón "Interactuar con Lia" y "Avanzar al Siguiente Video" (si usan clases genéricas de botón gris) */
+      button.bg-white.text-gray-900, 
+      button.bg-slate-200, 
+      a.bg-white.text-gray-900 {
+        background-color: ${accent} !important;
+        color: white !important;
+        border: none !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.2) !important;
+      }
+      
+      /* Botones de Modales (Cancelar/Guardar) */
+      /* Cancelar (suelen ser blancos/bordes) */
+      .bg-white.border-gray-300, .bg-white.border {
+        background-color: transparent !important;
+        border-color: rgba(255,255,255,0.2) !important;
+        color: white !important;
+      }
+      .bg-white.border-gray-300:hover {
+        background-color: rgba(255,255,255,0.05) !important;
+      }
+      
+      /* dropdowns flotantes (Modales, Menús de opciones como el de 3 puntos) */
+      /* Atacar divs absolutos blancos que actuan como dropdowns */
+      div.absolute.bg-white.shadow-lg, 
+      div.absolute.bg-white.shadow-xl,
+      div.absolute.z-50.bg-white,
+      [role="menu"].bg-white,
+      [role="dialog"].bg-white {
+        background-color: #1E2329 !important; /* Forzar oscuro (bgSecondary default) */
+        color: white !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+      }
+      
+      /* Elementos dentro del dropdown */
+      div.absolute.bg-white button, 
+      [role="menu"] button {
+         color: white !important;
+      }
+      div.absolute.bg-white button:hover,
+      [role="menu"] button:hover {
+         background-color: rgba(255,255,255,0.1) !important;
+      }
+
+      /* Botón de Micrófono en Chat (si se ve blanco por error) */
+      /* Es probable que tenga una clase específica o estilo inline que necesitemos pisar si es blanco solido */
+      button[title="Grabar audio"], button[title="Enviar mensaje"] {
+        /* Si tiene estilo inline bg-primary-30, aseguramos que el primary sea el correcto via variable CSS si es posible, o forzamos un color sensato */
+        /* No podemos override inline styles con CSS normal a menos que usemos !important y un atributo selector */
+      }
+      /* Forzar que CUALQUIER botón blanco pequeño sea accent o transparente */
+      button.bg-white.w-11.h-11, button.bg-white.rounded-full.shadow-sm {
+         background-color: rgba(255,255,255,0.1) !important;
+         color: white !important;
+         border: 1px solid rgba(255,255,255,0.1) !important;
+      }
+
+      /* Iconos y Contenedores de Iconos (Círculos de actividades) */
+      .bg-blue-50, .bg-indigo-50, .bg-purple-50 {
+        background-color: rgba(${accentRgb}, 0.1) !important;
+        color: ${accent} !important;
+      }
+      .text-blue-500, .text-indigo-500, .text-purple-500 {
+        color: ${accent} !important;
+      }
+      
+      /* Textos específicos en modales o tarjetas */
+      .text-gray-500, .text-slate-500 {
+         color: rgba(255,255,255,0.6) !important;
+      }
+
+      button:disabled {
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+        background-color: rgba(255,255,255,0.1) !important;
+        color: rgba(255,255,255,0.4) !important;
       }
       
       /* Sobrescribir verdes y colores específicos del template por defecto (#00D4B3, emerald, green) */
       .text-\\[\\#00D4B3\\], .text-emerald-500, .text-green-500, .text-green-400 { color: ${accent} !important; }
       .bg-\\[\\#00D4B3\\], .bg-emerald-500, .bg-green-500, .bg-green-400 { background-color: ${accent} !important; }
-      .border-\\[\\#00D4B3\\], .border-emerald-500, .border-green-500, .border-green-400 { border-color: ${accent} !important; }
+      .border-\\[\\#00D4B3\\], .border-emerald-500, .border-green-500, .border-green-400, .border-green-600 { border-color: ${accent} !important; }
       
       /* Fondos con opacidad */
       .bg-emerald-50, .bg-green-50, .bg-green-100 { background-color: rgba(${accentRgb}, 0.1) !important; }
@@ -211,6 +419,13 @@ export default function CourseLearnPage() {
       
       /* Sombras */
       .shadow-\\[\\#00D4B3\\]\\/25 { --tw-shadow-color: rgba(${accentRgb}, 0.25) !important; }
+      
+      /* Inputs y Textareas en modo oscuro forzado */
+      textarea, input[type="text"] {
+        background-color: rgba(255,255,255,0.05) !important;
+        color: white !important;
+        border-color: rgba(255,255,255,0.1) !important;
+      }
     `;
 
     return () => {

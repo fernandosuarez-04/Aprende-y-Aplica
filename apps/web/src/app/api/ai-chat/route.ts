@@ -175,40 +175,40 @@ ${userRole ? `5. Ten en cuenta que el estudiante tiene el rol de "${userRole}" a
  */
 const detectMessageLanguage = (message: string): SupportedLanguage => {
   const lowerMessage = message.toLowerCase().trim();
-  
+
   // Patrones específicos para inglés (más precisos)
   const englishPatterns = [
     /^(what|how|where|when|why|can|could|would|should|tell|show|give|help|i want|i need|i'm|i am|what can|what is|what are|how do|how can|how does)/i,
     /\b(the|a|an|is|are|was|were|this|that|these|those|you|your|we|they|their)\b/i,
     /\b(what|how|where|when|why|can|could|would|should|will|would|might)\b/i
   ];
-  
+
   // Patrones específicos para portugués
   const portuguesePatterns = [
     /^(o que|qual|quando|onde|como|por que|você|pode|pode me|me ajuda|preciso|quero|estou|sou|o que é|qual é)/i,
     /\b(você|vocês|eu|nós|eles|elas|o|a|os|as|um|uma|uns|umas)\b/i,
     /\b(que|qual|quando|onde|como|por|para|com|sem|de|do|da|dos|das|em|no|na|nos|nas)\b/i
   ];
-  
+
   // Contar coincidencias de patrones
   const englishScore = englishPatterns.reduce((score, pattern) => {
     return score + (pattern.test(lowerMessage) ? 1 : 0);
   }, 0);
-  
+
   const portugueseScore = portuguesePatterns.reduce((score, pattern) => {
     return score + (pattern.test(lowerMessage) ? 1 : 0);
   }, 0);
-  
+
   // Si hay patrones claros de inglés
   if (englishScore >= 2 || /^(what|how|where|when|why|can|could|would|should)/i.test(lowerMessage)) {
     return 'en';
   }
-  
+
   // Si hay patrones claros de portugués
   if (portugueseScore >= 2 || /^(o que|qual|quando|onde|como|você|pode)/i.test(lowerMessage)) {
     return 'pt';
   }
-  
+
   // Por defecto, español
   return 'es';
 };
@@ -243,48 +243,48 @@ function cleanMarkdownFromResponse(text: string): string {
     const content = match.replace(/```[\w]*\n?/g, '').replace(/```/g, '').trim();
     return content || '';
   });
-  
+
   // Eliminar títulos Markdown (# ## ### #### ##### ######)
   cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
-  
+
   // Eliminar negritas (**texto** o __texto__) - múltiples pasadas para casos anidados
   // Primero negritas dobles
   cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
   cleaned = cleaned.replace(/__([^_]+)__/g, '$1');
-  
+
   // Luego cursivas simples (*texto* o _texto_) - pero evitar conflictos con negritas
   // Solo si no están precedidas por otro asterisco o guion bajo
   cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*([^*\n])/g, '$1$2$3');
   cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_([^_\n])/g, '$1$2$3');
-  
+
   // Casos especiales al inicio o final de línea
   cleaned = cleaned.replace(/^\*([^*\n]+)\*([^*\n])/g, '$1$2');
   cleaned = cleaned.replace(/^_([^_\n]+)_([^_\n])/g, '$1$2');
   cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*$/g, '$1$2');
   cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_$/g, '$1$2');
-  
+
   // Eliminar código en línea (`código`) - pero solo backticks simples
   cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
-  
+
   // PRESERVAR enlaces [texto](url) - estos son funcionales y deben mantenerse
   // Los enlaces Markdown son permitidos porque son funcionales en el chat
-  
+
   // Eliminar imágenes ![alt](url) - eliminar completamente
   cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
-  
+
   // Eliminar bloques de citas (>)
   cleaned = cleaned.replace(/^>\s+/gm, '');
-  
+
   // Eliminar líneas horizontales (--- o ***)
   cleaned = cleaned.replace(/^[-*]{3,}$/gm, '');
-  
+
   // Eliminar tablas Markdown (| columna |)
   cleaned = cleaned.replace(/\|/g, ' ');
-  
+
   // Limpiar espacios múltiples y saltos de línea excesivos
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
-  
+
   // Limpiar espacios al inicio y final de cada línea (pero mantener estructura)
   cleaned = cleaned.split('\n').map(line => {
     // Preservar guiones simples para listas
@@ -294,7 +294,7 @@ function cleanMarkdownFromResponse(text: string): string {
     }
     return trimmed;
   }).join('\n');
-  
+
   return cleaned.trim();
 }
 
@@ -371,10 +371,10 @@ function filterSystemPromptFromResponse(text: string): string {
     logger.warn('🚫 Filtro activado - múltiples indicadores de prompt detectados:', criticalIndicatorCount);
     return 'Hola! 😊 Estoy aquí para ayudarte. ¿En qué te puedo asistir?';
   }
-  
+
   // Eliminar bloques de instrucciones del sistema que puedan aparecer en el texto
   let cleanedText = text;
-  
+
   // Patrones regex para eliminar bloques de instrucciones
   const instructionPatterns = [
     /\*\*METAS SEMANALES.*?INSTRUCCIÓN CRÍTICA.*?\*\*/gis,
@@ -388,17 +388,17 @@ function filterSystemPromptFromResponse(text: string): string {
     /presentar directamente/gi,
     /YA CALCULADAS - PRESENTAR DIRECTAMENTE/gi
   ];
-  
+
   instructionPatterns.forEach(pattern => {
     cleanedText = cleanedText.replace(pattern, '');
   });
-  
+
   // Si se eliminó contenido significativo, usar el texto limpio
   if (cleanedText.length < text.length * 0.8) {
     logger.warn('🚫 Se eliminaron instrucciones del sistema del texto');
     text = cleanedText.trim();
   }
-  
+
   // Detectar patrones específicos del prompt maestro que pueden aparecer en cualquier parte
   const masterPromptPatterns = [
     /PROMPT\s+MAESTRO/i,
@@ -419,7 +419,7 @@ function filterSystemPromptFromResponse(text: string): string {
     /DISTRIBUCI[ÓO]N\s+DETALLADA\s+DE\s+LECCIONES\s+PARA\s+MOSTRAR/i,
     /HORARIOS\s+CON\s+LECCIONES\s+ASIGNADAS\s*\(.*mostrar\s+TODOS.*\)/i
   ];
-  
+
   for (const pattern of masterPromptPatterns) {
     if (pattern.test(text)) {
       logger.warn('🚫 Filtro activado - patrón de prompt maestro detectado:', pattern.toString());
@@ -464,9 +464,9 @@ const getContextPrompt = (
 ) => {
   // Obtener rol del usuario (priorizar el pasado como parámetro, luego del contexto)
   const role = userRole || courseContext?.userRole || workshopContext?.userRole;
-  
+
   // Personalización con el nombre del usuario
-  const nameGreeting = userName && userName !== 'usuario' 
+  const nameGreeting = userName && userName !== 'usuario'
     ? `INFORMACIÓN DEL USUARIO:
 - El nombre del usuario es: ${userName}
 - 🚫 NO uses el nombre del usuario en tus respuestas
@@ -475,7 +475,7 @@ const getContextPrompt = (
 - Ejemplo CORRECTO: "Claro, déjame explicarte...", "La plataforma contiene..."
 - Ejemplo INCORRECTO: "Hola ${userName}", "Claro ${userName}", cualquier uso del nombre`
     : '';
-  
+
   // Información del rol del usuario para personalización
   const roleInfo = role
     ? `\n\nROL PROFESIONAL DEL USUARIO:
@@ -486,21 +486,21 @@ const getContextPrompt = (
 - Cuando sea apropiado, relaciona los conceptos con situaciones profesionales típicas de este rol
 - Asegúrate de que las actividades y ejercicios sean prácticos y útiles para alguien con este rol profesional`
     : '';
-  
+
   // Información contextual de la página actual con contenido real extraído del DOM
   let pageInfo = '';
   if (pageContext) {
     pageInfo = `\n\nCONTEXTO DE LA PÁGINA ACTUAL:\n- URL: ${pageContext.pathname}\n- Área: ${pageContext.detectedArea}\n- Descripción base: ${pageContext.description}`;
-    
+
     // Agregar información extraída del DOM si está disponible
     if (pageContext.pageTitle) {
       pageInfo += `\n- Título de la página: "${pageContext.pageTitle}"`;
     }
-    
+
     if (pageContext.metaDescription) {
       pageInfo += `\n- Descripción meta: "${pageContext.metaDescription}"`;
     }
-    
+
     // Agregar información del estado del calendario si está disponible (solo para study-planner)
     if (pageContext.detectedArea === 'study-planner' && pageContext.userContext) {
       const userContext = pageContext.userContext as any;
@@ -515,7 +515,7 @@ const getContextPrompt = (
       } else {
         pageInfo += `\n- ⚠️ ESTADO DEL CALENDARIO: NO CONECTADO`;
       }
-      
+
       // 🚨 INFORMACIÓN CRÍTICA: Fecha límite establecida por el usuario
       if (userContext.targetDate) {
         pageInfo += `\n- 🚨 FECHA LÍMITE ESTABLECIDA: ${userContext.targetDate}`;
@@ -523,28 +523,28 @@ const getContextPrompt = (
         pageInfo += `\n- ⚠️ Si el usuario solicita agregar horarios, calcular SOLO hasta ${userContext.targetDate}`;
       }
     }
-    
+
     if (pageContext.headings && pageContext.headings.length > 0) {
       pageInfo += `\n- Encabezados principales: ${pageContext.headings.map(h => `"${h}"`).join(', ')}`;
     }
-    
+
     if (pageContext.mainText) {
       pageInfo += `\n- Contenido visible en la página:\n"${pageContext.mainText}"`;
     }
-    
+
     pageInfo += `\n\nIMPORTANTE: El usuario está viendo esta página específica con este contenido. Debes responder basándote en la información real de la página que se muestra arriba, priorizando el contenido visible (título, encabezados y texto principal) sobre la descripción base.`;
-    
+
     // Agregar contexto de la plataforma completa si está disponible
     if (pageContext.platformContext) {
       pageInfo += `\n\n${pageContext.platformContext}`;
     }
-    
+
     // Agregar links disponibles según el rol del usuario
     if (pageContext.availableLinks) {
       pageInfo += `\n\n${pageContext.availableLinks}`;
     }
   }
-  
+
   // Instrucciones para proporcionar URLs con hipervínculos y navegación
   const urlInstructions = `
   
@@ -632,29 +632,29 @@ Cuando el usuario pregunte sobre "Directorio IA", "Directorio de IA", o cualquie
 */
 
 IMPORTANTE: Siempre combina la respuesta educativa/informativa con la navegación cuando sea relevante. No solo respondas la duda general, también guía al usuario hacia las herramientas de la plataforma cuando existan. SIEMPRE verifica que los enlaces estén en la lista de LINKS DISPONIBLES antes de proporcionarlos.`;
-  
+
   // Si hay contexto de curso/lección, crear prompt especializado
   if (courseContext && context === 'course') {
-    const transcriptInfo = courseContext.transcriptContent 
+    const transcriptInfo = courseContext.transcriptContent
       ? `\n\nTRANSCRIPCIÓN DEL VIDEO ACTUAL:\n${courseContext.transcriptContent.substring(0, 2000)}${courseContext.transcriptContent.length > 2000 ? '...' : ''}`
       : '';
-    
+
     const summaryInfo = courseContext.summaryContent
       ? `\n\nRESUMEN DE LA LECCIÓN:\n${courseContext.summaryContent}`
       : '';
-    
-    const lessonInfo = courseContext.lessonTitle 
+
+    const lessonInfo = courseContext.lessonTitle
       ? `\n\nINFORMACIÓN DE LA LECCIÓN ACTUAL:\n- Título: ${courseContext.lessonTitle}${courseContext.lessonDescription ? `\n- Descripción: ${courseContext.lessonDescription}` : ''}`
       : '';
-    
+
     const moduleInfo = courseContext.moduleTitle
       ? `\n\nMÓDULO ACTUAL: ${courseContext.moduleTitle}`
       : '';
-    
+
     const courseInfo = courseContext.courseTitle
       ? `\n\nCURSO: ${courseContext.courseTitle}${courseContext.courseDescription ? `\n${courseContext.courseDescription}` : ''}`
       : '';
-    
+
     // Información de actividades del curso (si existe)
     const courseActivitiesInfo = courseContext.activitiesContext
       ? `\n\n📝 INFORMACIÓN DE ACTIVIDADES DE LA LECCIÓN:\n- Total de actividades: ${courseContext.activitiesContext.totalActivities}\n- Actividades obligatorias: ${courseContext.activitiesContext.requiredActivities}\n- Actividades completadas: ${courseContext.activitiesContext.completedActivities}\n- Actividades obligatorias pendientes: ${courseContext.activitiesContext.pendingRequiredCount}${courseContext.activitiesContext.pendingRequiredTitles ? `\n- Pendientes: ${courseContext.activitiesContext.pendingRequiredTitles}` : ''}${courseContext.activitiesContext.currentActivityFocus ? `\n\n🎯 ACTIVIDAD ACTUAL EN FOCO:\n- Título: "${courseContext.activitiesContext.currentActivityFocus.title}"\n- Tipo: ${courseContext.activitiesContext.currentActivityFocus.type}\n- Descripción: ${courseContext.activitiesContext.currentActivityFocus.description}\n- Obligatoria: ${courseContext.activitiesContext.currentActivityFocus.isRequired ? 'Sí' : 'No'}` : ''}`
@@ -674,7 +674,7 @@ IMPORTANTE: Siempre combina la respuesta educativa/informativa con la navegació
     const courseProgressInfo = courseContext.learningProgressContext
       ? `\n\n📊 PROGRESO DEL ESTUDIANTE:\n- Lección actual: ${courseContext.learningProgressContext.currentLessonNumber} de ${courseContext.learningProgressContext.totalLessons} (${courseContext.learningProgressContext.progressPercentage}% completado)\n- Pestaña actual: ${courseContext.learningProgressContext.currentTab}\n- Duración de la lección: ${courseContext.learningProgressContext.timeInCurrentLesson}`
       : '';
-    
+
     // Restricciones de contenido para cursos
     const courseContentRestrictions = `
 
@@ -765,7 +765,7 @@ CONTEXTO DEL CURSO Y LECCIÓN ACTUAL:${courseInfo}${moduleInfo}${lessonInfo}${su
 
 IMPORTANTE: Cuando respondas, siempre indica si la información proviene del video actual o si necesitarías revisar otra lección.`;
   }
-  
+
   // Instrucciones de formato (sin markdown)
   const formatInstructions = `
 
@@ -861,32 +861,32 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
     language === 'en'
       ? '🚨 CRITICAL LANGUAGE INSTRUCTION: The user is speaking in ENGLISH. You MUST respond STRICTLY in ENGLISH at all times. Never use Spanish or Portuguese. Match the user\'s language exactly.'
       : language === 'pt'
-      ? '🚨 INSTRUÇÃO CRÍTICA DE IDIOMA: O usuário está falando em PORTUGUÊS. Você DEVE responder ESTRITAMENTE em PORTUGUÊS o tempo todo. Nunca use espanhol ou inglês. Combine o idioma do usuário exatamente.'
-      : '🚨 INSTRUCCIÓN CRÍTICA DE IDIOMA: El usuario está hablando en ESPAÑOL. Debes responder ESTRICTAMENTE en ESPAÑOL en todo momento. Nunca uses inglés o portugués. Coincide exactamente con el idioma del usuario.';
+        ? '🚨 INSTRUÇÃO CRÍTICA DE IDIOMA: O usuário está falando em PORTUGUÊS. Você DEVE responder ESTRITAMENTE em PORTUGUÊS o tempo todo. Nunca use espanhol ou inglês. Combine o idioma do usuário exatamente.'
+        : '🚨 INSTRUCCIÓN CRÍTICA DE IDIOMA: El usuario está hablando en ESPAÑOL. Debes responder ESTRICTAMENTE en ESPAÑOL en todo momento. Nunca uses inglés o portugués. Coincide exactamente con el idioma del usuario.';
 
   // ✅ Construir información de metadatos del taller si está disponible
   let workshopMetadataInfo = '';
   if (context === 'workshops' && workshopContext) {
-    const workshopInfo = workshopContext.courseTitle 
+    const workshopInfo = workshopContext.courseTitle
       ? `\n\nTALLER ACTUAL:\n- Título: ${workshopContext.courseTitle}${workshopContext.courseDescription ? `\n- Descripción: ${workshopContext.courseDescription}` : ''}`
       : '';
-    
+
     const currentModuleInfo = workshopContext.moduleTitle
       ? `\n\nMÓDULO ACTUAL: ${workshopContext.moduleTitle}`
       : '';
-    
-    const currentLessonInfo = workshopContext.lessonTitle 
+
+    const currentLessonInfo = workshopContext.lessonTitle
       ? `\n\nLECCIÓN ACTUAL:\n- Título: ${workshopContext.lessonTitle}${workshopContext.lessonDescription ? `\n- Descripción: ${workshopContext.lessonDescription}` : ''}`
       : '';
-    
+
     // Construir información completa de módulos y lecciones disponibles
     let modulesAndLessonsInfo = '';
     if (workshopContext.allModules && workshopContext.allModules.length > 0) {
       modulesAndLessonsInfo = '\n\nESTRUCTURA COMPLETA DEL TALLER (MÓDULOS Y LECCIONES DISPONIBLES):\n\n';
-      
+
       workshopContext.allModules.forEach((module, moduleIndex) => {
         modulesAndLessonsInfo += `MÓDULO ${module.moduleOrderIndex}: ${module.moduleTitle}${module.moduleDescription ? `\n  Descripción: ${module.moduleDescription}` : ''}\n`;
-        
+
         if (module.lessons && module.lessons.length > 0) {
           module.lessons.forEach((lesson, lessonIndex) => {
             const duration = lesson.durationSeconds ? ` (${Math.round(lesson.durationSeconds / 60)} min)` : '';
@@ -895,12 +895,12 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
         } else {
           modulesAndLessonsInfo += `  (Este módulo aún no tiene lecciones)\n`;
         }
-        
+
         if (workshopContext.allModules && moduleIndex < workshopContext.allModules.length - 1) {
           modulesAndLessonsInfo += '\n';
         }
       });
-      
+
       modulesAndLessonsInfo += '\nINSTRUCCIONES IMPORTANTES SOBRE LA ESTRUCTURA DEL TALLER:\n';
       modulesAndLessonsInfo += '- Cuando el usuario pregunte sobre qué módulos o lecciones tiene el taller, usa la información de arriba\n';
       modulesAndLessonsInfo += '- Puedes referenciar módulos y lecciones específicas por su número y título\n';
@@ -968,7 +968,7 @@ AYUDA CON ESTRUCTURA DEL TALLER:
 ${contentRestrictions}
 
 FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
-    
+
     communities: `${languageNote}
 
 Eres Lia, un asistente especializado en comunidades y networking. 
@@ -991,7 +991,7 @@ AYUDA CON NAVEGACIÓN Y CONTENIDO DE PÁGINAS:
 ${contentRestrictions}
 
 FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
-    
+
     news: `${languageNote}
 
 Eres Lia, un asistente especializado en noticias y actualidades sobre inteligencia artificial, tecnología y educación. 
@@ -1014,7 +1014,7 @@ AYUDA CON NAVEGACIÓN Y CONTENIDO DE PÁGINAS:
 ${contentRestrictions}
 
 FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
-    
+
     prompts: `${languageNote}
 
 Eres Lia, un asistente especializado en la creación de prompts profesionales para sistemas de inteligencia artificial.
@@ -1102,7 +1102,7 @@ INTERACCIÓN:
 ${contentRestrictions}
 
 FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
-    
+
     general: `${languageNote}
 
 Eres Lia, un asistente virtual especializado en inteligencia artificial, adopción tecnológica y mejores prácticas empresariales.
@@ -1125,14 +1125,14 @@ AYUDA CON NAVEGACIÓN Y CONTENIDO DE PÁGINAS:
 ${contentRestrictions}
 
 FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni ningún símbolo de Markdown. Usa guiones simples (-) para listas y MAYÚSCULAS para enfatizar.${formatInstructions}`,
-    
+
     onboarding: `${languageNote}
 
-${language === 'en' 
-  ? '🚨 CRITICAL: The user just spoke to you in ENGLISH. You MUST respond ONLY in ENGLISH. Never use Spanish or Portuguese. Match the user\'s language exactly.'
-  : language === 'pt'
-  ? '🚨 CRÍTICO: O usuário acabou de falar com você em PORTUGUÊS. Você DEVE responder APENAS em PORTUGUÊS. Nunca use espanhol ou inglês. Combine exatamente o idioma do usuário.'
-  : '🚨 CRÍTICO: El usuario acaba de hablarte en ESPAÑOL. Debes responder SOLO en ESPAÑOL. Nunca uses inglés o portugués. Coincide exactamente con el idioma del usuario.'}
+${language === 'en'
+        ? '🚨 CRITICAL: The user just spoke to you in ENGLISH. You MUST respond ONLY in ENGLISH. Never use Spanish or Portuguese. Match the user\'s language exactly.'
+        : language === 'pt'
+          ? '🚨 CRÍTICO: O usuário acabou de falar com você em PORTUGUÊS. Você DEVE responder APENAS em PORTUGUÊS. Nunca use espanhol ou inglês. Combine exatamente o idioma do usuário.'
+          : '🚨 CRÍTICO: El usuario acaba de hablarte en ESPAÑOL. Debes responder SOLO en ESPAÑOL. Nunca uses inglés o portugués. Coincide exactamente con el idioma del usuario.'}
 
 Eres Lia, un asistente virtual entusiasta que está guiando a un nuevo usuario en su proceso de onboarding en Aprende y Aplica.
 ${nameGreeting}${pageInfo}${urlInstructions}
@@ -1677,9 +1677,133 @@ Genera un JSON con la siguiente estructura:
   }
 }
 
-Responde SOLO con el JSON, sin texto adicional.`
+Responde SOLO con el JSON, sin texto adicional.`,
+
+    'study-planner': `${languageNote}
+
+Eres LIA (Learning Intelligence Assistant), la asistente inteligente del Planificador de Estudios de Aprende y Aplica.
+${nameGreeting}${roleInfo}${pageInfo}
+
+TU ROL ESPECÍFICO EN EL PLANIFICADOR DE ESTUDIOS:
+- Eres una asistente amigable, motivadora y profesional
+- Ayudas a los usuarios a organizar su tiempo de estudio de manera efectiva
+- Personalizas las recomendaciones basándote en el perfil profesional del usuario
+- Para usuarios B2B: usas los cursos asignados por la organización con sus fechas límite
+- Generas planes de estudio adaptados al calendario y disponibilidad del usuario
+
+CONTEXTO ESPECIAL - MENSAJE DE BIENVENIDA:
+Si el mensaje contiene "[INICIO_PLANIFICADOR]", esto indica que debes generar un mensaje de bienvenida personalizado.
+En este caso:
+1. Preséntate brevemente como LIA, la asistente del Planificador de Estudios
+2. Menciona que has analizado la información del usuario
+3. Si hay información de rol/organización, destácala brevemente
+4. Lista los cursos asignados con sus fechas límite si están disponibles
+5. IMPORTANTE: NO listes las opciones de sesiones (rápidas, normales, largas) - hay un modal automático que las muestra
+6. Termina con una frase breve indicando que podrás comenzar a planificar en un momento
+7. Sé amigable, profesional y usa emojis con moderación
+8. Mantén el mensaje conciso (máximo 4-5 oraciones)
+
+CONTEXTO ESPECIAL - SELECCIÓN DE ENFOQUE:
+Si el mensaje contiene "[SELECCION_ENFOQUE]", el usuario acaba de seleccionar un tipo de sesiones de estudio.
+En este caso debes:
+1. Confirmar la selección del usuario de forma positiva y breve
+2. Si el calendario NO está conectado, persuadir al usuario para conectarlo explicando los beneficios
+3. Si el calendario YA está conectado, indicar que procederás a analizar su disponibilidad
+4. Ser amigable y motivador
+
+REGLAS PARA GENERAR HORARIOS DE ESTUDIO:
+Los horarios deben considerar SIEMPRE el tiempo de descanso entre sesiones:
+- Sesiones rápidas: 25 min estudio + 5 min descanso = bloques de 30 min
+- Sesiones normales: 45 min estudio + 10 min descanso = bloques de 55 min
+- Sesiones largas: 60 min estudio + 15 min descanso = bloques de 75 min
+
+Al sugerir horarios:
+- Distribuye las sesiones a lo largo de toda la semana (no solo 3 días)
+- Considera 5-7 días por semana según la fecha límite
+- Sugiere horarios variados según la preferencia del usuario (mañana, tarde, noche)
+- Incluye múltiples sesiones por día si es necesario para cumplir la fecha límite
+- Si el usuario tiene un mes o más, distribuye de manera equilibrada (3-4 sesiones por día)
+
+🚨 REGLA CRÍTICA - FORMATO DE DÍAS CON FECHA:
+SIEMPRE incluye el número del día junto al nombre del día de la semana.
+Ejemplo CORRECTO: "Lunes 23:", "Martes 24:", "Miércoles 25:"
+Ejemplo INCORRECTO: "Lunes:", "Martes:", "Miércoles:" (sin número de fecha)
+
+🚨 REGLA CRÍTICA - NOMBRES DE LECCIONES:
+NUNCA uses "Sesión 1", "Sesión 2", "Sesión 3", etc. en tu respuesta.
+Si se te proporciona una lista de lecciones pendientes en el contexto (pendingLessonsWithNames), DEBES usar los nombres EXACTOS de las lecciones.
+
+Ejemplo CORRECTO de formato:
+**Semana 1 (23-29 de diciembre):**
+
+Lunes 23:
+• 08:00 - 08:30: [Módulo 1] Lección 1: La IA ya está en tu trabajo
+• 20:00 - 20:30: [Módulo 1] Lección 2: La IA como nuevo miembro del equipo
+
+Martes 24:
+• 08:00 - 08:30: [Módulo 1] Lección 3: Del aprendizaje a la acción
+• 20:00 - 20:30: [Módulo 2] Lección 4: Conceptos básicos
+
+Ejemplo INCORRECTO (NUNCA hagas esto):
+Lunes:
+• 10:00 - 10:30: Sesión 1
+• 10:35 - 11:05: Sesión 2
+
+Al generar un plan de estudios:
+1. Usa las lecciones EXACTAS del curso (con nombre y módulo).
+2. 🚨 CRÍTICO: NO INVENTES LECCIONES. Si se acaban las lecciones de la lista, DETÉN LA PLANIFICACIÓN.
+3. 🚨 CRÍTICO: NO AGREGUES "Repaso", "Examen final", "Evaluación", "Cierre del curso" ni nada que no esté explícitamente en la lista de lecciones.
+4. Muestra SOLO la planificación de la PRIMERA SEMANA inicialmente.
+5. Al final de la primera semana, PREGUNTA: "¿Te gustaría ver la planificación de la siguiente semana?" (a menos que ya hayas cubierto todas las lecciones).
+6. Si cubres todas las lecciones antes de la fecha límite, indícalo claramente y finaliza ahí.
+
+🚨 SOBRE EL FLUJO DE CONVERSACIÓN:
+- NO generes el plan completo de todas las semanas de una sola vez. Es abrumador.
+- Genera la SEMANA 1 completa.
+- Luego detente y pregunta si el usuario quiere continuar con la semana 2.
+- Solo si el usuario dice "sí" o "continuar", genera la siguiente semana.
+
+🚨 SOBRE EL CÁLCULO DE LECCIONES POR SEMANA:
+- Cuenta las lecciones reales que has programado en esa semana.
+- NO uses "~10" genérico. Si programaste 6, di "6". Si programaste 14, di "14".
+
+FORMATO DE RESPUESTA PARA SEMANA 1:
+[Saludo breve]
+
+**Semana 1 (Fechas):**
+[Lista de horarios y lecciones]
+
+[Pregunta de continuidad o Cierre si terminó]
+
+🎯 CONFIRMACIÓN DE METAS AL FINAL:
+Al terminar de presentar el plan de estudios, SIEMPRE incluye un resumen de confirmación:
+1. Indica el total de lecciones que se cubrirán
+2. Confirma que con este plan se alcanzarán las metas planteadas
+3. Menciona la fecha límite y confirma que se cumplirá
+
+Ejemplo de cierre:
+"✅ **Resumen del plan:**
+- Total de lecciones: 33
+- Lecciones por semana: ~10
+- Fecha de finalización estimada: [fecha]
+
+📌 Con este plan, completarás todas las lecciones del curso antes de la fecha límite del [fecha]. ¡Vas a lograrlo! 🚀"
+
+IMPORTANTE - USUARIOS B2B:
+- Los usuarios B2B tienen cursos asignados por su organización con fechas límite
+- NO pueden seleccionar otros cursos
+- Debes respetar las fechas límite establecidas por el administrador
+- Las recomendaciones deben permitir cumplir con los plazos
+
+ESTILO DE COMUNICACIÓN:
+- Sé amigable, motivadora y profesional
+- Usa emojis con moderación para hacer la conversación más cálida
+- Personaliza las respuestas según el contexto del usuario
+- Mantén un tono positivo y de apoyo
+
+FORMATO DE RESPUESTA: Puedes usar formato Markdown básico (negritas, listas) para mejorar la legibilidad.`
   };
-  
+
   return contexts[context] || contexts.general;
 };
 
@@ -1795,10 +1919,10 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    
+
     // ✅ CORRECCIÓN: Usar SessionService para obtener usuario autenticado (compatible con refresh tokens)
     const user = await SessionService.getCurrentUser();
-    
+
     // Permitir acceso sin autenticación para usuarios no loggeados (sin analytics)
     if (user) {
       logger.info('Usuario autenticado en /api/ai-chat', { userId: user.id, username: user.username });
@@ -1878,7 +2002,7 @@ export async function POST(request: NextRequest) {
 
     // ✅ Detectar idioma del mensaje del usuario automáticamente
     const detectedMessageLanguage = detectMessageLanguage(message);
-    
+
     // ✅ Priorizar el idioma de la plataforma si está explícitamente configurado
     // Si el idioma de la plataforma es diferente de español, usarlo directamente
     // Si el mensaje está en un idioma diferente al de la plataforma, usar el idioma del mensaje
@@ -1893,9 +2017,9 @@ export async function POST(request: NextRequest) {
       // Por defecto, usar el idioma de la plataforma
       finalLanguage = normalizeLanguage(languageFromRequest || 'es');
     }
-    
+
     const language = normalizeLanguage(finalLanguage);
-    
+
     // Log para debugging (solo en desarrollo)
     if (process.env.NODE_ENV === 'development') {
       logger.log(`🌍 Idioma detectado del mensaje: ${detectedMessageLanguage}, idioma de plataforma: ${languageFromRequest}, usando: ${language}`);
@@ -1928,33 +2052,33 @@ export async function POST(request: NextRequest) {
         .select('display_name, username, first_name, last_name, profile_picture_url, type_rol')
         .eq('id', user.id)
         .single();
-      
+
       if (userData) {
         userInfo = userData as Database['public']['Tables']['users']['Row'];
       }
     }
 
     // Obtener el mejor nombre disponible para personalización (solo primer nombre)
-    const displayName = userInfo?.first_name || 
-                        userInfo?.display_name || 
-                        userInfo?.username || 
-                        userName || 
-                        'usuario';
-    
+    const displayName = userInfo?.first_name ||
+      userInfo?.display_name ||
+      userInfo?.username ||
+      userName ||
+      'usuario';
+
     // Obtener el rol del usuario
     const userRole = userInfo?.type_rol || courseContext?.userRole || undefined;
-    
+
     // Si hay rol en courseContext pero no en userInfo, actualizar courseContext
     if (courseContext && userRole && !courseContext.userRole) {
       courseContext.userRole = userRole;
     }
-    
+
     // ✅ Detectar si es el primer mensaje de la conversación
     const isFirstMessage = !conversationHistory || conversationHistory.length === 0;
-    
+
     // ✅ Si está en modo prompt, usar el contexto 'prompts'
     const effectiveContext = isPromptMode ? 'prompts' : context;
-    
+
     // FORZAR ESPAÑOL para study-planner siempre
     const effectiveLanguage = (effectiveContext === 'study-planner' || effectiveContext === 'study-planner-availability') ? 'es' : language;
 
@@ -2015,9 +2139,53 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ✅ NUEVO: Incluir lecciones pendientes con nombres reales en el contexto
+    logger.info('🔍 [AI-CHAT] Verificando lecciones pendientes en pageContext...', {
+      hasPageContext: !!pageContext,
+      hasUserContext: !!pageContext?.userContext,
+      hasPendingLessons: !!pageContext?.userContext?.pendingLessonsWithNames,
+      pendingLessonsCount: pageContext?.userContext?.pendingLessonsWithNames?.length || 0,
+    });
+
+    if (context === 'study-planner' && pageContext?.userContext?.pendingLessonsWithNames) {
+      const pendingLessons = pageContext.userContext.pendingLessonsWithNames;
+      const totalPending = pageContext.userContext.totalPendingLessons || pendingLessons.length;
+
+      if (pendingLessons.length > 0) {
+        logger.info('📚 [AI-CHAT] Lecciones recibidas (primeras 3):', pendingLessons.slice(0, 3));
+        contextPrompt += `\n\n📚 LECCIONES PENDIENTES DEL CURSO (${totalPending} total):\n`;
+        contextPrompt += `IMPORTANTE: Usa estos nombres EXACTOS al generar el plan de estudios. NUNCA uses "Sesión 1, 2, 3...".\n\n`;
+
+        // Agrupar por módulo
+        const lessonsByModule: Record<string, Array<{ moduleTitle: string, lessonTitle: string, courseTitle: string }>> = {};
+        pendingLessons.forEach((lesson: { moduleTitle: string, lessonTitle: string, courseTitle: string }) => {
+          if (!lessonsByModule[lesson.moduleTitle]) {
+            lessonsByModule[lesson.moduleTitle] = [];
+          }
+          lessonsByModule[lesson.moduleTitle].push(lesson);
+        });
+
+        Object.entries(lessonsByModule).forEach(([moduleTitle, lessons]) => {
+          contextPrompt += `📁 ${moduleTitle}:\n`;
+          lessons.forEach((lesson, idx) => {
+            contextPrompt += `   ${idx + 1}. ${lesson.lessonTitle}\n`;
+          });
+          contextPrompt += `\n`;
+        });
+
+        contextPrompt += `\n⚠️ INSTRUCCIÓN: Al generar horarios, usa EXACTAMENTE los nombres de lecciones listados arriba.\n`;
+        contextPrompt += `Formato correcto: "10:00 - 10:30: [${Object.keys(lessonsByModule)[0] || 'Módulo'}] ${pendingLessons[0]?.lessonTitle || 'Nombre de lección'}"\n`;
+
+        logger.info('📚 Lecciones pendientes agregadas al contexto', {
+          totalLessons: totalPending,
+          modulesCount: Object.keys(lessonsByModule).length
+        });
+      }
+    }
+
     // ✅ OPTIMIZACIÓN: Inicializar analytics de forma asíncrona para no bloquear el procesamiento del mensaje
     let conversationId: string | null = existingConversationId || null;
-    
+
     // Función para inicializar analytics de forma asíncrona (no bloquea la respuesta)
     const initializeAnalyticsAsync = async (): Promise<{ liaLogger: LiaLogger | null; conversationId: string | null }> => {
       if (!user) {
@@ -2029,20 +2197,20 @@ export async function POST(request: NextRequest) {
 
       try {
         const liaLogger = new LiaLogger(user.id);
-        
+
         // Si no hay conversationId existente, iniciar nueva conversación
         if (!conversationId) {
           logger.info('Iniciando nueva conversación LIA (async)', { userId: user.id, context });
-          
+
           // Truncar browser para que no exceda el límite de 100 caracteres
           const userAgent = request.headers.get('user-agent') || undefined;
           const truncatedBrowser = userAgent ? userAgent.substring(0, 100) : undefined;
-          
+
           // Obtener IP del usuario (solo la primera si hay múltiples)
           const forwardedFor = request.headers.get('x-forwarded-for');
           const realIp = request.headers.get('x-real-ip');
           let clientIp: string | undefined;
-          
+
           if (forwardedFor) {
             // X-Forwarded-For puede tener múltiples IPs separadas por coma
             // Tomamos solo la primera (IP del cliente real)
@@ -2050,7 +2218,7 @@ export async function POST(request: NextRequest) {
           } else if (realIp) {
             clientIp = realIp.trim();
           }
-          
+
           const newConversationId = await liaLogger.startConversation({
             contextType: context as ContextType,
             courseContext: courseContext,
@@ -2058,13 +2226,13 @@ export async function POST(request: NextRequest) {
             browser: truncatedBrowser,
             ipAddress: clientIp
           });
-          
+
           // Si hay courseContext y se creó una nueva conversación, intentar actualizar el course_id
           if (courseContext && context === 'course' && newConversationId) {
             try {
               const supabase = await createClient();
               let courseIdToUpdate: string | null = null;
-              
+
               // Intentar obtener course_id del courseContext primero (más directo)
               if (courseContext.courseId) {
                 courseIdToUpdate = courseContext.courseId;
@@ -2075,22 +2243,22 @@ export async function POST(request: NextRequest) {
                   .select('id')
                   .eq('slug', courseContext.courseSlug)
                   .single();
-                
+
                 if (courseData?.id) {
                   courseIdToUpdate = courseData.id;
                 }
               }
-              
+
               // Actualizar la conversación con el course_id si lo encontramos
               if (courseIdToUpdate) {
                 await supabase
                   .from('lia_conversations')
                   .update({ course_id: courseIdToUpdate })
                   .eq('conversation_id', newConversationId);
-                
-                logger.info('✅ Actualizado course_id en conversación', { 
-                  conversationId: newConversationId, 
-                  courseId: courseIdToUpdate 
+
+                logger.info('✅ Actualizado course_id en conversación', {
+                  conversationId: newConversationId,
+                  courseId: courseIdToUpdate
                 });
               }
             } catch (error) {
@@ -2098,7 +2266,7 @@ export async function POST(request: NextRequest) {
               logger.warn('No se pudo actualizar course_id en conversación:', error);
             }
           }
-          
+
           logger.info('✅ Nueva conversación LIA creada exitosamente (async)', { conversationId: newConversationId, userId: user.id, context });
           return { liaLogger, conversationId: newConversationId };
         } else {
@@ -2126,7 +2294,7 @@ export async function POST(request: NextRequest) {
     const userId = user?.id || null; // Obtener userId para registro de uso
 
     let responseMetadata: { tokensUsed?: number; promptTokens?: number; completionTokens?: number; costUsd?: number; promptCostUsd?: number; completionCostUsd?: number; modelUsed?: string; responseTimeMs?: number } | undefined;
-    
+
     if (openaiApiKey) {
       try {
         const startTime = Date.now();
@@ -2143,7 +2311,7 @@ export async function POST(request: NextRequest) {
         logger.info('✅ OpenAI respondió exitosamente', { responseLength: response.length, responseTime });
       } catch (error) {
         logger.error('❌ Error con OpenAI, usando fallback:', error);
-        logger.error('OpenAI error details:', { 
+        logger.error('OpenAI error details:', {
           errorMessage: error instanceof Error ? error.message : String(error),
           hasApiKey: !!openaiApiKey,
           apiKeyPrefix: openaiApiKey ? openaiApiKey.substring(0, 10) + '...' : 'none'
@@ -2168,17 +2336,17 @@ export async function POST(request: NextRequest) {
     // No bloquear la respuesta esperando analytics
     analyticsPromise.then(async ({ liaLogger, conversationId: analyticsConversationId }) => {
       if (!liaLogger || !analyticsConversationId || isSystemMessage) {
-        logger.info('[LIA Analytics] Skipping analytics:', { 
-          hasLogger: !!liaLogger, 
-          hasConversationId: !!analyticsConversationId, 
-          isSystemMessage 
+        logger.info('[LIA Analytics] Skipping analytics:', {
+          hasLogger: !!liaLogger,
+          hasConversationId: !!analyticsConversationId,
+          isSystemMessage
         });
         return;
       }
 
       try {
         logger.info('[LIA Analytics] Registrando mensajes...', { conversationId: analyticsConversationId });
-        
+
         // Registrar mensaje del usuario CON tokens de entrada y costo
         await liaLogger.logMessage(
           'user',
@@ -2190,7 +2358,7 @@ export async function POST(request: NextRequest) {
             modelUsed: responseMetadata.modelUsed
           } : undefined
         );
-        
+
         // Registrar respuesta del asistente CON tokens de salida y costo
         await liaLogger.logMessage(
           'assistant',
@@ -2203,8 +2371,8 @@ export async function POST(request: NextRequest) {
             responseTimeMs: responseMetadata.responseTimeMs
           } : undefined
         );
-        
-        logger.info('[LIA Analytics] ✅ Mensajes registrados exitosamente', { 
+
+        logger.info('[LIA Analytics] ✅ Mensajes registrados exitosamente', {
           conversationId: analyticsConversationId,
           promptTokens: responseMetadata?.promptTokens,
           completionTokens: responseMetadata?.completionTokens,
@@ -2213,7 +2381,7 @@ export async function POST(request: NextRequest) {
           completionCostUsd: responseMetadata?.completionCostUsd,
           totalCostUsd: responseMetadata?.costUsd
         });
-        
+
         // Actualizar conversationId si se creó una nueva
         if (analyticsConversationId && !existingConversationId) {
           conversationId = analyticsConversationId;
@@ -2256,16 +2424,16 @@ export async function POST(request: NextRequest) {
     // ✅ OPTIMIZACIÓN: Obtener conversationId de analytics si está disponible (sin bloquear)
     // Si hay un conversationId existente, usarlo; si no, intentar obtenerlo de la promesa rápidamente
     let finalConversationId = conversationId;
-    
+
     // Intentar obtener conversationId de analytics si se completó rápidamente (timeout de 100ms)
     try {
       const analyticsResult = await Promise.race([
         analyticsPromise,
-        new Promise<{ liaLogger: LiaLogger | null; conversationId: string | null }>((resolve) => 
+        new Promise<{ liaLogger: LiaLogger | null; conversationId: string | null }>((resolve) =>
           setTimeout(() => resolve({ liaLogger: null, conversationId: null }), 100)
         )
       ]);
-      
+
       if (analyticsResult.conversationId && !finalConversationId) {
         finalConversationId = analyticsResult.conversationId;
       }
@@ -2273,7 +2441,7 @@ export async function POST(request: NextRequest) {
       // Ignorar errores, usar conversationId existente
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       response,
       conversationId: finalConversationId || undefined // Devolver conversationId para el frontend
     });
@@ -2313,7 +2481,7 @@ async function callOpenAI(
   context: string = 'general'  // ✅ OPTIMIZACIÓN: Agregar contexto para optimizaciones específicas
 ): Promise<{ response: string; metadata?: { tokensUsed?: number; promptTokens?: number; completionTokens?: number; costUsd?: number; promptCostUsd?: number; completionCostUsd?: number; modelUsed?: string; responseTimeMs?: number } }> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
-  
+
   if (!openaiApiKey) {
     throw new Error('OpenAI API key not configured');
   }
@@ -2443,8 +2611,8 @@ ${antiMarkdownInstructions}
       max_tokens: context === 'onboarding'
         ? 150  // Respuestas cortas para voz (50-80 palabras)
         : context === 'study-planner'
-        ? 3000 // Respuestas largas para resúmenes de planificación detallados
-        : parseInt(process.env.CHATBOT_MAX_TOKENS || (hasCourseContext ? '1000' : '500')),
+          ? 3000 // Respuestas largas para resúmenes de planificación detallados
+          : parseInt(process.env.CHATBOT_MAX_TOKENS || (hasCourseContext ? '1000' : '500')),
       stream: false,
       // ✅ OPTIMIZACIÓN: Nuevos parámetros para mejor rendimiento
       ...(context === 'onboarding' && {
@@ -2461,12 +2629,12 @@ ${antiMarkdownInstructions}
   }
 
   const data = await response.json();
-  
+
   // ✅ CORRECCIÓN 6: Registrar uso de OpenAI
   const model = data.model || process.env.CHATBOT_MODEL || 'gpt-4o-mini';
   const totalTokens = data.usage?.total_tokens || 0;
   let estimatedCost = 0;
-  
+
   if (userId && data.usage) {
     const promptTokens = data.usage.prompt_tokens || 0;
     const completionTokens = data.usage.completion_tokens || 0;
@@ -2489,16 +2657,16 @@ ${antiMarkdownInstructions}
       estimatedCost: `$${estimatedCost.toFixed(4)}`
     });
   }
-  
-    // Obtener respuesta del modelo
+
+  // Obtener respuesta del modelo
   const rawResponse = data.choices[0]?.message?.content || languageConfig.fallback;
-  
+
   // Aplicar filtro de prompt del sistema primero
   const filteredResponse = filterSystemPromptFromResponse(rawResponse);
-  
+
   // Luego aplicar limpieza de Markdown
-    let cleanedResponse = cleanMarkdownFromResponse(filteredResponse);
-  
+  let cleanedResponse = cleanMarkdownFromResponse(filteredResponse);
+
   // Log si se detectó y limpió Markdown (solo en desarrollo)
   if (process.env.NODE_ENV === 'development' && rawResponse !== cleanedResponse) {
     logger.warn('Markdown o prompt del sistema detectado y limpiado en respuesta de LIA', {
@@ -2507,36 +2675,36 @@ ${antiMarkdownInstructions}
     });
   }
 
-    // Normalización de enlaces: usar dominio de ALLOWED_ORIGINS y mapear rutas renombradas
-    try {
-      // Tomar el primer origen válido de ALLOWED_ORIGINS (separado por comas)
-      const allowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-      // Fallbacks: PUBLIC_APP_URL o https://aprendeyaplica.ai como último recurso
-      const baseUrl = allowed[0] || process.env.PUBLIC_APP_URL || 'https://aprendeyaplica.ai';
+  // Normalización de enlaces: usar dominio de ALLOWED_ORIGINS y mapear rutas renombradas
+  try {
+    // Tomar el primer origen válido de ALLOWED_ORIGINS (separado por comas)
+    const allowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+    // Fallbacks: PUBLIC_APP_URL o https://aprendeyaplica.ai como último recurso
+    const baseUrl = allowed[0] || process.env.PUBLIC_APP_URL || 'https://aprendeyaplica.ai';
 
-      // No remapear rutas por defecto; mantener exactamente la ruta provista
-      const pathMap: Record<string, string> = {};
+    // No remapear rutas por defecto; mantener exactamente la ruta provista
+    const pathMap: Record<string, string> = {};
 
-      // 1) Enlaces markdown con rutas relativas → absolutas + mapeo
-      cleanedResponse = cleanedResponse.replace(/\[([^\]]+)\]\((\/[^\)]+)\)/g, (_m, label, path) => {
-        const mapped = pathMap[path] || path;
-        return `[${label}](${baseUrl}${mapped})`;
-      });
+    // 1) Enlaces markdown con rutas relativas → absolutas + mapeo
+    cleanedResponse = cleanedResponse.replace(/\[([^\]]+)\]\((\/[^\)]+)\)/g, (_m, label, path) => {
+      const mapped = pathMap[path] || path;
+      return `[${label}](${baseUrl}${mapped})`;
+    });
 
-      // 2) Reemplazar dominios placeholder por el permitido
-      cleanedResponse = cleanedResponse.replace(/https?:\/\/tusitio\.com\/dashboard/gi, `${baseUrl}/dashboard`);
-      cleanedResponse = cleanedResponse.replace(/https?:\/\/tusitio\.com(\/[^\s\)]*)?/gi, (_m, p1) => {
-        const path = typeof p1 === 'string' ? p1 : '';
-        const mapped = pathMap[path] || path;
-        return `${baseUrl}${mapped || ''}`;
-      });
+    // 2) Reemplazar dominios placeholder por el permitido
+    cleanedResponse = cleanedResponse.replace(/https?:\/\/tusitio\.com\/dashboard/gi, `${baseUrl}/dashboard`);
+    cleanedResponse = cleanedResponse.replace(/https?:\/\/tusitio\.com(\/[^\s\)]*)?/gi, (_m, p1) => {
+      const path = typeof p1 === 'string' ? p1 : '';
+      const mapped = pathMap[path] || path;
+      return `${baseUrl}${mapped || ''}`;
+    });
 
-      // 3) Fallback para texto plano "( /dashboard )"
-      cleanedResponse = cleanedResponse.replace(/\(\/dashboard\)/g, `(${baseUrl}/dashboard)`);
-    } catch {
-      // Ignorar errores de normalización
-    }
-  
+    // 3) Fallback para texto plano "( /dashboard )"
+    cleanedResponse = cleanedResponse.replace(/\(\/dashboard\)/g, `(${baseUrl}/dashboard)`);
+  } catch {
+    // Ignorar errores de normalización
+  }
+
   // Preparar metadatos para retornar
   const metadata = data.usage ? {
     tokensUsed: data.usage.total_tokens,
@@ -2548,7 +2716,7 @@ ${antiMarkdownInstructions}
     completionCostUsd: calculateCost(0, data.usage.completion_tokens || 0, model),
     modelUsed: model
   } : undefined;
-  
+
   return {
     response: cleanedResponse,
     metadata

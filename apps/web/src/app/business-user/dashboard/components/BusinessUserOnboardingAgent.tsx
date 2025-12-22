@@ -336,6 +336,8 @@ export function BusinessUserOnboardingAgent() {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, 'true');
       hasAttemptedOpenRef.current = true;
+      // Flag para indicar al Study Planner que viene del tour del Business User
+      localStorage.setItem('coming-from-business-tour', 'true');
     }
 
     setIsVisible(false);

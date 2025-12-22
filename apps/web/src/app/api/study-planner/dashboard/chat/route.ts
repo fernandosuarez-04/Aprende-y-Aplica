@@ -18,6 +18,7 @@ import { SessionService } from '../../../../../features/auth/services/session.se
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import type { Database } from '../../../../../lib/supabase/types';
 import { logger } from '../../../../../lib/utils/logger';
+import { CalendarIntegrationService } from '../../../../../features/study-planner/services/calendar-integration.service';
 
 /**
  * Crea un cliente de Supabase con Service Role Key para bypass de RLS
@@ -1565,12 +1566,16 @@ function extractAction(response: string): { action: ActionResult | null; actions
 /**
  * Obtiene el access token válido del usuario para el calendario
  */
-async function getCalendarAccessToken(userId: string): Promise<{ accessToken: string | null; provider: string | null }> {
+async function getCalendarAccessToken(userId: string): Promise<{
+  accessToken: string | null;
+  provider: string | null;
+  calendarId: string | null;
+}> {
   const supabase = createAdminClient();
-  
+
   const { data: integration } = await supabase
     .from('calendar_integrations')
-    .select('id, provider, access_token, refresh_token, expires_at')
+    .select('id, provider, access_token, refresh_token, expires_at, metadata')
     .eq('user_id', userId)
     .single();
 
@@ -1578,27 +1583,53 @@ async function getCalendarAccessToken(userId: string): Promise<{ accessToken: st
 
   if (!integration || !integration.access_token) {
     logger.warn('⚠️ No hay integración de calendario o no hay access_token');
-    return { accessToken: null, provider: null };
+    return { accessToken: null, provider: null, calendarId: null };
   }
+
+  // Obtener el calendarId del calendario secundario de la plataforma
+  const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+  let calendarId = metadata?.secondary_calendar_id || null;
 
   // Verificar si el token ha expirado
   const expiresAt = integration.expires_at ? new Date(integration.expires_at) : null;
   const now = new Date();
-  
+
   logger.info(`🔑 Token expira: ${expiresAt?.toISOString() || 'desconocido'}, ahora: ${now.toISOString()}`);
-  
+
+  let accessToken = integration.access_token;
+
   if (expiresAt && expiresAt < now && integration.refresh_token) {
     logger.info('🔄 Token expirado, refrescando...');
     // Refrescar token
     const refreshed = await refreshAccessToken(integration);
     if (refreshed.success && refreshed.accessToken) {
       logger.info('✅ Token refrescado exitosamente');
-      return { accessToken: refreshed.accessToken, provider: integration.provider };
+      accessToken = refreshed.accessToken;
+    } else {
+      logger.error('❌ Error refrescando token');
     }
-    logger.error('❌ Error refrescando token');
   }
 
-  return { accessToken: integration.access_token, provider: integration.provider };
+  // Si no hay calendario secundario, intentar crearlo (solo para Google)
+  if (!calendarId && integration.provider === 'google' && accessToken) {
+    logger.info('📅 Creando/obteniendo calendario secundario...');
+    calendarId = await CalendarIntegrationService.getOrCreatePlatformCalendar(accessToken);
+
+    if (calendarId) {
+      // Guardar el calendarId para futuras operaciones
+      await supabase
+        .from('calendar_integrations')
+        .update({
+          metadata: { secondary_calendar_id: calendarId },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', integration.id);
+
+      logger.info(`✅ Calendario secundario obtenido/creado: ${calendarId}`);
+    }
+  }
+
+  return { accessToken, provider: integration.provider, calendarId };
 }
 
 /**
@@ -1652,12 +1683,14 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 
 /**
  * Actualiza un evento en Google Calendar
+ * IMPORTANTE: Usa el calendario secundario de la plataforma si está disponible
  */
 async function updateGoogleCalendarEvent(
-  accessToken: string, 
-  eventId: string, 
+  accessToken: string,
+  eventId: string,
   session: { title: string; start_time: string; end_time: string; description?: string },
-  timezone: string
+  timezone: string,
+  calendarId: string | null = null
 ): Promise<boolean> {
   try {
     const event = {
@@ -1673,10 +1706,11 @@ async function updateGoogleCalendarEvent(
       },
     };
 
-    logger.info(`📅 Actualizando evento en Google Calendar: ${eventId}`);
+    const targetCalendarId = calendarId || 'primary';
+    logger.info(`📅 Actualizando evento en Google Calendar: ${eventId} (calendario: ${targetCalendarId === 'primary' ? 'principal' : 'secundario'})`);
 
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${eventId}`,
       {
         method: 'PATCH',
         headers: {
@@ -1703,13 +1737,19 @@ async function updateGoogleCalendarEvent(
 
 /**
  * Elimina un evento de Google Calendar
+ * IMPORTANTE: Usa el calendario secundario de la plataforma si está disponible
  */
-async function deleteGoogleCalendarEvent(accessToken: string, eventId: string): Promise<boolean> {
+async function deleteGoogleCalendarEvent(
+  accessToken: string,
+  eventId: string,
+  calendarId: string | null = null
+): Promise<boolean> {
   try {
-    logger.info(`🗑️ Eliminando evento de Google Calendar: ${eventId}`);
+    const targetCalendarId = calendarId || 'primary';
+    logger.info(`🗑️ Eliminando evento de Google Calendar: ${eventId} (calendario: ${targetCalendarId === 'primary' ? 'principal' : 'secundario'})`);
 
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${eventId}`,
       {
         method: 'DELETE',
         headers: {
@@ -1734,11 +1774,13 @@ async function deleteGoogleCalendarEvent(accessToken: string, eventId: string): 
 
 /**
  * Crea un nuevo evento en Google Calendar
+ * IMPORTANTE: Usa el calendario secundario de la plataforma si está disponible
  */
 async function createGoogleCalendarEvent(
   accessToken: string,
   session: { title: string; start_time: string; end_time: string; description?: string },
-  timezone: string
+  timezone: string,
+  calendarId: string | null = null
 ): Promise<string | null> {
   try {
     const event = {
@@ -1760,12 +1802,13 @@ async function createGoogleCalendarEvent(
       },
     };
 
-    logger.info(`📅 Creando nuevo evento en Google Calendar: ${session.title}`);
+    const targetCalendarId = calendarId || 'primary';
+    logger.info(`📅 Creando nuevo evento en Google Calendar: ${session.title} (calendario: ${targetCalendarId === 'primary' ? 'principal' : 'secundario'})`);
     logger.info(`   Inicio: ${event.start.dateTime} (${timezone})`);
     logger.info(`   Fin: ${event.end.dateTime} (${timezone})`);
 
     const response = await fetch(
-      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events`,
       {
         method: 'POST',
         headers: {
@@ -1793,6 +1836,7 @@ async function createGoogleCalendarEvent(
 
 /**
  * Listar eventos del Google Calendar
+ * IMPORTANTE: Consulta TODOS los calendarios del usuario para detectar conflictos
  */
 interface CalendarEvent {
   id: string;
@@ -1811,60 +1855,22 @@ async function listGoogleCalendarEvents(
   timezone: string
 ): Promise<CalendarEvent[]> {
   try {
-    const timeMin = startDate.toISOString();
-    const timeMax = endDate.toISOString();
-    
-    logger.info(`📅 Obteniendo eventos de Google Calendar: ${timeMin} - ${timeMax}`);
-    
-    const url = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
-    url.searchParams.set('timeMin', timeMin);
-    url.searchParams.set('timeMax', timeMax);
-    url.searchParams.set('singleEvents', 'true');
-    url.searchParams.set('orderBy', 'startTime');
-    url.searchParams.set('timeZone', timezone);
-    
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    logger.info(`📅 Obteniendo eventos de TODOS los calendarios de Google Calendar: ${startDate.toISOString()} - ${endDate.toISOString()}`);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error('❌ Error obteniendo eventos de Google Calendar:', errorText);
-      return [];
-    }
+    // Usar el servicio centralizado que consulta todos los calendarios
+    const events = await CalendarIntegrationService.getGoogleCalendarEvents(accessToken, startDate, endDate);
 
-    const data = await response.json();
-    const events: CalendarEvent[] = [];
-    
-    logger.info(`📅 Respuesta de Google Calendar: ${data.items?.length || 0} items`);
-    
-    for (const item of data.items || []) {
-      // Determinar si es un evento de todo el día
-      const isAllDay = !!item.start?.date && !item.start?.dateTime;
-      
+    // Transformar al formato esperado
+    return events.map(event => ({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      start: event.startTime,
+      end: event.endTime,
+      isAllDay: event.isAllDay,
       // Determinar si es una sesión de estudio (creada por nuestra app)
-      const isStudySession = item.description?.includes('📚') || 
-                            item.summary?.toLowerCase().includes('lección') ||
-                            item.summary?.toLowerCase().includes('sesión de estudio');
-      
-      logger.info(`   - Evento: "${item.summary}" (${isStudySession ? 'sesión de estudio' : 'evento externo'})`);
-      
-      events.push({
-        id: item.id,
-        title: item.summary || 'Sin título',
-        description: item.description || '',
-        start: item.start?.dateTime || item.start?.date || '',
-        end: item.end?.dateTime || item.end?.date || '',
-        isAllDay,
-        isStudySession,
-      });
-    }
-    
-    logger.info(`✅ Se obtuvieron ${events.length} eventos del calendario (${events.filter(e => e.isStudySession).length} sesiones, ${events.filter(e => !e.isStudySession).length} externos)`);
-    return events;
+      isStudySession: (event.title?.includes('📚') || event.description?.includes('Aprende y Aplica')) ?? false,
+    }));
   } catch (error) {
     logger.error('Error en listGoogleCalendarEvents:', error);
     return [];
@@ -1873,20 +1879,23 @@ async function listGoogleCalendarEvents(
 
 /**
  * Mover un evento en Google Calendar
+ * IMPORTANTE: Usa el calendario secundario de la plataforma si está disponible
  */
 async function moveGoogleCalendarEvent(
   accessToken: string,
   eventId: string,
   newStart: string,
   newEnd: string,
-  timezone: string
+  timezone: string,
+  calendarId: string | null = null
 ): Promise<boolean> {
   try {
-    logger.info(`📅 Moviendo evento en Google Calendar: ${eventId}`);
-    
+    const targetCalendarId = calendarId || 'primary';
+    logger.info(`📅 Moviendo evento en Google Calendar: ${eventId} (calendario: ${targetCalendarId === 'primary' ? 'principal' : 'secundario'})`);
+
     // Primero obtener el evento actual para preservar otros campos
     const getResponse = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${eventId}`,
       {
         method: 'GET',
         headers: {
@@ -1901,7 +1910,7 @@ async function moveGoogleCalendarEvent(
     }
 
     const existingEvent = await getResponse.json();
-    
+
     // Actualizar solo las fechas
     const updatedEvent = {
       ...existingEvent,
@@ -1916,7 +1925,7 @@ async function moveGoogleCalendarEvent(
     };
 
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${eventId}`,
       {
         method: 'PUT',
         headers: {
@@ -1985,10 +1994,10 @@ async function syncSessionWithCalendar(
     timezone = plan?.timezone || currentTimezone || 'America/Mexico_City';
   }
 
-  // Obtener token de acceso
-  const { accessToken, provider } = await getCalendarAccessToken(userId);
-  
-  logger.info(`🔑 Token obtenido: ${accessToken ? 'SÍ' : 'NO'}, provider: ${provider}`);
+  // Obtener token de acceso y calendarId del calendario secundario
+  const { accessToken, provider, calendarId } = await getCalendarAccessToken(userId);
+
+  logger.info(`🔑 Token obtenido: ${accessToken ? 'SÍ' : 'NO'}, provider: ${provider}, calendarId: ${calendarId || 'primario'}`);
 
   if (!accessToken) {
     logger.warn('⚠️ No hay integración de calendario para este usuario');
@@ -2003,9 +2012,9 @@ async function syncSessionWithCalendar(
   // Si la sesión tiene external_event_id, actualizar o eliminar
   if (session.external_event_id) {
     logger.info(`📅 Sesión tiene external_event_id: ${session.external_event_id}`);
-    
+
     if (action === 'delete') {
-      const success = await deleteGoogleCalendarEvent(accessToken, session.external_event_id);
+      const success = await deleteGoogleCalendarEvent(accessToken, session.external_event_id, calendarId);
       return { success, message: success ? 'Evento eliminado del calendario' : 'Error eliminando del calendario' };
     } else if (action === 'update' && newData) {
       const success = await updateGoogleCalendarEvent(
@@ -2017,16 +2026,17 @@ async function syncSessionWithCalendar(
           start_time: newData.start_time,
           end_time: newData.end_time,
         },
-        timezone
+        timezone,
+        calendarId
       );
       return { success, message: success ? 'Calendario actualizado' : 'Error actualizando calendario' };
     }
   } else {
     // La sesión NO tiene external_event_id - crear nuevo evento si es una actualización
     logger.warn('⚠️ Sesión sin external_event_id - intentando crear evento en calendario');
-    
+
     if (action === 'update' && newData) {
-      // Crear nuevo evento con los nuevos datos
+      // Crear nuevo evento en el calendario secundario
       const eventId = await createGoogleCalendarEvent(
         accessToken,
         {
@@ -2035,7 +2045,8 @@ async function syncSessionWithCalendar(
           start_time: newData.start_time,
           end_time: newData.end_time,
         },
-        timezone
+        timezone,
+        calendarId
       );
       
       if (eventId) {
@@ -2293,30 +2304,31 @@ async function executeAction(
 
     case 'create_calendar_event': {
       const { title, startTime, endTime, description } = action.data;
-      
-      const { accessToken, provider } = await getCalendarAccessToken(userId);
-      
+
+      const { accessToken, provider, calendarId } = await getCalendarAccessToken(userId);
+
       if (!accessToken || provider !== 'google') {
-        return { 
-          ...action, 
-          status: 'error', 
-          message: '❌ No tienes un calendario conectado.' 
+        return {
+          ...action,
+          status: 'error',
+          message: '❌ No tienes un calendario conectado.'
         };
       }
-      
+
       const eventId = await createGoogleCalendarEvent(
         accessToken,
         { title, start_time: startTime, end_time: endTime, description },
-        currentTimezone || 'America/Mexico_City'
+        currentTimezone || 'America/Mexico_City',
+        calendarId
       );
-      
+
       if (!eventId) {
         return { ...action, status: 'error', message: '❌ Error al crear el evento en el calendario.' };
       }
-      
-      return { 
-        ...action, 
-        status: 'success', 
+
+      return {
+        ...action,
+        status: 'success',
         message: `✅ Evento "${title}" creado en tu calendario.`,
         data: { eventId }
       };
@@ -2324,43 +2336,44 @@ async function executeAction(
 
     case 'move_calendar_event': {
       const { eventId, newStartTime, newEndTime } = action.data;
-      
-      const { accessToken, provider } = await getCalendarAccessToken(userId);
-      
+
+      const { accessToken, provider, calendarId } = await getCalendarAccessToken(userId);
+
       if (!accessToken || provider !== 'google') {
         return { ...action, status: 'error', message: '❌ No tienes un calendario conectado.' };
       }
-      
+
       const success = await moveGoogleCalendarEvent(
         accessToken,
         eventId,
         newStartTime,
         newEndTime,
-        currentTimezone || 'America/Mexico_City'
+        currentTimezone || 'America/Mexico_City',
+        calendarId
       );
-      
+
       if (!success) {
         return { ...action, status: 'error', message: '❌ Error al mover el evento.' };
       }
-      
+
       return { ...action, status: 'success', message: '✅ Evento movido correctamente en tu calendario.' };
     }
 
     case 'delete_calendar_event': {
       const { eventId } = action.data;
-      
-      const { accessToken, provider } = await getCalendarAccessToken(userId);
-      
+
+      const { accessToken, provider, calendarId } = await getCalendarAccessToken(userId);
+
       if (!accessToken || provider !== 'google') {
         return { ...action, status: 'error', message: '❌ No tienes un calendario conectado.' };
       }
-      
-      const success = await deleteGoogleCalendarEvent(accessToken, eventId);
-      
+
+      const success = await deleteGoogleCalendarEvent(accessToken, eventId, calendarId);
+
       if (!success) {
         return { ...action, status: 'error', message: '❌ Error al eliminar el evento.' };
       }
-      
+
       return { ...action, status: 'success', message: '✅ Evento eliminado de tu calendario.' };
     }
 
@@ -2407,20 +2420,21 @@ async function executeAction(
         return { ...action, status: 'error', message: '❌ Error al crear la micro-sesión.' };
       }
       
-      // Crear evento en el calendario
-      const { accessToken, provider } = await getCalendarAccessToken(userId);
+      // Crear evento en el calendario secundario de la plataforma
+      const { accessToken, provider, calendarId } = await getCalendarAccessToken(userId);
       if (accessToken && provider === 'google') {
         const eventId = await createGoogleCalendarEvent(
           accessToken,
-          { 
-            title: sessionTitle, 
-            start_time: startTime, 
-            end_time: endTime, 
-            description: session.description || '' 
+          {
+            title: sessionTitle,
+            start_time: startTime,
+            end_time: endTime,
+            description: session.description || ''
           },
-          currentTimezone || 'America/Mexico_City'
+          currentTimezone || 'America/Mexico_City',
+          calendarId
         );
-        
+
         // Guardar el external_event_id
         if (eventId) {
           await supabase
@@ -2481,8 +2495,8 @@ async function executeAction(
           end_time: newEndTime 
         });
       } else {
-        // Crear nuevo evento en el calendario
-        const { accessToken, provider } = await getCalendarAccessToken(userId);
+        // Crear nuevo evento en el calendario secundario de la plataforma
+        const { accessToken, provider, calendarId } = await getCalendarAccessToken(userId);
         if (accessToken && provider === 'google') {
           const eventId = await createGoogleCalendarEvent(
             accessToken,
@@ -2492,7 +2506,8 @@ async function executeAction(
               end_time: newEndTime,
               description: originalSession.description || ''
             },
-            currentTimezone || 'America/Mexico_City'
+            currentTimezone || 'America/Mexico_City',
+            calendarId
           );
           
           if (eventId) {
@@ -2586,11 +2601,11 @@ async function executeAction(
       }
       
       const reduceResults: Array<{ sessionId: string; action: string; success: boolean }> = [];
-      const { accessToken, provider } = await getCalendarAccessToken(userId);
-      
+      const { accessToken, provider, calendarId } = await getCalendarAccessToken(userId);
+
       for (const sessionAction of sessionsToReduce) {
         const { sessionId: reduceSessionId, reduceAction, newData } = sessionAction;
-        
+
         if (reduceAction === 'delete') {
           // Obtener la sesión para eliminar del calendario
           const { data: session } = await supabase
@@ -2598,18 +2613,18 @@ async function executeAction(
             .select('external_event_id')
             .eq('id', reduceSessionId)
             .single();
-          
+
           const { error } = await supabase
             .from('study_sessions')
             .delete()
             .eq('id', reduceSessionId);
-          
+
           if (!error) {
             reduceResults.push({ sessionId: reduceSessionId, action: 'deleted', success: true });
-            
-            // Eliminar del calendario
+
+            // Eliminar del calendario secundario
             if (accessToken && provider === 'google' && session?.external_event_id) {
-              await deleteGoogleCalendarEvent(accessToken, session.external_event_id);
+              await deleteGoogleCalendarEvent(accessToken, session.external_event_id, calendarId);
             }
           } else {
             reduceResults.push({ sessionId: reduceSessionId, action: 'deleted', success: false });

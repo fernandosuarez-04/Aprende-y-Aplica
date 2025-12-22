@@ -113,9 +113,9 @@ class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: `"Aprende y Aplica" <${process.env.SMTP_USER}>`,
+        from: `"SOFIA" <${process.env.SMTP_USER}>`,
         to,
-        subject: 'Recuperación de Contraseña - Aprende y Aplica',
+        subject: 'Recuperación de Contraseña - SOFIA',
         text: textContent,
         html: htmlContent,
       });

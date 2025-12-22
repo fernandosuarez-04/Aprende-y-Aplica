@@ -125,9 +125,10 @@ export function StudyPlannerOnboardingAgent() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Verificar si es la primera visita
+  // Verificar si es la primera visita - se ejecuta SOLO al montar
   useEffect(() => {
-    if (isOpeningRef.current || hasAttemptedOpenRef.current || isVisible) {
+    // Si ya se intentó abrir o está visible, no hacer nada
+    if (isOpeningRef.current || hasAttemptedOpenRef.current) {
       return;
     }
 
@@ -137,17 +138,27 @@ export function StudyPlannerOnboardingAgent() {
       hasAttemptedOpenRef.current = true;
       isOpeningRef.current = true;
 
+      // Verificar si viene del tour del Business User para reducir el delay
+      const comingFromBusinessTour = localStorage.getItem('coming-from-business-tour');
+      const delay = comingFromBusinessTour === 'true' ? 500 : 1200;
+
+      // Limpiar el flag si existe
+      if (comingFromBusinessTour) {
+        localStorage.removeItem('coming-from-business-tour');
+      }
+
       setTimeout(() => {
         const stillHasntSeen = localStorage.getItem(STORAGE_KEY) !== 'true';
-        if (stillHasntSeen && !isVisible) {
+        if (stillHasntSeen) {
           setIsVisible(true);
         }
         isOpeningRef.current = false;
-      }, 1000);
+      }, delay);
     } else {
       hasAttemptedOpenRef.current = true;
     }
-  }, [isVisible]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Dependency array vacío - ejecutar SOLO al montar
 
   // Listener para abrir el modal manualmente
   useEffect(() => {

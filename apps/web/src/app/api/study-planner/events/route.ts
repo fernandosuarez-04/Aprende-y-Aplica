@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { SessionService } from '../../../../features/auth/services/session.service';
+import { CalendarIntegrationService } from '../../../../features/study-planner/services/calendar-integration.service';
 
 // Crear cliente admin para bypass de RLS
 function createAdminClient() {
@@ -286,29 +287,23 @@ async function cleanupOrphanedPlanEvents(supabase: any, userId: string): Promise
 
 /**
  * Obtiene eventos de Google Calendar
+ * IMPORTANTE: Consulta TODOS los calendarios del usuario para detectar conflictos de horarios
  */
 async function getGoogleCalendarEvents(accessToken: string, startDate: Date, endDate: Date): Promise<any[]> {
   try {
-    const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-      `timeMin=${startDate.toISOString()}&` +
-      `timeMax=${endDate.toISOString()}&` +
-      `singleEvents=true&` +
-      `orderBy=startTime&` +
-      `maxResults=250`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
+    // Usar el servicio centralizado que consulta todos los calendarios
+    const events = await CalendarIntegrationService.getGoogleCalendarEvents(accessToken, startDate, endDate);
 
-    if (!response.ok) {
-      return [];
-    }
-
-    const data = await response.json();
-    return data.items || [];
+    // Transformar al formato esperado por el resto del código
+    return events.map(event => ({
+      id: event.id,
+      summary: event.title,
+      description: event.description,
+      start: { dateTime: event.startTime, date: event.isAllDay ? event.startTime : undefined },
+      end: { dateTime: event.endTime, date: event.isAllDay ? event.endTime : undefined },
+      location: event.location,
+      status: event.status,
+    }));
   } catch (error) {
     console.error('Error obteniendo eventos de Google Calendar:', error);
     return [];
@@ -455,7 +450,7 @@ export async function POST(request: NextRequest) {
     // Verificar si el usuario tiene Google Calendar conectado y sincronizar
     const { data: integration } = await supabase
       .from('calendar_integrations')
-      .select('access_token, provider')
+      .select('access_token, provider, metadata')
       .eq('user_id', user.id)
       .eq('provider', 'google')
       .single();
@@ -463,12 +458,30 @@ export async function POST(request: NextRequest) {
     let googleEventId: string | null = null;
     let provider = 'local';
 
-    // Si hay integración de Google, crear el evento también en Google Calendar
+    // Si hay integración de Google, crear el evento en el calendario secundario de la plataforma
     if (integration?.access_token) {
       try {
+        // Obtener el calendarId del calendario secundario
+        const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+        let secondaryCalendarId = metadata?.secondary_calendar_id || null;
+
+        // Si no hay calendario secundario guardado, intentar crearlo
+        if (!secondaryCalendarId) {
+          secondaryCalendarId = await CalendarIntegrationService.getOrCreatePlatformCalendar(integration.access_token);
+          if (secondaryCalendarId) {
+            // Guardar para futuras operaciones
+            await supabase
+              .from('calendar_integrations')
+              .update({ metadata: { secondary_calendar_id: secondaryCalendarId } })
+              .eq('user_id', user.id)
+              .eq('provider', 'google');
+          }
+        }
+
         const googleEvent = await createGoogleCalendarEvent(
           integration.access_token,
-          { title, description, start, end, location, isAllDay }
+          { title, description, start, end, location, isAllDay },
+          secondaryCalendarId
         );
         googleEventId = googleEvent.id;
         provider = 'google';
@@ -534,6 +547,7 @@ export async function POST(request: NextRequest) {
 
 /**
  * Crea un evento en Google Calendar
+ * IMPORTANTE: Usa el calendario secundario de la plataforma si está disponible
  */
 async function createGoogleCalendarEvent(
   accessToken: string,
@@ -544,10 +558,14 @@ async function createGoogleCalendarEvent(
     end: string;
     location?: string;
     isAllDay?: boolean;
-  }
+  },
+  calendarId: string | null = null
 ) {
+  // Usar el calendario secundario de la plataforma si está disponible
+  const targetCalendarId = calendarId || 'primary';
+
   const response = await fetch(
-    'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events`,
     {
       method: 'POST',
       headers: {

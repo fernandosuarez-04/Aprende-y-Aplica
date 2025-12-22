@@ -114,7 +114,7 @@ export function ModernStatsCard({
         ${isClickable ? 'cursor-pointer' : ''}
       `}
       style={{
-        background: 'linear-gradient(135deg, rgba(15, 20, 25, 0.9), rgba(20, 30, 40, 0.85))',
+        background: styles?.card_background || '#1E2329',
         border: `1px solid ${isHovered ? colorConfig.borderColor : 'rgba(255, 255, 255, 0.08)'}`,
         boxShadow: isHovered
           ? `0 20px 40px -12px ${colorConfig.glow}, 0 0 0 1px ${colorConfig.borderColor}`

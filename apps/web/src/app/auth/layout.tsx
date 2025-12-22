@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Autenticación - Aprende y Aplica',
-  description: 'Inicia sesión o crea una cuenta en Aprende y Aplica',
+  title: 'Autenticación - SOFIA',
+  description: 'Inicia sesión o crea una cuenta en SOFIA',
 };
 
 export default function AuthLayout({

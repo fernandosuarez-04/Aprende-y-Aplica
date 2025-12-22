@@ -191,6 +191,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   runtime: 'nodejs', // Usar Node.js runtime para soportar crypto y bcrypt
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Excluir: archivos estáticos, imágenes, y callbacks de OAuth para evitar loops de redirección
+    '/((?!_next/static|_next/image|favicon.ico|api/auth/callback|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

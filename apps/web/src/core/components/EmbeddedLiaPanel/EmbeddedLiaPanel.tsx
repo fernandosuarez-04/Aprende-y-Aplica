@@ -8,6 +8,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useLiaChat } from '../../hooks/useLiaChat';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { useLanguage } from '../../providers/I18nProvider';
+import { useOrganizationStylesContext } from '../../../features/business-panel/contexts/OrganizationStylesContext';
 import { useLiaPanel } from '../../contexts/LiaPanelContext';
 import type { LiaChatMode } from '../../hooks/useLiaChat';
 
@@ -89,12 +90,15 @@ export function EmbeddedLiaPanel({
   initialMessage = null,
   organizationColors,
 }: EmbeddedLiaPanelProps) {
-  // Colores con fallback a colores SOFIA por defecto
+  const { styles } = useOrganizationStylesContext();
+  const themeStyles = styles?.panel;
+
+  // Colores con prioridad: Tema Global > Props > Defaults SOFIA
   const colors = {
-    primary: organizationColors?.primary || '#0A2540',
-    accent: organizationColors?.accent || '#00D4B3',
-    cardBg: organizationColors?.cardBackground || '#1E2329',
-    text: organizationColors?.textColor || '#FFFFFF',
+    primary: themeStyles?.accent_color || organizationColors?.primary || '#00D4B3', // Lia = Aqua
+    accent: themeStyles?.secondary_button_color || organizationColors?.accent || '#6C757D', // User = Neutral
+    cardBg: themeStyles?.card_background || organizationColors?.cardBackground || '#1E2329', // Card/Panel BG
+    text: themeStyles?.text_color || organizationColors?.textColor || '#FFFFFF',
   };
   const router = useRouter();
   const pathname = usePathname();
@@ -405,8 +409,8 @@ export function EmbeddedLiaPanel({
                         </div>
                       </div>
                       <ChevronDown
-                        className={`w-3.5 h-3.5 text-[#6C757D] dark:text-gray-400 transition-transform flex-shrink-0 ${isModeDropdownOpen ? 'rotate-180' : ''
-                          }`}
+                        className={`w-3.5 h-3.5 transition-transform flex-shrink-0 ${isModeDropdownOpen ? 'rotate-180' : ''}`}
+                        style={{ color: `${colors.text}80` }}
                       />
                     </button>
 
@@ -417,14 +421,36 @@ export function EmbeddedLiaPanel({
                       onClick={() => {
                         clearHistory();
                       }}
-                      className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors flex-shrink-0 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white"
+                      className="p-1.5 rounded-lg transition-colors flex-shrink-0"
+                      style={{
+                        color: `${colors.text}80`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${colors.primary}15`;
+                        e.currentTarget.style.color = colors.primary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = `${colors.text}80`;
+                      }}
                       title="Limpiar conversación"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => setIsCollapsed(true)}
-                      className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors flex-shrink-0 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white"
+                      className="p-1.5 rounded-lg transition-colors flex-shrink-0"
+                      style={{
+                        color: `${colors.text}80`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${colors.primary}15`;
+                        e.currentTarget.style.color = colors.primary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = `${colors.text}80`;
+                      }}
                       title="Colapsar"
                     >
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -744,14 +770,14 @@ export function EmbeddedLiaPanel({
                       }
                     }}
                     disabled={isLoading && !!message.trim()}
-                    className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 text-white shadow-sm ${isLoading && message.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ${isLoading && message.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                     style={{
                       backgroundColor: message.trim()
                         ? colors.primary
                         : isRecording
                           ? '#EF4444'
-                          : `${colors.primary}30`,
-                      color: message.trim() || isRecording ? '#FFFFFF' : colors.text
+                          : 'rgba(255, 255, 255, 0.05)', // Fondo sutil oscuro por defecto
+                      color: message.trim() || isRecording ? '#FFFFFF' : colors.primary
                     }}
                     title={message.trim() ? 'Enviar mensaje' : isRecording ? 'Detener grabación' : 'Grabar audio'}
                   >

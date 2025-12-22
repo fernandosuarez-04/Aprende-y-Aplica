@@ -14,6 +14,7 @@ import { OnboardingAgent } from '../core/components/OnboardingAgent';
 import { LiaPanelProvider } from '../core/contexts/LiaPanelContext';
 import { ContentWrapper } from '../core/components/ContentWrapper';
 import { AuthSecurityGuard } from '../features/auth/components/AuthSecurityGuard';
+import { OrganizationStylesProvider } from '../features/business-panel/contexts/OrganizationStylesContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -210,18 +211,20 @@ export default function RootLayout({
               <ThemeProvider>
                 <ShareModalProvider>
                   <NotificationProvider pollingInterval={60000}>
-                    <LiaPanelProvider>
-                      <PrefetchManager />
-                      <AuthSecurityGuard>
-                        <ContentWrapper>
-                          {children}
-                        </ContentWrapper>
-                      </AuthSecurityGuard>
-                      {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
-                      <ConditionalAIChatAgent />
-                      {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
-                      <OnboardingAgent />
-                    </LiaPanelProvider>
+                    <OrganizationStylesProvider>
+                      <LiaPanelProvider>
+                        <PrefetchManager />
+                        <AuthSecurityGuard>
+                          <ContentWrapper>
+                            {children}
+                          </ContentWrapper>
+                        </AuthSecurityGuard>
+                        {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons */}
+                        <ConditionalAIChatAgent />
+                        {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
+                        <OnboardingAgent />
+                      </LiaPanelProvider>
+                    </OrganizationStylesProvider>
                   </NotificationProvider>
                 </ShareModalProvider>
               </ThemeProvider>

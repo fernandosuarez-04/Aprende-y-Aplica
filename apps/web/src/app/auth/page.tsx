@@ -106,7 +106,7 @@ function AuthPageContent() {
               >
                 <Image
                   src="/logo.png"
-                  alt="Aprende y Aplica Logo"
+                  alt="SOFIA Logo"
                   fill
                   className="object-contain"
                   priority
