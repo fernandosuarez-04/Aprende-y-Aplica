@@ -13,7 +13,6 @@ export interface SessionConfig {
   maxSessionMinutes: number;
   startDate: Date;
   endDate?: Date;
-  studyApproach?: 'rapido' | 'normal' | 'largo'; // Nuevo: enfoque de estudio para calcular duración de sesiones
 }
 
 export interface TimeBlockConfig {
@@ -105,12 +104,11 @@ export class SessionGeneratorService {
         if (timeBlock && lessonIndex < allLessons.length) {
           const lesson = allLessons[lessonIndex];
 
-          // Calcular duración de sesión usando el enfoque de estudio
+          // Usar duración base de la lección (sin multiplicadores)
           const sessionDuration = this.calculateSessionDuration(
             lesson.durationMinutes,
             config.minSessionMinutes,
-            config.maxSessionMinutes,
-            config.studyApproach || 'normal'
+            config.maxSessionMinutes
           );
 
           // Calcular descansos
@@ -202,22 +200,15 @@ export class SessionGeneratorService {
   }
 
   /**
-   * Calcula la duración óptima de la sesión basada en el enfoque de estudio
-   * - rapido: x1.0 - Tiempo exacto de la lección
-   * - normal: x1.4 - Ritmo equilibrado para mejor comprensión
-   * - largo: x1.8 - Profundización y mejor retención
+   * Calcula la duración de la sesión usando la duración base de la lección
    */
   private static calculateSessionDuration(
     lessonMinutes: number,
     minSession: number,
-    maxSession: number,
-    studyApproach: 'rapido' | 'normal' | 'largo' = 'normal'
+    maxSession: number
   ): number {
-    // Usar multiplicador según el enfoque de estudio
-    const multiplier = LessonTimeService.getApproachMultiplier(studyApproach);
-
-    // Calcular duración de sesión = tiempo de lección × multiplicador
-    const sessionDuration = Math.ceil(lessonMinutes * multiplier);
+    // Usar la duración base de la lección
+    const sessionDuration = Math.ceil(lessonMinutes);
 
     // La sesión debe cubrir al menos el mínimo configurado
     const requiredMinutes = Math.max(sessionDuration, minSession);

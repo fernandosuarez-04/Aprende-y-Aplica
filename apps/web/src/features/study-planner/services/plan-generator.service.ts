@@ -25,7 +25,6 @@ export interface StudyPlanConfig {
   minSessionMinutes: number;
   maxSessionMinutes: number;
   preferredSessionType: 'short' | 'medium' | 'long';
-  studyApproach?: 'rapido' | 'normal' | 'largo'; // Nuevo: enfoque de estudio para multiplicadores
 
   // Configuración de días y horarios
   selectedDays: string[];
@@ -199,10 +198,8 @@ export class PlanGeneratorService {
         if (timeBlock) {
           const currentLesson = courseTime.lessons[lessonIndex];
 
-          // Calcular duración de la sesión usando el multiplicador del enfoque de estudio
-          // rapido: x1.0, normal: x1.4, largo: x1.8
-          const multiplier = LessonTimeService.getApproachMultiplier(config.studyApproach || 'normal');
-          const lessonSessionTime = Math.ceil(currentLesson.totalMinutes * multiplier);
+          // Usar duración base de la lección (sin multiplicadores)
+          const lessonSessionTime = Math.ceil(currentLesson.totalMinutes);
           const sessionDuration = Math.min(
             Math.max(lessonSessionTime, config.minSessionMinutes),
             config.maxSessionMinutes
@@ -371,7 +368,6 @@ export class PlanGeneratorService {
       minSessionMinutes: number;
       maxSessionMinutes: number;
       preferredSessionType: 'short' | 'medium' | 'long';
-      studyApproach?: 'rapido' | 'normal' | 'largo'; // Nuevo: enfoque de estudio
       startDate?: Date;
       targetEndDate?: Date;
     }
@@ -388,7 +384,6 @@ export class PlanGeneratorService {
       minSessionMinutes: preferences.minSessionMinutes,
       maxSessionMinutes: preferences.maxSessionMinutes,
       preferredSessionType: preferences.preferredSessionType,
-      studyApproach: preferences.studyApproach || 'normal', // Default: normal
       selectedDays: preferences.selectedDays,
       timeBlocks: preferences.timeBlocks,
       breakSchedule,

@@ -53,18 +53,18 @@ export async function GET(request: NextRequest) {
 
     if (integrationError || !integrations || integrations.length === 0) {
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         events: [],
         message: 'No hay calendario conectado'
       });
     }
-    
+
     const integration = integrations[0];
 
     // ✅ CORRECCIÓN: Verificar si el token ha expirado con manejo seguro de null
     let accessToken = integration.access_token;
     let tokenExpiry: Date | null = null;
-    
+
     if (integration.expires_at) {
       try {
         tokenExpiry = new Date(integration.expires_at);
@@ -73,27 +73,27 @@ export async function GET(request: NextRequest) {
         tokenExpiry = null;
       }
     }
-    
+
     // Si no hay fecha de expiración o el token está expirado, intentar refrescar
     const needsRefresh = !tokenExpiry || !integration.expires_at || tokenExpiry <= new Date();
-    
+
     if (needsRefresh) {
 
       // Verificar que haya refresh_token disponible
       if (!integration.refresh_token) {
         console.error('❌ [Calendar Events API] No hay refresh_token disponible');
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: 'Token expirado y no hay refresh token disponible. Por favor, reconecta tu calendario.',
           events: [],
           requiresReconnection: true
         }, { status: 401 });
       }
-      
+
       // Refrescar token
       const refreshResult = await refreshAccessToken(integration);
       if (!refreshResult.success || !refreshResult.accessToken) {
         console.error('❌ [Calendar Events API] No se pudo refrescar el token:', refreshResult);
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: 'Token expirado y no se pudo refrescar. Por favor, reconecta tu calendario.',
           events: [],
           requiresReconnection: true
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     // Obtener eventos según el proveedor
     let events: any[] = [];
 
-    
+
     if (integration.provider === 'google') {
       events = await getGoogleCalendarEvents(accessToken, startDate, endDate);
     } else if (integration.provider === 'microsoft') {
@@ -145,12 +145,12 @@ export async function GET(request: NextRequest) {
     const filteredEvents = events.filter(event => {
       // Limpiar el ID del evento (puede venir con formato de recurrencia)
       const cleanEventId = event.id?.split('_')[0] || event.id;
-      
+
       // Si el evento está en la lista de sesiones activas, incluirlo (es parte de un plan activo)
       if (activeEventIds.has(cleanEventId)) {
         return true;
       }
-      
+
       // Si el evento NO está en la lista de sesiones activas, podría ser:
       // 1. Un evento legítimo del usuario (no parte de un plan)
       // 2. Un evento huérfano de un plan eliminado
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
 
     const orphanedEventIds = new Set(
       (orphanedEvents || [])
-        .map(e => {
+        .map((e: any) => {
           const eventId = integration.provider === 'google' ? e.google_event_id : e.microsoft_event_id;
           return typeof eventId === 'string' ? eventId.split('_')[0] : eventId;
         })
@@ -188,7 +188,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ [API Events] Eventos después de filtrar huérfanos: ${finalEvents.length} (${events.length - finalEvents.length} eliminados)`);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       events: finalEvents,
       provider: integration.provider,
       startDate: startDate.toISOString(),
@@ -198,7 +198,18 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error obteniendo eventos del calendario:', error);
-    return NextResponse.json({ 
+
+    // ✅ Detectar error de scopes insuficientes y retornar respuesta apropiada
+    if (error.message?.includes('SCOPE_INSUFFICIENT')) {
+      return NextResponse.json({
+        error: error.message.replace('SCOPE_INSUFFICIENT: ', ''),
+        events: [],
+        requiresReconnection: true,
+        reason: 'SCOPE_INSUFFICIENT'
+      }, { status: 401 });
+    }
+
+    return NextResponse.json({
       error: error.message || 'Error interno del servidor',
       events: []
     }, { status: 500 });
@@ -210,20 +221,20 @@ export async function GET(request: NextRequest) {
  */
 async function refreshAccessToken(integration: any): Promise<{ success: boolean; accessToken?: string }> {
   // Buscar en múltiples nombres de variables para compatibilidad
-  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || 
-                           process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_CLIENT_ID ||
-                           process.env.GOOGLE_CLIENT_ID ||
-                           process.env.GOOGLE_OAUTH_CLIENT_ID || '';
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID ||
+    process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_CLIENT_ID ||
+    process.env.GOOGLE_CLIENT_ID ||
+    process.env.GOOGLE_OAUTH_CLIENT_ID || '';
   const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET ||
-                               process.env.GOOGLE_CLIENT_SECRET ||
-                               process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
+    process.env.GOOGLE_CLIENT_SECRET ||
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
   const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CALENDAR_CLIENT_ID ||
-                              process.env.NEXT_PUBLIC_MICROSOFT_CALENDAR_CLIENT_ID ||
-                              process.env.MICROSOFT_CLIENT_ID ||
-                              process.env.MICROSOFT_OAUTH_CLIENT_ID || '';
+    process.env.NEXT_PUBLIC_MICROSOFT_CALENDAR_CLIENT_ID ||
+    process.env.MICROSOFT_CLIENT_ID ||
+    process.env.MICROSOFT_OAUTH_CLIENT_ID || '';
   const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CALENDAR_CLIENT_SECRET ||
-                                  process.env.MICROSOFT_CLIENT_SECRET ||
-                                  process.env.MICROSOFT_OAUTH_CLIENT_SECRET || '';
+    process.env.MICROSOFT_CLIENT_SECRET ||
+    process.env.MICROSOFT_OAUTH_CLIENT_SECRET || '';
 
   try {
     // ✅ CORRECCIÓN: Validar que las credenciales estén disponibles
@@ -234,7 +245,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
         console.error('   GOOGLE_CLIENT_SECRET:', GOOGLE_CLIENT_SECRET ? '✅' : '❌');
         return { success: false };
       }
-      
+
       if (!integration.refresh_token) {
         console.error('❌ [Refresh Token] No hay refresh_token en la integración');
         return { success: false };
@@ -258,16 +269,16 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
       }
 
       const tokens = await response.json();
-      
+
       if (!tokens.access_token) {
         console.error('❌ [Refresh Token] No se recibió access_token en la respuesta');
         return { success: false };
       }
-      
+
       // ✅ CORRECCIÓN: Guardar nuevo refresh_token si viene en la respuesta
       // Preservar el existente si no viene uno nuevo (Google no siempre devuelve uno nuevo)
       const refreshTokenToSave = tokens.refresh_token || integration.refresh_token;
-      
+
       // Actualizar en base de datos
       const supabase = createAdminClient();
       const { error: updateError } = await supabase
@@ -279,7 +290,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
           updated_at: new Date().toISOString(),
         })
         .eq('id', integration.id);
-      
+
       if (updateError) {
         console.error('❌ [Refresh Token] Error actualizando token en BD:', updateError);
         // Aún así retornar el token si se obtuvo correctamente
@@ -288,13 +299,13 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
       }
 
       return { success: true, accessToken: tokens.access_token };
-      
+
     } else if (integration.provider === 'microsoft') {
       if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET) {
         console.error('❌ [Refresh Token] Faltan credenciales de Microsoft Calendar');
         return { success: false };
       }
-      
+
       if (!integration.refresh_token) {
         console.error('❌ [Refresh Token] No hay refresh_token en la integración');
         return { success: false };
@@ -319,12 +330,12 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
       }
 
       const tokens = await response.json();
-      
+
       if (!tokens.access_token) {
         console.error('❌ [Refresh Token] No se recibió access_token en la respuesta');
         return { success: false };
       }
-      
+
       // Actualizar en base de datos
       const supabase = createAdminClient();
       const { error: updateError } = await supabase
@@ -336,7 +347,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
           updated_at: new Date().toISOString(),
         })
         .eq('id', integration.id);
-      
+
       if (updateError) {
         console.error('❌ [Refresh Token] Error actualizando token en BD:', updateError);
       } else {
@@ -372,8 +383,27 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
     if (!calendarsResponse.ok) {
       const errorText = await calendarsResponse.text();
       console.error('❌ [Google] Error obteniendo lista de calendarios:', calendarsResponse.status, errorText);
-      // Fallback: intentar solo con primary
 
+      // ✅ Detectar error de scopes insuficientes (403)
+      if (calendarsResponse.status === 403) {
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error?.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' ||
+            errorData.error?.message?.includes('insufficient authentication scopes')) {
+            console.error('❌ [Google] El token no tiene los permisos necesarios. El usuario debe reconectar el calendario.');
+            // Retornar array vacío con marca de error de scopes
+            throw new Error('SCOPE_INSUFFICIENT: Los permisos del calendario han cambiado. Por favor, desconecta y vuelve a conectar tu calendario de Google.');
+          }
+        } catch (parseError) {
+          // Si no podemos parsear, verificar el texto
+          if (errorText.includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT') || errorText.includes('Insufficient Permission')) {
+            throw new Error('SCOPE_INSUFFICIENT: Los permisos del calendario han cambiado. Por favor, desconecta y vuelve a conectar tu calendario de Google.');
+          }
+        }
+      }
+
+      // Fallback: intentar solo con primary
+      console.log('📅 [Google] Intentando solo con calendario primario');
       return await getEventsFromCalendar(accessToken, 'primary', startDate, endDate);
     }
 
@@ -387,7 +417,7 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
     // El calendario principal tiene primary=true y es el único que realmente pertenece al usuario
     // Los calendarios de otros usuarios que administra tienen accessRole='owner' pero NO son primary
     const allEvents: any[] = [];
-    
+
     for (const calendar of calendars) {
       // CRITERIO ESTRICTO: Solo el calendario principal (primary=true)
       // Esto excluye calendarios de otros usuarios que el usuario administra
@@ -402,7 +432,7 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
 
     // Ordenar por fecha de inicio
     allEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-    
+
     return allEvents;
   } catch (error) {
     console.error('❌ [Google] Error en getGoogleCalendarEvents:', error);
@@ -483,7 +513,7 @@ async function syncDeletedStudySessions(
 
     // Obtener eventos actuales del calendario externo
     let externalEvents: any[] = [];
-    
+
     if (integration.provider === 'google') {
       externalEvents = await getGoogleCalendarEvents(accessToken, startDate, endDate);
     } else if (integration.provider === 'microsoft') {
@@ -503,10 +533,10 @@ async function syncDeletedStudySessions(
 
     for (const session of sessionsWithEvents) {
       if (!session.external_event_id) continue;
-      
+
       // Limpiar el ID del evento (puede venir con formato de recurrencia)
-      const cleanEventId = typeof session.external_event_id === 'string' 
-        ? session.external_event_id.split('_')[0] 
+      const cleanEventId = typeof session.external_event_id === 'string'
+        ? session.external_event_id.split('_')[0]
         : String(session.external_event_id).split('_')[0];
 
       // Si el evento no está en la lista de eventos externos, fue eliminado
@@ -518,7 +548,7 @@ async function syncDeletedStudySessions(
     // Limpiar external_event_id y calendar_provider de sesiones cuyos eventos fueron eliminados
     if (sessionsToClean.length > 0) {
       console.log(`🔄 [Sync Study Sessions] Limpiando ${sessionsToClean.length} sesiones con eventos eliminados en ${integration.provider} Calendar`);
-      
+
       const { error: updateError } = await supabase
         .from('study_sessions')
         .update({

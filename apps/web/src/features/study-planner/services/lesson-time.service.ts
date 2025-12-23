@@ -44,51 +44,22 @@ export class LessonTimeService {
   private static readonly INTERACTION_TIME_MINUTES = 3;
 
   /**
-   * Multiplicadores de tiempo por enfoque de estudio
-   * - rapido: x1.0 - Tiempo exacto de la lección (ritmo intenso)
-   * - normal: x1.4 - Ritmo equilibrado para mejor comprensión
-   * - largo: x1.8 - Profundización y mejor retención
-   */
-  static readonly STUDY_APPROACH_MULTIPLIERS = {
-    rapido: 1.0,
-    normal: 1.4,
-    largo: 1.8
-  } as const;
-
-  /**
-   * Obtiene el multiplicador para un enfoque de estudio
-   */
-  static getApproachMultiplier(approach: 'rapido' | 'normal' | 'largo'): number {
-    return this.STUDY_APPROACH_MULTIPLIERS[approach] || 1.0;
-  }
-
-  /**
-   * Calcula la duración de sesión para una lección según el enfoque de estudio
+   * Obtiene la duración de una lección (tiempo base sin modificar)
    * @param lessonTotalMinutes - Tiempo total de la lección (video + materiales + actividades)
-   * @param approach - Enfoque de estudio (rapido, normal, largo)
-   * @returns Duración de la sesión en minutos
+   * @returns Duración de la lección en minutos
    */
-  static getSessionDurationForLesson(
-    lessonTotalMinutes: number,
-    approach: 'rapido' | 'normal' | 'largo'
-  ): number {
-    const multiplier = this.getApproachMultiplier(approach);
-    return Math.ceil(lessonTotalMinutes * multiplier);
+  static getLessonDuration(lessonTotalMinutes: number): number {
+    return Math.ceil(lessonTotalMinutes);
   }
 
   /**
-   * Calcula la duración total de sesiones para múltiples lecciones
+   * Calcula la duración total de múltiples lecciones
    * @param lessons - Array de lecciones con sus tiempos
-   * @param approach - Enfoque de estudio
-   * @returns Duración total de todas las sesiones
+   * @returns Duración total de todas las lecciones
    */
-  static getTotalSessionsDuration(
-    lessons: { totalMinutes: number }[],
-    approach: 'rapido' | 'normal' | 'largo'
-  ): number {
-    const multiplier = this.getApproachMultiplier(approach);
+  static getTotalLessonsDuration(lessons: { totalMinutes: number }[]): number {
     return lessons.reduce((total, lesson) => {
-      return total + Math.ceil(lesson.totalMinutes * multiplier);
+      return total + Math.ceil(lesson.totalMinutes);
     }, 0);
   }
 

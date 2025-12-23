@@ -169,6 +169,8 @@ export function StudyPlannerLIA() {
   const [connectedCalendar, setConnectedCalendar] = useState<'google' | 'microsoft' | null>(null);
 
   // Estados para configuración de estudio
+  // ✅ NOTA: El modal de enfoque se muestra pero la selección NO afecta el multiplicador de duración
+  // El multiplicador siempre es 1.0 (se usa la duración base de las lecciones)
   const [studyApproach, setStudyApproach] = useState<'rapido' | 'normal' | 'largo' | null>(null);
   const [targetDate, setTargetDate] = useState<string | null>(null);
   const [hasAskedApproach, setHasAskedApproach] = useState(false);
@@ -192,7 +194,7 @@ export function StudyPlannerLIA() {
     dayName: string;
     startTime: string;
     endTime: string;
-    lessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }>;
+    lessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number; durationMinutes?: number }>;
   };
   const [savedLessonDistribution, setSavedLessonDistribution] = useState<StoredLessonDistribution[]>([]);
   const [savedTargetDate, setSavedTargetDate] = useState<string | null>(null);
@@ -346,10 +348,10 @@ export function StudyPlannerLIA() {
 
     const flushParagraph = () => {
       if (currentParagraph.length > 0) {
-        const paraText = currentParagraph.join(' ').trim();
+        const paraText = currentParagraph.join('\n').trim();
         if (paraText) {
           elements.push(
-            <p key={`p-${elements.length}`} className="mb-4 font-body text-[15px] leading-[1.75] text-slate-50 tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+            <p key={`p-${elements.length}`} className="mb-4 font-body text-[15px] leading-[1.75] text-slate-50 tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] whitespace-pre-line">
               {formatInlineStyles(paraText)}
             </p>
           );
@@ -499,6 +501,11 @@ export function StudyPlannerLIA() {
       }
 
       if (inList) {
+        flushList();
+      }
+
+      // Si estamos en una lista y llega texto que no es lista, cerrar la lista anterior
+      if (inList && trimmed) {
         flushList();
       }
 
@@ -792,6 +799,7 @@ INSTRUCCIONES:
           }
 
           // Abrir automáticamente el modal de tipo de sesiones después del mensaje
+          // ✅ NOTA: El modal se muestra pero la selección NO afecta el multiplicador de duración
           if (assignedCourses.length > 0) {
             setTimeout(() => {
               setShowApproachModal(true);
@@ -1368,6 +1376,7 @@ INSTRUCCIONES:
                   moduleTitle: l.moduleTitle,
                   lessonTitle: l.lessonTitle,
                   courseTitle: l.courseTitle,
+                  durationMinutes: l.durationMinutes || 15 // Enviar duración real o 15m por defecto
                 }))
                 : null,
               totalPendingLessons: pendingLessonsRef.current.length,
@@ -1391,6 +1400,7 @@ INSTRUCCIONES:
                   moduleTitle: l.moduleTitle,
                   lessonTitle: l.lessonTitle,
                   courseTitle: l.courseTitle,
+                  durationMinutes: l.durationMinutes || 15 // Enviar duración real o 15m por defecto
                 }))
                 : null,
               totalPendingLessons: pendingLessonsRef.current.length,
@@ -1624,6 +1634,7 @@ INSTRUCCIONES:
     setConversationHistory(prev => [...prev, { role: 'user', content: userMsg }]);
 
     // Respuesta de LIA - preguntar sobre enfoque de estudio primero
+    // ✅ NOTA: El modal se muestra pero la selección NO afecta el multiplicador de duración
     setTimeout(async () => {
       setIsProcessing(true);
 
@@ -1640,7 +1651,7 @@ INSTRUCCIONES:
         }, 500);
 
         if (isAudioEnabled) {
-          await speakText('Excelente elección. Antes de crear tu plan, necesito saber qué tipo de enfoque prefieres: sesiones rápidas, normales o largas. Esto me ayudará a calcular mejor tu plan de estudios.');
+          await speakText('Excelente elección. ¿Qué tipo de sesiones de estudio prefieres?');
         }
       } else {
         const liaResponse = 'Parece que no seleccionaste ningún curso. ¿Te gustaría ver tus cursos disponibles de nuevo o prefieres decirme qué temas te interesan?';
@@ -2124,27 +2135,13 @@ INSTRUCCIONES:
     let recommendedBreak = 5; // minutos
     const reasoning: string[] = [];
 
-    // Ajustar según enfoque de estudio seleccionado por el usuario
-    if (profile.studyApproach === 'rapido') {
-      baseMinutesPerDay = 90; // Más tiempo diario para avanzar rápido
-      recommendedSessionLength = 25; // Sesiones más cortas pero más frecuentes
-      recommendedBreak = 5; // Descansos cortos
-      workloadMultiplier *= 1.5;
-      reasoning.push('Con enfoque de sesiones rápidas, priorizamos frecuencia e intensidad');
-    } else if (profile.studyApproach === 'largo') {
-      baseMinutesPerDay = 120; // Más tiempo diario para profundizar
-      recommendedSessionLength = 60; // Sesiones más largas para profundizar
-      recommendedBreak = 15; // Descansos más largos
-      workloadMultiplier *= 1.2;
-      reasoning.push('Con enfoque de sesiones largas, priorizamos profundidad y comprensión');
-    } else {
-      // Normal (default)
-      baseMinutesPerDay = 75;
-      recommendedSessionLength = 30;
-      recommendedBreak = 10;
-      workloadMultiplier *= 1.0;
-      reasoning.push('Con enfoque normal, balanceamos ritmo y comprensión');
-    }
+    // ✅ SIMPLIFICADO: Ya no se usa el studyApproach para ajustar - siempre usar valores estándar
+    // Valores estándar (equivalente a 'normal')
+    baseMinutesPerDay = 75;
+    recommendedSessionLength = 30;
+    recommendedBreak = 10;
+    workloadMultiplier *= 1.0;
+    reasoning.push('Configuración estándar de estudio');
 
     // Ajustar según nivel jerárquico (pero respetar el enfoque de estudio seleccionado)
     const nivel = profile.nivel?.toLowerCase() || '';
@@ -2392,8 +2389,14 @@ INSTRUCCIONES:
               lessonTitle: lesson.lesson_title || lesson.lessonTitle || '',
               lessonOrderIndex: lesson.lesson_order_index !== undefined ? lesson.lesson_order_index : (lesson.lessonOrderIndex !== undefined ? lesson.lessonOrderIndex : 0),
               durationSeconds: lesson.duration_seconds || lesson.durationSeconds || 0,
-              // Tiempo total de la lección (video + materiales + actividades)
-              totalDurationMinutes: lesson.total_duration_minutes || lesson.totalDurationMinutes || Math.ceil((lesson.duration_seconds || lesson.durationSeconds || 0) / 60),
+              // ✅ CORRECCIÓN: Priorizar total_duration_minutes, luego durationSeconds, fallback a 15 min
+              totalDurationMinutes: (lesson.total_duration_minutes && lesson.total_duration_minutes > 0)
+                ? lesson.total_duration_minutes
+                : ((lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0)
+                  ? lesson.totalDurationMinutes
+                  : ((lesson.duration_seconds || lesson.durationSeconds) && (lesson.duration_seconds || lesson.durationSeconds) > 0
+                    ? Math.ceil((lesson.duration_seconds || lesson.durationSeconds) / 60)
+                    : 15)),
               is_published: lesson.is_published !== false
             })).filter((lesson: any) => lesson.lessonId && lesson.lessonTitle && lesson.is_published);
 
@@ -2404,8 +2407,12 @@ INSTRUCCIONES:
             // ✅ CORRECCIÓN: Usar totalDurationMinutes que incluye video + materiales + actividades
             if (publishedLessons.length > 0) {
               totalDurationMinutes = publishedLessons.reduce((sum: number, lesson: any) => {
-                // Usar totalDurationMinutes si está disponible, sino calcular desde durationSeconds
-                const lessonMinutes = lesson.totalDurationMinutes || Math.ceil((lesson.durationSeconds || 0) / 60);
+                // ✅ CORRECCIÓN: Usar totalDurationMinutes si es válido (> 0), sino fallback a 15 min
+                const lessonMinutes = lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0
+                  ? lesson.totalDurationMinutes
+                  : (lesson.durationSeconds && lesson.durationSeconds > 0
+                    ? Math.ceil(lesson.durationSeconds / 60)
+                    : 15);
                 return sum + lessonMinutes;
               }, 0);
             } else {
@@ -2559,6 +2566,7 @@ INSTRUCCIONES:
   };
 
   // Verificar y preguntar sobre enfoque y fecha antes de analizar calendario
+  // ✅ NOTA: El modal de enfoque se muestra pero la selección NO afecta el multiplicador de duración
   const checkAndAskStudyPreferences = async (provider: string) => {
     if (!hasAskedApproach || !studyApproach) {
       // Mostrar mensaje y abrir modal de enfoque
@@ -2579,7 +2587,7 @@ INSTRUCCIONES:
       }, 500);
 
       if (isAudioEnabled) {
-        await speakText(audioMsg);
+        await speakText('Calendario conectado. ¿Qué tipo de sesiones prefieres?');
       }
       return false; // No proceder con análisis aún
     } else if (!hasAskedTargetDate || !targetDate) {
@@ -2612,6 +2620,8 @@ INSTRUCCIONES:
   };
 
   // Manejar selección de enfoque desde el modal
+  // ✅ NOTA: El modal funciona normalmente pero la selección NO afecta el multiplicador de duración
+  // El multiplicador siempre es 1.0 (se usa la duración base de las lecciones)
   const handleApproachSelection = async (approach: 'rapido' | 'normal' | 'largo') => {
     setStudyApproach(approach);
     setShowApproachModal(false);
@@ -2755,7 +2765,7 @@ INSTRUCCIONES:
           await analyzeCalendarAndSuggest(
             calendarProvider,
             nearestDueDateFormatted || undefined,
-            approach
+            approach // Usar la selección del usuario
           );
           console.log('✅ [handleApproachSelection] analyzeCalendarAndSuggest completado');
         } catch (error) {
@@ -3010,7 +3020,12 @@ INSTRUCCIONES:
                         moduleOrderIndex: module.moduleOrderIndex || moduleIdx,
                         lessonOrderIndex: lesson.lessonOrderIndex || lessonIdx,
                         durationSeconds: lesson.durationSeconds || 0,
-                        totalDurationMinutes: lesson.totalDurationMinutes || Math.ceil((lesson.durationSeconds || 0) / 60)
+                        // ✅ CORRECCIÓN: Priorizar totalDurationMinutes, luego calcular desde durationSeconds, fallback a 15 min
+                        totalDurationMinutes: lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0
+                          ? lesson.totalDurationMinutes
+                          : (lesson.durationSeconds && lesson.durationSeconds > 0
+                            ? Math.ceil(lesson.durationSeconds / 60)
+                            : 15)
                       });
                     }
                   });
@@ -3088,7 +3103,8 @@ INSTRUCCIONES:
               moduleTitle: lesson.moduleTitle,
               moduleOrderIndex: lesson.moduleOrderIndex,
               lessonOrderIndex: lesson.lessonOrderIndex,
-              durationMinutes: lesson.totalDurationMinutes || 15,
+              // ✅ CORRECCIÓN: Asegurar fallback a 15 min cuando totalDurationMinutes es 0 o null
+              durationMinutes: lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0 ? lesson.totalDurationMinutes : 15,
             });
           });
         }
@@ -3126,7 +3142,7 @@ INSTRUCCIONES:
       await analyzeCalendarAndSuggest(
         provider,
         nearestDueDateFormatted,
-        approach,
+        'normal', // ✅ SIMPLIFICADO: Siempre usar 'normal'
         true // ✅ skipB2BRedirect: evitar redirección y usar lógica B2C directamente
       );
 
@@ -4243,7 +4259,14 @@ INSTRUCCIONES:
                             lessonTitle: lesson.lesson_title || lesson.lessonTitle || '',
                             lessonOrderIndex: lesson.lesson_order_index !== undefined ? lesson.lesson_order_index : (lesson.lessonOrderIndex !== undefined ? lesson.lessonOrderIndex : 0),
                             durationSeconds: lesson.duration_seconds || lesson.durationSeconds || 0,
-                            totalDurationMinutes: lesson.total_duration_minutes || lesson.totalDurationMinutes || Math.ceil((lesson.duration_seconds || lesson.durationSeconds || 0) / 60),
+                            // ✅ CORRECCIÓN: Priorizar total_duration_minutes, luego durationSeconds, fallback a 15 min
+                            totalDurationMinutes: (lesson.total_duration_minutes && lesson.total_duration_minutes > 0)
+                              ? lesson.total_duration_minutes
+                              : ((lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0)
+                                ? lesson.totalDurationMinutes
+                                : ((lesson.duration_seconds || lesson.durationSeconds) && (lesson.duration_seconds || lesson.durationSeconds) > 0
+                                  ? Math.ceil((lesson.duration_seconds || lesson.durationSeconds) / 60)
+                                  : 15)),
                             is_published: lesson.is_published !== false
                           })).filter((lesson: any) => lesson.lessonId && lesson.lessonTitle && lesson.is_published);
 
@@ -4290,10 +4313,14 @@ INSTRUCCIONES:
                           const remainingLessons = remainingLessonsData.length;
 
                           // Calcular minutos solo de las lecciones pendientes
-                          // ✅ CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
+                          // ✅ CORRECCIÓN: Usar totalDurationMinutes si es válido (> 0), sino fallback a 15 min
                           const totalDurationMinutes = remainingLessonsData.reduce((sum: number, lesson: any) => {
-                            const durationSeconds = lesson.durationSeconds || 0;
-                            return sum + Math.ceil(durationSeconds / 60);
+                            const lessonMinutes = lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0
+                              ? lesson.totalDurationMinutes
+                              : (lesson.durationSeconds && lesson.durationSeconds > 0
+                                ? Math.ceil(lesson.durationSeconds / 60)
+                                : 15);
+                            return sum + lessonMinutes;
                           }, 0);
 
                           // Tiempo efectivo por lección (incluyendo actividades): 1.5x la duración del video
@@ -4718,7 +4745,8 @@ INSTRUCCIONES:
                                 lessonTitle: lesson.lessonTitle.trim(),
                                 lessonOrderIndex: orderIndex,
                                 moduleOrderIndex: module.moduleOrderIndex || 0, // ✅ CRÍTICO: Para ordenar correctamente
-                                durationSeconds: lesson.durationSeconds || 0
+                                durationSeconds: lesson.durationSeconds || 0,
+                                totalDurationMinutes: lesson.totalDurationMinutes // ✅ CORRECCIÓN: Pasar duración total explícita si existe
                               };
                             }).filter((lesson: any) => lesson !== null); // Filtrar nulos
                           });
@@ -4892,7 +4920,12 @@ INSTRUCCIONES:
                 lessonOrderIndex: orderIndex,
                 moduleOrderIndex: moduleOrderIndex,
                 durationSeconds: lesson.durationSeconds || 0,
-                durationMinutes: (lesson as any).totalDurationMinutes || Math.ceil((lesson.durationSeconds || 0) / 60)
+                // ✅ CORRECCIÓN: Priorizar totalDurationMinutes, luego calcular desde durationSeconds, y fallback a 15 min
+                durationMinutes: (lesson as any).totalDurationMinutes && (lesson as any).totalDurationMinutes > 0
+                  ? (lesson as any).totalDurationMinutes
+                  : (lesson.durationSeconds && lesson.durationSeconds > 0
+                    ? Math.ceil(lesson.durationSeconds / 60)
+                    : 15)
               });
 
               // ✅ Marcar como agregada para evitar duplicados
@@ -5059,9 +5092,9 @@ INSTRUCCIONES:
           // ✅ NUEVA LÓGICA DE DISTRIBUCIÓN (Greedy Packing v2) - Simplificada y Precisa
           // --------------------------------------------------------------------------------
 
-          // 1. Configurar Multiplicador
-          const approachMultiplier = effectiveApproach === 'rapido' ? 1.0 : effectiveApproach === 'normal' ? 1.4 : 1.8;
-          console.log(`⚡ [Distribución] Iniciando con Multiplicador: ${approachMultiplier} (Enfoque: ${effectiveApproach})`);
+          // 1. ✅ SIMPLIFICADO: Multiplicador siempre es 1.0 (usar duración base de lecciones)
+          const approachMultiplier = 1.0;
+          console.log(`⚡ [Distribución] Iniciando con Multiplicador: ${approachMultiplier} (sin modificación)`);
 
           // 2. Variables de estado para la distribución (usando las ya declaradas arriba)
           lessonDistribution.length = 0;
@@ -5076,6 +5109,8 @@ INSTRUCCIONES:
             const slotDuration = slot.durationMinutes;
             let usedDurationInSlot = 0;
             const lessonsForSlot: any[] = [];
+            let currentSlotModuleIndex: number | null = null;
+            let currentSlotCourseId: string | null = null;
 
             // Intentar meter lecciones mientras quepan y haya disponibles
             while (currentLessonIndex < validPendingLessons.length) {
@@ -5094,10 +5129,16 @@ INSTRUCCIONES:
               // Lógica de encaje:
               // 1. Si el slot está vacío, aceptamos la lección aunque se pase un poco (para no bloquear lecciones largas)
               // 2. Si ya tiene contenido, solo aceptamos si cabe estrictamente
+              // 3. ✅ NUEVO: Solo agrupar lecciones del MISMO MÓDULO y MISMO CURSO
               const fits = (usedDurationInSlot + finalDuration <= slotDuration);
               const isSlotEmpty = lessonsForSlot.length === 0;
+              const isSameModule = isSlotEmpty || (
+                currentSlotModuleIndex !== null &&
+                lesson.moduleOrderIndex === currentSlotModuleIndex &&
+                currentSlotCourseId === lesson.courseId // Asegurar mismo curso
+              );
 
-              if (isSlotEmpty || fits) {
+              if ((isSlotEmpty || fits) && isSameModule) {
                 // Asignar
                 lessonsForSlot.push({
                   courseTitle: lesson.courseTitle || 'Curso',
@@ -5105,6 +5146,10 @@ INSTRUCCIONES:
                   lessonOrderIndex: (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) ? lesson.lessonOrderIndex : 0,
                   durationMinutes: finalDuration
                 });
+                if (isSlotEmpty) {
+                  currentSlotModuleIndex = lesson.moduleOrderIndex;
+                  currentSlotCourseId = lesson.courseId;
+                }
                 assignedLessonIds.add(lesson.lessonId);
                 usedDurationInSlot += finalDuration;
                 currentLessonIndex++;
@@ -5249,10 +5294,12 @@ INSTRUCCIONES:
             const unusedSlots = slotsUntilTarget.filter(slot => !usedSlotDates.has(slot.dateStr));
 
             // ✅ CORRECCIÓN: Usar solo lecciones válidas en la redistribución
+            // ✅ CORRECCIÓN: Usar Greedy Packing con verificación de módulo para slots no usados
             for (const unusedSlot of unusedSlots) {
               if (currentLessonIndex >= validPendingLessons.length) break;
 
-              const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / MINUTES_PER_LESSON));
+              const slotDuration = unusedSlot.durationMinutes;
+              let usedDurationInSlot = 0;
               const lessonsForUnusedSlot: Array<{
                 courseTitle: string;
                 lessonTitle: string;
@@ -5260,40 +5307,60 @@ INSTRUCCIONES:
                 durationMinutes: number;
               }> = [];
 
-              for (let i = 0; i < slotCapacity && currentLessonIndex < validPendingLessons.length; i++) {
+              let currentSlotModuleIndex: number | null = null;
+              let currentSlotCourseId: string | null = null;
+
+              // Intentar meter lecciones mientras quepan y sean del mismo módulo
+              while (currentLessonIndex < validPendingLessons.length) {
                 const lesson = validPendingLessons[currentLessonIndex];
 
-                // Las lecciones ya están validadas
-                if (lesson && lesson.lessonTitle) {
-                  // ✅ CORRECCIÓN CRÍTICA: Verificar que la lección no haya sido asignada ya
-                  if (assignedLessonIds.has(lesson.lessonId)) {
-                    console.warn(`⚠️ Lección duplicada detectada y omitida en redistribución: ${lesson.lessonId} - ${lesson.lessonTitle}`);
-                    currentLessonIndex++;
-                    i--; // No contar lecciones duplicadas
-                    continue;
-                  }
+                if (!lesson || !lesson.lessonTitle) {
+                  currentLessonIndex++;
+                  continue;
+                }
 
-                  // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
+                if (assignedLessonIds.has(lesson.lessonId)) {
+                  currentLessonIndex++;
+                  continue;
+                }
+
+                const baseDuration = (lesson as any).durationMinutes || 15;
+                const finalDuration = Math.ceil(baseDuration * approachMultiplier);
+                
+                // Lógica de encaje y continuidad
+                const fits = (usedDurationInSlot + finalDuration <= slotDuration);
+                const isSlotEmpty = lessonsForUnusedSlot.length === 0;
+                
+                const isSameModule = isSlotEmpty || (
+                  currentSlotModuleIndex !== null &&
+                  lesson.moduleOrderIndex === currentSlotModuleIndex &&
+                  currentSlotCourseId === lesson.courseId
+                );
+
+                if ((isSlotEmpty || fits) && isSameModule) {
+                  // Asignar
                   const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0)
                     ? lesson.lessonOrderIndex
                     : 0;
-
-                  const durationWithMultiplier = Math.ceil((lesson.durationMinutes || 15) * approachMultiplier);
+                    
                   lessonsForUnusedSlot.push({
                     courseTitle: lesson.courseTitle || 'Curso',
                     lessonTitle: lesson.lessonTitle.trim(),
                     lessonOrderIndex: orderIndex,
-                    durationMinutes: durationWithMultiplier
+                    durationMinutes: finalDuration
                   });
 
-                  // ✅ Marcar como asignada para evitar duplicados
-                  assignedLessonIds.add(lesson.lessonId);
+                  if (isSlotEmpty) {
+                    currentSlotModuleIndex = lesson.moduleOrderIndex;
+                    currentSlotCourseId = lesson.courseId;
+                  }
 
+                  assignedLessonIds.add(lesson.lessonId);
+                  usedDurationInSlot += finalDuration;
                   currentLessonIndex++;
                 } else {
-                  console.error(`❌ ERROR: Lección inválida encontrada durante redistribución en slot no usado`);
-                  currentLessonIndex++;
-                  i--; // No contar lecciones inválidas
+                  // No cabe o es otro módulo -> Siguiente slot
+                  break;
                 }
               }
 
@@ -5320,48 +5387,33 @@ INSTRUCCIONES:
                 });
 
               // Redistribuir lecciones pendientes
+              // Redistribuir lecciones pendientes respetando módulo
               for (const slotDist of slotsWithSpace) {
                 if (currentLessonIndex >= validPendingLessons.length) break;
 
-                const slotCapacity = Math.floor(slotDist.slot.durationMinutes / MINUTES_PER_LESSON);
-                const currentLessons = slotDist.lessons.length;
-                const availableSpace = slotCapacity - currentLessons;
-
-                // Agregar lecciones hasta llenar el espacio
-                for (let i = 0; i < availableSpace && currentLessonIndex < validPendingLessons.length; i++) {
-                  const lesson = validPendingLessons[currentLessonIndex];
-
-                  // Las lecciones ya están validadas
-                  if (lesson && lesson.lessonTitle) {
-                    // ✅ CORRECCIÓN CRÍTICA: Verificar que la lección no haya sido asignada ya
-                    if (assignedLessonIds.has(lesson.lessonId)) {
-                      console.warn(`⚠️ Lección duplicada detectada y omitida en redistribución: ${lesson.lessonId} - ${lesson.lessonTitle}`);
-                      currentLessonIndex++;
-                      i--; // No contar lecciones duplicadas
-                      continue;
-                    }
-
-                    // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
-                    const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0)
-                      ? lesson.lessonOrderIndex
-                      : 0;
-
-                    slotDist.lessons.push({
-                      courseTitle: lesson.courseTitle || 'Curso',
-                      lessonTitle: lesson.lessonTitle.trim(),
-                      lessonOrderIndex: orderIndex
-                    });
-
-                    // ✅ Marcar como asignada para evitar duplicados
-                    assignedLessonIds.add(lesson.lessonId);
-
-                    currentLessonIndex++;
-                  } else {
-                    console.error(`❌ ERROR: Lección inválida encontrada durante redistribución en slot existente`);
-                    currentLessonIndex++;
-                    i--; // No contar lecciones inválidas
-                  }
-                }
+                const slotCapacityMinutes = slotDist.slot.durationMinutes;
+                let currentUsedMinutes = slotDist.lessons.reduce((acc, l) => acc + (l.durationMinutes || 15), 0);
+                
+                // Obtener contexto del último módulo en el slot
+                const lastLesson = slotDist.lessons[slotDist.lessons.length - 1];
+                // Nota: lastLesson no tiene courseId/moduleId directos aquí porque es el objeto resumido
+                // Necesitamos inferir o confiar en que no mezclaremos si no tenemos el ID absoluto
+                // PERO, podemos buscar la lección original en validPendingLessons O simplemente...
+                // Si no tenemos el ID del módulo de la lección ya asignada, es arriesgado.
+                // Sin embargo, si hemos sido consistentes, todas las lecciones en el slot son del mismo módulo.
+                // Así que solo necesitamos validar que la NUEVA lección sea compatible con el slot.
+                // Como no guardamos moduleId en el objeto final 'lessons', esta comprobación es difícil.
+                // SOLUCIÓN: Solo agregar si realmente tenemos espacio Y estamos dispuestos a mezclar (desaconsejado)
+                // O mejor: omitir redistribución en slots existentes si no podemos garantizar módulo.
+                // DADO EL REQUISITO DURO: "Same module", es mejor NO mezclar si no estamos seguros.
+                
+                // Opción B: Si el slot tiene espacio, intentar agregar SOLO si la lección nueva es del mismo curso/modulo
+                // Como no tenemos el dato, saltamos esta optimización para asegurar calidad.
+                // O podemos intentar agregarla a un slot VACÍO (que ya manejamos arriba).
+                
+                // DECISIÓN: No agregar a slots existentes para no romper la regla de "un módulo por sesión".
+                // Es preferible dejar un slot con espacio libre que mezclar temas.
+                continue; 
               }
             }
 
@@ -5419,92 +5471,77 @@ INSTRUCCIONES:
 
             console.log(`   📊 Redistribuyendo ${remainingLessonsCount} lecciones en ${remainingSlotsCount} slots adicionales`);
 
+            // ✅ NUEVA LÓGICA DE FALLBACK B2B: Usar Greedy Packing en slots extra para asegurar continuidad y eficiencia
+            
+            // Iterar por cada slot disponible adicional
             for (let slotIdx = 0; slotIdx < allUnusedSlots.length; slotIdx++) {
-              if (currentLessonIndex >= validPendingLessons.length) break;
-
-              const unusedSlot = allUnusedSlots[slotIdx];
-              const slotCapacity = Math.max(1, Math.floor(unusedSlot.durationMinutes / MINUTES_PER_LESSON));
-
-              // Calcular cuántas lecciones asignar a este slot (misma lógica que B2C)
-              const remainingAfterThis = validPendingLessons.length - currentLessonIndex;
-              const slotsAfterThis = allUnusedSlots.length - slotIdx - 1;
-
-              // ✅ USAR LÓGICA IDÉNTICA A B2C: Calcular promedio y agrupar
-              let lessonsToAssignInSlot: number;
-
-              if (remainingAfterThis === 0) {
-                lessonsToAssignInSlot = 0;
-              } else if (slotsAfterThis === 0) {
-                // Último slot: asignar todas las lecciones restantes
-                lessonsToAssignInSlot = Math.min(remainingAfterThis, slotCapacity);
-              } else {
-                // ✅ USAR EXACTAMENTE LA MISMA LÓGICA QUE B2C: Agrupar lecciones
-                // Calcular promedio
-                const avgNeeded = remainingAfterThis / slotsAfterThis;
-                let calculatedLessons = Math.ceil(avgNeeded);
-
-                // ✅ CRÍTICO: Si hay capacidad para 2+ lecciones y quedan suficientes,
-                // asegurar que se agrupen al menos 2 (como B2C)
-                if (slotCapacity >= 2 && remainingAfterThis >= 2 && calculatedLessons < 2) {
-                  calculatedLessons = 2; // Mínimo 2 lecciones por slot cuando hay capacidad
-                }
-
-                lessonsToAssignInSlot = Math.min(
-                  calculatedLessons,
-                  slotCapacity,
-                  remainingAfterThis
-                );
-              }
-
-              const lessonsForSlot: Array<{
+               if (currentLessonIndex >= validPendingLessons.length) break;
+               
+               const unusedSlot = allUnusedSlots[slotIdx];
+               const slotDuration = unusedSlot.durationMinutes;
+               let usedDurationInSlot = 0;
+               const lessonsForSlot: Array<{
                 courseTitle: string;
                 lessonTitle: string;
                 lessonOrderIndex: number;
                 durationMinutes: number;
-              }> = [];
-
-              for (let i = 0; i < lessonsToAssignInSlot && currentLessonIndex < validPendingLessons.length; i++) {
-                // Buscar la siguiente lección NO asignada
-                while (currentLessonIndex < validPendingLessons.length) {
-                  const lesson = validPendingLessons[currentLessonIndex];
-
-                  if (!lesson || !lesson.lessonTitle) {
+               }> = [];
+               
+               let currentSlotModuleIndex: number | null = null;
+               let currentSlotCourseId: string | null = null;
+               
+               while (currentLessonIndex < validPendingLessons.length) {
+                 const lesson = validPendingLessons[currentLessonIndex];
+                 
+                 if (!lesson || !lesson.lessonTitle || assignedLessonIds.has(lesson.lessonId)) {
+                   currentLessonIndex++;
+                   continue;
+                 }
+                 
+                 const baseDuration = (lesson as any).durationMinutes || 15;
+                 const finalDuration = Math.ceil(baseDuration * approachMultiplier);
+                 
+                 const fits = (usedDurationInSlot + finalDuration <= slotDuration);
+                 const isSlotEmpty = lessonsForSlot.length === 0;
+                 
+                 const isSameModule = isSlotEmpty || (
+                   currentSlotModuleIndex !== null &&
+                   lesson.moduleOrderIndex === currentSlotModuleIndex &&
+                   currentSlotCourseId === lesson.courseId
+                 );
+                 
+                 if ((isSlotEmpty || fits) && isSameModule) {
+                    const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0)
+                      ? lesson.lessonOrderIndex
+                      : 0;
+                      
+                    lessonsForSlot.push({
+                      courseTitle: lesson.courseTitle || 'Curso',
+                      lessonTitle: lesson.lessonTitle.trim(),
+                      lessonOrderIndex: orderIndex,
+                      durationMinutes: finalDuration
+                    });
+                    
+                    if (isSlotEmpty) {
+                       currentSlotModuleIndex = lesson.moduleOrderIndex;
+                       currentSlotCourseId = lesson.courseId;
+                    }
+                    
+                    assignedLessonIds.add(lesson.lessonId);
+                    usedDurationInSlot += finalDuration;
                     currentLessonIndex++;
-                    continue;
-                  }
-
-                  // ✅ CRÍTICO: Verificar que no esté duplicada
-                  if (assignedLessonIds.has(lesson.lessonId)) {
-                    console.warn(`⚠️ Lección duplicada omitida en redistribución: ${lesson.lessonId} - ${lesson.lessonTitle}`);
-                    currentLessonIndex++;
-                    continue; // Buscar siguiente lección no duplicada
-                  }
-
-                  // Lección válida y no duplicada, asignarla
-                  const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0)
-                    ? lesson.lessonOrderIndex
-                    : 0;
-
-                  lessonsForSlot.push({
-                    courseTitle: lesson.courseTitle || 'Curso',
-                    lessonTitle: lesson.lessonTitle.trim(),
-                    lessonOrderIndex: orderIndex,
-                    durationMinutes: Math.ceil((lesson.durationMinutes || 15) * approachMultiplier)
-                  });
-
-                  assignedLessonIds.add(lesson.lessonId);
-                  currentLessonIndex++;
-                  break; // Salir del while y continuar con la siguiente lección
-                }
-              }
-
-              if (lessonsForSlot.length > 0) {
-                lessonDistribution.push({
-                  slot: unusedSlot,
-                  lessons: lessonsForSlot
-                });
-                console.log(`   ✅ Agregado slot adicional: ${unusedSlot.dayName} ${unusedSlot.date.toLocaleDateString('es-ES')} con ${lessonsForSlot.length} lecciones agrupadas`);
-              }
+                 } else {
+                    break; // Siguiente slot
+                 }
+               }
+               
+               if (lessonsForSlot.length > 0) {
+                 lessonDistribution.push({
+                   slot: unusedSlot,
+                   lessons: lessonsForSlot
+                 });
+                 console.log(`   ✅ Agregado slot adicional: ${unusedSlot.dayName} ${unusedSlot.date.toLocaleDateString('es-ES')} con ${lessonsForSlot.length} lecciones agrupadas`);
+               }
             }
 
             // Si aún quedan lecciones, intentar agregar más lecciones a slots existentes
@@ -5522,54 +5559,11 @@ INSTRUCCIONES:
                 .sort((a, b) => b.availableSpace - a.availableSpace);
 
               for (const { dist } of allSlotsWithSpace) {
-                if (currentLessonIndex >= validPendingLessons.length) break;
-
-                const slotCapacity = Math.floor(dist.slot.durationMinutes / MINUTES_PER_LESSON);
-                const currentLessons = dist.lessons.length;
-                const availableSpace = slotCapacity - currentLessons;
-
-                // ✅ Agrupar lecciones: llenar el slot al máximo cuando sea posible
-                for (let i = 0; i < availableSpace && currentLessonIndex < validPendingLessons.length; i++) {
-                  // Buscar la siguiente lección NO asignada
-                  let foundLesson = false;
-                  while (currentLessonIndex < validPendingLessons.length && !foundLesson) {
-                    const lesson = validPendingLessons[currentLessonIndex];
-
-                    if (!lesson || !lesson.lessonTitle) {
-                      currentLessonIndex++;
-                      continue;
-                    }
-
-                    // ✅ CRÍTICO: Verificar que no esté duplicada
-                    if (assignedLessonIds.has(lesson.lessonId)) {
-                      console.warn(`⚠️ Lección duplicada omitida al llenar slot: ${lesson.lessonId}`);
-                      currentLessonIndex++;
-                      continue; // Buscar siguiente lección no duplicada
-                    }
-
-                    // Lección válida y no duplicada, asignarla
-                    const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0)
-                      ? lesson.lessonOrderIndex
-                      : 0;
-
-                    dist.lessons.push({
-                      courseTitle: lesson.courseTitle || 'Curso',
-                      lessonTitle: lesson.lessonTitle.trim(),
-                      lessonOrderIndex: orderIndex
-                    });
-
-                    // ✅ Marcar como asignada para evitar duplicados
-                    assignedLessonIds.add(lesson.lessonId);
-
-                    currentLessonIndex++;
-                    foundLesson = true;
-                  }
-
-                  if (!foundLesson) {
-                    // No hay más lecciones disponibles, salir
-                    break;
-                  }
-                }
+                // EVITAR llenar slots existentes en el fallback B2B para no romper continuidad de módulo,
+                // a menos que podamos garantizar que es la continuación exacta.
+                // Dado que ya hemos usado slots nuevos arriba de forma agresiva,
+                // es mejor dejar los slots existentes limpios con su módulo único.
+                continue;
               }
             }
 
@@ -5687,7 +5681,8 @@ INSTRUCCIONES:
               calendarMessage += `   ⏰ HORARIO EXACTO: ${startTimeStr} - ${endTimeStr} (${realDurationMinutes} min):\n`;
 
               dist.lessons.forEach(l => {
-                calendarMessage += `      • [${l.courseTitle}] ${l.lessonTitle} (Duración: ${l.durationMinutes || 15} min)\n`;
+                // ✅ CORRECCIÓN: Usar menos espacios para evitar que Markdown lo detecte como bloque de código
+                calendarMessage += `   • ${l.lessonTitle} (${l.durationMinutes || 15} min)\n`;
               });
               calendarMessage += `\n`; // Espacio entre slots
             });
@@ -5731,15 +5726,22 @@ INSTRUCCIONES:
             calendarMessage += `\n\n✅ **PLAN COMPLETO:** He asignado todas las ${validPendingLessons.length} lecciones pendientes en los horarios disponibles. El plan está diseñado para cumplir con los plazos organizacionales establecidos.`;
           }
 
+          // LOGGER ADICIONAL PARA DEPURACIÓN DE DATOS (NO VISIBLE AL USUARIO)
+          if (validPendingLessons.length > 0) {
+            console.log("🔍 [DEBUG DATOS LECCIONES]");
+            validPendingLessons.slice(0, 5).forEach(l => {
+              console.log(`   - ID: ${l.lessonId} | Título: "${l.lessonTitle}" | Orden: ${l.lessonOrderIndex} | Duración: ${l.durationMinutes}m | Secs: ${(l as any).durationSeconds} | TotalMins: ${(l as any).totalDurationMinutes}`);
+            });
+          }
+
           // Agregar datos crudos para que LIA calcule las metas semanales AUTOMÁTICAMENTE
-          if (selectedCourseIds.length > 0 && totalLessonsNeeded > 0 && weeksUntilTarget > 0 && effectiveApproach && targetDate) {
+          if (selectedCourseIds.length > 0 && totalLessonsNeeded > 0 && weeksUntilTarget > 0 && targetDate) {
             // Calcular metas automáticamente
             const lessonsPerWeekCalc = Math.ceil(totalLessonsNeeded / weeksUntilTarget);
-            // Multiplicador según enfoque: rapido=1.0, normal=1.4, largo=1.8
-            const approachMultiplier = effectiveApproach === 'rapido' ? 1.0 : effectiveApproach === 'normal' ? 1.4 : 1.8;
-            // Estimar horas basándose en el tiempo promedio de lección y el multiplicador
+            // ✅ SIMPLIFICADO: Usar duración base sin multiplicador
+            // Estimar horas basándose en el tiempo promedio de lección
             const avgLessonMinutes = 15; // Promedio estimado si no tenemos datos exactos
-            const hoursPerWeekCalc = Math.ceil((lessonsPerWeekCalc * avgLessonMinutes * approachMultiplier) / 60);
+            const hoursPerWeekCalc = Math.ceil((lessonsPerWeekCalc * avgLessonMinutes) / 60);
 
             // Enviar datos en formato estructurado para LIA (sin instrucciones visibles)
             calendarMessage += `\n`;
@@ -5759,7 +5761,7 @@ INSTRUCCIONES:
               calendarMessage += `\n`;
             }
 
-            calendarMessage += `*Datos de referencia: ${totalLessonsNeeded} lecciones pendientes, ${weeksUntilTarget} semanas hasta ${targetDate}, enfoque de ${studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : 'sesiones largas'}*\n`;
+            calendarMessage += `*Datos de referencia: ${totalLessonsNeeded} lecciones pendientes, ${weeksUntilTarget} semanas hasta ${targetDate}*\n`;
           }
 
           // Mensaje de cierre personalizado
@@ -7525,7 +7527,7 @@ Cuéntame:
         }
       });
       distributionSummary += `\n`;
-      distributionSummary += `**Enfoque de estudio:** ${studyApproach === 'rapido' ? 'Sesiones rápidas (x1.0 - tiempo exacto de la lección)' : studyApproach === 'normal' ? 'Sesiones normales (x1.4 - ritmo equilibrado)' : 'Sesiones largas (x1.8 - profundización)'}\n`;
+      // ✅ SIMPLIFICADO: Ya no se menciona el enfoque de estudio
       distributionSummary += `**Fecha límite para completar:** ${savedTargetDate || 'No especificada'}\n`;
       distributionSummary += `\n`;
 
@@ -9604,42 +9606,36 @@ Cuéntame:
                         </div>
                       </div>
 
-                      {/* Botón para saltar - Solo para B2C */}
-                      {userContext?.userType !== 'b2b' && (
-                        <div className="text-center pt-2">
-                          <motion.button
-                            onClick={skipCalendarConnection}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white text-xs font-medium transition-colors px-4 py-2 rounded-md hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
-                          >
-                            Omitir por ahora
-                          </motion.button>
-                        </div>
-                      )}
-
-                      {/* Botón cerrar - Solo para B2C */}
-                      {userContext?.userType !== 'b2b' && (
+                      {/* Botón para saltar - Disponible para todos los usuarios */}
+                      <div className="text-center pt-2">
                         <motion.button
                           onClick={skipCalendarConnection}
-                          whileHover={{ scale: 1.1, rotate: 90 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="absolute top-4 right-4 p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
-                          title="Cerrar modal de calendario"
-                          aria-label="Cerrar"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white text-xs font-medium transition-colors px-4 py-2 rounded-md hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20"
                         >
-                          <X size={20} />
+                          Continuar sin calendario
                         </motion.button>
-                      )}
+                      </div>
 
-                      {/* Mensaje informativo para B2B */}
-                      {userContext?.userType === 'b2b' && (
-                        <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                          <p className="text-blue-400 text-xs text-center">
-                            ⚠️ La conexión del calendario es obligatoria para usuarios empresariales
-                          </p>
-                        </div>
-                      )}
+                      {/* Botón cerrar */}
+                      <motion.button
+                        onClick={skipCalendarConnection}
+                        whileHover={{ scale: 1.1, rotate: 90 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="absolute top-4 right-4 p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
+                        title="Cerrar modal de calendario"
+                        aria-label="Cerrar"
+                      >
+                        <X size={20} />
+                      </motion.button>
+
+                      {/* Mensaje informativo */}
+                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                        <p className="text-blue-400 text-xs text-center">
+                          💡 Conectar tu calendario permite adaptar el plan a tus horarios reales
+                        </p>
+                      </div>
                     </motion.div>
                   </motion.div>
                 )}
@@ -9708,7 +9704,6 @@ Cuéntame:
                               <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones rápidas</h4>
                               <p className="text-xs text-[#6C757D] dark:text-gray-300">Avanza rápido: cada sesión dura el tiempo exacto de la lección</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>• Multiplicador x1.0</span>
                                 <span>• Ritmo intenso</span>
                               </div>
                             </div>
@@ -9748,7 +9743,6 @@ Cuéntame:
                               <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones normales</h4>
                               <p className="text-xs text-[#6C757D] dark:text-gray-300">Un ritmo equilibrado para mejor comprensión del contenido</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>• Multiplicador x1.4</span>
                                 <span>• Ritmo equilibrado</span>
                               </div>
                             </div>
@@ -9788,7 +9782,6 @@ Cuéntame:
                               <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones largas</h4>
                               <p className="text-xs text-[#6C757D] dark:text-gray-300">Más tiempo por lección para profundizar y comprender mejor</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>• Multiplicador x1.8</span>
                                 <span>• Ritmo pausado</span>
                               </div>
                             </div>

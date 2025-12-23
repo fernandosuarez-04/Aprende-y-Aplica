@@ -773,44 +773,12 @@ export class UserContextService {
 
   /**
    * Obtiene las rutas de aprendizaje del usuario
+   * NOTA: La tabla learning_routes fue eliminada - esta función retorna vacío
+   * @deprecated La funcionalidad de rutas de aprendizaje ya no existe
    */
-  static async getLearningRoutes(userId: string): Promise<LearningRoute[]> {
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
-      .from('learning_routes')
-      .select(`
-        id,
-        user_id,
-        name,
-        description,
-        is_active,
-        created_at,
-        updated_at
-      `)
-      .eq('user_id', userId)
-      .eq('is_active', true);
-
-    if (error) {
-      // Ignorar error si la tabla no existe (42P01)
-      if (error.code !== '42P01') {
-        console.error('Error obteniendo rutas de aprendizaje:', error);
-      }
-      return [];
-    }
-
-    // Por ahora retornar sin los cursos específicos de cada ruta
-    // Se puede expandir después para incluir los cursos
-    return data.map(route => ({
-      id: route.id,
-      userId: route.user_id,
-      name: route.name,
-      description: route.description,
-      courses: [], // TODO: Cargar cursos de la ruta
-      isActive: route.is_active,
-      createdAt: route.created_at,
-      updatedAt: route.updated_at,
-    }));
+  static async getLearningRoutes(_userId: string): Promise<LearningRoute[]> {
+    // La tabla learning_routes no existe, retornar array vacío sin hacer consulta
+    return [];
   }
 
   /**

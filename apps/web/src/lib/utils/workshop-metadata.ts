@@ -130,8 +130,12 @@ export async function getWorkshopMetadata(workshopId: string): Promise<WorkshopM
         lessonDescription: lesson.lesson_description || undefined,
         lessonOrderIndex: lesson.lesson_order_index,
         durationSeconds: lesson.duration_seconds || undefined,
-        // Tiempo total (video + materiales + actividades)
-        totalDurationMinutes: lesson.total_duration_minutes || Math.ceil((lesson.duration_seconds || 0) / 60)
+        // ✅ CORRECCIÓN: Priorizar total_duration_minutes, luego calcular desde duration_seconds, fallback a 15 min
+        totalDurationMinutes: lesson.total_duration_minutes && lesson.total_duration_minutes > 0
+          ? lesson.total_duration_minutes
+          : (lesson.duration_seconds && lesson.duration_seconds > 0
+            ? Math.ceil(lesson.duration_seconds / 60)
+            : 15)
       });
     });
 

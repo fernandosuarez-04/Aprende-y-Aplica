@@ -2,12 +2,39 @@
 
 Este documento detalla el funcionamiento interno, la lógica de distribución de horarios y las reglas de comunicación con la IA (LIA) implementadas para el Planificador de Estudios. Sirve como referencia para entender cómo LIA decide y presenta los horarios.
 
-> **Última Actualización:** 21/12/2025
-> **Estado:** Implementado (Greedy Algorithm V2)
+> **Última Actualización:** 22/12/2025
+> **Estado:** Implementado (Greedy Algorithm V2) - Multiplicadores de sesión desactivados (siempre 1.0)
+> **Cambio reciente:** Corregido flujo de presentación (todas las semanas) y cálculo real de lecciones por semana
 
 ---
 
-## 1. Algoritmo de Distribución (Frontend)
+## 1. Cambios Recientes - Multiplicadores de Sesión Desactivados
+
+### ⚠️ IMPORTANTE: Multiplicadores Desactivados
+A partir de esta versión, los multiplicadores de sesión están **desactivados**:
+- El modal de selección de tipo de sesiones **SÍ SE MUESTRA** (para configuración futura)
+- La selección del usuario (rápida/normal/larga) **SE GUARDA** en el estado `studyApproach`
+- El multiplicador **SIEMPRE ES 1.0** independientemente de la selección
+- Las lecciones usan su **duración base** directamente
+
+### Razón del Cambio
+La lógica anterior de multiplicadores (x1.0, x1.4, x1.8) no consideraba adecuadamente otros factores importantes para el cálculo de sesiones de estudio. El modal se mantiene activo para permitir configuración futura.
+
+### Flujo Actual
+1. Usuario abre el planificador
+2. LIA saluda mencionando cursos asignados y fechas límite
+3. LIA pregunta qué tipo de sesiones prefiere → **Modal se muestra**
+4. Usuario selecciona tipo de sesiones → **Se guarda pero NO afecta duración**
+5. LIA pregunta si desea conectar calendario
+6. Usuario conecta el calendario (Google/Microsoft)
+7. LIA pregunta por la fecha objetivo
+8. Usuario selecciona fecha
+9. LIA analiza el calendario y genera el plan
+10. Usuario puede modificar o guardar el plan
+
+---
+
+## 2. Algoritmo de Distribución (Frontend)
 
 Ubicación: `apps/web/src/features/study-planner/components/StudyPlannerLIA.tsx`
 
@@ -16,16 +43,13 @@ La lógica principal de asignación de lecciones a huecos de calendario (slots) 
 ### Entradas (Inputs)
 - **`slotsUntilTarget`**: Lista de días/bloques de tiempo disponibles en el calendario del usuario.
 - **`validPendingLessons`**: Lista ordenada de lecciones que el usuario debe completar.
-- **`approachMultiplier`**: Factor de multiplicación basado en el "Enfoque de Estudio" seleccionado:
-  - `rapido`: x1.0
-  - `normal`: x1.4 (Default)
-  - `largo`: x1.8
+- **`approachMultiplier`**: **Siempre 1.0** (desactivado temporalmente).
 
 ### Proceso (Paso a Paso)
 1. **Cálculo de Duración Real:**
-   Para cada lección, se calcula su duración efectiva **antes** de asignarla:
-   `Duración Final = Math.ceil(Duración Base * approachMultiplier)`
-   *Ejemplo: Lección de 15 min en 'Normal' (x1.4) = 21 minutos exactos.*
+   Para cada lección, se usa su duración base directamente:
+   `Duración Final = Duración Base de la Lección`
+   *Ejemplo: Lección de 15 min = 15 minutos exactos.*
 
 2. **Asignación Voraz (Greedy):**
    - El sistema itera por cada **Slot** de tiempo disponible (ej: Lunes 09:00-10:00).
@@ -43,7 +67,7 @@ La lógica principal de asignación de lecciones a huecos de calendario (slots) 
 
 ---
 
-## 2. Comunicación con la IA (LIA)
+## 3. Comunicación con la IA (LIA)
 
 Una vez calculada la distribución exacta en el Frontend, esta información se pasa a la IA para que la "presente" al usuario.
 
@@ -52,15 +76,15 @@ El Frontend construye un "mensaje oculto" de sistema que inyecta en el contexto 
 
 ```text
 📅 Lunes 25/12
-  • ⏰ HORARIO EXACTO: 09:00 - 09:21 (21 min) - [Curso A] Lección 1
-  • ⏰ HORARIO EXACTO: 09:21 - 09:42 (21 min) - [Curso A] Lección 2
+  • ⏰ HORARIO EXACTO: 09:00 - 09:15 (15 min) - [Curso A] Lección 1
+  • ⏰ HORARIO EXACTO: 09:15 - 09:30 (15 min) - [Curso A] Lección 2
 ```
 
 **Clave Crítica:** El uso del prefijo `⏰ HORARIO EXACTO` es el disparador (trigger) para que la IA respete los tiempos.
 
 ---
 
-## 3. Reglas del Sistema (Backend / Prompt)
+## 4. Reglas del Sistema (Backend / Prompt)
 
 Ubicación: `apps/web/src/app/api/ai-chat/route.ts`
 
@@ -73,18 +97,46 @@ El System Prompt ha sido endurecido para obedecer ciegamente la distribución ge
 
 ---
 
-## 4. Recuperación y Mantenimiento
+## 5. Estados Relacionados
+
+### Estados Principales
+```typescript
+// El tipo de sesión seleccionado - SE GUARDA pero NO afecta cálculos
+const [studyApproach, setStudyApproach] = useState<'rapido' | 'normal' | 'largo' | null>(null);
+
+// Si ya se preguntó por el enfoque
+const [hasAskedApproach, setHasAskedApproach] = useState(false);
+
+// Si el modal de enfoque está visible
+const [showApproachModal, setShowApproachModal] = useState(false);
+```
+
+### Multiplicador (Desactivado)
+```typescript
+// En la lógica de distribución
+const approachMultiplier = 1.0; // ✅ FIJO: Siempre 1.0 independiente de studyApproach
+```
+
+---
+
+## 6. Recuperación y Mantenimiento
 
 ### Si el Chat se Borra / Pérdida de Contexto
 Si necesitas restaurar o modificar esta lógica, sigue estos puntos:
 
-1. **Restaurar Lógica Antigua:**
-   - En `StudyPlannerLIA.tsx`, busca `/* LEGACY LOGIC START - TO BE REMOVED`.
-   - La lógica antigua (basada en promedios) está comentada dentro de ese bloque. Descoméntala y elimina el bloque Greedy superior para revertir.
+1. **Ubicación del Multiplicador:**
+   - Buscar `approachMultiplier = 1.0` en `StudyPlannerLIA.tsx`
+   - Este valor está fijo y no depende de `studyApproach`
 
 2. **Problemas Comunes:**
-   - **"0 min" en los horarios:** Verifica que la propiedad `durationMinutes` se esté pasando correctamente en el mapeo de `setSavedLessonDistribution` (cerca de la línea 5600).
-   - **Tiempos aproximados:** Verifica que `approachMultiplier` no esté hardcodeado a 1.0.
+   - **"0 min" en los horarios:** Verifica que la propiedad `durationMinutes` se esté pasando correctamente en el mapeo de `setSavedLessonDistribution`.
+   - **Multiplicadores activos accidentalmente:** Busca `approachMultiplier` y asegúrate de que sea `1.0`.
+
+3. **Para Reactivar Multiplicadores:**
+   - Cambiar `const approachMultiplier = 1.0;` por:
+   ```typescript
+   const approachMultiplier = effectiveApproach === 'rapido' ? 1.0 : effectiveApproach === 'normal' ? 1.4 : 1.8;
+   ```
 
 ### Flujo de Datos
 Frontend (Greedy Algo) -> `lessonDistribution` -> `calendarMessage` (String con 'HORARIO EXACTO') -> Backend (Prompt) -> LIA Response.
