@@ -38,6 +38,12 @@ interface AnalyticsData {
     tokens: number;
     messages: number;
     costChange: number;
+    activeUsers: number;
+    usersChange: number;
+  };
+  efficiency: {
+    avgMessagesPerConversation: number;
+    avgCostPerMessage: number;
   };
   projections: {
     dailyAvg: number;
@@ -80,13 +86,14 @@ export function LiaAnalyticsPage() {
   const [period, setPeriod] = useState<PeriodType>('month');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [chartType, setChartType] = useState<'area' | 'bar'>('area');
+  const [provider, setProvider] = useState<'openai' | 'gemini'>('openai');
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Agregar timestamp para evitar cache y forzar datos frescos
       const timestamp = Date.now();
-      const response = await fetch(`/api/admin/lia-analytics?period=${period}&_t=${timestamp}`, {
+      const response = await fetch(`/api/admin/lia-analytics?period=${period}&provider=${provider}&_t=${timestamp}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -104,7 +111,7 @@ export function LiaAnalyticsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [period]);
+  }, [period, provider]);
 
   useEffect(() => {
     fetchData();
@@ -161,6 +168,25 @@ export function LiaAnalyticsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Selector de Proveedor */}
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center pointer-events-none">
+                {provider === 'openai' ? (
+                  <span className="text-lg">🤖</span> // Icono temporal para OpenAI
+                ) : (
+                  <span className="text-lg">✨</span> // Icono temporal para Gemini
+                )}
+              </div>
+              <select
+                value={provider}
+                onChange={(e) => setProvider(e.target.value as 'openai' | 'gemini')}
+                className="pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer min-w-[140px]"
+              >
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Gemini</option>
+              </select>
+            </div>
+
             {/* Selector de período */}
             <div className="relative">
               <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -181,21 +207,19 @@ export function LiaAnalyticsPage() {
             <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
               <button
                 onClick={() => setChartType('area')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  chartType === 'area'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${chartType === 'area'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
               >
                 Área
               </button>
               <button
                 onClick={() => setChartType('bar')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  chartType === 'bar'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${chartType === 'bar'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
               >
                 Barras
               </button>

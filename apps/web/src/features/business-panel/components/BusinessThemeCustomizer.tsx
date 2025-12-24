@@ -61,14 +61,14 @@ export function BusinessThemeCustomizer() {
     setPanelStyles(styles?.panel || getDefaultStyle());
     setUserDashboardStyles(styles?.userDashboard || getDefaultStyle());
     setLoginStyles(styles?.login || getDefaultStyle());
-    
+
     // Parsear gradiente existente si existe (solo cuando cambie el panel activo)
-    const currentBgValue = activePanel === 'panel' 
+    const currentBgValue = activePanel === 'panel'
       ? (styles?.panel || getDefaultStyle()).background_value || ''
       : activePanel === 'userDashboard'
-      ? (styles?.userDashboard || getDefaultStyle()).background_value || ''
-      : (styles?.login || getDefaultStyle()).background_value || ''
-      
+        ? (styles?.userDashboard || getDefaultStyle()).background_value || ''
+        : (styles?.login || getDefaultStyle()).background_value || ''
+
     if (currentBgValue && currentBgValue.includes('linear-gradient')) {
       const match = currentBgValue.match(/linear-gradient\((\d+)deg,\s*(.+)\)/)
       if (match) {
@@ -143,7 +143,7 @@ export function BusinessThemeCustomizer() {
 
     try {
       // console.log('💾 Guardando estilos:', { panelStyles, userDashboardStyles, loginStyles });
-      
+
       const success = await updateStyles(
         panelStyles || undefined,
         userDashboardStyles || undefined,
@@ -225,7 +225,7 @@ export function BusinessThemeCustomizer() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div 
+        <div
           className="w-16 h-16 border-4 rounded-full animate-spin"
           style={{
             borderColor: 'var(--org-primary-button-color, #3b82f6)33',
@@ -247,7 +247,7 @@ export function BusinessThemeCustomizer() {
 
   const [copiedGradient, setCopiedGradient] = useState(false)
   const [discardChanges, setDiscardChanges] = useState(false)
-  
+
   // Estado para el selector visual de gradiente
   const [gradientColors, setGradientColors] = useState<string[]>(['#1e3a8a', '#1e40af'])
   const [gradientAngle, setGradientAngle] = useState<number>(135)
@@ -350,87 +350,153 @@ export function BusinessThemeCustomizer() {
 
   return (
     <div className="space-y-6">
-      {/* Temas Predefinidos */}
-      <div 
-        className="rounded-lg p-6 border backdrop-blur-md"
+      {/* Hero Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-2xl p-6"
         style={{
-          backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`,
-          borderColor: 'var(--org-border-color, #334155)'
+          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.15))',
+          border: '1px solid rgba(139, 92, 246, 0.3)'
         }}
       >
-        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-          Temas Predefinidos
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {allThemes.map((theme) => (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1], rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-30"
+            style={{ background: 'radial-gradient(circle, #8b5cf6, transparent 70%)' }}
+          />
+        </div>
+        <div className="relative z-10 flex items-center gap-4">
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 10 }}
+            className="p-3 rounded-xl"
+            style={{ background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)' }}
+          >
+            <Palette className="w-6 h-6 text-white" />
+          </motion.div>
+          <div>
+            <h2 className="text-xl font-bold text-white">Personalización de Tema</h2>
+            <p className="text-white/60 text-sm">Personaliza la apariencia de tu plataforma</p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Temas Predefinidos - Grid Moderno */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="relative overflow-hidden rounded-2xl p-5 border backdrop-blur-xl"
+        style={{
+          backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+          borderColor: 'rgba(255, 255, 255, 0.1)'
+        }}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Temas Predefinidos</h3>
+              <p className="text-xs text-white/50">Selecciona un tema para aplicar</p>
+            </div>
+          </div>
+          {styles?.selectedTheme && (
+            <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              Tema Activo
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {allThemes.map((theme, index) => (
             <motion.button
               key={theme.id}
               onClick={() => handleApplyTheme(theme.id)}
               disabled={isSaving}
-              whileHover={{ scale: 1.02 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.03, y: -4 }}
               whileTap={{ scale: 0.98 }}
-              className={`
-                p-4 rounded-lg border-2 transition-all text-left relative
-                ${styles?.selectedTheme === theme.id
-                  ? ''
-                  : ''
-                }
-                ${isSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-              `}
-              style={styles?.selectedTheme === theme.id ? {
-                borderColor: 'var(--org-primary-button-color, #3b82f6)',
-                backgroundColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.1)'
-              } : {
-                borderColor: 'var(--org-border-color, #334155)',
-                backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)'
+              className="group relative p-3 rounded-xl text-left transition-all duration-300"
+              style={{
+                background: styles?.selectedTheme === theme.id
+                  ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.15))'
+                  : 'rgba(255, 255, 255, 0.03)',
+                border: styles?.selectedTheme === theme.id
+                  ? '2px solid rgba(139, 92, 246, 0.5)'
+                  : '1px solid rgba(255, 255, 255, 0.08)'
               }}
             >
+              {/* Theme Preview Box */}
               <div
-                className="w-full h-20 rounded-lg mb-3 flex items-center justify-center text-2xl font-bold"
-                  style={{
-                  background: getThemeColor(theme)
-                  }}
+                className="w-full aspect-[4/3] rounded-lg mb-2.5 flex items-center justify-center text-xl font-bold text-white relative overflow-hidden"
+                style={{ background: getThemeColor(theme) }}
+              >
+                <motion.span
+                  className="relative z-10"
+                  animate={styles?.selectedTheme === theme.id ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 2, repeat: Infinity }}
                 >
-                {getThemeIcon(theme.id)}
-                </div>
-              <h4 className="font-medium text-sm mb-1" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                {theme.name}
-              </h4>
-              <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                {theme.description}
-              </p>
-              {theme.id === 'recursos-procesado' && (
-                <span className="absolute top-2 right-2 text-xs px-1.5 py-0.5 rounded bg-yellow-500 text-black font-bold">
-                  NEW
-                      </span>
-                    )}
+                  {getThemeIcon(theme.id)}
+                </motion.span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+
+              <h4 className="font-semibold text-xs text-white truncate mb-0.5">{theme.name}</h4>
+              <p className="text-[10px] text-white/50 line-clamp-2 leading-tight">{theme.description}</p>
+
+              {/* Selected Indicator */}
               {styles?.selectedTheme === theme.id && (
-                <div className="absolute top-2 right-2">
-                  <CheckCircle className="w-4 h-4" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center"
+                >
+                  <Check className="w-3 h-3 text-white" />
+                </motion.div>
+              )}
+
+              {/* Branding Theme Badge */}
+              {theme.id === 'branding-personalizado' && (
+                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                  AUTO
                 </div>
               )}
             </motion.button>
           ))}
         </div>
-        <p className="text-sm mt-4" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-          Tu tema actual
-        </p>
-      </div>
+      </motion.div>
 
       {/* Layout de 2 columnas: Controles y Vista Previa */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         {/* Columna Izquierda: Controles de Estilo */}
-        <div className="lg:col-span-2 space-y-6">
-          <div 
-            className="rounded-lg p-6 border backdrop-blur-md"
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="lg:col-span-3"
+        >
+          <div
+            className="rounded-2xl p-5 border backdrop-blur-xl"
             style={{
-              backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`,
-              borderColor: 'var(--org-border-color, #334155)'
+              backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+              borderColor: 'rgba(255, 255, 255, 0.1)'
             }}
           >
-            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-              Controles de Estilo
-            </h3>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30">
+                <Palette className="w-4 h-4 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Controles de Estilo</h3>
+                <p className="text-xs text-white/50">Ajusta colores y opacidades</p>
+              </div>
+            </div>
 
             {/* Gradient Selector Visual */}
             {currentStyles.background_type === 'gradient' && (
@@ -474,7 +540,7 @@ export function BusinessThemeCustomizer() {
                               value={color}
                               onChange={(e) => updateGradientColor(index, e.target.value)}
                               className="w-16 h-16 rounded-lg cursor-pointer border-2"
-                              style={{ 
+                              style={{
                                 borderColor: 'var(--org-border-color, #334155)'
                               }}
                               title={`Color ${index + 1} del gradiente: ${color}`}
@@ -577,7 +643,7 @@ export function BusinessThemeCustomizer() {
                             formData.append('file', file)
                             formData.append('bucket', 'Panel-Business')
                             formData.append('folder', 'Background')
-                            
+
                             try {
                               const response = await fetch('/api/upload', {
                                 method: 'POST',
@@ -611,311 +677,349 @@ export function BusinessThemeCustomizer() {
               </div>
             )}
 
-            {/* Colores UI */}
+            {/* Colores UI - Grid de 2 columnas */}
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                Colores UI
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-blue-400" />
+                  Colores UI
+                </h4>
+              </div>
 
-              {/* Botón Fondo */}
-        <div>
-                <label className="block text-sm font-medium mb-2 flex items-center justify-between" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                  <span>Botón Fondo</span>
-                  <button
-                    type="button"
-                    onClick={() => updateStyle(activePanel, 'primary_button_color', '#3b82f6')}
-                    className="text-xs px-2 py-1 rounded transition-colors"
-                    style={{
-                      backgroundColor: 'var(--org-secondary-button-color, #8b5cf6)',
-                      color: '#ffffff'
-                    }}
-                  >
-                    Restablecer
-                  </button>
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-                    value={currentStyles.primary_button_color || '#3b82f6'}
-                    onChange={(e) => updateStyle(activePanel, 'primary_button_color', e.target.value)}
-                    className="w-12 h-12 rounded cursor-pointer border"
-                    style={{ borderColor: 'var(--org-border-color, #334155)' }}
-                    title="Color del botón principal"
-                    aria-label="Color del botón principal"
-            />
-            <input
-              type="text"
-                    value={currentStyles.primary_button_color || '#3b82f6'}
-              onChange={(e) => {
-                      const color = e.target.value
-                      if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color) || color === '') {
-                        updateStyle(activePanel, 'primary_button_color', color)
-                      }
-                    }}
-                    className="flex-1 px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2"
-                    style={{
-                      backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                      borderColor: 'var(--org-border-color, #334155)',
-                      color: 'var(--org-text-color, #ffffff)'
-                    }}
-                    placeholder="#FF7723"
-            />
-          </div>
-        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Botón Primario */}
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-white/80">Botón Primario</span>
+                    <button
+                      type="button"
+                      onClick={() => updateStyle(activePanel, 'primary_button_color', '#3b82f6')}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="color"
+                        value={currentStyles.primary_button_color || '#3b82f6'}
+                        onChange={(e) => updateStyle(activePanel, 'primary_button_color', e.target.value)}
+                        className="w-9 h-9 rounded-lg cursor-pointer border-0"
+                        style={{ backgroundColor: currentStyles.primary_button_color }}
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={currentStyles.primary_button_color || '#3b82f6'}
+                      onChange={(e) => {
+                        if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value) || e.target.value === '') {
+                          updateStyle(activePanel, 'primary_button_color', e.target.value)
+                        }
+                      }}
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs font-mono bg-white/5 border border-white/10 text-white"
+                    />
+                  </div>
+                </div>
 
-              {/* Botón Principal */}
-        <div>
-                <label className="block text-sm font-medium mb-2 flex items-center justify-between" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                  <span>Botón Principal</span>
-                  <button
-                    type="button"
-                    onClick={() => updateStyle(activePanel, 'text_color', '#ffffff')}
-                    className="text-xs px-2 py-1 rounded transition-colors"
-                    style={{
-                      backgroundColor: 'var(--org-secondary-button-color, #8b5cf6)',
-                      color: '#ffffff'
-                    }}
-                  >
-                    Restablecer
-                  </button>
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-                    value={currentStyles.text_color || '#ffffff'}
-                    onChange={(e) => updateStyle(activePanel, 'text_color', e.target.value)}
-                    className="w-12 h-12 rounded cursor-pointer border"
-                    style={{ borderColor: 'var(--org-border-color, #334155)' }}
-                    title="Color del texto"
-                    aria-label="Color del texto"
-            />
-            <input
-              type="text"
-                    value={currentStyles.text_color || '#ffffff'}
-              onChange={(e) => {
-                      const color = e.target.value
-                      if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color) || color === '') {
-                        updateStyle(activePanel, 'text_color', color)
-                      }
-                    }}
-                    className="flex-1 px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2"
-                    style={{
-                      backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                      borderColor: 'var(--org-border-color, #334155)',
-                      color: 'var(--org-text-color, #ffffff)'
-                    }}
-                    placeholder="#FFFFFF"
-            />
-          </div>
-        </div>
+                {/* Botón Secundario */}
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-white/80">Botón Secundario</span>
+                    <button
+                      type="button"
+                      onClick={() => updateStyle(activePanel, 'secondary_button_color', '#8b5cf6')}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={currentStyles.secondary_button_color || '#8b5cf6'}
+                      onChange={(e) => updateStyle(activePanel, 'secondary_button_color', e.target.value)}
+                      className="w-9 h-9 rounded-lg cursor-pointer border-0"
+                    />
+                    <input
+                      type="text"
+                      value={currentStyles.secondary_button_color || '#8b5cf6'}
+                      onChange={(e) => {
+                        if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value) || e.target.value === '') {
+                          updateStyle(activePanel, 'secondary_button_color', e.target.value)
+                        }
+                      }}
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs font-mono bg-white/5 border border-white/10 text-white"
+                    />
+                  </div>
+                </div>
 
-              {/* Botón Secundario */}
-        <div>
-                <label className="block text-sm font-medium mb-2 flex items-center justify-between" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                  <span>Botón Secundario</span>
-                  <button
-                    type="button"
-                    onClick={() => updateStyle(activePanel, 'secondary_button_color', '#8b5cf6')}
-                    className="text-xs px-2 py-1 rounded transition-colors"
-                    style={{
-                      backgroundColor: 'var(--org-secondary-button-color, #8b5cf6)',
-                      color: '#ffffff'
-                    }}
-                  >
-                    Restablecer
-                  </button>
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-                    value={currentStyles.secondary_button_color || '#8b5cf6'}
-                    onChange={(e) => updateStyle(activePanel, 'secondary_button_color', e.target.value)}
-                    className="w-12 h-12 rounded cursor-pointer border"
-                    style={{ borderColor: 'var(--org-border-color, #334155)' }}
-                    title="Color del botón secundario"
-                    aria-label="Color del botón secundario"
-            />
-            <input
-              type="text"
-                    value={currentStyles.secondary_button_color || '#8b5cf6'}
-              onChange={(e) => {
-                      const color = e.target.value
-                      if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color) || color === '') {
-                        updateStyle(activePanel, 'secondary_button_color', color)
-                      }
-                    }}
-                    className="flex-1 px-3 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2"
-                    style={{
-                      backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                      borderColor: 'var(--org-border-color, #334155)',
-                      color: 'var(--org-text-color, #ffffff)'
-                    }}
-                    placeholder="#9977FF"
-            />
-          </div>
-        </div>
+                {/* Color de Texto */}
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-white/80">Color de Texto</span>
+                    <button
+                      type="button"
+                      onClick={() => updateStyle(activePanel, 'text_color', '#ffffff')}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={currentStyles.text_color || '#ffffff'}
+                      onChange={(e) => updateStyle(activePanel, 'text_color', e.target.value)}
+                      className="w-9 h-9 rounded-lg cursor-pointer border-0"
+                    />
+                    <input
+                      type="text"
+                      value={currentStyles.text_color || '#ffffff'}
+                      onChange={(e) => {
+                        if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value) || e.target.value === '') {
+                          updateStyle(activePanel, 'text_color', e.target.value)
+                        }
+                      }}
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs font-mono bg-white/5 border border-white/10 text-white"
+                    />
+                  </div>
+                </div>
 
-              {/* Opacidad Modales */}
-        <div>
-                <label className="block text-sm font-medium mb-2 flex items-center justify-between" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                  <span>Opacidad Modales</span>
-            <button
-                    type="button"
-                    onClick={() => updateStyle(activePanel, 'modal_opacity', 0.95)}
-                    className="text-xs px-2 py-1 rounded transition-colors"
-                    style={{
-                      backgroundColor: 'var(--org-secondary-button-color, #8b5cf6)',
-                      color: '#ffffff'
-                    }}
-                  >
-                    Restablecer
-            </button>
-          </label>
-          <input
-            type="range"
-                  min="0.3"
-                  max="1"
-                  step="0.05"
-                  value={currentStyles.modal_opacity || 0.95}
-                  onChange={(e) => updateStyle(activePanel, 'modal_opacity', Number(e.target.value))}
-                  className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                  style={{
-                    accentColor: 'var(--org-primary-button-color, #3b82f6)'
-                  }}
-                  title={`Opacidad del modal: ${((currentStyles.modal_opacity || 0.95) * 100).toFixed(0)}%`}
-                  aria-label={`Opacidad del modal: ${((currentStyles.modal_opacity || 0.95) * 100).toFixed(0)}%`}
-          />
-        </div>
+                {/* Color de Acento */}
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-white/80">Color Acento</span>
+                    <button
+                      type="button"
+                      onClick={() => updateStyle(activePanel, 'accent_color', '#60a5fa')}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={currentStyles.accent_color || '#60a5fa'}
+                      onChange={(e) => updateStyle(activePanel, 'accent_color', e.target.value)}
+                      className="w-9 h-9 rounded-lg cursor-pointer border-0"
+                    />
+                    <input
+                      type="text"
+                      value={currentStyles.accent_color || '#60a5fa'}
+                      onChange={(e) => {
+                        if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value) || e.target.value === '') {
+                          updateStyle(activePanel, 'accent_color', e.target.value)
+                        }
+                      }}
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs font-mono bg-white/5 border border-white/10 text-white"
+                    />
+                  </div>
+                </div>
 
-              {/* Opacidad Subtítulos */}
-        <div>
-                <label className="block text-sm font-medium mb-2 flex items-center justify-between" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                  <span>Opacidad Subtítulos</span>
-            <button
-                    type="button"
-                    onClick={() => updateStyle(activePanel, 'card_opacity', 1)}
-                    className="text-xs px-2 py-1 rounded transition-colors"
-                    style={{
-                      backgroundColor: 'var(--org-secondary-button-color, #8b5cf6)',
-                      color: '#ffffff'
-                    }}
-                  >
-                    Restablecer
-            </button>
-          </label>
-          <input
-            type="range"
-                  min="0.3"
-                  max="1"
-                  step="0.05"
-                  value={currentStyles.card_opacity || 1}
-                  onChange={(e) => updateStyle(activePanel, 'card_opacity', Number(e.target.value))}
-                  className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                  style={{
-                    accentColor: 'var(--org-primary-button-color, #3b82f6)'
-                  }}
-                  title={`Opacidad de las tarjetas: ${((currentStyles.card_opacity || 1) * 100).toFixed(0)}%`}
-                  aria-label={`Opacidad de las tarjetas: ${((currentStyles.card_opacity || 1) * 100).toFixed(0)}%`}
-          />
-          </div>
-        </div>
-          </div>
-        </div>
+                {/* Fondo de Sidebar */}
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-white/80">Fondo Sidebar</span>
+                    <button
+                      type="button"
+                      onClick={() => updateStyle(activePanel, 'sidebar_background', '#1e293b')}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={currentStyles.sidebar_background || '#1e293b'}
+                      onChange={(e) => updateStyle(activePanel, 'sidebar_background', e.target.value)}
+                      className="w-9 h-9 rounded-lg cursor-pointer border-0"
+                    />
+                    <input
+                      type="text"
+                      value={currentStyles.sidebar_background || '#1e293b'}
+                      onChange={(e) => {
+                        if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value) || e.target.value === '') {
+                          updateStyle(activePanel, 'sidebar_background', e.target.value)
+                        }
+                      }}
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs font-mono bg-white/5 border border-white/10 text-white"
+                    />
+                  </div>
+                </div>
 
-        {/* Columna Derecha: Vista Previa */}
-        <div className="lg:col-span-1">
-          <div 
-            className="rounded-lg p-6 border backdrop-blur-md sticky top-6"
-            style={{
-              backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`,
-              borderColor: 'var(--org-border-color, #334155)'
-            }}
-          >
-            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-          Vista Previa
-            </h3>
-        <div
-              className="rounded-lg border-2 overflow-hidden"
-          style={{
-                borderColor: 'var(--org-border-color, #334155)',
-                backgroundColor: currentStyles.background_type === 'gradient' 
-                  ? currentStyles.background_value 
-                  : currentStyles.background_type === 'color'
-                  ? currentStyles.background_value
-                  : 'rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))',
-                minHeight: '400px'
-              }}
-            >
-              {/* Mini Sidebar Preview */}
-              <div className="p-3 border-b" style={{ borderColor: 'var(--org-border-color, #334155)' }}>
-                <div className="flex gap-2 text-xs">
-                  <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Dashboard</span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Usuarios</span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Cursos</span>
+                {/* Fondo de Tarjetas */}
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-white/80">Fondo Tarjetas</span>
+                    <button
+                      type="button"
+                      onClick={() => updateStyle(activePanel, 'card_background', '#1e293b')}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={currentStyles.card_background || '#1e293b'}
+                      onChange={(e) => updateStyle(activePanel, 'card_background', e.target.value)}
+                      className="w-9 h-9 rounded-lg cursor-pointer border-0"
+                    />
+                    <input
+                      type="text"
+                      value={currentStyles.card_background || '#1e293b'}
+                      onChange={(e) => {
+                        if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value) || e.target.value === '') {
+                          updateStyle(activePanel, 'card_background', e.target.value)
+                        }
+                      }}
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs font-mono bg-white/5 border border-white/10 text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Color de Bordes */}
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-white/80">Color Bordes</span>
+                    <button
+                      type="button"
+                      onClick={() => updateStyle(activePanel, 'border_color', '#334155')}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={currentStyles.border_color || '#334155'}
+                      onChange={(e) => updateStyle(activePanel, 'border_color', e.target.value)}
+                      className="w-9 h-9 rounded-lg cursor-pointer border-0"
+                    />
+                    <input
+                      type="text"
+                      value={currentStyles.border_color || '#334155'}
+                      onChange={(e) => {
+                        if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value) || e.target.value === '') {
+                          updateStyle(activePanel, 'border_color', e.target.value)
+                        }
+                      }}
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs font-mono bg-white/5 border border-white/10 text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Opacidad Modales */}
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-white/80">Opacidad Modales</span>
+                    <span className="text-[10px] text-white/50">{((currentStyles.modal_opacity || 0.95) * 100).toFixed(0)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.3"
+                    max="1"
+                    step="0.05"
+                    value={currentStyles.modal_opacity || 0.95}
+                    onChange={(e) => updateStyle(activePanel, 'modal_opacity', Number(e.target.value))}
+                    className="w-full h-1.5 rounded-lg appearance-none cursor-pointer bg-white/10"
+                    style={{ accentColor: currentStyles.primary_button_color || '#3b82f6' }}
+                  />
                 </div>
               </div>
-              {/* Preview Content */}
-              <div className="p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 rounded border text-xs" style={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    borderColor: 'var(--org-border-color, #334155)',
-                    color: 'var(--org-text-color, #ffffff)'
-                  }}>
-                    PMM
-                  </div>
-                  <div className="p-2 rounded border text-xs" style={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    borderColor: 'var(--org-border-color, #334155)',
-                    color: 'var(--org-text-color, #ffffff)'
-                  }}>
-                    Tesis Completa
-                  </div>
-                  <div className="p-2 rounded border text-xs" style={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    borderColor: 'var(--org-border-color, #334155)',
-                    color: 'var(--org-text-color, #ffffff)'
-                  }}>
-                    Nuevos Usuarios
-                  </div>
-                  <div className="p-2 rounded border text-xs" style={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    borderColor: 'var(--org-border-color, #334155)',
-                    color: 'var(--org-text-color, #ffffff)'
-                  }}>
-                    Cursos Activos
-                  </div>
-                </div>
-                <div className="p-2 rounded border text-xs" style={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderColor: 'var(--org-border-color, #334155)',
-                  color: 'var(--org-text-color, #ffffff)'
-                }}>
-                  Progreso
-                </div>
-                {/* Preview Buttons */}
-                <div className="flex gap-2 mt-4">
-            <button
-                    className="px-3 py-1.5 rounded text-xs font-medium text-white"
-              style={{ 
-                      backgroundColor: currentStyles.primary_button_color || '#3b82f6'
-              }}
-            >
-              Botón Principal
-            </button>
-            <button
-                    className="px-3 py-1.5 rounded text-xs font-medium text-white"
-              style={{ 
-                      backgroundColor: currentStyles.secondary_button_color || '#8b5cf6'
-              }}
-            >
-              Botón Secundario
-            </button>
-          </div>
-        </div>
             </div>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Columna Derecha: Vista Previa */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          className="lg:col-span-2"
+        >
+          <div
+            className="rounded-2xl p-5 border backdrop-blur-xl sticky top-6"
+            style={{
+              backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+              borderColor: 'rgba(255, 255, 255, 0.1)'
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30">
+                <ImageIcon className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Vista Previa</h3>
+                <p className="text-xs text-white/50">Así se verá tu panel</p>
+              </div>
+            </div>
+
+            {/* Dashboard Preview */}
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{
+                border: `1px solid ${currentStyles.border_color || '#334155'}`,
+                background: currentStyles.background_type === 'gradient' && currentStyles.background_value
+                  ? currentStyles.background_value
+                  : currentStyles.background_type === 'color' && currentStyles.background_value
+                    ? currentStyles.background_value
+                    : '#0a0f1e'
+              }}
+            >
+              {/* Simulated Layout */}
+              <div className="flex">
+                {/* Mini Sidebar */}
+                <div
+                  className="w-10 min-h-[180px] border-r flex flex-col items-center py-2 gap-1.5"
+                  style={{
+                    backgroundColor: currentStyles.sidebar_background || '#1e293b',
+                    borderColor: currentStyles.border_color || '#334155'
+                  }}
+                >
+                  <div className="w-5 h-5 rounded" style={{ backgroundColor: currentStyles.primary_button_color || '#3b82f6' }} />
+                  <div className="w-4 h-4 rounded opacity-30" style={{ backgroundColor: currentStyles.text_color || '#fff' }} />
+                  <div className="w-4 h-4 rounded opacity-30" style={{ backgroundColor: currentStyles.text_color || '#fff' }} />
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 p-2 space-y-1.5">
+                  <div className="text-[9px] font-bold mb-1" style={{ color: currentStyles.text_color || '#fff' }}>Dashboard</div>
+
+                  <div className="grid grid-cols-2 gap-1">
+                    {['PMM', 'Tesis', 'Usuarios', 'Cursos'].map((item, i) => (
+                      <div key={i} className="p-1.5 rounded text-[8px]" style={{
+                        backgroundColor: currentStyles.card_background || '#1e293b',
+                        color: currentStyles.text_color || '#fff',
+                        border: `1px solid ${currentStyles.border_color || '#334155'}`
+                      }}>
+                        <span className="opacity-60">{item}</span>
+                        <span className="block font-bold">{[125, 48, 31, 12][i]}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-1.5 rounded" style={{ backgroundColor: currentStyles.card_background || '#1e293b', border: `1px solid ${currentStyles.border_color || '#334155'}` }}>
+                    <div className="text-[8px] mb-1" style={{ color: currentStyles.text_color || '#fff', opacity: 0.6 }}>Progreso</div>
+                    <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: currentStyles.border_color || '#334155' }}>
+                      <div className="h-full w-3/5 rounded-full" style={{ background: `linear-gradient(90deg, ${currentStyles.primary_button_color || '#3b82f6'}, ${currentStyles.secondary_button_color || '#8b5cf6'})` }} />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-1">
+                    <button className="px-2 py-1 rounded text-[8px] font-medium text-white" style={{ backgroundColor: currentStyles.primary_button_color || '#3b82f6' }}>Principal</button>
+                    <button className="px-2 py-1 rounded text-[8px] font-medium text-white" style={{ backgroundColor: currentStyles.secondary_button_color || '#8b5cf6' }}>Secundario</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Mensajes de Éxito/Error */}
@@ -942,76 +1046,76 @@ export function BusinessThemeCustomizer() {
       )}
 
       {/* Botones de Acción */}
-      <div className="flex justify-between">
-        <div className="flex gap-4">
-          <button
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="flex flex-col sm:flex-row justify-between gap-4"
+      >
+        <div className="flex gap-3">
+          <motion.button
             onClick={handleDiscard}
-            className="px-6 py-3 rounded-lg font-medium transition-colors border"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2"
             style={{
               backgroundColor: 'transparent',
-              borderColor: 'var(--org-secondary-button-color, #8b5cf6)',
-              color: 'var(--org-text-color, #ffffff)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(var(--org-secondary-button-color-rgb, 139, 92, 246), 0.1)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent'
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              color: '#a78bfa'
             }}
           >
-            Descartar Cambios
-          </button>
-          <button
+            Descartar
+          </motion.button>
+          <motion.button
             onClick={handleReset}
-            className="px-6 py-3 rounded-lg font-medium transition-colors border"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2"
             style={{
-              backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-              borderColor: 'var(--org-border-color, #334155)',
-              color: 'var(--org-text-color, #ffffff)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.7)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)'
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#94a3b8'
             }}
           >
-            <RotateCcw className="w-4 h-4 inline-block mr-2" />
+            <RotateCcw className="w-4 h-4" />
             Restablecer
-          </button>
+          </motion.button>
         </div>
-        <button
+        <motion.button
           onClick={handleSave}
           disabled={isSaving}
-          className="px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          whileHover={{ scale: isSaving ? 1 : 1.02 }}
+          whileTap={{ scale: isSaving ? 1 : 0.98 }}
+          className="relative overflow-hidden px-8 py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5"
           style={{
-            backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-            color: '#ffffff'
-          }}
-          onMouseEnter={(e) => {
-            if (!isSaving) {
-              (e.target as HTMLButtonElement).style.opacity = '0.9'
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isSaving) {
-              (e.target as HTMLButtonElement).style.opacity = '1'
-            }
+            background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+            boxShadow: '0 8px 30px rgba(139, 92, 246, 0.4)'
           }}
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="w-5 h-5" />
-              Guardar Cambios
-            </>
-          )}
-        </button>
-      </div>
+          {/* Shine effect */}
+          <motion.div
+            className="absolute inset-0 w-full"
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+            }}
+          />
+          <div className="relative flex items-center gap-2.5">
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Guardar Cambios
+              </>
+            )}
+          </div>
+        </motion.button>
+      </motion.div>
     </div>
   );
 }

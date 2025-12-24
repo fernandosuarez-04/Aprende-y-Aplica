@@ -71,112 +71,241 @@ export function BusinessSettings() {
     }
   }, [refetchSubscription, refetch])
 
+  // Definición de tabs con iconos y colores
+  const tabs = [
+    { id: 'organization' as const, label: 'Datos de la Empresa', icon: Building2, color: '#3b82f6' },
+    { id: 'subscription' as const, label: 'Suscripción', icon: CreditCard, color: '#10b981' },
+    ...(canUseBranding ? [{ id: 'branding' as const, label: 'Branding', icon: Palette, color: '#8b5cf6' }] : []),
+    { id: 'personalization' as const, label: 'Personalización', icon: Sparkles, color: '#f59e0b' },
+  ]
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div
-          className="w-16 h-16 border-4 rounded-full animate-spin"
-          style={{
-            borderColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.3)',
-            borderTopColor: 'var(--org-primary-button-color, #3b82f6)'
-          }}
-        ></div>
+      <div className="min-h-screen p-6 lg:p-8">
+        <div className="flex items-center justify-center py-32">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-16 h-16 border-4 rounded-full"
+            style={{
+              borderColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.2)',
+              borderTopColor: 'var(--org-primary-button-color, #3b82f6)'
+            }}
+          />
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="text-center py-20">
-        <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-        <p className="text-red-400 text-lg mb-4">{error}</p>
-        <button
-          onClick={refetch}
-          className="px-4 py-2 rounded-lg transition-colors"
-          style={{
-            backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-            opacity: 0.2
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.3')}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.2')}
+      <div className="min-h-screen p-6 lg:p-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-20"
         >
-          Reintentar
-        </button>
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <XCircle className="w-20 h-20 text-red-400 mx-auto mb-6" />
+          </motion.div>
+          <p className="text-red-400 text-xl font-semibold mb-4">{error}</p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={refetch}
+            className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              color: '#ffffff'
+            }}
+          >
+            Reintentar
+          </motion.button>
+        </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="w-full space-y-6">
-      {/* Tabs */}
-      <div className="rounded-xl border border-carbon-700 overflow-hidden backdrop-blur-md" style={{ backgroundColor: `rgba(var(--org-card-background-rgb, 30, 41, 59), var(--org-card-opacity, 1))` }}>
-        <div className="flex border-b border-carbon-700 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('organization')}
-            className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'organization'
-                ? 'border-b-2 bg-carbon-900'
-                : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
-            }`}
-            style={activeTab === 'organization' ? {
-              color: 'var(--org-primary-button-color, #3b82f6)',
-              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-            } : {}}
-          >
-            <Building2 className="w-5 h-5" />
-            Datos de la Empresa
-          </button>
-          <button
-            onClick={() => setActiveTab('subscription')}
-            className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'subscription'
-                ? 'border-b-2 bg-carbon-900'
-                : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
-            }`}
-            style={activeTab === 'subscription' ? {
-              color: 'var(--org-primary-button-color, #3b82f6)',
-              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-            } : {}}
-          >
-            <CreditCard className="w-5 h-5" />
-            Suscripción
-          </button>
-          {canUseBranding && (
-            <button
-              onClick={() => setActiveTab('branding')}
-              className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 'branding'
-                  ? 'border-b-2 bg-carbon-900'
-                  : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
-              }`}
-              style={activeTab === 'branding' ? {
-                color: 'var(--org-primary-button-color, #3b82f6)',
-                borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-              } : {}}
-            >
-              <Palette className="w-5 h-5" />
-              Branding
-            </button>
-          )}
-          <button
-            onClick={() => setActiveTab('personalization')}
-            className={`px-6 py-4 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'personalization'
-                ? 'border-b-2 bg-carbon-900'
-                : 'text-carbon-400 hover:text-carbon-300 hover:bg-carbon-900/50'
-            }`}
-            style={activeTab === 'personalization' ? {
-              color: 'var(--org-primary-button-color, #3b82f6)',
-              borderBottomColor: 'var(--org-primary-button-color, #3b82f6)'
-            } : {}}
-          >
-            <Palette className="w-5 h-5" />
-            Personalización
-          </button>
+    <div className="min-h-screen p-6 lg:p-8 space-y-8">
+      {/* Hero Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
+        className="relative overflow-hidden rounded-3xl p-8 group"
+        style={{
+          background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6) 0%, var(--org-secondary-button-color, #8b5cf6) 100%)',
+        }}
+      >
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div
+            animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-20"
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%)' }}
+          />
+          <motion.div
+            animate={{ rotate: -360, scale: [1, 1.3, 1] }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full opacity-15"
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%)' }}
+          />
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6">
+        {/* Floating Particles */}
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={i}
+            animate={{
+              y: [0, -20, 0],
+              opacity: [0.3, 0.8, 0.3],
+              scale: [1, 1.2, 1]
+            }}
+            transition={{
+              duration: 3 + i,
+              repeat: Infinity,
+              delay: i * 0.5
+            }}
+            className="absolute rounded-full bg-white/20"
+            style={{
+              width: 8 + i * 4,
+              height: 8 + i * 4,
+              top: `${20 + i * 15}%`,
+              right: `${10 + i * 8}%`
+            }}
+          />
+        ))}
+
+        <div className="relative z-10">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center gap-3 mb-3"
+          >
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            >
+              <SettingsIcon className="h-7 w-7 text-white/90" />
+            </motion.div>
+            <span className="text-white/80 text-sm font-medium tracking-wider uppercase">
+              Panel de Control
+            </span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-4xl lg:text-5xl font-bold text-white mb-3"
+            style={{
+              textShadow: '0 4px 20px rgba(0,0,0,0.3)'
+            }}
+          >
+            Configuración
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-white/80 text-lg max-w-xl"
+          >
+            Gestiona las configuraciones de tu organización
+          </motion.p>
+        </div>
+
+        {/* Decorative Corner Elements */}
+        <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-white/20 rounded-tr-2xl" />
+        <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-white/20 rounded-bl-2xl" />
+      </motion.div>
+
+      {/* Premium Tabs */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="rounded-2xl border overflow-hidden backdrop-blur-xl"
+        style={{
+          backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.8)',
+          borderColor: 'rgba(255, 255, 255, 0.1)'
+        }}
+      >
+        {/* Tab Navigation */}
+        <div className="flex border-b overflow-x-auto" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+          {tabs.map((tab, index) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.id
+            return (
+              <motion.button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * index }}
+                whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+                className={`relative px-6 py-5 font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-3 group`}
+                style={{
+                  color: isActive ? tab.color : 'rgba(255, 255, 255, 0.6)'
+                }}
+              >
+                {/* Active Indicator */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5"
+                    style={{ backgroundColor: tab.color }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+
+                {/* Icon with glow effect */}
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  className="relative"
+                >
+                  <Icon className="w-5 h-5" />
+                  {isActive && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 0.5, scale: 1.5 }}
+                      className="absolute inset-0 blur-md"
+                      style={{ backgroundColor: tab.color }}
+                    />
+                  )}
+                </motion.div>
+
+                <span className={`transition-all ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                  {tab.label}
+                </span>
+
+                {/* Hover effect indicator */}
+                <motion.div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                  style={{
+                    background: `linear-gradient(to right, transparent, ${tab.color}10, transparent)`
+                  }}
+                />
+              </motion.button>
+            )
+          })}
+        </div>
+
+        {/* Tab Content with Animation */}
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+          className="p-8"
+        >
           {activeTab === 'organization' && (
             <OrganizationTab
               organization={data.organization}
@@ -194,17 +323,28 @@ export function BusinessSettings() {
             <BrandingTab />
           )}
           {activeTab === 'branding' && !canUseBranding && (
-            <div className="text-center py-20">
-              <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-              <p className="text-yellow-400 text-lg mb-2">Branding Corporativo No Disponible</p>
-              <p className="text-carbon-400 text-sm">Esta función solo está disponible en Enterprise. Actualiza tu plan para acceder a esta funcionalidad.</p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-20"
+            >
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <AlertCircle className="w-20 h-20 text-yellow-400 mx-auto mb-6" />
+              </motion.div>
+              <p className="text-yellow-400 text-xl font-semibold mb-3">Branding Corporativo No Disponible</p>
+              <p className="text-white/60 text-base max-w-md mx-auto">
+                Esta función solo está disponible en Enterprise. Actualiza tu plan para acceder a esta funcionalidad.
+              </p>
+            </motion.div>
           )}
           {activeTab === 'personalization' && (
             <BusinessThemeCustomizer />
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   )
 }
@@ -335,344 +475,374 @@ function OrganizationTab({
   }
 
   if (!organization) {
-  return (
-      <div className="text-center py-12">
-        <Info className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--org-text-color, #ffffff)' }} />
-        <p style={{ color: 'var(--org-text-color, #ffffff)' }}>No hay información de organización disponible</p>
-        </div>
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center py-16"
+      >
+        <motion.div
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <Info className="w-20 h-20 mx-auto mb-6 text-white/60" />
+        </motion.div>
+        <p className="text-white/80 text-lg">No hay información de organización disponible</p>
+      </motion.div>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {/* Información Básica y Contacto - Grid de 2 columnas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Columna Izquierda: Información Básica */}
-        <div className="rounded-lg p-6 border backdrop-blur-md space-y-4" style={{ 
-          backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`,
-          borderColor: 'var(--org-border-color, #334155)'
-        }}>
-          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-          Información Básica
-        </h3>
-
-        <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-            Nombre de la Empresa *
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-              className="w-full px-4 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2"
-              style={{
-                backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                borderColor: 'var(--org-border-color, #334155)',
-                color: 'var(--org-text-color, #ffffff)'
-              }}
-            placeholder="Nombre de tu empresa"
-          />
-        </div>
-
-        <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-            Descripción
-          </label>
-            <div className="relative">
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows={4}
-                maxLength={500}
-                className="w-full px-4 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2 resize-none"
-                style={{
-                  backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                  borderColor: 'var(--org-border-color, #334155)',
-                  color: 'var(--org-text-color, #ffffff)'
-                }}
-            placeholder="Describe tu empresa..."
-          />
-              <div className="absolute bottom-2 right-2 text-xs" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                {formData.description.length}/500
-              </div>
-        </div>
-      </div>
-
-          <div>
-            <label htmlFor="contact_email" className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-              Email de Contacto
-            </label>
-            <input
-              type="email"
-              id="contact_email"
-              name="contact_email"
-              value={formData.contact_email}
-              onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2"
-              style={{
-                backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                borderColor: 'var(--org-border-color, #334155)',
-                color: 'var(--org-text-color, #ffffff)'
-              }}
-              placeholder="contacto@empresa.com"
-            />
+        <motion.div
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative rounded-2xl p-6 border backdrop-blur-xl space-y-5 overflow-hidden group"
+          style={{
+            backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+            borderColor: 'rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          {/* Decorative gradient background */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+            <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-gradient-to-br from-blue-500/20 to-transparent blur-2xl" />
           </div>
 
-          <div>
-            <label htmlFor="website_url" className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-            Sitio Web
-          </label>
-          <input
-            type="url"
-            id="website_url"
-            name="website_url"
-            value={formData.website_url}
-            onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2"
-              style={{
-                backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                borderColor: 'var(--org-border-color, #334155)',
-                color: 'var(--org-text-color, #ffffff)'
-              }}
-            placeholder="https://www.empresa.com"
-          />
-      </div>
-
-        <div>
-            <label htmlFor="max_users" className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-              Límite de usuarios
-          </label>
-            <div className="flex items-center gap-2">
-          <input
-            type="number"
-            id="max_users"
-            name="max_users"
-            value={formData.max_users}
-            onChange={handleChange}
-            min="1"
-                className="flex-1 px-4 py-2 rounded-lg border transition-colors focus:outline-none focus:ring-2"
-                style={{
-                  backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                  borderColor: 'var(--org-border-color, #334155)',
-                  color: 'var(--org-text-color, #ffffff)'
-                }}
-            placeholder="10"
-          />
-              <span className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>usuarios</span>
+          {/* Header with icon */}
+          <div className="relative flex items-center gap-3 mb-6">
+            <motion.div
+              whileHover={{ rotate: 15, scale: 1.1 }}
+              className="p-3 rounded-xl"
+              style={{ background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))' }}
+            >
+              <Building2 className="w-5 h-5 text-white" />
+            </motion.div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Información Básica</h3>
+              <p className="text-sm text-white/50">Datos principales de tu empresa</p>
             </div>
           </div>
-        </div>
+
+          {/* Form Fields with premium styling */}
+          <div className="space-y-4">
+            <div className="group/input">
+              <label htmlFor="name" className="block text-sm font-medium mb-2 text-white/80">
+                Nombre de la Empresa *
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10"
+                  style={{
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    color: '#ffffff'
+                  }}
+                  placeholder="Nombre de tu empresa"
+                />
+              </div>
+            </div>
+
+            <div className="group/input">
+              <label htmlFor="description" className="block text-sm font-medium mb-2 text-white/80">
+                Descripción
+              </label>
+              <div className="relative">
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={4}
+                  maxLength={500}
+                  className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10 resize-none"
+                  style={{
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    color: '#ffffff'
+                  }}
+                  placeholder="Describe tu empresa..."
+                />
+                <div className="absolute bottom-3 right-3 text-xs px-2 py-1 rounded-full bg-white/10 text-white/50">
+                  {formData.description.length}/500
+                </div>
+              </div>
+            </div>
+
+            <div className="group/input">
+              <label htmlFor="contact_email" className="block text-sm font-medium mb-2 text-white/80">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email de Contacto
+                </div>
+              </label>
+              <input
+                type="email"
+                id="contact_email"
+                name="contact_email"
+                value={formData.contact_email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10"
+                style={{
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  color: '#ffffff'
+                }}
+                placeholder="contacto@empresa.com"
+              />
+            </div>
+
+            <div className="group/input">
+              <label htmlFor="website_url" className="block text-sm font-medium mb-2 text-white/80">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  Sitio Web
+                </div>
+              </label>
+              <input
+                type="url"
+                id="website_url"
+                name="website_url"
+                value={formData.website_url}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10"
+                style={{
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  color: '#ffffff'
+                }}
+                placeholder="https://www.empresa.com"
+              />
+            </div>
+
+            <div className="group/input">
+              <label htmlFor="max_users" className="block text-sm font-medium mb-2 text-white/80">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Límite de usuarios
+                </div>
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  id="max_users"
+                  name="max_users"
+                  value={formData.max_users}
+                  onChange={handleChange}
+                  min="1"
+                  className="flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10"
+                  style={{
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    color: '#ffffff'
+                  }}
+                  placeholder="10"
+                />
+                <span className="text-sm text-white/60 px-3 py-2 rounded-lg bg-white/5">usuarios</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Columna Derecha: Información de Contacto */}
         <div className="space-y-6">
-          <div className="rounded-lg p-6 border backdrop-blur-md space-y-4" style={{ 
-            backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`,
-            borderColor: 'var(--org-border-color, #334155)'
-          }}>
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-              Información de Contacto
-            </h3>
-            <p className="text-sm mb-4" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-              Información de contacto de tu organización
-            </p>
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="relative rounded-2xl p-6 border backdrop-blur-xl space-y-5 overflow-hidden group"
+            style={{
+              backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+              borderColor: 'rgba(255, 255, 255, 0.1)'
+            }}
+          >
+            {/* Decorative gradient background */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+              <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-gradient-to-br from-emerald-500/20 to-transparent blur-2xl" />
+            </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                Nombre de Contacto
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.name}
-                  readOnly
-                  className="flex-1 px-4 py-2 rounded-lg border transition-colors"
-                  style={{
-                    backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                    borderColor: 'var(--org-border-color, #334155)',
-                    color: 'var(--org-text-color, #ffffff)'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(formData.name, 'name')}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  style={{
-                    backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-                    color: '#ffffff'
-                  }}
-                >
-                  {copiedFields.name ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Copiado
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Copiar
-                    </>
-                  )}
-                </button>
+            {/* Header with icon */}
+            <div className="relative flex items-center gap-3 mb-4">
+              <motion.div
+                whileHover={{ rotate: 15, scale: 1.1 }}
+                className="p-3 rounded-xl"
+                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+              >
+                <Mail className="w-5 h-5 text-white" />
+              </motion.div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Información de Contacto</h3>
+                <p className="text-sm text-white/50">Datos de contacto de tu organización</p>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                Descripción
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.description || ''}
-                  readOnly
-                  className="flex-1 px-4 py-2 rounded-lg border transition-colors"
-                  style={{
-                    backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                    borderColor: 'var(--org-border-color, #334155)',
-                    color: 'var(--org-text-color, #ffffff)'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(formData.description || '', 'description')}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  style={{
-                    backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-                    color: '#ffffff'
-                  }}
+            {/* Contact Fields with Premium Copy Buttons */}
+            <div className="space-y-4">
+              {[
+                { label: 'Nombre de Contacto', value: formData.name, field: 'name' },
+                { label: 'Descripción', value: formData.description || '', field: 'description' },
+                { label: 'Email de Contacto', value: formData.contact_email || '', field: 'email' }
+              ].map((item, index) => (
+                <motion.div
+                  key={item.field}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * index }}
                 >
-                  {copiedFields.description ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Copiado
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Copiar
-                    </>
-                  )}
-                </button>
-              </div>
+                  <label className="block text-sm font-medium mb-2 text-white/80">
+                    {item.label}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={item.value}
+                      readOnly
+                      className="flex-1 px-4 py-3 rounded-xl border-2 bg-white/5 cursor-default"
+                      style={{
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        color: 'rgba(255, 255, 255, 0.8)'
+                      }}
+                    />
+                    <motion.button
+                      type="button"
+                      onClick={() => copyToClipboard(item.value, item.field)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg"
+                      style={{
+                        background: copiedFields[item.field]
+                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                          : 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))',
+                        color: '#ffffff',
+                        boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
+                      }}
+                    >
+                      {copiedFields[item.field] ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          <span className="hidden sm:inline">Copiado</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span className="hidden sm:inline">Copiar</span>
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                Email de Contacto
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={formData.contact_email || ''}
-                  readOnly
-                  className="flex-1 px-4 py-2 rounded-lg border transition-colors"
-                  style={{
-                    backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                    borderColor: 'var(--org-border-color, #334155)',
-                    color: 'var(--org-text-color, #ffffff)'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(formData.contact_email || '', 'email')}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  style={{
-                    backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-                    color: '#ffffff'
-                  }}
-                >
-                  {copiedFields.email ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Copiado
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Copiar
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+          </motion.div>
 
           {/* Link Personalizado de Login */}
           {organization?.slug && (
-            <LoginPersonalizadoSection 
-              organization={organization} 
+            <LoginPersonalizadoSection
+              organization={organization}
               updateOrganization={updateOrganization}
             />
           )}
         </div>
       </div>
 
-      {/* Mensajes de Éxito/Error */}
+      {/* Mensajes de Éxito/Error con animaciones premium */}
       {saveSuccess && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 flex items-center gap-3"
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          className="relative overflow-hidden rounded-2xl p-5 flex items-center gap-4"
+          style={{
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1))',
+            border: '1px solid rgba(16, 185, 129, 0.3)'
+          }}
         >
-          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-          <p className="text-green-400">{saveSuccess}</p>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 0.5 }}
+          >
+            <CheckCircle className="w-6 h-6 text-emerald-400" />
+          </motion.div>
+          <p className="text-emerald-300 font-medium">{saveSuccess}</p>
+          <motion.div
+            className="absolute inset-0 opacity-30"
+            animate={{ x: ['0%', '100%'] }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent)'
+            }}
+          />
         </motion.div>
       )}
 
       {saveError && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-center gap-3"
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          className="relative overflow-hidden rounded-2xl p-5 flex items-center gap-4"
+          style={{
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1))',
+            border: '1px solid rgba(239, 68, 68, 0.3)'
+          }}
         >
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-          <p className="text-red-400">{saveError}</p>
+          <motion.div
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 0.5 }}
+          >
+            <AlertCircle className="w-6 h-6 text-red-400" />
+          </motion.div>
+          <p className="text-red-300 font-medium">{saveError}</p>
         </motion.div>
       )}
 
-      {/* Botones de Acción */}
-      <div className="flex justify-between">
-        <button
+      {/* Botones de Acción Premium */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="flex justify-between gap-4 pt-4"
+      >
+        <motion.button
           type="button"
           onClick={handleDiscard}
-          className="px-6 py-3 rounded-lg font-medium transition-colors border"
+          whileHover={{ scale: 1.02, x: -2 }}
+          whileTap={{ scale: 0.98 }}
+          className="px-6 py-3.5 rounded-xl font-semibold transition-all duration-300 border-2 flex items-center gap-2"
           style={{
-            backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-            borderColor: 'var(--org-border-color, #334155)',
-            color: 'var(--org-text-color, #ffffff)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.7)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)'
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+            color: 'rgba(255, 255, 255, 0.8)'
           }}
         >
+          <X className="w-5 h-5" />
           Descartar Cambios
-        </button>
-        <button
+        </motion.button>
+
+        <motion.button
           type="submit"
           disabled={isSaving}
-          className="px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          whileHover={{ scale: isSaving ? 1 : 1.02, x: isSaving ? 0 : 2 }}
+          whileTap={{ scale: isSaving ? 1 : 0.98 }}
+          className="px-8 py-3.5 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-xl"
           style={{
-            backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-            color: '#ffffff'
-          }}
-          onMouseEnter={(e) => {
-            if (!isSaving) e.currentTarget.style.opacity = '0.9'
-          }}
-          onMouseLeave={(e) => {
-            if (!isSaving) e.currentTarget.style.opacity = '1'
+            background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))',
+            color: '#ffffff',
+            boxShadow: '0 8px 30px rgba(59, 130, 246, 0.4)'
           }}
         >
           {isSaving ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <Loader2 className="w-5 h-5" />
+              </motion.div>
               Guardando...
             </>
           ) : (
@@ -681,17 +851,17 @@ function OrganizationTab({
               Guardar Cambios
             </>
           )}
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     </form>
   )
 }
 
 // Componente: Link Personalizado de Login
-function LoginPersonalizadoSection({ 
+function LoginPersonalizadoSection({
   organization,
   updateOrganization
-}: { 
+}: {
   organization: OrganizationData
   updateOrganization: (data: Partial<OrganizationData>) => Promise<boolean>
 }) {
@@ -769,223 +939,267 @@ function LoginPersonalizadoSection({
 
   if (!canUseCustomLogin()) {
     return (
-      <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-6">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-2xl p-6 border backdrop-blur-xl"
+        style={{
+          background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.05))',
+          borderColor: 'rgba(234, 179, 8, 0.3)'
+        }}
+      >
+        <div className="flex items-start gap-4">
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="p-3 rounded-xl bg-yellow-500/20"
+          >
+            <AlertCircle className="w-6 h-6 text-yellow-400" />
+          </motion.div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-yellow-400 mb-2">
+            <h3 className="text-lg font-bold text-yellow-400 mb-2">
               Login Personalizado No Disponible
             </h3>
-            <p className="text-yellow-300 text-sm">
+            <p className="text-yellow-300/80 text-sm">
               Para acceder a login personalizado, necesitas una suscripción activa (Team, Business o Enterprise).
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <div 
-      className="rounded-lg p-6 border backdrop-blur-md" 
-      style={{ 
-        backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`,
-        borderColor: 'var(--org-border-color, #334155)'
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      className="relative rounded-2xl p-6 border backdrop-blur-xl overflow-hidden group"
+      style={{
+        backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+        borderColor: 'rgba(255, 255, 255, 0.1)'
       }}
     >
-      <h3 className="text-lg font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-        <LinkIcon className="w-5 h-5" />
-        Link Personalizado de Login
-      </h3>
-      <p className="text-sm mb-4" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-        Comparte estos links con tus empleados para que accedan directamente al login personalizado de tu organización.
-      </p>
+      {/* Decorative gradient background */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+        <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-gradient-to-br from-purple-500/20 to-transparent blur-2xl" />
+      </div>
 
-      {/* Link de Login */}
-      <div className="space-y-3 mb-6">
+      {/* Header with icon */}
+      <div className="relative flex items-center gap-3 mb-6">
+        <motion.div
+          whileHover={{ rotate: 15, scale: 1.1 }}
+          className="p-3 rounded-xl"
+          style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}
+        >
+          <LinkIcon className="w-5 h-5 text-white" />
+        </motion.div>
         <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-            Link de Login
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={loginUrl}
-              readOnly
-              className="flex-1 px-4 py-2 rounded-lg text-sm transition-colors focus:outline-none focus:ring-2"
-              style={{
-                backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                borderColor: 'var(--org-border-color, #334155)',
-                color: 'var(--org-text-color, #ffffff)',
-                border: '1px solid'
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => copyToClipboard(loginUrl, 'login')}
-              className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
-              style={{
-                backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-                color: '#ffffff'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-              title="Copiar link de login"
-            >
-              {copiedLogin ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  Copiado
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  Copiar
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Link de Registro */}
-        <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-            Link de Registro
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={registerUrl}
-              readOnly
-              className="flex-1 px-4 py-2 rounded-lg text-sm transition-colors focus:outline-none focus:ring-2"
-              style={{
-                backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                borderColor: 'var(--org-border-color, #334155)',
-                color: 'var(--org-text-color, #ffffff)',
-                border: '1px solid'
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => copyToClipboard(registerUrl, 'register')}
-              className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
-              style={{
-                backgroundColor: 'var(--org-primary-button-color, #3b82f6)',
-                color: '#ffffff'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-              title="Copiar link de registro"
-            >
-              {copiedRegister ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  Copiado
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  Copiar
-                </>
-              )}
-            </button>
-          </div>
+          <h3 className="text-lg font-bold text-white">Link Personalizado de Login</h3>
+          <p className="text-sm text-white/50">Comparte estos links con tus empleados</p>
         </div>
       </div>
 
-      {/* Configuración SSO */}
-      <div className="mb-6 p-4 rounded-lg border" style={{ 
-         backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.3)',
-         borderColor: 'var(--org-border-color, #334155)'
-      }}>
-        <h4 className="text-sm font-semibold mb-4" style={{ color: 'var(--org-text-color, #ffffff)' }}>
+      {/* Links de Login y Registro */}
+      <div className="space-y-4 mb-6">
+        {[
+          { label: 'Link de Login', url: loginUrl, copied: copiedLogin, type: 'login' as const },
+          { label: 'Link de Registro', url: registerUrl, copied: copiedRegister, type: 'register' as const }
+        ].map((item, index) => (
+          <motion.div
+            key={item.type}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 * index }}
+          >
+            <label className="block text-sm font-medium mb-2 text-white/80">
+              {item.label}
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={item.url}
+                readOnly
+                className="flex-1 px-4 py-3 rounded-xl text-sm bg-white/5 border-2 cursor-default"
+                style={{
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'rgba(255, 255, 255, 0.8)'
+                }}
+              />
+              <motion.button
+                type="button"
+                onClick={() => copyToClipboard(item.url, item.type)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-2 whitespace-nowrap shadow-lg"
+                style={{
+                  background: item.copied
+                    ? 'linear-gradient(135deg, #10b981, #059669)'
+                    : 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
+                }}
+                title={`Copiar ${item.label.toLowerCase()}`}
+              >
+                {item.copied ? (
+                  <>
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <Check className="w-4 h-4" />
+                    </motion.div>
+                    <span className="hidden sm:inline">Copiado</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span className="hidden sm:inline">Copiar</span>
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Configuración SSO - Premium Design */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="mb-6 p-5 rounded-2xl border backdrop-blur-md"
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+          borderColor: 'rgba(255, 255, 255, 0.1)'
+        }}
+      >
+        <h4 className="text-base font-semibold mb-5 text-white flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-purple-400" />
           Inicio de Sesión Social (SSO)
         </h4>
         <div className="space-y-4">
           {/* Google Switch */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1.5">
+          <motion.div
+            className="flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:bg-white/5"
+            whileHover={{ x: 2 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-2 shadow-lg">
                 <svg viewBox="0 0 24 24" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--org-text-color, #ffffff)' }}>Google</p>
-                <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Permitir iniciar sesión con Google</p>
+                <p className="text-sm font-semibold text-white">Google</p>
+                <p className="text-xs text-white/50">Permitir iniciar sesión con Google</p>
               </div>
             </div>
-            <button
+            <motion.button
               type="button"
               onClick={() => handleToggleSSO('google', !organization.google_login_enabled)}
               disabled={isUpdatingGoogle}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                organization.google_login_enabled ? 'bg-blue-600' : 'bg-slate-700'
-              }`}
+              whileTap={{ scale: 0.95 }}
+              className="relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-300 focus:outline-none shadow-inner"
+              style={{
+                background: organization.google_login_enabled
+                  ? 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))'
+                  : 'rgba(255, 255, 255, 0.1)'
+              }}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                organization.google_login_enabled ? 'translate-x-6' : 'translate-x-1'
-              }`} />
-            </button>
-          </div>
+              <motion.span
+                animate={{ x: organization.google_login_enabled ? 30 : 4 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className="inline-block h-5 w-5 rounded-full bg-white shadow-lg"
+              />
+            </motion.button>
+          </motion.div>
 
-          <div className="h-px bg-slate-700/50" />
+          <div className="h-px bg-white/10" />
 
           {/* Microsoft Switch */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1.5">
+          <motion.div
+            className="flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:bg-white/5"
+            whileHover={{ x: 2 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-2 shadow-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 23 23">
-                  <path fill="#f35022" d="M1 1h10v10H1z"/>
-                  <path fill="#80bb03" d="M12 1h10v10H12z"/>
-                  <path fill="#03a5f0" d="M1 12h10v10H1z"/>
-                  <path fill="#ffba08" d="M12 12h10v10H12z"/>
+                  <path fill="#f35022" d="M1 1h10v10H1z" />
+                  <path fill="#80bb03" d="M12 1h10v10H12z" />
+                  <path fill="#03a5f0" d="M1 12h10v10H1z" />
+                  <path fill="#ffba08" d="M12 12h10v10H12z" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--org-text-color, #ffffff)' }}>Microsoft</p>
-                <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Permitir iniciar sesión con Microsoft</p>
+                <p className="text-sm font-semibold text-white">Microsoft</p>
+                <p className="text-xs text-white/50">Permitir iniciar sesión con Microsoft</p>
               </div>
             </div>
-             <button
+            <motion.button
               type="button"
               onClick={() => handleToggleSSO('microsoft', !organization.microsoft_login_enabled)}
               disabled={isUpdatingMicrosoft}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                organization.microsoft_login_enabled ? 'bg-blue-600' : 'bg-slate-700'
-              }`}
+              whileTap={{ scale: 0.95 }}
+              className="relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-300 focus:outline-none shadow-inner"
+              style={{
+                background: organization.microsoft_login_enabled
+                  ? 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))'
+                  : 'rgba(255, 255, 255, 0.1)'
+              }}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                organization.microsoft_login_enabled ? 'translate-x-6' : 'translate-x-1'
-              }`} />
-            </button>
-          </div>
+              <motion.span
+                animate={{ x: organization.microsoft_login_enabled ? 30 : 4 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className="inline-block h-5 w-5 rounded-full bg-white shadow-lg"
+              />
+            </motion.button>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Información adicional */}
-      <div className="rounded-lg p-4 border" style={{
-        backgroundColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.1)',
-        borderColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.3)'
-      }}>
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{
-            color: 'var(--org-primary-button-color, #3b82f6)'
-          }} />
+      {/* Información adicional - Premium Info Box */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="rounded-2xl p-5 border relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.1))',
+          borderColor: 'rgba(59, 130, 246, 0.3)'
+        }}
+      >
+        <div className="flex items-start gap-4 relative z-10">
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="p-2 rounded-lg bg-blue-500/20"
+          >
+            <Info className="w-5 h-5 text-blue-400" />
+          </motion.div>
           <div className="flex-1">
-            <p className="text-sm" style={{
-              color: 'var(--org-primary-button-color, #3b82f6)'
-            }}>
-              <strong>Nota:</strong> Los usuarios que accedan a estos links verán el login personalizado con tu logo y nombre de empresa.
+            <p className="text-sm text-blue-300">
+              <strong className="text-blue-200">Nota:</strong> Los usuarios que accedan a estos links verán el login personalizado con tu logo y nombre de empresa.
               Si intentan acceder al login principal, serán redirigidos automáticamente a tu login personalizado.
             </p>
           </div>
         </div>
-      </div>
-    </div>
+        {/* Subtle animated gradient */}
+        <motion.div
+          className="absolute inset-0 opacity-30 pointer-events-none"
+          animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+          style={{
+            background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.2), transparent)',
+            backgroundSize: '200% 100%'
+          }}
+        />
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -996,10 +1210,19 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
 
   if (!subscription) {
     return (
-      <div className="text-center py-12">
-        <Info className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--org-text-color, #ffffff)' }} />
-        <p style={{ color: 'var(--org-text-color, #ffffff)' }}>No hay información de suscripción disponible</p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center py-20"
+      >
+        <motion.div
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <CreditCard className="w-24 h-24 mx-auto mb-6 text-white/40" />
+        </motion.div>
+        <p className="text-white/70 text-lg">No hay información de suscripción disponible</p>
+      </motion.div>
     )
   }
 
@@ -1011,20 +1234,28 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
     pro: 'Pro'
   }
 
-  const planDescriptions: Record<string, string> = {
-    team: 'Tu Plan de Colaboración en Equipo',
-    business: 'Tu Plan de Crecimiento Empresarial',
-    enterprise: 'Tu Plan Premium de Liderazgo Digital',
-    starter: 'Tu Plan de Inicio',
-    pro: 'Tu Plan Profesional'
+  const planColors: Record<string, { primary: string, secondary: string, glow: string }> = {
+    enterprise: { primary: '#8b5cf6', secondary: '#7c3aed', glow: 'rgba(139, 92, 246, 0.4)' },
+    business: { primary: '#3b82f6', secondary: '#2563eb', glow: 'rgba(59, 130, 246, 0.4)' },
+    team: { primary: '#10b981', secondary: '#059669', glow: 'rgba(16, 185, 129, 0.4)' },
+    pro: { primary: '#f59e0b', secondary: '#d97706', glow: 'rgba(245, 158, 11, 0.4)' },
+    starter: { primary: '#6b7280', secondary: '#4b5563', glow: 'rgba(107, 114, 128, 0.4)' }
   }
 
-  const statusLabels: Record<string, string> = {
-    active: 'ACTIVA',
-    expired: 'EXPIRADA',
-    cancelled: 'CANCELADA',
-    trial: 'EN PRUEBA',
-    pending: 'PENDIENTE'
+  const planIcons: Record<string, React.ReactNode> = {
+    enterprise: <Sparkles className="w-8 h-8" />,
+    business: <Building2 className="w-8 h-8" />,
+    team: <Users className="w-8 h-8" />,
+    pro: <CreditCard className="w-8 h-8" />,
+    starter: <CreditCard className="w-8 h-8" />
+  }
+
+  const statusConfig: Record<string, { color: string, bg: string, label: string }> = {
+    active: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.2)', label: 'ACTIVA' },
+    expired: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.2)', label: 'EXPIRADA' },
+    cancelled: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.2)', label: 'CANCELADA' },
+    trial: { color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.2)', label: 'EN PRUEBA' },
+    pending: { color: '#6b7280', bg: 'rgba(107, 114, 128, 0.2)', label: 'PENDIENTE' }
   }
 
   const formatDate = (date: string | null | undefined) => {
@@ -1032,11 +1263,11 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
     try {
       const dateObj = new Date(date)
       if (isNaN(dateObj.getTime())) return 'No disponible'
-      return dateObj.toLocaleDateString('es-ES', {
+      return dateObj.toLocaleDateString('es-MX', {
         year: 'numeric',
-        month: 'short',
+        month: 'long',
         day: 'numeric'
-      }).toUpperCase()
+      })
     } catch (error) {
       return 'No disponible'
     }
@@ -1052,41 +1283,43 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
   }
 
   const daysUntilRenewal = subscription.days_until_expiration ?? calculateDaysUntilRenewal()
+  const totalDays = 365 // Assuming yearly subscription
+  const progressPercentage = daysUntilRenewal ? Math.max(0, Math.min(100, (daysUntilRenewal / totalDays) * 100)) : 0
 
   const getBenefits = () => {
     const plan = subscription.plan?.toLowerCase() || 'team'
-    const benefits: Record<string, string[]> = {
+    const benefits: Record<string, { icon: React.ReactNode, text: string }[]> = {
       enterprise: [
-        'Soporte 24/7 Prioritario',
-        'Almacenamiento Ilimitado en Nube',
-        'Analíticas Avanzadas de Equipo',
-        'Integraciones Exclusivas',
-        'Acceso a Funciones Beta',
-        'Gestión Avanzada de Usuarios'
+        { icon: <Check className="w-4 h-4" />, text: 'Soporte 24/7 Prioritario' },
+        { icon: <Check className="w-4 h-4" />, text: 'Almacenamiento Ilimitado en Nube' },
+        { icon: <Check className="w-4 h-4" />, text: 'Analíticas Avanzadas de Equipo' },
+        { icon: <Check className="w-4 h-4" />, text: 'Integraciones Exclusivas' },
+        { icon: <Check className="w-4 h-4" />, text: 'Acceso a Funciones Beta' },
+        { icon: <Check className="w-4 h-4" />, text: 'Gestión Avanzada de Usuarios' }
       ],
       business: [
-        'Soporte Prioritario',
-        'Almacenamiento Ampliado',
-        'Analíticas de Equipo',
-        'Integraciones Premium',
-        'Gestión de Usuarios'
+        { icon: <Check className="w-4 h-4" />, text: 'Soporte Prioritario' },
+        { icon: <Check className="w-4 h-4" />, text: 'Almacenamiento Ampliado' },
+        { icon: <Check className="w-4 h-4" />, text: 'Analíticas de Equipo' },
+        { icon: <Check className="w-4 h-4" />, text: 'Integraciones Premium' },
+        { icon: <Check className="w-4 h-4" />, text: 'Gestión de Usuarios' }
       ],
       team: [
-        'Soporte por Email',
-        'Almacenamiento Estándar',
-        'Analíticas Básicas',
-        'Integraciones Estándar'
+        { icon: <Check className="w-4 h-4" />, text: 'Soporte por Email' },
+        { icon: <Check className="w-4 h-4" />, text: 'Almacenamiento Estándar' },
+        { icon: <Check className="w-4 h-4" />, text: 'Analíticas Básicas' },
+        { icon: <Check className="w-4 h-4" />, text: 'Integraciones Estándar' }
       ],
       pro: [
-        'Soporte Prioritario',
-        'Almacenamiento Ampliado',
-        'Analíticas Avanzadas',
-        'Integraciones Premium'
+        { icon: <Check className="w-4 h-4" />, text: 'Soporte Prioritario' },
+        { icon: <Check className="w-4 h-4" />, text: 'Almacenamiento Ampliado' },
+        { icon: <Check className="w-4 h-4" />, text: 'Analíticas Avanzadas' },
+        { icon: <Check className="w-4 h-4" />, text: 'Integraciones Premium' }
       ],
       starter: [
-        'Soporte por Email',
-        'Almacenamiento Básico',
-        'Analíticas Básicas'
+        { icon: <Check className="w-4 h-4" />, text: 'Soporte por Email' },
+        { icon: <Check className="w-4 h-4" />, text: 'Almacenamiento Básico' },
+        { icon: <Check className="w-4 h-4" />, text: 'Analíticas Básicas' }
       ]
     }
     return benefits[plan] || benefits.team
@@ -1111,222 +1344,355 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
     }
   }
 
-  const planName = planLabels[subscription.plan?.toLowerCase() || 'team'] || subscription.plan || 'Team'
-  const planDescription = planDescriptions[subscription.plan?.toLowerCase() || 'team'] || planDescriptions.team
-  const status = statusLabels[subscription.status?.toLowerCase() || 'active'] || 'ACTIVA'
+  const planKey = subscription.plan?.toLowerCase() || 'team'
+  const planName = planLabels[planKey] || subscription.plan || 'Team'
+  const colors = planColors[planKey] || planColors.team
+  const statusInfo = statusConfig[subscription.status?.toLowerCase() || 'active'] || statusConfig.active
   const isActive = subscription.status?.toLowerCase() === 'active' && !subscription.is_expired
 
   return (
     <div className="space-y-6">
-      {/* Card Principal */}
-      <div 
-        className="rounded-xl pt-6 pb-8 px-8 border backdrop-blur-md"
+      {/* Hero Card - Plan Principal */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative overflow-hidden rounded-3xl p-8"
         style={{
-          backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`,
-          borderColor: 'var(--org-border-color, #334155)'
+          background: `linear-gradient(135deg, ${colors.primary}20, ${colors.secondary}10)`,
+          border: `1px solid ${colors.primary}30`
         }}
       >
-        {/* Título y Estado */}
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            {subscription.plan?.toLowerCase() === 'enterprise' ? (
-              <h2 className="text-3xl font-bold mb-2">
-                <span style={{ color: 'var(--org-text-color, #ffffff)' }}>Suscripción </span>
-                <span
-                  className="relative inline-block"
-                  style={{
-                    background: `linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))`,
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    filter: 'drop-shadow(0 0 8px rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.5))',
-                    position: 'relative'
-                  }}
-                >
-                  {planName}
-                  <span
-                    className="absolute inset-0 blur-lg opacity-60"
-                    style={{
-                      background: `linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))`,
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                      zIndex: -1
-                    }}
-                  >
-                    {planName}
-            </span>
-            </span>
-              </h2>
-            ) : (
-              <h2 
-                className="text-3xl font-bold mb-2"
-                style={{ color: 'var(--org-text-color, #ffffff)' }}
-              >
-                Suscripción {planName}
-              </h2>
-            )}
-            <p 
-              className="text-base"
-              style={{ color: 'rgba(255, 255, 255, 0.7)' }}
-            >
-              {planDescription}
-            </p>
-          </div>
-          {isActive && (
-            <div
-              className="px-6 py-2.5 rounded-full font-bold text-sm uppercase shadow-lg"
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+            className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-20"
+            style={{ background: `radial-gradient(circle, ${colors.primary}, transparent 70%)` }}
+          />
+          <motion.div
+            animate={{ rotate: -360 }}
+            transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+            className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full opacity-15"
+            style={{ background: `radial-gradient(circle, ${colors.secondary}, transparent 70%)` }}
+          />
+        </div>
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          {/* Left: Plan Info */}
+          <div className="flex items-start gap-5">
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: 10 }}
+              className="p-4 rounded-2xl"
               style={{
-                background: `linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))`,
-                color: '#ffffff',
-                boxShadow: '0 4px 14px 0 rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.4)'
+                background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                boxShadow: `0 8px 30px ${colors.glow}`
               }}
             >
-              {status}
-        </div>
-          )}
-      </div>
+              <div className="text-white">
+                {planIcons[planKey] || <CreditCard className="w-8 h-8" />}
+              </div>
+            </motion.div>
 
-        {/* Separador */}
-        <div 
-          className="h-px mb-6"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-        />
-
-        {/* Detalles y Beneficios */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
-          {/* Columna Izquierda: Detalles */}
-          <div>
-            <h3 
-              className="text-xs font-semibold uppercase tracking-wider mb-4 text-center"
-              style={{ color: 'rgba(255, 255, 255, 0.6)' }}
-            >
-              DETALLES DE LA SUSCRIPCIÓN
-        </h3>
-            <div className="space-y-4 text-center">
-              <div>
-                <p 
-                  className="text-sm mb-1"
-                  style={{ color: 'rgba(255, 255, 255, 0.7)' }}
-                >
-                  Inicio: {formatDate(subscription.start_date)}
-                </p>
-                <p 
-                  className="text-sm"
-                  style={{ color: 'rgba(255, 255, 255, 0.7)' }}
-                >
-                  Fin: {formatDate(subscription.end_date)}
-                </p>
-          </div>
-              {daysUntilRenewal !== null && daysUntilRenewal > 0 && (
-                <div>
-                  <p 
-                    className="text-4xl font-bold mb-1"
-                    style={{ color: 'var(--org-text-color, #ffffff)' }}
-                  >
-                    {daysUntilRenewal}
-                  </p>
-                  <p 
-                    className="text-sm"
-                    style={{ color: 'rgba(255, 255, 255, 0.6)' }}
-                  >
-                    DÍAS para renovación automática
-                  </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-          {/* Columna Derecha: Beneficios */}
-          <div>
-            <h3 
-              className="text-xs font-semibold uppercase tracking-wider mb-4"
-              style={{ color: 'rgba(255, 255, 255, 0.6)' }}
-            >
-              BENEFICIOS EXCLUSIVOS
-            </h3>
-            <div className="space-y-3">
-              {getBenefits().map((benefit, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+            <div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="flex items-center gap-3 mb-2"
+              >
+                <h2 className="text-3xl lg:text-4xl font-bold text-white">
+                  Plan {planName}
+                </h2>
+                {planKey === 'enterprise' && (
+                  <motion.span
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="px-3 py-1 rounded-full text-xs font-bold"
                     style={{
-                      backgroundColor: 'var(--org-primary-button-color, #3b82f6)'
+                      background: `linear-gradient(135deg, #fbbf24, #f59e0b)`,
+                      color: '#1f2937'
                     }}
                   >
-                    <Check className="w-3 h-3 text-white" />
-                  </div>
-                  <p 
-                    className="text-sm"
-                    style={{ color: 'var(--org-text-color, #ffffff)' }}
+                    PREMIUM
+                  </motion.span>
+                )}
+              </motion.div>
+
+              <motion.p
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-white/60 text-lg"
+              >
+                Tu plan de liderazgo digital
+              </motion.p>
+            </div>
+          </div>
+
+          {/* Right: Status Badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4, type: "spring" }}
+            whileHover={{ scale: 1.05 }}
+            className="flex items-center gap-3 px-6 py-3 rounded-2xl"
+            style={{
+              background: statusInfo.bg,
+              border: `1px solid ${statusInfo.color}40`
+            }}
+          >
+            <motion.div
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: statusInfo.color }}
+            />
+            <span className="font-bold text-lg" style={{ color: statusInfo.color }}>
+              {statusInfo.label}
+            </span>
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Three Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Card 1: Tiempo Restante con Circular Progress */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="relative overflow-hidden rounded-2xl p-6 border backdrop-blur-xl group"
+          style={{
+            backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+            borderColor: 'rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+            <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br from-blue-500/20 to-transparent blur-2xl" />
+          </div>
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="w-5 h-5 text-blue-400" />
+              <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider">
+                Tiempo Restante
+              </h3>
+            </div>
+
+            <div className="flex flex-col items-center justify-center py-4">
+              {/* Circular Progress */}
+              <div className="relative w-32 h-32 mb-4">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r="56"
+                    stroke="rgba(255,255,255,0.1)"
+                    strokeWidth="8"
+                    fill="none"
+                  />
+                  <motion.circle
+                    cx="64"
+                    cy="64"
+                    r="56"
+                    stroke={colors.primary}
+                    strokeWidth="8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 56}`}
+                    initial={{ strokeDashoffset: 2 * Math.PI * 56 }}
+                    animate={{ strokeDashoffset: 2 * Math.PI * 56 * (1 - progressPercentage / 100) }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    style={{ filter: `drop-shadow(0 0 10px ${colors.glow})` }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5, type: "spring" }}
+                    className="text-4xl font-bold text-white"
                   >
-                    {benefit}
-            </p>
+                    {daysUntilRenewal || 0}
+                  </motion.span>
+                  <span className="text-xs text-white/50 uppercase">días</span>
+                </div>
+              </div>
+
+              <p className="text-center text-white/60 text-sm">
+                Para renovación automática
+              </p>
+            </div>
           </div>
+        </motion.div>
+
+        {/* Card 2: Fechas */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="relative overflow-hidden rounded-2xl p-6 border backdrop-blur-xl group"
+          style={{
+            backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+            borderColor: 'rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+            <div className="absolute -top-12 -left-12 w-32 h-32 rounded-full bg-gradient-to-br from-purple-500/20 to-transparent blur-2xl" />
+          </div>
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-6">
+              <Calendar className="w-5 h-5 text-purple-400" />
+              <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider">
+                Período de Suscripción
+              </h3>
+            </div>
+
+            <div className="space-y-6">
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+                className="flex items-center gap-4"
+              >
+                <div className="p-3 rounded-xl bg-green-500/20">
+                  <Calendar className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/50 uppercase mb-1">Fecha de Inicio</p>
+                  <p className="text-white font-semibold">{formatDate(subscription.start_date)}</p>
+                </div>
+              </motion.div>
+
+              <div className="border-l-2 border-dashed border-white/20 ml-6 h-4" />
+
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 }}
+                className="flex items-center gap-4"
+              >
+                <div className="p-3 rounded-xl bg-red-500/20">
+                  <Calendar className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/50 uppercase mb-1">Fecha de Finalización</p>
+                  <p className="text-white font-semibold">{formatDate(subscription.end_date)}</p>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Card 3: Beneficios */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="relative overflow-hidden rounded-2xl p-6 border backdrop-blur-xl group"
+          style={{
+            backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+            borderColor: 'rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+            <div className="absolute -bottom-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br from-emerald-500/20 to-transparent blur-2xl" />
+          </div>
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-5">
+              <Sparkles className="w-5 h-5 text-emerald-400" />
+              <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider">
+                Beneficios Incluidos
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              {getBenefits().map((benefit, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + (index * 0.1) }}
+                  className="flex items-center gap-3 group/item"
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                    className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                      boxShadow: `0 2px 10px ${colors.glow}`
+                    }}
+                  >
+                    {benefit.icon}
+                  </motion.div>
+                  <p className="text-sm text-white/80 group-hover/item:text-white transition-colors">
+                    {benefit.text}
+                  </p>
+                </motion.div>
               ))}
-        </div>
+            </div>
           </div>
-        </div>
-
-        {/* Separador */}
-        <div 
-          className="h-px mb-6"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-        />
-
-      {/* Botones de Acción */}
-        <div className="flex flex-wrap gap-4">
-          <button
-            onClick={handleChangePlan}
-            disabled={isCancelling}
-            className="px-6 py-3 rounded-lg font-bold text-sm uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-            style={{
-              background: `linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))`,
-              color: '#ffffff',
-              boxShadow: '0 4px 14px 0 rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              if (!isCancelling) {
-                e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 6px 20px 0 rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.4)'
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 4px 14px 0 rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.3)'
-            }}
-          >
-            Cambiar de Plan
-          </button>
-          <button
-            onClick={handleCancelSubscription}
-            disabled={isCancelling || subscription.status === 'cancelled'}
-            className="px-6 py-3 rounded-lg font-bold text-sm uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed border-2"
-            style={{
-              backgroundColor: 'transparent',
-              borderColor: 'var(--org-primary-button-color, #3b82f6)',
-              color: 'var(--org-text-color, #ffffff)'
-            }}
-            onMouseEnter={(e) => {
-              if (!isCancelling && subscription.status !== 'cancelled') {
-                e.currentTarget.style.backgroundColor = 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.1)'
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent'
-            }}
-          >
-            {isCancelling ? (
-              <>
-                <Loader2 className="w-4 h-4 inline-block mr-2 animate-spin" />
-                Cancelando...
-              </>
-            ) : (
-              'Cancelar Suscripción'
-            )}
-          </button>
-        </div>
+        </motion.div>
       </div>
+
+      {/* Action Buttons */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="flex flex-wrap gap-4 justify-center lg:justify-start pt-4"
+      >
+        <motion.button
+          onClick={handleChangePlan}
+          disabled={isCancelling}
+          whileHover={{ scale: 1.03, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          className="px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+          style={{
+            background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+            color: '#ffffff',
+            boxShadow: `0 8px 30px ${colors.glow}`
+          }}
+        >
+          <Sparkles className="w-5 h-5" />
+          Cambiar de Plan
+        </motion.button>
+
+        <motion.button
+          onClick={handleCancelSubscription}
+          disabled={isCancelling || subscription.status === 'cancelled'}
+          whileHover={{ scale: 1.03, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          className="px-8 py-4 rounded-2xl font-semibold text-sm uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 border-2"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+            color: 'rgba(255, 255, 255, 0.8)'
+          }}
+        >
+          {isCancelling ? (
+            <>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <Loader2 className="w-5 h-5" />
+              </motion.div>
+              Cancelando...
+            </>
+          ) : (
+            <>
+              <X className="w-5 h-5" />
+              Cancelar Suscripción
+            </>
+          )}
+        </motion.button>
+      </motion.div>
     </div>
   )
 }
@@ -1368,15 +1734,15 @@ function BrandingTab() {
   useEffect(() => {
     // No detectar en la carga inicial
     if (isInitialLoad.current) return
-    
+
     // Solo detectar si el banner_url cambió y no es vacío
-    if (localBranding.banner_url && 
-        localBranding.banner_url !== previousBannerUrl.current &&
-        localBranding.banner_url.trim() !== '') {
-      
+    if (localBranding.banner_url &&
+      localBranding.banner_url !== previousBannerUrl.current &&
+      localBranding.banner_url.trim() !== '') {
+
       // Actualizar la referencia
       previousBannerUrl.current = localBranding.banner_url
-      
+
       // Detectar colores automáticamente
       const autoDetectColors = async () => {
         setIsDetecting(true)
@@ -1385,7 +1751,7 @@ function BrandingTab() {
 
         try {
           const colors = await detectColors(localBranding.banner_url)
-          
+
           if (colors && colors.color_primary && colors.color_secondary && colors.color_accent) {
             setLocalBranding(prev => ({
               ...prev,
@@ -1418,7 +1784,7 @@ function BrandingTab() {
 
     try {
       const success = await updateBranding(localBranding)
-      
+
       if (success) {
         setSaveSuccess('Branding actualizado correctamente')
         setTimeout(() => setSaveSuccess(null), 5000)
@@ -1455,7 +1821,7 @@ function BrandingTab() {
 
       // Usar la función de detección de colores del hook (ahora es cliente)
       const colors = await detectColors(localBranding.banner_url)
-      
+
       if (colors && colors.color_primary && colors.color_secondary && colors.color_accent) {
         setLocalBranding(prev => ({
           ...prev,
@@ -1480,58 +1846,125 @@ function BrandingTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div
-          className="w-16 h-16 border-4 rounded-full animate-spin"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex flex-col items-center justify-center py-24"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+          className="w-20 h-20 rounded-full mb-6"
           style={{
-            borderColor: 'rgba(var(--org-primary-button-color-rgb, 59, 130, 246), 0.3)',
+            border: '4px solid rgba(255, 255, 255, 0.1)',
             borderTopColor: 'var(--org-primary-button-color, #3b82f6)'
           }}
-        ></div>
-      </div>
+        />
+        <p className="text-white/60">Cargando configuración de marca...</p>
+      </motion.div>
     )
   }
 
   if (error) {
     return (
-      <div className="text-center py-20">
-        <XCircle className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--org-primary-button-color, #3b82f6)' }} />
-        <p className="text-lg mb-4" style={{ color: 'var(--org-text-color, #ffffff)' }}>{error}</p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center py-20"
+      >
+        <motion.div
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <XCircle className="w-20 h-20 mx-auto mb-6 text-red-400" />
+        </motion.div>
+        <p className="text-lg mb-4 text-red-300">{error}</p>
+      </motion.div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Sección: Logotipos */}
-      <div
-        className="rounded-lg p-6 border backdrop-blur-md"
-        style={{
-          backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`,
-          borderColor: 'var(--org-border-color, #334155)'
-        }}
-      >
-        <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-          Logotipos
-        </h3>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Banner - Izquierda */}
-          <div className="lg:col-span-9 space-y-4">
-            {/* Preview del banner - Sin fondo */}
-            {localBranding.banner_url && (
-              <div className="flex justify-center">
-                <img
-                  src={localBranding.banner_url}
-                  alt="Banner preview"
-                  className="max-w-full max-h-64 object-contain rounded-lg border"
-                  style={{ borderColor: 'var(--org-border-color, #334155)' }}
-                />
+      {/* Main Grid - Logo y Favicon lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        {/* Card: Logo Principal - Más compacto */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="relative overflow-hidden rounded-2xl p-5 border backdrop-blur-xl group"
+          style={{
+            backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+            borderColor: 'rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+            <div className="absolute -top-16 -right-16 w-32 h-32 rounded-full bg-gradient-to-br from-blue-500/20 to-transparent blur-2xl" />
+          </div>
+
+          <div className="relative z-10">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <motion.div
+                whileHover={{ rotate: 15, scale: 1.1 }}
+                className="p-2.5 rounded-xl"
+                style={{ background: `linear-gradient(135deg, ${localBranding.color_primary}, ${localBranding.color_secondary})` }}
+              >
+                <ImageIcon className="w-4 h-4 text-white" />
+              </motion.div>
+              <div>
+                <h3 className="text-base font-bold text-white">Logo Principal</h3>
+                <p className="text-xs text-white/50">Tu imagen de marca</p>
               </div>
-            )}
-            
-            {/* Área de upload - Siempre visible con drag & drop */}
-            <div
+            </div>
+
+            {/* Logo Preview Zone - Más pequeño */}
+            <motion.div
+              className="relative mb-4 rounded-xl overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(245,245,245,0.95))',
+                height: '120px'
+              }}
+            >
+              {localBranding.banner_url ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center justify-center h-full p-4"
+                >
+                  <img
+                    src={localBranding.banner_url}
+                    alt="Logo preview"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </motion.div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                  <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
+                  <p className="text-xs">Sin logo</p>
+                </div>
+              )}
+
+              {/* Detecting Overlay */}
+              {isDetecting && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center"
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-8 h-8 border-3 rounded-full mb-2"
+                    style={{ borderColor: 'transparent', borderTopColor: localBranding.color_primary }}
+                  />
+                  <p className="text-white text-xs">Detectando colores...</p>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Upload Zone - Compacto */}
+            <motion.div
               onClick={() => {
                 const input = document.createElement('input')
                 input.type = 'file'
@@ -1543,15 +1976,10 @@ function BrandingTab() {
                     formData.append('file', file)
                     formData.append('bucket', 'Panel-Business')
                     formData.append('folder', 'Logo-Empresa')
-                    
                     try {
-                      const response = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                      })
+                      const response = await fetch('/api/upload', { method: 'POST', body: formData })
                       const result = await response.json()
                       if (result.success && result.url) {
-                        // Actualizar banner_url - el useEffect detectará colores automáticamente
                         setLocalBranding(prev => ({ ...prev, banner_url: result.url }))
                       }
                     } catch (err) {
@@ -1562,34 +1990,20 @@ function BrandingTab() {
                 }
                 input.click()
               }}
-              onDragOver={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                e.currentTarget.style.borderColor = 'var(--org-primary-button-color, #3b82f6)'
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault()
-                e.currentTarget.style.borderColor = 'var(--org-border-color, #334155)'
-              }}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
               onDrop={async (e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                e.currentTarget.style.borderColor = 'var(--org-border-color, #334155)'
                 const file = e.dataTransfer.files[0]
                 if (file && file.type.startsWith('image/')) {
                   const formData = new FormData()
                   formData.append('file', file)
                   formData.append('bucket', 'Panel-Business')
                   formData.append('folder', 'Logo-Empresa')
-                  
                   try {
-                    const response = await fetch('/api/upload', {
-                      method: 'POST',
-                      body: formData
-                    })
+                    const response = await fetch('/api/upload', { method: 'POST', body: formData })
                     const result = await response.json()
                     if (result.success && result.url) {
-                      // Actualizar banner_url - el useEffect detectará colores automáticamente
                       setLocalBranding(prev => ({ ...prev, banner_url: result.url }))
                     }
                   } catch (err) {
@@ -1598,37 +2012,98 @@ function BrandingTab() {
                   }
                 }
               }}
-              className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors"
-              style={{
-                borderColor: 'var(--org-border-color, #334155)',
-                backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.3)'
-              }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all duration-300"
+              style={{ borderColor: 'rgba(255, 255, 255, 0.15)' }}
             >
-              <div className="flex flex-col items-center gap-2">
-                <CloudArrowUpIcon className="w-8 h-8" style={{ color: 'var(--org-text-color, #ffffff)' }} />
-                <p className="text-sm" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-                  Arrastra y suelta tu logo aquí o haz clic para subir
-                </p>
-              </div>
-            </div>
+              <Upload className="w-6 h-6 mx-auto mb-2 text-white/50" />
+              <p className="text-white/70 text-sm font-medium">Arrastra o haz clic</p>
+              <p className="text-white/40 text-xs mt-1">PNG, JPG hasta 5MB</p>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Card: Favicon con Preview de Auth/Login */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+          className="relative overflow-hidden rounded-2xl p-5 border backdrop-blur-xl group"
+          style={{
+            backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+            borderColor: 'rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+            <div className="absolute -top-16 -left-16 w-32 h-32 rounded-full bg-gradient-to-br from-purple-500/20 to-transparent blur-2xl" />
           </div>
 
-          {/* Favicon - Derecha */}
-          <div className="lg:col-span-3 space-y-3">
-            {/* Preview del favicon - Sin fondo */}
-            {localBranding.favicon_url && (
-              <div className="flex justify-center">
-                <img
-                  src={localBranding.favicon_url}
-                  alt="Favicon preview"
-                  className="w-32 h-32 object-contain rounded-lg border"
-                  style={{ borderColor: 'var(--org-border-color, #334155)' }}
-                />
+          <div className="relative z-10">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <motion.div
+                whileHover={{ rotate: 15, scale: 1.1 }}
+                className="p-2.5 rounded-xl"
+                style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}
+              >
+                <Globe className="w-4 h-4 text-white" />
+              </motion.div>
+              <div>
+                <h3 className="text-base font-bold text-white">Favicon & Login</h3>
+                <p className="text-xs text-white/50">Vista previa del login</p>
               </div>
-            )}
-            
-            {/* Botón Editar - Siempre visible */}
-            <button
+            </div>
+
+            {/* Auth/Login Preview Mockup */}
+            <motion.div
+              className="mb-4 rounded-xl overflow-hidden"
+              style={{
+                background: `linear-gradient(135deg, ${localBranding.color_primary}15, ${localBranding.color_secondary}10)`,
+                border: `1px solid ${localBranding.color_primary}30`,
+                height: '120px'
+              }}
+            >
+              <div className="h-full flex items-center justify-center p-3">
+                <div className="flex items-center gap-4">
+                  {/* Logo/Favicon preview */}
+                  <div className="flex-shrink-0">
+                    {localBranding.favicon_url ? (
+                      <motion.img
+                        src={localBranding.favicon_url}
+                        alt="Favicon"
+                        className="w-14 h-14 object-contain"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring" }}
+                      />
+                    ) : (
+                      <div
+                        className="w-14 h-14 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: `${localBranding.color_primary}30` }}
+                      >
+                        <Globe className="w-7 h-7" style={{ color: localBranding.color_primary }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Login form preview */}
+                  <div className="space-y-2">
+                    <div className="w-28 h-2.5 rounded bg-white/20" />
+                    <div className="w-28 h-6 rounded bg-white/10 border border-white/20" />
+                    <div
+                      className="w-28 h-5 rounded text-xs flex items-center justify-center text-white font-medium"
+                      style={{ background: `linear-gradient(135deg, ${localBranding.color_primary}, ${localBranding.color_secondary})` }}
+                    >
+                      Iniciar Sesión
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Upload Button */}
+            <motion.button
               type="button"
               onClick={() => {
                 const input = document.createElement('input')
@@ -1641,12 +2116,8 @@ function BrandingTab() {
                     formData.append('file', file)
                     formData.append('bucket', 'Panel-Business')
                     formData.append('folder', 'Favicon')
-                    
                     try {
-                      const response = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                      })
+                      const response = await fetch('/api/upload', { method: 'POST', body: formData })
                       const result = await response.json()
                       if (result.success && result.url) {
                         setLocalBranding(prev => ({ ...prev, favicon_url: result.url }))
@@ -1659,114 +2130,293 @@ function BrandingTab() {
                 }
                 input.click()
               }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-colors hover:opacity-80"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-300"
               style={{
-                borderColor: 'var(--org-border-color, #334155)',
-                backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.5)',
-                color: 'var(--org-text-color, #ffffff)'
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(124, 58, 237, 0.08))',
+                border: '1px solid rgba(139, 92, 246, 0.25)',
+                color: '#a78bfa'
               }}
             >
-              <FileText className="w-4 h-4" />
-              <span className="text-sm font-medium">Editar</span>
-            </button>
+              <Upload className="w-4 h-4" />
+              Subir Favicon
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Sección: Colores */}
-      <div
-        className="rounded-lg p-6 border backdrop-blur-md"
+      {/* Color Palette Section - 3 Colores en una fila */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="relative overflow-hidden rounded-2xl p-5 border backdrop-blur-xl"
         style={{
-          backgroundColor: `rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1))`,
-          borderColor: 'var(--org-border-color, #334155)'
+          backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
+          borderColor: 'rgba(255, 255, 255, 0.1)'
         }}
       >
-        <div className="space-y-5">
-          <BrandingColorPicker
-            label="Color Primario"
-            value={localBranding.color_primary}
-            onChange={(color) => setLocalBranding(prev => ({ ...prev, color_primary: color }))}
-          />
-          
-          <BrandingColorPicker
-            label="Color Secundario"
-            value={localBranding.color_secondary}
-            onChange={(color) => setLocalBranding(prev => ({ ...prev, color_secondary: color }))}
-          />
+        {/* Header con botón de auto-detectar */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <motion.div
+              whileHover={{ rotate: 15, scale: 1.1 }}
+              className="p-2.5 rounded-xl"
+              style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+            >
+              <Palette className="w-4 h-4 text-white" />
+            </motion.div>
+            <div>
+              <h3 className="text-base font-bold text-white">Paleta de Colores</h3>
+              <p className="text-xs text-white/50">Define los 3 colores de tu marca</p>
+            </div>
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={handleDetectColors}
+            disabled={isDetecting || !localBranding.banner_url}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-4 py-2 rounded-lg font-medium text-xs flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.08))',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              color: '#fbbf24'
+            }}
+          >
+            {isDetecting ? (
+              <>
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+                  <Loader2 className="w-3.5 h-3.5" />
+                </motion.div>
+                Detectando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                Auto-detectar
+              </>
+            )}
+          </motion.button>
         </div>
 
-        {/* Vista previa de colores */}
-        <div className="mt-6">
-          <p className="text-sm font-medium mb-3" style={{ color: 'var(--org-text-color, #ffffff)' }}>
-            Vista previa de colores
-          </p>
-          <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--org-border-color, #334155)' }}>
-            <div
-              className="flex-1 h-14"
-              style={{ backgroundColor: localBranding.color_primary }}
-              title={`Primario: ${localBranding.color_primary}`}
-            />
-            <div
-              className="flex-1 h-14"
-              style={{ backgroundColor: localBranding.color_secondary }}
-              title={`Secundario: ${localBranding.color_secondary}`}
-            />
-            <div
-              className="flex-1 h-14 bg-white"
-              title="Blanco"
-            />
+        {/* 3 Color Pickers en una fila */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+          {/* Primary Color */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="relative overflow-hidden rounded-xl p-4"
+            style={{
+              background: `linear-gradient(135deg, ${localBranding.color_primary}15, ${localBranding.color_primary}05)`,
+              border: `1px solid ${localBranding.color_primary}30`
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="w-10 h-10 rounded-lg shadow-lg cursor-pointer relative overflow-hidden flex-shrink-0"
+                style={{ backgroundColor: localBranding.color_primary }}
+              >
+                <input
+                  type="color"
+                  value={localBranding.color_primary}
+                  onChange={(e) => setLocalBranding(prev => ({ ...prev, color_primary: e.target.value }))}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </motion.div>
+              <div className="min-w-0">
+                <p className="text-white font-semibold text-sm">Primario</p>
+                <p className="text-white/50 text-xs uppercase font-mono truncate">{localBranding.color_primary}</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Secondary Color */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="relative overflow-hidden rounded-xl p-4"
+            style={{
+              background: `linear-gradient(135deg, ${localBranding.color_secondary}15, ${localBranding.color_secondary}05)`,
+              border: `1px solid ${localBranding.color_secondary}30`
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="w-10 h-10 rounded-lg shadow-lg cursor-pointer relative overflow-hidden flex-shrink-0"
+                style={{ backgroundColor: localBranding.color_secondary }}
+              >
+                <input
+                  type="color"
+                  value={localBranding.color_secondary}
+                  onChange={(e) => setLocalBranding(prev => ({ ...prev, color_secondary: e.target.value }))}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </motion.div>
+              <div className="min-w-0">
+                <p className="text-white font-semibold text-sm">Secundario</p>
+                <p className="text-white/50 text-xs uppercase font-mono truncate">{localBranding.color_secondary}</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Accent Color */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="relative overflow-hidden rounded-xl p-4"
+            style={{
+              background: `linear-gradient(135deg, ${localBranding.color_accent}15, ${localBranding.color_accent}05)`,
+              border: `1px solid ${localBranding.color_accent}30`
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="w-10 h-10 rounded-lg shadow-lg cursor-pointer relative overflow-hidden flex-shrink-0"
+                style={{ backgroundColor: localBranding.color_accent }}
+              >
+                <input
+                  type="color"
+                  value={localBranding.color_accent}
+                  onChange={(e) => setLocalBranding(prev => ({ ...prev, color_accent: e.target.value }))}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </motion.div>
+              <div className="min-w-0">
+                <p className="text-white font-semibold text-sm">Acento</p>
+                <p className="text-white/50 text-xs uppercase font-mono truncate">{localBranding.color_accent}</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Vista Previa Compacta */}
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Vista Previa</p>
+
+          {/* Gradient Bar más pequeña */}
+          <div
+            className="h-12 rounded-xl overflow-hidden flex items-center justify-center"
+            style={{
+              background: `linear-gradient(135deg, ${localBranding.color_primary}, ${localBranding.color_secondary}, ${localBranding.color_accent})`,
+              boxShadow: `0 8px 30px ${localBranding.color_primary}25`
+            }}
+          >
+            <span className="text-white font-bold text-sm tracking-wide">Tu Marca</span>
+          </div>
+
+          {/* Button Previews */}
+          <div className="flex flex-wrap gap-3">
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              className="px-4 py-2 rounded-lg font-medium text-sm text-white shadow-md"
+              style={{
+                background: `linear-gradient(135deg, ${localBranding.color_primary}, ${localBranding.color_secondary})`,
+              }}
+            >
+              Primario
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              className="px-4 py-2 rounded-lg font-medium text-sm"
+              style={{
+                backgroundColor: 'transparent',
+                border: `1.5px solid ${localBranding.color_primary}`,
+                color: localBranding.color_primary
+              }}
+            >
+              Secundario
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              className="px-4 py-2 rounded-lg font-medium text-sm text-white"
+              style={{ backgroundColor: localBranding.color_accent }}
+            >
+              Acento
+            </motion.div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Mensajes de Éxito/Error */}
-      {saveSuccess && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 flex items-center gap-3"
-        >
-          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-          <p className="text-green-400">{saveSuccess}</p>
-        </motion.div>
-      )}
+      {/* Messages y Botón de Guardar */}
+      <div className="space-y-4">
+        {/* Success/Error Messages */}
+        {saveSuccess && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="rounded-xl p-4 flex items-center gap-3"
+            style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08))',
+              border: '1px solid rgba(16, 185, 129, 0.25)'
+            }}
+          >
+            <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <p className="text-emerald-300 text-sm font-medium">{saveSuccess}</p>
+          </motion.div>
+        )}
 
-      {saveError && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-center gap-3"
-        >
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-          <p className="text-red-400">{saveError}</p>
-        </motion.div>
-      )}
+        {saveError && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="rounded-xl p-4 flex items-center gap-3"
+            style={{
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.08))',
+              border: '1px solid rgba(239, 68, 68, 0.25)'
+            }}
+          >
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+            <p className="text-red-300 text-sm font-medium">{saveError}</p>
+          </motion.div>
+        )}
 
-      {/* Botón Guardar Cambios */}
-      <div className="flex justify-end">
-        <motion.button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className="px-8 py-3 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
-          style={{
-            backgroundColor: localBranding.color_secondary || 'var(--org-primary-button-color, #3b82f6)'
-          }}
-          whileHover={!isSaving ? { scale: 1.02 } : {}}
-          whileTap={!isSaving ? { scale: 0.98 } : {}}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="w-5 h-5" />
-              Guardar Cambios
-            </>
-          )}
-        </motion.button>
+        {/* Botón Guardar Premium */}
+        <div className="flex justify-end">
+          <motion.button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            whileHover={{ scale: isSaving ? 1 : 1.02 }}
+            whileTap={{ scale: isSaving ? 1 : 0.98 }}
+            className="relative overflow-hidden px-8 py-3.5 text-white rounded-xl font-semibold text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5"
+            style={{
+              background: `linear-gradient(135deg, ${localBranding.color_primary}, ${localBranding.color_secondary})`,
+              boxShadow: `0 8px 30px ${localBranding.color_primary}40`
+            }}
+          >
+            {/* Shine effect */}
+            <motion.div
+              className="absolute inset-0 w-full"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+              }}
+            />
+
+            <div className="relative flex items-center gap-2.5">
+              {isSaving ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Loader2 className="w-4 h-4" />
+                  </motion.div>
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Guardar Cambios
+                </>
+              )}
+            </div>
+          </motion.button>
+        </div>
       </div>
     </div>
   )

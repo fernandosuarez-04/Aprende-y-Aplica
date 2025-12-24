@@ -1,62 +1,103 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
-import { MessageSquare, Send, User } from 'lucide-react'
-import { Button } from '@aprende-y-aplica/ui'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  MessageSquare,
+  Send,
+  User,
+  Smile,
+  Paperclip,
+  Star,
+  CheckCheck,
+  Sparkles,
+  Users,
+  X,
+  FileText
+} from 'lucide-react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, WorkTeamMessage } from '../services/teams.service'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
+
+// Emojis organizados por categorías
+const EMOJI_CATEGORIES = [
+  {
+    name: 'Frecuentes',
+    emojis: ['👍', '❤️', '😊', '🎉', '🔥', '😂', '👏', '💪']
+  },
+  {
+    name: 'Caras',
+    emojis: ['😀', '😃', '😄', '😁', '😆', '🥹', '😅', '🤣', '😂', '🙂', '😉', '😊', '😇', '🥰', '😍', '🤩']
+  },
+  {
+    name: 'Gestos',
+    emojis: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤙', '👋', '🙌', '👏', '🤝', '🙏', '💪', '✍️', '🦾', '💅']
+  },
+  {
+    name: 'Símbolos',
+    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '💯', '✨', '⭐', '🌟', '💫', '🔥', '💥', '⚡']
+  },
+  {
+    name: 'Objetos',
+    emojis: ['🎉', '🎊', '🎁', '🏆', '🥇', '🎯', '💡', '📌', '📍', '🚀', '✈️', '🎵', '🎶', '💻', '📱', '⏰']
+  }
+]
 
 interface TeamChatTabProps {
   teamId: string
+  teamName?: string
+  teamImageUrl?: string | null
 }
 
-export function TeamChatTab({ teamId }: TeamChatTabProps) {
+export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps) {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { user } = useAuth()
-  
-  const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
-  const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-  const textColor = panelStyles?.text_color || '#f8fafc'
-  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
-  const sectionBg = `${cardBg}CC`
-  const modalBorder = cardBorder
+
+  const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
+  const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
+  const accentColor = panelStyles?.accent_color || '#10B981'
+  const textColor = panelStyles?.text_color || '#ffffff'
+  const cardBg = panelStyles?.card_background || '#1a1f2e'
 
   const [messages, setMessages] = useState<WorkTeamMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [newMessage, setNewMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
+  const [showStickerPanel, setShowStickerPanel] = useState(false)
+  const [selectedEmojiCategory, setSelectedEmojiCategory] = useState(0)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [filePreview, setFilePreview] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const channelRef = useRef<any>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Configurar Realtime y cargar mensajes iniciales
   useEffect(() => {
     if (!teamId) return
 
     const supabase = createClient()
-    
-    // Función para cargar mensajes iniciales
+
     const loadMessages = async () => {
       try {
         setIsLoading(true)
         setError(null)
         const fetchedMessages = await TeamsService.getTeamMessages(teamId, undefined, 50, 0)
-        setMessages(fetchedMessages.reverse()) // Mostrar más recientes al final
+        setMessages(fetchedMessages.reverse())
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar mensajes')
       } finally {
         setIsLoading(false)
       }
     }
-    
-    // Cargar mensajes iniciales
+
     loadMessages()
 
-    // Configurar suscripción Realtime
     const channel = supabase
       .channel(`team-messages:${teamId}`)
       .on(
@@ -68,10 +109,8 @@ export function TeamChatTab({ teamId }: TeamChatTabProps) {
           filter: `team_id=eq.${teamId}`
         },
         async (payload) => {
-          // Nuevo mensaje recibido en tiempo real
           const newMessage = payload.new as any
-          
-          // Enriquecer con información del usuario
+
           const { data: sender } = await supabase
             .from('users')
             .select('id, display_name, first_name, last_name, email, profile_picture_url')
@@ -89,9 +128,7 @@ export function TeamChatTab({ teamId }: TeamChatTabProps) {
             } : null
           }
 
-          // Agregar mensaje a la lista (evitar duplicados)
           setMessages(prev => {
-            // Verificar si el mensaje ya existe
             if (prev.some(m => m.message_id === enrichedMessage.message_id)) {
               return prev
             }
@@ -99,18 +136,10 @@ export function TeamChatTab({ teamId }: TeamChatTabProps) {
           })
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Error en la suscripción Realtime')
-          setError('Error de conexión en tiempo real')
-        }
-      })
+      .subscribe()
 
     channelRef.current = channel
 
-    // Cleanup: remover suscripción al desmontar
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current)
@@ -133,11 +162,11 @@ export function TeamChatTab({ teamId }: TeamChatTabProps) {
 
     setIsSending(true)
     try {
-      // El mensaje se agregará automáticamente vía Realtime
       await TeamsService.createTeamMessage(teamId, {
         content: newMessage.trim()
       })
       setNewMessage('')
+      inputRef.current?.focus()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al enviar mensaje')
     } finally {
@@ -147,143 +176,593 @@ export function TeamChatTab({ teamId }: TeamChatTabProps) {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const minutes = Math.floor(diff / 60000)
-
-    if (minutes < 1) return 'Ahora'
-    if (minutes < 60) return `Hace ${minutes} min`
-    if (minutes < 1440) return `Hace ${Math.floor(minutes / 60)} h`
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) return 'Hoy'
+    if (date.toDateString() === yesterday.toDateString()) return 'Ayer'
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+  }
+
+  // Agrupar mensajes por fecha
+  const groupedMessages = messages.reduce((groups, message) => {
+    const date = formatDate(message.created_at)
+    if (!groups[date]) groups[date] = []
+    groups[date].push(message)
+    return groups
+  }, {} as Record<string, WorkTeamMessage[]>)
+
+  // Loading State Premium
   if (isLoading && messages.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12" style={{ color: textColor }}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-2" style={{ borderColor: primaryColor }}></div>
-          <p className="text-sm font-body">Cargando conversación...</p>
+      <div className="h-[600px] rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="flex items-center justify-center h-full">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-t-transparent"
+              style={{ borderColor: accentColor, borderTopColor: 'transparent' }}
+            />
+            <p className="text-sm" style={{ color: textColor, opacity: 0.7 }}>
+              Cargando conversación...
+            </p>
+          </motion.div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-[600px] rounded-2xl border backdrop-blur-sm" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
-      {/* Header */}
-      <div className="p-4 border-b" style={{ borderColor: cardBorder }}>
-        <div className="flex items-center gap-3">
-          <MessageSquare className="w-5 h-5" style={{ color: primaryColor }} />
-          <h3 className="font-heading font-semibold" style={{ color: textColor }}>
-            Conversación del Equipo
-          </h3>
-          <span className="text-xs font-body opacity-70 ml-auto">
-            {messages.length} mensaje(s)
-          </span>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="h-[600px] rounded-2xl overflow-hidden flex flex-col"
+      style={{
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.08)'
+      }}
+    >
+      {/* Header Premium */}
+      <div
+        className="px-5 py-4 border-b flex items-center justify-between"
+        style={{
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          borderColor: 'rgba(255,255,255,0.08)'
+        }}
+      >
+        <div className="flex items-center gap-4">
+          {/* Team Logo */}
+          <motion.div
+            whileHover={{ scale: 1.05, rotate: 5 }}
+            className="relative"
+          >
+            {teamImageUrl ? (
+              <div className="relative w-12 h-12 rounded-2xl overflow-hidden border-2" style={{ borderColor: `${accentColor}40` }}>
+                <Image
+                  src={teamImageUrl}
+                  alt={teamName || 'Equipo'}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold text-white"
+                style={{
+                  background: `linear-gradient(135deg, ${accentColor}, ${secondaryColor})`,
+                  boxShadow: `0 4px 15px ${accentColor}40`
+                }}
+              >
+                {(teamName || 'E')[0].toUpperCase()}
+              </div>
+            )}
+            {/* Online Indicator */}
+            <div
+              className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2"
+              style={{
+                backgroundColor: '#10b981',
+                borderColor: cardBg
+              }}
+            />
+          </motion.div>
+
+          <div>
+            <h3 className="font-bold text-lg flex items-center gap-2" style={{ color: textColor }}>
+              {teamName || 'Chat del Equipo'}
+              <Sparkles className="w-4 h-4" style={{ color: accentColor }} />
+            </h3>
+            <p className="text-xs flex items-center gap-2" style={{ color: textColor, opacity: 0.5 }}>
+              <Users className="w-3 h-3" />
+              {messages.length} mensajes • En tiempo real
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Mensajes */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages Container */}
+      <div
+        className="flex-1 overflow-y-auto px-5 py-4 space-y-6"
+        style={{
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, transparent 100%)'
+        }}
+      >
         {error && (
-          <div className="p-3 rounded-xl text-red-400 text-sm font-body" style={{ backgroundColor: 'rgba(127, 29, 29, 0.2)' }}>
-            {error}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-xl text-center"
+            style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+          >
+            <p className="text-sm text-red-400">{error}</p>
+          </motion.div>
         )}
 
         {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-30" />
-            <p className="font-body opacity-70">No hay mensajes aún</p>
-            <p className="text-sm font-body opacity-50 mt-2">Sé el primero en escribir</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="h-full flex flex-col items-center justify-center text-center py-12"
+          >
+            <motion.div
+              animate={{
+                scale: [1, 1.1, 1],
+                rotate: [0, 5, -5, 0]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
+              style={{
+                background: `linear-gradient(135deg, ${accentColor}20, ${secondaryColor}20)`,
+                border: `1px solid ${accentColor}30`
+              }}
+            >
+              <MessageSquare className="w-10 h-10" style={{ color: accentColor }} />
+            </motion.div>
+            <h4 className="text-lg font-bold mb-2" style={{ color: textColor }}>
+              No hay mensajes aún
+            </h4>
+            <p className="text-sm max-w-[250px]" style={{ color: textColor, opacity: 0.5 }}>
+              Sé el primero en iniciar la conversación con tu equipo
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => inputRef.current?.focus()}
+              className="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+              style={{
+                background: `linear-gradient(135deg, ${accentColor}, ${secondaryColor})`,
+                boxShadow: `0 8px 25px ${accentColor}40`
+              }}
+            >
+              Escribir mensaje
+            </motion.button>
+          </motion.div>
         ) : (
-          messages.map((message) => {
-            const isOwnMessage = message.sender_id === user?.id
-            return (
-              <motion.div
-                key={message.message_id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}
-              >
-                {!isOwnMessage && (
-                  <div className="flex-shrink-0">
-                    {message.sender?.profile_picture_url ? (
-                      <img 
-                        src={message.sender.profile_picture_url} 
-                        alt="" 
-                        className="w-8 h-8 rounded-full"
-                      />
-                    ) : (
-                      <div 
-                        className="w-8 h-8 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: `${primaryColor}30` }}
-                      >
-                        <User className="w-4 h-4" style={{ color: primaryColor }} />
+          Object.entries(groupedMessages).map(([date, dateMessages]) => (
+            <div key={date}>
+              {/* Date Separator */}
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                <span
+                  className="text-xs font-medium px-3 py-1 rounded-full"
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    color: textColor,
+                    opacity: 0.5
+                  }}
+                >
+                  {date}
+                </span>
+                <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+              </div>
+
+              {/* Messages */}
+              <div className="space-y-4">
+                {dateMessages.map((message, index) => {
+                  const isOwnMessage = message.sender_id === user?.id
+                  const showAvatar = !isOwnMessage && (index === 0 || dateMessages[index - 1]?.sender_id !== message.sender_id)
+
+                  return (
+                    <motion.div
+                      key={message.message_id}
+                      initial={{ opacity: 0, y: 20, x: isOwnMessage ? 20 : -20 }}
+                      animate={{ opacity: 1, y: 0, x: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}
+                    >
+                      {/* Avatar */}
+                      {!isOwnMessage && (
+                        <div className="flex-shrink-0 w-10">
+                          {showAvatar ? (
+                            message.sender?.profile_picture_url ? (
+                              <div className="relative w-10 h-10 rounded-xl overflow-hidden">
+                                <Image
+                                  src={message.sender.profile_picture_url}
+                                  alt=""
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
+                                style={{
+                                  background: `linear-gradient(135deg, ${secondaryColor}, ${accentColor})`,
+                                  color: 'white'
+                                }}
+                              >
+                                {(message.sender?.name || 'U')[0].toUpperCase()}
+                              </div>
+                            )
+                          ) : null}
+                        </div>
+                      )}
+
+                      {/* Message Bubble */}
+                      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[75%]`}>
+                        {showAvatar && !isOwnMessage && (
+                          <p className="text-xs font-medium mb-1 ml-1" style={{ color: accentColor }}>
+                            {message.sender?.name || 'Usuario'}
+                          </p>
+                        )}
+
+                        <motion.div
+                          whileHover={{ scale: 1.01 }}
+                          className={`group relative px-4 py-3 rounded-2xl ${isOwnMessage
+                            ? 'rounded-br-md'
+                            : 'rounded-bl-md'
+                            }`}
+                          style={{
+                            background: isOwnMessage
+                              ? `linear-gradient(135deg, ${accentColor}, ${secondaryColor})`
+                              : 'rgba(255,255,255,0.08)',
+                            color: isOwnMessage ? 'white' : textColor,
+                            boxShadow: isOwnMessage
+                              ? `0 4px 15px ${accentColor}30`
+                              : 'none'
+                          }}
+                        >
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {message.content}
+                          </p>
+
+                          {/* Hover Actions */}
+                          <div
+                            className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ${isOwnMessage ? '-left-20' : '-right-20'
+                              }`}
+                          >
+                            {[Smile, Star].map((Icon, i) => (
+                              <motion.button
+                                key={i}
+                                whileHover={{ scale: 1.2 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                                style={{
+                                  backgroundColor: 'rgba(255,255,255,0.1)',
+                                  color: textColor
+                                }}
+                              >
+                                <Icon className="w-4 h-4" />
+                              </motion.button>
+                            ))}
+                          </div>
+                        </motion.div>
+
+                        {/* Time & Status */}
+                        <div className="flex items-center gap-1.5 mt-1 mx-1">
+                          <span className="text-[11px]" style={{ color: textColor, opacity: 0.4 }}>
+                            {formatTime(message.created_at)}
+                          </span>
+                          {isOwnMessage && (
+                            <CheckCheck className="w-3.5 h-3.5" style={{ color: accentColor }} />
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
-                <div className={`flex-1 ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col`}>
-                  {!isOwnMessage && (
-                    <p className="text-xs font-body opacity-70 mb-1">
-                      {message.sender?.name || 'Usuario'}
-                    </p>
-                  )}
-                  <div
-                    className={`px-4 py-2 rounded-2xl max-w-[70%] ${
-                      isOwnMessage ? 'rounded-br-sm' : 'rounded-bl-sm'
-                    }`}
-                    style={{
-                      backgroundColor: isOwnMessage ? primaryColor : sectionBg,
-                      color: isOwnMessage ? '#fff' : textColor
-                    }}
-                  >
-                    <p className="text-sm font-body whitespace-pre-wrap">{message.content}</p>
-                  </div>
-                  <p className="text-xs font-body opacity-50 mt-1">
-                    {formatTime(message.created_at)}
-                  </p>
-                </div>
-              </motion.div>
-            )
-          })
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </div>
+          ))
         )}
+
+        {/* Typing Indicator */}
+        <AnimatePresence>
+          {isTyping && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="flex items-center gap-3"
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+              >
+                <User className="w-5 h-5" style={{ color: textColor, opacity: 0.5 }} />
+              </div>
+              <div
+                className="px-4 py-3 rounded-2xl rounded-bl-md flex items-center gap-1.5"
+                style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+              >
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.15 }}
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: accentColor }}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t" style={{ borderColor: cardBorder }}>
-        <div className="flex gap-2">
+      {/* Input Area Premium - Nuevo Diseño */}
+      <div className="relative border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+        {/* Panel de Emojis Compacto - Estilo WhatsApp */}
+        <AnimatePresence>
+          {showStickerPanel && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="absolute bottom-full right-4 mb-2 rounded-2xl overflow-hidden z-50"
+              style={{
+                width: '360px',
+                backgroundColor: '#1e293b',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 -8px 30px rgba(0,0,0,0.4)'
+              }}
+            >
+              {/* Tabs de Categorías Compactos */}
+              <div
+                className="flex items-center overflow-x-auto"
+                style={{
+                  borderBottom: '1px solid rgba(255,255,255,0.08)',
+                  backgroundColor: 'rgba(0,0,0,0.15)'
+                }}
+              >
+                {EMOJI_CATEGORIES.map((category, index) => (
+                  <button
+                    key={category.name}
+                    type="button"
+                    onClick={() => setSelectedEmojiCategory(index)}
+                    className="flex-shrink-0 px-3.5 py-2.5 text-xs font-medium transition-all relative"
+                    style={{
+                      color: selectedEmojiCategory === index ? accentColor : 'rgba(255,255,255,0.5)',
+                      backgroundColor: 'transparent'
+                    }}
+                  >
+                    {category.name}
+                    {selectedEmojiCategory === index && (
+                      <motion.div
+                        layoutId="emoji-tab-indicator"
+                        className="absolute bottom-0 left-1 right-1 h-0.5 rounded-full"
+                        style={{ backgroundColor: accentColor }}
+                      />
+                    )}
+                  </button>
+                ))}
+
+                {/* Botón cerrar */}
+                <button
+                  type="button"
+                  onClick={() => setShowStickerPanel(false)}
+                  className="ml-auto px-3 py-2 flex-shrink-0 hover:bg-white/10 rounded-lg transition-colors"
+                  style={{ color: 'rgba(255,255,255,0.5)' }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Grid de Emojis Compacto */}
+              <div
+                className="overflow-y-auto p-2"
+                style={{ maxHeight: '180px' }}
+              >
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(8, 1fr)',
+                    gap: '4px'
+                  }}
+                >
+                  {EMOJI_CATEGORIES[selectedEmojiCategory].emojis.map((emoji, index) => (
+                    <button
+                      key={`${emoji}-${index}`}
+                      type="button"
+                      onClick={() => {
+                        setNewMessage(prev => prev + emoji)
+                        inputRef.current?.focus()
+                      }}
+                      className="hover:bg-white/15 active:scale-90 transition-all rounded-lg"
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        fontSize: '22px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: 'transparent'
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Preview de archivo adjunto */}
+        <AnimatePresence>
+          {selectedFile && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="px-4 py-3 border-b flex items-center gap-3"
+              style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+            >
+              {filePreview ? (
+                <div className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
+                  <Image src={filePreview} alt="" fill className="object-cover" />
+                </div>
+              ) : (
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `${accentColor}15` }}
+                >
+                  <FileText className="w-6 h-6" style={{ color: accentColor }} />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate" style={{ color: textColor }}>
+                  {selectedFile.name}
+                </p>
+                <p className="text-xs" style={{ color: textColor, opacity: 0.5 }}>
+                  {(selectedFile.size / 1024).toFixed(1)} KB
+                </p>
+              </div>
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  setSelectedFile(null)
+                  setFilePreview(null)
+                }}
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
+              >
+                <X className="w-4 h-4" />
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Barra de Input Principal */}
+        <form onSubmit={handleSendMessage} className="px-4 py-3">
+          {/* Input file oculto */}
           <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Escribe un mensaje..."
-            className="flex-1 px-4 py-2 rounded-xl border font-body focus:outline-none focus:ring-1 transition-all"
-            style={{ 
-              borderColor: modalBorder,
-              backgroundColor: sectionBg,
-              color: textColor
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                setSelectedFile(file)
+                if (file.type.startsWith('image/')) {
+                  const reader = new FileReader()
+                  reader.onload = (e) => setFilePreview(e.target?.result as string)
+                  reader.readAsDataURL(file)
+                } else {
+                  setFilePreview(null)
+                }
+              }
             }}
-            disabled={isSending}
           />
-          <Button
-            type="submit"
-            disabled={!newMessage.trim() || isSending}
-            variant="gradient"
-            className="font-body"
-            style={{
-              background: `linear-gradient(135deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || '#8b5cf6'} 100%)`,
-              boxShadow: `0 4px 14px 0 ${primaryColor}40`
-            }}
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-      </form>
-    </div>
+
+          <div className="flex items-center gap-3">
+            {/* Botón Adjuntar */}
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.1, rotate: 15 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => fileInputRef.current?.click()}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                color: textColor,
+                opacity: 0.7
+              }}
+            >
+              <Paperclip className="w-5 h-5" />
+            </motion.button>
+
+            {/* Campo de Texto */}
+            <div
+              className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.03)'
+              }}
+            >
+              <input
+                ref={inputRef}
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Escribe un mensaje..."
+                className="flex-1 bg-transparent border-none outline-none text-sm"
+                style={{ color: textColor }}
+                disabled={isSending}
+              />
+
+              {/* Botón Emoji dentro del input */}
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowStickerPanel(!showStickerPanel)}
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                style={{
+                  backgroundColor: showStickerPanel ? `${accentColor}20` : 'transparent',
+                  color: showStickerPanel ? accentColor : textColor,
+                  opacity: showStickerPanel ? 1 : 0.6
+                }}
+              >
+                <Smile className="w-5 h-5" />
+              </motion.button>
+            </div>
+
+            {/* Botón Enviar */}
+            <motion.button
+              type="submit"
+              disabled={(!newMessage.trim() && !selectedFile) || isSending}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+              style={{
+                background: (newMessage.trim() || selectedFile)
+                  ? `linear-gradient(135deg, ${accentColor}, ${secondaryColor})`
+                  : 'rgba(255,255,255,0.08)',
+                boxShadow: (newMessage.trim() || selectedFile)
+                  ? `0 4px 20px ${accentColor}50`
+                  : 'none'
+              }}
+            >
+              {isSending ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white"
+                />
+              ) : (
+                <Send className="w-5 h-5 text-white" />
+              )}
+            </motion.button>
+          </div>
+        </form>
+      </div>
+    </motion.div>
   )
 }
-

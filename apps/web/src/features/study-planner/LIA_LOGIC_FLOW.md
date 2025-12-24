@@ -86,7 +86,14 @@ El Frontend construye un "mensaje oculto" de sistema que inyecta en el contexto 
 
 ## 4. Reglas del Sistema (Backend / Prompt)
 
-Ubicación: `apps/web/src/app/api/ai-chat/route.ts`
+Ubicación: `apps/web/src/app/api/study-planner-chat/route.ts`
+
+> **NOTA (2025-12-23):** La API del Study Planner ahora está **aislada** del endpoint general `/api/ai-chat`. 
+> Esto permite:
+> - Usar Gemini 2.0 Flash directamente sin filtros intermedios
+> - Observar la salida raw del modelo para debugging
+> - Evitar interferencias del filtrado de prompt-leak
+> - Mayor control sobre el comportamiento de LIA en el planificador
 
 El System Prompt ha sido endurecido para obedecer ciegamente la distribución generada por el algoritmo Greedy.
 

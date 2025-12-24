@@ -14,6 +14,7 @@ import type {
   CalendarEvent,
   LIAAvailabilityAnalysis,
 } from '../types/user-context.types';
+import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
 
 // Fases del flujo conversacional
 export enum StudyPlannerPhase {
@@ -33,28 +34,28 @@ export interface PhaseData {
   // Fase 1: Análisis de contexto
   userContext?: UserContext;
   availabilityAnalysis?: LIAAvailabilityAnalysis;
-  
+
   // Fase 2: Selección de cursos
   selectedCourseIds?: string[];
   learningRouteId?: string;
-  
+
   // Fase 3: Calendario
   calendarConnected?: boolean;
   calendarProvider?: 'google' | 'microsoft';
   calendarEvents?: CalendarEvent[];
-  
+
   // Fase 4: Tiempos de sesión
   minSessionMinutes?: number;
   maxSessionMinutes?: number;
-  
+
   // Fase 5: Descansos
   breakDurationMinutes?: number;
-  
+
   // Fase 6: Días y horarios
   preferredDays?: number[];
   preferredTimeBlocks?: TimeBlock[];
   preferredTimeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
-  
+
   // Fase 7: Plan generado
   planName?: string;
   planDescription?: string;
@@ -89,23 +90,23 @@ export interface StudyPlannerLIAActions {
   // Comunicación con LIA
   sendMessage: (message: string) => Promise<void>;
   sendVoiceMessage: (transcript: string) => Promise<void>;
-  
+
   // Navegación entre fases
   goToPhase: (phase: StudyPlannerPhase) => void;
   nextPhase: () => void;
   previousPhase: () => void;
-  
+
   // Actualización de datos
   updatePhaseData: (data: Partial<PhaseData>) => void;
-  
+
   // Control de audio
   setIsListening: (listening: boolean) => void;
   setIsSpeaking: (speaking: boolean) => void;
-  
+
   // Generación del plan
   generatePlan: () => Promise<void>;
   savePlan: () => Promise<{ planId: string } | null>;
-  
+
   // Utilidades
   clearError: () => void;
   reset: () => void;
@@ -136,16 +137,16 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
   // Cargar contexto del usuario
   const loadUserContext = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true }));
-    
+
     try {
       const response = await fetch('/api/study-planner/user-context');
-      
+
       if (!response.ok) {
         throw new Error('Error al cargar el contexto del usuario');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         setState(prev => ({
           ...prev,
@@ -172,13 +173,13 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
   // Enviar mensaje a LIA
   const sendMessage = useCallback(async (message: string) => {
     if (!message.trim()) return;
-    
+
     // Cancelar solicitud anterior si existe
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
-    
+
     // Agregar mensaje del usuario
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -187,14 +188,14 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
       timestamp: new Date(),
       phase: state.currentPhase,
     };
-    
+
     setState(prev => ({
       ...prev,
       messages: [...prev.messages, userMessage],
       isLoading: true,
       error: null,
     }));
-    
+
     try {
       // Preparar historial de conversación
       const conversationHistory = state.messages
@@ -203,35 +204,38 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
           role: m.role,
           content: m.content,
         }));
-      
-      // Preparar contexto de página
-      const pageContext = {
-        isStudyPlanner: true,
-        currentPhase: state.currentPhase,
-        phaseName: StudyPlannerPhase[state.currentPhase],
-        phaseData: state.phaseData,
-        userType: state.phaseData.userContext?.userType,
-      };
-      
-      const response = await fetch('/api/ai-chat', {
+      // Generar el systemPrompt para esta llamada
+      const hookDateStr = new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      const hookSystemPrompt = generateStudyPlannerPrompt({
+        userName: undefined,
+        studyPlannerContextString: `FASE ACTUAL: ${StudyPlannerPhase[state.currentPhase]}\nCURSOS SELECCIONADOS: ${state.phaseData.selectedCourseIds?.length || 0}`,
+        currentDate: hookDateStr
+      });
+
+      const response = await fetch('/api/study-planner-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
-          context: 'study-planner',
           conversationHistory,
-          pageContext,
-          language: 'es',
+          systemPrompt: hookSystemPrompt,
+          userName: undefined
         }),
         signal: abortControllerRef.current.signal,
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al comunicarse con LIA');
       }
-      
+
       const data = await response.json();
-      
+
       // Agregar respuesta de LIA
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
@@ -240,20 +244,20 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
         timestamp: new Date(),
         phase: state.currentPhase,
       };
-      
+
       setState(prev => ({
         ...prev,
         messages: [...prev.messages, assistantMessage],
         isLoading: false,
       }));
-      
+
       return data.response;
-      
+
     } catch (error: any) {
       if (error.name === 'AbortError') {
         return;
       }
-      
+
       console.error('Error enviando mensaje:', error);
       setState(prev => ({
         ...prev,
@@ -317,19 +321,19 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
   // Generar plan
   const generatePlan = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+
     try {
       const { phaseData } = state;
-      
+
       // Validar datos necesarios
       if (!phaseData.selectedCourseIds || phaseData.selectedCourseIds.length === 0) {
         throw new Error('No hay cursos seleccionados');
       }
-      
+
       if (!phaseData.minSessionMinutes || !phaseData.maxSessionMinutes) {
         throw new Error('No se han configurado los tiempos de sesión');
       }
-      
+
       // Preparar request
       const requestBody = {
         name: phaseData.planName || 'Mi Plan de Estudios',
@@ -347,19 +351,19 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
         breakDurationMinutes: phaseData.breakDurationMinutes || 10,
         preferredSessionType: getSessionType(phaseData.maxSessionMinutes),
       };
-      
+
       const response = await fetch('/api/study-planner/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al generar el plan');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         setState(prev => ({
           ...prev,
@@ -370,7 +374,7 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
           isLoading: false,
         }));
       }
-      
+
     } catch (error) {
       console.error('Error generando plan:', error);
       setState(prev => ({
@@ -384,14 +388,14 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
   // Guardar plan
   const savePlan = useCallback(async (): Promise<{ planId: string } | null> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+
     try {
       const { phaseData } = state;
-      
+
       if (!phaseData.generatedSessions || phaseData.generatedSessions.length === 0) {
         throw new Error('No hay sesiones generadas para guardar');
       }
-      
+
       const config: StudyPlanConfig = {
         name: phaseData.planName || 'Mi Plan de Estudios',
         description: phaseData.planDescription,
@@ -413,7 +417,7 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
         calendarAnalyzed: phaseData.calendarConnected || false,
         calendarProvider: phaseData.calendarProvider,
       };
-      
+
       const response = await fetch('/api/study-planner/save-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -422,25 +426,25 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
           sessions: phaseData.generatedSessions,
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al guardar el plan');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         setState(prev => ({
           ...prev,
           currentPhase: StudyPlannerPhase.COMPLETE,
           isLoading: false,
         }));
-        
+
         return { planId: data.data.planId };
       }
-      
+
       return null;
-      
+
     } catch (error) {
       console.error('Error guardando plan:', error);
       setState(prev => ({
@@ -475,7 +479,7 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
   return {
     // Estado
     ...state,
-    
+
     // Acciones
     sendMessage,
     sendVoiceMessage,

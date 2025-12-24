@@ -99,6 +99,8 @@ export class HolidayService {
     }
 
     for (const holiday of countryHolidays.holidays) {
+      // ✅ NUEVO: Por defecto, incluir TODOS los festivos (obligatorios y opcionales)
+      // Los festivos opcionales también se excluyen de la planificación
       let dateStr: string | null = null;
 
       if (holiday.type === 'fixed' && holiday.date) {

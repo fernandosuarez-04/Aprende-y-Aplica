@@ -1,10 +1,10 @@
-# 📐 Guía de Arquitectura Completa - PULSE-HUB
+# 📐 Guía de Arquitectura Completa - Aprende y Aplica
 
-> **Documento de Referencia para usar PULSE-HUB como Plantilla de Proyectos**
+> **Documento de Referencia para la Arquitectura del Proyecto Aprende y Aplica (Chat-Bot-LIA)**
 > 
-> Versión: 1.0.0  
-> Última actualización: Enero 2025  
-> Mantenido por: Equipo Ecos de Liderazgo
+> Versión: 2.0.0  
+> Última actualización: Diciembre 2024  
+> Mantenido por: Equipo Aprende y Aplica
 
 ---
 
@@ -30,59 +30,90 @@
 
 ## 1. Introducción y Visión General
 
-### 1.1 ¿Qué es PULSE-HUB?
+### 1.1 ¿Qué es Aprende y Aplica?
 
-PULSE-HUB es una plataforma web empresarial construida con tecnologías modernas que sirve como **plantilla de referencia** para proyectos similares. Implementa las mejores prácticas de arquitectura de software, diseño de interfaces y experiencia de usuario.
+Aprende y Aplica es una **plataforma educativa con IA integrada (Chat-Bot-LIA)** construida con tecnologías modernas. El proyecto implementa las mejores prácticas de arquitectura de software, diseño de interfaces y experiencia de usuario para ofrecer una experiencia de aprendizaje personalizada.
 
 **Características principales:**
 - ✅ Monorepo con npm workspaces
-- ✅ Frontend moderno con Next.js 15 y React 19
+- ✅ Frontend moderno con Next.js 16 y React 18
 - ✅ Backend robusto con Express y TypeScript
 - ✅ Sistema de diseño completo con TailwindCSS
 - ✅ Arquitectura escalable y mantenible
-- ✅ Autenticación JWT implementada
+- ✅ Autenticación con Supabase (JWT + SSO Microsoft/Google)
+- ✅ Integración con IA (Google Gemini + OpenAI)
 - ✅ Componentes reutilizables y animados
+- ✅ Sistema de planificación de estudios con LIA
+- ✅ Visualización de datos con Nivo y Recharts
 
 ### 1.2 Stack Tecnológico Completo
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    PULSE-HUB STACK                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  FRONTEND                    BACKEND                        │
-│  ├─ Next.js 15.5.4          ├─ Express 4.18.2             │
-│  ├─ React 19.1.0            ├─ Node.js 18+                │
-│  ├─ TypeScript 5.9.3        ├─ TypeScript 5.3.3           │
-│  ├─ TailwindCSS 3.4.18      ├─ Zod 3.22.4                 │
-│  ├─ Zustand 5.0.2           ├─ Nodemailer 7.0.9           │
-│  ├─ Axios 1.6.7             ├─ WebSocket (ws) 8.18.3      │
-│  ├─ Framer Motion 12.23.24  ├─ Helmet 7.1.0               │
-│  ├─ Lucide React 0.545.0    ├─ Morgan 1.10.0              │
-│  └─ Radix UI                ├─ CORS 2.8.5                 │
-│                             └─ Dotenv 16.4.1               │
-│                                                             │
-│  SHARED PACKAGES            TOOLS                          │
-│  ├─ @pulse-hub/shared       ├─ npm workspaces             │
-│  └─ @pulse-hub/ui           ├─ Concurrently 8.2.2         │
-│                             ├─ Nodemon 3.0.3               │
-│                             ├─ ESLint 8.56.0               │
-│                             └─ Prettier 3.2.5              │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    APRENDE Y APLICA - STACK (Diciembre 2024)                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  FRONTEND (apps/web)              BACKEND (apps/api)                        │
+│  ├─ Next.js 16.0.7               ├─ Express 4.18.2                         │
+│  ├─ React 18.3.1                 ├─ Node.js 22+ (mínimo requerido)         │
+│  ├─ TypeScript 5.9.3             ├─ TypeScript 5.3.3                       │
+│  ├─ TailwindCSS 3.4.18           ├─ Zod 3.25.76                            │
+│  ├─ Zustand 5.0.2                ├─ Supabase JS 2.76.1                     │
+│  ├─ Axios 1.6.7                  ├─ Helmet 7.1.0                           │
+│  ├─ Framer Motion 12.23.24       ├─ Morgan 1.10.0                          │
+│  ├─ Lucide React 0.545.0         ├─ CORS 2.8.5                             │
+│  ├─ Radix UI (múltiples)         ├─ Dotenv 16.4.1                          │
+│  ├─ React Hook Form 7.65.0       ├─ Express Rate Limit 7.1.5               │
+│  ├─ SWR 2.2.0                    ├─ Cookie Parser 1.4.6                    │
+│  ├─ Headless UI 2.2.9            ├─ Compression 1.7.4                      │
+│  ├─ React Three Fiber 9.4.0      └─ UUID 9.0.1                             │
+│  ├─ GSAP 3.13.0                                                            │
+│  └─ Three.js 0.181.2             INTEGRACIONES IA                          │
+│                                   ├─ @google/generative-ai 0.24.1          │
+│  VISUALIZACIÓN                    └─ OpenAI 6.8.0                          │
+│  ├─ Nivo (charts) 0.99.0                                                   │
+│  ├─ Recharts 3.3.0/3.5.0         AUTENTICACIÓN                             │
+│  ├─ Tremor React 3.18.7          ├─ Supabase SSR 0.8.0                     │
+│  └─ FullCalendar 6.1.19          ├─ Supabase JS 2.76.0                     │
+│                                   ├─ bcryptjs 3.0.2 (frontend)             │
+│  SHARED PACKAGES                  └─ bcrypt 5.1.1 (backend)                │
+│  ├─ @aprende-y-aplica/shared                                               │
+│  └─ @aprende-y-aplica/ui         TOOLS                                     │
+│                                   ├─ npm workspaces                        │
+│  UI COMPONENTS                    ├─ Concurrently 8.2.2                    │
+│  ├─ class-variance-authority     ├─ tsx 4.6.2 / 4.20.6                    │
+│  ├─ clsx 2.1.0                   ├─ ESLint 8.56.0 / 9.0.0                 │
+│  └─ tailwind-merge 2.2.0         └─ Prettier 3.2.5                         │
+│                                                                             │
+│  UTILIDADES ADICIONALES          EXPORTACIÓN/DOCUMENTOS                    │
+│  ├─ date-fns 3.6.0               ├─ jspdf 3.0.3                            │
+│  ├─ moment 2.30.1                ├─ xlsx 0.18.5                            │
+│  ├─ DOMPurify 3.3.0              ├─ JSZip 3.10.1                           │
+│  ├─ validator 13.15.0            └─ html2canvas 1.4.1                      │
+│  ├─ i18next 23.12.1                                                        │
+│  └─ react-i18next 15.1.1         GRABACIÓN/REPLAY                          │
+│                                   ├─ rrweb 2.0.0-alpha.18                  │
+│                                   └─ rrweb-player 2.0.0-alpha.18           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+REQUISITOS DEL SISTEMA:
+├─ Node.js >= 22.0.0
+└─ npm >= 10.5.1
 ```
 
 ### 1.3 Arquitectura de Alto Nivel (Monorepo)
 
 ```
-PULSE-HUB/
+Aprende-y-Aplica/
 │
 ├── apps/                      # Aplicaciones principales
-│   ├── web/                  # Frontend (Next.js)
+│   ├── web/                  # Frontend (Next.js 16)
 │   │   ├── src/
 │   │   │   ├── app/         # Next.js App Router
 │   │   │   ├── features/    # Features del negocio
 │   │   │   ├── shared/      # Componentes compartidos
-│   │   │   └── core/        # Servicios y stores
+│   │   │   ├── core/        # Servicios y stores
+│   │   │   └── lib/         # Utilidades y servicios
 │   │   ├── public/          # Assets estáticos
 │   │   └── package.json
 │   │
@@ -91,17 +122,14 @@ PULSE-HUB/
 │       │   ├── features/    # Features del negocio
 │       │   ├── core/        # Middleware y config
 │       │   ├── shared/      # Tipos y constantes
-│       │   └── server.ts    # Entry point
+│       │   └── index.ts     # Entry point
 │       └── package.json
 │
 ├── packages/                 # Paquetes compartidos
-│   ├── shared/              # Tipos, constantes, utils
-│   └── ui/                  # Componentes UI
+│   ├── shared/              # @aprende-y-aplica/shared
+│   └── ui/                  # @aprende-y-aplica/ui
 │
-├── docs/                    # Documentación
-│   ├── guides/             # Guías de uso
-│   ├── reference/          # Referencia técnica
-│   └── product/            # Documentos de producto
+├── Nueva carpeta/           # Documentación de Arquitectura
 │
 └── package.json            # Configuración del monorepo
 ```
@@ -360,7 +388,7 @@ export default nextConfig;
 
 #### App Router
 
-PULSE-HUB usa **App Router** (Next.js 13+):
+Aprende y Aplica usa **App Router** (Next.js 13+):
 
 **Estructura de rutas:**
 ```
@@ -381,7 +409,7 @@ app/
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sobre Nosotros | Pulse Hub',
+  title: 'Sobre Nosotros | Aprende y Aplica',
 };
 
 export default function SobrePage() {
@@ -605,7 +633,7 @@ export const apiService = new ApiService();
 ```typescript
 'use client';
 import { create } from 'zustand';
-import { User } from '@pulse-hub/shared';
+import { User } from '@aprende-y-aplica/shared';
 
 interface AuthStore {
   user: User | null;
@@ -757,17 +785,17 @@ export type RegisterInput = z.infer<typeof registerSchema>['body'];
 **auth.service.ts - Lógica de Negocio**
 
 ```typescript
-import { User, AuthTokens } from '@pulse-hub/shared';
+import { User, AuthTokens } from '@aprende-y-aplica/shared';
 import { LoginInput, RegisterInput } from './auth.types';
 import { createError } from '../../core/middleware/errorHandler';
-import { HTTP_STATUS, ERROR_CODES } from '@pulse-hub/shared';
+import { HTTP_STATUS, ERROR_CODES } from '@aprende-y-aplica/shared';
 
 export class AuthService {
   async login(credentials: LoginInput): Promise<{ user: User } & AuthTokens> {
     const { email, password } = credentials;
 
     // TODO: Validar con base de datos
-    if (email === 'demo@pulsehub.com' && password === 'demo123') {
+    if (email === 'demo@aprendeyaplica.com' && password === 'demo123') {
       const user: User = {
         id: '1',
         email,
@@ -818,7 +846,7 @@ export const authService = new AuthService();
 ```typescript
 import { Request, Response } from 'express';
 import { authService } from './auth.service';
-import { HTTP_STATUS } from '@pulse-hub/shared';
+import { HTTP_STATUS } from '@aprende-y-aplica/shared';
 import { asyncHandler } from '../../core/utils';
 
 export class AuthController {
@@ -921,7 +949,7 @@ export const errorHandler = (
 // core/middleware/auth.middleware.ts
 import { Request, Response, NextFunction } from 'express';
 import { createError } from './errorHandler';
-import { HTTP_STATUS, ERROR_CODES } from '@pulse-hub/shared';
+import { HTTP_STATUS, ERROR_CODES } from '@aprende-y-aplica/shared';
 
 export const authenticate = (
   req: Request,
@@ -953,7 +981,7 @@ export const authenticate = (
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema } from 'zod';
 import { createError } from './errorHandler';
-import { HTTP_STATUS, ERROR_CODES } from '@pulse-hub/shared';
+import { HTTP_STATUS, ERROR_CODES } from '@aprende-y-aplica/shared';
 
 export const validate = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -1151,12 +1179,12 @@ export const ERROR_CODES = {
 
 **Uso en Frontend:**
 ```typescript
-import { User, ApiResponse } from '@pulse-hub/shared';
+import { User, ApiResponse } from '@aprende-y-aplica/shared';
 ```
 
 **Uso en Backend:**
 ```typescript
-import { User, HTTP_STATUS } from '@pulse-hub/shared';
+import { User, HTTP_STATUS } from '@aprende-y-aplica/shared';
 ```
 
 ---
@@ -1390,7 +1418,7 @@ export interface User {
 
 ```typescript
 // apps/web/src/features/auth/types.ts
-import { User } from '@pulse-hub/shared';
+import { User } from '@aprende-y-aplica/shared';
 
 export interface LoginResponse {
   user: User;  // ✅ Mismo tipo
@@ -1402,7 +1430,7 @@ export interface LoginResponse {
 
 ```typescript
 // apps/api/src/features/auth/auth.service.ts
-import { User } from '@pulse-hub/shared';
+import { User } from '@aprende-y-aplica/shared';
 
 async login(): Promise<User> {
   return user;  // ✅ Mismo tipo
@@ -1419,7 +1447,7 @@ async login(): Promise<User> {
 
 ```json
 {
-  "name": "pulse-hub",
+  "name": "aprende-y-aplica",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -1434,6 +1462,10 @@ async login(): Promise<User> {
   "devDependencies": {
     "concurrently": "^8.2.2",
     "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.5.1"
   }
 }
 ```
@@ -1444,7 +1476,7 @@ async login(): Promise<User> {
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:4000/api
-NEXT_PUBLIC_APP_NAME=PULSE HUB
+NEXT_PUBLIC_APP_NAME=Aprende y Aplica
 ```
 
 **Backend (.env):**
@@ -1463,8 +1495,8 @@ API_VERSION=v1
 ### 9.3 Dependencias Principales
 
 **Frontend:**
-- next: 15.5.4
-- react: 19.1.0
+- next: 16.0.7
+- react: 18.3.1
 - typescript: 5.9.3
 - tailwindcss: 3.4.18
 - zustand: 5.0.2
@@ -1474,11 +1506,11 @@ API_VERSION=v1
 **Backend:**
 - express: 4.18.2
 - typescript: 5.3.3
-- zod: 3.22.4
+- zod: 3.25.76
 - cors: 2.8.5
 - helmet: 7.1.0
 - morgan: 1.10.0
-- nodemon: 3.0.3
+- tsx: 4.20.6
 
 ---
 
@@ -2082,14 +2114,17 @@ const handleSubmit = async (e) => {
 
 ## 🎉 Conclusión
 
-PULSE-HUB es una plantilla completa y lista para producción que implementa:
+Aprende y Aplica es una plataforma educativa completa y lista para producción que implementa:
 
 ✅ Arquitectura escalable (Screaming Architecture)  
-✅ Stack moderno (Next.js 15 + Express + TypeScript)  
-✅ Sistema de diseño completo  
-✅ Autenticación JWT  
-✅ Tipos compartidos  
+✅ Stack moderno (Next.js 16 + Express + TypeScript)  
+✅ Sistema de diseño completo con modo oscuro personalizado  
+✅ Autenticación con Supabase (JWT + SSO Microsoft/Google)  
+✅ Integración con IA (Google Gemini + OpenAI)  
+✅ Tipos compartidos entre frontend y backend  
 ✅ Hot reload en desarrollo  
+✅ Sistema de planificación de estudios con LIA  
+✅ Visualización de datos con Nivo y Recharts  
 ✅ Configuración de despliegue  
 
 **Usa esta guía como referencia para:**
@@ -2100,8 +2135,8 @@ PULSE-HUB es una plantilla completa y lista para producción que implementa:
 
 ---
 
-**Última actualización:** Enero 2025  
-**Mantenido por:** Equipo Ecos de Liderazgo - Pulse Hub
+**Última actualización:** Diciembre 2024  
+**Mantenido por:** Equipo Aprende y Aplica
 
 ---
 

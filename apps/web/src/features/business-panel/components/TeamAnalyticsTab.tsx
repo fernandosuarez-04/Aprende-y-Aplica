@@ -30,12 +30,24 @@ interface TeamAnalyticsTabProps {
 export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
-  
+
   const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
   const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
   const textColor = panelStyles?.text_color || '#f8fafc'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
   const sectionBg = `${cardBg}CC`
+
+  // Colores vibrantes para gráficas - mejor contraste en dark mode
+  const chartColors = {
+    cyan: '#22D3EE',      // Cyan vibrante
+    emerald: '#10B981',   // Verde esmeralda
+    violet: '#A78BFA',    // Violeta claro
+    amber: '#FBBF24',     // Amarillo ámbar
+    rose: '#FB7185',      // Rosa
+    orange: '#FB923C',    // Naranja
+    teal: '#2DD4BF',      // Teal
+    primary: '#0EA5E9'    // Azul cielo
+  }
 
   const [statistics, setStatistics] = useState<WorkTeamStatistics[]>([])
   const [detailedAudit, setDetailedAudit] = useState<UserDetailedAudit[]>([])
@@ -60,15 +72,15 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
       const messages = await TeamsService.getTeamMessages(teamId, undefined, 1000, 0)
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      
-      const recentMessages = messages.filter(msg => 
+
+      const recentMessages = messages.filter(msg =>
         new Date(msg.created_at) >= sevenDaysAgo
       )
       setWeeklyMessages(recentMessages)
 
       // Obtener feedback de la última semana
       const feedback = await TeamsService.getTeamFeedback(teamId)
-      const recentFeedback = feedback.filter(fb => 
+      const recentFeedback = feedback.filter(fb =>
         new Date(fb.created_at) >= sevenDaysAgo
       )
       setWeeklyFeedback(recentFeedback)
@@ -166,7 +178,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const weekData: Record<string, { mensajes: number; feedback: number }> = {}
-    
+
     // Inicializar todos los días con 0
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today)
@@ -174,13 +186,13 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
       const dayKey = days[date.getDay()]
       weekData[dayKey] = { mensajes: 0, feedback: 0 }
     }
-    
+
     // Contar mensajes de la última semana
     weeklyMessages.forEach(message => {
       const messageDate = new Date(message.created_at)
       messageDate.setHours(0, 0, 0, 0)
       const daysDiff = Math.floor((today.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24))
-      
+
       if (daysDiff >= 0 && daysDiff < 7) {
         const dayKey = days[messageDate.getDay()]
         if (weekData[dayKey]) {
@@ -188,13 +200,13 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
         }
       }
     })
-    
+
     // Contar feedback de la última semana
     weeklyFeedback.forEach(feedback => {
       const feedbackDate = new Date(feedback.created_at)
       feedbackDate.setHours(0, 0, 0, 0)
       const daysDiff = Math.floor((today.getTime() - feedbackDate.getTime()) / (1000 * 60 * 60 * 24))
-      
+
       if (daysDiff >= 0 && daysDiff < 7) {
         const dayKey = days[feedbackDate.getDay()]
         if (weekData[dayKey]) {
@@ -202,7 +214,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
         }
       }
     })
-    
+
     // Convertir a array para el gráfico, ordenando por día de la semana (Lun-Dom)
     const dayOrder = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
     return dayOrder.map(day => ({
@@ -215,24 +227,24 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
   const activityData = calculateWeeklyActivity()
 
   // Datos para gráfico de progreso temporal (usar datos históricos si están disponibles)
-  const progressData = statistics.length > 1 
+  const progressData = statistics.length > 1
     ? statistics.slice(-5).map((stat, index) => ({
-        fecha: `Sem ${index + 1}`,
-        progreso: stat.average_completion_percentage
-      }))
+      fecha: `Sem ${index + 1}`,
+      progreso: stat.average_completion_percentage
+    }))
     : [
-        { fecha: 'Sem 1', progreso: currentStats.average_completion_percentage || 0 },
-        { fecha: 'Sem 2', progreso: currentStats.average_completion_percentage || 0 },
-        { fecha: 'Sem 3', progreso: currentStats.average_completion_percentage || 0 },
-        { fecha: 'Sem 4', progreso: currentStats.average_completion_percentage || 0 },
-        { fecha: 'Sem 5', progreso: currentStats.average_completion_percentage || 0 }
-      ]
+      { fecha: 'Sem 1', progreso: currentStats.average_completion_percentage || 0 },
+      { fecha: 'Sem 2', progreso: currentStats.average_completion_percentage || 0 },
+      { fecha: 'Sem 3', progreso: currentStats.average_completion_percentage || 0 },
+      { fecha: 'Sem 4', progreso: currentStats.average_completion_percentage || 0 },
+      { fecha: 'Sem 5', progreso: currentStats.average_completion_percentage || 0 }
+    ]
 
   // Datos para gráfico circular de completitud
   const completionPercentage = currentStats.average_completion_percentage || 0
   const completionData = [
-    { name: 'Completado', value: completionPercentage, color: primaryColor },
-    { name: 'Pendiente', value: Math.max(0, 100 - completionPercentage), color: cardBorder }
+    { name: 'Completado', value: completionPercentage, color: chartColors.emerald },
+    { name: 'Pendiente', value: Math.max(0, 100 - completionPercentage), color: 'rgba(148, 163, 184, 0.3)' }
   ].filter(item => item.value > 0) // Solo mostrar segmentos con valor > 0
 
   const COLORS = completionData.map(item => item.color)
@@ -342,23 +354,23 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={progressData}>
               <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} />
-              <XAxis 
-                dataKey="fecha" 
+              <XAxis
+                dataKey="fecha"
                 stroke={textColor}
                 style={{ fontSize: '12px' }}
               />
-              <YAxis 
+              <YAxis
                 stroke={textColor}
                 style={{ fontSize: '12px' }}
                 domain={[0, 100]}
               />
               <Tooltip contentStyle={chartTooltipStyle} />
-              <Line 
-                type="monotone" 
-                dataKey="progreso" 
-                stroke={primaryColor} 
+              <Line
+                type="monotone"
+                dataKey="progreso"
+                stroke={chartColors.cyan}
                 strokeWidth={3}
-                dot={{ fill: primaryColor, r: 5 }}
+                dot={{ fill: chartColors.cyan, r: 5 }}
                 name="Progreso %"
               />
             </LineChart>
@@ -393,15 +405,15 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                   endAngle={-270}
                 >
                   {(completionData.length > 0 ? completionData : [{ color: cardBorder }]).map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
+                    <Cell
+                      key={`cell-${index}`}
                       fill={entry.color || COLORS[index % COLORS.length]}
                       stroke={cardBg}
                       strokeWidth={3}
                     />
                   ))}
                 </Pie>
-                <Tooltip 
+                <Tooltip
                   contentStyle={chartTooltipStyle}
                   formatter={(value: number) => [`${value.toFixed(1)}%`, 'Valor']}
                 />
@@ -410,7 +422,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
             {/* Centro del donut con porcentaje */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ top: '50%', transform: 'translateY(-50%)' }}>
               <div className="text-center">
-                <p className="text-4xl font-bold font-heading mb-1" style={{ color: primaryColor }}>
+                <p className="text-4xl font-bold font-heading mb-1" style={{ color: chartColors.emerald }}>
                   {completionPercentage.toFixed(0)}%
                 </p>
                 <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
@@ -425,9 +437,9 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
               <>
                 {completionPercentage > 0 && (
                   <div className="flex items-center gap-2">
-                    <div 
+                    <div
                       className="w-4 h-4 rounded shadow-sm"
-                      style={{ backgroundColor: primaryColor }}
+                      style={{ backgroundColor: chartColors.emerald }}
                     />
                     <span className="text-sm font-body font-medium" style={{ color: textColor }}>
                       Completado: {completionPercentage.toFixed(1)}%
@@ -436,7 +448,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                 )}
                 {completionPercentage < 100 && (
                   <div className="flex items-center gap-2">
-                    <div 
+                    <div
                       className="w-4 h-4 rounded shadow-sm"
                       style={{ backgroundColor: cardBorder }}
                     />
@@ -448,7 +460,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <div 
+                <div
                   className="w-4 h-4 rounded shadow-sm"
                   style={{ backgroundColor: cardBorder }}
                 />
@@ -474,32 +486,32 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={activityData}>
               <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} />
-              <XAxis 
-                dataKey="fecha" 
+              <XAxis
+                dataKey="fecha"
                 stroke={textColor}
                 style={{ fontSize: '12px' }}
               />
-              <YAxis 
+              <YAxis
                 stroke={textColor}
                 style={{ fontSize: '12px' }}
               />
               <Tooltip contentStyle={chartTooltipStyle} />
               <Legend />
-              <Area 
-                type="monotone" 
-                dataKey="mensajes" 
+              <Area
+                type="monotone"
+                dataKey="mensajes"
                 stackId="1"
-                stroke={primaryColor} 
-                fill={primaryColor}
+                stroke={chartColors.cyan}
+                fill={chartColors.cyan}
                 fillOpacity={0.6}
                 name="Mensajes"
               />
-              <Area 
-                type="monotone" 
-                dataKey="feedback" 
+              <Area
+                type="monotone"
+                dataKey="feedback"
                 stackId="1"
-                stroke="#10b981" 
-                fill="#10b981"
+                stroke={chartColors.teal}
+                fill={chartColors.teal}
                 fillOpacity={0.6}
                 name="Feedback"
               />
@@ -522,46 +534,46 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
             <BarChart data={detailedAudit.slice(0, 10).map((user, index) => {
               // Calcular progreso promedio desde las lecciones
               const totalLessons = user.lesson_time.reduce((sum, course) => sum + course.lessons.length, 0)
-              const completedLessons = user.lesson_time.reduce((sum, course) => 
+              const completedLessons = user.lesson_time.reduce((sum, course) =>
                 sum + course.lessons.filter(l => l.completion_status === 'completed').length, 0
               )
               const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0
-              
+
               // Calcular calificación promedio desde los quiz
-              const averageScore = user.quiz_summary.total_attempts > 0 
-                ? user.quiz_summary.average_score 
+              const averageScore = user.quiz_summary.total_attempts > 0
+                ? user.quiz_summary.average_score
                 : 0
-              
+
               return {
-                nombre: user.user_name.length > 15 
-                  ? `${user.user_name.substring(0, 15)}...` 
+                nombre: user.user_name.length > 15
+                  ? `${user.user_name.substring(0, 15)}...`
                   : user.user_name,
                 progreso: Math.round(progressPercentage),
                 calificacion: Math.round(averageScore * 10) / 10
               }
             })}>
               <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} />
-              <XAxis 
-                dataKey="nombre" 
+              <XAxis
+                dataKey="nombre"
                 stroke={textColor}
                 style={{ fontSize: '12px' }}
               />
-              <YAxis 
+              <YAxis
                 stroke={textColor}
                 style={{ fontSize: '12px' }}
                 domain={[0, 100]}
               />
               <Tooltip contentStyle={chartTooltipStyle} />
               <Legend />
-              <Bar 
-                dataKey="progreso" 
-                fill={primaryColor}
+              <Bar
+                dataKey="progreso"
+                fill={chartColors.violet}
                 name="Progreso %"
                 radius={[8, 8, 0, 0]}
               />
-              <Bar 
-                dataKey="calificacion" 
-                fill="#10b981"
+              <Bar
+                dataKey="calificacion"
+                fill={chartColors.emerald}
                 name="Calificación (x10)"
                 radius={[8, 8, 0, 0]}
               />
@@ -585,7 +597,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 rounded-xl border font-body focus:outline-none focus:ring-1 transition-all"
-                style={{ 
+                style={{
                   borderColor: cardBorder,
                   backgroundColor: cardBg,
                   color: textColor
@@ -621,20 +633,20 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                 style={{ backgroundColor: cardBg, borderColor: cardBorder }}
               >
                 {/* Header del Usuario - Clickable para expandir/colapsar */}
-                <div 
-                  className="p-4 border-b cursor-pointer hover:opacity-80 transition-opacity" 
+                <div
+                  className="p-4 border-b cursor-pointer hover:opacity-80 transition-opacity"
                   style={{ borderColor: cardBorder }}
                   onClick={() => toggleUser(user.user_id)}
                 >
                   <div className="flex items-center gap-3">
                     {user.profile_picture_url ? (
-                      <img 
-                        src={user.profile_picture_url} 
+                      <img
+                        src={user.profile_picture_url}
                         alt={user.user_name}
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     ) : (
-                      <div 
+                      <div
                         className="w-12 h-12 rounded-full flex items-center justify-center"
                         style={{ backgroundColor: `${primaryColor}30` }}
                       >
@@ -666,405 +678,413 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                       className="overflow-hidden"
                     >
                       <div className="p-4 space-y-2">
-                  {/* Tiempo por Lección */}
-                  <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
-                    <div 
-                      className="flex items-center justify-between cursor-pointer"
-                      onClick={() => toggleSection(user.user_id, 'lessons')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" style={{ color: primaryColor }} />
-                        <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
-                          Tiempo por Lección ({user.lesson_time.reduce((sum, course) => sum + course.lessons.length, 0)})
-                        </h4>
-                      </div>
-                      {expandedSections[`${user.user_id}-lessons`] ? (
-                        <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      )}
-                    </div>
-                    <AnimatePresence>
-                      {expandedSections[`${user.user_id}-lessons`] && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="mt-4 space-y-4 overflow-hidden"
-                        >
-                          {user.lesson_time.length === 0 ? (
-                            <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
-                              No hay lecciones registradas
-                            </p>
-                          ) : (
-                            user.lesson_time.map((courseGroup) => (
-                              <div key={courseGroup.course_id} className="space-y-2">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <BookOpen className="w-4 h-4" style={{ color: primaryColor }} />
-                                  <h5 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
-                                    {courseGroup.course_title}
-                                  </h5>
-                                  <span className="text-xs font-body opacity-50" style={{ color: textColor }}>
-                                    ({courseGroup.lessons.length} lecciones)
-                                  </span>
-                                </div>
-                                <div className="pl-6 space-y-2">
-                                  {courseGroup.lessons.map((lesson) => (
-                                    <div 
-                                      key={lesson.lesson_id}
-                                      className="flex items-center justify-between p-3 rounded-lg"
-                                      style={{ backgroundColor: cardBg }}
-                                    >
-                                      <div className="flex-1">
-                                        <p className="text-sm font-body font-medium" style={{ color: textColor }}>
-                                          {lesson.lesson_title}
-                                        </p>
-                                        <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
-                                          {lesson.completion_status === 'completed' ? 'Completada' : 
-                                           lesson.completion_status === 'in_progress' ? 'En progreso' : 'No iniciada'}
-                                        </p>
-                                      </div>
-                                      <p className="text-sm font-body font-semibold" style={{ color: primaryColor }}>
-                                        {formatTime(lesson.time_spent_minutes)}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Interacciones con LIA */}
-                  <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
-                    <div 
-                      className="flex items-center justify-between cursor-pointer"
-                      onClick={() => toggleSection(user.user_id, 'lia')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Bot className="w-4 h-4" style={{ color: primaryColor }} />
-                        <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
-                          Interacciones con LIA
-                        </h4>
-                        <span className="text-xs font-body opacity-70" style={{ color: textColor }}>
-                          {user.lia_interactions.total_conversations} conversaciones | {user.lia_interactions.total_messages} mensajes
-                        </span>
-                      </div>
-                      {expandedSections[`${user.user_id}-lia`] ? (
-                        <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      )}
-                    </div>
-                    {expandedSections[`${user.user_id}-lia`] && (
-                      <div className="mt-2 text-xs font-body opacity-70" style={{ color: textColor }}>
-                        Duración total: {formatDuration(user.lia_interactions.total_duration_seconds)}
-                      </div>
-                    )}
-                    <AnimatePresence>
-                      {expandedSections[`${user.user_id}-lia`] && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="mt-4 space-y-4 overflow-hidden"
-                        >
-                          {(!user.lia_interactions?.conversations || user.lia_interactions.conversations.length === 0) ? (
-                            <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
-                              No hay conversaciones registradas
-                            </p>
-                          ) : (
-                            user.lia_interactions.conversations.map((conversation) => (
-                              <div 
-                                key={conversation.conversation_id}
-                                className="rounded-lg border p-4"
-                                style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+                        {/* Tiempo por Lección */}
+                        <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
+                          <div
+                            className="flex items-center justify-between cursor-pointer"
+                            onClick={() => toggleSection(user.user_id, 'lessons')}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4" style={{ color: chartColors.emerald }} />
+                              <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
+                                Tiempo por Lección ({user.lesson_time.reduce((sum, course) => sum + course.lessons.length, 0)})
+                              </h4>
+                            </div>
+                            {expandedSections[`${user.user_id}-lessons`] ? (
+                              <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            )}
+                          </div>
+                          <AnimatePresence>
+                            {expandedSections[`${user.user_id}-lessons`] && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="mt-4 space-y-4 overflow-hidden"
                               >
-                                <div className="flex items-center justify-between mb-3 pb-2 border-b" style={{ borderColor: cardBorder }}>
-                                  <div className="flex items-center gap-2">
-                                    <MessageSquare className="w-4 h-4" style={{ color: primaryColor }} />
-                                    <span className="text-xs font-body opacity-70" style={{ color: textColor }}>
-                                      {formatRelativeTime(conversation.started_at)}
-                                    </span>
-                                  </div>
-                                  <span className="text-xs font-body opacity-50" style={{ color: textColor }}>
-                                    {conversation.messages.length} mensajes
-                                  </span>
-                                </div>
-                                <div className="space-y-3">
-                                  {conversation.messages.map((message) => {
-                                    const isUser = message.role === 'user'
-                                    return (
-                                      <div 
-                                        key={message.message_id}
-                                        className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
-                                      >
-                                        {!isUser && (
-                                          <div className="flex-shrink-0">
-                                            <div 
-                                              className="w-8 h-8 rounded-full flex items-center justify-center"
-                                              style={{ backgroundColor: `${primaryColor}30` }}
-                                            >
-                                              <Bot className="w-4 h-4" style={{ color: primaryColor }} />
-                                            </div>
-                                          </div>
-                                        )}
-                                        {isUser && (
-                                          <div className="flex-shrink-0">
-                                            <div 
-                                              className="w-8 h-8 rounded-full flex items-center justify-center"
-                                              style={{ backgroundColor: `${cardBorder}50` }}
-                                            >
-                                              <Users className="w-4 h-4" style={{ color: textColor }} />
-                                            </div>
-                                          </div>
-                                        )}
-                                        <div className={`flex-1 ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
+                                {user.lesson_time.length === 0 ? (
+                                  <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
+                                    No hay lecciones registradas
+                                  </p>
+                                ) : (
+                                  user.lesson_time.map((courseGroup) => (
+                                    <div key={courseGroup.course_id} className="space-y-2">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <BookOpen className="w-4 h-4" style={{ color: chartColors.cyan }} />
+                                        <h5 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
+                                          {courseGroup.course_title}
+                                        </h5>
+                                        <span className="text-xs font-body opacity-50" style={{ color: textColor }}>
+                                          ({courseGroup.lessons.length} lecciones)
+                                        </span>
+                                      </div>
+                                      <div className="pl-6 space-y-2">
+                                        {courseGroup.lessons.map((lesson) => (
                                           <div
-                                            className={`px-4 py-2 rounded-2xl max-w-[85%] ${
-                                              isUser ? 'rounded-br-sm' : 'rounded-bl-sm'
-                                            }`}
-                                            style={{
-                                              backgroundColor: isUser ? `${primaryColor}30` : sectionBg,
-                                              color: textColor
-                                            }}
+                                            key={lesson.lesson_id}
+                                            className="flex items-center justify-between p-3 rounded-lg"
+                                            style={{ backgroundColor: cardBg }}
                                           >
-                                            <p className="text-sm font-body whitespace-pre-wrap">
-                                              {message.content.length > 500 
-                                                ? `${message.content.substring(0, 500)}...` 
-                                                : message.content}
+                                            <div className="flex-1">
+                                              <p className="text-sm font-body font-medium" style={{ color: textColor }}>
+                                                {lesson.lesson_title}
+                                              </p>
+                                              <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                                {lesson.completion_status === 'completed' ? 'Completada' :
+                                                  lesson.completion_status === 'in_progress' ? 'En progreso' : 'No iniciada'}
+                                              </p>
+                                            </div>
+                                            <p className="text-sm font-body font-semibold" style={{ color: primaryColor }}>
+                                              {formatTime(lesson.time_spent_minutes)}
                                             </p>
                                           </div>
-                                          <p className="text-xs font-body opacity-50 mt-1">
-                                            {formatRelativeTime(message.created_at)}
-                                          </p>
-                                        </div>
+                                        ))}
                                       </div>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                                    </div>
+                                  ))
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
 
-                  {/* Actividad en Chat */}
-                  <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
-                    <div 
-                      className="flex items-center justify-between cursor-pointer"
-                      onClick={() => toggleSection(user.user_id, 'chat')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" style={{ color: primaryColor }} />
-                        <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
-                          Actividad en Chat ({user.chat_activity.total_messages} mensajes)
-                        </h4>
-                      </div>
-                      {expandedSections[`${user.user_id}-chat`] ? (
-                        <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      )}
-                    </div>
-                    <AnimatePresence>
-                      {expandedSections[`${user.user_id}-chat`] && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="mt-4 space-y-2 overflow-hidden"
-                        >
-                          {user.chat_activity.messages.length === 0 ? (
-                            <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
-                              No hay mensajes en el chat del equipo
-                            </p>
-                          ) : (
-                            user.chat_activity.messages.map((message) => (
-                              <div 
-                                key={message.message_id}
-                                className="p-3 rounded-lg"
-                                style={{ backgroundColor: cardBg }}
+                        {/* Interacciones con LIA - Solo estadísticas (LFPDPPP compliance) */}
+                        <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
+                          <div
+                            className="flex items-center justify-between cursor-pointer"
+                            onClick={() => toggleSection(user.user_id, 'lia')}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Bot className="w-4 h-4" style={{ color: chartColors.violet }} />
+                              <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
+                                Interacciones con LIA
+                              </h4>
+                              <span className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                {user.lia_interactions.total_conversations} conversaciones | {user.lia_interactions.total_messages} mensajes
+                              </span>
+                            </div>
+                            {expandedSections[`${user.user_id}-lia`] ? (
+                              <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            )}
+                          </div>
+                          <AnimatePresence>
+                            {expandedSections[`${user.user_id}-lia`] && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="mt-4 overflow-hidden"
                               >
-                                <p className="text-sm font-body" style={{ color: textColor }}>
-                                  {message.content.length > 200 
-                                    ? `${message.content.substring(0, 200)}...` 
-                                    : message.content}
-                                </p>
-                                <p className="text-xs font-body opacity-50 mt-1" style={{ color: textColor }}>
-                                  {formatRelativeTime(message.created_at)}
-                                </p>
-                              </div>
-                            ))
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Notas Creadas */}
-                  <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
-                    <div 
-                      className="flex items-center justify-between cursor-pointer"
-                      onClick={() => toggleSection(user.user_id, 'notes')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" style={{ color: primaryColor }} />
-                        <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
-                          Notas Creadas ({user.notes.length})
-                        </h4>
-                      </div>
-                      {expandedSections[`${user.user_id}-notes`] ? (
-                        <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      )}
-                    </div>
-                    <AnimatePresence>
-                      {expandedSections[`${user.user_id}-notes`] && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="mt-4 space-y-3 overflow-hidden"
-                        >
-                          {user.notes.length === 0 ? (
-                            <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
-                              No hay notas creadas
-                            </p>
-                          ) : (
-                            user.notes.map((note) => (
-                              <div 
-                                key={note.note_id}
-                                className="p-4 rounded-lg"
-                                style={{ backgroundColor: cardBg }}
-                              >
-                                <div className="flex items-start justify-between mb-2">
-                                  <h5 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
-                                    {note.note_title}
-                                  </h5>
-                                  <span className="text-xs font-body opacity-50" style={{ color: textColor }}>
-                                    {formatRelativeTime(note.created_at)}
-                                  </span>
-                                </div>
-                                <p className="text-xs font-body opacity-70 mb-2" style={{ color: textColor }}>
-                                  {note.lesson_title}
-                                </p>
-                                <p className="text-sm font-body whitespace-pre-wrap" style={{ color: textColor }}>
-                                  {note.note_content.length > 300 
-                                    ? `${note.note_content.substring(0, 300)}...` 
-                                    : note.note_content}
-                                </p>
-                              </div>
-                            ))
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Intentos de Quiz */}
-                  <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
-                    <div 
-                      className="flex items-center justify-between cursor-pointer"
-                      onClick={() => toggleSection(user.user_id, 'quiz')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" style={{ color: primaryColor }} />
-                        <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
-                          Intentos de Quiz ({user.quiz_summary.total_attempts})
-                        </h4>
-                      </div>
-                      {expandedSections[`${user.user_id}-quiz`] ? (
-                        <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
-                      )}
-                    </div>
-                    {expandedSections[`${user.user_id}-quiz`] && (
-                      <div className="mt-2 flex items-center gap-4 text-xs font-body">
-                        <span style={{ color: textColor }}>
-                          Mejor: <span className="font-semibold" style={{ color: primaryColor }}>{user.quiz_summary.best_score.toFixed(1)}%</span>
-                        </span>
-                        <span style={{ color: textColor }}>
-                          Promedio: <span className="font-semibold" style={{ color: primaryColor }}>{user.quiz_summary.average_score.toFixed(1)}%</span>
-                        </span>
-                        <span style={{ color: textColor }}>
-                          Aprobados: <span className="font-semibold" style={{ color: primaryColor }}>{user.quiz_summary.passed_count}</span>
-                        </span>
-                      </div>
-                    )}
-                    <AnimatePresence>
-                      {expandedSections[`${user.user_id}-quiz`] && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="mt-4 overflow-hidden"
-                        >
-                          {user.quiz_attempts.length === 0 ? (
-                            <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
-                              No hay intentos de quiz registrados
-                            </p>
-                          ) : (
-                            <div className="space-y-3">
-                              {user.quiz_attempts.map((attempt) => (
-                                <div 
-                                  key={attempt.submission_id}
-                                  className="p-3 rounded-lg"
-                                  style={{ backgroundColor: cardBg }}
-                                >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-sm font-body font-medium" style={{ color: textColor }}>
-                                          {attempt.lesson_title}
-                                        </p>
-                                        {attempt.total_attempts_for_lesson > 1 && (
-                                          <span 
-                                            className="text-xs font-body px-2 py-0.5 rounded-full"
-                                            style={{ 
-                                              backgroundColor: `${primaryColor}20`,
-                                              color: primaryColor
-                                            }}
-                                          >
-                                            Intento {attempt.attempt_number} de {attempt.total_attempts_for_lesson}
-                                          </span>
-                                        )}
-                                      </div>
+                                {user.lia_interactions.total_conversations === 0 ? (
+                                  <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
+                                    No hay conversaciones registradas
+                                  </p>
+                                ) : (
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {/* Estadística: Total Conversaciones */}
+                                    <div
+                                      className="p-3 rounded-lg text-center"
+                                      style={{ backgroundColor: cardBg }}
+                                    >
+                                      <p className="text-2xl font-bold" style={{ color: chartColors.violet }}>
+                                        {user.lia_interactions.total_conversations}
+                                      </p>
                                       <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
-                                        {formatRelativeTime(attempt.completed_at)}
+                                        Conversaciones
                                       </p>
                                     </div>
-                                    <div className="text-right">
-                                      <p className="text-sm font-body font-semibold" style={{ 
-                                        color: attempt.is_passed ? '#10b981' : '#ef4444' 
-                                      }}>
-                                        {attempt.percentage_score.toFixed(1)}%
+                                    {/* Estadística: Total Mensajes */}
+                                    <div
+                                      className="p-3 rounded-lg text-center"
+                                      style={{ backgroundColor: cardBg }}
+                                    >
+                                      <p className="text-2xl font-bold" style={{ color: chartColors.cyan }}>
+                                        {user.lia_interactions.total_messages}
                                       </p>
                                       <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
-                                        {attempt.is_passed ? 'Aprobado' : 'No aprobado'}
+                                        Mensajes totales
+                                      </p>
+                                    </div>
+                                    {/* Estadística: Duración Total */}
+                                    <div
+                                      className="p-3 rounded-lg text-center"
+                                      style={{ backgroundColor: cardBg }}
+                                    >
+                                      <p className="text-2xl font-bold" style={{ color: chartColors.emerald }}>
+                                        {formatDuration(user.lia_interactions.total_duration_seconds)}
+                                      </p>
+                                      <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                        Tiempo total
+                                      </p>
+                                    </div>
+                                    {/* Estadística: Promedio por conversación */}
+                                    <div
+                                      className="p-3 rounded-lg text-center"
+                                      style={{ backgroundColor: cardBg }}
+                                    >
+                                      <p className="text-2xl font-bold" style={{ color: chartColors.amber }}>
+                                        {user.lia_interactions.total_conversations > 0
+                                          ? Math.round(user.lia_interactions.total_messages / user.lia_interactions.total_conversations)
+                                          : 0}
+                                      </p>
+                                      <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                        Msgs/conversación
                                       </p>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Actividad en Chat - Solo estadísticas (LFPDPPP compliance) */}
+                        <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
+                          <div
+                            className="flex items-center justify-between cursor-pointer"
+                            onClick={() => toggleSection(user.user_id, 'chat')}
+                          >
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="w-4 h-4" style={{ color: chartColors.cyan }} />
+                              <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
+                                Actividad en Chat
+                              </h4>
+                              <span className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                {user.chat_activity.total_messages} mensajes
+                              </span>
+                            </div>
+                            {expandedSections[`${user.user_id}-chat`] ? (
+                              <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            )}
+                          </div>
+                          <AnimatePresence>
+                            {expandedSections[`${user.user_id}-chat`] && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="mt-4 overflow-hidden"
+                              >
+                                {user.chat_activity.total_messages === 0 ? (
+                                  <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
+                                    No hay participación en el chat del equipo
+                                  </p>
+                                ) : (
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {/* Estadística: Total Mensajes */}
+                                    <div
+                                      className="p-3 rounded-lg text-center"
+                                      style={{ backgroundColor: cardBg }}
+                                    >
+                                      <p className="text-2xl font-bold" style={{ color: chartColors.cyan }}>
+                                        {user.chat_activity.total_messages}
+                                      </p>
+                                      <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                        Mensajes enviados
+                                      </p>
+                                    </div>
+                                    {/* Estadística: Participación activa */}
+                                    <div
+                                      className="p-3 rounded-lg text-center"
+                                      style={{ backgroundColor: cardBg }}
+                                    >
+                                      <p className="text-2xl font-bold" style={{ color: chartColors.emerald }}>
+                                        {user.chat_activity.total_messages > 10 ? 'Alta' :
+                                          user.chat_activity.total_messages > 3 ? 'Media' : 'Baja'}
+                                      </p>
+                                      <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                        Nivel de participación
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Notas Creadas - Solo estadísticas (LFPDPPP compliance) */}
+                        <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
+                          <div
+                            className="flex items-center justify-between cursor-pointer"
+                            onClick={() => toggleSection(user.user_id, 'notes')}
+                          >
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-4 h-4" style={{ color: chartColors.amber }} />
+                              <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
+                                Notas Creadas
+                              </h4>
+                              <span className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                {user.notes.length} notas
+                              </span>
+                            </div>
+                            {expandedSections[`${user.user_id}-notes`] ? (
+                              <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            )}
+                          </div>
+                          <AnimatePresence>
+                            {expandedSections[`${user.user_id}-notes`] && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="mt-4 overflow-hidden"
+                              >
+                                {user.notes.length === 0 ? (
+                                  <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
+                                    No hay notas creadas
+                                  </p>
+                                ) : (
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    {/* Estadística: Total Notas */}
+                                    <div
+                                      className="p-3 rounded-lg text-center"
+                                      style={{ backgroundColor: cardBg }}
+                                    >
+                                      <p className="text-2xl font-bold" style={{ color: chartColors.amber }}>
+                                        {user.notes.length}
+                                      </p>
+                                      <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                        Notas creadas
+                                      </p>
+                                    </div>
+                                    {/* Estadística: Cursos con notas */}
+                                    <div
+                                      className="p-3 rounded-lg text-center"
+                                      style={{ backgroundColor: cardBg }}
+                                    >
+                                      <p className="text-2xl font-bold" style={{ color: chartColors.teal }}>
+                                        {new Set(user.notes.map(n => n.lesson_title)).size}
+                                      </p>
+                                      <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                        Lecciones con notas
+                                      </p>
+                                    </div>
+                                    {/* Estadística: Actividad */}
+                                    <div
+                                      className="p-3 rounded-lg text-center"
+                                      style={{ backgroundColor: cardBg }}
+                                    >
+                                      <p className="text-2xl font-bold" style={{ color: chartColors.emerald }}>
+                                        {user.notes.length > 5 ? 'Alta' :
+                                          user.notes.length > 2 ? 'Media' : 'Baja'}
+                                      </p>
+                                      <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                        Toma de notas
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Intentos de Quiz */}
+                        <div className="rounded-xl border p-3" style={{ backgroundColor: `${cardBg}CC`, borderColor: cardBorder }}>
+                          <div
+                            className="flex items-center justify-between cursor-pointer"
+                            onClick={() => toggleSection(user.user_id, 'quiz')}
+                          >
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4" style={{ color: chartColors.rose }} />
+                              <h4 className="text-sm font-heading font-semibold" style={{ color: textColor }}>
+                                Intentos de Quiz ({user.quiz_summary.total_attempts})
+                              </h4>
+                            </div>
+                            {expandedSections[`${user.user_id}-quiz`] ? (
+                              <ChevronUp className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 opacity-50" style={{ color: textColor }} />
+                            )}
+                          </div>
+                          {expandedSections[`${user.user_id}-quiz`] && (
+                            <div className="mt-2 flex items-center gap-4 text-xs font-body">
+                              <span style={{ color: textColor }}>
+                                Mejor: <span className="font-semibold" style={{ color: chartColors.rose }}>{user.quiz_summary.best_score.toFixed(1)}%</span>
+                              </span>
+                              <span style={{ color: textColor }}>
+                                Promedio: <span className="font-semibold" style={{ color: chartColors.amber }}>{user.quiz_summary.average_score.toFixed(1)}%</span>
+                              </span>
+                              <span style={{ color: textColor }}>
+                                Aprobados: <span className="font-semibold" style={{ color: chartColors.emerald }}>{user.quiz_summary.passed_count}</span>
+                              </span>
                             </div>
                           )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                          <AnimatePresence>
+                            {expandedSections[`${user.user_id}-quiz`] && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="mt-4 overflow-hidden"
+                              >
+                                {user.quiz_attempts.length === 0 ? (
+                                  <p className="text-sm font-body opacity-50" style={{ color: textColor }}>
+                                    No hay intentos de quiz registrados
+                                  </p>
+                                ) : (
+                                  <div className="space-y-3">
+                                    {user.quiz_attempts.map((attempt) => (
+                                      <div
+                                        key={attempt.submission_id}
+                                        className="p-3 rounded-lg"
+                                        style={{ backgroundColor: cardBg }}
+                                      >
+                                        <div className="flex items-center justify-between mb-2">
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <p className="text-sm font-body font-medium" style={{ color: textColor }}>
+                                                {attempt.lesson_title}
+                                              </p>
+                                              {attempt.total_attempts_for_lesson > 1 && (
+                                                <span
+                                                  className="text-xs font-body px-2 py-0.5 rounded-full"
+                                                  style={{
+                                                    backgroundColor: `${primaryColor}20`,
+                                                    color: primaryColor
+                                                  }}
+                                                >
+                                                  Intento {attempt.attempt_number} de {attempt.total_attempts_for_lesson}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                              {formatRelativeTime(attempt.completed_at)}
+                                            </p>
+                                          </div>
+                                          <div className="text-right">
+                                            <p className="text-sm font-body font-semibold" style={{
+                                              color: attempt.is_passed ? '#10b981' : '#ef4444'
+                                            }}>
+                                              {attempt.percentage_score.toFixed(1)}%
+                                            </p>
+                                            <p className="text-xs font-body opacity-70" style={{ color: textColor }}>
+                                              {attempt.is_passed ? 'Aprobado' : 'No aprobado'}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             ))}
           </div>
         )}

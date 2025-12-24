@@ -1,12 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Heart, Star, User, Loader2, CheckCircle2, AlertCircle, MessageSquare, Lightbulb } from 'lucide-react'
-import { Button } from '@aprende-y-aplica/ui'
+import {
+  X,
+  Heart,
+  Star,
+  User,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  MessageSquare,
+  Lightbulb,
+  Sparkles,
+  Send,
+  ChevronDown,
+  Award
+} from 'lucide-react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, WorkTeamMember, CreateTeamFeedbackRequest } from '../services/teams.service'
-import { PremiumSelect } from './PremiumSelect'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 
 interface TeamFeedbackModalProps {
@@ -16,6 +28,13 @@ interface TeamFeedbackModalProps {
   teamMembers: WorkTeamMember[]
   onFeedbackCreated: () => void
 }
+
+const FEEDBACK_TYPES = [
+  { value: 'peer_review', label: 'Evaluación', icon: Star, color: '#F59E0B' },
+  { value: 'achievement', label: 'Logro', icon: Award, color: '#10B981' },
+  { value: 'suggestion', label: 'Sugerencia', icon: Lightbulb, color: '#F97316' },
+  { value: 'question', label: 'Pregunta', icon: MessageSquare, color: '#3B82F6' }
+]
 
 export function TeamFeedbackModal({
   isOpen,
@@ -28,12 +47,12 @@ export function TeamFeedbackModal({
   const panelStyles = styles?.panel
   const { user } = useAuth()
 
-  // Aplicar colores personalizados
-  const modalBg = panelStyles?.card_background || 'rgba(15, 23, 42, 0.95)'
-  const modalBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
+  // Colores del tema
+  const cardBg = panelStyles?.card_background || '#1a1f2e'
   const textColor = panelStyles?.text_color || '#f8fafc'
-  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
-  const sectionBg = `${modalBg}CC`
+  const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
+  const accentColor = panelStyles?.accent_color || '#10B981'
+  const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
 
   const [formData, setFormData] = useState<CreateTeamFeedbackRequest>({
     to_user_id: '',
@@ -44,22 +63,34 @@ export function TeamFeedbackModal({
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false)
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false)
+  const memberDropdownRef = useRef<HTMLDivElement>(null)
+  const typeDropdownRef = useRef<HTMLDivElement>(null)
 
   // Filtrar miembros (excluir al usuario actual)
   const availableMembers = teamMembers.filter(member => member.user_id !== user?.id)
+  const selectedMember = teamMembers.find(m => m.user_id === formData.to_user_id)
+  const selectedType = FEEDBACK_TYPES.find(t => t.value === formData.feedback_type)
 
-  const feedbackTypeOptions = [
-    { value: 'peer_review', label: 'Evaluación', icon: Star },
-    { value: 'achievement', label: 'Logro', icon: CheckCircle2 },
-    { value: 'suggestion', label: 'Sugerencia', icon: Lightbulb },
-    { value: 'question', label: 'Pregunta', icon: MessageSquare }
-  ]
+  // Cerrar dropdowns al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
+        setShowMemberDropdown(false)
+      }
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(event.target as Node)) {
+        setShowTypeDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    // Validaciones
     if (!formData.to_user_id) {
       setError('Debes seleccionar un destinatario')
       return
@@ -67,11 +98,6 @@ export function TeamFeedbackModal({
 
     if (!formData.content || formData.content.trim().length < 10) {
       setError('El contenido debe tener al menos 10 caracteres')
-      return
-    }
-
-    if (formData.rating !== undefined && (formData.rating < 1 || formData.rating > 5)) {
-      setError('La calificación debe ser entre 1 y 5')
       return
     }
 
@@ -86,7 +112,6 @@ export function TeamFeedbackModal({
         is_anonymous: formData.is_anonymous
       })
 
-      // Reset form
       setFormData({
         to_user_id: '',
         feedback_type: 'peer_review',
@@ -106,248 +131,496 @@ export function TeamFeedbackModal({
 
   if (!isOpen) return null
 
-  const selectedMember = teamMembers.find(m => m.user_id === formData.to_user_id)
-
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ zIndex: 99999 }}
+      >
+        {/* Backdrop transparente */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+          className="absolute inset-0"
         />
 
+        {/* Modal Container - Split Panel */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 20 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10 backdrop-blur-xl"
-          style={{
-            backgroundColor: modalBg,
-            borderColor: modalBorder
-          }}
+          className="relative rounded-2xl shadow-2xl overflow-hidden border border-white/10"
+          style={{ backgroundColor: cardBg }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="relative border-b p-5 backdrop-blur-sm" style={{
-            backgroundColor: modalBg,
-            borderColor: modalBorder
-          }}>
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <motion.div
-                  initial={{ scale: 0.9, rotate: -5 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.1, type: 'spring' }}
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  <Heart className="w-5 h-5 text-white" />
-                </motion.div>
-                <div>
-                  <h2 className="font-heading text-xl font-bold tracking-tight" style={{ color: textColor }}>
-                    Dar Retroalimentación
-                  </h2>
-                  <p className="font-body text-xs mt-1" style={{ color: textColor, opacity: 0.7 }}>
-                    Comparte feedback con los miembros del equipo
-                  </p>
-                </div>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="p-2 rounded-xl transition-all duration-200 disabled:opacity-50"
+          <div className="flex min-h-[550px]">
+            {/* Panel Izquierdo - Preview */}
+            <div
+              className="w-80 p-8 border-r border-white/5 flex flex-col"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)`
+              }}
+            >
+              {/* Avatar Animado */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="relative mb-6"
               >
-                <X className="w-5 h-5" style={{ color: textColor, opacity: 0.7 }} />
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3 rounded-xl text-red-400 flex items-center gap-3 border backdrop-blur-sm"
+                <div
+                  className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto"
                   style={{
-                    backgroundColor: 'rgba(127, 29, 29, 0.2)',
-                    borderColor: 'rgba(220, 38, 38, 0.3)'
+                    background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                    boxShadow: `0 8px 30px ${primaryColor}40`
                   }}
                 >
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="text-sm font-body">{error}</span>
+                  {selectedMember?.user?.profile_picture_url ? (
+                    <img
+                      src={selectedMember.user.profile_picture_url}
+                      alt=""
+                      className="w-full h-full rounded-2xl object-cover"
+                    />
+                  ) : (
+                    <Heart className="w-10 h-10 text-white" />
+                  )}
+                </div>
+
+                {/* Badge animado */}
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  <Sparkles className="w-4 h-4 text-white" />
                 </motion.div>
-              )}
+              </motion.div>
 
-              {/* Selección de Destinatario */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Destinatario <span className="text-red-400">*</span>
-                </label>
-                <PremiumSelect
-                  value={formData.to_user_id}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, to_user_id: value }))}
-                  placeholder="Seleccionar miembro del equipo..."
-                  options={availableMembers.map(member => ({
-                    value: member.user_id,
-                    label: member.user?.name || member.user?.email || 'Usuario',
-                    icon: member.user?.profile_picture_url || undefined
-                  }))}
-                  disabled={availableMembers.length === 0}
-                  emptyMessage={availableMembers.length === 0 ? "No hay miembros disponibles" : "Selecciona un miembro"}
-                />
-                {availableMembers.length === 0 && (
-                  <p className="text-xs font-body opacity-70 mt-2">
-                    No puedes darte feedback a ti mismo
-                  </p>
-                )}
-              </div>
-
-              {/* Tipo de Feedback */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Tipo de Feedback <span className="text-red-400">*</span>
-                </label>
-                <PremiumSelect
-                  value={formData.feedback_type}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, feedback_type: value as any }))}
-                  placeholder="Seleccionar tipo..."
-                  options={feedbackTypeOptions.map(opt => ({
-                    value: opt.value,
-                    label: opt.label,
-                    icon: undefined // Los iconos se pueden agregar después si PremiumSelect los soporta
-                  }))}
-                />
-              </div>
-
-              {/* Contenido */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Contenido <span className="text-red-400">*</span>
-                </label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                  rows={5}
-                  maxLength={1000}
-                  className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all resize-none"
-                  style={{
-                    borderColor: modalBorder,
-                    backgroundColor: sectionBg,
-                    color: textColor
-                  }}
-                  placeholder="Escribe tu retroalimentación aquí... (mínimo 10 caracteres)"
-                  required
-                />
-                <p className="text-xs font-body opacity-70 mt-1">
-                  {formData.content.length}/1000 caracteres
+              {/* Preview Info */}
+              <div className="text-center mb-8">
+                <h3
+                  className="text-lg font-semibold mb-1"
+                  style={{ color: textColor }}
+                >
+                  {selectedMember?.user?.name || 'Selecciona destinatario'}
+                </h3>
+                <p
+                  className="text-sm"
+                  style={{ color: textColor, opacity: 0.6 }}
+                >
+                  {selectedMember?.user?.email || 'Miembro del equipo'}
                 </p>
               </div>
 
-              {/* Calificación (Opcional) */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Calificación (Opcional)
-                </label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <button
-                      key={rating}
-                      type="button"
-                      onClick={() => setFormData(prev => ({
-                        ...prev,
-                        rating: prev.rating === rating ? undefined : rating
-                      }))}
-                      className="transition-all hover:scale-110"
+              {/* Preview del Tipo */}
+              {selectedType && (
+                <div
+                  className="rounded-xl p-4 mb-6"
+                  style={{ backgroundColor: `${selectedType.color}15` }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <selectedType.icon
+                      className="w-5 h-5"
+                      style={{ color: selectedType.color }}
+                    />
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: selectedType.color }}
                     >
-                      <Star
-                        className={`w-6 h-6 ${formData.rating && formData.rating >= rating
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-400'
-                          }`}
-                      />
-                    </button>
-                  ))}
-                  {formData.rating && (
-                    <span className="text-sm font-body ml-2" style={{ color: textColor }}>
-                      {formData.rating}/5
+                      {selectedType.label}
                     </span>
+                  </div>
+                  {formData.content && (
+                    <p
+                      className="text-xs line-clamp-3"
+                      style={{ color: textColor, opacity: 0.7 }}
+                    >
+                      "{formData.content.substring(0, 100)}..."
+                    </p>
                   )}
+                </div>
+              )}
+
+              {/* Rating Preview */}
+              {formData.rating && (
+                <div className="flex items-center justify-center gap-1 mb-6">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-6 h-6 ${star <= formData.rating!
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-600'
+                        }`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Estado Anónimo */}
+              {formData.is_anonymous && (
+                <div
+                  className="mt-auto rounded-xl p-3 text-center"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                >
+                  <span className="text-sm" style={{ color: textColor, opacity: 0.7 }}>
+                    🕵️ Enviando anónimamente
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Panel Derecho - Form */}
+            <div className="flex-1 flex flex-col">
+              {/* Header */}
+              <div className="p-6 border-b border-white/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2
+                      className="text-xl font-bold"
+                      style={{ color: textColor }}
+                    >
+                      Enviar Feedback
+                    </h2>
+                    <p
+                      className="text-sm mt-1"
+                      style={{ color: textColor, opacity: 0.6 }}
+                    >
+                      Comparte tu retroalimentación con el equipo
+                    </p>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-white/5"
+                  >
+                    <X className="w-5 h-5" style={{ color: textColor, opacity: 0.5 }} />
+                  </motion.button>
                 </div>
               </div>
 
-              {/* Feedback Anónimo */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="is_anonymous"
-                  checked={formData.is_anonymous}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_anonymous: e.target.checked }))}
-                  className="w-5 h-5 rounded border"
-                  style={{
-                    borderColor: modalBorder,
-                    backgroundColor: sectionBg,
-                    accentColor: primaryColor
-                  }}
-                />
-                <label
-                  htmlFor="is_anonymous"
-                  className="text-sm font-body cursor-pointer"
-                  style={{ color: textColor }}
-                >
-                  Enviar feedback de forma anónima
-                </label>
-              </div>
-            </div>
+              {/* Form Content */}
+              <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+                <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                  {/* Error */}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 rounded-xl flex items-center gap-3"
+                      style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)'
+                      }}
+                    >
+                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                      <span className="text-sm text-red-400">{error}</span>
+                    </motion.div>
+                  )}
 
-            {/* Footer */}
-            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3 shrink-0" style={{
-              backgroundColor: modalBg,
-              borderColor: modalBorder
-            }}>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="font-body"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="gradient"
-                disabled={isSubmitting || !formData.to_user_id || !formData.content.trim()}
-                className="font-body"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || '#8b5cf6'} 100%)`,
-                  boxShadow: `0 4px 14px 0 ${primaryColor}40`
-                }}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Heart className="w-4 h-4 mr-2" />
-                    Enviar Feedback
-                  </>
-                )}
-              </Button>
+                  {/* Destinatario Dropdown */}
+                  <div>
+                    <label
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: textColor }}
+                    >
+                      Destinatario <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative" ref={memberDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowMemberDropdown(!showMemberDropdown)}
+                        className="w-full px-4 py-3 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300 text-left"
+                        style={{
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          borderColor: formData.to_user_id ? primaryColor : 'rgba(255,255,255,0.1)',
+                          color: textColor
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          {selectedMember ? (
+                            <>
+                              {selectedMember.user?.profile_picture_url ? (
+                                <img
+                                  src={selectedMember.user.profile_picture_url}
+                                  alt=""
+                                  className="w-8 h-8 rounded-lg object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                                  style={{ backgroundColor: `${primaryColor}30` }}
+                                >
+                                  <User className="w-4 h-4" style={{ color: primaryColor }} />
+                                </div>
+                              )}
+                              <span className="text-sm">{selectedMember.user?.name || 'Usuario'}</span>
+                            </>
+                          ) : (
+                            <span className="text-sm" style={{ opacity: 0.5 }}>
+                              Seleccionar miembro...
+                            </span>
+                          )}
+                        </div>
+                        <motion.div animate={{ rotate: showMemberDropdown ? 180 : 0 }}>
+                          <ChevronDown className="w-4 h-4 opacity-50" />
+                        </motion.div>
+                      </button>
+
+                      <AnimatePresence>
+                        {showMemberDropdown && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50 max-h-48 overflow-y-auto"
+                            style={{
+                              backgroundColor: cardBg,
+                              borderColor: 'rgba(255,255,255,0.15)'
+                            }}
+                          >
+                            {availableMembers.map((member) => (
+                              <button
+                                key={member.user_id}
+                                type="button"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, to_user_id: member.user_id }))
+                                  setShowMemberDropdown(false)
+                                }}
+                                className="w-full px-4 py-3 text-left flex items-center gap-3 transition-colors hover:bg-white/5"
+                                style={{
+                                  backgroundColor: formData.to_user_id === member.user_id ? `${primaryColor}30` : 'transparent'
+                                }}
+                              >
+                                {member.user?.profile_picture_url ? (
+                                  <img
+                                    src={member.user.profile_picture_url}
+                                    alt=""
+                                    className="w-8 h-8 rounded-lg object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                                    style={{ backgroundColor: `${primaryColor}30` }}
+                                  >
+                                    <User className="w-4 h-4" style={{ color: primaryColor }} />
+                                  </div>
+                                )}
+                                <span className="text-sm" style={{ color: textColor }}>
+                                  {member.user?.name || member.user?.email || 'Usuario'}
+                                </span>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  {/* Tipo de Feedback Dropdown */}
+                  <div>
+                    <label
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: textColor }}
+                    >
+                      Tipo de Feedback <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative" ref={typeDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                        className="w-full px-4 py-3 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300 text-left"
+                        style={{
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          borderColor: 'rgba(255,255,255,0.1)',
+                          color: textColor
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          {selectedType && (
+                            <>
+                              <selectedType.icon
+                                className="w-5 h-5"
+                                style={{ color: selectedType.color }}
+                              />
+                              <span className="text-sm">{selectedType.label}</span>
+                            </>
+                          )}
+                        </div>
+                        <motion.div animate={{ rotate: showTypeDropdown ? 180 : 0 }}>
+                          <ChevronDown className="w-4 h-4 opacity-50" />
+                        </motion.div>
+                      </button>
+
+                      <AnimatePresence>
+                        {showTypeDropdown && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50"
+                            style={{
+                              backgroundColor: cardBg,
+                              borderColor: 'rgba(255,255,255,0.15)'
+                            }}
+                          >
+                            {FEEDBACK_TYPES.map((type) => (
+                              <button
+                                key={type.value}
+                                type="button"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, feedback_type: type.value as any }))
+                                  setShowTypeDropdown(false)
+                                }}
+                                className="w-full px-4 py-3 text-left flex items-center gap-3 transition-colors hover:bg-white/5"
+                                style={{
+                                  backgroundColor: formData.feedback_type === type.value ? `${type.color}20` : 'transparent'
+                                }}
+                              >
+                                <type.icon className="w-5 h-5" style={{ color: type.color }} />
+                                <span className="text-sm" style={{ color: textColor }}>
+                                  {type.label}
+                                </span>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  {/* Contenido */}
+                  <div>
+                    <label
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: textColor }}
+                    >
+                      Contenido <span className="text-red-400">*</span>
+                    </label>
+                    <textarea
+                      value={formData.content}
+                      onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                      rows={4}
+                      maxLength={1000}
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:border-white/20 transition-colors resize-none"
+                      style={{ color: textColor }}
+                      placeholder="Escribe tu retroalimentación aquí... (mínimo 10 caracteres)"
+                    />
+                    <p
+                      className="text-xs mt-2"
+                      style={{ color: textColor, opacity: 0.5 }}
+                    >
+                      {formData.content.length}/1000 caracteres
+                    </p>
+                  </div>
+
+                  {/* Rating */}
+                  <div>
+                    <label
+                      className="block text-sm font-medium mb-3"
+                      style={{ color: textColor }}
+                    >
+                      Calificación (Opcional)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <motion.button
+                          key={star}
+                          type="button"
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            rating: prev.rating === star ? undefined : star
+                          }))}
+                        >
+                          <Star
+                            className={`w-7 h-7 transition-colors ${formData.rating && formData.rating >= star
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-gray-600 hover:text-yellow-400/50'
+                              }`}
+                          />
+                        </motion.button>
+                      ))}
+                      {formData.rating && (
+                        <span
+                          className="text-sm ml-2 font-medium"
+                          style={{ color: '#FBBF24' }}
+                        >
+                          {formData.rating}/5
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Anónimo Toggle */}
+                  <div
+                    className="flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-colors"
+                    style={{ backgroundColor: formData.is_anonymous ? `${primaryColor}15` : 'rgba(255,255,255,0.03)' }}
+                    onClick={() => setFormData(prev => ({ ...prev, is_anonymous: !prev.is_anonymous }))}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${formData.is_anonymous ? 'border-transparent' : 'border-white/20'
+                        }`}
+                      style={{
+                        backgroundColor: formData.is_anonymous ? primaryColor : 'transparent'
+                      }}
+                    >
+                      {formData.is_anonymous && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                      )}
+                    </div>
+                    <span className="text-sm" style={{ color: textColor }}>
+                      Enviar feedback de forma anónima
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 border-t border-white/5 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-white/5"
+                    style={{ color: `${textColor}99` }}
+                  >
+                    Cancelar
+                  </button>
+                  <motion.button
+                    type="submit"
+                    disabled={isSubmitting || !formData.to_user_id || !formData.content.trim()}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="px-5 py-2.5 rounded-xl text-sm font-medium text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                      boxShadow: `0 4px 15px ${primaryColor}40`
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Enviar Feedback
+                      </>
+                    )}
+                  </motion.button>
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>
   )
 }
-

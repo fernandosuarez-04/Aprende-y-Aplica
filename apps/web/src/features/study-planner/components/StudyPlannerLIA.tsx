@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { HolidayService } from '../../../lib/holidays';
 import { useOrganizationStylesContext } from '../../business-panel/contexts/OrganizationStylesContext';
+import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
 
 // Componentes de iconos de Google y Microsoft
 const GoogleIcon = () => (
@@ -169,8 +170,8 @@ export function StudyPlannerLIA() {
   const [connectedCalendar, setConnectedCalendar] = useState<'google' | 'microsoft' | null>(null);
 
   // Estados para configuración de estudio
-  // ✅ NOTA: El modal de enfoque se muestra pero la selección NO afecta el multiplicador de duración
-  // El multiplicador siempre es 1.0 (se usa la duración base de las lecciones)
+  // ✅ NUEVO ENFOQUE: "rapido" = terminar lo antes posible, "normal" = tiempo razonable, "largo" = hasta fecha límite
+  // La velocidad de finalización determina cuántas lecciones por día se asignan
   const [studyApproach, setStudyApproach] = useState<'rapido' | 'normal' | 'largo' | null>(null);
   const [targetDate, setTargetDate] = useState<string | null>(null);
   const [hasAskedApproach, setHasAskedApproach] = useState(false);
@@ -216,6 +217,7 @@ export function StudyPlannerLIA() {
   // Estado para guardar el contexto del usuario (perfil profesional) - Solo B2B
   const [userContext, setUserContext] = useState<{
     userType: 'b2b' | null;
+    userName: string | null; // ✅ NUEVO: Nombre real del usuario
     rol: string | null;
     area: string | null;
     nivel: string | null;
@@ -601,6 +603,7 @@ export function StudyPlannerLIA() {
 
             setUserContext({
               userType: 'b2b', // Solo B2B ahora
+              userName: userProfile.user?.firstName || userProfile.user?.displayName || userProfile.user?.username || null, // ✅ NUEVO: Nombre real del usuario
               rol: userProfile.professionalProfile?.rol?.nombre || null,
               area: userProfile.professionalProfile?.area?.nombre || null,
               nivel: userProfile.professionalProfile?.nivel?.nombre || null,
@@ -747,32 +750,41 @@ INSTRUCCIONES:
       try {
         setIsProcessing(true);
 
-        const response = await fetch('/api/ai-chat', {
+        // Generar el systemPrompt usando la función del archivo de prompts
+        const currentDate = new Date().toLocaleDateString('es-ES', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
+        // ✅ NUEVO: Construir contexto con fecha límite prominente
+        const coursesWithDueDatesWelcome = contextInfo.courses.filter((c: any) => c.dueDate);
+        let welcomeDueDateContext = '';
+        if (coursesWithDueDatesWelcome.length > 0) {
+          const nearestDueDateWelcome = new Date(coursesWithDueDatesWelcome[0].dueDate as string);
+          const dueDateFormattedWelcome = nearestDueDateWelcome.toLocaleDateString('es-ES', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          });
+          welcomeDueDateContext = `\n\n🚨 FECHA LÍMITE OBLIGATORIA: ${dueDateFormattedWelcome}\n⚠️ Todas las lecciones DEBEN completarse ANTES de esta fecha.`;
+        }
+
+        const liaSystemPrompt = generateStudyPlannerPrompt({
+          userName: userContext.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
+          studyPlannerContextString: `CURSOS ASIGNADOS:\n${contextInfo.courses.map((c: any) => `- ${c.title}${c.dueDate ? ` (Fecha límite: ${c.dueDate})` : ''}`).join('\n')}${welcomeDueDateContext}`,
+          currentDate: currentDate
+        });
+
+        const response = await fetch('/api/study-planner-chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: systemPrompt,
-            context: 'study-planner',
-            language: 'es',
             conversationHistory: [],
-            pageContext: {
-              pathname: '/study-planner/create',
-              detectedArea: 'study-planner',
-              description: 'Planificador de estudios con LIA - Mensaje de bienvenida',
-              userContext: {
-                userType: userContext.userType,
-                rol: userContext.rol,
-                area: userContext.area,
-                nivel: userContext.nivel,
-                tamanoEmpresa: userContext.tamanoEmpresa,
-                organizationName: userContext.organizationName,
-                isB2B: true,
-                calendarConnected: connectedCalendar !== null,
-                calendarProvider: connectedCalendar,
-                isWelcomeMessage: true,
-                assignedCourses: assignedCourses
-              }
-            }
+            systemPrompt: liaSystemPrompt,
+            userName: userContext.userName || undefined // ✅ CORREGIDO: Usar nombre del usuario, no de la organización
           }),
         });
 
@@ -1341,72 +1353,33 @@ INSTRUCCIONES:
         });
       }
 
-      const response = await fetch('/api/ai-chat', {
+      // Generar el systemPrompt para esta llamada
+      const currentDateStr = new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      // Construir contexto de lecciones pendientes para el prompt
+      const pendingLessonsContext = pendingLessonsRef.current.length > 0
+        ? pendingLessonsRef.current.map(l => `- ${l.lessonTitle} (${l.durationMinutes || 15} min) - Módulo: ${l.moduleTitle}`).join('\n')
+        : 'No hay lecciones pendientes definidas aún.';
+
+      const voiceSystemPrompt = generateStudyPlannerPrompt({
+        userName: userContext?.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
+        studyPlannerContextString: `LECCIONES PENDIENTES (${pendingLessonsRef.current.length} total):\n${pendingLessonsContext}\n\nFECHA LÍMITE: ${targetDate || savedTargetDate || 'No establecida'}`,
+        currentDate: currentDateStr
+      });
+
+      const response = await fetch('/api/study-planner-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: question,
-          context: 'study-planner',
           conversationHistory: conversationHistory || [],
-          conversationId: liaConversationId || undefined, // ✅ Pasar conversationId para analytics
-          userName: undefined,
-          pageContext: {
-            pathname: '/study-planner/create',
-            detectedArea: 'study-planner',
-            description: 'Planificador de estudios con LIA',
-            currentStep: currentStep + 1,
-            totalSteps: STUDY_PLANNER_STEPS.length,
-            // Incluir contexto del usuario
-            userContext: userContext ? {
-              userType: userContext.userType,
-              rol: userContext.rol,
-              area: userContext.area,
-              nivel: userContext.nivel,
-              tamanoEmpresa: userContext.tamanoEmpresa,
-              organizationName: userContext.organizationName,
-              isB2B: userContext.userType === 'b2b',
-              calendarConnected: connectedCalendar !== null,
-              calendarProvider: connectedCalendar,
-              // Fecha límite establecida por el usuario (CRÍTICO para respetar límites)
-              targetDate: targetDate || savedTargetDate || null,
-              // ✅ NUEVO: Lista de lecciones pendientes con nombres reales
-              // Usar ref para tener acceso inmediato (el estado puede no estar actualizado aún)
-              pendingLessonsWithNames: pendingLessonsRef.current.length > 0
-                ? pendingLessonsRef.current.map(l => ({
-                  moduleTitle: l.moduleTitle,
-                  lessonTitle: l.lessonTitle,
-                  courseTitle: l.courseTitle,
-                  durationMinutes: l.durationMinutes || 15 // Enviar duración real o 15m por defecto
-                }))
-                : null,
-              totalPendingLessons: pendingLessonsRef.current.length,
-              // Información adicional sobre el estado actual
-              hasCalendarAnalyzed: conversationHistory.some(msg =>
-                msg.role === 'assistant' && (
-                  msg.content.includes('analizado tu calendario') ||
-                  msg.content.includes('horarios recomendados') ||
-                  msg.content.includes('MIS RECOMENDACIONES')
-                )
-              ),
-              hasRecommendedSchedules: conversationHistory.some(msg =>
-                msg.role === 'assistant' && msg.content.includes('METAS SEMANALES')
-              )
-            } : {
-              calendarConnected: connectedCalendar !== null,
-              calendarProvider: connectedCalendar,
-              targetDate: targetDate || savedTargetDate || null,
-              pendingLessonsWithNames: pendingLessonsRef.current.length > 0
-                ? pendingLessonsRef.current.map(l => ({
-                  moduleTitle: l.moduleTitle,
-                  lessonTitle: l.lessonTitle,
-                  courseTitle: l.courseTitle,
-                  durationMinutes: l.durationMinutes || 15 // Enviar duración real o 15m por defecto
-                }))
-                : null,
-              totalPendingLessons: pendingLessonsRef.current.length,
-            }
-          },
-          language: 'es'
+          systemPrompt: voiceSystemPrompt,
+          userName: userContext?.userName || undefined // ✅ CORREGIDO
         }),
       });
 
@@ -1423,34 +1396,22 @@ INSTRUCCIONES:
       const data = await response.json();
       let liaResponse = data.response;
 
-      // Filtro adicional de seguridad: eliminar cualquier rastro del prompt del sistema
-      const systemPromptIndicators = [
-        'PROMPT MAESTRO',
-        'INSTRUCCIÓN DE IDIOMA',
-        'INFORMACIÓN DEL USUARIO',
-        'TU ROL:',
-        'TU ROL',
-        'Responde ESTRICTAMENTE en ESPAÑOL',
-        'El nombre del usuario es:',
-        'la asistente inteligente del Planificador de Estudios',
-        'NUNCA usar el nombre del usuario',
-        'NUNCA saludar al usuario',
-        'Eres Lia, un asistente',
-        'Eres LIA (Learning Intelligence Assistant)',
-        'CONTEXTO DE LA PÁGINA ACTUAL:',
-        'FORMATO DE RESPUESTAS (CRÍTICO):',
-        'REGLA CRÍTICA',
-        'NUNCA, BAJO NINGUNA CIRCUNSTANCIA'
-      ];
+      // Filtro de seguridad: detectar cuando el modelo devuelve el prompt COMPLETO
+      // ⚠️ MUY CONSERVADOR: Solo filtrar si COMIENZA con cabeceras del prompt
+      console.log('🔍 [handleQuestion] Analizando respuesta de', liaResponse.length, 'caracteres');
+      console.log('🔍 [handleQuestion] Primeros 200 caracteres:', liaResponse.substring(0, 200));
 
-      // Si la respuesta contiene múltiples indicadores del prompt, reemplazarla
-      const indicatorCount = systemPromptIndicators.filter(indicator =>
-        liaResponse.includes(indicator)
-      ).length;
+      // Solo filtrar si COMIENZA con cabeceras ASCII del prompt
+      const startsWithPrompt =
+        liaResponse.trim().startsWith('╔═══') ||
+        liaResponse.trim().startsWith('█ IDENTIDAD') ||
+        liaResponse.trim().startsWith('█ DATOS') ||
+        liaResponse.trim().startsWith('PROMPT MAESTRO') ||
+        liaResponse.trim().startsWith('⛔ INSTRUCCIÓN CRÍTICA');
 
-      if (indicatorCount >= 2 || liaResponse.trim().startsWith('PROMPT') || liaResponse.trim().startsWith('INSTRUCCIÓN')) {
-        console.warn('🚫 Prompt del sistema detectado en respuesta, filtrando...');
-        liaResponse = 'Hola! 😊 Estoy aquí para ayudarte con tu plan de estudios. ¿En qué te puedo asistir?';
+      if (startsWithPrompt) {
+        console.warn('🚫 [handleQuestion] Respuesta COMIENZA con prompt del sistema');
+        liaResponse = '¡Perfecto! Vamos a continuar. ¿Qué más necesitas para tu plan de estudios?';
       }
 
       setConversationHistory(prev => {
@@ -2620,17 +2581,19 @@ INSTRUCCIONES:
   };
 
   // Manejar selección de enfoque desde el modal
-  // ✅ NOTA: El modal funciona normalmente pero la selección NO afecta el multiplicador de duración
-  // El multiplicador siempre es 1.0 (se usa la duración base de las lecciones)
+  // ✅ NUEVO ENFOQUE: Determina la velocidad de finalización del curso
+  // - rapido: más lecciones por día, terminar lo antes posible
+  // - normal: distribución equilibrada, ritmo razonable
+  // - largo: menos lecciones por día, usar todo el tiempo hasta la fecha límite
   const handleApproachSelection = async (approach: 'rapido' | 'normal' | 'largo') => {
     setStudyApproach(approach);
     setShowApproachModal(false);
     setIsProcessing(true);
 
     const approachText = {
-      rapido: 'sesiones rápidas e intensas',
-      normal: 'sesiones normales y balanceadas',
-      largo: 'sesiones largas y profundas'
+      rapido: 'terminar el curso lo antes posible (ritmo intensivo)',
+      normal: 'terminar en un tiempo razonable (ritmo equilibrado)',
+      largo: 'tomar mi tiempo hasta la fecha límite (ritmo relajado)'
     };
 
     // Obtener información de cursos con fechas límite
@@ -2696,29 +2659,28 @@ INSTRUCCIONES:
 6. Usa markdown y emojis con moderación`;
 
     try {
-      const response = await fetch('/api/ai-chat', {
+      // Generar el systemPrompt para esta llamada
+      const approachDateStr = new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      const approachSystemPrompt = generateStudyPlannerPrompt({
+        userName: userContext?.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
+        studyPlannerContextString: `CURSOS ASIGNADOS:\n${assignedCourses.map(c => `- ${c.title}${c.dueDate ? ` (Fecha límite: ${new Date(c.dueDate).toLocaleDateString('es-ES')})` : ''}`).join('\n')}\n\nTIPO DE SESIÓN SELECCIONADO: ${approachText[approach]}`,
+        currentDate: approachDateStr
+      });
+
+      const response = await fetch('/api/study-planner-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: systemPrompt,
-          context: 'study-planner',
-          language: 'es',
           conversationHistory: conversationHistory.slice(-5),
-          pageContext: {
-            pathname: '/study-planner/create',
-            detectedArea: 'study-planner',
-            description: 'Planificador de estudios - Selección de enfoque',
-            userContext: {
-              userType: userContext?.userType,
-              rol: userContext?.rol,
-              organizationName: userContext?.organizationName,
-              isB2B: true,
-              calendarConnected: calendarAlreadyConnected,
-              calendarProvider: calendarProvider,
-              studyApproach: approach,
-              assignedCourses: assignedCourses
-            }
-          }
+          systemPrompt: approachSystemPrompt,
+          userName: userContext?.userName || undefined // ✅ CORREGIDO
         }),
       });
 
@@ -3269,6 +3231,7 @@ INSTRUCCIONES:
 
           setUserContext({
             userType: userProfile.userType || null,
+            userName: userProfile.user?.firstName || userProfile.user?.displayName || userProfile.user?.username || null,
             rol: userProfile.professionalProfile?.rol?.nombre || null,
             area: userProfile.professionalProfile?.area?.nombre || null,
             nivel: userProfile.professionalProfile?.nivel?.nombre || null,
@@ -4132,14 +4095,27 @@ INSTRUCCIONES:
       // TODO: Obtener desde userContext cuando se agregue el campo 'country' a la BD
       const userCountry = 'MX'; // Default México
 
-      // Filtrar slots excluyendo días festivos
+      // Filtrar slots excluyendo días festivos (México por defecto)
       const slotsWithoutHolidays = uniqueDateSlots.filter(slot => {
         const isHolidayDate = HolidayService.isHoliday(slot.date, userCountry);
+
+        // ✅ DEBUG: Verificar específicamente fechas problemáticas (Navidad y Año Nuevo)
+        const dayOfMonth = slot.date.getDate();
+        const month = slot.date.getMonth();
+        const isSpecialDate = (month === 11 && dayOfMonth === 25) || (month === 0 && dayOfMonth === 1);
+
+        if (isSpecialDate) {
+          console.log(`🎄 [DEBUG FESTIVO] Fecha especial detectada: ${slot.date.toLocaleDateString('es-ES')} | isHoliday: ${isHolidayDate} | Año: ${slot.date.getFullYear()}`);
+        }
+
         if (isHolidayDate) {
           const holidayName = HolidayService.getHolidayName(slot.date, userCountry);
+          console.log(`🚫 [Festivo Excluido] ${slot.date.toLocaleDateString('es-ES')} - ${holidayName || 'Día festivo'} (${userCountry})`);
         }
         return !isHolidayDate;
       });
+
+      console.log(`📆 [Días Festivos] ${uniqueDateSlots.length} slots totales → ${slotsWithoutHolidays.length} después de excluir festivos`);
 
       // Calcular tiempo disponible hasta la fecha objetivo
       let targetDateObj: Date | null = null;
@@ -5006,11 +4982,10 @@ INSTRUCCIONES:
           // Guardar distribución de lecciones para el resumen final (no mostrar en recomendaciones iniciales)
           type LessonDistribution = {
             slot: FreeSlotWithDay;
-            lessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number }>;
+            lessons: Array<{ courseTitle: string; lessonTitle: string; lessonOrderIndex: number; durationMinutes: number }>;
           };
 
           const lessonDistribution: LessonDistribution[] = [];
-          let currentLessonIndex = 0;
           // ✅ CORRECCIÓN CRÍTICA: Rastrear lessonIds asignados para evitar duplicados
           const assignedLessonIds = new Set<string>();
 
@@ -5038,7 +5013,7 @@ INSTRUCCIONES:
               .map((c: any) => c.dueDate)
               .filter(Boolean)
               .map((d: string) => new Date(d))
-              .sort((a, b) => b.getTime() - a.getTime()); // Más lejana primero
+              .sort((a: Date, b: Date) => b.getTime() - a.getTime()); // Más lejana primero
 
             const furthestDueDate = allDueDates[0];
 
@@ -5089,6 +5064,77 @@ INSTRUCCIONES:
           // ✅ CORRECCIÓN: Usar solo lecciones válidas para la distribución
 
           // --------------------------------------------------------------------------------
+          // ✅ NUEVO: AGRUPAR LECCIONES X y X.1 COMO BLOQUES INSEPARABLES
+          // --------------------------------------------------------------------------------
+          // Detectar lecciones que tienen versión .1 y agruparlas
+          // Ejemplo: "Lección 1" y "Lección 1.1" deben ir juntas en la misma sesión
+
+          type LessonGroup = {
+            lessons: typeof validPendingLessons;
+            totalDuration: number;
+            primaryLessonTitle: string;
+          };
+
+          const lessonGroups: LessonGroup[] = [];
+          const processedIndices = new Set<number>();
+
+          // Función para extraer el número base de lección del título
+          const extractLessonNumber = (title: string): string | null => {
+            // Patrones: "Lección 1:", "Lección 1.1:", "Lección 1 —", etc.
+            const match = title.match(/Lecci[oó]n\s+(\d+(?:\.\d+)?)/i);
+            return match ? match[1] : null;
+          };
+
+          // Función para verificar si dos lecciones son X y X.1
+          const areLessonsGrouped = (title1: string, title2: string): boolean => {
+            const num1 = extractLessonNumber(title1);
+            const num2 = extractLessonNumber(title2);
+            if (!num1 || !num2) return false;
+
+            // Caso 1: Lección X y Lección X.1
+            if (!num1.includes('.') && num2 === `${num1}.1`) return true;
+            // Caso 2: Lección X.1 y Lección X (orden inverso)
+            if (!num2.includes('.') && num1 === `${num2}.1`) return true;
+
+            return false;
+          };
+
+          // Agrupar lecciones consecutivas que sean X y X.1
+          for (let i = 0; i < validPendingLessons.length; i++) {
+            if (processedIndices.has(i)) continue;
+
+            const currentLesson = validPendingLessons[i];
+            const groupLessons = [currentLesson];
+            let totalDuration = currentLesson.durationMinutes || 15;
+
+            // Buscar la siguiente lección para ver si es X.1
+            if (i + 1 < validPendingLessons.length) {
+              const nextLesson = validPendingLessons[i + 1];
+
+              // Verificar si son del mismo curso y módulo Y son X y X.1
+              if (nextLesson.courseId === currentLesson.courseId &&
+                nextLesson.moduleOrderIndex === currentLesson.moduleOrderIndex &&
+                areLessonsGrouped(currentLesson.lessonTitle, nextLesson.lessonTitle)) {
+
+                groupLessons.push(nextLesson);
+                totalDuration += nextLesson.durationMinutes || 15;
+                processedIndices.add(i + 1);
+
+                console.log(`🔗 [Agrupación] Lecciones agrupadas: "${currentLesson.lessonTitle.substring(0, 30)}..." + "${nextLesson.lessonTitle.substring(0, 30)}..." = ${totalDuration}min`);
+              }
+            }
+
+            processedIndices.add(i);
+            lessonGroups.push({
+              lessons: groupLessons,
+              totalDuration,
+              primaryLessonTitle: currentLesson.lessonTitle
+            });
+          }
+
+          console.log(`📦 [Agrupación] ${validPendingLessons.length} lecciones agrupadas en ${lessonGroups.length} bloques`);
+
+          // --------------------------------------------------------------------------------
           // ✅ NUEVA LÓGICA DE DISTRIBUCIÓN (Greedy Packing v2) - Simplificada y Precisa
           // --------------------------------------------------------------------------------
 
@@ -5099,67 +5145,119 @@ INSTRUCCIONES:
           // 2. Variables de estado para la distribución (usando las ya declaradas arriba)
           lessonDistribution.length = 0;
           assignedLessonIds.clear();
-          currentLessonIndex = 0;
+          let currentGroupIndex = 0;
 
-          // 3. Iterar por cada slot disponible (Greedy: llenar cada slot hasta su tope)
+          // ✅ NUEVO: Calcular la estrategia de distribución según el enfoque seleccionado
+          // - rapido: llenar cada slot al máximo, usar todos los slots necesarios
+          // - normal: distribución equilibrada (50-75% de la capacidad máxima)
+          // - largo: distribuir a lo largo de todo el tiempo disponible (mínimo por día)
+
+          const totalGroups = lessonGroups.length;
+          const totalSlots = slotsUntilTarget.length;
+
+          // Calcular cuántos grupos por slot según el enfoque
+          let maxGroupsPerSlot: number;
+          let skipSlots: number = 0; // Cuántos slots saltar entre asignaciones (para largo)
+
+          if (studyApproach === 'rapido') {
+            // Terminar rápido: llenar cada slot al máximo (sin límite de grupos)
+            maxGroupsPerSlot = 999; // Sin límite práctico
+            skipSlots = 0;
+            console.log(`🚀 [Enfoque Rápido] Sin límite de grupos por slot, llenar al máximo`);
+          } else if (studyApproach === 'largo') {
+            // Tomar tiempo: distribuir a lo largo de todo el tiempo disponible
+            // Calcular cuántos slots necesitamos si ponemos ~1-2 grupos por sesión
+            const groupsPerSession = Math.max(1, Math.ceil(totalGroups / totalSlots));
+            maxGroupsPerSlot = Math.min(2, groupsPerSession); // Máximo 2 grupos por slot
+            // Calcular si necesitamos saltar slots para distribuir mejor
+            if (totalGroups < totalSlots / 2) {
+              skipSlots = Math.floor(totalSlots / totalGroups) - 1;
+            }
+            console.log(`📅 [Enfoque Relajado] Máximo ${maxGroupsPerSlot} grupos por slot, saltar ${skipSlots} slots entre sesiones`);
+          } else {
+            // Normal: equilibrado (2-3 grupos por slot dependiendo del tamaño)
+            maxGroupsPerSlot = 3;
+            skipSlots = 0;
+            console.log(`⚖️ [Enfoque Equilibrado] Máximo ${maxGroupsPerSlot} grupos por slot`);
+          }
+
+          // 3. Iterar por cada slot disponible con la nueva estrategia
+          // ✅ MODIFICADO: Usar GRUPOS de lecciones en lugar de lecciones individuales
+          // Esto garantiza que Lección X y Lección X.1 siempre van juntas
+          let slotCounter = 0;
           slotsUntilTarget.forEach((slot, slotIndex) => {
-            // Si ya asignamos todas las lecciones, terminar
-            if (currentLessonIndex >= validPendingLessons.length) return;
+            // Si ya asignamos todos los grupos, terminar
+            if (currentGroupIndex >= lessonGroups.length) return;
+
+            // Para enfoque "largo", saltar slots para distribuir mejor
+            if (skipSlots > 0 && slotCounter > 0 && slotCounter % (skipSlots + 1) !== 0) {
+              slotCounter++;
+              return;
+            }
+            slotCounter++;
 
             const slotDuration = slot.durationMinutes;
             let usedDurationInSlot = 0;
             const lessonsForSlot: any[] = [];
             let currentSlotModuleIndex: number | null = null;
             let currentSlotCourseId: string | null = null;
+            let groupsInThisSlot = 0; // ✅ NUEVO: Contador de grupos en este slot
 
-            // Intentar meter lecciones mientras quepan y haya disponibles
-            while (currentLessonIndex < validPendingLessons.length) {
-              const lesson = validPendingLessons[currentLessonIndex];
+            // Intentar meter GRUPOS de lecciones mientras quepan y haya disponibles
+            // ✅ NUEVO: También limitar por maxGroupsPerSlot según el enfoque
+            while (currentGroupIndex < lessonGroups.length && groupsInThisSlot < maxGroupsPerSlot) {
+              const group = lessonGroups[currentGroupIndex];
+              const firstLesson = group.lessons[0];
 
-              // Ignorar duplicados o inválidos
-              if (!lesson || !lesson.lessonId || assignedLessonIds.has(lesson.lessonId)) {
-                currentLessonIndex++;
+              // Verificar si alguna lección del grupo ya fue asignada
+              const isGroupAlreadyAssigned = group.lessons.some(l => assignedLessonIds.has(l.lessonId));
+              if (isGroupAlreadyAssigned) {
+                currentGroupIndex++;
                 continue;
               }
 
-              // Calcular duración real
-              const baseDuration = lesson.durationMinutes || 15;
-              const finalDuration = Math.ceil(baseDuration * approachMultiplier);
+              // Calcular duración total del grupo (ya pre-calculada)
+              const groupDuration = Math.ceil(group.totalDuration * approachMultiplier);
 
               // Lógica de encaje:
-              // 1. Si el slot está vacío, aceptamos la lección aunque se pase un poco (para no bloquear lecciones largas)
+              // 1. Si el slot está vacío, aceptamos el grupo aunque se pase un poco (para no bloquear grupos largos)
               // 2. Si ya tiene contenido, solo aceptamos si cabe estrictamente
-              // 3. ✅ NUEVO: Solo agrupar lecciones del MISMO MÓDULO y MISMO CURSO
-              const fits = (usedDurationInSlot + finalDuration <= slotDuration);
+              // 3. Solo agrupar lecciones del MISMO MÓDULO y MISMO CURSO
+              const fits = (usedDurationInSlot + groupDuration <= slotDuration);
               const isSlotEmpty = lessonsForSlot.length === 0;
               const isSameModule = isSlotEmpty || (
                 currentSlotModuleIndex !== null &&
-                lesson.moduleOrderIndex === currentSlotModuleIndex &&
-                currentSlotCourseId === lesson.courseId // Asegurar mismo curso
+                firstLesson.moduleOrderIndex === currentSlotModuleIndex &&
+                currentSlotCourseId === firstLesson.courseId
               );
 
               if ((isSlotEmpty || fits) && isSameModule) {
-                // Asignar
-                lessonsForSlot.push({
-                  courseTitle: lesson.courseTitle || 'Curso',
-                  lessonTitle: lesson.lessonTitle.trim(),
-                  lessonOrderIndex: (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) ? lesson.lessonOrderIndex : 0,
-                  durationMinutes: finalDuration
+                // Asignar TODAS las lecciones del grupo al mismo slot
+                group.lessons.forEach(lesson => {
+                  const lessonDuration = Math.ceil((lesson.durationMinutes || 15) * approachMultiplier);
+                  lessonsForSlot.push({
+                    courseTitle: lesson.courseTitle || 'Curso',
+                    lessonTitle: lesson.lessonTitle.trim(),
+                    lessonOrderIndex: (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) ? lesson.lessonOrderIndex : 0,
+                    durationMinutes: lessonDuration
+                  });
+                  assignedLessonIds.add(lesson.lessonId);
                 });
-                if (isSlotEmpty) {
-                  currentSlotModuleIndex = lesson.moduleOrderIndex;
-                  currentSlotCourseId = lesson.courseId;
-                }
-                assignedLessonIds.add(lesson.lessonId);
-                usedDurationInSlot += finalDuration;
-                currentLessonIndex++;
 
-                // Log de verificación (solo al principio para debugging)
-                if (slotIndex === 0 && lessonsForSlot.length <= 3) {
-                  console.log(`⚡ [Greedy] Asignada: "${lesson.lessonTitle.substring(0, 30)}..." | Base: ${baseDuration}m | Final: ${finalDuration}m`);
+                if (isSlotEmpty) {
+                  currentSlotModuleIndex = firstLesson.moduleOrderIndex;
+                  currentSlotCourseId = firstLesson.courseId;
+                }
+                usedDurationInSlot += groupDuration;
+                currentGroupIndex++;
+                groupsInThisSlot++; // ✅ NUEVO: Incrementar contador de grupos
+
+                // Log de verificación (solo para grupos agrupados)
+                if (group.lessons.length > 1 && slotIndex < 3) {
+                  console.log(`🔗 [Greedy] Grupo asignado: ${group.lessons.length} lecciones juntas | Duración total: ${groupDuration}m`);
                 }
               } else {
-                // No cabe -> Pasar al siguiente slot
+                // No cabe el grupo completo -> Pasar al siguiente slot
                 break;
               }
             }
@@ -5706,9 +5804,9 @@ INSTRUCCIONES:
           // ✅ CRÍTICO: Verificar si se asignaron todas las lecciones
           // Para B2B, esto es OBLIGATORIO - todas las lecciones deben asignarse
           const totalAssignedLessons = lessonDistribution.reduce((sum, dist) => sum + dist.lessons.length, 0);
-          const remainingLessons = validPendingLessons.length - currentLessonIndex;
+          const remainingLessons = validPendingLessons.length - assignedLessonIds.size;
 
-          if (currentLessonIndex < validPendingLessons.length) {
+          if (assignedLessonIds.size < validPendingLessons.length) {
             const daysUntilTarget = targetDateObj
               ? Math.ceil((targetDateObj.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
               : 0;
@@ -6043,6 +6141,7 @@ Cuéntame manualmente:
 
           setUserContext({
             userType: userProfile.userType || null,
+            userName: userProfile.user?.firstName || userProfile.user?.displayName || userProfile.user?.username || null,
             rol: userProfile.professionalProfile?.rol?.nombre || null,
             area: userProfile.professionalProfile?.area?.nombre || null,
             nivel: userProfile.professionalProfile?.nivel?.nombre || null,
@@ -7836,67 +7935,46 @@ Cuéntame:
         return;
       }
 
-      const response = await fetch('/api/ai-chat', {
+      // Generar el systemPrompt para esta llamada
+      const sendMsgDateStr = new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      // Construir contexto de lecciones pendientes para el prompt
+      const sendMsgLessonsContext = pendingLessonsRef.current.length > 0
+        ? pendingLessonsRef.current.map(l => `- ${l.lessonTitle} (${l.durationMinutes || 15} min) - Módulo: ${l.moduleTitle}`).join('\n')
+        : 'No hay lecciones pendientes definidas aún.';
+
+      // ✅ NUEVO: Incluir información de fecha límite y cursos asignados
+      const coursesWithDueDates = assignedCourses.filter(c => c.dueDate);
+      let dueDateContext = '';
+      if (coursesWithDueDates.length > 0) {
+        const nearestDueDate = new Date(coursesWithDueDates[0].dueDate!);
+        const dueDateFormatted = nearestDueDate.toLocaleDateString('es-ES', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+        dueDateContext = `\n\n🚨 FECHA LÍMITE OBLIGATORIA: ${dueDateFormatted}\n⚠️ NUNCA programar lecciones después de esta fecha.\n⚠️ La fecha de finalización del plan DEBE ser ANTERIOR a ${dueDateFormatted}.`;
+      }
+
+      const sendMsgSystemPrompt = generateStudyPlannerPrompt({
+        userName: userContext?.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
+        studyPlannerContextString: `LECCIONES PENDIENTES (${pendingLessonsRef.current.length} total):\n${sendMsgLessonsContext}\n\nCALENDARIO: ${connectedCalendar ? `Conectado (${connectedCalendar})` : 'No conectado'}${dueDateContext}`,
+        currentDate: sendMsgDateStr
+      });
+
+      const response = await fetch('/api/study-planner-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: enrichedMessage,
-          context: 'study-planner',
-          language: 'es', // FORZAR ESPAÑOL siempre
           conversationHistory: newHistory.slice(-10),
-          conversationId: liaConversationId || undefined, // ✅ Pasar conversationId para analytics
-          pageContext: {
-            pathname: '/study-planner/create',
-            detectedArea: 'study-planner',
-            description: 'Planificador de estudios con LIA',
-            // Incluir contexto del usuario para que LIA lo use
-            userContext: userContext ? {
-              userType: userContext.userType,
-              rol: userContext.rol,
-              area: userContext.area,
-              nivel: userContext.nivel,
-              tamanoEmpresa: userContext.tamanoEmpresa,
-              organizationName: userContext.organizationName,
-              isB2B: userContext.userType === 'b2b',
-              calendarConnected: connectedCalendar !== null,
-              calendarProvider: connectedCalendar,
-              // ✅ NUEVO: Lista de lecciones pendientes con nombres reales
-              // Usar ref para tener acceso inmediato (el estado puede no estar actualizado aún)
-              pendingLessonsWithNames: pendingLessonsRef.current.length > 0
-                ? pendingLessonsRef.current.map(l => ({
-                  moduleTitle: l.moduleTitle,
-                  lessonTitle: l.lessonTitle,
-                  courseTitle: l.courseTitle,
-                  durationMinutes: l.durationMinutes || 15 // Enviar duración real o 15m por defecto
-                }))
-                : null,
-              totalPendingLessons: pendingLessonsRef.current.length,
-              // Información adicional sobre el estado actual
-              hasCalendarAnalyzed: newHistory.some(msg =>
-                msg.role === 'assistant' && (
-                  msg.content.includes('analizado tu calendario') ||
-                  msg.content.includes('horarios recomendados') ||
-                  msg.content.includes('MIS RECOMENDACIONES')
-                )
-              ),
-              hasRecommendedSchedules: newHistory.some(msg =>
-                msg.role === 'assistant' && msg.content.includes('METAS SEMANALES')
-              )
-            } : {
-              calendarConnected: connectedCalendar !== null,
-              calendarProvider: connectedCalendar,
-              // ✅ NUEVO: Lista de lecciones pendientes también aquí
-              pendingLessonsWithNames: pendingLessonsRef.current.length > 0
-                ? pendingLessonsRef.current.map(l => ({
-                  moduleTitle: l.moduleTitle,
-                  lessonTitle: l.lessonTitle,
-                  courseTitle: l.courseTitle,
-                  durationMinutes: l.durationMinutes || 15 // Enviar duración real o 15m por defecto
-                }))
-                : null,
-              totalPendingLessons: pendingLessonsRef.current.length,
-            }
-          }
+          systemPrompt: sendMsgSystemPrompt,
+          userName: userContext?.userName || undefined // ✅ CORREGIDO
         }),
       });
 
@@ -7918,34 +7996,22 @@ Cuéntame:
         setLiaConversationId(data.conversationId);
       }
 
-      // Filtro adicional de seguridad: eliminar cualquier rastro del prompt del sistema
-      const systemPromptIndicators = [
-        'PROMPT MAESTRO',
-        'INSTRUCCIÓN DE IDIOMA',
-        'INFORMACIÓN DEL USUARIO',
-        'TU ROL:',
-        'TU ROL',
-        'Responde ESTRICTAMENTE en ESPAÑOL',
-        'El nombre del usuario es:',
-        'la asistente inteligente del Planificador de Estudios',
-        'NUNCA usar el nombre del usuario',
-        'NUNCA saludar al usuario',
-        'Eres Lia, un asistente',
-        'Eres LIA (Learning Intelligence Assistant)',
-        'CONTEXTO DE LA PÁGINA ACTUAL:',
-        'FORMATO DE RESPUESTAS (CRÍTICO):',
-        'REGLA CRÍTICA',
-        'NUNCA, BAJO NINGUNA CIRCUNSTANCIA'
-      ];
+      // Filtro de seguridad: detectar cuando el modelo devuelve el prompt COMPLETO
+      // ⚠️ MUY CONSERVADOR: Solo filtrar si COMIENZA con cabeceras del prompt
+      console.log('🔍 [sendMessage] Analizando respuesta de', liaResponse.length, 'caracteres');
+      console.log('🔍 [sendMessage] Primeros 200 caracteres:', liaResponse.substring(0, 200));
 
-      // Si la respuesta contiene múltiples indicadores del prompt, reemplazarla
-      const indicatorCount = systemPromptIndicators.filter(indicator =>
-        liaResponse.includes(indicator)
-      ).length;
+      // Solo filtrar si COMIENZA con cabeceras ASCII del prompt
+      const startsWithPrompt =
+        liaResponse.trim().startsWith('╔═══') ||
+        liaResponse.trim().startsWith('█ IDENTIDAD') ||
+        liaResponse.trim().startsWith('█ DATOS') ||
+        liaResponse.trim().startsWith('PROMPT MAESTRO') ||
+        liaResponse.trim().startsWith('⛔ INSTRUCCIÓN CRÍTICA');
 
-      if (indicatorCount >= 2 || liaResponse.trim().startsWith('PROMPT') || liaResponse.trim().startsWith('INSTRUCCIÓN')) {
-        console.warn('🚫 Prompt del sistema detectado en respuesta, filtrando...');
-        liaResponse = 'Hola! 😊 Estoy aquí para ayudarte con tu plan de estudios. ¿En qué te puedo asistir?';
+      if (startsWithPrompt) {
+        console.warn('🚫 [sendMessage] Respuesta COMIENZA con prompt del sistema');
+        liaResponse = '¡Perfecto! Vamos a continuar. ¿Qué más necesitas para tu plan de estudios?';
       }
 
       setConversationHistory(prev => [...prev, { role: 'assistant', content: liaResponse }]);
@@ -9672,15 +9738,15 @@ Cuéntame:
                             <BookOpen className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">Selecciona tu enfoque de estudio</h3>
-                            <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige el tipo de sesiones que prefieres para tu plan de estudios</p>
+                            <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">¿Qué tan rápido quieres terminar?</h3>
+                            <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige el ritmo que mejor se adapte a tu disponibilidad</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Opciones de enfoque */}
                       <div className="p-6 space-y-4">
-                        {/* Sesiones rápidas */}
+                        {/* Opción: Rápido/Intensivo */}
                         <motion.button
                           onClick={() => handleApproachSelection('rapido')}
                           whileHover={{ scale: 1.02, x: 4 }}
@@ -9695,16 +9761,14 @@ Cuéntame:
                               ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
                               : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                               }`}>
-                              <ChevronRight className={`w-5 h-5 ${studyApproach === 'rapido'
-                                ? 'text-[#0A2540] dark:text-[#00D4B3]'
-                                : 'text-[#6C757D] dark:text-gray-400'
-                                }`} />
+                              <span className="text-xl">🚀</span>
                             </div>
                             <div className="flex-1">
-                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones rápidas</h4>
-                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Avanza rápido: cada sesión dura el tiempo exacto de la lección</p>
+                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Quiero terminar rápido</h4>
+                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Más lecciones por día para completar el curso lo antes posible</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>• Ritmo intenso</span>
+                                <span>• Ritmo intensivo</span>
+                                <span>• Máximo avance diario</span>
                               </div>
                             </div>
                             {studyApproach === 'rapido' && (
@@ -9719,31 +9783,29 @@ Cuéntame:
                           </div>
                         </motion.button>
 
-                        {/* Sesiones normales */}
+                        {/* Opción: Equilibrado/Razonable */}
                         <motion.button
                           onClick={() => handleApproachSelection('normal')}
                           whileHover={{ scale: 1.02, x: 4 }}
                           whileTap={{ scale: 0.98 }}
-                          className={`w-full p-5 rounded-xl border-2 transition-all text-left ${studyApproach === 'normal'
-                            ? 'bg-gradient-to-r from-purple-600/30 to-blue-600/30 border-purple-500 shadow-lg shadow-purple-500/20'
-                            : 'bg-slate-700/30 border-slate-600/50 hover:border-purple-500/50 hover:bg-slate-700/50'
+                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${studyApproach === 'normal'
+                            ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
+                            : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
                             }`}
                         >
                           <div className="flex items-start gap-4">
                             <div className={`p-2 rounded-lg ${studyApproach === 'normal'
-                              ? 'bg-purple-500/20'
-                              : 'bg-slate-600/30'
+                              ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
+                              : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                               }`}>
-                              <ChevronRight className={`w-5 h-5 ${studyApproach === 'normal'
-                                ? 'text-purple-400'
-                                : 'text-slate-400'
-                                }`} />
+                              <span className="text-xl">⚖️</span>
                             </div>
                             <div className="flex-1">
-                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones normales</h4>
-                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Un ritmo equilibrado para mejor comprensión del contenido</p>
+                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Tiempo razonable</h4>
+                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Distribución equilibrada para un ritmo cómodo y efectivo</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
                                 <span>• Ritmo equilibrado</span>
+                                <span>• Recomendado</span>
                               </div>
                             </div>
                             {studyApproach === 'normal' && (
@@ -9758,31 +9820,29 @@ Cuéntame:
                           </div>
                         </motion.button>
 
-                        {/* Sesiones largas */}
+                        {/* Opción: Relajado/Fecha límite */}
                         <motion.button
                           onClick={() => handleApproachSelection('largo')}
                           whileHover={{ scale: 1.02, x: 4 }}
                           whileTap={{ scale: 0.98 }}
-                          className={`w-full p-5 rounded-xl border-2 transition-all text-left ${studyApproach === 'largo'
-                            ? 'bg-gradient-to-r from-purple-600/30 to-blue-600/30 border-purple-500 shadow-lg shadow-purple-500/20'
-                            : 'bg-slate-700/30 border-slate-600/50 hover:border-purple-500/50 hover:bg-slate-700/50'
+                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${studyApproach === 'largo'
+                            ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
+                            : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
                             }`}
                         >
                           <div className="flex items-start gap-4">
                             <div className={`p-2 rounded-lg ${studyApproach === 'largo'
-                              ? 'bg-purple-500/20'
-                              : 'bg-slate-600/30'
+                              ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
+                              : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                               }`}>
-                              <ChevronRight className={`w-5 h-5 ${studyApproach === 'largo'
-                                ? 'text-purple-400'
-                                : 'text-slate-400'
-                                }`} />
+                              <span className="text-xl">📅</span>
                             </div>
                             <div className="flex-1">
-                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones largas</h4>
-                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Más tiempo por lección para profundizar y comprender mejor</p>
+                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Tomar mi tiempo</h4>
+                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Menos lecciones por día, usando todo el tiempo hasta la fecha límite</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>• Ritmo pausado</span>
+                                <span>• Ritmo relajado</span>
+                                <span>• Máxima flexibilidad</span>
                               </div>
                             </div>
                             {studyApproach === 'largo' && (
@@ -9801,7 +9861,7 @@ Cuéntame:
                       {/* Footer */}
                       <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
                         <p className="text-xs text-[#6C757D] dark:text-gray-400 text-center">
-                          Esta selección ayudará a calcular cuánto tiempo necesitarás para completar tus cursos
+                          Esta selección determina cuántas lecciones estudiarás por día
                         </p>
                       </div>
                     </motion.div>

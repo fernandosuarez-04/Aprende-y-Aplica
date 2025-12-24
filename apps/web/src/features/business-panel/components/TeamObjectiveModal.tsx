@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Target, Calendar, TrendingUp, BookOpen, Loader2 } from 'lucide-react'
-import { Button } from '@aprende-y-aplica/ui'
+import { X, Target, Calendar, TrendingUp, BookOpen, Loader2, Sparkles, Zap, CheckCircle } from 'lucide-react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, CreateTeamObjectiveRequest, UpdateTeamObjectiveRequest, WorkTeamObjective } from '../services/teams.service'
 import { PremiumSelect } from './PremiumSelect'
+import { PremiumDatePicker } from './PremiumDatePicker'
 
 interface TeamObjectiveModalProps {
   isOpen: boolean
@@ -35,11 +35,12 @@ export function TeamObjectiveModal({
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
 
-  const modalBg = panelStyles?.card_background || 'rgba(15, 23, 42, 0.95)'
-  const modalBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-  const textColor = panelStyles?.text_color || '#f8fafc'
-  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
-  const sectionBg = `${modalBg}CC`
+  const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
+  const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
+  const accentColor = panelStyles?.accent_color || '#10B981'
+  const textColor = panelStyles?.text_color || '#ffffff'
+  const cardBg = panelStyles?.card_background || '#1a1f2e'
+  const borderColor = panelStyles?.border_color || 'rgba(255,255,255,0.1)'
 
   const [formData, setFormData] = useState({
     title: '',
@@ -156,268 +157,341 @@ export function TeamObjectiveModal({
     { value: 'custom', label: 'Personalizado' }
   ]
 
+  const getMetricLabel = (type: string) => {
+    switch (type) {
+      case 'completion_percentage': return 'Porcentaje (0-100)'
+      case 'average_score': return 'Calificación (0-10)'
+      case 'participation_rate': return 'Participación (0-100)'
+      case 'engagement_rate': return 'Compromiso (0-100)'
+      default: return 'Valor personalizado'
+    }
+  }
+
   if (!isOpen) return null
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 flex items-center justify-center p-4"
+        style={{ zIndex: 99999 }}
+      >
+        {/* Backdrop - SIN blur según SOFIA Design System */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+          className="absolute inset-0"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
         />
 
+        {/* Modal - Split Panel Design */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 20 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col z-10 backdrop-blur-xl"
-          style={{
-            backgroundColor: modalBg,
-            borderColor: modalBorder
-          }}
+          className="relative rounded-2xl shadow-2xl overflow-hidden border border-white/10 w-full max-w-4xl"
+          style={{ backgroundColor: cardBg }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="relative border-b p-5 backdrop-blur-sm" style={{
-            backgroundColor: modalBg,
-            borderColor: modalBorder
-          }}>
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <motion.div
-                  initial={{ scale: 0.9, rotate: -5 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: 0.1, type: 'spring' }}
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg"
-                  style={{ backgroundColor: primaryColor }}
+          <div className="flex min-h-[550px]">
+            {/* Left Panel - Preview */}
+            <div
+              className="w-80 p-8 border-r border-white/5 flex flex-col items-center justify-center"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)`
+              }}
+            >
+              {/* Avatar/Icon Animado */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="relative mb-6"
+              >
+                <div
+                  className="w-24 h-24 rounded-2xl flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                    boxShadow: `0 8px 30px ${primaryColor}40`
+                  }}
                 >
-                  <Target className="w-5 h-5 text-white" />
+                  <Target className="w-12 h-12 text-white" />
+                </div>
+                {/* Badge animado */}
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  <Sparkles className="w-4 h-4 text-white" />
                 </motion.div>
+              </motion.div>
+
+              {/* Title Preview */}
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-center mb-6"
+              >
+                <h3 className="text-lg font-bold mb-1" style={{ color: textColor }}>
+                  {formData.title || 'Nuevo Objetivo'}
+                </h3>
+                <p className="text-sm opacity-60" style={{ color: textColor }}>
+                  {formData.description || 'Define metas claras para tu equipo'}
+                </p>
+              </motion.div>
+
+              {/* Stats Preview */}
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="w-full space-y-3"
+              >
+                <div
+                  className="p-3 rounded-xl flex items-center gap-3"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                >
+                  <Zap className="w-4 h-4" style={{ color: primaryColor }} />
+                  <div className="flex-1">
+                    <p className="text-xs opacity-50" style={{ color: textColor }}>Meta</p>
+                    <p className="text-sm font-semibold" style={{ color: textColor }}>
+                      {formData.target_value} {formData.metric_type === 'completion_percentage' ? '%' : ''}
+                    </p>
+                  </div>
+                </div>
+
+                {formData.deadline && (
+                  <div
+                    className="p-3 rounded-xl flex items-center gap-3"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                  >
+                    <Calendar className="w-4 h-4" style={{ color: accentColor }} />
+                    <div className="flex-1">
+                      <p className="text-xs opacity-50" style={{ color: textColor }}>Fecha límite</p>
+                      <p className="text-sm font-semibold" style={{ color: textColor }}>
+                        {new Date(formData.deadline).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div
+                  className="p-3 rounded-xl flex items-center gap-3"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                >
+                  <TrendingUp className="w-4 h-4" style={{ color: secondaryColor }} />
+                  <div className="flex-1">
+                    <p className="text-xs opacity-50" style={{ color: textColor }}>Métrica</p>
+                    <p className="text-sm font-semibold" style={{ color: textColor }}>
+                      {metricTypeOptions.find(m => m.value === formData.metric_type)?.label || 'Porcentaje'}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Right Panel - Form */}
+            <div className="flex-1 flex flex-col">
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
                 <div>
-                  <h2 className="font-heading text-xl font-bold tracking-tight" style={{ color: textColor }}>
+                  <h2 className="text-xl font-bold" style={{ color: textColor }}>
                     {objective ? 'Editar Objetivo' : 'Crear Objetivo'}
                   </h2>
-                  <p className="font-body text-xs mt-1" style={{ color: textColor, opacity: 0.7 }}>
+                  <p className="text-sm opacity-50 mt-0.5" style={{ color: textColor }}>
                     {objective ? 'Modifica los detalles del objetivo' : 'Define un nuevo objetivo para el equipo'}
                   </p>
                 </div>
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="p-2 rounded-xl hover:bg-white/5 transition-colors disabled:opacity-50"
+                >
+                  <X className="w-5 h-5" style={{ color: textColor, opacity: 0.7 }} />
+                </motion.button>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="p-2 rounded-xl transition-all duration-200 disabled:opacity-50"
-              >
-                <X className="w-5 h-5" style={{ color: textColor, opacity: 0.7 }} />
-              </motion.button>
+
+              {/* Form Content */}
+              <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 rounded-xl text-red-400 flex items-center gap-3 border"
+                      style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        borderColor: 'rgba(239, 68, 68, 0.3)'
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                      <span className="text-sm">{error}</span>
+                    </motion.div>
+                  )}
+
+                  {/* Título */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
+                      Título del Objetivo <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Ej: Completar 80% del curso de IA"
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  {/* Descripción */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
+                      Descripción
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      rows={2}
+                      placeholder="Describe el objetivo en detalle..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors resize-none"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  {/* Curso (Opcional) */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: textColor }}>
+                      <BookOpen className="w-4 h-4 opacity-50" />
+                      Curso (Opcional)
+                    </label>
+                    {isLoadingCourses ? (
+                      <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10">
+                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: primaryColor }} />
+                        <span className="text-sm opacity-70" style={{ color: textColor }}>Cargando cursos...</span>
+                      </div>
+                    ) : (
+                      <PremiumSelect
+                        value={formData.course_id || '__general__'}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, course_id: value === '__general__' ? '' : value }))}
+                        placeholder="Seleccionar curso"
+                        options={[
+                          { value: '__general__', label: 'Objetivo General del Equipo' },
+                          ...teamCourses
+                            .filter(tc => tc.course)
+                            .map(tc => ({
+                              value: tc.course_id,
+                              label: tc.course?.title || 'Curso desconocido'
+                            }))
+                        ]}
+                        className="w-full"
+                      />
+                    )}
+                    <p className="text-xs opacity-50 mt-1.5" style={{ color: textColor }}>
+                      Deja vacío para objetivo general o selecciona un curso específico
+                    </p>
+                  </div>
+
+                  {/* Grid: Métrica y Valor */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: textColor }}>
+                        <TrendingUp className="w-4 h-4 opacity-50" />
+                        Tipo de Métrica <span className="text-red-400">*</span>
+                      </label>
+                      <PremiumSelect
+                        value={formData.metric_type}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, metric_type: value as any }))}
+                        placeholder="Seleccionar..."
+                        options={metricTypeOptions}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
+                        Valor Objetivo <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="0.1"
+                        value={formData.target_value}
+                        onChange={(e) => setFormData(prev => ({ ...prev, target_value: parseFloat(e.target.value) || 0 }))}
+                        placeholder="100"
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
+                        required
+                        disabled={isSubmitting}
+                      />
+                      <p className="text-xs opacity-50 mt-1" style={{ color: textColor }}>
+                        {getMetricLabel(formData.metric_type)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Fecha Límite */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: textColor }}>
+                      <Calendar className="w-4 h-4 opacity-50" />
+                      Fecha Límite (Opcional)
+                    </label>
+                    <PremiumDatePicker
+                      value={formData.deadline}
+                      onChange={(date) => setFormData(prev => ({ ...prev, deadline: date }))}
+                      placeholder="Seleccionar fecha límite"
+                      minDate={new Date()}
+                      disabled={isSubmitting}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-white/5 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <motion.button
+                    type="submit"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={isSubmitting || !formData.title.trim()}
+                    className="px-5 py-2.5 rounded-xl text-sm font-medium text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                      boxShadow: `0 4px 15px ${primaryColor}40`
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        {objective ? <CheckCircle className="w-4 h-4" /> : <Target className="w-4 h-4" />}
+                        {objective ? 'Actualizar' : 'Crear Objetivo'}
+                      </>
+                    )}
+                  </motion.button>
+                </div>
+              </form>
             </div>
           </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-4 lg:p-5 space-y-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3 rounded-xl text-red-400 flex items-center gap-3 border backdrop-blur-sm"
-                  style={{
-                    backgroundColor: 'rgba(127, 29, 29, 0.2)',
-                    borderColor: 'rgba(220, 38, 38, 0.3)'
-                  }}
-                >
-                  <X className="w-4 h-4" />
-                  <span className="text-sm font-body">{error}</span>
-                </motion.div>
-              )}
-
-              {/* Título */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Título del Objetivo <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Ej: Completar 80% del curso de IA"
-                  className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
-                  style={{
-                    borderColor: modalBorder,
-                    backgroundColor: sectionBg,
-                    color: textColor
-                  }}
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Descripción
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  placeholder="Describe el objetivo en detalle..."
-                  className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all resize-none"
-                  style={{
-                    borderColor: modalBorder,
-                    backgroundColor: sectionBg,
-                    color: textColor
-                  }}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {/* Curso (Opcional) */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  <BookOpen className="w-4 h-4 inline mr-1" />
-                  Curso (Opcional)
-                </label>
-                {isLoadingCourses ? (
-                  <div className="flex items-center gap-2 p-3 rounded-xl border" style={{ borderColor: modalBorder, backgroundColor: sectionBg }}>
-                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: primaryColor }} />
-                    <span className="text-sm font-body opacity-70">Cargando cursos...</span>
-                  </div>
-                ) : (
-                  <PremiumSelect
-                    value={formData.course_id || '__general__'}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, course_id: value === '__general__' ? '' : value }))}
-                    placeholder="Seleccionar curso (opcional) o dejar vacío para objetivo general"
-                    options={[
-                      { value: '__general__', label: 'Objetivo General del Equipo' },
-                      ...teamCourses
-                        .filter(tc => tc.course)
-                        .map(tc => ({
-                          value: tc.course_id,
-                          label: tc.course?.title || 'Curso desconocido'
-                        }))
-                    ]}
-                    className="w-full"
-                  />
-                )}
-                <p className="text-xs font-body opacity-70 mt-2" style={{ color: textColor }}>
-                  Deja vacío para crear un objetivo general del equipo, o selecciona un curso específico
-                </p>
-              </div>
-
-              {/* Tipo de Métrica y Valor Objetivo */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                    <TrendingUp className="w-4 h-4 inline mr-1" />
-                    Tipo de Métrica <span className="text-red-400">*</span>
-                  </label>
-                  <PremiumSelect
-                    value={formData.metric_type}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, metric_type: value as any }))}
-                    placeholder="Seleccionar tipo..."
-                    options={metricTypeOptions}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                    Valor Objetivo <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    step="0.1"
-                    value={formData.target_value}
-                    onChange={(e) => setFormData(prev => ({ ...prev, target_value: parseFloat(e.target.value) || 0 }))}
-                    placeholder="100"
-                    className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
-                    style={{
-                      borderColor: modalBorder,
-                      backgroundColor: sectionBg,
-                      color: textColor
-                    }}
-                    required
-                    disabled={isSubmitting}
-                  />
-                  <p className="text-xs font-body opacity-70 mt-1" style={{ color: textColor }}>
-                    {formData.metric_type === 'completion_percentage' && 'Porcentaje (0-100)'}
-                    {formData.metric_type === 'average_score' && 'Calificación promedio (0-10)'}
-                    {formData.metric_type === 'participation_rate' && 'Porcentaje de participación (0-100)'}
-                    {formData.metric_type === 'engagement_rate' && 'Porcentaje de compromiso (0-100)'}
-                    {formData.metric_type === 'custom' && 'Valor personalizado'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Fecha Límite */}
-              <div>
-                <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  <Calendar className="w-4 h-4 inline mr-1" />
-                  Fecha Límite (Opcional)
-                </label>
-                <input
-                  type="date"
-                  value={formData.deadline}
-                  onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border rounded-xl font-body focus:outline-none focus:ring-1 transition-all"
-                  style={{
-                    borderColor: modalBorder,
-                    backgroundColor: sectionBg,
-                    color: textColor
-                  }}
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3 shrink-0" style={{
-              backgroundColor: modalBg,
-              borderColor: modalBorder
-            }}>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="font-body"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="gradient"
-                disabled={isSubmitting || !formData.title.trim()}
-                className="font-body"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || '#8b5cf6'} 100%)`,
-                  boxShadow: `0 4px 14px 0 ${primaryColor}40`
-                }}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Target className="w-4 h-4 mr-2" />
-                    {objective ? 'Actualizar Objetivo' : 'Crear Objetivo'}
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
         </motion.div>
       </div>
     </AnimatePresence>
   )
 }
-

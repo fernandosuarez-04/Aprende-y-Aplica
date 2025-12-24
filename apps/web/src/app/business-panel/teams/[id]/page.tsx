@@ -315,7 +315,7 @@ export default function BusinessTeamDetailPage() {
               <div className="flex flex-wrap gap-2 mt-4">
                 <div
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm"
-                  style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                  style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
                 >
                   <UserCheck className="w-4 h-4" />
                   <span className="font-medium">{team.active_member_count || 0} activos</span>
@@ -970,7 +970,11 @@ export default function BusinessTeamDetailPage() {
           )}
 
           {activeTab === 'conversacion' && (
-            <TeamChatTab teamId={teamId} />
+            <TeamChatTab
+              teamId={teamId}
+              teamName={team.name}
+              teamImageUrl={team.image_url}
+            />
           )}
 
           {activeTab === 'retroalimentacion' && (
