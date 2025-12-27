@@ -18,7 +18,7 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
 import { getBackgroundStyle, generateCSSVariables } from '@/features/business-panel/utils/styles'
-import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
+// import { useLiaPanel } from '@/core/contexts/LiaPanelContext' // Removed LIA logic
 
 // Lazy load components
 const ParticlesBackground = lazy(() =>
@@ -73,7 +73,7 @@ export default function BusinessUserDashboardPage() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const { styles } = useOrganizationStyles()
-  const { isPanelOpen, isCollapsed, panelWidth } = useLiaPanel()
+  // const { isPanelOpen, isCollapsed, panelWidth } = useLiaPanel() // Removed LIA logic
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
@@ -324,7 +324,7 @@ export default function BusinessUserDashboardPage() {
   }
 
   // Calcular el margen derecho basado en el estado del panel LIA
-  const contentMarginRight = isPanelOpen && !isCollapsed ? `${panelWidth}px` : '0'
+  // const contentMarginRight = isPanelOpen && !isCollapsed ? `${panelWidth}px` : '0' // Removed LIA logic
 
   return (
     <div
@@ -353,7 +353,7 @@ export default function BusinessUserDashboardPage() {
       {/* Main Content - Solo este contenido tiene margen cuando LIA está abierto */}
       <main
         className="relative overflow-hidden min-h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out"
-        style={{ marginRight: contentMarginRight }}
+        // style={{ marginRight: contentMarginRight }} // Removed LIA logic
       >
         {/* Background Effects */}
         <Suspense fallback={null}>

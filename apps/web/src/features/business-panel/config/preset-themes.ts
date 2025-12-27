@@ -112,10 +112,10 @@ export function generateBrandingTheme(branding: BrandingColors): ThemeConfig {
 }
 
 export const PRESET_THEMES: Record<string, ThemeConfig> = {
-  // SOFIA Predeterminado (Sistema de Diseño Oficial)
+  // SOFIA Predeterminado (Sistema de Diseño Oficial - Modo Oscuro)
   'sofia-predeterminado': {
     id: 'sofia-predeterminado',
-    name: 'SOFIA Predeterminado',
+    name: 'SOFIA Oscuro',
     description: 'Tema oficial basado en el Sistema de Diseño SOFIA (Modo Oscuro)',
     panel: {
       background_type: 'color',
@@ -157,6 +157,55 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
       border_color: '#334155',
       modal_opacity: 0.95,
       card_opacity: 0.95,
+      sidebar_opacity: 1
+    }
+  },
+  
+  // SOFIA Claro (Sistema de Diseño Oficial - Modo Claro)
+  'sofia-claro': {
+    id: 'sofia-claro',
+    name: 'SOFIA Claro',
+    description: 'Tema oficial basado en el Sistema de Diseño SOFIA (Modo Claro)',
+    panel: {
+      background_type: 'color',
+      background_value: '#F8FAFC',
+      primary_button_color: '#0A2540',
+      secondary_button_color: '#E2E8F0',
+      accent_color: '#00D4B3',
+      sidebar_background: '#FFFFFF',
+      card_background: '#FFFFFF',
+      text_color: '#1E293B',
+      border_color: '#E2E8F0',
+      modal_opacity: 0.98,
+      card_opacity: 1,
+      sidebar_opacity: 1
+    },
+    userDashboard: {
+      background_type: 'color',
+      background_value: '#F8FAFC',
+      primary_button_color: '#0A2540',
+      secondary_button_color: '#E2E8F0',
+      accent_color: '#00D4B3',
+      sidebar_background: '#FFFFFF',
+      card_background: '#FFFFFF',
+      text_color: '#1E293B',
+      border_color: '#E2E8F0',
+      modal_opacity: 0.98,
+      card_opacity: 1,
+      sidebar_opacity: 1
+    },
+    login: {
+      background_type: 'color',
+      background_value: '#F8FAFC',
+      primary_button_color: '#0A2540',
+      secondary_button_color: '#E2E8F0',
+      accent_color: '#00D4B3',
+      sidebar_background: 'transparent',
+      card_background: '#FFFFFF',
+      text_color: '#1E293B',
+      border_color: '#E2E8F0',
+      modal_opacity: 0.98,
+      card_opacity: 1,
       sidebar_opacity: 1
     }
   }

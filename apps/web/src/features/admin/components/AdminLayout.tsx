@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { AdminSidebar } from './AdminSidebar'
 import { AdminHeader } from './AdminHeader'
+import { useLiaPanel } from '../../../core/contexts/LiaPanelContext'
+import { useOrganizationStylesContext } from '../../business-panel/contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -16,6 +19,29 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [isRedirecting, setIsRedirecting] = useState(false)
+  
+  // Obtener tema del usuario (light/dark)
+  const { resolvedTheme } = useThemeStore()
+  const isLightTheme = resolvedTheme === 'light'
+  
+  // Obtener estilos de la organización
+  const { styles: orgStyles } = useOrganizationStylesContext()
+  const panelStyles = orgStyles?.panel
+  
+  // Colores del tema
+  const themeColors = {
+    background: isLightTheme ? (panelStyles?.background_value || '#F8FAFC') : '#0F1419',
+    cardBackground: isLightTheme ? (panelStyles?.card_background || '#FFFFFF') : '#0F1419',
+  }
+  
+  // Obtener estado del panel de LIA para desplazar contenido
+  let isLiaPanelOpen = false;
+  try {
+    const liaPanel = useLiaPanel();
+    isLiaPanelOpen = liaPanel.isOpen;
+  } catch {
+    // Si no está dentro del LiaPanelProvider, ignorar
+  }
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('admin-sidebar-collapsed') === 'true'
@@ -90,7 +116,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   // Mostrar loading spinner si isLoading es true
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#0F1419]">
+      <div 
+        className="min-h-screen flex items-center justify-center transition-colors duration-300"
+        style={{ backgroundColor: themeColors.background }}
+      >
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <div className="w-16 h-16 border-4 border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-full"></div>
@@ -108,7 +137,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0F1419]">
+    <div 
+      className="min-h-screen transition-colors duration-300"
+      style={{ backgroundColor: themeColors.background }}
+    >
       {/* Sidebar Global */}
       <AdminSidebar 
         isOpen={sidebarOpen} 
@@ -121,10 +153,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         onTogglePin={() => setSidebarPinned(!sidebarPinned)}
       />
 
-      {/* Main Content Area */}
-      <div className={`bg-white dark:bg-[#0F1419] min-h-screen transition-all duration-300 ease-in-out ${
-        sidebarCollapsed && !sidebarPinned ? 'lg:ml-16' : 'lg:ml-64'
-      }`}>
+      {/* Main Content Area - Solo el sidebar izquierdo afecta el margin-left */}
+      <div 
+        className={`min-h-screen transition-all duration-300 ease-in-out ${
+          sidebarCollapsed && !sidebarPinned ? 'lg:ml-16' : 'lg:ml-64'
+        }`}
+        style={{ backgroundColor: themeColors.background }}
+      >
         {/* Header Global */}
         <AdminHeader 
           onMenuClick={() => setSidebarOpen(true)}
@@ -134,11 +169,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 
-        {/* Page Content - pt-16 para compensar el header fijo */}
-        <main className="bg-white dark:bg-[#0F1419] min-h-screen pt-16">
+        {/* Page Content - pt-16 para compensar el header fijo, pr para panel de LIA */}
+        <main 
+          className="min-h-screen pt-16 transition-all duration-300 ease-in-out"
+          style={{ 
+            backgroundColor: themeColors.background,
+            paddingRight: isLiaPanelOpen ? '420px' : '0px' 
+          }}
+        >
           {children}
         </main>
       </div>
     </div>
   )
 }
+

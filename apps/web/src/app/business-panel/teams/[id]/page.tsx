@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { TeamsService, WorkTeam, WorkTeamMember } from '@/features/business-panel/services/teams.service'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
+import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 import { TeamCoursesTab } from '@/features/business-panel/components/TeamCoursesTab'
 import { TeamObjectivesTab } from '@/features/business-panel/components/TeamObjectivesTab'
 import { TeamChatTab } from '@/features/business-panel/components/TeamChatTab'
@@ -44,6 +45,7 @@ export default function BusinessTeamDetailPage() {
   const router = useRouter()
   const teamId = params.id as string
   const { styles } = useOrganizationStylesContext()
+  const { setPageContext } = useLiaPanel()
   const panelStyles = styles?.panel
 
   const [team, setTeam] = useState<WorkTeam | null>(null)
@@ -88,6 +90,30 @@ export default function BusinessTeamDetailPage() {
       fetchTeamData()
     }
   }, [teamId])
+
+  // Actualizar contexto de LIA con la información del equipo visualizado
+  useEffect(() => {
+    if (team && typeof setPageContext === 'function') {
+      setPageContext({
+        pageType: 'business_team_detail',
+        entityId: team.id,
+        teamName: team.name,
+        memberCount: teamMembers.length,
+        activeMemberCount: team.active_member_count,
+        coursesCount: teamCourses.length,
+        currentTab: activeTab,
+        description: team.description,
+        leaderName: team.team_leader?.name,
+        status: team.status
+      })
+    }
+
+    return () => {
+      if (typeof setPageContext === 'function') {
+        setPageContext(null)
+      }
+    }
+  }, [team, teamMembers.length, teamCourses.length, activeTab, setPageContext])
 
   const handleDeleteTeam = async () => {
     if (!team) return

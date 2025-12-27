@@ -107,7 +107,7 @@ export class SessionRecorder {
     // Verificar disponibilidad de rrweb
     const isAvailable = await this.checkRrwebAvailability();
     if (!isAvailable) {
-      console.error('❌ rrweb no está disponible. La grabación no puede iniciarse.');
+      console.warn('⚠️ rrweb no está disponible. La grabación de sesión estará deshabilitada temporalmente.');
       return;
     }
 

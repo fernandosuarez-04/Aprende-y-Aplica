@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft, HelpCircle, GraduationCap } from 'lucide-react';
+import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft, HelpCircle, GraduationCap, Zap, Scale, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { HolidayService } from '../../../lib/holidays';
 import { useOrganizationStylesContext } from '../../business-panel/contexts/OrganizationStylesContext';
 import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
+import { useLIAData } from '../hooks/useLIAData';
+import { parseLiaResponseToSchedules } from '../services/plan-parser.service';
 
 // Componentes de iconos de Google y Microsoft
 const GoogleIcon = () => (
@@ -168,6 +170,7 @@ export function StudyPlannerLIA() {
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [connectedCalendar, setConnectedCalendar] = useState<'google' | 'microsoft' | null>(null);
+  const [calendarSkipped, setCalendarSkipped] = useState(false); // Indica si el usuario rechazó explícitamente conectar calendario
 
   // Estados para configuración de estudio
   // ✅ NUEVO ENFOQUE: "rapido" = terminar lo antes posible, "normal" = tiempo razonable, "largo" = hasta fecha límite
@@ -257,6 +260,109 @@ export function StudyPlannerLIA() {
   // ✅ Estado para tracking de analytics de LIA
   const [liaConversationId, setLiaConversationId] = useState<string | null>(null);
 
+  // ✅ NUEVO: Hook para datos de LIA (lecciones pendientes desde BD)
+  const liaData = useLIAData();
+
+  // Estados para recuperación de sesión
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [savedSessionDate, setSavedSessionDate] = useState<string | null>(null);
+
+  // Clave para localStorage (se combina con currentUserId cuando está disponible)
+  const getStorageKey = (userId: string) => `lia_planner_session_v1_${userId}`;
+
+  // Cargar sesión guardada al iniciar (cuando tenemos userId)
+  useEffect(() => {
+    if (currentUserId && typeof window !== 'undefined') {
+      try {
+        const key = getStorageKey(currentUserId);
+        const savedData = localStorage.getItem(key);
+        
+        if (savedData) {
+          const session = JSON.parse(savedData);
+          // Verificar si la sesión tiene contenido relevante y es reciente (menos de 24h)
+          const sessionTime = new Date(session.timestamp).getTime();
+          const now = Date.now();
+          const isRecent = (now - sessionTime) < 24 * 60 * 60 * 1000;
+          
+          if (isRecent && (session.conversationHistory?.length > 0 || session.savedLessonDistribution?.length > 0)) {
+            console.log('📦 Sesión guardada detectada:', new Date(session.timestamp).toLocaleString());
+            setSavedSessionDate(new Date(session.timestamp).toLocaleString('es-ES', { 
+              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
+            }));
+            
+            // Si el modal principal ya se mostró (showConversation=true), mostrar el prompt
+            if (showConversation) {
+               setShowResumePrompt(true);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error leyendo sesión guardada:', e);
+      }
+    }
+  }, [currentUserId, showConversation]);
+
+  // Guardar sesión automáticamente cuando cambian datos clave
+  useEffect(() => {
+    if (currentUserId && showConversation && !showResumePrompt) {
+      // Solo guardar si hay algo relevante (historial no vacío)
+      if (conversationHistory.length > 0 || savedLessonDistribution.length > 0) {
+        const key = getStorageKey(currentUserId);
+        const sessionData = {
+          timestamp: new Date().toISOString(),
+          conversationHistory,
+          savedLessonDistribution,
+          currentStep,
+          studyApproach,
+          targetDate,
+          hasShownFinalSummary
+        };
+        localStorage.setItem(key, JSON.stringify(sessionData));
+      }
+    }
+  }, [currentUserId, showConversation, showResumePrompt, conversationHistory, savedLessonDistribution, currentStep, studyApproach, targetDate, hasShownFinalSummary]);
+
+  // Manejadores para recuperación
+  const handleResumeSession = () => {
+    if (currentUserId) {
+      try {
+        const key = getStorageKey(currentUserId);
+        const savedData = localStorage.getItem(key);
+        if (savedData) {
+          const session = JSON.parse(savedData);
+          
+          // Restaurar estados
+          if (session.conversationHistory) setConversationHistory(session.conversationHistory);
+          if (session.savedLessonDistribution) setSavedLessonDistribution(session.savedLessonDistribution);
+          if (session.currentStep) setCurrentStep(session.currentStep);
+          if (session.studyApproach) setStudyApproach(session.studyApproach);
+          if (session.targetDate) setTargetDate(session.targetDate);
+          if (session.hasShownFinalSummary) setHasShownFinalSummary(session.hasShownFinalSummary);
+          
+          // Añadir mensaje de sistema indicando restauración
+          setConversationHistory(prev => [...prev, { 
+            role: 'system', 
+            content: '🔄 [SISTEMA] Sesión anterior restaurada exitosamente. Puedes continuar donde lo dejaste.' 
+          }]);
+          
+          console.log('✅ Sesión restaurada');
+        }
+      } catch (e) {
+        console.error('Error restaurando sesión:', e);
+      }
+    }
+    setShowResumePrompt(false);
+  };
+
+  const handleDiscardSession = () => {
+    if (currentUserId) {
+      const key = getStorageKey(currentUserId);
+      localStorage.removeItem(key);
+      console.log('🗑️ Sesión anterior descartada');
+    }
+    setShowResumePrompt(false);
+    // El flujo normal continúa (mensaje de bienvenida, etc.)
+  };
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
@@ -689,6 +795,49 @@ export function StudyPlannerLIA() {
     }
   }, [showDateModal, currentMonth]);
 
+  // ✅ CRÍTICO: Cargar lecciones pendientes cuando hay cursos asignados
+  // Usa el hook useLIAData que consulta directamente la BD para obtener nombres EXACTOS
+  // Esto evita alucinaciones de la IA (patrón Bridge de IRIS)
+  useEffect(() => {
+    // Cargar lecciones si hay cursos asignados y el hook aún no las tiene, Y no hay error previo
+    if (assignedCourses.length > 0 && !liaData.isReady && !liaData.isLoading && !liaData.error) {
+      liaData.loadPendingLessons();
+    }
+  }, [assignedCourses, liaData.isReady, liaData.isLoading, liaData.error, liaData.loadPendingLessons]);
+
+  // Sincronizar datos del hook con las refs/estados existentes del componente
+  useEffect(() => {
+    if (liaData.isReady && liaData.lessons.length > 0) {
+      // Mapear al formato esperado por el componente
+      const formattedLessons = liaData.lessons.map(lesson => ({
+        courseId: lesson.courseId,
+        courseTitle: lesson.courseTitle,
+        lessonId: lesson.lessonId,
+        lessonTitle: lesson.lessonTitle, // ⚠️ NOMBRE EXACTO DE LA BD - NO ALUCINAR
+        moduleTitle: lesson.moduleTitle,
+        moduleOrderIndex: lesson.moduleOrderIndex,
+        lessonOrderIndex: lesson.lessonOrderIndex,
+        durationMinutes: lesson.durationMinutes || 15,
+      }));
+
+      // Actualizar ref y estado solo si hay diferencias
+      if (pendingLessonsRef.current.length !== formattedLessons.length) {
+        pendingLessonsRef.current = formattedLessons;
+        setPendingLessonsWithNames(formattedLessons);
+        
+        console.log(`✅ [Sync] ${formattedLessons.length} lecciones sincronizadas desde useLIAData`);
+        
+        // Log de verificación
+        if (formattedLessons.length > 0) {
+          console.log('   📋 Primeras 3 lecciones (nombres exactos de BD):');
+          formattedLessons.slice(0, 3).forEach((l: any, i: number) => {
+            console.log(`      ${i + 1}. "${l.lessonTitle}" (${l.durationMinutes} min)`);
+          });
+        }
+      }
+    }
+  }, [liaData.isReady, liaData.lessons]);
+
   // Inicializar mensaje de bienvenida cuando se carga la página (solo si no hay historial)
   // ✅ Flujo B2B: LIA genera el mensaje de bienvenida dinámicamente
   useEffect(() => {
@@ -709,6 +858,12 @@ export function StudyPlannerLIA() {
       // ✅ ESPERAR a que userContext esté disponible
       if (!userContext?.userType) {
         console.log('⏳ [Welcome] userContext aún no disponible');
+        return;
+      }
+
+      // ✅ CRÍTICO: Si hay cursos asignados, ESPERAR a que las lecciones estén cargadas
+      if (assignedCourses.length > 0 && !liaData.isReady) {
+        console.log('⏳ [Welcome] Esperando carga de lecciones...');
         return;
       }
 
@@ -771,15 +926,22 @@ INSTRUCCIONES:
           welcomeDueDateContext = `\n\n🚨 FECHA LÍMITE OBLIGATORIA: ${dueDateFormattedWelcome}\n⚠️ Todas las lecciones DEBEN completarse ANTES de esta fecha.`;
         }
 
+        // Obtener contexto de lecciones pendientes
+        const lessonsContext = liaData.getLessonsForPrompt();
+
         const liaSystemPrompt = generateStudyPlannerPrompt({
           userName: userContext.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
-          studyPlannerContextString: `CURSOS ASIGNADOS:\n${contextInfo.courses.map((c: any) => `- ${c.title}${c.dueDate ? ` (Fecha límite: ${c.dueDate})` : ''}`).join('\n')}${welcomeDueDateContext}`,
+          studyPlannerContextString: `CURSOS ASIGNADOS:\n${contextInfo.courses.map((c: any) => `- ${c.title}${c.dueDate ? ` (Fecha límite: ${c.dueDate})` : ''}`).join('\n')}\n\nLECCIONES PENDIENTES:\n${lessonsContext}${welcomeDueDateContext}`,
           currentDate: currentDate
         });
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos timeout
 
         const response = await fetch('/api/study-planner-chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
             message: systemPrompt,
             conversationHistory: [],
@@ -787,6 +949,8 @@ INSTRUCCIONES:
             userName: userContext.userName || undefined // ✅ CORREGIDO: Usar nombre del usuario, no de la organización
           }),
         });
+
+        clearTimeout(timeoutId);
 
         console.log('📥 [Welcome] Respuesta de API:', response.status, response.ok);
 
@@ -815,7 +979,7 @@ INSTRUCCIONES:
           if (assignedCourses.length > 0) {
             setTimeout(() => {
               setShowApproachModal(true);
-            }, 15000); // Esperar 15 segundos para que el usuario lea el mensaje de LIA
+            }, 4000); // Esperar 4 segundos para que el usuario lea el mensaje de LIA
           }
         } else {
           console.error('Error obteniendo mensaje de bienvenida de LIA');
@@ -827,7 +991,7 @@ INSTRUCCIONES:
           if (assignedCourses.length > 0) {
             setTimeout(() => {
               setShowApproachModal(true);
-            }, 15000); // Esperar 15 segundos
+            }, 4000); // Esperar 4 segundos
           }
         }
       } catch (error) {
@@ -840,7 +1004,7 @@ INSTRUCCIONES:
         if (assignedCourses.length > 0) {
           setTimeout(() => {
             setShowApproachModal(true);
-          }, 15000); // Esperar 15 segundos
+          }, 4000); // Esperar 4 segundos
         }
       } finally {
         setIsProcessing(false);
@@ -848,7 +1012,7 @@ INSTRUCCIONES:
     };
 
     generateWelcomeMessage();
-  }, [showConversation, conversationHistory.length, showCourseSelector, userContext, assignedCourses, connectedCalendar]);
+  }, [showConversation, conversationHistory.length, showCourseSelector, userContext, assignedCourses, connectedCalendar, liaData.isReady]);
 
   // NO mostrar automáticamente el modal - solo cuando el usuario lo solicite mediante el botón
 
@@ -2629,9 +2793,12 @@ INSTRUCCIONES:
       console.error('Error verificando calendario:', error);
     }
 
-    // Construir el prompt para LIA
-    const systemPrompt = calendarAlreadyConnected
-      ? `[SELECCION_ENFOQUE_CALENDARIO_CONECTADO]
+    // Construir el prompt para LIA dependiendo del estado del calendario
+    let systemPrompt: string;
+    
+    if (calendarAlreadyConnected) {
+      // Caso 1: Calendario ya conectado
+      systemPrompt = `[SELECCION_ENFOQUE_CALENDARIO_CONECTADO]
 El usuario ha seleccionado "${approachText[approach]}" como tipo de sesiones de estudio.
 Ya tiene su calendario de ${calendarProvider === 'google' ? 'Google' : 'Microsoft'} conectado.
 ${nearestDueDateFormatted ? `La fecha límite más próxima es: ${nearestDueDateFormatted}` : ''}
@@ -2641,8 +2808,27 @@ INSTRUCCIONES:
 2. Menciona que ya tiene el calendario conectado
 3. Indica que vas a analizar su agenda para encontrar los mejores horarios
 4. Sé breve pero amigable
-5. Usa markdown y emojis con moderación`
-      : `[SELECCION_ENFOQUE_PERSUADIR_CALENDARIO]
+5. Usa markdown y emojis con moderación`;
+    } else if (calendarSkipped) {
+      // Caso 2: Usuario ya rechazó el calendario - NO volver a preguntar
+      systemPrompt = `[SELECCION_ENFOQUE_SIN_CALENDARIO]
+El usuario ha seleccionado "${approachText[approach]}" como tipo de sesiones de estudio.
+El usuario YA INDICÓ que prefiere NO conectar su calendario.
+${nearestDueDateFormatted ? `La fecha límite establecida por su organización es: ${nearestDueDateFormatted}` : ''}
+Cursos asignados: ${assignedCourses.map(c => c.title).join(', ')}
+
+⚠️ INSTRUCCIONES IMPORTANTES - NO pedir calendario:
+1. Confirma la selección del tipo de sesiones de manera entusiasta
+2. Si hay fecha límite, menciónala
+3. NO menciones el calendario - el usuario YA RECHAZÓ conectarlo
+4. Pregunta directamente por los días y horarios que prefiere estudiar:
+   - ¿Qué días de la semana prefiere estudiar?
+   - ¿En qué horarios le funciona mejor: mañana, tarde o noche?
+5. Da ejemplos como: "Lunes, miércoles y viernes por la mañana"
+6. Sé amigable y no insistas más en el calendario`;
+    } else {
+      // Caso 3: Calendario no conectado Y usuario NO ha rechazado - persuadir
+      systemPrompt = `[SELECCION_ENFOQUE_PERSUADIR_CALENDARIO]
 El usuario ha seleccionado "${approachText[approach]}" como tipo de sesiones de estudio.
 ${nearestDueDateFormatted ? `La fecha límite establecida por su organización es: ${nearestDueDateFormatted}` : ''}
 Cursos asignados: ${assignedCourses.map(c => c.title).join(', ')}
@@ -2657,6 +2843,7 @@ INSTRUCCIONES:
 4. Pregunta si le gustaría conectar su calendario de Google o Microsoft
 5. Usa lenguaje persuasivo pero no agresivo
 6. Usa markdown y emojis con moderación`;
+    }
 
     try {
       // Generar el systemPrompt para esta llamada
@@ -2734,12 +2921,16 @@ INSTRUCCIONES:
           console.error('❌ [handleApproachSelection] Error en analyzeCalendarAndSuggest:', error);
         }
       }, 5000); // Esperar 5 segundos para que el usuario lea el mensaje
-    } else {
-      console.log('⚠️ [handleApproachSelection] Calendario NO conectado, mostrando modal...');
-      // Calendario NO está conectado, mostrar modal después de un delay
+    } else if (!calendarSkipped) {
+      console.log('⚠️ [handleApproachSelection] Calendario NO conectado y NO rechazado, mostrando modal...');
+      // Calendario NO está conectado Y el usuario NO ha rechazado, mostrar modal después de un delay
       setTimeout(() => {
         setShowCalendarModal(true);
       }, 3000);
+    } else {
+      console.log('ℹ️ [handleApproachSelection] Calendario rechazado por el usuario, no mostrar modal.');
+      // El usuario ya rechazó el calendario, no volver a mostrar el modal
+      // El flujo continuará cuando el usuario proporcione sus días y horarios preferidos
     }
   };
 
@@ -6124,6 +6315,7 @@ Cuéntame manualmente:
   // Saltar conexión de calendario pero aún obtener perfil del usuario
   const skipCalendarConnection = async () => {
     setShowCalendarModal(false);
+    setCalendarSkipped(true); // Marcar que el usuario rechazó conectar el calendario
     setIsProcessing(true);
 
     const userMsg = 'Prefiero no conectar mi calendario por ahora';
@@ -7944,9 +8136,29 @@ Cuéntame:
       });
 
       // Construir contexto de lecciones pendientes para el prompt
-      const sendMsgLessonsContext = pendingLessonsRef.current.length > 0
-        ? pendingLessonsRef.current.map(l => `- ${l.lessonTitle} (${l.durationMinutes || 15} min) - Módulo: ${l.moduleTitle}`).join('\n')
-        : 'No hay lecciones pendientes definidas aún.';
+      // Usa el hook liaData como fuente primaria (datos exactos de BD)
+      const sendMsgLessonsContext = liaData.isReady && liaData.lessons.length > 0
+        ? liaData.getLessonsForPrompt()
+        : pendingLessonsRef.current.length > 0
+          ? pendingLessonsRef.current.map(l => `- ${l.lessonTitle} (${l.durationMinutes || 15} min) - Módulo: ${l.moduleTitle}`).join('\n')
+          : 'No hay lecciones pendientes definidas aún.';
+
+      // ✅ REFUERZO DE CONTEXTO: Si ya hay un plan parseado en memoria, recordárselo a LIA
+      // Esto evita que LIA "olvide" el plan cuando el usuario confirma ("sí") y el preCalculatedPlanContext desaparece
+      let existingPlanContext = '';
+      if (savedLessonDistribution.length > 0) {
+        existingPlanContext = `\n\n═══════════════════════════════════════════════════════════════════════════════\n📝 PLAN PROPUESTO ACTUALMENTE (EN MEMORIA)\n═══════════════════════════════════════════════════════════════════════════════\nLIA, ya has propuesto este plan y el usuario lo tiene en pantalla:\n`;
+        
+        // Resumir el plan para no consumir demasiados tokens
+        let totalLessonsInPlan = 0;
+        savedLessonDistribution.forEach(slot => {
+          existingPlanContext += `* ${slot.dayName} ${slot.startTime}-${slot.endTime}: ${slot.lessons.length} lecciones\n`;
+          totalLessonsInPlan += slot.lessons.length;
+        });
+        
+        existingPlanContext += `\nTotal lecciones agendadas: ${totalLessonsInPlan}\n`;
+        existingPlanContext += `⚠️ INSTRUCCIÓN CRÍTICA DE CONFIRMACIÓN: Si el usuario dice "sí", "ok", "me gusta" o confirma:\n1. NO recalculas nada.\n2. NO digas que hubo un error.\n3. Confirma que guardas este plan.\n4. Muestra entusiasmo.\n`;
+      }
 
       // ✅ NUEVO: Incluir información de fecha límite y cursos asignados
       const coursesWithDueDates = assignedCourses.filter(c => c.dueDate);
@@ -7961,9 +8173,76 @@ Cuéntame:
         dueDateContext = `\n\n🚨 FECHA LÍMITE OBLIGATORIA: ${dueDateFormatted}\n⚠️ NUNCA programar lecciones después de esta fecha.\n⚠️ La fecha de finalización del plan DEBE ser ANTERIOR a ${dueDateFormatted}.`;
       }
 
+      // 🕵️ Detección automática de preferencias para Generador Determinista
+      let preCalculatedPlanContext = '';
+      
+      // Regex mejorado para detectar mención de días (incluye abreviaciones y typos comunes)
+      const daysMatch = message.match(/lunes|lune|lun|mon|martes|mar|tue|miércoles|miercoles|mier|wed|jueves|jue|thu|viernes|vier|vie|fri|sábado|sabado|sab|sat|domingo|dom|sun/gi);
+      const timesMatch = message.match(/mañana|tarde|noche/gi);
+      
+      // Estado para controlar si bloqueamos la visualización de lecciones
+      let blockPlanGeneration = false;
+
+      // Si el usuario menciona días explícitamente y tenemos lecciones, intentamos generar el plan "hardcoded"
+      if (daysMatch && daysMatch.length > 0 && liaData.lessons.length > 0) {
+        try {
+          console.log('🤖 [Deterministic] Detectada intención de planificar. Invocando generador...');
+          
+          const uniqueDays = [...new Set(daysMatch.map(d => d.toLowerCase()))];
+          const uniqueTimes = timesMatch ? [...new Set(timesMatch.map(t => t.toLowerCase()))] : ['mañana']; // Default mañana
+          
+          // Obtener fecha límite si existe
+          const coursesWithDueDates = assignedCourses.filter(c => c.dueDate);
+          let deadlineDate: string | undefined;
+          
+          if (coursesWithDueDates.length > 0) {
+              // Ordenar por fecha más próxima y tomar la primera
+              const sorted = [...coursesWithDueDates].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+              deadlineDate = sorted[0].dueDate;
+          }
+
+          const genRes = await fetch('/api/study-planner/generate-plan', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ 
+                lessons: liaData.lessons, 
+                preferences: { days: uniqueDays, times: uniqueTimes },
+                deadlineDate: deadlineDate,
+                maxSessionMinutes: (studyApproach === 'rapido' ? 30 : studyApproach === 'largo' ? 70 : 50) 
+              })
+          });
+          
+          if (genRes.ok) {
+              const genData = await genRes.json();
+              if (genData.exceedsDeadline) {
+                  blockPlanGeneration = true; // ⛔ ACTIVAR BLOQUEO
+                  preCalculatedPlanContext = `\n\n⛔ BLOQUEO DE SEGURIDAD: LOS HORARIOS PROPUESTOS NO CUMPLEN LA FECHA LÍMITE.\n` +
+                  `Fecha estimada terminación: ${genData.endDate}\n` +
+                  `Fecha límite del curso: ${genData.deadline}\n` +
+                  `Exceso: ${genData.daysExcess} días.\n\n` +
+                  `⚠️ INSTRUCCIÓN ÚNICA PARA LIA:\n` +
+                  `1. INFORMA al usuario que NO PUEDES crear el plan porque terminaría el ${genData.endDate} (tarde).\n` +
+                  `2. NO muestres, ni inventes, ni menciones ninguna lección.\n` +
+                  `3. EXIGE amablemente ampliar el horario (ej: fines de semana) para cumplir la meta.\n`;
+                  console.log('⛔ [Deterministic] Plan excede fecha límite. LECCIONES OCULTADAS.');
+              } else if (genData.plan) {
+                  preCalculatedPlanContext = `\n\n═══════════════════════════════════════════════════════════════════════════════\n🚨 PLAN DE ESTUDIO PRE-CALCULADO (PRIORIDAD MÁXIMA - COPIAR LITERALMENTE)\n═══════════════════════════════════════════════════════════════════════════════\n\n${genData.plan}\n\n⚠️ INSTRUCCIÓN OBLIGATORIA: El usuario ha definido sus horarios y CUMPLEN con la fecha límite.\n1. NO LO RECALCULES.\n2. COPIA los horarios y lecciones EXACTAMENTE como aparecen arriba.\n3. Las lecciones secuenciales (1, 1.1) YA ESTÁN AGRUPADAS correctamente.\n4. Solo dale formato bonito (negritas, emojis).\n`;
+                  console.log('✅ [Deterministic] Plan pre-calculado generado e inyectado en contexto.');
+              }
+          }
+        } catch (err) {
+          console.error('❌ [Deterministic] Error generando plan:', err);
+        }
+      }
+
+      // Si hay bloqueo, NO enviamos las lecciones al prompt para asegurar que LIA no pueda generar nada
+      const finalStudyPlannerContext = blockPlanGeneration
+        ? `⚠️ SISTEMA: INFORMACIÓN DE LECCIONES OCULTA POR INSUFICIENCIA DE HORARIO.\n${preCalculatedPlanContext}`
+        : `LECCIONES PENDIENTES (${liaData.totalPending || pendingLessonsRef.current.length} total):\n${sendMsgLessonsContext}\n\nCALENDARIO: ${connectedCalendar ? `Conectado (${connectedCalendar})` : 'No conectado'}${dueDateContext}${preCalculatedPlanContext}${existingPlanContext}`;
+
       const sendMsgSystemPrompt = generateStudyPlannerPrompt({
-        userName: userContext?.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
-        studyPlannerContextString: `LECCIONES PENDIENTES (${pendingLessonsRef.current.length} total):\n${sendMsgLessonsContext}\n\nCALENDARIO: ${connectedCalendar ? `Conectado (${connectedCalendar})` : 'No conectado'}${dueDateContext}`,
+        userName: userContext?.userName || undefined, 
+        studyPlannerContextString: finalStudyPlannerContext,
         currentDate: sendMsgDateStr
       });
 
@@ -8023,7 +8302,7 @@ Cuéntame:
       console.log(`   Longitud de respuesta de LIA: ${liaResponse.length} caracteres`);
       console.log(`   Primeros 500 caracteres de respuesta:`, liaResponse.substring(0, 500));
 
-      const extractedSchedules = parseLiaScheduleResponse(liaResponse);
+      const extractedSchedules = parseLiaResponseToSchedules(liaResponse);
 
       if (extractedSchedules && extractedSchedules.length > 0) {
         console.log(`📋 Parseando respuesta de LIA: ${extractedSchedules.length} horarios extraídos`);
@@ -8301,6 +8580,19 @@ Cuéntame:
         }
       }
 
+      // 🎯 DETECCIÓN DE CONFIRMACIÓN FINAL
+      // Si el usuario dijo "sí/ok" y LIA confirma guardado, ejecutar la acción real
+      const isUserConfirmation = message.toLowerCase().match(/^(s[íi]|ok|claro|perfecto|me parece|est[áa] bien|adelante|dale|va|seguro|gracias|genial)/i);
+      const liaConfirmsSaving = liaResponse.toLowerCase().match(/(guardad|guardar|xito|comenzar|dashboard|redireccion|creado|alegra|disfrut)/i);
+
+      if (isUserConfirmation && liaConfirmsSaving && savedLessonDistribution.length > 0) {
+         console.log('🚀 Detectada confirmación final y cierre de LIA. Iniciando guardado de plan...');
+         // Ejecutar guardado (pequeño delay para que LIA termine de hablar/mostrar mensaje)
+         setTimeout(() => {
+           executeFinalPlanSave();
+         }, 2000); 
+      }
+
       if (isAudioEnabled) {
         await speakText(liaResponse);
       }
@@ -8309,6 +8601,221 @@ Cuéntame:
       console.error('Error enviando mensaje:', error);
       const errorMessage = 'Lo siento, tuve un problema procesando tu mensaje. ¿Podrías intentarlo de nuevo?';
       setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMessage }]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+
+
+  // Función para guardar el plan y redirigir
+  const executeFinalPlanSave = async () => {
+    try {
+      console.log('💾 Guardando plan de estudios...');
+      
+      // FILTRADO PREVIO
+      const cleanDistribution = savedLessonDistribution.filter(slot => 
+          slot && 
+          slot.lessons && 
+          slot.lessons.length > 0
+      );
+
+      if (cleanDistribution.length === 0) {
+        console.warn('⚠️ No hay lecciones para guardar (cleanDistribution empty)');
+        return;
+      }
+      
+      console.log(`ℹ️ Procesando ${cleanDistribution.length} sesiones. Primer slot:`, cleanDistribution[0]);
+
+      setIsProcessing(true);
+
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const daysSet = new Set<number>();
+      const validTimestamps: number[] = [];
+      const now = new Date();
+      
+      // Transformar sesiones
+      const sessions = cleanDistribution.map((slot, idx) => {
+         try {
+             // Normalizar fecha: reemplazar / y . por -
+             let cleanDate = (slot.dateStr || '').trim().replace(/[\/\.]/g, '-');
+             const cleanStart = (slot.startTime || '').trim();
+             const cleanEnd = (slot.endTime || '').trim();
+
+             if (!cleanDate || !cleanStart || !cleanEnd) {
+                 console.warn(`⚠️ Slot ${idx} ignorado por falta de fecha/hora:`, slot);
+                 return null;
+             }
+             
+             // Intentar arreglar formatos de fecha raros
+             let dateParts = cleanDate.split('-').map(Number);
+             
+             // 1. Caso DD-MM-YYYY (año al final)
+             if (dateParts.length === 3 && dateParts[2] > 2000 && dateParts[0] <= 31) {
+                 // Convertir a YYYY-MM-DD
+                 const [d, m, y] = dateParts;
+                 cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+                 dateParts = [y, m, d];
+             }
+             
+             // 2. REPARACIÓN EMERGENCIA: Caso texto "Lunes 5" o similar
+             if (dateParts.length !== 3 || dateParts.some(isNaN)) {
+                 const dayMatch = cleanDate.match(/(\d{1,2})/);
+                 if (dayMatch) {
+                     const day = parseInt(dayMatch[1], 10);
+                     if (day >= 1 && day <= 31) {
+                         // Adivinar mes y año (asumimos mes actual o siguiente)
+                         let year = now.getFullYear();
+                         let month = now.getMonth(); // 0-11
+                         
+                         // Creamos fecha candidata en mes actual
+                         let candidate = new Date(year, month, day);
+                         
+                         // Si el día es hoy o pasado (con margen de 5 días), asumimos mes siguiente
+                         if (day < now.getDate() - 5) {
+                             candidate = new Date(year, month + 1, day);
+                         }
+                         
+                         // Actualizar dateParts
+                         const y = candidate.getFullYear();
+                         const m = candidate.getMonth() + 1;
+                         const d = candidate.getDate();
+                         
+                         dateParts = [y, m, d];
+                         cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+                         console.log(`🔧 Slot ${idx}: Fecha recuperada "${dayMatch[0]}" -> ${cleanDate}`);
+                     }
+                 }
+             }
+             
+             const startParts = cleanStart.split(':').map(Number);
+             const endParts = cleanEnd.split(':').map(Number);
+             
+             if (dateParts.length !== 3 || startParts.length < 2 || endParts.length < 2) {
+                 console.error(`❌ Formato inválido en slot ${idx}: Fecha=${cleanDate}, Hora=${cleanStart}-${cleanEnd}`);
+                 return null;
+             }
+
+             const [year, month, day] = dateParts;
+             const [startHour, startMin] = startParts;
+             const [endHour, endMin] = endParts;
+
+             if ([year, month, day, startHour, startMin, endHour, endMin].some(n => isNaN(n))) {
+                  console.error(`❌ Datos no numéricos en slot ${idx} tras reparación`);
+                  return null;
+             }
+
+             const start = new Date(year, month - 1, day, startHour, startMin, 0);
+             const end = new Date(year, month - 1, day, endHour, endMin, 0);
+             
+             if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                  console.error(`❌ Fecha inválida (Date obj) en slot ${idx}`);
+                  return null;
+             }
+             
+             validTimestamps.push(start.getTime());
+             daysSet.add(start.getDay());
+
+             // Descripción
+             const lessonsTitles = slot.lessons.map(l => l.lessonTitle).join(', ');
+             const description = `Lecciones: ${lessonsTitles}`.substring(0, 500); 
+
+             // CourseId matchmaking
+             let courseId = null;
+             if (slot.lessons.length > 0 && assignedCourses.length > 0) {
+                const courseTitle = slot.lessons[0].courseTitle;
+                if (courseTitle) {
+                   const matchedCourse = assignedCourses.find(c => 
+                      c.title === courseTitle || 
+                      c.title?.includes(courseTitle) || 
+                      courseTitle.includes(c.title)
+                   );
+                   if (matchedCourse) {
+                      courseId = matchedCourse.courseId || matchedCourse.id;
+                   }
+                }
+             }
+
+             return {
+               title: "Sesión de Estudio",
+               description,
+               startTime: start.toISOString(),
+               endTime: end.toISOString(),
+               courseId,
+               sessionType: 'medium',
+               isAiGenerated: true
+             };
+         } catch (e) {
+             console.error(`❌ Error inesperado procesando sesión ${idx}:`, e);
+             return null;
+         }
+      }).filter(Boolean); 
+
+      if (sessions.length === 0) {
+          console.error("❌ FATAL: Todas las sesiones fueron descartadas. Revise los logs anteriores.");
+          // Fallback de emergencia: Crear una sesión dummy para no bloquear warning
+          // O lanzar error explícito
+          throw new Error("No se pudieron generar sesiones válidas. Revisa el formato de fecha.");
+      }
+
+      const minTime = validTimestamps.length > 0 ? Math.min(...validTimestamps) : Date.now();
+      const maxTime = validTimestamps.length > 0 ? Math.max(...validTimestamps) : Date.now();
+      const startDate = new Date(minTime).toISOString();
+      const endDate = new Date(maxTime).toISOString();
+      const preferredDays = Array.from(daysSet).sort();
+
+      const config = {
+           name: `Plan Personalizado - ${new Date().toLocaleDateString('es-ES')}`,
+           description: `Plan generado por LIA el ${new Date().toLocaleString('es-ES')}`,
+           userType: userContext?.userType || 'b2b', 
+           timezone,
+           preferredDays: preferredDays.length > 0 ? preferredDays : [1, 2, 3, 4, 5], 
+           startDate,
+           endDate,
+           goalHoursPerWeek: 5, 
+           generationMode: 'ai_generated',
+           preferredTimeBlocks: [], 
+           courseIds: assignedCourses.map(c => c.courseId || c.id).filter(Boolean),
+           minSessionMinutes: 30,
+           maxSessionMinutes: 120,
+           breakDurationMinutes: 10,
+           preferredSessionType: 'medium',
+           calendarAnalyzed: !!connectedCalendar,
+           calendarProvider: connectedCalendar ? (connectedCalendar.toLowerCase().includes('google') ? 'google' : 'microsoft') : undefined
+      };
+
+      const payload = { config, sessions };
+
+      console.log('📦 Enviando payload:', { 
+        sesiones: sessions.length, 
+        sample: sessions[0]
+      });
+
+      const response = await fetch('/api/study-planner/save-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success) {
+        console.log('✅ Plan guardado exitosamente:', responseData);
+        if (currentUserId) {
+           const key = getStorageKey(currentUserId);
+           localStorage.removeItem(key);
+        }
+        router.push('/study-planner/dashboard');
+      } else {
+        console.error('❌ Error API:', responseData.error);
+        const errorText = `Error técnico al guardar: ${responseData.error}. Intenta confirmar de nuevo.`;
+        setConversationHistory(prev => [...prev, { role: 'assistant', content: errorText }]);
+        if (isAudioEnabled) await speakText('Hubo un error al guardar.');
+      }
+    } catch (error: any) {
+      console.error('❌ Error crítico en guardado:', error);
+      const errorText = `Error inesperado: ${error.message || error}. Por favor contacta soporte.`;
+      setConversationHistory(prev => [...prev, { role: 'assistant', content: errorText }]);
     } finally {
       setIsProcessing(false);
     }
@@ -8341,6 +8848,49 @@ Cuéntame:
               className="fixed inset-0 bg-gradient-to-br from-black/70 via-black/80 to-black/70 backdrop-blur-md z-[9998]"
               onClick={handleSkip}
             />
+
+            {/* Modal de Recuperación de Sesión */}
+            {showResumePrompt && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+              >
+                <div className="bg-[#0f172a] border border-purple-500/30 p-6 md:p-8 rounded-2xl shadow-2xl max-w-md w-full relative overflow-hidden">
+                   {/* Glow effect */}
+                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+                   <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/20 blur-[50px] rounded-full pointing-events-none" />
+                   
+                   <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-3">
+                     <span className="text-2xl animate-pulse">💾</span> 
+                     <span>Recuperar conversación</span>
+                   </h3>
+                   
+                   <p className="text-slate-300 mb-6 text-[15px] leading-relaxed">
+                     Hemos detectado una sesión anterior guardada el <span className="text-purple-300 font-semibold">{savedSessionDate}</span>.
+                     <br/><br/>
+                     ¿Te gustaría restaurar el contexto y continuar donde lo dejaste, o prefieres empezar un nuevo plan desde cero?
+                   </p>
+                   
+                   <div className="flex gap-3 justify-end items-center">
+                     <button
+                       onClick={handleDiscardSession}
+                       className="px-4 py-2.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                     >
+                       Empezar de nuevo
+                     </button>
+                     <button
+                       onClick={handleResumeSession}
+                       className="px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg shadow-lg shadow-purple-900/40 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+                     >
+                       <Zap size={16} className="fill-current" />
+                       Continuar sesión
+                     </button>
+                   </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* Contenedor principal */}
             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-3 pointer-events-none overflow-hidden">
@@ -9430,13 +9980,20 @@ Cuéntame:
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                   >
-                    {/* Overlay - Para B2B no debe cerrar el modal */}
+                    {/* Overlay - Cierra el modal sin afectar el flujo */}
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                      onClick={userContext?.userType === 'b2b' ? undefined : skipCalendarConnection}
-                      style={{ cursor: userContext?.userType === 'b2b' ? 'default' : 'pointer' }}
+                      onClick={() => {
+                        // Para B2B sin calendario conectado, no permitir cerrar clickeando fuera
+                        if (userContext?.userType === 'b2b' && !connectedCalendar) {
+                          return; // No hacer nada - debe conectar calendario o usar el botón "Continuar sin calendario"
+                        }
+                        // Para otros casos, solo cerrar el modal sin enviar mensaje de rechazo
+                        setShowCalendarModal(false);
+                      }}
+                      style={{ cursor: (userContext?.userType === 'b2b' && !connectedCalendar) ? 'default' : 'pointer' }}
                     />
 
                     {/* Modal */}
@@ -9507,8 +10064,8 @@ Cuéntame:
                               whileHover={connectedCalendar !== 'google' ? { rotate: [0, -5, 5, -5, 0] } : {}}
                               transition={{ duration: 0.5 }}
                             >
-                              {/* Icono de Google/Microsoft */}
-                              {connectedCalendar === 'google' ? <GoogleIcon /> : <MicrosoftIcon />}
+                              {/* Icono de Google - siempre mostrar GoogleIcon */}
+                              <GoogleIcon />
                             </motion.div>
 
                             {/* Contenido del botón */}
@@ -9684,13 +10241,28 @@ Cuéntame:
                         </motion.button>
                       </div>
 
-                      {/* Botón cerrar */}
+                      {/* Botón cerrar - Solo cierra el modal sin afectar el flujo */}
                       <motion.button
-                        onClick={skipCalendarConnection}
+                        onClick={() => {
+                          // Si hay un calendario conectado, simplemente cerrar y continuar con él
+                          if (connectedCalendar) {
+                            setShowCalendarModal(false);
+                            // Continuar con el calendario conectado - disparar flujo de éxito
+                            const calendarType = connectedCalendar === 'google' ? 'Google Calendar' : 'Microsoft Outlook';
+                            setConversationHistory(prev => [...prev, { 
+                              role: 'assistant', 
+                              content: `¡Perfecto! Tu calendario de ${calendarType} está conectado. Continuemos con tu planificación.` 
+                            }]);
+                          } else {
+                            // Si no hay calendario conectado, solo cerrar el modal
+                            // No enviar mensaje de "no quiero conectar" - el usuario puede volver a abrirlo después
+                            setShowCalendarModal(false);
+                          }
+                        }}
                         whileHover={{ scale: 1.1, rotate: 90 }}
                         whileTap={{ scale: 0.9 }}
                         className="absolute top-4 right-4 p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-all"
-                        title="Cerrar modal de calendario"
+                        title={connectedCalendar ? "Cerrar y continuar con calendario conectado" : "Cerrar modal"}
                         aria-label="Cerrar"
                       >
                         <X size={20} />
@@ -9761,7 +10333,7 @@ Cuéntame:
                               ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
                               : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                               }`}>
-                              <span className="text-xl">🚀</span>
+                              <Zap className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                             </div>
                             <div className="flex-1">
                               <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Quiero terminar rápido</h4>
@@ -9798,7 +10370,7 @@ Cuéntame:
                               ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
                               : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                               }`}>
-                              <span className="text-xl">⚖️</span>
+                              <Scale className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                             </div>
                             <div className="flex-1">
                               <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Tiempo razonable</h4>
@@ -9835,7 +10407,7 @@ Cuéntame:
                               ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
                               : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                               }`}>
-                              <span className="text-xl">📅</span>
+                              <Clock className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                             </div>
                             <div className="flex-1">
                               <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Tomar mi tiempo</h4>

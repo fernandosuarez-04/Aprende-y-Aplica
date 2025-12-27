@@ -8,7 +8,7 @@ import {
   ChevronDownIcon,
   HomeIcon,
   ShieldCheckIcon,
-  AcademicCapIcon,
+  BuildingOfficeIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline'
 import { Sun, Moon, Monitor, Check } from 'lucide-react'
@@ -25,6 +25,10 @@ interface AdminUserDropdownProps {
     email: string
     profile_picture_url?: string
     cargo_rol: string
+    organization?: {
+      name: string
+      slug: string
+    }
   }
 }
 
@@ -57,10 +61,6 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
     }
   }, [isThemeMenuOpen])
 
-  // console.log('🔍 AdminUserDropdown: Usuario recibido:', user)
-  // console.log('🎭 Rol del usuario:', user.cargo_rol)
-  // console.log('✅ Es administrador:', user.cargo_rol?.toLowerCase() === 'administrador')
-
   const handleLogout = async () => {
     try {
       await logout()
@@ -70,8 +70,8 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
     }
   }
 
-  const handleDashboard = () => {
-    router.push('/dashboard')
+  const handleCompanyPanel = () => {
+    router.push('/business-panel/dashboard')
     setIsOpen(false)
   }
 
@@ -221,17 +221,19 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
             >
               <Menu.Item>
                 {({ active }) => (
-                  <motion.button
-                    onClick={handleDashboard}
-                    whileHover={{ x: 4 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
+                    onClick={handleCompanyPanel}
                     className={`${
                       active ? 'bg-[#E9ECEF] dark:bg-[#0A2540]/30' : ''
                     } flex items-center w-full px-5 py-3 text-sm text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/30 transition-all duration-200 rounded-xl mx-2 group`}
                   >
-                    <HomeIcon className="w-5 h-5 mr-3 text-[#6C757D] dark:text-white/70 group-hover:text-[#00D4B3] transition-colors duration-200" />
-                    <span className="font-medium">Ir al Home</span>
-                  </motion.button>
+                    <BuildingOfficeIcon className="w-5 h-5 mr-3 text-[#6C757D] dark:text-white/70 group-hover:text-[#00D4B3] transition-colors duration-200" />
+                    <span className="font-medium">
+                      {user.organization?.name 
+                        ? `Panel de ${user.organization.name}`
+                        : 'Panel de Empresa'}
+                    </span>
+                  </button>
                 )}
               </Menu.Item>
             </motion.div>
@@ -239,7 +241,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
             {/* Botón de acceso de administración - Solo visible para administradores */}
             {user.cargo_rol?.toLowerCase() === 'administrador' && (
               <>
-                <motion.div
+                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
@@ -247,43 +249,20 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                   <Menu.Item>
                     {({ active }) => (
                       <Link href="/admin/dashboard" onClick={() => setIsOpen(false)}>
-                        <motion.div
-                          whileHover={{ x: 4 }}
-                          whileTap={{ scale: 0.98 }}
+                        <div
                           className={`${
                             active ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/30' : ''
                           } flex items-center w-full px-5 py-3 text-sm text-[#0A2540] dark:text-white hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/30 transition-all duration-200 rounded-xl mx-2 group`}
                         >
                           <ShieldCheckIcon className="w-5 h-5 mr-3 text-[#00D4B3] group-hover:scale-110 transition-transform duration-200" />
                           <span className="font-medium">Panel de Administración</span>
-                        </motion.div>
+                        </div>
                       </Link>
                     )}
                   </Menu.Item>
                 </motion.div>
                 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link href="/instructor/dashboard" onClick={() => setIsOpen(false)}>
-                        <motion.div
-                          whileHover={{ x: 4 }}
-                          whileTap={{ scale: 0.98 }}
-                          className={`${
-                            active ? 'bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20' : ''
-                          } flex items-center w-full px-5 py-3 text-sm text-[#0A2540] dark:text-white hover:bg-[#F59E0B]/10 dark:hover:bg-[#F59E0B]/20 transition-all duration-200 rounded-xl mx-2 group`}
-                        >
-                          <AcademicCapIcon className="w-5 h-5 mr-3 text-[#F59E0B] group-hover:scale-110 transition-transform duration-200" />
-                          <span className="font-medium">Panel de Instructor</span>
-                        </motion.div>
-                      </Link>
-                    )}
-                  </Menu.Item>
-                </motion.div>
+                {/* Panel de Instructor ELIMINADO */}
               </>
             )}
 
@@ -300,10 +279,8 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
               <Menu.Item>
                 {({ active }) => (
                   <div>
-                    <motion.button
+                    <button
                       onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-                      whileHover={{ x: 4 }}
-                      whileTap={{ scale: 0.98 }}
                       className={`${
                         active ? 'bg-[#E9ECEF] dark:bg-[#0A2540]/30' : ''
                       } flex items-center justify-between w-full px-5 py-3 text-sm text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/30 transition-all duration-200 rounded-xl group`}
@@ -320,7 +297,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                       >
                         <ChevronRightIcon className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                       </motion.div>
-                    </motion.button>
+                    </button>
 
                     <AnimatePresence>
                       {isThemeMenuOpen && (
@@ -336,11 +313,9 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                             { value: 'dark' as Theme, label: 'Modo Oscuro', icon: Moon, color: '#00D4B3' },
                             { value: 'system' as Theme, label: 'Seguir Sistema', icon: Monitor, color: '#6C757D' },
                           ].map((themeOption) => (
-                            <motion.button
+                            <button
                               key={themeOption.value}
                               onClick={() => handleThemeChange(themeOption.value)}
-                              whileHover={{ x: 4 }}
-                              whileTap={{ scale: 0.98 }}
                               className={`${
                                 theme === themeOption.value
                                   ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3]'
@@ -362,7 +337,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                                   <Check className="w-4 h-4 text-[#00D4B3]" />
                                 </motion.div>
                               )}
-                            </motion.button>
+                            </button>
                           ))}
                         </motion.div>
                       )}
@@ -381,17 +356,15 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
             >
               <Menu.Item>
                 {({ active }) => (
-                  <motion.button
+                  <button
                     onClick={handleLogout}
-                    whileHover={{ x: 4 }}
-                    whileTap={{ scale: 0.98 }}
                     className={`${
                       active ? 'bg-red-500/10 dark:bg-red-500/20' : ''
                     } flex items-center w-full px-5 py-3 text-sm text-red-500 dark:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-all duration-200 rounded-xl mx-2 group`}
                   >
                     <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform duration-200" />
                     <span className="font-medium">Cerrar Sesión</span>
-                  </motion.button>
+                  </button>
                 )}
               </Menu.Item>
             </motion.div>

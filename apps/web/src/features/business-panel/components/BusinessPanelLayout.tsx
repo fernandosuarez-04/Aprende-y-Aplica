@@ -8,6 +8,9 @@ import { BusinessPanelHeader } from './BusinessPanelHeader'
 import { PremiumLoadingScreen } from './PremiumLoadingScreen'
 import { OrganizationStylesProvider, useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { generateCSSVariables, getBackgroundStyle } from '../utils/styles'
+import { LiaSidePanel } from '@/core/components/LiaSidePanel'
+import { LiaFloatingButton } from '@/core/components/LiaSidePanel/LiaFloatingButton'
+import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 
 interface BusinessPanelLayoutProps {
   children: React.ReactNode
@@ -35,6 +38,15 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
 
   // Asegurar que isLoading sea siempre un booleano
   const isLoading = typeof authLoading === 'boolean' ? authLoading : true;
+
+  // Obtener estado del panel de LIA para desplazar contenido
+  let isLiaPanelOpen = false;
+  try {
+    const liaPanel = useLiaPanel();
+    isLiaPanelOpen = liaPanel.isOpen;
+  } catch {
+    // Si no está dentro del LiaPanelProvider, ignorar
+  }
 
   // Memorizar estilos personalizados ANTES de cualquier return (Regla de Hooks)
   const panelStyles = useMemo(() => styles?.panel, [styles])
@@ -156,6 +168,10 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
         onToggleCollapse={handleToggleCollapse}
       />
 
+      {/* Componentes de LIA */}
+      <LiaSidePanel />
+      <LiaFloatingButton />
+
       {/* Content Area with Sidebar + Main */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar Global */}
@@ -171,7 +187,10 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 business-panel-content">
+        <main 
+          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 business-panel-content transition-all duration-300"
+          style={{ paddingRight: isLiaPanelOpen ? '420px' : '0px' }}
+        >
           <div className="w-full max-w-[1920px] mx-auto">
             {children}
           </div>

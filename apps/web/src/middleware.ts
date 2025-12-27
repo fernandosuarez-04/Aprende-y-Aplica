@@ -107,6 +107,9 @@ export async function middleware(request: NextRequest) {
 
             if (normalizedRole === 'administrador') {
               return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+            } else if (normalizedRole === 'instructor') {
+              // Instructor → Panel de instructor
+              return NextResponse.redirect(new URL('/instructor/dashboard', request.url))
             } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
               // Para roles de empresa, verificar que pertenezca a una organización
               const { data: userOrg, error: orgError } = await supabase
@@ -129,7 +132,7 @@ export async function middleware(request: NextRequest) {
                 return NextResponse.redirect(new URL('/business-user/dashboard', request.url))
               }
             } else {
-              // Usuario normal o sin rol → Tour SOFIA + Planes
+              // Usuario normal (cargo_rol === 'usuario' o cualquier otro) → Tour SOFIA + Planes
               return NextResponse.redirect(new URL('/dashboard', request.url))
             }
           }

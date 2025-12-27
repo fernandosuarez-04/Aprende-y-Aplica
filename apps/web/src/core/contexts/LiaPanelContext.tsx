@@ -1,34 +1,36 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
 interface LiaPanelContextType {
-  isPanelOpen: boolean;
-  setIsPanelOpen: (open: boolean) => void;
-  isCollapsed: boolean;
-  setIsCollapsed: (collapsed: boolean) => void;
-  panelWidth: number;
+  isOpen: boolean;
+  openPanel: () => void;
+  closePanel: () => void;
+  togglePanel: () => void;
+  pageContext: any;
+  setPageContext: (data: any) => void;
 }
 
 const LiaPanelContext = createContext<LiaPanelContextType | undefined>(undefined);
 
 export function LiaPanelProvider({ children }: { children: ReactNode }) {
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  // Ancho del panel cuando está expandido (en píxeles)
-  // Reducido a 360px para un diseño más compacto
-  const panelWidth = 360; // Previously 448px (max-w-md)
+  const [isOpen, setIsOpen] = useState(false);
+  const [pageContext, setPageContext] = useState<any>(null);
+
+  const openPanel = useCallback(() => {
+    setIsOpen(true);
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const togglePanel = useCallback(() => {
+    setIsOpen(prev => !prev);
+  }, []);
 
   return (
-    <LiaPanelContext.Provider
-      value={{
-        isPanelOpen,
-        setIsPanelOpen,
-        isCollapsed,
-        setIsCollapsed,
-        panelWidth,
-      }}
-    >
+    <LiaPanelContext.Provider value={{ isOpen, openPanel, closePanel, togglePanel, pageContext, setPageContext }}>
       {children}
     </LiaPanelContext.Provider>
   );
@@ -41,4 +43,3 @@ export function useLiaPanel() {
   }
   return context;
 }
-

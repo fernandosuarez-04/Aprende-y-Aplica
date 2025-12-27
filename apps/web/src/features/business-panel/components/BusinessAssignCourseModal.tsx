@@ -65,6 +65,8 @@ export function BusinessAssignCourseModal({
   const [alreadyAssignedUserIds, setAlreadyAssignedUserIds] = useState<Set<string>>(new Set())
   const [assignedUsersInfo, setAssignedUsersInfo] = useState<Map<string, AssignedUserInfo>>(new Map())
   const [alreadyAssignedTeamIds, setAlreadyAssignedTeamIds] = useState<Set<string>>(new Set())
+  const [isSuggesting, setIsSuggesting] = useState(false)
+  const [suggestionReason, setSuggestionReason] = useState<string | null>(null)
 
   // Theme colors
   const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
@@ -285,6 +287,58 @@ export function BusinessAssignCourseModal({
       setError(err instanceof Error ? err.message : 'Error al asignar el curso')
     } finally {
       setIsAssigning(false)
+    }
+  }
+
+  const handleSuggestLiaDate = async () => {
+    setIsSuggesting(true)
+    setSuggestionReason(null)
+    try {
+      const today = new Date().toLocaleDateString('es-MX')
+      
+      const response = await fetch('/api/lia/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{
+            role: 'user',
+            content: `Actúa como un planificador de formación experto (LIA).
+            Estoy asignando el curso "${courseTitle}" (ID: ${courseId}).
+            Analiza la duración típica y complejidad de un curso con este título.
+            Sugiere una fecha límite realista (deadline) contando desde hoy (${today}), asumiendo un ritmo de estudio profesional (2-3 horas semanales).
+            
+            IMPORTANTE: Tu respuesta debe ser EXCLUSIVAMENTE un objeto JSON válido con este formato exacto (sin bloques de código markdown):
+            { "suggested_date": "YYYY-MM-DD", "reason": "breve explicación de 15 palabras máximo" }`
+          }],
+          stream: false
+        })
+      })
+
+      const data = await response.json()
+      const content = data.message?.content || ''
+      
+      // Intentar extraer JSON
+      const jsonMatch = content.match(/\{[\s\S]*\}/)
+      
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0])
+          if (parsed.suggested_date) {
+            // Asegurar formato ISO
+            const dateObj = new Date(parsed.suggested_date)
+            if (!isNaN(dateObj.getTime())) {
+              setDueDate(dateObj.toISOString())
+              setSuggestionReason(parsed.reason)
+            }
+          }
+        } catch (e) {
+          console.error('Error parseando JSON de LIA:', e)
+        }
+      }
+    } catch (err) {
+      console.error('Error obteniendo sugerencia de LIA:', err)
+    } finally {
+      setIsSuggesting(false)
     }
   }
 
@@ -803,15 +857,42 @@ export function BusinessAssignCourseModal({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Due Date */}
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: `${textColor}80` }}>
-                        <span>Fecha límite (opcional)</span>
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="flex items-center gap-2 text-sm font-medium" style={{ color: `${textColor}80` }}>
+                          <span>Fecha límite</span>
+                        </label>
+                        <button
+                          onClick={handleSuggestLiaDate}
+                          disabled={isSuggesting}
+                          className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg transition-all hover:bg-white/5 disabled:opacity-50"
+                          style={{ color: accentColor }}
+                          title="LIA analizará el contenido para sugerir una fecha ideal"
+                        >
+                          {isSuggesting ? (
+                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3 h-3" />
+                          )}
+                          {isSuggesting ? 'Analizando...' : 'Sugerir con LIA'}
+                        </button>
+                      </div>
                       <PremiumDatePicker
                         value={dueDate}
                         onChange={setDueDate}
                         placeholder="Seleccionar fecha"
                         minDate={new Date()}
                       />
+                      {suggestionReason && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="mt-2 text-xs flex items-start gap-1.5"
+                          style={{ color: accentColor }}
+                        >
+                          <Sparkles className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                          <span>{suggestionReason}</span>
+                        </motion.div>
+                      )}
                     </div>
 
                     {/* Message */}

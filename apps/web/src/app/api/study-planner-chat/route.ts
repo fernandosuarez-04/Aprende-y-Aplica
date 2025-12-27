@@ -111,11 +111,18 @@ export async function POST(request: NextRequest) {
 
         logger.info('🚀 Iniciando chat con Gemini 2.0 Flash...');
 
-        // Construir el historial para Gemini
-        const geminiHistory = conversationHistory.map(msg => ({
-            role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
-            parts: [{ text: msg.content }]
-        }));
+        // Construir el historial para Gemini, filtrando mensajes vacíos o inválidos
+        const geminiHistory = conversationHistory
+            .filter(msg => msg.content && msg.content.trim() !== '') // IMPORTANTE: Filtrar vacíos
+            .map(msg => ({
+                role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
+                parts: [{ text: msg.content }]
+            }));
+
+        // Log para debug
+        if (geminiHistory.length > 0) {
+            logger.info('🔍 Primer mensaje del historial a enviar:', JSON.stringify(geminiHistory[0]).substring(0, 100));
+        }
 
         // Iniciar chat con el historial
         const chat = model.startChat({

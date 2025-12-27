@@ -50,6 +50,25 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
       role: user?.cargo_rol
     });
 
+    // Si es Administrador sin organización, usar tema por defecto sin llamar a la API
+    const normalizedRole = user?.cargo_rol?.toLowerCase().trim() || '';
+    const isAdmin = normalizedRole === 'administrador';
+    
+    if (isAdmin && !user?.organization_id) {
+      console.log('👑 [OrganizationStylesContext] Usuario Administrador sin organización, aplicando tema por defecto');
+      const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
+      if (defaultTheme) {
+        setStyles({
+          panel: defaultTheme.panel,
+          userDashboard: defaultTheme.userDashboard,
+          login: defaultTheme.login,
+          selectedTheme: DEFAULT_THEME
+        });
+      }
+      setLoading(false);
+      return;
+    }
+
     if (!user?.organization_id) {
       console.log('⚠️ [OrganizationStylesContext] No hay organization_id, aplicando tema por defecto');
       // Aplicar tema por defecto cuando no hay organization_id

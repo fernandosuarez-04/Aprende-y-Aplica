@@ -271,10 +271,99 @@ export async function middleware(request: NextRequest) {
     logger.log('✅ Validación de rol exitosa');
   }
   
-  // Si es una ruta de auth y hay sesión válida, redirigir al dashboard
+  // Si es una ruta de auth y hay sesión válida, redirigir al panel apropiado según cargo_rol
   if (isAuthRoute && hasSession) {
-    logger.log('✅ Redirigiendo a /dashboard - usuario autenticado en ruta auth');
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    try {
+      const supabase = createServerClient<Database>(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll()
+            },
+            setAll() {},
+          },
+        }
+      )
+
+      // Obtener userId de la sesión
+      let userId: string | null = null;
+      
+      // Intentar con sesión legacy primero
+      if (sessionCookie?.value) {
+        const { data: sessionData } = await supabase
+          .from('user_session')
+          .select('user_id')
+          .eq('jwt_id', sessionCookie.value)
+          .eq('revoked', false)
+          .gt('expires_at', new Date().toISOString())
+          .single()
+        
+        if (sessionData) {
+          userId = sessionData.user_id;
+        }
+      }
+
+      if (userId) {
+        // Obtener cargo_rol del usuario
+        const { data: userData } = await supabase
+          .from('users')
+          .select('cargo_rol')
+          .eq('id', userId)
+          .single()
+
+        const normalizedRole = userData?.cargo_rol?.toLowerCase().trim();
+        logger.log('🔄 Usuario autenticado en ruta auth, redirigiendo según cargo_rol:', normalizedRole);
+
+        // Redirigir según cargo_rol
+        if (normalizedRole === 'administrador') {
+          return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+        } else if (normalizedRole === 'instructor') {
+          return NextResponse.redirect(new URL('/instructor/dashboard', request.url));
+        } else if (normalizedRole === 'business') {
+          // Verificar que tenga organización activa
+          const { data: userOrg } = await supabase
+            .from('organization_users')
+            .select('organization_id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .single()
+          
+          if (userOrg) {
+            return NextResponse.redirect(new URL('/business-panel/dashboard', request.url));
+          }
+          // Sin organización, ir al dashboard normal
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        } else if (normalizedRole === 'business user') {
+          // Verificar que tenga organización activa
+          const { data: userOrg } = await supabase
+            .from('organization_users')
+            .select('organization_id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .single()
+          
+          if (userOrg) {
+            return NextResponse.redirect(new URL('/business-user/dashboard', request.url));
+          }
+          // Sin organización, ir al dashboard normal
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        } else {
+          // Usuario normal (cargo_rol === 'usuario' o cualquier otro) → /dashboard
+          logger.log('✅ Redirigiendo a /dashboard - usuario con rol:', normalizedRole || 'sin rol');
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      } else {
+        // No se pudo obtener userId, redirigir al dashboard por defecto
+        logger.log('⚠️ No se pudo obtener userId, redirigiendo a /dashboard');
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+    } catch (error) {
+      logger.error('Error obteniendo rol del usuario en auth route:', error);
+      // En caso de error, redirigir al dashboard por defecto
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
   }
 
   // Si es ruta exenta, continuar sin validación adicional

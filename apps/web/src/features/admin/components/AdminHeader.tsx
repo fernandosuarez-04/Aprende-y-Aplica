@@ -5,6 +5,8 @@ import { Bars3Icon } from '@heroicons/react/24/outline'
 import { AdminUserDropdown } from './AdminUserDropdown'
 import { AdminNotifications } from './AdminNotifications'
 import { useAdminUser } from '../hooks/useAdminUser'
+import { useOrganizationStylesContext } from '../../business-panel/contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface AdminHeaderProps {
   onMenuClick: () => void
@@ -16,6 +18,20 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ onMenuClick, title, isCollapsed, isPinned, onToggleCollapse }: AdminHeaderProps) {
   const { user, isLoading } = useAdminUser()
+  
+  // Obtener tema del usuario (light/dark)
+  const { resolvedTheme } = useThemeStore()
+  const isLightTheme = resolvedTheme === 'light'
+  
+  // Colores del tema
+  const themeColors = {
+    // Usar transparency para efecto blur
+    background: isLightTheme ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 20, 25, 0.8)',
+    borderColor: isLightTheme ? '#E2E8F0' : '#334155', // Más visible en modo oscuro
+    textPrimary: isLightTheme ? '#0A2540' : '#FFFFFF',
+    textSecondary: isLightTheme ? '#6C757D' : '#9CA3AF',
+    hoverBg: isLightTheme ? '#F1F5F9' : 'rgba(10, 37, 64, 0.2)',
+  }
 
   // Calcular el left del header basado en el estado del sidebar
   // Si el sidebar está colapsado Y no está fijado, usar left-16 (64px)
@@ -27,7 +43,11 @@ export function AdminHeader({ onMenuClick, title, isCollapsed, isPinned, onToggl
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className={`fixed top-0 right-0 z-50 bg-white/80 dark:bg-[#0F1419]/80 backdrop-blur-md shadow-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 transition-all duration-300 ${sidebarWidth} left-0`}
+      className={`fixed top-0 right-0 z-50 backdrop-blur-md shadow-sm border-b transition-all duration-300 ${sidebarWidth} left-0`}
+      style={{ 
+        backgroundColor: themeColors.background,
+        borderColor: themeColors.borderColor
+      }}
     >
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -37,18 +57,27 @@ export function AdminHeader({ onMenuClick, title, isCollapsed, isPinned, onToggl
               onClick={onMenuClick}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="lg:hidden p-2 rounded-lg text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 transition-colors"
+              className="lg:hidden p-2 rounded-lg transition-colors"
+              style={{ color: themeColors.textSecondary }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = themeColors.hoverBg;
+                e.currentTarget.style.color = themeColors.textPrimary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = themeColors.textSecondary;
+              }}
             >
               <Bars3Icon className="h-6 w-6" />
             </motion.button>
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-2">
-                <h1 className="text-lg font-semibold text-[#0A2540] dark:text-white">
+                <h1 className="text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
                   {title}
                 </h1>
               </div>
               <div className="sm:hidden">
-                <h1 className="text-base font-semibold text-[#0A2540] dark:text-white">
+                <h1 className="text-base font-semibold" style={{ color: themeColors.textPrimary }}>
                   {title}
                 </h1>
               </div>
@@ -63,19 +92,19 @@ export function AdminHeader({ onMenuClick, title, isCollapsed, isPinned, onToggl
             {/* User Menu */}
             {isLoading ? (
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-full animate-pulse"></div>
+                <div className="w-9 h-9 rounded-full animate-pulse" style={{ backgroundColor: isLightTheme ? '#E9ECEF' : '#1E2329' }}></div>
                 <div className="hidden md:block">
-                  <div className="w-20 h-4 bg-[#E9ECEF] dark:bg-[#1E2329] rounded animate-pulse mb-1"></div>
-                  <div className="w-16 h-3 bg-[#E9ECEF] dark:bg-[#1E2329] rounded animate-pulse"></div>
+                  <div className="w-20 h-4 rounded animate-pulse mb-1" style={{ backgroundColor: isLightTheme ? '#E9ECEF' : '#1E2329' }}></div>
+                  <div className="w-16 h-3 rounded animate-pulse" style={{ backgroundColor: isLightTheme ? '#E9ECEF' : '#1E2329' }}></div>
                 </div>
               </div>
             ) : user ? (
               <AdminUserDropdown user={user} />
             ) : (
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-full"></div>
+                <div className="w-9 h-9 rounded-full" style={{ backgroundColor: isLightTheme ? '#E9ECEF' : '#1E2329' }}></div>
                 <div className="hidden md:block">
-                  <p className="text-sm font-medium text-[#6C757D] dark:text-gray-400">
+                  <p className="text-sm font-medium" style={{ color: themeColors.textSecondary }}>
                     Usuario no encontrado
                   </p>
                 </div>

@@ -19,6 +19,7 @@ import {
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useAuth } from '@/features/auth/hooks/useAuth'
 
 // ============================================
 // COMPONENTE: StatCard Premium
@@ -406,6 +407,7 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
 // COMPONENTE PRINCIPAL: BusinessPanelDashboard
 // ============================================
 export function BusinessPanelDashboard() {
+  const { user } = useAuth()
   const [stats, setStats] = useState<any>(null)
   const [activities, setActivities] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -540,7 +542,9 @@ export function BusinessPanelDashboard() {
   }
 
   const getUserName = () => {
-    return 'Administrador'
+    if (!user) return 'Usuario'
+    // Prioridad: Nombre propio -> Nombre para mostrar -> Username -> Fallback
+    return user.first_name || user.display_name || user.username || 'Usuario'
   }
 
   // Helper function para formatear timestamps

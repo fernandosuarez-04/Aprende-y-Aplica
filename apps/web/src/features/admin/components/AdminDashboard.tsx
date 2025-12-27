@@ -23,6 +23,8 @@ import { formatRelativeTime } from '@/core/utils/date-utils'
 import Link from 'next/link'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useProfile } from '@/features/profile/hooks/useProfile'
+import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 // ============================================
 // COMPONENTE: StatCard Premium
@@ -35,10 +37,15 @@ interface StatCardProps {
   gradient: string
   delay: number
   href?: string
+  themeColors?: any
 }
 
-function StatCard({ title, value, change, icon: Icon, gradient, delay, href }: StatCardProps) {
+function StatCard({ title, value, change, icon: Icon, gradient, delay, href, themeColors }: StatCardProps) {
   const isPositive = change >= 0
+  const bgColor = themeColors?.cardBackground || '#1E2329'
+  const textColor = themeColors?.textPrimary || 'white'
+  const subTextColor = themeColors?.textSecondary || '#6C757D'
+  const borderColor = themeColors?.borderColor || '#6C757D'
 
   const CardContent = (
     <motion.div
@@ -55,7 +62,11 @@ function StatCard({ title, value, change, icon: Icon, gradient, delay, href }: S
         scale: 1.02,
         transition: { duration: 0.2 }
       }}
-      className="relative group overflow-hidden rounded-2xl bg-[#1E2329] border border-[#6C757D]/20 p-6 cursor-pointer"
+      className="relative group overflow-hidden rounded-2xl border p-6 cursor-pointer"
+      style={{ 
+        backgroundColor: bgColor,
+        borderColor: `${borderColor}20` // 20 hex opacity
+      }}
     >
       {/* Gradient Background Effect */}
       <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${gradient}`} />
@@ -95,7 +106,8 @@ function StatCard({ title, value, change, icon: Icon, gradient, delay, href }: S
         </div>
 
         <motion.h3
-          className="text-3xl font-bold text-white mb-1 tracking-tight"
+          className="text-3xl font-bold mb-1 tracking-tight"
+          style={{ color: textColor }}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: delay * 0.1 + 0.2 }}
@@ -103,7 +115,7 @@ function StatCard({ title, value, change, icon: Icon, gradient, delay, href }: S
           {typeof value === 'number' ? value.toLocaleString() : value}
         </motion.h3>
 
-        <p className="text-[#6C757D] text-sm font-medium">{title}</p>
+        <p className="text-sm font-medium" style={{ color: subTextColor }}>{title}</p>
 
         {/* Animated line */}
         <motion.div
@@ -133,9 +145,14 @@ interface QuickActionProps {
   href: string
   color: string
   delay: number
+  themeColors?: any
 }
 
-function QuickAction({ title, description, icon: Icon, href, color, delay }: QuickActionProps) {
+function QuickAction({ title, description, icon: Icon, href, color, delay, themeColors }: QuickActionProps) {
+  const bgColor = themeColors?.inputBg || '#1E2329'
+  const textColor = themeColors?.textPrimary || 'white'
+  const subTextColor = themeColors?.textSecondary || '#6C757D'
+  const borderColor = themeColors?.borderColor || '#6C757D'
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -146,16 +163,21 @@ function QuickAction({ title, description, icon: Icon, href, color, delay }: Qui
         <motion.div
           whileHover={{ x: 5, scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="flex items-center gap-4 p-4 rounded-xl bg-[#1E2329]/50 border border-[#6C757D]/20 hover:border-[#00D4B3]/50 transition-all duration-300 group"
+          className="flex items-center gap-4 p-4 rounded-xl border hover:border-[#00D4B3]/50 transition-all duration-300 group"
+          style={{ 
+            backgroundColor: bgColor,
+            borderColor: `${borderColor}20`,
+            color: textColor 
+          }}
         >
           <div className={`p-3 rounded-lg ${color}`}>
             <Icon className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1">
-            <h4 className="text-white font-semibold text-sm group-hover:text-[#00D4B3] transition-colors">
+            <h4 className="font-semibold text-sm group-hover:text-[#00D4B3] transition-colors" style={{ color: textColor }}>
               {title}
             </h4>
-            <p className="text-[#6C757D] text-xs mt-0.5">{description}</p>
+            <p className="text-xs mt-0.5" style={{ color: subTextColor }}>{description}</p>
           </div>
           <motion.div
             initial={{ opacity: 0, x: -10 }}
@@ -182,9 +204,13 @@ interface ActivityItemProps {
   timestamp: string
   type: string
   delay: number
+  themeColors?: any
 }
 
-function ActivityItem({ title, description, user, timestamp, type, delay }: ActivityItemProps) {
+function ActivityItem({ title, description, user, timestamp, type, delay, themeColors }: ActivityItemProps) {
+  const textColor = themeColors?.textPrimary || 'white'
+  const subTextColor = themeColors?.textSecondary || '#6C757D'
+  const hoverBg = themeColors?.cardBackground === '#FFFFFF' ? '#F1F5F9' : '#1E2329'
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'user': return 'bg-[#0A2540] border-[#0A2540]/50'
@@ -200,20 +226,20 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: delay * 0.08, duration: 0.4 }}
-      whileHover={{ x: 5 }}
-      className="flex items-start gap-4 p-4 rounded-xl hover:bg-[#1E2329]/80 transition-all duration-300 border-l-2 border-transparent hover:border-[#00D4B3]"
+      whileHover={{ y: -2, backgroundColor: hoverBg }}
+      className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 border-l-2 border-transparent hover:border-[#00D4B3]"
     >
       <div className={`w-2 h-2 mt-2 rounded-full ${getTypeColor(type)}`} />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-4">
-          <h4 className="text-white font-medium text-sm truncate">{title}</h4>
-          <div className="flex items-center gap-1 text-[#6C757D] text-xs whitespace-nowrap">
+          <h4 className="font-medium text-sm truncate" style={{ color: textColor }}>{title}</h4>
+          <div className="flex items-center gap-1 text-xs whitespace-nowrap" style={{ color: subTextColor }}>
             <ClockIcon className="h-3.5 w-3.5" />
             {timestamp}
           </div>
         </div>
-        <p className="text-[#6C757D] text-xs mt-1 line-clamp-1">{description}</p>
+        <p className="text-xs mt-1 line-clamp-1" style={{ color: subTextColor }}>{description}</p>
         <p className="text-[#00D4B3] text-xs mt-1 font-medium">por {user}</p>
       </div>
     </motion.div>
@@ -229,6 +255,24 @@ export function AdminDashboard() {
   const [activities, setActivities] = useState<any[]>([])
   const [activitiesLoading, setActivitiesLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
+  
+  // Obtener tema del usuario (light/dark)
+  const { resolvedTheme } = useThemeStore()
+  const isLightTheme = resolvedTheme === 'light'
+  
+  // Obtener estilos de la organización para el tema
+  const { styles: orgStyles } = useOrganizationStylesContext()
+  const panelStyles = orgStyles?.panel
+  
+  // Colores del tema - Priorizar preferencia del usuario sobre estilo de organización si hay conflicto
+  const themeColors = {
+    background: isLightTheme ? (panelStyles?.background_value && panelStyles.background_value !== '#0F1419' ? panelStyles.background_value : '#F8FAFC') : '#0F1419',
+    cardBackground: isLightTheme ? (panelStyles?.card_background && panelStyles.card_background !== '#1E2329' ? panelStyles.card_background : '#FFFFFF') : '#1E2329',
+    textPrimary: isLightTheme ? '#1E293B' : '#FFFFFF',
+    textSecondary: isLightTheme ? '#64748B' : '#6C757D',
+    borderColor: isLightTheme ? '#E2E8F0' : '#6C757D',
+    inputBg: isLightTheme ? '#F1F5F9' : '#1E2329',
+  }
 
   // Actualizar la hora cada minuto
   useEffect(() => {
@@ -353,7 +397,7 @@ export function AdminDashboard() {
   ]
 
   return (
-    <div className="p-6 lg:p-8 bg-[#0F1419] min-h-screen">
+    <div className="p-6 lg:p-8 min-h-screen transition-colors duration-300" style={{ backgroundColor: themeColors.background }}>
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -462,13 +506,14 @@ export function AdminDashboard() {
               transition={{ delay: 0.3 }}
             >
               <div>
-                <h2 className="text-xl font-bold text-white">Estadísticas Generales</h2>
-                <p className="text-[#6C757D] text-sm mt-1">Métricas clave de la plataforma</p>
+                <h2 className="text-xl font-bold" style={{ color: themeColors.textPrimary }}>Estadísticas Generales</h2>
+                <p className="text-sm mt-1" style={{ color: themeColors.textSecondary }}>Métricas clave de la plataforma</p>
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-4 py-2 bg-[#1E2329] text-[#00D4B3] text-sm font-medium rounded-lg border border-[#00D4B3]/30 hover:bg-[#00D4B3]/10 transition-colors"
+                className="px-4 py-2 text-[#00D4B3] text-sm font-medium rounded-lg border border-[#00D4B3]/30 hover:bg-[#00D4B3]/10 transition-colors"
+                style={{ backgroundColor: themeColors.cardBackground }}
               >
                 Ver Reportes
               </motion.button>
@@ -477,7 +522,7 @@ export function AdminDashboard() {
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-36 bg-[#1E2329] rounded-2xl animate-pulse" />
+                  <div key={i} className="h-36 rounded-2xl animate-pulse" style={{ backgroundColor: themeColors.cardBackground }} />
                 ))}
               </div>
             ) : error ? (
@@ -496,6 +541,7 @@ export function AdminDashboard() {
                     gradient={stat.gradient}
                     delay={index}
                     href={stat.href}
+                    themeColors={themeColors}
                   />
                 ))}
               </div>
@@ -511,8 +557,8 @@ export function AdminDashboard() {
               transition={{ delay: 0.6 }}
             >
               <div>
-                <h2 className="text-xl font-bold text-white">Actividad Reciente</h2>
-                <p className="text-[#6C757D] text-sm mt-1">Últimas acciones en la plataforma</p>
+                <h2 className="text-xl font-bold" style={{ color: themeColors.textPrimary }}>Actividad Reciente</h2>
+                <p className="text-sm mt-1" style={{ color: themeColors.textSecondary }}>Últimas acciones en la plataforma</p>
               </div>
               <Link href="/admin/activity">
                 <motion.button
@@ -530,27 +576,31 @@ export function AdminDashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
-              className="bg-[#1E2329] rounded-2xl border border-[#6C757D]/20 overflow-hidden"
+              className="rounded-2xl border overflow-hidden"
+              style={{ 
+                backgroundColor: themeColors.cardBackground,
+                borderColor: `${themeColors.borderColor}20`
+              }}
             >
               {activitiesLoading ? (
                 <div className="p-6 space-y-4">
                   {[...Array(5)].map((_, i) => (
                     <div key={i} className="flex gap-4 animate-pulse">
-                      <div className="w-2 h-2 mt-2 rounded-full bg-[#6C757D]/30" />
+                      <div className="w-2 h-2 mt-2 rounded-full" style={{ backgroundColor: `${themeColors.textSecondary}30` }} />
                       <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-[#6C757D]/20 rounded w-3/4" />
-                        <div className="h-3 bg-[#6C757D]/20 rounded w-1/2" />
+                        <div className="h-4 rounded w-3/4" style={{ backgroundColor: `${themeColors.textSecondary}20` }} />
+                        <div className="h-3 rounded w-1/2" style={{ backgroundColor: `${themeColors.textSecondary}20` }} />
                       </div>
                     </div>
                   ))}
                 </div>
               ) : activities.length === 0 ? (
                 <div className="p-12 text-center">
-                  <BellAlertIcon className="h-12 w-12 text-[#6C757D]/50 mx-auto mb-4" />
-                  <p className="text-[#6C757D]">No hay actividad reciente</p>
+                  <BellAlertIcon className="h-12 w-12 mx-auto mb-4" style={{ color: `${themeColors.textSecondary}50` }} />
+                  <p style={{ color: themeColors.textSecondary }}>No hay actividad reciente</p>
                 </div>
               ) : (
-                <div className="divide-y divide-[#6C757D]/10">
+                <div className="divide-y" style={{ divideColor: `${themeColors.borderColor}10` }}>
                   {activities.map((activity, index) => {
                     const user = activity.users || {}
                     const userName = user.display_name ||
@@ -569,6 +619,7 @@ export function AdminDashboard() {
                             activity.notification_type?.includes('ai') ? 'ai-app' :
                               activity.notification_type?.includes('news') ? 'news' : 'system'}
                         delay={index}
+                        themeColors={themeColors}
                       />
                     )
                   })}
@@ -587,8 +638,8 @@ export function AdminDashboard() {
             className="sticky top-24"
           >
             <div className="mb-6">
-              <h2 className="text-lg font-bold text-white">Acciones Rápidas</h2>
-              <p className="text-[#6C757D] text-sm mt-1">Accesos directos</p>
+              <h2 className="text-lg font-bold" style={{ color: themeColors.textPrimary }}>Acciones Rápidas</h2>
+              <p className="text-sm mt-1" style={{ color: themeColors.textSecondary }}>Accesos directos</p>
             </div>
 
             <div className="space-y-3">
@@ -601,6 +652,7 @@ export function AdminDashboard() {
                   href={action.href}
                   color={action.color}
                   delay={index}
+                  themeColors={themeColors}
                 />
               ))}
             </div>

@@ -281,6 +281,8 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
 
       if (normalizedRole === 'administrador') {
         destination = '/admin/dashboard';
+      } else if (normalizedRole === 'instructor') {
+        destination = '/instructor/dashboard';
       } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
          // Verificar organización activa
          const { data: userOrg } = await supabase
@@ -429,6 +431,8 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
 
       if (normalizedRole === 'administrador') {
         destination = '/admin/dashboard';
+      } else if (normalizedRole === 'instructor') {
+        destination = '/instructor/dashboard';
       } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
          const { data: userOrg } = await supabase
           .from('organization_users')

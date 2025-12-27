@@ -179,12 +179,14 @@ export async function requireBusiness(): Promise<BusinessAuth | NextResponse> {
     }
 
 
-    // PASO 6: Verificar que el usuario sea Business (flexible con variaciones)
+    // PASO 6: Verificar que el usuario sea Business o Administrador
+    // Los Administradores tienen acceso elevado y pueden acceder a rutas de Business
     const normalizedRole = user.cargo_rol?.toLowerCase().trim() || '';
     const isBusiness = normalizedRole === 'business' || normalizedRole.includes('business');
+    const isAdmin = normalizedRole === 'administrador';
 
-    if (!isBusiness) {
-      logger.warn('Non-business user attempted to access business route', {
+    if (!isBusiness && !isAdmin) {
+      logger.warn('Non-business/admin user attempted to access business route', {
         userId: user.id,
         email: user.email,
         role: user.cargo_rol,
@@ -193,7 +195,7 @@ export async function requireBusiness(): Promise<BusinessAuth | NextResponse> {
       return NextResponse.json(
         {
           success: false,
-          error: `Permisos insuficientes. Se requiere rol de Business. Rol actual: ${user.cargo_rol || 'sin rol'}`
+          error: `Permisos insuficientes. Se requiere rol de Business o Administrador. Rol actual: ${user.cargo_rol || 'sin rol'}`
         },
         { status: 403 }
       );

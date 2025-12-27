@@ -57,16 +57,20 @@ import {
   Brain,
   Palette,
   Compass,
+  ExternalLink,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 // ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
 import { ExpandableText } from '../../../../core/components/ExpandableText';
-import { useLiaChat } from '../../../../core/hooks';
+// import { useLiaChat } from '../../../../core/hooks'; // Removed - Deleted
 import type { CourseLessonContext } from '../../../../core/types/lia.types';
 import { WorkshopLearningProvider } from '../../../../components/WorkshopLearningProvider';
 import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
-import { ContextualVoiceGuide } from '../../../../core/components/ContextualVoiceGuide';
-import { useCourseLearnTourSteps } from '../../../../features/courses/config/course-learn-tour';
+import { CourseLia } from '../../../../features/courses/components/CourseLia';
+import { useLiaCourse } from '../../../../features/courses/context/LiaCourseContext';
+import { useLiaCourseChat } from '../../../../core/hooks/useLiaCourseChat';
+
 import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
 import { useAuth } from '../../../../features/auth/hooks/useAuth';
 import { useSwipe } from '../../../../hooks/useSwipe';
@@ -74,8 +78,6 @@ import { useTranslation } from 'react-i18next';
 import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
 import { useLanguage } from '../../../../core/providers/I18nProvider';
 // ✨ Nuevos imports para integración de modos
-import { PromptPreviewPanel, type PromptDraft } from '../../../../core/components/AIChatAgent/PromptPreviewPanel';
-import { NanoBananaPreviewPanel } from '../../../../core/components/AIChatAgent/NanoBananaPreviewPanel';
 import { useOrganizationStyles } from '../../../../features/business-panel/hooks/useOrganizationStyles';
 import { hexToRgb } from '../../../../features/business-panel/utils/styles';
 
@@ -123,6 +125,16 @@ export default function CourseLearnPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
+  const { isOpen: isLiaOpen, openLia, liaChat } = useLiaCourse();
+  // Hook para enviar mensajes a LIA (usando instancia compartida del Sidebar)
+  const sendLiaMessage = useCallback(async (message: string, courseContext?: any, workshopContext?: any, isSystemMessage: boolean = false) => {
+      if (liaChat?.sendMessage) {
+          if (!isLiaOpen) openLia();
+          await liaChat.sendMessage(message, courseContext, workshopContext, isSystemMessage);
+      } else {
+          console.warn('LIA Chat no inicializado');
+      }
+  }, [liaChat, isLiaOpen, openLia]);
 
   // Obtener usuario y su rol
   const { user } = useAuth();
@@ -167,7 +179,7 @@ export default function CourseLearnPage() {
   const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
 
   // Obtener steps del tour traducidos
-  const courseLearnTourSteps = useCourseLearnTourSteps();
+
 
   // Estado para evitar errores de hidratación
   const [mounted, setMounted] = useState(false);
@@ -445,6 +457,9 @@ export default function CourseLearnPage() {
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   // ✅ Estado para metadatos del taller (módulos y lecciones completos)
   const [workshopMetadata, setWorkshopMetadata] = useState<CourseLessonContext | null>(null);
+  // ✅ Estados para contexto extendido de LIA (transcript/summary)
+  const [liaTranscript, setLiaTranscript] = useState<string | null>(null);
+  const [liaSummary, setLiaSummary] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'questions'>('video');
 
   // Estado para detectar si estamos en móvil
@@ -456,9 +471,9 @@ export default function CourseLearnPage() {
 
   // Inicializar paneles cerrados en móviles, abiertos en desktop
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
+  // const [isRightPanelOpen, setIsRightPanelOpen] = useState(false); // Removed LIA
 
-  const [isLiaExpanded, setIsLiaExpanded] = useState(false);
+  // const [isLiaExpanded, setIsLiaExpanded] = useState(false);
   const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
   const [isPromptsCollapsed, setIsPromptsCollapsed] = useState(false);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
@@ -492,8 +507,8 @@ export default function CourseLearnPage() {
       percentage: number;
     }>;
   } | null>>({});
-  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen && !isRightPanelOpen;
+  // const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen;
   const mobileContentPaddingBottom = isMobileBottomNavVisible
     ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`
     : `calc(env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`;
@@ -508,88 +523,89 @@ export default function CourseLearnPage() {
   const [courseProgress, setCourseProgress] = useState(6);
 
   // Hook de LIA sin mensaje inicial
-  const {
-    messages: liaMessages,
-    isLoading: isLiaLoading,
-    sendMessage: sendLiaMessage,
-    clearHistory: clearLiaHistory,
-    loadConversation,
-    currentConversationId,
-    // ✨ Nuevas propiedades para modos
-    currentMode,
-    setMode,
-    generatedPrompt,
-    clearPrompt,
-    // 🎨 Nuevas propiedades para NanoBanana
-    generatedNanoBanana,
-    clearNanoBanana,
-    isNanoBananaMode
-  } = useLiaChat(null);
+  // Hook de LIA sin mensaje inicial - Removed
+  // const {
+  //   messages: liaMessages,
+  //   isLoading: isLiaLoading,
+  //   sendMessage: sendLiaMessage,
+  //   clearHistory: clearLiaHistory,
+  //   loadConversation,
+  //   currentConversationId,
+  //   // ✨ Nuevas propiedades para modos
+  //   currentMode,
+  //   setMode,
+  //   generatedPrompt,
+  //   clearPrompt,
+  //   // 🎨 Nuevas propiedades para NanoBanana
+  //   generatedNanoBanana,
+  //   clearNanoBanana,
+  //   isNanoBananaMode
+  // } = useLiaChat(null);
 
-  // Estado local para el input del mensaje
-  const [liaMessage, setLiaMessage] = useState('');
-  const [isLiaRecording, setIsLiaRecording] = useState(false);
+  // Estado local para el input del mensaje (Removed)
+  // const [liaMessage, setLiaMessage] = useState('');
+  // const [isLiaRecording, setIsLiaRecording] = useState(false);
   // Ref para hacer scroll automático al final de los mensajes de LIA
-  const liaMessagesEndRef = useRef<HTMLDivElement>(null);
-  const liaPanelRef = useRef<HTMLDivElement>(null);
+  // const liaMessagesEndRef = useRef<HTMLDivElement>(null);
+  // const liaPanelRef = useRef<HTMLDivElement>(null);
   // Ref para el textarea de LIA
-  const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
   // 🎙️ Ref para el reconocimiento de voz
-  const recognitionRef = useRef<any>(null);
+  // const recognitionRef = useRef<any>(null);
 
   // 🎙️ Obtener idioma actual para reconocimiento de voz
-  const { language } = useLanguage();
+  // const { language } = useLanguage();
 
   // 🎙️ Mapeo de idiomas para reconocimiento de voz
-  const speechLanguageMap: Record<string, string> = {
-    'es': 'es-ES',
-    'en': 'en-US',
-    'pt': 'pt-BR'
-  };
+  // const speechLanguageMap: Record<string, string> = {
+  //   'es': 'es-ES',
+  //   'en': 'en-US',
+  //   'pt': 'pt-BR'
+  // };
   // ✨ Estados para guardado de prompts
-  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
-  const [showPromptPreview, setShowPromptPreview] = useState(false);
+  // const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  // const [showPromptPreview, setShowPromptPreview] = useState(false);
   // 🎨 Estados para NanoBanana
-  const [showNanoBananaPreview, setShowNanoBananaPreview] = useState(false);
+  // const [showNanoBananaPreview, setShowNanoBananaPreview] = useState(false);
   // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
   const prevPromptsLengthRef = useRef<number>(0);
   // Ref para el botón del menú de Lia
-  const liaMenuButtonRef = useRef<HTMLButtonElement>(null);
+  // const liaMenuButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Estados para historial de conversaciones
-  const [showHistory, setShowHistory] = useState(false);
-  const [conversations, setConversations] = useState<Array<{
-    conversation_id: string;
-    conversation_title: string | null;
-    started_at: string;
-    total_messages: number;
-    context_type: string;
-    course_id: string | null;
-    lesson_id: string | null;
-    course: {
-      slug: string;
-      title: string;
-    } | null;
-  }>>([]);
-  const [loadingConversations, setLoadingConversations] = useState(false);
-  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState<string>('');
-  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
-  const [showLiaMenu, setShowLiaMenu] = useState(false);
-  const [liaMenuPosition, setLiaMenuPosition] = useState<{ top: number; right: number } | null>(null);
+  // Estados para historial de conversaciones (Removed)
+  // const [showHistory, setShowHistory] = useState(false);
+  // const [conversations, setConversations] = useState<Array<{
+  //   conversation_id: string;
+  //   conversation_title: string | null;
+  //   started_at: string;
+  //   total_messages: number;
+  //   context_type: string;
+  //   course_id: string | null;
+  //   lesson_id: string | null;
+  //   course: {
+  //     slug: string;
+  //     title: string;
+  //   } | null;
+  // }>>([]);
+  // const [loadingConversations, setLoadingConversations] = useState(false);
+  // const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+  // const [editingTitle, setEditingTitle] = useState<string>('');
+  // const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
+  // const [showLiaMenu, setShowLiaMenu] = useState(false);
+  // const [liaMenuPosition, setLiaMenuPosition] = useState<{ top: number; right: number } | null>(null);
 
   // Calcular posición del menú cuando se abre
-  useEffect(() => {
-    if (showLiaMenu && liaMenuButtonRef.current) {
-      const buttonRect = liaMenuButtonRef.current.getBoundingClientRect();
-      setLiaMenuPosition({
-        top: buttonRect.bottom + 8, // 8px de margen (mt-2)
-        right: window.innerWidth - buttonRect.right
-      });
-    } else {
-      setLiaMenuPosition(null);
-    }
-  }, [showLiaMenu]);
+  // useEffect(() => {
+  //   if (showLiaMenu && liaMenuButtonRef.current) {
+  //     const buttonRect = liaMenuButtonRef.current.getBoundingClientRect();
+  //     setLiaMenuPosition({
+  //       top: buttonRect.bottom + 8, // 8px de margen (mt-2)
+  //       right: window.innerWidth - buttonRect.right
+  //     });
+  //   } else {
+  //     setLiaMenuPosition(null);
+  //   }
+  // }, [showLiaMenu]);
 
   // 🎯 SISTEMA DE TRACKING AVANZADO DE COMPORTAMIENTO DEL USUARIO
   const [userBehaviorLog, setUserBehaviorLog] = useState<Array<{
@@ -865,37 +881,9 @@ export default function CourseLearnPage() {
     }
   }, [isMobile]);
 
-  const [desktopLiaHeight, setDesktopLiaHeight] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
-    if (isMobile || !isRightPanelOpen) {
-      setDesktopLiaHeight(undefined);
-      return;
-    }
 
-    const updateDesktopHeight = () => {
-      if (typeof window === 'undefined' || !liaPanelRef.current) {
-        return;
-      }
-      const rect = liaPanelRef.current.getBoundingClientRect();
-      const marginBottom = 24; // px
-      const available = window.innerHeight - rect.top - marginBottom;
-      const clamped = Math.max(available, 360); // asegurar altura mínima
-      setDesktopLiaHeight(`${clamped}px`);
-    };
-
-    updateDesktopHeight();
-    window.addEventListener('resize', updateDesktopHeight);
-    window.addEventListener('scroll', updateDesktopHeight, true);
-
-    return () => {
-      window.removeEventListener('resize', updateDesktopHeight);
-      window.removeEventListener('scroll', updateDesktopHeight, true);
-    };
-  }, [isMobile, isRightPanelOpen, activeTab, isLiaExpanded, currentLesson?.lesson_id]);
-
-  // Calcular altura máxima disponible para el panel de LIA dinámicamente
-  // Similar al sistema usado en AIChatAgent.tsx (LIA general)
+  // Calcular altura máxima disponible para el panel de contenido dinámicamente
   // Ahora incluye soporte para visualViewport cuando el teclado está abierto
   const calculateLiaMaxHeight = useMemo(() => {
     if (isMobile) {
@@ -903,23 +891,18 @@ export default function CourseLearnPage() {
       if (visualViewportHeight !== null) {
         // Calcular altura disponible: visualViewport height menos el header
         // El safe-area-inset-bottom se maneja en el padding del área de entrada
-        const headerHeight = 56; // Altura del header de LIA
+        const headerHeight = 56; // Altura del header
         const bottomNavHeight = isMobileBottomNavVisible ? MOBILE_BOTTOM_NAV_HEIGHT_PX : 0;
 
         // Usar calc() para incluir safe-area-inset-bottom en el cálculo CSS
-        // Esto asegura que el textbox siempre esté visible cuando el teclado está abierto
         return `calc(${visualViewportHeight - headerHeight - bottomNavHeight}px - env(safe-area-inset-bottom, 0px))`;
       }
       // Si no hay visualViewport, no retornar height para que se ajuste automáticamente
       return undefined;
     }
 
-    // En desktop, usar altura calculada basada en el viewport para asegurar que se muestre el input
-    if (desktopLiaHeight) {
-      return desktopLiaHeight;
-    }
     return 'calc(100vh - 3rem)';
-  }, [isMobile, isMobileBottomNavVisible, visualViewportHeight, desktopLiaHeight]);
+  }, [isMobile, isMobileBottomNavVisible, visualViewportHeight]);
 
   // Calcular padding dinámico para el área de entrada según altura de pantalla
   const getInputAreaPadding = (): string => {
@@ -942,38 +925,32 @@ export default function CourseLearnPage() {
   // Ajustar paneles cuando cambia isMobile
   useEffect(() => {
     if (isMobile) {
-      // En móvil, cerrar ambos paneles si están abiertos al iniciar
-      if (isLeftPanelOpen && isRightPanelOpen) {
+      // En móvil, cerrar panel izquierdo si está abierto al iniciar
+      if (isLeftPanelOpen) {
         setIsLeftPanelOpen(false);
-        setIsRightPanelOpen(false);
       }
     } else {
-      // En desktop, abrir ambos paneles si están cerrados
-      if (!isLeftPanelOpen && !isRightPanelOpen) {
+      // En desktop, abrir panel izquierdo si está cerrado
+      if (!isLeftPanelOpen) {
         setIsLeftPanelOpen(true);
-        setIsRightPanelOpen(true);
       }
     }
   }, [isMobile]); // Solo cuando cambia isMobile
 
   // Hook para detectar gestos de swipe en móvil
-  // Solo funciona cuando ambos paneles están cerrados para evitar conflictos
+  // Solo funciona cuando el panel izquierdo está cerrado para evitar conflictos
   const swipeRef = useSwipe({
     onSwipeRight: () => {
       // Swipe de izquierda a derecha → abrir panel izquierdo
-      if (isMobile && !isLeftPanelOpen && !isRightPanelOpen) {
+      if (isMobile && !isLeftPanelOpen) {
         setIsLeftPanelOpen(true);
       }
     },
-    onSwipeLeft: () => {
-      // Swipe de derecha a izquierda → abrir panel derecho
-      if (isMobile && !isLeftPanelOpen && !isRightPanelOpen) {
-        setIsRightPanelOpen(true);
-      }
-    },
+    // Eliminado soporte para swipe izquierda (panel derecho eliminado)
+    onSwipeLeft: () => {},
     threshold: 50, // Mínimo 50px de desplazamiento
     velocity: 0.3, // Mínimo 0.3px/ms de velocidad
-    enabled: isMobile && !isLeftPanelOpen && !isRightPanelOpen // Solo habilitado en móvil cuando ambos paneles están cerrados
+    enabled: isMobile && !isLeftPanelOpen // Solo habilitado en móvil cuando panel izquierdo está cerrado
   });
   const [savedNotes, setSavedNotes] = useState<Array<{
     id: string;
@@ -1318,50 +1295,7 @@ export default function CourseLearnPage() {
     };
   };
 
-  // Función para ajustar altura del textarea de LIA dinámicamente
-  const adjustLiaTextareaHeight = () => {
-    if (liaTextareaRef.current) {
-      // Resetear altura para calcular scrollHeight correctamente
-      liaTextareaRef.current.style.height = 'auto';
-      liaTextareaRef.current.style.overflowY = 'hidden';
 
-      const scrollHeight = liaTextareaRef.current.scrollHeight;
-
-      // Altura mínima igual al botón de enviar (48px = h-12)
-      const minHeight = 48; // Igual al botón (h-12)
-
-      // Alturas calculadas para cada línea
-      // Con padding de 12px arriba + 12px abajo = 24px
-      // Fuente 14px * line-height 1.5 = 21px por línea
-      const height1Line = 21 + 24; // 45px (pero usamos 48px para igualar botón)
-      const height2Line = (21 * 2) + 24; // 66px
-      const height3Line = (21 * 3) + 24; // 87px - altura máxima antes del scroll
-
-      // Solo activar scroll si el contenido supera las 3 líneas
-      if (scrollHeight > height3Line) {
-        // Contenido mayor a 3 líneas: fijar altura máxima y activar scroll
-        liaTextareaRef.current.style.height = `${height3Line}px`;
-        liaTextareaRef.current.style.overflowY = 'auto';
-      } else {
-        // Contenido de 1-3 líneas: ajustar altura dinámicamente sin scroll
-        const newHeight = Math.max(scrollHeight, minHeight);
-        liaTextareaRef.current.style.height = `${newHeight}px`;
-        liaTextareaRef.current.style.overflowY = 'hidden';
-      }
-    }
-  };
-
-  // Ajustar altura del textarea cuando cambia el contenido
-  useEffect(() => {
-    adjustLiaTextareaHeight();
-  }, [liaMessage]);
-
-  // Inicializar altura del textarea al montar el componente (igual al botón: 48px)
-  useEffect(() => {
-    if (liaTextareaRef.current) {
-      liaTextareaRef.current.style.height = '48px';
-    }
-  }, []);
 
   // ✨ Función para convertir enlaces Markdown [texto](url) en hipervínculos HTML
   const parseMarkdownLinks = useCallback((text: string) => {
@@ -1405,565 +1339,16 @@ export default function CourseLearnPage() {
     return parts.length > 0 ? parts : [{ type: 'text', content: text }];
   }, []);
 
-  // Función para enviar mensaje a LIA con contexto de la lección
-  const handleSendLiaMessage = async () => {
-    if (!liaMessage.trim() || isLiaLoading) return;
 
-    const message = liaMessage.trim();
-    setLiaMessage(''); // Limpiar input inmediatamente
 
-    // Resetear altura del textarea después de enviar (igual al botón: 48px)
-    if (liaTextareaRef.current) {
-      liaTextareaRef.current.style.height = '48px';
-      liaTextareaRef.current.style.overflowY = 'hidden';
-    }
 
-    // Construir contexto de la lección actual
-    const lessonContext = getLessonContext();
-
-    // ✅ Si es un taller (tiene workshopMetadata), enviar como workshopContext
-    // Si no, enviar como courseContext (comportamiento normal)
-    if (workshopMetadata && lessonContext?.contextType === 'workshop') {
-      await sendLiaMessage(message, undefined, lessonContext);
-    } else {
-      await sendLiaMessage(message, lessonContext);
-    }
-  };
-
-  // 🎙️ Inicializar reconocimiento de voz cuando cambia el idioma
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.lang = speechLanguageMap[language] || 'es-ES';
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript.trim()) {
-          setLiaMessage(prev => prev + (prev ? ' ' : '') + transcript);
-        }
-        setIsLiaRecording(false);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
-        setIsLiaRecording(false);
-
-        if (event.error === 'not-allowed') {
-          alert(t('voice.microphoneError') || 'Se necesita permiso para usar el micrófono');
-        }
-      };
-
-      recognition.onend = () => {
-        setIsLiaRecording(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {
-          // Ignore
-        }
-      }
-    };
-  }, [language, t]);
-
-  // 🎙️ Función para activar/desactivar grabación de voz
-  const toggleRecording = useCallback(async () => {
-    if (!recognitionRef.current) {
-      alert(t('voice.speechNotSupported') || 'El reconocimiento de voz no está disponible en tu navegador');
-      return;
-    }
-
-    if (isLiaRecording) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {
-        // Ignore
-      }
-      setIsLiaRecording(false);
-    } else {
-      try {
-        // Solicitar permisos del micrófono primero
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        // Actualizar el idioma del reconocimiento
-        recognitionRef.current.lang = speechLanguageMap[language] || 'es-ES';
-
-        recognitionRef.current.start();
-        setIsLiaRecording(true);
-      } catch (error: any) {
-        console.error('Error starting speech recognition:', error);
-        setIsLiaRecording(false);
-
-        if (error?.name === 'NotAllowedError') {
-          alert(t('voice.microphoneError') || 'Se necesita permiso para usar el micrófono');
-        }
-      }
-    }
-  }, [isLiaRecording, language, t]);
-
-  // ✨ Función para guardar prompts generados en la biblioteca
-  const handleSavePrompt = useCallback(async (draft: PromptDraft) => {
-    if (!user) {
-      alert('Debes iniciar sesión para guardar prompts');
-      return;
-    }
-
-    setIsSavingPrompt(true);
-
-    try {
-      const response = await fetch('/api/ai-directory/prompts/save-from-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...draft,
-          conversation_id: currentConversationId, // Vincular con la conversación del curso
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        throw new Error(errorData.error || 'Error al guardar el prompt');
-      }
-
-      const data = await response.json();
-
-      // Notificar éxito
-      alert(`✅ Prompt guardado exitosamente: "${draft.title}"\n\nEste prompt está vinculado al curso "${course?.title || course?.course_title}"`);
-
-      // Cerrar el panel de preview
-      setShowPromptPreview(false);
-      clearPrompt();
-
-      // Opcional: Navegar al prompt guardado
-      if (data.redirectUrl) {
-        const shouldNavigate = confirm('¿Quieres ver el prompt en el directorio?\n\n(Se abrirá en una nueva pestaña para no perder tu progreso)');
-        if (shouldNavigate) {
-          window.open(data.redirectUrl, '_blank');
-        }
-      }
-    } catch (error) {
-      console.error('Error guardando prompt:', error);
-      alert(`❌ Error al guardar el prompt: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    } finally {
-      setIsSavingPrompt(false);
-    }
-  }, [user, currentConversationId, course, clearPrompt]);
-
-  // ✨ Efecto: Mostrar panel de preview automáticamente cuando se genera un prompt
-  useEffect(() => {
-    if (generatedPrompt && currentMode === 'prompts') {
-      setShowPromptPreview(true);
-    }
-  }, [generatedPrompt, currentMode]);
-
-  // 🎨 Efecto: Mostrar panel de preview automáticamente cuando se genera un NanoBanana
-  useEffect(() => {
-    if (generatedNanoBanana && isNanoBananaMode) {
-
-      setShowNanoBananaPreview(true);
-    }
-  }, [generatedNanoBanana, isNanoBananaMode]);
-
-  // Función para generar prompts sugeridos adaptados por rol (memoizada para evitar loops)
-  const generateRoleBasedPrompts = useCallback(async (
-    basePrompts: string[],
-    activityContent: string,
-    activityTitle: string,
-    userRole?: string
-  ): Promise<string[]> => {
-
-    if (!userRole || basePrompts.length === 0) {
-
-      return basePrompts; // Retornar prompts originales si no hay rol
-    }
-
-    try {
-      const promptGenerationRequest = `Eres un asistente que adapta prompts educativos según el rol profesional del usuario.
-
-ROL DEL USUARIO: ${userRole}
-TÍTULO DE LA ACTIVIDAD: ${activityTitle}
-CONTENIDO DE LA ACTIVIDAD: ${activityContent.substring(0, 500)}${activityContent.length > 500 ? '...' : ''}
-
-PROMPTS BASE (como referencia):
-${basePrompts.map((p, i) => `${i + 1}. ${p}`).join('\n')}
-
-INSTRUCCIONES:
-- Genera ${basePrompts.length} prompts nuevos adaptados específicamente para el rol "${userRole}"
-- Los prompts deben ser relevantes para este rol profesional
-- Mantén la misma estructura y propósito educativo que los prompts base
-- Adapta ejemplos y casos de uso al contexto profesional del rol
-- Retorna SOLO los prompts, uno por línea, sin numeración ni formato adicional
-- Cada prompt debe ser una pregunta o instrucción clara y directa
-
-PROMPTS ADAPTADOS:`;
-
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: promptGenerationRequest,
-          context: 'general',
-          conversationHistory: [],
-          isSystemMessage: true,
-        }),
-      });
-
-      if (!response.ok) {
-        console.warn('[generateRoleBasedPrompts] Respuesta no OK, usando fallback');
-        return basePrompts; // Fallback a prompts originales
-      }
-
-      const data = await response.json();
-      const generatedText = data.response || '';
-      console.log('[generateRoleBasedPrompts] Texto generado:', generatedText.substring(0, 200) + '...');
-
-      // Extraer prompts de la respuesta (cada línea es un prompt)
-      const adaptedPrompts = generatedText
-        .split('\n')
-        .map((line: string) => line.trim())
-        .filter((line: string) => line.length > 0 && !line.match(/^\d+[\.\)]/)) // Filtrar numeración
-        .slice(0, basePrompts.length); // Limitar al número de prompts originales
-
-      if (adaptedPrompts.length === 0) {
-        console.warn('[generateRoleBasedPrompts] No se extrajeron prompts, usando originales');
-        return basePrompts;
-      }
-
-      return adaptedPrompts;
-    } catch (error) {
-      console.error('[generateRoleBasedPrompts] ✗ Error:', error);
-      return basePrompts; // Fallback a prompts originales
-    }
-  }, []); // Sin dependencias ya que no usa variables del scope
 
   // Función para adaptar contenido de actividad según el rol
-  const adaptActivityContentForRole = async (
-    activityContent: string,
-    activityTitle: string,
-    userRole?: string
-  ): Promise<string> => {
-    if (!userRole) {
-      return activityContent; // Retornar contenido original si no hay rol
-    }
 
-    try {
-      const adaptationRequest = `Eres un asistente que adapta contenido educativo según el rol profesional del usuario.
 
-ROL DEL USUARIO: ${userRole}
-TÍTULO DE LA ACTIVIDAD: ${activityTitle}
 
-CONTENIDO ORIGINAL DE LA ACTIVIDAD:
-\`\`\`
-${activityContent}
-\`\`\`
 
-INSTRUCCIONES:
-- Adapta el contenido de la actividad para que sea relevante y aplicable al rol "${userRole}"
-- Mantén la estructura y formato original (incluyendo separadores "---")
-- Personaliza ejemplos, casos de uso y referencias al contexto profesional del rol
-- Asegúrate de que los ejercicios y preguntas sean relevantes para este rol
-- NO cambies la estructura general ni los separadores "---"
-- Retorna SOLO el contenido adaptado, sin explicaciones adicionales
 
-CONTENIDO ADAPTADO:`;
-
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: adaptationRequest,
-          context: 'general',
-          conversationHistory: [],
-          isSystemMessage: true,
-        }),
-      });
-
-      if (!response.ok) {
-        return activityContent; // Fallback a contenido original
-      }
-
-      const data = await response.json();
-      const adaptedContent = data.response || '';
-
-      return adaptedContent.trim() || activityContent;
-    } catch (error) {
-      console.error('Error adaptando contenido de actividad:', error);
-      return activityContent; // Fallback a contenido original
-    }
-  };
-
-  // Función para iniciar interacción con LIA desde una actividad
-  const handleStartActivityInteraction = async (activityContent: string, activityTitle: string) => {
-    // Abrir el panel de LIA si está cerrado
-    if (!isRightPanelOpen) {
-      setIsRightPanelOpen(true);
-    }
-
-    // ✅ OPTIMIZACIÓN: Usar contenido original inmediatamente, adaptar en background si es necesario
-    const userRole = user?.type_rol;
-    let adaptedContent = activityContent; // Usar contenido original por defecto (más rápido)
-
-    // Adaptar contenido en background si hay rol del usuario (no bloquea la interacción inicial)
-    if (userRole) {
-      adaptActivityContentForRole(activityContent, activityTitle, userRole)
-        .then((adapted) => {
-          // Si la adaptación se completa y es diferente, se puede usar en mensajes futuros
-          // Por ahora, usamos el contenido original para la primera interacción
-          adaptedContent = adapted;
-        })
-        .catch((error) => {
-          console.error('Error adaptando contenido (background):', error);
-          // Continuar con contenido original si falla
-        });
-    }
-
-    // Construir el prompt profesional para LIA con GUARDRAILS
-    const roleInfo = userRole
-      ? `\n## ROL DEL USUARIO
-- El usuario tiene el rol profesional: "${userRole}"
-- DEBES adaptar todos los ejemplos, casos de uso y referencias al contexto profesional de este rol
-- Personaliza las preguntas y ejercicios para que sean relevantes y aplicables a este rol
-- Usa terminología y ejemplos que el usuario pueda relacionar con su trabajo diario
-- Asegúrate de que las actividades sean prácticas y útiles para alguien con este rol profesional`
-      : '';
-
-    const systemPrompt = `# SISTEMA: Inicio de Actividad Interactiva
-
-Vas a guiar al usuario a través de la actividad: "${activityTitle}"
-
-## TU ROL
-Eres Lia, una tutora personalizada experta y amigable. Tu objetivo es guiar al usuario paso a paso a través de esta actividad de forma conversacional, natural y motivadora.
-
-## PERSONALIZACIÓN
-- Si conoces el nombre del usuario (te será proporcionado en el contexto), DEBES usarlo en tu saludo inicial
-- Comienza tu primer mensaje con "Hola [nombre del usuario]!" seguido del contenido del guión
-- Si no conoces el nombre del usuario, simplemente usa "Hola!" como saludo
-- Usa el nombre del usuario de manera natural y amigable a lo largo de la conversación cuando sea apropiado${roleInfo}
-
-## ⚠️ RESTRICCIONES CRÍTICAS (GUARDRAILS)
-
-### 🚫 DESVÍOS NO PERMITIDOS:
-1. **NO te desvíes del guión**: Sigue ESTRICTAMENTE la estructura de la actividad
-2. **NO ofrezcas ayuda genérica**: Si el usuario pide sugerencias, responde SOLO dentro del contexto del paso actual
-3. **NO expliques conceptos no relacionados**: Mantente enfocado en completar el framework
-4. **NO cambies de tema**: Si el usuario intenta cambiar de tema, redirige amablemente al paso actual
-
-### ✅ MANEJO DE DESVÍOS:
-Si el usuario:
-- Se desvía del tema → Reconoce su mensaje y redirige: "Entiendo tu interés, pero primero completemos este paso del framework. [Repite la pregunta actual]"
-- Pide sugerencias genéricas → Proporciona 1-2 ejemplos específicos del paso actual y pide SU respuesta
-- Dice "no sé" o "ayúdame" → Ofrece 2-3 ejemplos concretos, pero insiste en que debe dar SU propia respuesta
-- Da respuestas muy cortas (ej: "sí", "no", "ok") → Pide más detalles específicos necesarios para el paso actual
-
-### 📊 SEGUIMIENTO DEL PROGRESO:
-- Cuenta internamente cuántas interacciones llevan en el MISMO paso
-- Si el usuario da más de 3 respuestas sin avanzar al siguiente paso del guión → Redirige firmemente: "Necesito que me des [información específica] para poder continuar con el siguiente paso"
-- Después de cada respuesta útil del usuario → Avanza inmediatamente al siguiente mensaje del guión
-
-## CONTENIDO DE LA ACTIVIDAD
-A continuación te proporciono el guión completo de la actividad. Los separadores "---" indican cambios de turno (tú hablas → esperas respuesta → continúas):
-
-\`\`\`
-${adaptedContent}
-\`\`\`
-
-## INSTRUCCIONES DE EJECUCIÓN
-
-1. **Flujo Estricto**:
-   - Identifica en qué paso del guión estás (contando los separadores "---")
-   - Presenta SOLO el mensaje actual del guión
-   - ESPERA la respuesta del usuario
-   - Valida la respuesta (¿es útil para el objetivo del paso?)
-   - Si es útil → AVANZA al siguiente mensaje del guión
-   - Si no es útil → Pide clarificación o ejemplos concretos, pero NO avances
-
-2. **Formato de Mensajes**:
-   - Elimina "Lia (IA):" y "[Usuario:]" del texto visible
-   - Usa un tono cálido pero directo
-   - Máximo 1-2 emojis por mensaje
-   - Sé concisa: 3-4 oraciones máximo por mensaje (excepto el inicial)
-
-3. **Recolección de Datos**:
-   - Guarda mentalmente las respuestas del usuario para el CSV final
-   - Si el framework requiere múltiples tareas → Pide UNA tarea a la vez
-   - Si requiere datos para cada tarea → Pregunta por los datos de UNA tarea a la vez
-   - NO te saltes pasos del guión
-
-4. **Señales de Progreso**:
-   - Cada 2-3 pasos, menciona el progreso: "¡Genial! Llevamos X de Y columnas completadas"
-   - Al completar una sección importante: "✅ Columna 1 completada. Ahora vamos con la Columna 2..."
-
-5. **Finalización**:
-   - SOLO cuando hayas completado TODOS los pasos del guión
-   - Genera el CSV con TODOS los datos recopilados
-   - Felicita y despide
-
-## ⚡ RECORDATORIO CONSTANTE
-Antes de cada respuesta, pregúntate:
-1. ¿Estoy siguiendo el guión paso a paso?
-2. ¿El usuario dio la información que necesito para este paso?
-3. ¿Debo avanzar al siguiente paso o pedir más detalles?
-4. ¿Me estoy desviando del objetivo de la actividad?
-
-**INICIA AHORA con el PRIMER mensaje del guión (después del primer "---"):**`;
-
-    // Construir contexto de la lección
-    const lessonContext = getLessonContext();
-
-    // ✅ Si es un taller, enviar como workshopContext
-    // Enviar el mensaje del sistema (no será visible en el chat)
-    if (workshopMetadata && lessonContext?.contextType === 'workshop') {
-      await sendLiaMessage(systemPrompt, undefined, lessonContext, true);
-    } else {
-      await sendLiaMessage(systemPrompt, lessonContext, true);
-    }
-
-    // Hacer scroll al chat
-    setTimeout(() => {
-      liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 300);
-  };
-
-  // Auto-scroll al final cuando hay nuevos mensajes o cuando está cargando
-  useEffect(() => {
-    if (liaMessagesEndRef.current) {
-      // Usar setTimeout para asegurar que el DOM se ha actualizado
-      setTimeout(() => {
-        liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    }
-  }, [liaMessages, isLiaLoading]);
-
-  // Función para expandir/colapsar LIA
-  const handleToggleLiaExpanded = () => {
-    const newExpandedState = !isLiaExpanded;
-    setIsLiaExpanded(newExpandedState);
-
-    // Si se está expandiendo, cerrar el panel izquierdo
-    if (newExpandedState && isLeftPanelOpen) {
-      setIsLeftPanelOpen(false);
-    }
-  };
-
-  // Función para abrir modal de confirmación para limpiar historial
-  const handleOpenClearHistoryModal = () => {
-    setIsClearHistoryModalOpen(true);
-  };
-
-  // Función para limpiar el historial de LIA
-  const handleConfirmClearHistory = () => {
-    clearLiaHistory();
-    setIsClearHistoryModalOpen(false);
-  };
-
-  // Función para cargar conversaciones del usuario
-  // IMPORTANTE: Solo carga conversaciones de talleres (context_type='course')
-  // Máximo 5 conversaciones por usuario
-  const loadConversations = useCallback(async () => {
-    if (!slug) return;
-
-    setLoadingConversations(true);
-    try {
-      // Limitar a 5 conversaciones (máximo permitido)
-      const response = await fetch(`/api/lia/conversations?courseSlug=${slug}&limit=5`);
-      if (response.ok) {
-        const data = await response.json();
-        setConversations(data.conversations || []);
-      } else {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        console.error('Error cargando conversaciones:', errorData.error || response.statusText);
-        setConversations([]);
-      }
-    } catch (error) {
-      console.error('Error cargando conversaciones:', error);
-      setConversations([]);
-    } finally {
-      setLoadingConversations(false);
-    }
-  }, [slug]);
-
-  // Función para actualizar título de conversación
-  const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
-    try {
-      const response = await fetch(`/api/lia/conversations/${conversationId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ conversation_title: title.trim() || null }),
-      });
-
-      if (response.ok) {
-        // Actualizar en el estado local
-        setConversations(prev =>
-          prev.map(conv =>
-            conv.conversation_id === conversationId
-              ? { ...conv, conversation_title: title.trim() || null }
-              : conv
-          )
-        );
-        setEditingConversationId(null);
-        setEditingTitle('');
-      } else {
-        console.error('Error actualizando título de conversación');
-      }
-    } catch (error) {
-      console.error('Error actualizando título:', error);
-    }
-  }, []);
-
-  // Función para eliminar conversación
-  const deleteConversation = useCallback(async (conversationId: string) => {
-    try {
-      const response = await fetch(`/api/lia/conversations/${conversationId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        // Remover del estado local
-        setConversations(prev => prev.filter(conv => conv.conversation_id !== conversationId));
-
-        // Si era la conversación actual, limpiar el historial
-        if (currentConversationId === conversationId) {
-          clearLiaHistory();
-        }
-
-        setDeletingConversationId(null);
-      } else {
-        console.error('Error eliminando conversación');
-      }
-    } catch (error) {
-      console.error('Error eliminando conversación:', error);
-    }
-  }, [currentConversationId, clearLiaHistory]);
-
-  // Función para cargar y restaurar una conversación
-  const handleLoadConversation = useCallback(async (conversationId: string) => {
-    await loadConversation(conversationId);
-    setShowHistory(false);
-
-    // Scroll al final de los mensajes
-    setTimeout(() => {
-      liaMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  }, [loadConversation]);
 
   // Función para abrir modal de nueva nota
   const openNewNoteModal = () => {
@@ -2243,6 +1628,46 @@ Antes de cada respuesta, pregúntate:
       loadCourse();
     }
   }, [slug, i18n.language]);
+
+  // ⚡ Cargar contexto adicional para LIA (transcript y summary) en background
+  useEffect(() => {
+    // Resetear estados al cambiar de lección
+    setLiaTranscript(null);
+    setLiaSummary(null);
+
+    if (!currentLesson?.lesson_id || !slug) return;
+
+    // Función para cargar datos
+    const loadLiaContext = async () => {
+      // Cargar transcript en background
+      try {
+        const tRes = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/transcript?language=${selectedLang}`);
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          if (tData.transcript_content) setLiaTranscript(tData.transcript_content);
+        }
+      } catch (error) {
+        // Silently fail or log in dev
+        if (process.env.NODE_ENV === 'development') console.warn('Error loading transcript for LIA:', error);
+      }
+
+      // Cargar summary en background
+      try {
+        const sRes = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/summary?language=${selectedLang}`);
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          if (sData.summary_content) setLiaSummary(sData.summary_content);
+        }
+      } catch (error) {
+        // Silently fail
+        if (process.env.NODE_ENV === 'development') console.warn('Error loading summary for LIA:', error);
+      }
+    };
+
+    // Pequeño delay para no competir con la carga inicial crítica
+    const timer = setTimeout(loadLiaContext, 1000);
+    return () => clearTimeout(timer);
+  }, [currentLesson?.lesson_id, slug, selectedLang]);
 
   // 🚀 LAZY LOADING: Las notas se cargan SOLO cuando el usuario abre el panel de notas
   // (Eliminado useEffect que cargaba notas automáticamente al cambiar de lección)
@@ -2927,9 +2352,8 @@ Antes de cada respuesta, pregúntate:
 
       }}
       onHelpAccepted={async (analysis) => {
-
         // Abrir el panel de LIA (panel derecho)
-        setIsRightPanelOpen(true);
+        openLia();
 
         // Generar mensaje personalizado basado en los patrones detectados
         const generatePersonalizedMessage = (patterns: any[]) => {
@@ -3188,6 +2612,10 @@ Antes de cada respuesta, pregúntate:
         <div
           ref={swipeRef}
           className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white dark:bg-[#0F1419] relative z-10"
+          style={{
+             marginRight: isLiaOpen && !isMobile ? '420px' : 0,
+             transition: 'margin-right 0.3s ease-in-out'
+          }}
         >
           {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
           <AnimatePresence>
@@ -3214,16 +2642,15 @@ Antes de cada respuesta, pregúntate:
                       ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none'
                       : 'relative h-full'
                     }
-                  bg-white dark:bg-[#1E2329] rounded-xl md:rounded-xl flex flex-col overflow-hidden shadow-sm
-                  ${isMobile ? 'my-0 ml-0 md:my-2 md:ml-2' : 'my-2 ml-2'}
-                  border border-[#E9ECEF] dark:border-[#6C757D]/30
+                  bg-[#0F1419] flex flex-col overflow-hidden border-r border-white/5
+                  ${isMobile ? 'my-0 ml-0' : 'h-full'}
                 `}
                 >
                   {/* Header con línea separadora alineada con panel central */}
-                  <div className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between p-3 rounded-t-xl shrink-0 h-[56px]">
-                    <h2 className="text-base font-semibold text-[#0A2540] dark:text-white flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                  <div className="bg-[#0F1419] border-b border-white/5 flex items-center justify-between p-4 shrink-0 h-[60px]">
+                    <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                       <BookOpen className="w-4 h-4 text-[#00D4B3]" />
-                      {t('leftPanel.title')}
+                      TEMARIO
                     </h2>
                     <button
                       onClick={() => setIsLeftPanelOpen(false)}
@@ -3243,8 +2670,8 @@ Antes de cada respuesta, pregúntate:
                     <div className="mb-8">
                       {/* Header de Contenido con botón de colapsar */}
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-[#0A2540] dark:text-white flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                          <Layers className="w-5 h-5 text-[#00D4B3]" />
+                        <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          <Layers className="w-3 h-3 text-[#00D4B3]" />
                           {t('leftPanel.content')}
                         </h3>
                         <button
@@ -3314,12 +2741,15 @@ Antes de cada respuesta, pregúntate:
 
                                 return (
                                   <div key={module.module_id} className="mb-6">
-                                    <div className="flex items-center justify-between mb-3">
-                                      <div className="flex items-center gap-3 flex-1">
-                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center flex-shrink-0">
-                                          <span className="text-white font-bold text-sm">{moduleIndex + 1}</span>
+                                    <div className="flex items-start justify-between mb-2 mt-4 px-2 group-hover:bg-white/[0.02] rounded-lg transition-colors p-2">
+                                      <div className="flex flex-col gap-1 flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[10px] font-bold text-[#00D4B3] uppercase tracking-widest">
+                                            Módulo {moduleIndex + 1}
+                                          </span>
+                                          <div className="h-[1px] flex-1 bg-white/10" />
                                         </div>
-                                        <h3 className="font-semibold text-[#0A2540] dark:text-white text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{module.module_title}</h3>
+                                        <h3 className="font-semibold text-white/90 text-sm leading-tight pr-4" style={{ fontFamily: 'Inter, sans-serif' }}>{module.module_title}</h3>
                                       </div>
                                       <button
                                         onClick={() => toggleModuleExpand(module.module_id)}
@@ -3369,35 +2799,35 @@ Antes de cada respuesta, pregúntate:
                                                 <div key={lesson.lesson_id} className="w-full">
                                                   <div className="flex items-start gap-2">
                                                     <motion.button
-                                                      whileHover={{ opacity: 0.8 }}
-                                                      whileTap={{ scale: 0.99 }}
+                                                      whileHover={{ x: 4 }}
                                                       onClick={() => handleLessonChange(lesson)}
-                                                      className={`flex-1 flex items-start gap-3 p-3 rounded-lg transition-all duration-200 ${isActive
-                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-l-2 border-[#00D4B3]'
-                                                        : 'hover:bg-gray-50/50 dark:hover:bg-slate-700/30 border-l-2 border-transparent'
+                                                      className={`flex-1 flex items-center gap-3 py-2 px-3 transition-all duration-200 group relative overflow-hidden rounded-r-lg ${isActive
+                                                        ? 'bg-[#00D4B3]/10 border-l-2 border-[#00D4B3]'
+                                                        : 'border-l-2 border-transparent hover:bg-white/5'
                                                         }`}
                                                     >
-                                                      <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${isCompleted
-                                                        ? 'text-green-500 dark:text-green-400'
+                                                      <div className={`flex items-center justify-center flex-shrink-0 ${isCompleted
+                                                        ? 'text-[#00D4B3]'
                                                         : isActive
-                                                          ? 'text-[#00D4B3] dark:text-[#00D4B3]'
-                                                          : 'text-[#6C757D] dark:text-white/50'
+                                                          ? 'text-[#00D4B3]'
+                                                          : 'text-white/20 group-hover:text-white/40'
                                                         }`}>
                                                         {isCompleted ? (
-                                                          <CheckCircle2 className="w-5 h-5" />
+                                                          <CheckCircle2 className="w-4 h-4" />
                                                         ) : (
-                                                          <Play className="w-4 h-4" />
+                                                          <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-[#00D4B3] animate-pulse' : 'bg-current'}`} />
                                                         )}
                                                       </div>
 
-                                                      <div className="flex-1 text-left min-w-0">
-                                                        <p className={`text-sm leading-relaxed line-clamp-3 ${isActive ? 'text-[#0A2540] dark:text-white font-medium' : 'text-[#0A2540] dark:text-white/80'}`} style={{ fontFamily: 'Inter, sans-serif', fontWeight: isActive ? 500 : 400 }}>
+                                                      <div className="flex-1 text-left min-w-0 z-10">
+                                                        <p className={`text-sm leading-snug line-clamp-2 ${isActive ? 'text-white font-medium' : 'text-white/60 group-hover:text-white/90 font-normal'}`} style={{ fontFamily: 'Inter, sans-serif' }}>
                                                           {lesson.lesson_title}
                                                         </p>
-                                                        <div className="flex items-center gap-1.5 mt-2">
-                                                          <Clock className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/50 flex-shrink-0" />
-                                                          <span className="text-xs text-[#6C757D] dark:text-white/60 whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{formatDuration(lesson.duration_seconds)}</span>
-                                                        </div>
+                                                        {isActive && (
+                                                           <span className="text-[10px] text-[#00D4B3]/80 mt-1 block font-medium">
+                                                              En curso • {formatDuration(lesson.duration_seconds)}
+                                                           </span>
+                                                        )}
                                                       </div>
                                                     </motion.button>
 
@@ -3473,40 +2903,34 @@ Antes de cada respuesta, pregúntate:
                                                                 return (
                                                                   <div
                                                                     key={activity.activity_id}
-                                                                    className="group relative bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 rounded-xl p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                                    className="group relative hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
                                                                   >
-                                                                    <div className="flex items-start gap-3">
-                                                                      {/* Icono mejorado con fondo */}
-                                                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isQuiz
-                                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
-                                                                        : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]'
-                                                                        }`}>
+                                                                    <div className="flex items-start gap-4">
+                                                                      {/* Icono mejorado estilo imagen referencia */}
+                                                                      <div className={`w-10 h-10 rounded-2xl bg-[#0F1419] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-white/20 transition-colors shadow-sm`}>
                                                                         {isQuiz ? (
-                                                                          <FileText className="w-4 h-4" />
+                                                                          <FileText className="w-5 h-5 text-[#00D4B3]" />
                                                                         ) : (
-                                                                          <Activity className="w-4 h-4" />
+                                                                          <Activity className="w-5 h-5 text-[#00D4B3]" />
                                                                         )}
                                                                       </div>
 
                                                                       {/* Contenido principal */}
-                                                                      <div className="flex-1 min-w-0">
-                                                                        <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
+                                                                      <div className="flex-1 min-w-0 pt-0.5">
+                                                                        <p className="text-sm font-medium text-white mb-2 leading-tight">
                                                                           {activity.activity_title}
                                                                         </p>
 
-                                                                        {/* Badges en fila con wrap */}
-                                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                                        {/* Badges estilo Pill */}
+                                                                        <div className="flex flex-wrap items-center gap-2">
                                                                           {/* Badge de tipo */}
-                                                                          <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors ${isQuiz
-                                                                            ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] border border-[#00D4B3]/20'
-                                                                            : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/20'
-                                                                            }`}>
+                                                                          <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-[#0F1419] border border-white/10 text-[#00D4B3]">
                                                                             {activity.activity_type}
                                                                           </span>
 
                                                                           {/* Badge Requerida */}
                                                                           {isRequired && (
-                                                                            <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
+                                                                            <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-500/10 border border-red-500/30 text-red-400">
                                                                               {t('activities.required')}
                                                                             </span>
                                                                           )}
@@ -3558,47 +2982,37 @@ Antes de cada respuesta, pregúntate:
                                                                 return (
                                                                   <div
                                                                     key={material.material_id}
-                                                                    className="group relative bg-white dark:bg-[#1E2329] hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#10B981] dark:hover:border-[#10B981]/50 rounded-xl p-3 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                                    className="group relative hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
                                                                   >
-                                                                    <div className="flex items-start gap-3">
-                                                                      {/* Icono mejorado con fondo según tipo */}
-                                                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${isQuiz
-                                                                        ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
-                                                                        : isReading
-                                                                          ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981]'
-                                                                          : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60'
-                                                                        }`}>
+                                                                    <div className="flex items-start gap-4">
+                                                                      {/* Icono mejorado estilo imagen referencia */}
+                                                                      <div className={`w-10 h-10 rounded-2xl bg-[#0F1419] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-white/20 transition-colors shadow-sm`}>
                                                                         {isQuiz ? (
-                                                                          <FileText className="w-4 h-4" />
+                                                                           <FileText className="w-5 h-5 text-[#00D4B3]" />
                                                                         ) : isReading ? (
-                                                                          <BookOpen className="w-4 h-4" />
+                                                                           <BookOpen className="w-5 h-5 text-[#10B981]" />
                                                                         ) : (
-                                                                          <FileText className="w-4 h-4" />
+                                                                           <FileText className="w-5 h-5 text-[#00D4B3]" />
                                                                         )}
                                                                       </div>
 
                                                                       {/* Contenido principal */}
-                                                                      <div className="flex-1 min-w-0">
-                                                                        <p className="text-sm font-medium text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-2 pr-2">
+                                                                      <div className="flex-1 min-w-0 pt-0.5">
+                                                                        <p className="text-sm font-medium text-white mb-2 leading-tight">
                                                                           {material.material_title}
                                                                         </p>
 
-                                                                        {/* Badges en fila con wrap para evitar cortes */}
-                                                                        <div className="flex flex-wrap items-center gap-1.5">
-                                                                          {/* Badge Requerida primero */}
-                                                                          {isRequired && (
-                                                                            <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs rounded-md font-medium border border-red-500/20 whitespace-nowrap">
+                                                                        {/* Badges estilo Pill */}
+                                                                        <div className="flex flex-wrap items-center gap-2">
+                                                                          {/* Badge Requerida primero si aplica */}
+                                                                           {isRequired && (
+                                                                            <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-500/10 border border-red-500/30 text-red-400">
                                                                               Requerida
                                                                             </span>
                                                                           )}
 
                                                                           {/* Badge de tipo */}
-                                                                          <span className={`px-2 py-0.5 text-xs rounded-md font-medium capitalize transition-colors whitespace-nowrap ${isQuiz
-                                                                            ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] border border-[#00D4B3]/20'
-                                                                            : isReading
-                                                                              ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border border-[#10B981]/20'
-                                                                              : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 border border-[#E9ECEF] dark:border-[#6C757D]/30'
-                                                                            }`} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                                                                          <span className={`px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-[#0F1419] border border-white/10 ${isReading ? 'text-[#10B981]' : 'text-[#00D4B3]'}`}>
                                                                             {material.material_type}
                                                                           </span>
                                                                         </div>
@@ -3667,8 +3081,8 @@ Antes de cada respuesta, pregúntate:
                     <div className="space-y-4">
                       {/* Header de Notas con botones de colapsar y nueva nota */}
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-[#0A2540] dark:text-white flex items-center gap-2 text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                          <FileText className="w-5 h-5 text-[#00D4B3]" />
+                        <h3 className="font-bold text-white/40 uppercase tracking-widest flex items-center gap-2 text-xs" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          <FileText className="w-3 h-3 text-[#00D4B3]" />
                           {t('leftPanel.notesSection.myNotes')}
                         </h3>
                         <div className="flex items-center gap-2">
@@ -3815,9 +3229,7 @@ Antes de cada respuesta, pregúntate:
                     setIsMaterialCollapsed(false);
                     setIsNotesCollapsed(false);
                     // Si LIA está abierto, ponerlo en tamaño pequeño
-                    if (isRightPanelOpen) {
-                      setIsLiaExpanded(false);
-                    }
+
                   }}
                   className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
                   title="Mostrar material del curso"
@@ -3835,9 +3247,7 @@ Antes de cada respuesta, pregúntate:
                     setIsMaterialCollapsed(false);
                     setIsNotesCollapsed(true);
                     // Si LIA está abierto, ponerlo en tamaño pequeño
-                    if (isRightPanelOpen) {
-                      setIsLiaExpanded(false);
-                    }
+
                   }}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
                   title="Ver lecciones"
@@ -3852,9 +3262,7 @@ Antes de cada respuesta, pregúntate:
                     setIsMaterialCollapsed(true);
                     setIsNotesCollapsed(false);
                     // Si LIA está abierto, ponerlo en tamaño pequeño
-                    if (isRightPanelOpen) {
-                      setIsLiaExpanded(false);
-                    }
+
                   }}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
                   title={t('leftPanel.notesSection.viewNotes')}
@@ -3870,9 +3278,7 @@ Antes de cada respuesta, pregúntate:
                     setIsNotesCollapsed(false);
                     openNewNoteModal();
                     // Si LIA está abierto, ponerlo en tamaño pequeño
-                    if (isRightPanelOpen) {
-                      setIsLiaExpanded(false);
-                    }
+
                   }}
                   className="w-8 h-8 flex items-center justify-center rounded-full bg-[#00D4B3] hover:bg-[#00b8a0] transition-colors shadow-lg shadow-[#00D4B3]/25"
                   title={t('leftPanel.notesSection.newNote')}
@@ -3904,7 +3310,7 @@ Antes de cada respuesta, pregúntate:
                       const Icon = tab.icon;
                       const isActive = activeTab === tab.id;
                       // En móvil: siempre encoger excepto el activo; En PC: encoger solo cuando LIA está expandido
-                      const shouldHideText = !isActive && (isMobile || (isLiaExpanded && !isMobile));
+                      const shouldHideText = !isActive && isMobile;
 
                       return (
                         <button
@@ -3979,12 +3385,11 @@ Antes de cada respuesta, pregúntate:
                           lesson={currentLesson}
                           slug={slug}
                           onPromptsChange={handlePromptsChange}
-                          onStartInteraction={handleStartActivityInteraction}
                           userRole={user?.type_rol}
-                          generateRoleBasedPrompts={generateRoleBasedPrompts}
                           onNavigateNext={navigateToNextLesson}
                           hasNextLesson={!!getNextLesson()}
                           selectedLang={selectedLang}
+                          colors={colors}
                         />
                       )}
                       {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
@@ -4002,839 +3407,7 @@ Antes de cada respuesta, pregúntate:
             )}
           </div>
 
-          {/* Panel Derecho - Solo LIA - Drawer en móvil */}
-          <AnimatePresence>
-            {isRightPanelOpen && (
-              <>
-                {/* Overlay oscuro en móvil */}
-                {isMobile && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setIsRightPanelOpen(false)}
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
-                  />
-                )}
-
-                <motion.div
-                  ref={liaPanelRef}
-                  initial={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
-                  animate={isMobile
-                    ? { x: 0 }
-                    : { width: isLiaExpanded ? 640 : 320, opacity: 1 }
-                  }
-                  exit={isMobile ? { x: '100%' } : { width: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                  className={`
-                  ${isMobile
-                      ? 'fixed top-0 right-0 bottom-0 w-full max-w-sm z-[60] md:relative md:inset-auto md:w-auto md:max-w-none'
-                      : 'relative h-full'
-                    }
-                  bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg md:rounded-lg flex flex-col shadow-xl overflow-hidden 
-                  ${isMobile ? 'my-0 mr-0 md:my-2 md:mr-2' : 'my-2 mr-2'}
-                  border border-[#E9ECEF] dark:border-[#6C757D]/30
-                `}
-                  style={
-                    isMobile
-                      ? {
-                        ...(calculateLiaMaxHeight && {
-                          height: calculateLiaMaxHeight,
-                          maxHeight: calculateLiaMaxHeight,
-                        }),
-                      }
-                      : {
-                        // En desktop, no usar altura calculada, dejar que h-full de la clase maneje la altura
-                        // para que coincida con los otros paneles
-                      }
-                  }
-                >
-                  {/* Header Lia con línea separadora alineada con panel central */}
-                  <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between p-3 rounded-t-lg shrink-0 h-[56px]">
-                    <div className="flex items-center gap-2">
-                      <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-lg shrink-0">
-                        <Image
-                          src="/lia-avatar.png"
-                          alt="Lia"
-                          fill
-                          className="object-cover"
-                          sizes="32px"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-[#0A2540] dark:text-white text-sm leading-tight" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.title')}</h3>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-[#6C757D] dark:text-white/60 leading-tight" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.subtitle')}</p>
-                          {/* ✨ Badge de Modo Actual - MÁS VISIBLE */}
-                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shadow-sm transition-all ${currentMode === 'course'
-                            ? 'bg-[#0A2540] text-white'
-                            : currentMode === 'prompts'
-                              ? 'bg-[#00D4B3] text-white animate-pulse'
-                              : currentMode === 'nanobana'
-                                ? 'bg-[#F59E0B] text-white animate-pulse'
-                                : 'bg-[#00D4B3] text-white'
-                            }`}>
-                            {currentMode === 'course' ? 'Curso'
-                              : currentMode === 'prompts' ? 'Prompts'
-                                : currentMode === 'nanobana' ? 'NanoBanana'
-                                  : 'Contexto'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 relative">
-                      {/* Menú de opciones (tres puntos) */}
-                      <div className="relative">
-                        <button
-                          ref={liaMenuButtonRef}
-                          onClick={() => setShowLiaMenu(!showLiaMenu)}
-                          className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-                          title={t('lia.moreOptions')}
-                        >
-                          <MoreVertical className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
-                        </button>
-
-                        {/* Menú dropdown - Renderizado con portal fuera del stacking context */}
-                        {showLiaMenu && liaMenuPosition && typeof window !== 'undefined' && createPortal(
-                          <>
-                            {/* Overlay para cerrar el menú al hacer clic fuera */}
-                            <div
-                              className="fixed inset-0 z-[190]"
-                              onClick={() => setShowLiaMenu(false)}
-                            />
-                            <div
-                              className="fixed w-48 rounded-lg shadow-2xl z-[200] overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30"
-                              style={{
-                                top: `${liaMenuPosition.top}px`,
-                                right: `${liaMenuPosition.right}px`,
-                                backgroundColor: 'rgb(255, 255, 255)',
-                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-                              }}
-                            >
-                              <div
-                                className="hidden dark:block absolute inset-0 rounded-lg"
-                                style={{ backgroundColor: 'rgb(30, 35, 41)' }}
-                              />
-                              <div className="relative">
-                                {/* ✨ Sección: Modos de LIA */}
-                                <div className="px-3 py-2 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
-                                  <p className="text-xs font-semibold text-[#6C757D] dark:text-white/60 uppercase tracking-wide" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
-                                    Modo de Chat
-                                  </p>
-                                </div>
-
-                                {/* ✨ Modo Curso */}
-                                <button
-                                  onClick={() => {
-                                    setMode('course');
-                                    setShowLiaMenu(false);
-                                  }}
-                                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${currentMode === 'course'
-                                    ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/30 text-[#0A2540] dark:text-[#00D4B3] font-medium'
-                                    : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                                    }`}
-                                >
-                                  <BookOpen className="w-4 h-4" />
-                                  Modo Curso
-                                  {currentMode === 'course' && <CheckCircle className="w-4 h-4 ml-auto" />}
-                                </button>
-
-                                {/* ✨ Modo Prompts */}
-                                <button
-                                  onClick={() => {
-                                    setMode('prompts');
-                                    setShowLiaMenu(false);
-                                  }}
-                                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${currentMode === 'prompts'
-                                    ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/30 text-[#00D4B3] dark:text-[#00D4B3] font-medium'
-                                    : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                                    }`}
-                                >
-                                  <Sparkles className="w-4 h-4" />
-                                  Crear Prompts
-                                  {currentMode === 'prompts' && <CheckCircle className="w-4 h-4 ml-auto" />}
-                                </button>
-
-                                {/* ✨ Modo Contexto */}
-                                <button
-                                  onClick={() => {
-                                    setMode('context');
-                                    setShowLiaMenu(false);
-                                  }}
-                                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${currentMode === 'context'
-                                    ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 font-medium'
-                                    : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                                    }`}
-                                >
-                                  <Brain className="w-4 h-4" />
-                                  PRL-1.0 Mini
-                                  {currentMode === 'context' && <CheckCircle className="w-4 h-4 ml-auto" />}
-                                </button>
-
-                                {/* 🎨 Modo NanoBanana */}
-                                <button
-                                  onClick={() => {
-                                    setMode('nanobana');
-                                    setShowLiaMenu(false);
-                                  }}
-                                  className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 relative z-10 ${currentMode === 'nanobana'
-                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium'
-                                    : 'text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                                    }`}
-                                >
-                                  <Palette className="w-4 h-4" />
-                                  NanoBanana Pro
-                                  {currentMode === 'nanobana' && <CheckCircle className="w-4 h-4 ml-auto" />}
-                                </button>
-
-                                {/* Separador */}
-                                <div className="border-t border-[#E9ECEF] dark:border-[#6C757D]/30 my-1"></div>
-
-                                {/* Opciones Originales */}
-                                <button
-                                  onClick={() => {
-                                    clearLiaHistory();
-                                    setShowHistory(true);
-                                    loadConversations();
-                                    setShowLiaMenu(false);
-                                  }}
-                                  className="w-full px-4 py-2.5 text-left text-sm text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  Nueva conversación
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setShowHistory(!showHistory);
-                                    if (!showHistory) {
-                                      loadConversations();
-                                    }
-                                    setShowLiaMenu(false);
-                                  }}
-                                  className="w-full px-4 py-2.5 text-left text-sm text-[#0A2540] dark:text-white/80 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
-                                >
-                                  <History className="w-4 h-4" />
-                                  Ver historial
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    handleOpenClearHistoryModal();
-                                    setShowLiaMenu(false);
-                                  }}
-                                  className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors flex items-center gap-2 relative z-10"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  Reiniciar conversación
-                                </button>
-                              </div>
-                            </div>
-                          </>,
-                          document.body
-                        )}
-                      </div>
-
-                      {/* Botón de expandir/minimizar - siempre visible */}
-                      {!isMobile && (
-                        <button
-                          onClick={handleToggleLiaExpanded}
-                          className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-                          title={isLiaExpanded ? t('lia.minimize') : t('lia.expand')}
-                        >
-                          {isLiaExpanded ? (
-                            <Minimize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                          ) : (
-                            <Maximize2 className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                          )}
-                        </button>
-                      )}
-
-                      {/* Botón de cerrar */}
-                      <button
-                        onClick={() => setIsRightPanelOpen(false)}
-                        className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-                      >
-                        {isMobile ? (
-                          <X className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Panel de historial de conversaciones */}
-                  {showHistory && (
-                    <div className="absolute top-14 right-0 w-80 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg shadow-xl z-50 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
-                      <div className="p-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-between shrink-0">
-                        <h3 className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.conversationHistory')}</h3>
-                        <button
-                          onClick={() => setShowHistory(false)}
-                          className="p-1 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded transition-colors"
-                          title={t('lia.closeHistory')}
-                        >
-                          <X className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                        </button>
-                      </div>
-                      <div className="flex-1 overflow-y-auto p-2">
-                        {loadingConversations ? (
-                          <div className="p-4 text-center text-[#6C757D] dark:text-white/60">
-                            <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#00D4B3]" />
-                            <p className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.conversations')}</p>
-                          </div>
-                        ) : conversations.length === 0 ? (
-                          <div className="p-4 text-center text-[#6C757D] dark:text-white/60">
-                            <p className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.noConversations')}</p>
-                          </div>
-                        ) : (
-                          conversations.map((conv) => (
-                            <div
-                              key={conv.conversation_id}
-                              className={`group relative bg-[#E9ECEF]/30 dark:bg-[#0F1419] hover:bg-[#E9ECEF]/50 dark:hover:bg-[#1E2329] rounded-lg p-3 mb-2 transition-colors ${currentConversationId === conv.conversation_id ? 'ring-2 ring-[#00D4B3] dark:ring-[#00D4B3]' : ''
-                                }`}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <button
-                                  onClick={() => handleLoadConversation(conv.conversation_id)}
-                                  className="flex-1 text-left min-w-0"
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    {editingConversationId === conv.conversation_id ? (
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <input
-                                          type="text"
-                                          value={editingTitle}
-                                          onChange={(e) => setEditingTitle(e.target.value)}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              updateConversationTitle(conv.conversation_id, editingTitle);
-                                            } else if (e.key === 'Escape') {
-                                              setEditingConversationId(null);
-                                              setEditingTitle('');
-                                            }
-                                          }}
-                                          className="flex-1 px-2 py-1 text-sm bg-white dark:bg-[#0F1419] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded text-[#0A2540] dark:text-white"
-                                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
-                                          autoFocus
-                                          onClick={(e) => e.stopPropagation()}
-                                        />
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            updateConversationTitle(conv.conversation_id, editingTitle);
-                                          }}
-                                          className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded transition-colors"
-                                        >
-                                          <Save className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditingConversationId(null);
-                                            setEditingTitle('');
-                                          }}
-                                          className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors"
-                                        >
-                                          <X className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <p className="text-sm font-medium text-[#0A2540] dark:text-white truncate mb-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                                          {conv.conversation_title || conv.course?.title || t('lia.generalConversation')}
-                                        </p>
-                                        <p className="text-xs text-[#6C757D] dark:text-white/60 mb-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                          {new Date(conv.started_at).toLocaleDateString('es-ES', {
-                                            day: 'numeric',
-                                            month: 'short',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
-                                        </p>
-                                        <p className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                          {conv.total_messages} {conv.total_messages !== 1 ? t('lia.messagesPlural') : t('lia.messages')}
-                                        </p>
-                                      </>
-                                    )}
-                                  </div>
-                                </button>
-                                {editingConversationId !== conv.conversation_id && (
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingConversationId(conv.conversation_id);
-                                        setEditingTitle(conv.conversation_title || '');
-                                      }}
-                                      className="p-1 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded transition-colors opacity-0 group-hover:opacity-100"
-                                      title={t('lia.editName')}
-                                    >
-                                      <Edit2 className="w-3.5 h-3.5 text-[#6C757D] dark:text-white/60" />
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDeletingConversationId(conv.conversation_id);
-                                      }}
-                                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors opacity-0 group-hover:opacity-100"
-                                      title={t('lia.deleteConversation')}
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Modal de confirmación para eliminar conversación */}
-                  {deletingConversationId && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-                      <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6 max-w-md w-full">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('lia.deleteConfirmTitle')}</h3>
-                            <p className="text-sm text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('lia.deleteConfirmSubtitle')}</p>
-                          </div>
-                        </div>
-                        <p className="text-sm text-[#0A2540] dark:text-white mb-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                          {t('lia.deleteConfirmMessage')}
-                        </p>
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => setDeletingConversationId(null)}
-                            className="flex-1 px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-colors font-medium shadow-sm hover:shadow-md"
-                            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                          >
-                            {t('lia.cancel')}
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (deletingConversationId) {
-                                deleteConversation(deletingConversationId);
-                              }
-                            }}
-                            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
-                          >
-                            {t('lia.delete')}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Chat de Lia expandido */}
-                  <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-                    {/* Área de mensajes */}
-                    <div
-                      className="flex-1 overflow-y-auto p-4 space-y-4"
-                      style={{
-                        paddingBottom: currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen
-                          ? (isPromptsCollapsed ? '5.5rem' : '6rem')
-                          : '1rem'
-                      }}
-                    >
-                      {liaMessages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 relative group ${message.role === 'user'
-                              ? 'bg-[#0A2540] text-white'
-                              : 'bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white/90 border border-[#E9ECEF] dark:border-[#6C757D]/30'
-                              }`}
-                          >
-                            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words pr-8">
-                              {parseMarkdownLinks(message.content).map((part, index) => {
-                                if (part.type === 'link') {
-                                  return (
-                                    <a
-                                      key={index}
-                                      href={part.url}
-                                      target={part.url.startsWith('http') ? '_blank' : '_self'}
-                                      rel={part.url.startsWith('http') ? 'noopener noreferrer' : undefined}
-                                      className={`${message.role === 'user'
-                                        ? 'text-white underline hover:text-white/80 font-semibold'
-                                        : 'text-[#00D4B3] dark:text-[#00D4B3] underline hover:text-[#00b8a0] dark:hover:text-[#00b8a0] font-semibold'
-                                        } transition-colors`}
-                                      onClick={(e) => {
-                                        // Si es una ruta interna, usar router de Next.js
-                                        if (!part.url.startsWith('http')) {
-                                          e.preventDefault();
-                                          router.push(part.url);
-                                        }
-                                      }}
-                                    >
-                                      {part.text}
-                                    </a>
-                                  );
-                                }
-                                return <span key={index}>{part.content}</span>;
-                              })}
-                            </div>
-                            <div className="flex items-center justify-between mt-2">
-                              <p className="text-xs opacity-70">
-                                {message.timestamp.toLocaleTimeString('es-ES', {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </p>
-                              {message.role === 'assistant' && (
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        await navigator.clipboard.writeText(message.content);
-                                        setCopiedMessageId(message.id);
-                                        setTimeout(() => setCopiedMessageId(null), 2000);
-                                      } catch (err) {
-                                        // Fallback para navegadores que no soportan clipboard API
-                                        const textArea = document.createElement('textarea');
-                                        textArea.value = message.content;
-                                        textArea.style.position = 'fixed';
-                                        textArea.style.opacity = '0';
-                                        document.body.appendChild(textArea);
-                                        textArea.select();
-                                        document.execCommand('copy');
-                                        document.body.removeChild(textArea);
-                                        setCopiedMessageId(message.id);
-                                        setTimeout(() => setCopiedMessageId(null), 2000);
-                                      }
-                                    }}
-                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                                    title={t('lia.copyMessage')}
-                                  >
-                                    {copiedMessageId === message.id ? (
-                                      <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                    ) : (
-                                      <Copy className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                    )}
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      // Crear nota automáticamente con el contenido del mensaje
-                                      const noteTitle = message.content.substring(0, 50).replace(/\n/g, ' ').trim() + (message.content.length > 50 ? '...' : '');
-                                      setEditingNote({
-                                        id: '',
-                                        title: noteTitle,
-                                        content: message.content,
-                                        tags: ['Lia', 'Chat']
-                                      });
-                                      setIsNotesModalOpen(true);
-                                    }}
-                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                                    title={t('lia.createNote')}
-                                  >
-                                    <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* 🎨 Botón para reabrir panel NanoBanana si el mensaje tiene uno generado */}
-                            {message.role === 'assistant' && message.generatedNanoBanana && (
-                              <button
-                                onClick={() => {
-
-                                  // Restaurar los datos del NanoBanana al estado global
-                                  // y abrir el panel
-                                  setShowNanoBananaPreview(true);
-                                }}
-                                className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-semibold transition-all duration-200"
-                              >
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                                Ver JSON NanoBanana
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Indicador de carga */}
-                      {isLiaLoading && (
-                        <div className="flex justify-start">
-                          <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] border border-[#E9ECEF] dark:border-[#6C757D]/30">
-                            <div className="flex gap-1">
-                              <div className="w-2 h-2 bg-[#00D4B3] dark:bg-[#00D4B3] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Elemento de anclaje para scroll automático */}
-                      <div ref={liaMessagesEndRef} />
-                    </div>
-
-                    {/* Prompts Flotantes tipo NotebookLM */}
-                    <AnimatePresence>
-                      {(() => {
-                        const shouldShow = currentActivityPrompts.length > 0 && activeTab === 'activities' && isRightPanelOpen;
-
-                        return shouldShow;
-                      })() && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            transition={{ duration: 0.2 }}
-                            className={`absolute ${isPromptsCollapsed ? 'bottom-24' : 'bottom-20'} left-4 right-4 z-10`}
-                          >
-                            {isPromptsCollapsed ? (
-                              // Versión colapsada - más compacta
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="bg-gradient-to-br from-[#0A2540]/10 to-[#00D4B3]/10 dark:from-[#0A2540]/20 dark:to-[#00D4B3]/20 backdrop-blur-xl rounded-xl shadow-lg border border-[#0A2540]/30 dark:border-[#0A2540]/30 p-2"
-                              >
-                                <button
-                                  onClick={() => setIsPromptsCollapsed(false)}
-                                  className="w-full flex items-center justify-between hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg px-2 py-1.5 transition-colors group"
-                                >
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center shadow-md shrink-0">
-                                      <HelpCircle className="w-3 h-3 text-white" />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <h4 className="font-semibold text-xs text-gray-900 dark:text-white truncate">Prompts Sugeridos</h4>
-                                      <p className="text-[10px] text-gray-600 dark:text-slate-400 truncate">{currentActivityPrompts.length} {currentActivityPrompts.length === 1 ? 'disponible' : 'disponibles'}</p>
-                                    </div>
-                                  </div>
-                                  <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/80 group-hover:text-[#0A2540] dark:group-hover:text-[#00D4B3] transition-colors shrink-0 ml-2" />
-                                </button>
-                              </motion.div>
-                            ) : (
-                              // Versión expandida
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="bg-gradient-to-br from-[#00D4B3]/10 to-[#0A2540]/10 dark:from-[#00D4B3]/20 dark:to-[#0A2540]/20 backdrop-blur-xl rounded-2xl shadow-2xl border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 max-h-[300px]"
-                              >
-                                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/40 dark:border-white/10 bg-white/20 dark:bg-white/5 rounded-t-2xl">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-[#00D4B3] flex items-center justify-center shadow-lg">
-                                      <HelpCircle className="w-4 h-4 text-white" />
-                                    </div>
-                                    <div>
-                                      <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prompts Sugeridos</h4>
-                                      <p className="text-xs text-gray-600 dark:text-slate-400">Haz clic para enviar a Lia</p>
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={() => setIsPromptsCollapsed(true)}
-                                    className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                                    title="Minimizar prompts"
-                                  >
-                                    <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
-                                  </button>
-                                </div>
-                                <div className="space-y-2 p-4 overflow-y-auto max-h-[210px] pr-2 custom-scroll">
-                                  {currentActivityPrompts.map((prompt, index) => (
-                                    <motion.button
-                                      key={index}
-                                      initial={{ opacity: 0, x: -20 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ delay: index * 0.05 }}
-                                      onClick={() => {
-                                        setLiaMessage(prompt);
-                                        setTimeout(() => {
-                                          handleSendLiaMessage();
-                                          setIsPromptsCollapsed(true);
-                                        }, 100);
-                                      }}
-                                      className="w-full text-left px-4 py-3 bg-white/80 dark:bg-[#1E2329]/80 hover:bg-white dark:hover:bg-[#0A2540]/30 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl transition-all hover:shadow-lg hover:scale-[1.02] group"
-                                    >
-                                      <div className="flex items-start gap-3">
-                                        <div className="w-6 h-6 rounded-full bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-[#00D4B3]/20 dark:group-hover:bg-[#00D4B3]/30 transition-colors">
-                                          <span className="text-[#00D4B3] dark:text-[#00D4B3] text-xs font-bold" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{index + 1}</span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-                                            {prompt}
-                                          </p>
-                                        </div>
-                                        <Send className="w-4 h-4 text-[#00D4B3] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
-                                      </div>
-                                    </motion.button>
-                                  ))}
-                                </div>
-                              </motion.div>
-                            )}
-                          </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Área de entrada - Similar a LIA general con mejor manejo de altura */}
-                    <div
-                      className={`border-t border-[#E9ECEF] dark:border-[#6C757D]/30 p-4 relative shrink-0 ${isMobile ? 'z-[70]' : ''}`}
-                      style={isMobile ? {
-                        // Asegurar padding suficiente para safe area y evitar que se corte
-                        // El padding bottom debe incluir el safe area para dispositivos con notch
-                        paddingBottom: `calc(${getInputAreaPadding()} + max(env(safe-area-inset-bottom, 0px), 8px))`,
-                      } : undefined}
-                    >
-                      <div className="flex gap-2 items-end min-w-0">
-                        <textarea
-                          ref={liaTextareaRef}
-                          placeholder={t('lia.placeholder')}
-                          value={liaMessage}
-                          onChange={(e) => {
-                            setLiaMessage(e.target.value);
-                            // Ajustar altura inmediatamente al cambiar el contenido
-                            setTimeout(() => adjustLiaTextareaHeight(), 0);
-                          }}
-                          onFocus={(e) => {
-                            // En móvil, asegurar que el textarea sea visible cuando se enfoca
-                            // El visualViewport ya maneja el ajuste de altura, pero esto ayuda
-                            // a asegurar que el scroll se haga correctamente
-                            if (isMobile && window.visualViewport) {
-                              // Pequeño delay para permitir que el teclado se abra
-                              setTimeout(() => {
-                                e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                              }, 300);
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey && !isLiaLoading) {
-                              e.preventDefault();
-                              handleSendLiaMessage();
-                            }
-                          }}
-                          disabled={isLiaLoading}
-                          className="flex-1 min-w-0 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl px-4 py-2.5 text-sm text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent resize-none lia-textarea-scrollbar shadow-sm hover:shadow-md"
-                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
-                          style={{ fontSize: '14px', lineHeight: '1.5', minHeight: '48px', maxHeight: '87px', height: '48px', overflowY: 'hidden' }}
-                        />
-                        <button
-                          onClick={() => {
-                            if (liaMessage.trim()) {
-                              // Si hay texto, enviar mensaje
-                              handleSendLiaMessage();
-                            } else {
-                              // Si no hay texto, activar/desactivar grabación
-                              toggleRecording();
-                            }
-                          }}
-                          disabled={isLiaLoading && !!liaMessage.trim()}
-                          className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 shrink-0 ${liaMessage.trim()
-                            ? 'bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg hover:shadow-[#0A2540]/50'
-                            : isLiaRecording
-                              ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/50'
-                              : 'bg-[#E9ECEF] dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/30'
-                            } ${isLiaLoading && liaMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {isLiaLoading && liaMessage.trim() ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : liaMessage.trim() ? (
-                            <Send className="w-5 h-5" />
-                          ) : isLiaRecording ? (
-                            <MicOff className="w-5 h-5" />
-                          ) : (
-                            <Mic className="w-5 h-5" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* ✨ Panel de Vista Previa de Prompts Generados */}
-                <AnimatePresence>
-                  {showPromptPreview && generatedPrompt && currentMode === 'prompts' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-                      onClick={() => {
-                        setShowPromptPreview(false);
-                      }}
-                    >
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <PromptPreviewPanel
-                          draft={generatedPrompt as PromptDraft}
-                          onSave={handleSavePrompt}
-                          onClose={() => {
-                            setShowPromptPreview(false);
-                            clearPrompt();
-                          }}
-                          onEdit={(edited) => {
-                            // Nota: Para editar, el usuario tendría que modificar el prompt generado
-                            // Esto podría implementarse con un modal de edición más adelante
-
-                          }}
-                          isSaving={isSavingPrompt}
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* 🎨 Panel de Vista Previa de NanoBanana Generados */}
-                {showNanoBananaPreview && generatedNanoBanana && isNanoBananaMode && (
-                  <div
-                    className="fixed right-4 top-20 z-[301]"
-                    style={{
-                      width: 'min(400px, calc(100vw - 2rem))',
-                      maxHeight: 'calc(100vh - 6rem)'
-                    }}
-                  >
-                    <NanoBananaPreviewPanel
-                      schema={generatedNanoBanana.schema}
-                      jsonString={generatedNanoBanana.jsonString}
-                      domain={generatedNanoBanana.domain}
-                      outputFormat={generatedNanoBanana.outputFormat}
-                      isOpen={showNanoBananaPreview}
-                      onClose={() => {
-                        setShowNanoBananaPreview(false);
-                      }}
-                      onCopy={() => {
-
-                      }}
-                      onDownload={() => {
-
-                      }}
-                      onRegenerate={() => {
-                        // Reabrir el input para regenerar
-
-                      }}
-                    />
-                  </div>
-                )}
-              </>
-            )}
-          </AnimatePresence>
-
-          {/* Barra vertical para abrir panel derecho - Oculto en móviles */}
-          {!isRightPanelOpen && (
-            <div className="hidden md:flex w-12 bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 mr-2 z-10 border border-[#E9ECEF] dark:border-[#6C757D]/30">
-              <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
-                <button
-                  onClick={() => {
-                    setIsRightPanelOpen(true);
-                    setIsLiaExpanded(false);
-                  }}
-                  className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                  title="Mostrar Lia"
-                >
-                  <ChevronLeft className="w-5 h-5 text-[#6C757D] dark:text-white" />
-                </button>
-              </div>
-            </div>
-          )}
+{/* Panel Derecho - Solo LIA - REMOVED */}
         </div>
 
         {/* Barra de navegación inferior flotante para móviles */}
@@ -4886,20 +3459,8 @@ Antes de cada respuesta, pregúntate:
                 </button>
               )}
 
-              {/* Botón Lia */}
-              <button
-                onClick={() => {
-                  setIsRightPanelOpen(true);
-                  setIsLeftPanelOpen(false);
-                }}
-                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${isRightPanelOpen
-                  ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3]'
-                  : 'text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                  }`}
-              >
-                <MessageSquare className="w-5 h-5" />
-                <span className="text-xs font-medium">Lia</span>
-              </button>
+{/* Botón Lia - Removed */}
+
             </div>
           </motion.div>
         )}
@@ -5150,76 +3711,7 @@ Antes de cada respuesta, pregúntate:
           )}
         </AnimatePresence>
 
-        {/* Modal de Confirmación para Limpiar Historial de LIA */}
-        <AnimatePresence>
-          {isClearHistoryModalOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              onClick={() => setIsClearHistoryModalOpen(false)}
-            >
-              {/* Overlay */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              />
 
-              {/* Modal Content */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
-              >
-                {/* Avatar */}
-                <div className="flex justify-center mb-4">
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden shadow-lg shadow-blue-500/25">
-                    <Image
-                      src="/lia-avatar.png"
-                      alt="Lia"
-                      fill
-                      className="object-cover"
-                      sizes="64px"
-                    />
-                  </div>
-                </div>
-
-                {/* Título */}
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                  {t('modals.resetConversation.title')}
-                </h3>
-
-                {/* Mensaje */}
-                <p className="text-gray-600 dark:text-slate-300 text-center mb-6">
-                  {t('modals.resetConversation.message')}
-                </p>
-
-                {/* Botones */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setIsClearHistoryModalOpen(false)}
-                    className="flex-1 px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
-                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                  >
-                    {t('modals.resetConversation.cancel')}
-                  </button>
-                  <button
-                    onClick={handleConfirmClearHistory}
-                    className="flex-1 px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                  >
-                    {t('modals.resetConversation.confirm')}
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Modal de Rating */}
         <CourseRatingModal
@@ -5235,16 +3727,25 @@ Antes de cada respuesta, pregúntate:
           }}
         />
 
-        {/* Tour de voz contextual para la página de aprendizaje */}
-        <ContextualVoiceGuide
-          tourId="course-learn"
-          steps={courseLearnTourSteps}
-          triggerPaths={['/courses']}
-          isReplayable={true}
-          showDelay={2000}
-          replayButtonLabel={t('tour.courseLearnLabel')}
-          requireAuth={true}
+        {/* LIA In-Context Chat for Courses */}
+        <CourseLia 
+          lessonId={currentLesson?.lesson_id}
+          lessonTitle={currentLesson?.lesson_title}
+          courseSlug={slug}
+          transcriptContent={liaTranscript}
+          summaryContent={liaSummary}
+          lessonContent={currentLesson?.lesson_description}
+          customColors={{
+            panelBg: colors.bgSecondary,
+            borderColor: 'rgba(255,255,255,0.1)',
+            accentColor: colors.accent,
+            textPrimary: '#FFFFFF',
+            textSecondary: 'rgba(255,255,255,0.6)',
+          }}
         />
+
+        {/* Tour de voz contextual para la página de aprendizaje */}
+
 
       </div>
     </WorkshopLearningProvider>
@@ -5605,14 +4106,14 @@ function TranscriptContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Transcripción del Video</h2>
+          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">Transcripción del Video</h2>
         </div>
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
-          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-[#00D4B3]" />
+        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center">
+          <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
+            <ScrollText className="w-8 h-8 text-white/20" />
           </div>
-          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Selecciona una lección</h3>
-          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+          <h3 className="text-white font-semibold text-lg mb-2">Selecciona una lección</h3>
+           <p className="text-white/40 max-w-md mx-auto">
             Selecciona una lección del panel izquierdo para ver su transcripción
           </p>
         </div>
@@ -5624,14 +4125,17 @@ function TranscriptContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Transcripción del Video</h2>
-          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
+          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">Transcripción del Video</h2>
+          <div className="h-4 w-1/3 bg-white/10 rounded animate-pulse" />
         </div>
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-[#00D4B3] animate-pulse" />
+        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 flex flex-col items-center justify-center">
+          <div className="relative w-16 h-16 mb-6">
+            <div className="absolute inset-0 rounded-full border-2 border-[#00D4B3]/20 animate-ping" />
+            <div className="relative w-full h-full bg-[#00D4B3]/10 rounded-full flex items-center justify-center">
+              <ScrollText className="w-8 h-8 text-[#00D4B3] animate-pulse" />
+            </div>
           </div>
-          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.transcript')}</p>
+          <p className="text-white/60 font-medium">{t('loading.transcript')}</p>
         </div>
       </div>
     );
@@ -5639,97 +4143,118 @@ function TranscriptContent({
 
   return (
     <div className="space-y-6 pb-24 md:pb-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Transcripción del Video</h2>
-        <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/5 pb-4">
+        <div>
+          <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+            <ScrollText className="w-5 h-5 text-[#00D4B3]" />
+            Transcripción Interactiva
+          </h2>
+          <p className="text-white/40 text-sm">{lesson.lesson_title}</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00D4B3]" />
+            <span className="text-sm font-medium text-white">{transcriptContent?.length || 0}</span>
+            <span className="text-xs text-white/40">caracteres</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
+            <Clock className="w-3.5 h-3.5 text-[#00D4B3]" />
+            <span className="text-sm font-medium text-white">{estimatedReadingTime}</span>
+            <span className="text-xs text-white/40">min</span>
+          </div>
+        </div>
       </div>
 
+      <AnimatePresence mode="wait">
       {hasTranscript ? (
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
-          {/* Header de la transcripción mejorado */}
-          <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-lg">
-                  <ScrollText className="w-5 h-5 text-[#00D4B3]" />
-                </div>
-                <div>
-                  <h3 className="text-[#0A2540] dark:text-white font-bold text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Transcripción Completa</h3>
-                  <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Texto completo del video</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
-                  <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{transcriptContent?.length || 0}</span>
-                  <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>caracteres</span>
-                </div>
-                <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
-                  <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{estimatedReadingTime}</span>
-                  <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>min lectura</span>
-                </div>
-              </div>
+        <motion.div 
+            key="transcript-content"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="relative rounded-2xl border border-white/10 bg-[#0F1419]/40 overflow-hidden shadow-2xl backdrop-blur-sm group"
+        >
+            {/* Decoración de gradiente superior */}
+            <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4B3]/50 to-transparent opacity-50" />
+            
+            {/* Glow de fondo sutil */}
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#00D4B3]/5 rounded-full blur-3xl pointer-events-none" />
+            
+            {/* Contenido Renderizado */}
+            <div className="relative p-8 prose prose-invert max-w-none">
+            <ReactMarkdown
+                components={{
+                h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-white mb-6 mt-8 flex items-center gap-2 not-prose" {...props} />,
+                h2: ({node, ...props}) => <h2 className="text-xl font-bold text-white mb-4 mt-8 pb-2 border-b border-white/5 not-prose" {...props} />,
+                h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose" {...props} />,
+                strong: ({node, ...props}) => <strong className="font-bold text-white/90" {...props} />,
+                p: ({node, ...props}) => <p className="mb-4 text-white/80 leading-relaxed font-light tracking-wide text-base" {...props} />,
+                ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]" {...props} />,
+                ol: ({node, ...props}) => <ol className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-white/80" {...props} />,
+                li: ({node, ...props}) => <li className="pl-1 leading-relaxed" {...props} />,
+                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-[#00D4B3] pl-4 italic text-white/60 my-6 bg-white/5 py-2 pr-4 rounded-r-lg not-prose" {...props} />,
+                }}
+            >
+                {transcriptContent || ''}
+            </ReactMarkdown>
             </div>
-          </div>
 
-          {/* Contenido de la transcripción */}
-          <div className="p-6 bg-white dark:bg-[#0F1419]">
-            <div className="prose dark:prose-invert max-w-none">
-              <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap text-sm md:text-base" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                {transcriptContent}
-              </div>
-            </div>
-          </div>
+            {/* Footer con acciones */}
+            <div className="relative px-8 py-4 bg-white/[0.02] border-t border-white/5 flex flex-wrap gap-4 justify-between items-center">
+                <div className="text-xs text-white/20 font-medium tracking-widest uppercase hidden md:block">
+                Generado automáticamente
+                </div>
 
-          {/* Footer con acciones mejorado */}
-          <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center space-x-3 flex-wrap">
+                <div className="flex items-center gap-2">
                 <button
-                  onClick={handleCopyToClipboard}
-                  className="flex items-center space-x-2 text-[#0A2540] dark:text-white/80 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-4 py-2 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md transition-all"
+                    onClick={handleCopyToClipboard}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all"
                 >
-                  {isCopied ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4" />}
-                  <span className="text-sm font-medium">{isCopied ? 'Copiado!' : 'Copiar'}</span>
+                    {isCopied ? <Check className="w-3.5 h-3.5 text-[#00D4B3]" /> : <Copy className="w-3.5 h-3.5" />}
+                    {isCopied ? 'Copiado' : 'Copiar'}
                 </button>
+
                 <button
-                  onClick={handleDownloadTranscript}
-                  className="flex items-center space-x-2 text-[#0A2540] dark:text-white/80 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-4 py-2 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md transition-all"
+                    onClick={handleDownloadTranscript}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all"
                 >
-                  <FileDown className="w-4 h-4" />
-                  <span className="text-sm font-medium">Descargar</span>
+                    <FileDown className="w-3.5 h-3.5" />
+                    Descargar
                 </button>
+
                 <button
-                  onClick={handleSaveToNotes}
-                  disabled={isSaving}
-                  className="flex items-center space-x-2 text-[#0A2540] dark:text-white/80 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-colors hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-4 py-2 rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                    onClick={handleSaveToNotes}
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-medium bg-[#00D4B3]/10 text-[#00D4B3] hover:bg-[#00D4B3]/20 border border-[#00D4B3]/20 hover:border-[#00D4B3]/40 transition-all disabled:opacity-50"
                 >
-                  <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
-                  <span className="text-sm font-medium">{isSaving ? 'Guardando...' : 'Guardar en notas'}</span>
+                    <Save className={`w-3.5 h-3.5 ${isSaving ? 'animate-spin' : ''}`} />
+                    {isSaving ? 'Guardando...' : 'Guardar en notas'}
                 </button>
-              </div>
-              <div className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                Última actualización: {new Date().toLocaleDateString()}
-              </div>
+                </div>
             </div>
-          </div>
-        </div>
+        </motion.div>
       ) : (
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ScrollText className="w-8 h-8 text-[#00D4B3]" />
+        <motion.div 
+            key="empty-transcript"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center"
+        >
+          <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
+            <ScrollText className="w-8 h-8 text-white/20" />
           </div>
-          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Transcripción no disponible</h3>
-          <p className="text-[#6C757D] dark:text-white/80 mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-            Esta lección aún no tiene transcripción disponible. La transcripción se agregará próximamente.
+          <h3 className="text-white font-semibold text-lg mb-2">Transcripción no disponible</h3>
+          <p className="text-white/40 max-w-md mx-auto mb-6">
+            Esta lección aún no cuenta con una transcripción disponible.
           </p>
-          <div className="text-sm text-[#6C757D] dark:text-white/60 space-y-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-            <p>• Verifica que el video tenga audio</p>
-            <p>• La transcripción se genera automáticamente</p>
-            <p>• Contacta al instructor si necesitas ayuda</p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-white/40">
+            <Info className="w-4 h-4" />
+            <span>El contenido se actualizará pronto</span>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -5780,14 +4305,17 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Resumen del Video</h2>
-          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
+          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">Resumen del Video</h2>
+          <div className="h-4 w-1/3 bg-white/10 rounded animate-pulse" />
         </div>
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-[#F59E0B] animate-pulse" />
+        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 flex flex-col items-center justify-center">
+          <div className="relative w-16 h-16 mb-6">
+            <div className="absolute inset-0 rounded-full border-2 border-[#00D4B3]/20 animate-ping" />
+            <div className="relative w-full h-full bg-[#00D4B3]/10 rounded-full flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-[#00D4B3] animate-pulse" />
+            </div>
           </div>
-          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.summary')}</p>
+          <p className="text-white/60 font-medium">{t('loading.summary')}</p>
         </div>
       </div>
     );
@@ -5797,21 +4325,21 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Resumen del Video</h2>
-          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
+          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">Resumen del Video</h2>
+          <p className="text-white/40 text-sm">{lesson.lesson_title}</p>
         </div>
 
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-[#F59E0B]" />
+        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center">
+          <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
+            <FileText className="w-8 h-8 text-white/20" />
           </div>
-          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Resumen no disponible</h3>
-          <p className="text-[#6C757D] dark:text-white/80 mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-            Esta lección aún no tiene resumen disponible. El resumen se agregará próximamente.
+          <h3 className="text-white font-semibold text-lg mb-2">Resumen no disponible</h3>
+          <p className="text-white/40 max-w-md mx-auto mb-6">
+            Esta lección aún no cuenta con un resumen generado automáticamente.
           </p>
-          <div className="text-sm text-[#6C757D] dark:text-white/60 space-y-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-            <p>• El resumen se genera o agrega manualmente</p>
-            <p>• Contacta al instructor si necesitas ayuda</p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-white/40">
+            <Info className="w-4 h-4" />
+            <span>El contenido se actualizará pronto</span>
           </div>
         </div>
       </div>
@@ -5820,46 +4348,79 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
   return (
     <div className="space-y-6 pb-24 md:pb-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Resumen del Video</h2>
-        <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
-      </div>
-
-      <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
-        {/* Header del resumen mejorado */}
-        <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 rounded-lg">
-                <FileText className="w-5 h-5 text-[#F59E0B]" />
-              </div>
-              <div>
-                <h3 className="text-[#0A2540] dark:text-white font-bold text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Resumen Completo</h3>
-                <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Puntos clave del video</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
-                <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{summaryContent?.split(/\s+/).length || 0}</span>
-                <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>palabras</span>
-              </div>
-              <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
-                <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{estimatedReadingTime}</span>
-                <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>min lectura</span>
-              </div>
-            </div>
-          </div>
+      {/* Header simplificado */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/5 pb-4">
+        <div>
+          <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#00D4B3]" />
+            Resumen Inteligente
+          </h2>
+          <p className="text-white/40 text-sm">{lesson.lesson_title}</p>
         </div>
-
-        {/* Contenido del resumen */}
-        <div className="p-6 bg-white dark:bg-[#0F1419]">
-          <div className="prose dark:prose-invert max-w-none">
-            <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap text-sm md:text-base" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-              {summaryContent}
-            </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00D4B3]" />
+            <span className="text-sm font-medium text-white">{summaryContent?.split(/\s+/).length || 0}</span>
+            <span className="text-xs text-white/40">palabras</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
+            <Clock className="w-3.5 h-3.5 text-[#00D4B3]" />
+            <span className="text-sm font-medium text-white">{estimatedReadingTime}</span>
+            <span className="text-xs text-white/40">min</span>
           </div>
         </div>
       </div>
+
+      {/* Tarjeta de Contenido */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="relative rounded-2xl border border-white/10 bg-[#0F1419]/40 overflow-hidden shadow-2xl backdrop-blur-sm group"
+      >
+        {/* Decoración de gradiente superior */}
+        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4B3]/50 to-transparent opacity-50" />
+        
+        {/* Glow de fondo sutil */}
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#00D4B3]/5 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Contenido */}
+        {/* Contenido */}
+        <div className="relative p-8 prose prose-invert max-w-none">
+          <ReactMarkdown
+            components={{
+              h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-white mb-6 mt-8 flex items-center gap-2 not-prose" {...props} />,
+              h2: ({node, ...props}) => <h2 className="text-xl font-bold text-white mb-4 mt-8 pb-2 border-b border-white/5 not-prose" {...props} />,
+              h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose" {...props} />,
+              strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+              p: ({node, ...props}) => <p className="mb-4 text-white/80 leading-relaxed font-light tracking-wide text-base" {...props} />,
+              ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]" {...props} />,
+              ol: ({node, ...props}) => <ol className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-white/80" {...props} />,
+              li: ({node, ...props}) => <li className="pl-1 leading-relaxed" {...props} />,
+              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-[#00D4B3] pl-4 italic text-white/60 my-6 bg-white/5 py-2 pr-4 rounded-r-lg not-prose" {...props} />,
+              code: ({node, ...props}) => <code className="bg-black/30 px-1.5 py-0.5 rounded text-sm font-mono text-[#00D4B3]" {...props} />,
+            }}
+          >
+            {summaryContent || ''}
+          </ReactMarkdown>
+        </div>
+
+        {/* Footer simple */}
+        <div className="relative px-8 py-4 bg-white/[0.02] border-t border-white/5 flex justify-between items-center">
+            <span className="text-xs text-white/20 font-medium tracking-widest uppercase">Generado por IA • Revisado por Expertos</span>
+             <button 
+              onClick={() => {
+                navigator.clipboard.writeText(summaryContent || '');
+                // Podríamos añadir un toast aquí
+              }}
+              className="p-2 text-white/20 hover:text-[#00D4B3] transition-colors rounded-lg hover:bg-[#00D4B3]/10"
+              title="Copiar resumen"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -6111,25 +4672,23 @@ function QuizRenderer({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Instrucciones */}
-      <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-4 mb-4">
-        <p className="text-[#0A2540] dark:text-white text-sm mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-          <strong style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Instrucciones:</strong> Responde las siguientes {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para verificar tu comprensión.
+    <div className="space-y-5">
+      {/* Instrucciones - Minimalista */}
+      <div className="px-4 py-3 border-l-2 border-white/20">
+        <p className="text-white/60 text-xs mb-1">
+          Responde las {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para completar este quiz.
         </p>
-        {totalPoints !== undefined && (
-          <p className="text-[#0A2540] dark:text-white text-sm mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-            <strong style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Puntos totales:</strong> {totalPoints}
-          </p>
-        )}
-        <p className="text-[#0A2540] dark:text-white text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-          Debes obtener al menos un {passingThreshold}% para aprobar ({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} correctas).
-          <span className="block mt-1"><strong style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Umbral de aprobación:</strong> {passingThreshold}%</span>
-        </p>
+        <div className="flex items-center gap-4 text-[10px] text-white/40">
+          {totalPoints !== undefined && (
+            <span>{totalPoints} puntos</span>
+          )}
+          <span>Umbral: {passingThreshold}%</span>
+          <span>({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} para aprobar)</span>
+        </div>
       </div>
 
       {/* Preguntas */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {normalizedQuizData.map((question, index) => {
           const selectedAnswer = selectedAnswers[question.id];
           const isCorrect = selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer);
@@ -6138,138 +4697,138 @@ function QuizRenderer({
           return (
             <div
               key={question.id}
-              className={`bg-white dark:bg-[#1E2329] rounded-lg p-5 border-2 ${showResults
+              className={`rounded-lg border transition-colors ${showResults
                 ? isCorrect
-                  ? 'border-[#10B981]/50 bg-[#10B981]/10 dark:bg-[#10B981]/20 dark:border-[#10B981]/50'
-                  : 'border-red-500/50 bg-red-50 dark:bg-red-500/20 dark:border-red-500/50'
-                : 'border-[#E9ECEF] dark:border-[#6C757D]/30'
+                  ? 'border-emerald-500/30 bg-emerald-500/5'
+                  : 'border-red-500/30 bg-red-500/5'
+                : 'border-white/10 bg-white/[0.02]'
                 }`}
             >
-              <div className="flex items-start gap-3 mb-4">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0 ${showResults
-                  ? isCorrect
-                    ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border border-[#10B981]/30 dark:border-[#10B981]/50'
-                    : 'bg-red-500/20 dark:bg-red-500/30 text-red-600 dark:text-red-400 border border-red-500/30 dark:border-red-500/50'
-                  : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/30 dark:border-[#0A2540]/50'
-                  }`}>
-                  {index + 1}
+              {/* Header de pregunta */}
+              <div className="px-4 py-3 border-b border-white/5 flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 flex-1">
+                  <span className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-xs font-medium text-white/50 flex-shrink-0">
+                    {index + 1}
+                  </span>
+                  <p className="text-sm text-white leading-relaxed flex-1">
+                    {question.question}
+                  </p>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <h4 className="text-[#0A2540] dark:text-white font-semibold leading-relaxed flex-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
-                      {question.question}
-                    </h4>
-                    {question.points && (
-                      <span className="px-2 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 dark:border-[#00D4B3]/50 shrink-0" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                        {question.points} {question.points === 1 ? 'punto' : 'puntos'}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Opciones */}
-                  <div className="space-y-2">
-                    {question.options.map((option, optIndex) => {
-                      const optionLetter = String.fromCharCode(65 + optIndex); // A, B, C, D...
-                      const isSelected = selectedAnswer === optIndex || selectedAnswer === option;
-
-                      // Determinar si esta opción es la correcta
-                      let isCorrectOption = false;
-                      if (question.questionType === 'true_false') {
-                        // Para preguntas de verdadero/falso, usar normalización especial
-                        if (typeof question.correctAnswer === 'number') {
-                          isCorrectOption = optIndex === question.correctAnswer;
-                        } else if (typeof question.correctAnswer === 'string') {
-                          isCorrectOption = normalizeTrueFalse(option) === normalizeTrueFalse(question.correctAnswer);
-                        }
-                      } else {
-                        // Para otros tipos de preguntas, usar normalización estándar
-                        if (typeof question.correctAnswer === 'number') {
-                          isCorrectOption = optIndex === question.correctAnswer;
-                        } else if (typeof question.correctAnswer === 'string') {
-                          isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
-                        }
-                      }
-
-                      return (
-                        <label
-                          key={optIndex}
-                          className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${showResults
-                            ? isCorrectOption
-                              ? 'bg-green-50 dark:bg-green-500/20 border-green-300 dark:border-green-500/60'
-                              : isSelected && !isCorrectOption
-                                ? 'bg-red-50 dark:bg-red-500/20 border-red-300 dark:border-red-500/60'
-                                : 'bg-[#E9ECEF]/30 dark:bg-[#0F1419] border-[#E9ECEF] dark:border-[#6C757D]/30'
-                            : isSelected
-                              ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-[#00D4B3] dark:border-[#00D4B3]/60'
-                              : 'bg-white dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50'
-                            }`}
-                        >
-                          <input
-                            type="radio"
-                            name={`question-${question.id}`}
-                            value={optIndex}
-                            checked={isSelected}
-                            onChange={() => handleAnswerSelect(question.id, optIndex)}
-                            disabled={showResults}
-                            className="mt-1 w-4 h-4 text-[#00D4B3] border-[#E9ECEF] dark:border-[#6C757D]/30 focus:ring-[#00D4B3] focus:ring-2 dark:bg-[#1E2329]"
-                          />
-                          <div className="flex-1">
-                            <span className="font-semibold text-[#0A2540] dark:text-white mr-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
-                              ({optionLetter})
-                            </span>
-                            <span className="text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{option}</span>
-                          </div>
-                          {showResults && isCorrectOption && (
-                            <CheckCircle className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
-                          )}
-                          {showResults && isSelected && !isCorrectOption && (
-                            <X className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                          )}
-                        </label>
-                      );
-                    })}
-                  </div>
-
-                  {/* Explicación */}
-                  {showExplanation && question.explanation && (
-                    <div className={`mt-4 p-4 rounded-lg ${isCorrect
-                      ? 'bg-green-50 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50'
-                      : 'bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50'
-                      }`}>
-                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-1">
-                        {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
-                      </p>
-                      <p className="text-gray-700 dark:text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
-                        {parseExplanation(question, selectedAnswer)}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {question.points && (
+                  <span className="text-[10px] text-white/30 px-2 py-0.5 bg-white/5 rounded flex-shrink-0">
+                    {question.points} pt{question.points > 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
+
+              {/* Opciones */}
+              <div className="p-3 space-y-1.5">
+                {question.options.map((option, optIndex) => {
+                  const optionLetter = String.fromCharCode(65 + optIndex);
+                  const isSelected = selectedAnswer === optIndex || selectedAnswer === option;
+
+                  let isCorrectOption = false;
+                  if (question.questionType === 'true_false') {
+                    if (typeof question.correctAnswer === 'number') {
+                      isCorrectOption = optIndex === question.correctAnswer;
+                    } else if (typeof question.correctAnswer === 'string') {
+                      isCorrectOption = normalizeTrueFalse(option) === normalizeTrueFalse(question.correctAnswer);
+                    }
+                  } else {
+                    if (typeof question.correctAnswer === 'number') {
+                      isCorrectOption = optIndex === question.correctAnswer;
+                    } else if (typeof question.correctAnswer === 'string') {
+                      isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
+                    }
+                  }
+
+                  return (
+                    <label
+                      key={optIndex}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-all ${showResults
+                        ? isCorrectOption
+                          ? 'bg-emerald-500/10 text-emerald-400'
+                          : isSelected && !isCorrectOption
+                            ? 'bg-red-500/10 text-red-400'
+                            : 'bg-transparent text-white/50'
+                        : isSelected
+                          ? 'bg-white/10 text-white'
+                          : 'bg-transparent text-white/60 hover:bg-white/5 hover:text-white/80'
+                        }`}
+                    >
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${showResults
+                        ? isCorrectOption
+                          ? 'border-emerald-400 bg-emerald-400'
+                          : isSelected && !isCorrectOption
+                            ? 'border-red-400 bg-red-400'
+                            : 'border-white/20'
+                        : isSelected
+                          ? 'border-white bg-white'
+                          : 'border-white/20'
+                        }`}>
+                        {((showResults && (isCorrectOption || (isSelected && !isCorrectOption))) || (!showResults && isSelected)) && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                        )}
+                      </div>
+                      <input
+                        type="radio"
+                        name={`question-${question.id}`}
+                        value={optIndex}
+                        checked={isSelected}
+                        onChange={() => handleAnswerSelect(question.id, optIndex)}
+                        disabled={showResults}
+                        className="sr-only"
+                      />
+                      <span className="text-xs font-medium opacity-50 mr-1">({optionLetter})</span>
+                      <span className="text-sm flex-1">{option}</span>
+                      {showResults && isCorrectOption && (
+                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      )}
+                      {showResults && isSelected && !isCorrectOption && (
+                        <X className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+
+              {/* Explicación */}
+              {showExplanation && question.explanation && (
+                <div className={`mx-3 mb-3 px-3 py-2 rounded-md text-xs ${isCorrect
+                  ? 'bg-emerald-500/10 border border-emerald-500/20'
+                  : 'bg-red-500/10 border border-red-500/20'
+                  }`}>
+                  <span className={`font-medium ${isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
+                  </span>
+                  <p className="text-white/60 mt-1 leading-relaxed">
+                    {parseExplanation(question, selectedAnswer)}
+                  </p>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Mensaje de error */}
+      {/* Error */}
       {submitError && (
-        <div className="mt-4 p-4 bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 rounded-lg">
-          <p className="text-red-600 dark:text-red-300 text-sm">{submitError}</p>
+        <div className="px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20">
+          <p className="text-red-400 text-xs">{submitError}</p>
         </div>
       )}
 
       {/* Botón de envío */}
       {!showResults && (
-        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end pt-3 border-t border-white/5">
           <button
             onClick={handleSubmit}
             disabled={Object.keys(selectedAnswers).length < totalQuestions || isSubmitting}
-            className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center gap-2"
-            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-[#0A2540] hover:bg-[#0d2f4d] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Guardando...
               </>
             ) : (
@@ -6281,49 +4840,36 @@ function QuizRenderer({
 
       {/* Resultados */}
       {showResults && (
-        <>
-          <div className={`mt-6 p-6 rounded-lg border-2 ${passed
-            ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/60'
-            : 'bg-red-50 dark:bg-red-500/20 border-red-200 dark:border-red-500/60'
-            }`}>
-            <div className="text-center">
-              {/* Mensaje informativo del servidor */}
-              {serverMessage && (
-                <div className={`mb-4 p-3 rounded-lg border ${serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                  ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/50'
-                  : passed
-                    ? 'bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/50'
-                    : 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-[#00D4B3]/30 dark:border-[#00D4B3]/40'
-                  }`}>
-                  <p className={`text-sm ${serverMessage.includes('Ya habías aprobado') || serverMessage.includes('Tu mejor puntaje')
-                    ? 'text-yellow-800 dark:text-yellow-200'
-                    : passed
-                      ? 'text-green-800 dark:text-green-200'
-                      : 'text-blue-800 dark:text-blue-200'
-                    }`}>
-                    {serverMessage}
-                  </p>
-                </div>
-              )}
-              <h3 className={`text-2xl font-bold mb-2 ${passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {passed ? '✓ ¡Aprobaste!' : '✗ No aprobaste'}
-              </h3>
-              <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
-                Obtuviste {score} de {totalQuestions} correctas
-              </p>
-              {totalPoints !== undefined && (
-                <p className="text-gray-800 dark:text-slate-100 text-lg mb-1">
-                  Puntos: {pointsEarned} de {totalPoints}
-                </p>
-              )}
-              <p className="text-gray-700 dark:text-slate-200 text-sm">
-                Porcentaje: <strong>{percentage}%</strong> | Umbral requerido: {passingThreshold}%
-              </p>
+        <div className={`rounded-lg border p-5 ${passed
+          ? 'border-emerald-500/30 bg-emerald-500/5'
+          : 'border-red-500/30 bg-red-500/5'
+          }`}>
+          {/* Mensaje del servidor */}
+          {serverMessage && (
+            <div className="mb-4 px-3 py-2 rounded-md bg-white/5 border border-white/10">
+              <p className="text-white/60 text-xs">{serverMessage}</p>
             </div>
+          )}
+          
+          <div className="text-center">
+            <p className={`text-lg font-semibold mb-1 ${passed ? 'text-emerald-400' : 'text-red-400'}`}>
+              {passed ? '✓ Aprobado' : '✗ No aprobado'}
+            </p>
+            <p className="text-white text-sm mb-1">
+              {score} de {totalQuestions} correctas
+            </p>
+            {totalPoints !== undefined && (
+              <p className="text-white/60 text-xs mb-1">
+                {pointsEarned} de {totalPoints} puntos
+              </p>
+            )}
+            <p className="text-white/40 text-xs">
+              {percentage}% | Requerido: {passingThreshold}%
+            </p>
           </div>
-
-          {/* Botón de reiniciar cuestionario */}
-          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 mt-6">
+          
+          {/* Botón reiniciar */}
+          <div className="flex justify-center mt-4">
             <button
               onClick={() => {
                 setSelectedAnswers({});
@@ -6333,13 +4879,13 @@ function QuizRenderer({
                 setSubmitError(null);
                 setServerMessage(null);
               }}
-              className="px-6 py-3 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
+              className="px-4 py-2 rounded-md text-xs font-medium bg-white/10 hover:bg-white/15 text-white/70 transition-colors flex items-center gap-2"
             >
-              <RefreshCw className="w-4 h-4" />
-              Reiniciar Cuestionario
+              <RefreshCw className="w-3.5 h-3.5" />
+              Reintentar
             </button>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -6433,10 +4979,7 @@ function ReadingContentRenderer({ content }: { content: any }) {
 
   // Si el contenido es un objeto con propiedades, intentar extraer el texto
   if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
-    // Buscar propiedades comunes que contengan el texto
     readingContent = content.text || content.content || content.body || content.description || content.title || '';
-
-    // Si no encontramos contenido, intentar convertir todo el objeto a string
     if (!readingContent || readingContent === '') {
       readingContent = JSON.stringify(content, null, 2);
     }
@@ -6449,9 +4992,7 @@ function ReadingContentRenderer({ content }: { content: any }) {
       if (typeof parsed === 'object' && parsed !== null) {
         readingContent = parsed.text || parsed.content || parsed.body || parsed.description || readingContent;
       }
-    } catch (e) {
-      // No es JSON, usar directamente
-    }
+    } catch (e) {}
   }
 
   // Asegurar que es string
@@ -6459,92 +5000,134 @@ function ReadingContentRenderer({ content }: { content: any }) {
     readingContent = String(readingContent);
   }
 
-  // Preservar saltos de línea y formato original
-  // Dividir por saltos de línea pero mantener líneas vacías para preservar párrafos
+  // Dividir por saltos de línea
   const lines = readingContent.split('\n');
 
+  // Agrupar líneas en secciones para mejor renderizado
+  const renderContent = () => {
+    const elements: JSX.Element[] = [];
+    let currentParagraph: string[] = [];
+
+    const flushParagraph = () => {
+      if (currentParagraph.length > 0) {
+        const text = currentParagraph.join(' ');
+        elements.push(
+          <p key={`p-${elements.length}`} className="text-white/80 text-sm leading-[1.8] mb-4">
+            {text}
+          </p>
+        );
+        currentParagraph = [];
+      }
+    };
+
+    lines.forEach((line: string, index: number) => {
+      const trimmedLine = line.trim();
+
+      // Línea vacía - flush del párrafo actual
+      if (trimmedLine === '') {
+        flushParagraph();
+        return;
+      }
+
+      // Detectar títulos principales (Introducción:, Cuerpo:, etc.)
+      const mainSectionMatch = trimmedLine.match(/^(Introducción|Cuerpo|Cierre|Conclusión|Resumen):?\s*(.*)$/i);
+      if (mainSectionMatch) {
+        flushParagraph();
+        elements.push(
+          <div key={`main-${index}`} className="mt-8 mb-4 first:mt-0">
+            <h2 className="text-lg font-semibold text-white mb-1">{mainSectionMatch[1]}</h2>
+            {mainSectionMatch[2] && (
+              <p className="text-white/60 text-sm">{mainSectionMatch[2]}</p>
+            )}
+            <div className="w-12 h-0.5 bg-white/10 mt-3" />
+          </div>
+        );
+        return;
+      }
+
+      // Detectar subtítulos numerados con estilo "Paso N:" o similar
+      const stepMatch = trimmedLine.match(/^(Paso\s+\d+):?\s*(.*)$/i);
+      if (stepMatch) {
+        flushParagraph();
+        elements.push(
+          <div key={`step-${index}`} className="mt-6 mb-3 flex items-start gap-3">
+            <span className="px-2 py-0.5 bg-white/10 rounded text-[10px] font-medium text-white/60 uppercase tracking-wider flex-shrink-0">
+              {stepMatch[1]}
+            </span>
+            {stepMatch[2] && (
+              <span className="text-white font-medium text-sm">{stepMatch[2]}</span>
+            )}
+          </div>
+        );
+        return;
+      }
+
+      // Detectar subtítulos numerados (1. Título, 2. Título, etc.)
+      const numberedMatch = trimmedLine.match(/^(\d+)[\.\)]\s+(.+)$/);
+      if (numberedMatch && trimmedLine.length < 120) {
+        flushParagraph();
+        const [, number, title] = numberedMatch;
+        elements.push(
+          <div key={`num-${index}`} className="mt-5 mb-3 flex items-baseline gap-3">
+            <span className="text-white/30 text-xs font-medium">{number}.</span>
+            <h3 className="text-white font-medium text-sm">{title}</h3>
+          </div>
+        );
+        return;
+      }
+
+      // Detectar referencias (Referencia:, etc.)
+      const refMatch = trimmedLine.match(/^\(?(Referencia|Ref|Ver|Nota):?\s*(.+)\)?$/i);
+      if (refMatch) {
+        flushParagraph();
+        elements.push(
+          <div key={`ref-${index}`} className="mt-2 mb-3 pl-3 border-l-2 border-white/10">
+            <p className="text-white/40 text-xs italic">{trimmedLine}</p>
+          </div>
+        );
+        return;
+      }
+
+      // Detectar títulos sin numeración (líneas cortas que terminan con dos puntos)
+      if (trimmedLine.endsWith(':') && trimmedLine.length < 80 && trimmedLine.length > 5) {
+        flushParagraph();
+        elements.push(
+          <h4 key={`h4-${index}`} className="text-white/90 font-medium text-sm mt-5 mb-2">
+            {trimmedLine}
+          </h4>
+        );
+        return;
+      }
+
+      // Detectar listas con guiones o bullets
+      const listMatch = trimmedLine.match(/^[-•●○]\s+(.+)$/);
+      if (listMatch) {
+        flushParagraph();
+        elements.push(
+          <div key={`list-${index}`} className="flex items-start gap-2 mb-2 pl-2">
+            <span className="text-white/30 mt-1.5">•</span>
+            <span className="text-white/70 text-sm leading-relaxed">{listMatch[1]}</span>
+          </div>
+        );
+        return;
+      }
+
+      // Agregar al párrafo actual
+      currentParagraph.push(trimmedLine);
+    });
+
+    // Flush final
+    flushParagraph();
+
+    return elements;
+  };
+
   return (
-    <div className="bg-white dark:bg-[#1E2329] rounded-lg p-6 md:p-8 border border-[#E9ECEF] dark:border-[#6C757D]/30">
-      <div className="prose prose-lg dark:prose-invert max-w-none">
-        <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-          {lines.map((line: string, index: number) => {
-            const trimmedLine = line.trim();
-
-            // Si la línea está vacía, renderizar un espacio para separar párrafos
-            if (trimmedLine === '') {
-              return <div key={`line-${index}`} className="h-4" />;
-            }
-
-            // Detectar títulos principales (Introducción:, Cuerpo:, etc.)
-            const mainSectionMatch = trimmedLine.match(/^(Introducción|Cuerpo|Cierre|Conclusión|Resumen):?\s*$/i);
-            if (mainSectionMatch) {
-              return (
-                <h1
-                  key={`line-${index}`}
-                  className="text-[#0A2540] dark:text-white font-bold text-3xl mb-4 mt-8 first:mt-0 border-b-2 border-[#00D4B3]/40 pb-3"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
-                >
-                  {mainSectionMatch[1]}
-                </h1>
-              );
-            }
-
-            // Detectar subtítulos numerados (1. Título, 2. Título, etc.)
-            const numberedMatch = trimmedLine.match(/^(\d+)[\.\)]\s+(.+)$/);
-            if (numberedMatch && trimmedLine.length < 150) {
-              const [, number, title] = numberedMatch;
-              return (
-                <h2
-                  key={`line-${index}`}
-                  className="text-[#0A2540] dark:text-white font-semibold text-2xl mb-3 mt-6 border-b border-[#00D4B3]/20 pb-2"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-                >
-                  <span className="text-[#00D4B3]">{number}.</span> {title}
-                </h2>
-              );
-            }
-
-            // Detectar subtítulos con formato "1.1 - Título" o "1.1 - Título:"
-            const subsectionMatch = trimmedLine.match(/^(\d+\.\d+)\s*[-–]\s*(.+?):?\s*$/);
-            if (subsectionMatch && trimmedLine.length < 150) {
-              const [, number, title] = subsectionMatch;
-              return (
-                <h3
-                  key={`line-${index}`}
-                  className="text-[#0A2540] dark:text-white font-semibold text-xl mb-3 mt-5"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-                >
-                  <span className="text-[#00D4B3]">{number}</span> - {title}
-                </h3>
-              );
-            }
-
-            // Detectar títulos sin numeración (líneas cortas que terminan con dos puntos)
-            if (trimmedLine.endsWith(':') && trimmedLine.length < 100 && trimmedLine.length > 5) {
-              return (
-                <h3
-                  key={`line-${index}`}
-                  className="text-[#0A2540] dark:text-white font-semibold text-xl mb-3 mt-5"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-                >
-                  {trimmedLine}
-                </h3>
-              );
-            }
-
-            // Párrafos normales
-            return (
-              <p
-                key={`line-${index}`}
-                className="text-[#0A2540] dark:text-white leading-relaxed mb-4 text-base"
-                style={{ lineHeight: '1.8', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
-              >
-                {line}
-              </p>
-            );
-          })}
-        </div>
-      </div>
+    <div className="py-2">
+      {/* Contenido de lectura */}
+      <article className="max-w-none">
+        {renderContent()}
+      </article>
     </div>
   );
 }
@@ -6888,7 +5471,8 @@ function ActivitiesContent({
   generateRoleBasedPrompts,
   onNavigateNext,
   hasNextLesson,
-  selectedLang
+  selectedLang,
+  colors
 }: {
   lesson: Lesson;
   slug: string;
@@ -6899,9 +5483,12 @@ function ActivitiesContent({
   onNavigateNext?: () => void | Promise<void>;
   hasNextLesson?: boolean;
   selectedLang: string;
+  colors: { accent: string; primary: string; bgPrimary: string; bgSecondary: string };
 }) {
   // Hook de traducción
   const { t } = useTranslation('learn');
+  // Hook de contexto LIA para notificar actividad activa
+  const { setActivity, openLia } = useLiaCourse();
 
   const [activities, setActivities] = useState<Array<{
     activity_id: string;
@@ -7288,187 +5875,112 @@ function ActivitiesContent({
 
   return (
     <div className="space-y-6 pb-24 md:pb-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Actividades</h2>
-        <p className="text-gray-600 dark:text-slate-300 text-sm">{lesson.lesson_title}</p>
+      {/* Header Simple */}
+      <div className="pb-4 border-b border-white/5">
+        <h2 className="text-xl font-semibold text-white">Actividades</h2>
+        <p className="text-sm text-white/40 mt-1">{lesson.lesson_title}</p>
       </div>
 
-      {/* Actividades */}
+      {/* Sección Actividades */}
       {hasActivities && (
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
-          {/* Header de actividades mejorado */}
-          <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-lg">
-                  <Activity className="w-5 h-5 text-[#00D4B3]" />
-                </div>
-                <div>
-                  <h3 className="text-[#0A2540] dark:text-white font-bold text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Actividades</h3>
-                  <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Ejercicios y prácticas interactivas</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
-                  <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{activities.length}</span>
-                  <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>actividad{activities.length !== 1 ? 'es' : ''}</span>
-                </div>
-              </div>
+        <div>
+          {/* Header de sección - Simple */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center">
+              <Activity className="w-3.5 h-3.5 text-white/50" />
             </div>
+            <span className="text-sm font-medium text-white/70">Actividades</span>
+            <span className="text-xs text-white/30">{activities.length}</span>
           </div>
 
-          {/* Contenido de actividades */}
-          <div className="p-6 space-y-4 bg-white dark:bg-[#0F1419]">
+          {/* Lista de Actividades */}
+          <div className="space-y-2">
             {activities.map((activity) => {
               const isCollapsed = collapsedActivities.has(activity.activity_id);
+              const isAiChat = activity.activity_type === 'ai_chat';
+              const isQuiz = activity.activity_type === 'quiz';
 
               return (
                 <div
                   key={activity.activity_id}
-                  className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50"
+                  className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors overflow-hidden"
                 >
-                  {/* Header de la actividad mejorado */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCollapsedActivities(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(activity.activity_id)) {
-                          newSet.delete(activity.activity_id);
+                    {/* Header de la actividad */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const isCurrentlyCollapsed = collapsedActivities.has(activity.activity_id);
+                        if (isCurrentlyCollapsed) {
+                          setCollapsedActivities(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(activity.activity_id);
+                            return newSet;
+                          });
                         } else {
-                          newSet.add(activity.activity_id);
+                          setCollapsedActivities(prev => {
+                            const newSet = new Set(prev);
+                            newSet.add(activity.activity_id);
+                            return newSet;
+                          });
                         }
-                        return newSet;
-                      });
-                    }}
-                    className="w-full flex items-center justify-between p-5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
-                  >
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h4 className="text-[#0A2540] dark:text-white font-semibold text-lg group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{activity.activity_title}</h4>
-                        {activity.is_required && (
-                          <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm">
-                            Requerida
-                          </span>
+                      }}
+                      className="w-full px-4 py-3 flex items-center gap-3"
+                    >
+                      {/* Icono simple */}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        isAiChat ? 'bg-white/10' : 'bg-white/5'
+                      }`}>
+                        {isAiChat ? (
+                          <MessageCircle className="w-4 h-4 text-white/60" />
+                        ) : isQuiz ? (
+                          <FileText className="w-4 h-4 text-white/60" />
+                        ) : (
+                          <Activity className="w-4 h-4 text-white/60" />
                         )}
-                        <span className="px-2.5 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs font-medium rounded-full border border-[#00D4B3]/30 shadow-sm capitalize" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                          {activity.activity_type}
-                        </span>
-                        {/* Indicador de quiz obligatorio */}
-                        {activity.activity_type === 'quiz' && activity.is_required && quizStatus && quizStatus.quizzes && (() => {
-                          const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
-                          if (quizInfo) {
-                            if (quizInfo.isPassed) {
+                      </div>
+                      
+                      {/* Contenido */}
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-white truncate">
+                            {activity.activity_title}
+                          </span>
+                          {activity.is_required && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-medium text-amber-400/80 bg-amber-500/10 rounded">
+                              Requerida
+                            </span>
+                          )}
+                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded capitalize">
+                            {activity.activity_type === 'ai_chat' ? 'Chat IA' : activity.activity_type}
+                          </span>
+                          {/* Status de quiz */}
+                          {isQuiz && activity.is_required && quizStatus?.quizzes && (() => {
+                            const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
+                            if (quizInfo?.isPassed) {
                               return (
-                                <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm flex items-center gap-1.5">
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  Aprobado
-                                </span>
-                              );
-                            } else if (quizInfo.isCompleted) {
-                              return (
-                                <span className="px-2.5 py-1 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded-full border border-yellow-500/30 shadow-sm flex items-center gap-1.5">
-                                  <X className="w-3.5 h-3.5" />
-                                  Reprobado ({quizInfo.percentage}%)
-                                </span>
-                              );
-                            } else {
-                              return (
-                                <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm flex items-center gap-1.5">
-                                  <Activity className="w-3.5 h-3.5" />
-                                  Pendiente
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-400/80 bg-emerald-500/10 rounded flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" /> Completado
                                 </span>
                               );
                             }
-                          }
-                          return null;
-                        })()}
+                            return null;
+                          })()}
+                        </div>
                       </div>
-                      {activity.activity_description && !isCollapsed && (
-                        <p className="text-[#6C757D] dark:text-white/80 text-sm mt-2 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{activity.activity_description}</p>
-                      )}
-                    </div>
+                      
+                      {/* Chevron */}
+                      <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${!isCollapsed ? 'rotate-180' : ''}`} />
+                    </button>
 
-                    {/* Botón de colapsar/expandir mejorado */}
-                    <div className="ml-4 flex-shrink-0 flex items-center gap-2">
-                      <span className="text-xs font-medium text-[#6C757D] dark:text-white/60 hidden sm:inline transition-opacity" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                        {isCollapsed ? 'Expandir' : 'Colapsar'}
-                      </span>
-                      <div className="p-2 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg group-hover:bg-[#00D4B3]/10 dark:group-hover:bg-[#00D4B3]/20 transition-colors">
-                        {isCollapsed ? (
-                          <ChevronDown className="w-5 h-5 text-[#0A2540] dark:text-white/80 group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" />
-                        ) : (
-                          <ChevronUp className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#00D4B3] dark:group-hover:text-[#00D4B3] transition-colors" />
-                        )}
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Contenido de la actividad (colapsable) */}
-                  <AnimatePresence initial={false}>
+                    {/* Contenido colapsable */}
                     {!isCollapsed && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        className="overflow-hidden border-t border-gray-100 dark:border-slate-700"
-                      >
-                        <div className="px-6 py-6 bg-gray-50 dark:bg-slate-900/40">
-                          {/* Botón especial para actividades ai_chat */}
-                          {activity.activity_type === 'ai_chat' ? (
-                            <div className="bg-gradient-to-br from-[#00D4B3]/10 to-[#0A2540]/10 dark:from-[#00D4B3]/20 dark:to-[#0A2540]/20 backdrop-blur-sm rounded-xl p-8 border-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40 text-center">
-                              <div className="flex flex-col items-center gap-4">
-                                <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-2xl shadow-[#00D4B3]/50 dark:shadow-[#00D4B3]/50">
-                                  <Image
-                                    src="/lia-avatar.png"
-                                    alt="Lia"
-                                    fill
-                                    className="object-cover"
-                                    sizes="64px"
-                                  />
-                                </div>
-
-                                <div>
-                                  <h3 className="text-xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-                                    Actividad Interactiva con Lia
-                                  </h3>
-                                  <p className="text-[#0A2540] dark:text-white text-sm mb-6 max-w-md mx-auto" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                    Esta es una actividad guiada por Lia, tu tutora personalizada. Haz clic para comenzar una conversación interactiva paso a paso.
-                                  </p>
-                                </div>
-
-                                <button
-                                  onClick={() => {
-                                    if (onStartInteraction) {
-                                      onStartInteraction(activity.activity_content, activity.activity_title);
-                                    }
-                                  }}
-                                  className="group relative px-8 py-4 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#0A2540]/50 dark:hover:shadow-[#0A2540]/50 hover:scale-105"
-                                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
-                                >
-                                  <span className="flex items-center gap-3">
-                                    <div className="relative w-5 h-5">
-                                      <Image
-                                        src="/lia-avatar.png"
-                                        alt="Lia"
-                                        fill
-                                        className="object-cover rounded-full group-hover:animate-pulse"
-                                        sizes="20px"
-                                      />
-                                    </div>
-                                    <span>Interactuar con Lia</span>
-                                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                  </span>
-                                </button>
-
-                                <p className="text-xs text-[#6C757D] dark:text-white/60 mt-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                  Lia te guiará a través de {activity.activity_title.toLowerCase()}
-                                </p>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="bg-white dark:bg-[#1E2329] rounded-lg p-4 mb-3 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                      <div className="px-4 pb-4 border-t border-white/5">
+                        {activity.activity_description && (
+                          <p className="text-white/40 text-xs mt-3 mb-3 leading-relaxed">{activity.activity_description}</p>
+                        )}
+                        
+                        {/* Contenido de la actividad */}
+                        <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
                               {activity.activity_type === 'quiz' && (() => {
                                 try {
                                   // Intentar parsear el contenido como JSON si es un quiz
@@ -7549,25 +6061,62 @@ function ActivitiesContent({
                                   );
                                 }
                               })()}
-                              {activity.activity_type !== 'quiz' && (
+                              
+                              {/* Tarjeta AI Chat - Minimalista */}
+                              {activity.activity_type === 'ai_chat' ? (
+                                <div className="p-4 text-center">
+                                  <div className="w-10 h-10 mx-auto rounded-lg bg-white/5 flex items-center justify-center mb-3">
+                                    <MessageCircle className="w-5 h-5 text-white/50" />
+                                  </div>
+                                  <h4 className="text-sm font-medium text-white mb-1">
+                                    Actividad con LIA
+                                  </h4>
+                                  <p className="text-xs text-white/40 mb-4">
+                                    Inicia una conversación guiada para completar esta actividad
+                                  </p>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      let parsedPrompts: string[] = [];
+                                      if (activity.ai_prompts) {
+                                        try {
+                                          const raw = activity.ai_prompts;
+                                          parsedPrompts = typeof raw === 'string' && raw.trim().startsWith('[') ? JSON.parse(raw) : [String(raw)];
+                                        } catch (e) { parsedPrompts = [String(activity.ai_prompts)]; }
+                                      }
+                                      setActivity({
+                                        id: activity.activity_id,
+                                        title: activity.activity_title,
+                                        type: activity.activity_type,
+                                        description: activity.activity_description || '',
+                                        prompts: parsedPrompts
+                                      });
+                                      openLia();
+                                    }}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#0A2540] hover:bg-[#0d2f4d] text-white transition-colors"
+                                  >
+                                    <Sparkles className="w-4 h-4" />
+                                    Comenzar
+                                    <ChevronRight className="w-4 h-4 opacity-50" />
+                                  </button>
+                                </div>
+                              ) : (
+                                /* Contenido Standard para no-AI activities */
                                 <FormattedContentRenderer content={activity.activity_content} activityId={activity.activity_id} />
                               )}
                             </div>
-                          )}
 
                           {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
-                            <div className="mt-4 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
-                              <div className="flex items-center gap-2 mb-4">
-                                <HelpCircle className="w-4 h-4 text-[#00D4B3]" />
-                                <h5 className="text-[#00D4B3] font-semibold text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Prompts y Ejercicios</h5>
+                            <div className="mt-4 pt-4 border-t border-white/5">
+                              <div className="flex items-center gap-2 mb-3">
+                                <HelpCircle className="w-3.5 h-3.5 text-white/40" />
+                                <span className="text-white/50 text-xs font-medium">Prompts y Ejercicios</span>
                               </div>
                               <PromptsRenderer prompts={activity.ai_prompts} />
                             </div>
                           )}
                         </div>
-                      </motion.div>
                     )}
-                  </AnimatePresence>
                 </div>
               );
             })}
@@ -7575,41 +6124,31 @@ function ActivitiesContent({
         </div>
       )}
 
-      {/* Materiales */}
+      {/* Materiales - Simple */}
       {hasMaterials && (
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-lg">
-          {/* Header de materiales mejorado */}
-          <div className="bg-[#E9ECEF]/30 dark:bg-[#1E2329] px-6 py-5 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-[#10B981]/10 dark:bg-[#10B981]/20 rounded-lg">
-                  <FileText className="w-5 h-5 text-[#10B981]" />
-                </div>
-                <div>
-                  <h3 className="text-[#0A2540] dark:text-white font-bold text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Materiales</h3>
-                  <p className="text-xs text-[#6C757D] dark:text-white/60 mt-0.5" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Recursos y documentos complementarios</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="px-3 py-1.5 bg-white dark:bg-[#0F1419] backdrop-blur-sm rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-sm">
-                  <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{materials.length}</span>
-                  <span className="text-xs text-[#6C757D] dark:text-white/60 ml-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>material{materials.length !== 1 ? 'es' : ''}</span>
-                </div>
-              </div>
+        <div>
+          {/* Header de sección */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center">
+              <BookOpen className="w-3.5 h-3.5 text-white/50" />
             </div>
+            <span className="text-sm font-medium text-white/70">Materiales</span>
+            <span className="text-xs text-white/30">{materials.length}</span>
           </div>
 
-          {/* Contenido de materiales */}
-          <div className="p-6 space-y-4 bg-white dark:bg-[#0F1419]">
+          {/* Lista de Materiales */}
+          <div className="space-y-2">
             {materials.map((material) => {
               const isCollapsed = collapsedMaterials.has(material.material_id);
+              const isQuiz = material.material_type === 'quiz';
+              const isReading = material.material_type === 'reading';
 
               return (
                 <div
                   key={material.material_id}
-                  className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:border-[#10B981] dark:hover:border-[#10B981]/50"
+                  className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors overflow-hidden"
                 >
-                  {/* Header del material mejorado */}
+                  {/* Header del material */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -7623,114 +6162,86 @@ function ActivitiesContent({
                         return newSet;
                       });
                     }}
-                    className="w-full flex items-center justify-between p-5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                    className="w-full px-4 py-3 flex items-center gap-3"
                   >
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h4 className="text-[#0A2540] dark:text-white font-semibold text-lg group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{material.material_title}</h4>
-                        <span className="px-2.5 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] text-xs font-medium rounded-full border border-[#10B981]/30 shadow-sm capitalize" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                          {material.material_type}
+                    {/* Icono simple */}
+                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
+                      {isQuiz ? (
+                        <FileText className="w-4 h-4 text-white/60" />
+                      ) : isReading ? (
+                        <BookOpen className="w-4 h-4 text-white/60" />
+                      ) : (
+                        <ScrollText className="w-4 h-4 text-white/60" />
+                      )}
+                    </div>
+                    
+                    {/* Contenido */}
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-white truncate">
+                          {material.material_title}
+                        </span>
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded capitalize">
+                          {material.material_type === 'reading' ? 'Lectura' : material.material_type}
                         </span>
                         {material.is_downloadable && (
-                          <span className="px-2.5 py-1 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs font-medium rounded-full border border-[#00D4B3]/30 shadow-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded">
                             Descargable
                           </span>
                         )}
-                        {/* Indicador de quiz obligatorio */}
-                        {material.material_type === 'quiz' && quizStatus && quizStatus.quizzes && (() => {
+                        {/* Status de quiz */}
+                        {isQuiz && quizStatus?.quizzes && (() => {
                           const quizInfo = quizStatus.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
-                          if (quizInfo) {
-                            if (quizInfo.isPassed) {
-                              return (
-                                <span className="px-2.5 py-1 bg-green-500/15 text-green-600 dark:text-green-400 text-xs font-medium rounded-full border border-green-500/30 shadow-sm flex items-center gap-1.5">
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  Aprobado
-                                </span>
-                              );
-                            } else if (quizInfo.isCompleted) {
-                              return (
-                                <span className="px-2.5 py-1 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs font-medium rounded-full border border-yellow-500/30 shadow-sm flex items-center gap-1.5">
-                                  <X className="w-3.5 h-3.5" />
-                                  Reprobado ({quizInfo.percentage}%)
-                                </span>
-                              );
-                            } else {
-                              return (
-                                <span className="px-2.5 py-1 bg-red-500/15 text-red-600 dark:text-red-400 text-xs font-medium rounded-full border border-red-500/30 shadow-sm flex items-center gap-1.5">
-                                  <Activity className="w-3.5 h-3.5" />
-                                  Pendiente
-                                </span>
-                              );
-                            }
+                          if (quizInfo?.isPassed) {
+                            return (
+                              <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-400/80 bg-emerald-500/10 rounded flex items-center gap-1">
+                                <Check className="w-2.5 h-2.5" /> Completado
+                              </span>
+                            );
                           }
                           return null;
                         })()}
                       </div>
-                      {material.material_description && material.material_type !== 'reading' && !isCollapsed && (
-                        <p className="text-[#6C757D] dark:text-white/80 text-sm mt-2 leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{material.material_description}</p>
-                      )}
                     </div>
-
-                    {/* Botón de colapsar/expandir mejorado */}
-                    <div className="ml-4 flex-shrink-0 flex items-center gap-2">
-                      <span className="text-xs font-medium text-[#6C757D] dark:text-white/60 hidden sm:inline transition-opacity" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                        {isCollapsed ? 'Expandir' : 'Colapsar'}
-                      </span>
-                      <div className="p-2 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg group-hover:bg-[#10B981]/10 dark:group-hover:bg-[#10B981]/20 transition-colors">
-                        {isCollapsed ? (
-                          <ChevronDown className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" />
-                        ) : (
-                          <ChevronUp className="w-5 h-5 text-[#6C757D] dark:text-white/80 group-hover:text-[#10B981] dark:group-hover:text-[#10B981] transition-colors" />
-                        )}
-                      </div>
-                    </div>
+                    
+                    {/* Chevron */}
+                    <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${!isCollapsed ? 'rotate-180' : ''}`} />
                   </button>
 
-                  {/* Contenido del material (colapsable) */}
-                  <AnimatePresence initial={false}>
-                    {!isCollapsed && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        className="overflow-hidden border-t border-[#E9ECEF] dark:border-[#6C757D]/30"
-                      >
-                        <div className="px-6 py-6 bg-white dark:bg-[#0F1419]">
-                          {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
-                            <div className="w-full">
+                  {/* Contenido colapsable */}
+                  {!isCollapsed && (
+                    <div className="px-4 pb-4 border-t border-white/5">
+                      {material.material_description && material.material_type !== 'reading' && (
+                        <p className="text-white/40 text-xs mt-3 mb-3 leading-relaxed">{material.material_description}</p>
+                      )}
+                      
+                      {/* Contenido del material */}
+                      <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
+                        {/* Contenido según tipo */}
+                        {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
+                          <div className="w-full">
                               {material.material_type === 'quiz' && (() => {
                                 try {
                                   let quizData = material.content_data;
-
-                                  // Si es string, intentar parsearlo
                                   if (typeof quizData === 'string') {
                                     try {
                                       quizData = JSON.parse(quizData);
                                     } catch (e) {
-                                      // console.warn('Quiz content is not valid JSON:', e);
                                       return null;
                                     }
                                   }
-
-                                  // Detectar si tiene estructura {questions: [...], totalPoints: N}
                                   let questionsArray = quizData;
                                   let totalPoints = undefined;
-
                                   if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
                                     if (quizData.questions && Array.isArray(quizData.questions)) {
                                       questionsArray = quizData.questions;
                                       totalPoints = quizData.totalPoints;
                                     }
                                   }
-
-                                  // Verificar que es un array con preguntas
                                   if (Array.isArray(questionsArray) && questionsArray.length > 0) {
-                                    // Verificar que cada elemento tiene la estructura de pregunta
                                     const hasValidStructure = questionsArray.every((q: any) =>
                                       q && typeof q === 'object' && (q.question || q.id)
                                     );
-
                                     if (hasValidStructure) {
                                       return (
                                         <QuizRenderer
@@ -7743,9 +6254,7 @@ function ActivitiesContent({
                                       );
                                     }
                                   }
-                                } catch (e) {
-                                  // console.warn('Error parsing quiz data:', e);
-                                }
+                                } catch (e) {}
                                 return null;
                               })()}
                               {material.material_type === 'reading' && (
@@ -7759,19 +6268,18 @@ function ActivitiesContent({
                             </div>
                           )}
 
-                          {/* Enlaces y acciones */}
+                          {/* Enlaces */}
                           {(material.external_url || material.file_url) && (
-                            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
+                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
                               {material.external_url && (
                                 <a
                                   href={material.external_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-2 px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-colors border border-[#0A2540] shadow-sm hover:shadow-md"
-                                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors"
                                 >
-                                  <FileDown className="w-4 h-4" />
-                                  <span className="text-sm">Abrir enlace</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                  Abrir enlace
                                 </a>
                               )}
                               {material.file_url && (
@@ -7779,19 +6287,17 @@ function ActivitiesContent({
                                   href={material.file_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-2 px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl transition-colors border border-[#10B981] shadow-sm hover:shadow-md"
-                                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                                  className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-white/70 transition-colors"
                                 >
-                                  <FileDown className="w-4 h-4" />
-                                  <span className="text-sm">Ver archivo</span>
+                                  <FileDown className="w-3.5 h-3.5" />
+                                  Ver archivo
                                 </a>
                               )}
                             </div>
                           )}
                         </div>
-                      </motion.div>
+                      </div>
                     )}
-                  </AnimatePresence>
                 </div>
               );
             })}
@@ -7799,59 +6305,45 @@ function ActivitiesContent({
         </div>
       )}
 
-      {/* Leyenda informativa sobre requisitos para avanzar */}
+      {/* Leyenda informativa - Simple */}
       {(hasActivities || hasMaterials) && (
-        <div className="mt-6 p-4 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-[#00D4B3] dark:text-[#00D4B3] flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm text-[#0A2540] dark:text-white leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                {t('activities.completionRequirement')}
-              </p>
-            </div>
-          </div>
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/5">
+          <Info className="w-4 h-4 text-white/30 flex-shrink-0" />
+          <p className="text-xs text-white/40 leading-relaxed">
+            {t('activities.completionRequirement')}
+          </p>
         </div>
       )}
 
-      {/* Feedback de la lección y botón de avanzar */}
+      {/* Footer - Simple */}
       {lesson && (
-        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
-            <span className="text-sm font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
-              ¿Qué te pareció esta lección?
-            </span>
-            <div className="flex items-center gap-3">
+        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between pt-4 border-t border-white/5">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-white/40">¿Útil?</span>
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => handleLessonFeedback('like')}
                 disabled={feedbackLoading}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${lessonFeedback === 'like'
-                  ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] border-2 border-[#10B981]/50 shadow-lg shadow-[#10B981]/20'
-                  : 'bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50'
-                  } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
-                title="Me gustó la lección"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  lessonFeedback === 'like'
+                    ? 'bg-emerald-500/10 text-emerald-400'
+                    : 'text-white/50 hover:bg-white/5 hover:text-white/70'
+                } ${feedbackLoading ? 'opacity-50' : ''}`}
               >
-                {feedbackLoading && lessonFeedback === null ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ThumbsUp className={`w-4 h-4 transition-all ${lessonFeedback === 'like' ? 'fill-current scale-110' : ''}`} />
-                )}
-                <span className="text-sm font-medium">Me gusta</span>
+                <ThumbsUp className={`w-3.5 h-3.5 ${lessonFeedback === 'like' ? 'fill-current' : ''}`} />
+                Sí
               </button>
               <button
                 onClick={() => handleLessonFeedback('dislike')}
                 disabled={feedbackLoading}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all transform active:scale-95 ${lessonFeedback === 'dislike'
-                  ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50 shadow-lg shadow-red-500/20'
-                  : 'bg-gray-100 dark:bg-carbon-700 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-carbon-600 border border-gray-200 dark:border-carbon-600 hover:border-gray-300 dark:hover:border-carbon-500'
-                  } ${feedbackLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
-                title="No me gustó la lección"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  lessonFeedback === 'dislike'
+                    ? 'bg-red-500/10 text-red-400'
+                    : 'text-white/50 hover:bg-white/5 hover:text-white/70'
+                } ${feedbackLoading ? 'opacity-50' : ''}`}
               >
-                {feedbackLoading && lessonFeedback === null ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ThumbsDown className={`w-4 h-4 transition-all ${lessonFeedback === 'dislike' ? 'fill-current scale-110' : ''}`} />
-                )}
-                <span className="text-sm font-medium">No me gusta</span>
+                <ThumbsDown className={`w-3.5 h-3.5 ${lessonFeedback === 'dislike' ? 'fill-current' : ''}`} />
+                No
               </button>
             </div>
           </div>
@@ -7859,11 +6351,10 @@ function ActivitiesContent({
           {hasNextLesson && onNavigateNext && (
             <button
               onClick={onNavigateNext}
-              className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-semibold rounded-lg transition-all shadow-lg flex items-center gap-2"
-              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#0A2540] hover:bg-[#0d2f4d] text-white transition-colors"
             >
-              <ChevronRight className="w-5 h-5" />
-              Avanzar al Siguiente Video
+              Siguiente Video
+              <ChevronRight className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -8383,244 +6874,289 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
   if (loading) {
     return (
-      <div className="space-y-6 pb-24 md:pb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Preguntas y Respuestas</h2>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="space-y-6 pb-24 md:pb-6"
+      >
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 bg-white/5 rounded-lg animate-pulse" />
+          <div className="h-10 w-36 bg-white/5 rounded-lg animate-pulse" />
         </div>
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
-          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="w-8 h-8 text-[#00D4B3] animate-pulse" />
-          </div>
-          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.questions')}</p>
+        
+        {/* Search skeleton */}
+        <div className="h-12 bg-white/5 rounded-xl animate-pulse" />
+        
+        {/* Content skeleton */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-12 flex flex-col items-center justify-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center mb-4"
+          >
+            <MessageCircle className="w-6 h-6 text-white" />
+          </motion.div>
+          <p className="text-white/50 text-sm">{t('loading.questions')}</p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-24 md:pb-6">
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Preguntas y Respuestas</h2>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="px-6 py-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-[#0A2540]/25"
-            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-          >
-            <Plus className="w-5 h-5" />
-            Hacer Pregunta
-          </button>
-        </div>
-
-        {/* Búsqueda */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Buscar preguntas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                className="w-full px-4 py-2.5 pr-10 bg-white dark:bg-[#1E2329] border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all shadow-sm hover:shadow-md"
-                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
-              />
-              {searchQuery && (
-                <button
-                  onClick={handleClearSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors rounded"
-                  aria-label="Limpiar búsqueda"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="p-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] disabled:bg-[#6C757D] disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-[#0A2540]/25"
-              aria-label="Buscar"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Search className="w-5 h-5" />
-              )}
-            </button>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6 pb-24 md:pb-6"
+    >
+      {/* Header moderno */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0A2540] to-[#0A2540]/80 flex items-center justify-center">
+            <MessageCircle className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-white">Preguntas</h2>
+            <p className="text-xs text-white/40">{questions.length} conversaciones</p>
           </div>
         </div>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setShowCreateForm(true)}
+          className="px-4 py-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Nueva Pregunta
+        </motion.button>
       </div>
 
+      {/* Búsqueda moderna */}
+      <div className="relative">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
+          <Search className="w-4 h-4" />
+        </div>
+        <input
+          type="text"
+          placeholder="Buscar en las preguntas..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          className="w-full pl-11 pr-10 py-3 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
+        />
+        {searchQuery && (
+          <button
+            onClick={handleClearSearch}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Estado vacío moderno */}
       {questions.length === 0 ? (
-        <div className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
-          <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageCircle className="w-8 h-8 text-[#00D4B3]" />
-          </div>
-          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>No hay preguntas</h3>
-          <p className="text-[#6C757D] dark:text-white/80 mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-            {activeSearchQuery ? 'No se encontraron preguntas con tu búsqueda' : 'Aún no hay preguntas en este curso'}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-white/10 bg-white/[0.02] p-12 flex flex-col items-center justify-center"
+        >
+          <motion.div 
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200 }}
+            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3]/50 flex items-center justify-center mb-5"
+          >
+            <MessageCircle className="w-8 h-8 text-white" />
+          </motion.div>
+          <h3 className="text-white text-lg font-medium mb-2">No hay preguntas</h3>
+          <p className="text-white/40 text-sm text-center mb-6 max-w-sm">
+            {activeSearchQuery 
+              ? 'No se encontraron resultados para tu búsqueda' 
+              : 'Sé el primero en iniciar una conversación'}
           </p>
           {!activeSearchQuery && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setShowCreateForm(true)}
-              className="px-6 py-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-all duration-200 inline-flex items-center gap-2 shadow-lg hover:shadow-[#0A2540]/25"
-              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+              className="px-5 py-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
               Hacer Primera Pregunta
-            </button>
+            </motion.button>
           )}
-        </div>
+        </motion.div>
       ) : (
-        <div className="space-y-4">
-          {questions.map((question) => (
+        <div className="space-y-3">
+          {questions.map((question, index) => (
             <motion.div
               key={question.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/50 transition-all duration-300 shadow-lg hover:shadow-xl"
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.005 }}
+              className="group rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 transition-all duration-300 overflow-hidden"
             >
-              {/* Post Header - Estilo Facebook/Comunidad */}
-              <div className="p-6 pb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    {/* Avatar */}
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-[#0A2540] flex items-center justify-center shadow-lg">
-                      {question.user?.profile_picture_url ? (
-                        <Image
-                          src={question.user.profile_picture_url}
-                          alt={getUserDisplayName(question.user)}
-                          fill
-                          sizes="48px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <span className="text-white font-semibold text-sm">
-                          {getUserInitials(question.user)}
+              {/* Header compacto */}
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  {/* Avatar pequeño */}
+                  <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gradient-to-br from-[#0A2540] to-[#0A2540]/80 flex items-center justify-center flex-shrink-0">
+                    {question.user?.profile_picture_url ? (
+                      <Image
+                        src={question.user.profile_picture_url}
+                        alt={getUserDisplayName(question.user)}
+                        fill
+                        sizes="36px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="text-white font-medium text-xs">
+                        {getUserInitials(question.user)}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Contenido */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-white truncate">
+                        {getUserDisplayName(question.user)}
+                      </span>
+                      <span className="text-xs text-white/30">•</span>
+                      <span className="text-xs text-white/40">{formatTimeAgo(question.created_at)}</span>
+                      
+                      {/* Badges */}
+                      {question.is_pinned && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-amber-400 bg-amber-500/10 rounded">
+                          Fijada
+                        </span>
+                      )}
+                      {question.is_resolved && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 rounded flex items-center gap-0.5">
+                          <CheckCircle className="w-2.5 h-2.5" />
+                          Resuelta
                         </span>
                       )}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
-                          {getUserDisplayName(question.user)}
-                        </h3>
-                        {question.is_pinned && (
-                          <span className="px-2 py-0.5 bg-yellow-500/20 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-xs rounded-full border border-yellow-500/30 dark:border-yellow-500/30">
-                            Fijada
-                          </span>
+                    
+                    {/* Título y contenido */}
+                    <div 
+                      className="cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
+                      }}
+                    >
+                      {question.title && (
+                        <h4 className="text-white font-medium text-sm mb-1">{question.title}</h4>
+                      )}
+                      <p className="text-white/60 text-sm leading-relaxed">
+                        {selectedQuestion === question.id ? question.content : (
+                          question.content.length > 150 ? `${question.content.substring(0, 150)}...` : question.content
                         )}
-                        {question.is_resolved && (
-                          <span className="px-2 py-0.5 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] text-xs rounded-full border border-[#10B981]/30 dark:border-[#10B981]/30 flex items-center gap-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                            <CheckCircle className="w-3 h-3" />
-                            Resuelta
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-slate-400">
-                        {formatTimeAgo(question.created_at)} • {courseTitle}
                       </p>
+                      {question.content.length > 150 && selectedQuestion !== question.id && (
+                        <button className="text-[#0A2540] text-xs mt-1 font-medium hover:underline">
+                          Ver más
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
-
-                {/* Post Content */}
-                <div className="mb-4" onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
-                }}>
-                  {question.title && (
-                    <h4 className="text-gray-900 dark:text-white font-semibold text-lg mb-2">{question.title}</h4>
-                  )}
-                  <p className="text-gray-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-                    {selectedQuestion === question.id ? question.content : (
-                      question.content.length > 200 ? `${question.content.substring(0, 200)}...` : question.content
-                    )}
-                  </p>
-                  {question.content.length > 200 && selectedQuestion !== question.id && (
-                    <button className="text-[#00D4B3] dark:text-[#00D4B3] hover:text-[#00b89a] dark:hover:text-[#00b89a] text-sm mt-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                      Ver más
-                    </button>
-                  )}
-                </div>
-
-                {/* Stats Bar - Estilo Facebook */}
-                <div className="flex items-center justify-between py-2 px-0 text-sm text-[#6C757D] dark:text-white/60 border-t-2 border-[#E9ECEF] dark:border-[#6C757D]/30">
+                
+                {/* Footer con stats y acciones */}
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
                   <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-1 text-[#6C757D] dark:text-white/60 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                      <MessageSquare className="w-4 h-4" />
-                      <span>{question.response_count}</span>
-                    </button>
-                    <button className="flex items-center gap-1 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                      <Heart className="w-4 h-4" />
+                    <button 
+                      onClick={(e) => handleReaction(question.id, e)}
+                      className={`flex items-center gap-1.5 text-xs transition-colors ${
+                        userReactions[question.id] === 'like'
+                          ? 'text-red-400'
+                          : 'text-white/40 hover:text-red-400'
+                      }`}
+                    >
+                      <Heart className={`w-3.5 h-3.5 ${userReactions[question.id] === 'like' ? 'fill-current' : ''}`} />
                       <span>{reactionCounts[question.id] ?? (question.reaction_count ?? 0)}</span>
                     </button>
-                    <button className="flex items-center gap-1 text-gray-600 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 transition-colors">
-                      <Eye className="w-4 h-4" />
-                      <span>{question.view_count}</span>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
+                      }}
+                      className="flex items-center gap-1.5 text-xs text-white/40 hover:text-[#0A2540] transition-colors"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>{question.response_count}</span>
                     </button>
+                    <span className="flex items-center gap-1.5 text-xs text-white/30">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{question.view_count}</span>
+                    </span>
                   </div>
-                </div>
-
-                {/* Action Buttons - Estilo Facebook */}
-                <div className="flex items-center justify-around py-2 border-t-2 border-[#E9ECEF] dark:border-[#6C757D]/30 mt-2">
-                  <button
-                    onClick={(e) => handleReaction(question.id, e)}
-                    className={`flex items-center gap-2 transition-colors py-2 px-4 rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 font-medium ${userReactions[question.id] === 'like'
-                      ? 'text-red-600 dark:text-red-400'
-                      : 'text-[#6C757D] dark:text-white/60 hover:text-red-600 dark:hover:text-red-400'
-                      }`}
-                    style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                  >
-                    <Heart className={`w-5 h-5 ${userReactions[question.id] === 'like' ? 'fill-current' : ''}`} />
-                    <span>Me gusta</span>
-                  </button>
-                  <button
+                  
+                  <motion.button
+                    whileHover={{ x: 3 }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
                     }}
-                    className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700/30 font-medium"
+                    className="text-xs text-white/40 hover:text-white flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <MessageSquare className="w-5 h-5" />
-                    <span>Comentar</span>
-                  </button>
+                    Ver conversación
+                    <ChevronRight className="w-3 h-3" />
+                  </motion.button>
                 </div>
               </div>
 
               {/* Question Detail - Se expande cuando está seleccionada */}
-              {selectedQuestion === question.id && (
-                <QuestionDetail
-                  questionId={question.id}
-                  slug={slug}
-                  onClose={() => setSelectedQuestion(null)}
-                />
-              )}
+              <AnimatePresence>
+                {selectedQuestion === question.id && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <QuestionDetail
+                      questionId={question.id}
+                      slug={slug}
+                      onClose={() => setSelectedQuestion(null)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           ))}
 
           {/* Botón "Cargar más" */}
           {hasMore && (
-            <div className="flex justify-center pt-6">
-              <button
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex justify-center pt-4"
+            >
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={loadMoreQuestions}
                 disabled={loadingMore}
-                className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] disabled:bg-[#6C757D] disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-[#0A2540]/25"
-                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                className="px-4 py-2.5 text-sm font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loadingMore ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>{t('loading.general')}</span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Cargando...</span>
                   </>
                 ) : (
                   <>
-                    <Plus className="w-5 h-5" />
-                    <span>Cargar más preguntas</span>
+                    <Plus className="w-4 h-4" />
+                    <span>Cargar más</span>
                   </>
                 )}
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           )}
         </div>
       )}
@@ -8649,7 +7185,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           }}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -9169,12 +7705,11 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   // Mostrar skeleton solo si la pregunta está cargando
   if (loading) {
     return (
-      <div className="p-6 border-t-2 border-gray-300 dark:border-slate-700/50 bg-white dark:bg-gradient-to-br dark:from-slate-800/40 dark:via-slate-700/20 dark:to-slate-800/40">
+      <div className="p-6 border-t border-white/5 bg-white/[0.02]">
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 dark:bg-slate-700/50 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 dark:bg-slate-700/50 rounded w-1/2"></div>
-          <div className="h-20 bg-gray-200 dark:bg-slate-700/50 rounded"></div>
-          <div className="h-10 bg-gray-200 dark:bg-slate-700/50 rounded w-32"></div>
+          <div className="h-4 bg-white/10 rounded w-3/4"></div>
+          <div className="h-4 bg-white/10 rounded w-1/2"></div>
+          <div className="h-20 bg-white/10 rounded"></div>
         </div>
       </div>
     );
@@ -9187,195 +7722,158 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: 'auto' }}
       exit={{ opacity: 0, height: 0 }}
-      className="p-6 border-t-2 border-gray-300 dark:border-slate-700/50 bg-white dark:bg-slate-800"
+      className="p-6 border-t border-white/5 bg-black/20"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Formulario de nueva respuesta - Diseño compacto */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-4 bg-white dark:bg-slate-800/90 rounded-xl p-3 border-2 border-gray-300 dark:border-slate-700/50 backdrop-blur-sm"
-      >
-        <div className="flex gap-3 items-end">
-          <div className="w-8 h-8 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-xs font-semibold shadow-lg flex-shrink-0">
-            U
-          </div>
-          <div className="flex-1 min-w-0">
-            <textarea
-              ref={textareaRef}
-              value={newResponse}
-              onChange={(e) => setNewResponse(e.target.value)}
-              placeholder="Escribe tu respuesta..."
-              className="w-full bg-white dark:bg-slate-700/50 border-2 border-gray-300 dark:border-slate-600/50 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none transition-all duration-200 overflow-y-auto"
-              style={{ minHeight: '40px', maxHeight: '200px' }}
-              maxLength={1000}
-            />
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-gray-600 dark:text-slate-400">
-                {newResponse.length}/1000
-              </span>
-              <motion.button
-                onClick={handleSubmitResponse}
-                disabled={!newResponse.trim() || isSubmitting}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-[#0A2540]/25"
-                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isSubmitting ? (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Send className="w-3.5 h-3.5" />
-                )}
-                {isSubmitting ? 'Enviando...' : 'Responder'}
-              </motion.button>
-            </div>
+      {/* Formulario de nueva respuesta - Diseño ultra-minimalista */}
+      <div className="mb-8 flex gap-4">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3]/30 flex items-center justify-center text-white text-xs font-semibold shadow-inner flex-shrink-0">
+          Tú
+        </div>
+        <div className="flex-1">
+          <textarea
+            ref={textareaRef}
+            value={newResponse}
+            onChange={(e) => setNewResponse(e.target.value)}
+            placeholder="Escribe tu respuesta..."
+            className="w-full bg-transparent border-0 border-b border-white/10 px-0 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-0 resize-none transition-colors min-h-[40px]"
+            maxLength={1000}
+          />
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-[10px] text-white/20">
+              {newResponse.length}/1000
+            </span>
+            <motion.button
+              onClick={handleSubmitResponse}
+              disabled={!newResponse.trim() || isSubmitting}
+              className="flex items-center gap-2 px-4 py-1.5 text-xs bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {isSubmitting ? (
+                <div className="w-3 h-3 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send className="w-3 h-3" />
+              )}
+              Responder
+            </motion.button>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Lista de respuestas - Estilo Facebook */}
-      <div className="space-y-4">
+      {/* Lista de respuestas */}
+      <div className="space-y-6">
         {loadingResponses ? (
-          <div className="space-y-4 animate-pulse">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl p-5 border-2 border-gray-300 dark:border-slate-700/50">
-                <div className="flex gap-4">
-                  {/* Avatar skeleton */}
-                  <div className="w-10 h-10 rounded-full bg-gray-200 dark:!bg-slate-700 flex-shrink-0"></div>
-                  <div className="flex-1 space-y-3">
-                    {/* Header skeleton */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="h-4 bg-gray-200 dark:!bg-slate-700 rounded w-32"></div>
-                      <div className="h-4 bg-gray-200 dark:!bg-slate-700 rounded w-20"></div>
-                    </div>
-                    {/* Content skeleton */}
-                    <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 dark:!bg-slate-700 rounded w-full"></div>
-                      <div className="h-3 bg-gray-200 dark:!bg-slate-700 rounded w-full"></div>
-                      <div className="h-3 bg-gray-200 dark:!bg-slate-700 rounded w-3/4"></div>
-                    </div>
-                    {/* Action buttons skeleton */}
-                    <div className="flex items-center gap-4 pt-2">
-                      <div className="h-6 bg-gray-200 dark:!bg-slate-700 rounded w-16"></div>
-                      <div className="h-6 bg-gray-200 dark:!bg-slate-700 rounded w-20"></div>
-                    </div>
-                  </div>
+          <div className="space-y-6 animate-pulse">
+            {[1, 2].map((i) => (
+              <div key={i} className="flex gap-4">
+                <div className="w-8 h-8 rounded-full bg-white/5"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-white/5 rounded w-32"></div>
+                  <div className="h-3 bg-white/5 rounded w-full"></div>
+                  <div className="h-3 bg-white/5 rounded w-2/3"></div>
                 </div>
               </div>
             ))}
           </div>
         ) : responses.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-600 dark:text-slate-400">Aún no hay respuestas. Sé el primero en responder.</p>
+          <div className="text-center py-8 border border-dashed border-white/10 rounded-xl">
+            <p className="text-white/30 text-sm">Aún no hay respuestas. Sé el primero en responder.</p>
           </div>
         ) : (
           responses.map((response, index) => (
             <motion.div
               key={response.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border-2 border-gray-300 dark:border-slate-700/50 backdrop-blur-sm hover:border-gray-400 dark:hover:border-slate-600/50 transition-all duration-300"
+              transition={{ delay: index * 0.05 }}
+              className="group"
             >
               <div className="flex gap-4">
                 {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-[#10B981] flex items-center justify-center text-white text-sm font-semibold overflow-hidden shadow-lg flex-shrink-0">
+                <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white/5 flex items-center justify-center flex-shrink-0">
                   {response.user?.profile_picture_url ? (
                     <Image
                       src={response.user.profile_picture_url}
                       alt={getUserDisplayName(response.user)}
-                      width={40}
-                      height={40}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   ) : (
-                    getUserInitials(response.user)
+                    <span className="text-white/60 text-xs font-medium">
+                      {getUserInitials(response.user)}
+                    </span>
                   )}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3 flex-wrap">
-                    <span className="font-semibold text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+
+                <div className="flex-1 min-w-0">
+                  {/* Header de respuesta */}
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-sm font-medium text-white">
                       {getUserDisplayName(response.user)}
                     </span>
+                    <span className="text-xs text-white/30">•</span>
+                    <span className="text-xs text-white/30">
+                      {formatTimeAgo(response.created_at)}
+                    </span>
+                    
                     {response.is_instructor_answer && (
-                      <span className="px-2 py-0.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] text-xs rounded-full border border-[#0A2540]/30 dark:border-[#0A2540]/30" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                      <span className="ml-1 px-1.5 py-0.5 bg-[#00D4B3]/10 text-[#00D4B3] text-[10px] font-medium rounded">
                         Instructor
                       </span>
                     )}
-                    {response.is_approved_answer && (
-                      <span className="px-2 py-0.5 bg-green-500/20 dark:bg-green-500/20 text-green-600 dark:text-green-400 text-xs rounded-full border border-green-500/30 dark:border-green-500/30 flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" />
-                        Respuesta Aprobada
-                      </span>
-                    )}
-                    <span className="text-xs text-[#6C757D] dark:text-white/60 bg-[#E9ECEF]/30 dark:bg-[#0F1419] px-2 py-1 rounded-full" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                      {formatTimeAgo(response.created_at)}
-                    </span>
                   </div>
-                  <p className="text-[#0A2540] dark:text-white mb-4 leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{response.content}</p>
 
-                  {/* Botones de acción - Me gusta y Responder */}
-                  <div className="flex items-center gap-4 mt-3">
+                  {/* Contenido */}
+                  <div className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap mb-2">
+                    {response.content}
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex items-center gap-4">
                     <button
                       onClick={(e) => handleResponseReaction(response.id, e)}
-                      className={`flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 ${responseReactions[response.id] === 'like'
-                        ? 'text-red-600 dark:text-red-400'
-                        : 'text-[#6C757D] dark:text-white/60 hover:text-red-600 dark:hover:text-red-400'
-                        }`}
-                      style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                      className={`flex items-center gap-1.5 text-xs transition-colors ${
+                        responseReactions[response.id] === 'like'
+                          ? 'text-red-400'
+                          : 'text-white/30 hover:text-red-400'
+                      }`}
                     >
-                      <Heart className={`w-4 h-4 ${responseReactions[response.id] === 'like' ? 'fill-current' : ''}`} />
-                      <span className="text-sm font-medium">
-                        {responseReactionCounts[response.id] ?? (response.reaction_count || 0)}
-                      </span>
+                      <Heart className={`w-3.5 h-3.5 ${responseReactions[response.id] === 'like' ? 'fill-current' : ''}`} />
+                      <span>{responseReactionCounts[response.id] ?? (response.reaction_count || 0)}</span>
                     </button>
+                    
                     <button
                       onClick={() => setReplyingTo(replyingTo === response.id ? null : response.id)}
-                      className="group flex items-center gap-2 text-[#6C757D] dark:text-white/60 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] transition-all duration-200 hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 px-3 py-1.5 rounded-lg"
+                      className="text-xs text-white/30 hover:text-white transition-colors"
                     >
-                      <Reply className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
-                      <span className="text-sm font-medium">Responder</span>
+                      Responder
                     </button>
                   </div>
 
-                  {/* Formulario de respuesta */}
+                  {/* Formulario de respuesta anidada */}
                   <AnimatePresence>
                     {replyingTo === response.id && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="mt-3 bg-gray-100 dark:bg-slate-800/90 rounded-lg p-3 border-2 border-gray-300 dark:border-slate-700/50"
+                        className="mt-3 pl-4 border-l border-white/10"
                       >
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                           <textarea
                             value={replyContent}
                             onChange={(e) => setReplyContent(e.target.value)}
                             placeholder="Escribe una respuesta..."
-                            className="flex-1 bg-white dark:bg-slate-600/50 border-2 border-gray-300 dark:border-slate-500/50 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
-                            rows={2}
+                            className="flex-1 bg-transparent border-0 border-b border-white/10 px-0 py-1 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-0 resize-none min-h-[32px]"
+                            rows={1}
                           />
-                          <motion.button
+                          <button
                             onClick={() => handleSubmitReply(response.id)}
                             disabled={!replyContent.trim() || isSubmitting}
-                            className="px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                            style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded transition-colors disabled:opacity-30"
                           >
-                            <Send className="w-4 h-4" />
-                          </motion.button>
-                          <button
-                            onClick={() => {
-                              setReplyingTo(null);
-                              setReplyContent('');
-                            }}
-                            className="px-4 py-2 bg-gray-300 dark:bg-slate-600 hover:bg-gray-400 dark:hover:bg-slate-500 text-gray-900 dark:text-white rounded-lg transition-colors"
-                            aria-label="Cancelar respuesta"
-                            title="Cancelar respuesta"
-                          >
-                            <X className="w-4 h-4" />
+                            <Send className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </motion.div>
@@ -9384,141 +7882,35 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
                   {/* Respuestas anidadas */}
                   {response.replies && response.replies.length > 0 && (
-                    <div className="mt-4 ml-4 space-y-3 border-l-2 border-gray-300 dark:border-slate-600/50 pl-4">
+                    <div className="mt-4 space-y-4 pl-4 border-l border-white/5">
                       {response.replies.map((reply: any) => (
-                        <div key={reply.id} className="bg-gray-100 dark:bg-slate-800/90 rounded-lg p-3 border-2 border-gray-300 dark:border-slate-700/50">
-                          <div className="flex gap-2">
-                            <div className="w-6 h-6 rounded-full bg-[#10B981] flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
-                              {reply.user?.profile_picture_url ? (
-                                <Image
-                                  src={reply.user.profile_picture_url}
-                                  alt={getUserDisplayName(reply.user)}
-                                  width={24}
-                                  height={24}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                getUserInitials(reply.user)
-                              )}
+                        <div key={reply.id} className="flex gap-3">
+                          {/* Avatar pequeño */}
+                          <div className="relative w-6 h-6 rounded bg-white/5 flex items-center justify-center flex-shrink-0">
+                            {reply.user?.profile_picture_url ? (
+                              <Image
+                                src={reply.user.profile_picture_url}
+                                alt={getUserDisplayName(reply.user)}
+                                fill
+                                className="object-cover rounded"
+                              />
+                            ) : (
+                              <span className="text-white/60 text-[10px] font-medium">
+                                {getUserInitials(reply.user)}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-medium text-white/90">
+                                {getUserDisplayName(reply.user)}
+                              </span>
+                              <span className="text-[10px] text-white/30">
+                                {formatTimeAgo(reply.created_at)}
+                              </span>
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="font-semibold text-[#0A2540] dark:text-white text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
-                                  {getUserDisplayName(reply.user)}
-                                </span>
-                                {reply.is_instructor_answer && (
-                                  <span className="px-1.5 py-0.5 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3] text-xs rounded border border-[#0A2540]/30 dark:border-[#0A2540]/30" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                                    Instructor
-                                  </span>
-                                )}
-                                <span className="text-[#6C757D] dark:text-white/60 text-xs" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                  {formatTimeAgo(reply.created_at)}
-                                </span>
-                              </div>
-                              <p className="text-[#0A2540] dark:text-white text-sm whitespace-pre-wrap mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{reply.content}</p>
-
-                              {/* Botones de acción para comentarios anidados */}
-                              <div className="flex items-center gap-3 mt-2">
-                                <button
-                                  onClick={(e) => handleResponseReaction(reply.id, e)}
-                                  className={`flex items-center gap-1.5 transition-colors ${responseReactions[reply.id] === 'like'
-                                    ? 'text-red-600 dark:text-red-400'
-                                    : 'text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'
-                                    }`}
-                                >
-                                  <Heart className={`w-3.5 h-3.5 ${responseReactions[reply.id] === 'like' ? 'fill-current' : ''}`} />
-                                  <span className="text-xs font-medium">
-                                    {responseReactionCounts[reply.id] ?? (reply.reaction_count || 0)}
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={() => setReplyingToReply(replyingToReply === reply.id ? null : reply.id)}
-                                  className="group flex items-center gap-1.5 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 text-xs"
-                                >
-                                  <Reply className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200" />
-                                  <span className="font-medium">Responder</span>
-                                </button>
-                              </div>
-
-                              {/* Formulario para responder a comentarios anidados */}
-                              <AnimatePresence>
-                                {replyingToReply === reply.id && (
-                                  <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="mt-3 bg-gray-100 dark:bg-slate-800/90 rounded-lg p-2 border-2 border-gray-300 dark:border-slate-700/50"
-                                  >
-                                    <div className="flex gap-2">
-                                      <textarea
-                                        value={replyToReplyContent}
-                                        onChange={(e) => setReplyToReplyContent(e.target.value)}
-                                        placeholder="Escribe una respuesta..."
-                                        className="flex-1 bg-white dark:bg-slate-500/50 border-2 border-gray-300 dark:border-slate-400/50 rounded-lg px-2 py-1.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none text-sm"
-                                        rows={2}
-                                      />
-                                      <motion.button
-                                        onClick={() => handleSubmitReplyToReply(reply.id, response.id)}
-                                        disabled={!replyToReplyContent.trim() || isSubmitting}
-                                        className="px-3 py-1.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-sm"
-                                        style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                      >
-                                        <Send className="w-3.5 h-3.5" />
-                                      </motion.button>
-                                      <button
-                                        onClick={() => {
-                                          setReplyingToReply(null);
-                                          setReplyToReplyContent('');
-                                        }}
-                                        className="px-3 py-1.5 bg-gray-300 dark:bg-slate-500 hover:bg-gray-400 dark:hover:bg-slate-400 text-gray-900 dark:text-white rounded-lg transition-colors text-sm"
-                                        aria-label="Cancelar respuesta"
-                                        title="Cancelar respuesta"
-                                      >
-                                        <X className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-
-                              {/* Respuestas anidadas a comentarios anidados (si existen) */}
-                              {reply.replies && reply.replies.length > 0 && (
-                                <div className="mt-3 ml-4 space-y-2 border-l-2 border-gray-300 dark:border-slate-500/50 pl-3">
-                                  {reply.replies.map((nestedReply: any) => (
-                                    <div key={nestedReply.id} className="bg-gray-100 dark:bg-slate-800/90 rounded-lg p-2 border-2 border-gray-300 dark:border-slate-700/50">
-                                      <div className="flex gap-2">
-                                        <div className="w-5 h-5 rounded-full bg-[#10B981] flex items-center justify-center text-white text-xs font-semibold overflow-hidden flex-shrink-0">
-                                          {nestedReply.user?.profile_picture_url ? (
-                                            <Image
-                                              src={nestedReply.user.profile_picture_url}
-                                              alt={getUserDisplayName(nestedReply.user)}
-                                              width={20}
-                                              height={20}
-                                              className="w-full h-full object-cover"
-                                            />
-                                          ) : (
-                                            getUserInitials(nestedReply.user)?.charAt(0) || 'U'
-                                          )}
-                                        </div>
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                            <span className="font-semibold text-gray-900 dark:text-white text-xs">
-                                              {getUserDisplayName(nestedReply.user)}
-                                            </span>
-                                            <span className="text-gray-600 dark:text-slate-400 text-xs">
-                                              {formatTimeAgo(nestedReply.created_at)}
-                                            </span>
-                                          </div>
-                                          <p className="text-gray-800 dark:text-slate-200 text-xs whitespace-pre-wrap">{nestedReply.content}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                            <p className="text-white/70 text-sm whitespace-pre-wrap">{reply.content}</p>
                           </div>
                         </div>
                       ))}
@@ -9575,60 +7967,83 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      {/* Overlay - No cubre el navbar (z-40) */}
-      <div className="absolute top-14 left-0 right-0 bottom-0 bg-black/70 backdrop-blur-sm" />
+      {/* Overlay */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+      />
 
       {/* Modal Content */}
-      <div
-        className="relative bg-white dark:bg-slate-800/95 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 w-full max-w-2xl p-6 mx-4 shadow-2xl"
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="relative bg-[#0F1419] rounded-2xl border border-white/10 w-full max-w-2xl p-8 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-gray-900 dark:text-white font-semibold text-xl mb-4">Hacer una Pregunta</h3>
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+          <MessageCircle className="w-24 h-24 text-white" />
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <h3 className="text-white font-semibold text-xl mb-6 relative z-10 font-[Inter,sans-serif]">Nueva Pregunta</h3>
+
+        <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
           <div>
-            <label className="block text-gray-700 dark:text-slate-300 text-sm mb-2">Título (opcional)</label>
+            <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">Título (opcional)</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Título de tu pregunta..."
-              className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-700/80 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="Escribe un título breve..."
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20 transition-all font-medium"
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 dark:text-slate-300 text-sm mb-2">Contenido *</label>
+            <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">Contenido <span className="text-red-400">*</span></label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Describe tu pregunta..."
+              placeholder="Describe tu duda o comentario en detalle..."
               required
               rows={6}
-              className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-700/80 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20 transition-all resize-none leading-relaxed"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 dark:bg-slate-700/80 hover:bg-gray-300 dark:hover:bg-slate-600/80 text-gray-900 dark:text-white rounded-lg transition-colors"
+              className="px-5 py-2.5 text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all text-sm font-medium"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !content.trim()}
-              className="px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-[#0A2540]/25"
-              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+              className="px-6 py-2.5 bg-[#00D4B3] hover:bg-[#00b89a] text-[#0A2540] rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-[#00D4B3]/20 text-sm font-semibold flex items-center gap-2"
             >
-              {isSubmitting ? 'Enviando...' : 'Publicar Pregunta'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Publicando...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  <span>Publicar Pregunta</span>
+                </>
+              )}
             </button>
           </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }
+// End of file
 

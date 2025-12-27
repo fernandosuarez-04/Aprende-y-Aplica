@@ -147,7 +147,7 @@ export function ProactiveLIAAssistant({
           initial="hidden"
           animate="visible"
           exit="exit"
-          className={`fixed ${positionClasses[position]} z-50 ${compact ? 'max-w-xs' : 'max-w-md'}`}
+          className={`fixed ${positionClasses[position]} z-[100] ${compact ? 'max-w-xs' : 'max-w-md'}`}
         >
           {/* Card principal - diseño minimalista */}
           <div

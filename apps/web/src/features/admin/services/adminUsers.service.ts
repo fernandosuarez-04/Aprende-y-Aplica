@@ -19,7 +19,8 @@ function createAdminClient() {
     }
   })
 }
-
+// Interface actualizada para reflejar la estructura actual de la tabla users
+// La tabla ya no tiene: points, curriculum_url, linkedin_url, github_url, website_url, role_zoom
 export interface AdminUser {
   id: string
   username: string
@@ -35,16 +36,16 @@ export interface AdminUser {
   bio: string | null
   location: string | null
   profile_picture_url: string | null
-  curriculum_url: string | null
-  linkedin_url: string | null
-  github_url: string | null
-  website_url: string | null
-  role_zoom: string | null
-  points: number | null
   country_code: string | null
   created_at: string
   updated_at: string
   last_login_at: string | null
+  // Campos adicionales que existen en la BD
+  oauth_provider?: string | null
+  oauth_provider_id?: string | null
+  is_banned?: boolean
+  banned_at?: string | null
+  ban_reason?: string | null
 }
 
 export interface UserStats {
@@ -69,7 +70,7 @@ export interface GetUsersResult {
 
 export class AdminUsersService {
   static async getUsers(options: GetUsersOptions = {}): Promise<GetUsersResult> {
-    const supabase = await createClient()
+    const supabase = createAdminClient() // ✅ Usar cliente admin para bypass RLS
     const { page = 1, limit = 50, search } = options
 
     try {
@@ -77,7 +78,8 @@ export class AdminUsersService {
       const from = (page - 1) * limit
       const to = from + limit - 1
 
-      // 🚀 OPTIMIZACIÓN: Solo seleccionar campos necesarios (reducido de 24 a 12 campos esenciales)
+      // 🚀 OPTIMIZACIÓN: Solo seleccionar campos necesarios que EXISTEN en la tabla
+      // NOTA: La columna 'points' fue eliminada de la tabla users
       let query = supabase
         .from('users')
         .select(`
@@ -90,7 +92,6 @@ export class AdminUsersService {
           cargo_rol,
           email_verified,
           profile_picture_url,
-          points,
           created_at,
           updated_at,
           last_login_at
@@ -107,7 +108,7 @@ export class AdminUsersService {
         .range(from, to)
 
       if (error) {
-        // console.error('❌ Error fetching users:', error)
+        console.error('❌ Error fetching users:', error)
         throw error
       }
 
@@ -121,13 +122,13 @@ export class AdminUsersService {
         totalPages
       }
     } catch (error) {
-      // console.error('💥 Error in AdminUsersService.getUsers:', error)
+      console.error('💥 Error in AdminUsersService.getUsers:', error)
       throw error
     }
   }
 
   static async getUserStats(): Promise<UserStats> {
-    const supabase = await createClient()
+    const supabase = createAdminClient() // ✅ Usar cliente admin para bypass RLS
 
     try {
       // 🚀 OPTIMIZACIÓN: Usar queries agregadas en paralelo en lugar de filtrado en cliente
@@ -163,7 +164,7 @@ export class AdminUsersService {
 
       return stats
     } catch (error) {
-      // console.error('Error in AdminUsersService.getUserStats:', error)
+      console.error('Error in AdminUsersService.getUserStats:', error)
       throw error
     }
   }
@@ -195,12 +196,6 @@ export class AdminUsersService {
           bio: userData.bio,
           location: userData.location,
           profile_picture_url: userData.profile_picture_url,
-          curriculum_url: userData.curriculum_url,
-          linkedin_url: userData.linkedin_url,
-          github_url: userData.github_url,
-          website_url: userData.website_url,
-          role_zoom: userData.role_zoom,
-          points: userData.points,
           country_code: userData.country_code,
           updated_at: new Date().toISOString()
         })
@@ -220,12 +215,6 @@ export class AdminUsersService {
           bio,
           location,
           profile_picture_url,
-          curriculum_url,
-          linkedin_url,
-          github_url,
-          website_url,
-          role_zoom,
-          points,
           country_code,
           created_at,
           updated_at,
@@ -297,12 +286,6 @@ export class AdminUsersService {
           bio: userData.bio || null,
           location: userData.location || null,
           profile_picture_url: userData.profile_picture_url || null,
-          curriculum_url: userData.curriculum_url || null,
-          linkedin_url: userData.linkedin_url || null,
-          github_url: userData.github_url || null,
-          website_url: userData.website_url || null,
-          role_zoom: userData.role_zoom || null,
-          points: userData.points || 0,
           country_code: userData.country_code || null,
           email_verified: false,
           created_at: new Date().toISOString(),
@@ -323,12 +306,6 @@ export class AdminUsersService {
           bio,
           location,
           profile_picture_url,
-          curriculum_url,
-          linkedin_url,
-          github_url,
-          website_url,
-          role_zoom,
-          points,
           country_code,
           created_at,
           updated_at,

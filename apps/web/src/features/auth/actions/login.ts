@@ -327,6 +327,7 @@ export async function loginAction(formData: FormData) {
 
     // 8. REDIRECCIÓN BASADA EN CARGO_ROL (Enfoque B2B)
     // - Administrador → /admin/dashboard
+    // - Instructor → /instructor/dashboard (Panel de Instructor)
     // - Business → /business-panel/dashboard (Panel Admin Empresas) - REQUIERE organización
     // - Business User → /business-user/dashboard (Dashboard Usuario Business) - REQUIERE organización
     // - Usuario (o cualquier otro) → /dashboard (Tour SOFIA + Planes)
@@ -343,6 +344,8 @@ export async function loginAction(formData: FormData) {
 
     if (normalizedRole === 'administrador') {
       redirectTo = '/admin/dashboard';
+    } else if (normalizedRole === 'instructor') {
+      redirectTo = '/instructor/dashboard';
     } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
       // Para roles de empresa, verificar que pertenezca a una organización
       const { data: userOrg, error: orgError } = await supabase

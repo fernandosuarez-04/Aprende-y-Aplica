@@ -17,6 +17,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { MapPinIcon as MapPinIconSolid } from '@heroicons/react/24/solid'
 import Image from 'next/image'
+import { useOrganizationStylesContext } from '../../business-panel/contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface AdminSidebarProps {
   isOpen: boolean
@@ -45,6 +47,26 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
   const [isClicking, setIsClicking] = useState(false)
   const [showPinFeedback, setShowPinFeedback] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
+
+  // Obtener tema del usuario (light/dark)
+  const { resolvedTheme } = useThemeStore()
+  const isLightTheme = resolvedTheme === 'light'
+  
+  // Obtener estilos de la organización para el tema
+  const { styles: orgStyles } = useOrganizationStylesContext()
+  const panelStyles = orgStyles?.panel
+  
+  // Colores del tema
+  const themeColors = {
+    background: isLightTheme ? '#FFFFFF' : '#0F1419',
+    borderColor: isLightTheme ? '#E2E8F0' : '#334155',
+    textPrimary: isLightTheme ? '#0A2540' : '#FFFFFF',
+    textSecondary: isLightTheme ? '#6C757D' : '#9CA3AF',
+    hoverBg: isLightTheme ? '#F1F5F9' : '#1E2329',
+    activeBg: isLightTheme ? '#0A2540' : '#0A2540',
+    activeText: '#FFFFFF',
+    accent: panelStyles?.accent_color || '#00D4B3',
+  }
 
   // Lógica para determinar si el sidebar debe estar expandido
   const shouldExpand = isPinned || (isCollapsed && isHovered)
@@ -126,10 +148,11 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
           width: isCollapsed && !shouldExpand ? 64 : 256,
         }}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className={`
-          fixed inset-y-0 left-0 z-50 bg-white dark:bg-[#0F1419] shadow-xl transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:flex lg:flex-col border-r border-[#E9ECEF] dark:border-[#6C757D]/30
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
+        className={`fixed inset-y-0 left-0 z-50 shadow-xl transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:flex lg:flex-col border-r ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ 
+          backgroundColor: themeColors.background,
+          borderColor: themeColors.borderColor
+        }}
         onMouseEnter={() => {
           if (isCollapsed && !isPinned) {
             setIsHovered(true)
@@ -159,7 +182,13 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex-shrink-0 bg-white dark:bg-[#0F1419]">
+        <div 
+          className="flex items-center justify-between h-16 px-4 border-b flex-shrink-0"
+          style={{ 
+            backgroundColor: themeColors.background,
+            borderColor: themeColors.borderColor
+          }}
+        >
           <AnimatePresence mode="wait">
             {(!isCollapsed || shouldExpand) ? (
               <motion.div
@@ -180,7 +209,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#0A2540] dark:text-white truncate">Sofia</p>
+                  <p className="text-sm font-semibold truncate" style={{ color: themeColors.textPrimary }}>Sofia</p>
                 </div>
               </motion.div>
             ) : (
@@ -214,11 +243,20 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="hidden lg:block p-1.5 rounded-md text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-[#00D4B3] hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 transition-colors"
+              className="hidden lg:block p-1.5 rounded-md transition-colors"
+              style={{ color: themeColors.textSecondary }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = themeColors.hoverBg;
+                e.currentTarget.style.color = themeColors.textPrimary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = themeColors.textSecondary;
+              }}
               title={isPinned ? 'Desfijar panel' : 'Fijar panel'}
             >
               {isPinned ? (
-                <MapPinIconSolid className="h-4 w-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                <MapPinIconSolid className="h-4 w-4" style={{ color: themeColors.accent }} />
               ) : (
                 <MapPinIcon className="h-4 w-4" />
               )}
@@ -232,7 +270,16 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="lg:hidden p-1.5 rounded-md text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 transition-colors"
+              className="lg:hidden p-1.5 rounded-md transition-colors"
+              style={{ color: themeColors.textSecondary }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = themeColors.hoverBg;
+                e.currentTarget.style.color = themeColors.textPrimary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = themeColors.textSecondary;
+              }}
             >
               <XMarkIcon className="h-5 w-5" />
             </motion.button>
@@ -247,9 +294,13 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="px-4 py-1.5 bg-gradient-to-r from-[#0A2540]/10 to-transparent border-b border-[#0A2540]/20 dark:from-[#00D4B3]/10 dark:to-transparent dark:border-[#00D4B3]/20"
+              className="px-4 py-1.5 bg-gradient-to-r to-transparent border-b"
+              style={{ 
+                backgroundImage: `linear-gradient(to right, ${themeColors.accent}15, transparent)`,
+                borderColor: `${themeColors.accent}30`
+              }}
             >
-              <p className="text-xs text-[#0A2540] dark:text-[#00D4B3] font-light flex items-center gap-1.5">
+              <p className="text-xs font-light flex items-center gap-1.5" style={{ color: themeColors.accent }}>
                 <MapPinIcon className="h-3 w-3" />
                 Doble clic para fijar
               </p>
@@ -262,9 +313,13 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="px-4 py-1.5 bg-gradient-to-r from-[#0A2540]/10 to-transparent border-b border-[#0A2540]/20 dark:from-[#00D4B3]/10 dark:to-transparent dark:border-[#00D4B3]/20"
+              className="px-4 py-1.5 bg-gradient-to-r to-transparent border-b"
+              style={{ 
+                backgroundImage: `linear-gradient(to right, ${themeColors.accent}15, transparent)`,
+                borderColor: `${themeColors.accent}30`
+              }}
             >
-              <p className="text-xs text-[#0A2540] dark:text-[#00D4B3] font-light flex items-center gap-1.5">
+              <p className="text-xs font-light flex items-center gap-1.5" style={{ color: themeColors.accent }}>
                 <MapPinIconSolid className="h-3 w-3" />
                 Panel fijado
               </p>
@@ -311,30 +366,38 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                     }}
                     className={`
                       group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
-                      ${isActive
-                        ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white shadow-md shadow-[#0A2540]/20'
-                        : 'text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 hover:text-[#0A2540] dark:hover:text-white'
-                      }
                       ${(isCollapsed && !shouldExpand) ? 'justify-center' : ''}
                     `}
+                    style={{
+                      backgroundColor: isActive ? themeColors.activeBg : 'transparent',
+                      color: isActive ? themeColors.activeText : themeColors.textSecondary,
+                      boxShadow: isActive ? `0 4px 6px -1px ${themeColors.activeBg}30` : 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = themeColors.hoverBg;
+                        e.currentTarget.style.color = themeColors.textPrimary;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = themeColors.textSecondary;
+                      }
+                    }}
                     title={(isCollapsed && !shouldExpand) ? item.name : undefined}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="activeIndicator"
-                        className="absolute left-0 top-0 bottom-0 w-1 bg-[#00D4B3] rounded-r-full"
+                        className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full"
+                        style={{ backgroundColor: themeColors.accent }}
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                       />
                     )}
                     <item.icon
-                      className={`
-                        h-5 w-5 transition-colors duration-200 flex-shrink-0
-                        ${isActive
-                          ? 'text-white'
-                          : 'text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white'
-                        }
-                        ${(isCollapsed && !shouldExpand) ? '' : 'mr-3'}
-                      `}
+                      className={`h-5 w-5 transition-colors duration-200 flex-shrink-0 ${(isCollapsed && !shouldExpand) ? '' : 'mr-3'}`}
+                      style={{ color: isActive ? themeColors.activeText : 'inherit' }}
                     />
                     <AnimatePresence>
                       {(!isCollapsed || shouldExpand) && (
@@ -355,7 +418,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                         animate={{ scale: 1 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                       >
-                        <ChevronRightIcon className="h-4 w-4 text-white flex-shrink-0" />
+                        <ChevronRightIcon className="h-4 w-4 flex-shrink-0" style={{ color: themeColors.activeText }} />
                       </motion.div>
                     )}
                   </Link>

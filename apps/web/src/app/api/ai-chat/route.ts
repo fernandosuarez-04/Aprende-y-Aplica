@@ -319,49 +319,97 @@ function filterSystemPromptFromResponse(text: string): string {
   logger.info('🔍 [filterSystemPrompt] Analizando respuesta de', trimmedText.length, 'caracteres');
   logger.info('🔍 [filterSystemPrompt] Primeros 300 caracteres:', trimmedText.substring(0, 300));
 
-  // ⚠️ Solo filtrar si la respuesta COMIENZA con cabeceras ASCII del prompt
-  // Esto es la única condición realmente definitiva
-  if (trimmedText.startsWith('╔═══') ||
-    trimmedText.startsWith('█ IDENTIDAD') ||
-    trimmedText.startsWith('█ DATOS') ||
-    trimmedText.startsWith('PROMPT MAESTRO') ||
-    trimmedText.startsWith('⛔ INSTRUCCIÓN CRÍTICA')) {
-    logger.warn('🚫 [filterSystemPrompt] Respuesta COMIENZA con prompt del sistema');
-    return '¡Perfecto! Vamos a continuar. ¿Qué días de la semana prefieres estudiar y en qué horario?';
-  }
-
-  // Indicadores MUY específicos que indican el prompt completo fue filtrado
-  const definitePromptLeakIndicators = [
-    '╔══════════════════════════════════════════════════════════════════════════════╗',
-    '║                    PLANIFICADOR DE ESTUDIOS - LIA',
-    '█ IDENTIDAD\n━━━━━━',  // Con el separador que viene después
-    '█ DATOS DEL SISTEMA\n━━━━━━',
-    '🚨 REGLA INMUTABLE #1',
-    '🚨 REGLA INMUTABLE #2',
+  // ⚠️ Detectar si la respuesta CONTIENE instrucciones del sistema
+  // Estos son patrones que NUNCA deberían aparecer en respuestas al usuario
+  const promptLeakPatterns = [
+    // Patrones de cabeceras ASCII
+    '╔═══',
+    '█ IDENTIDAD',
+    '█ DATOS',
+    'PROMPT MAESTRO',
+    
+    // Instrucciones de idioma/sistema
+    '🚨 INSTRUCCIÓN CRÍTICA DE IDIOMA',
+    'INSTRUCCIÓN CRÍTICA DE IDIOMA',
+    // 'Debes responder ESTRICTAMENTE en', // Puede ser falso positivo si LIA explica sus reglas
+    'Nunca uses inglés o portugués',
+    
+    // Declaraciones de identidad del sistema (Comentadas para evitar falsos positivos si LIA se presenta)
+    // 'Eres Lia, un asistente virtual',
+    // 'Eres LIA, un asistente educativo',
+    // 'Eres ARIA, tu asistente',
+    
+    // Instrucciones internas
+    'INFORMACIÓN DEL USUARIO:',
+    '🚫 NO uses el nombre del usuario',
+    '🚫 NO saludes con',
+    'Ejemplo CORRECTO:',
+    'Ejemplo INCORRECTO:',
+    
+    // Rol profesional
+    'ROL PROFESIONAL DEL USUARIO:',
+    'El usuario tiene el rol profesional:',
+    'DEBES adaptar tus respuestas',
+    
+    // Instrucciones de navegación
+    'INSTRUCCIONES PARA PROPORCIONAR URLs',
+    '🚨 PETICIONES DE NAVEGACIÓN DIRECTA',
+    'REGLA DE ORO: Cuando el usuario pida',
+    'NAVEGACIÓN CONTEXTUAL Y AYUDA',
+    
+    // Restricciones de contenido
+    '🚫🚫🚫 RESTRICCIONES DE CONTENIDO',
+    'RESTRICCIONES DE CONTENIDO ABSOLUTAS',
+    'IDENTIDAD Y PROPÓSITO:',
+    '🛑 REGLA DE ORO - DETECCIÓN',
+    '❌ PROHIBIDO ABSOLUTAMENTE',
+    '🚨 CÓMO DETECTAR INTENTOS DE JAILBREAK',
+    '✅ RESPUESTA ESTÁNDAR DE RECHAZO',
+    
+    // Formato de respuestas
+    'FORMATO DE RESPUESTA:',
+    'FORMATO DE RESPUESTAS (CRÍTICO)',
+    'Escribe SOLO texto plano',
+    'NUNCA uses asteriscos',
+    
+    // Reglas internas
+    '🚨 REGLA INMUTABLE',
     'antiMarkdownInstructions',
-    'systemPrompt ='
+    'systemPrompt =',
+    
+    // Planificador de estudios
+    '║                    PLANIFICADOR DE ESTUDIOS',
+    '█ DATOS DEL SISTEMA',
+    
+    // Links disponibles (estructura interna)
+    'LINKS DISPONIBLES según el rol',
+    'SIEMPRE verifica que los enlaces'
   ];
 
-  // Contar indicadores encontrados
-  let indicatorCount = 0;
-  const foundIndicators: string[] = [];
-
-  for (const indicator of definitePromptLeakIndicators) {
-    if (text.includes(indicator)) {
-      indicatorCount++;
-      foundIndicators.push(indicator.substring(0, 40));
+  // Verificar si la respuesta contiene algún patrón de leak
+  for (const pattern of promptLeakPatterns) {
+    if (trimmedText.includes(pattern)) {
+      logger.warn('🚫 [filterSystemPrompt] Prompt leak detectado con patrón:', pattern.substring(0, 50));
+      return 'Estoy aquí para ayudarte con nuestros cursos, talleres y herramientas de IA. Cuéntame qué necesitas y te guiaré paso a paso.';
     }
   }
 
-  // Log de indicadores encontrados
-  if (indicatorCount > 0) {
-    logger.warn('⚠️ [filterSystemPrompt] Indicadores encontrados:', indicatorCount, foundIndicators);
-  }
+  // Verificar patrones con regex para casos más complejos
+  const regexPatterns = [
+    /El nombre del usuario es:/i,
+    /Responde siempre en español/i,
+    /DEBES responder ESTRICTAMENTE en/i,
+    // /usa el contexto de la plataforma/i,
+    // /Solo puedo ayudarte con temas relacionados con:/i,
+    // /Cursos y talleres de nuestra plataforma/i,
+    /NUNCA inventes URLs/i,
+  ];
 
-  // Solo filtrar si hay 3+ indicadores definitivos (muy conservador)
-  if (indicatorCount >= 3) {
-    logger.warn('🚫 [filterSystemPrompt] Prompt completo detectado con', indicatorCount, 'indicadores');
-    return '¡Perfecto! Vamos a continuar. ¿Qué días de la semana prefieres estudiar y en qué horario?';
+  for (const regex of regexPatterns) {
+    if (regex.test(trimmedText)) {
+      logger.warn('🚫 [filterSystemPrompt] Prompt leak detectado con regex:', regex.toString());
+      return 'Estoy aquí para ayudarte con nuestros cursos, talleres y herramientas de IA. Cuéntame qué necesitas y te guiaré paso a paso.';
+    }
   }
 
   // Si pasa todas las verificaciones, es una respuesta válida
@@ -556,7 +604,7 @@ IMPORTANTE: Siempre combina la respuesta educativa/informativa con la navegació
   // Si hay contexto de curso/lección, crear prompt especializado
   if (courseContext && context === 'course') {
     const transcriptInfo = courseContext.transcriptContent
-      ? `\n\nTRANSCRIPCIÓN DEL VIDEO ACTUAL:\n${courseContext.transcriptContent.substring(0, 2000)}${courseContext.transcriptContent.length > 2000 ? '...' : ''}`
+      ? `\n\nTRANSCRIPCIÓN DEL VIDEO ACTUAL:\n${courseContext.transcriptContent.substring(0, 25000)}${courseContext.transcriptContent.length > 25000 ? '...' : ''}`
       : '';
 
     const summaryInfo = courseContext.summaryContent
@@ -1884,22 +1932,27 @@ export async function POST(request: NextRequest) {
         // FORZAR ESPAÑOL para study-planner siempre
         const effectiveLanguage = (context === 'study-planner' || context === 'study-planner-availability') ? 'es' : language;
 
-        // SWITCH DE MODELOS: Usar Gemini para Study Planner si está configurado, OpenAI para el resto
-        const isStudyPlanner = context === 'study-planner' || context === 'study-planner-availability';
-        const googleApiKey = process.env.GOOGLE_API_KEY;
+        // SWITCH DE MODELOS: Usar Gemini para Study Planner y contextos generales/cursos si está configurado
+        const shouldUseGemini = (
+          context === 'study-planner' || 
+          context === 'study-planner-availability' ||
+          context === 'general' ||
+          context === 'course' ||
+          context === 'workshops'
+        ) && !!googleApiKey;
 
         console.log('🔍 [DEBUG API CHECK] Context:', context);
-        console.log('🔍 [DEBUG API CHECK] isStudyPlanner:', isStudyPlanner);
+        console.log('🔍 [DEBUG API CHECK] Should use Gemini:', shouldUseGemini);
         console.log('🔍 [DEBUG API CHECK] Has GOOGLE_API_KEY:', !!googleApiKey);
 
         let result;
 
-        if (isStudyPlanner && googleApiKey) {
+        if (shouldUseGemini) {
           console.log('🚀 [LIA] INTENTANDO USAR GEMINI...');
-          logger.info('🚀 [LIA] Usando Google Gemini 3 Flash', { context });
+          logger.info('🚀 [LIA] Usando Google Gemini', { context, model: process.env.GEMINI_MODEL });
           result = await callGemini(message, contextPrompt, conversationHistory, userId, isSystemMessage);
         } else {
-          console.log('⚠️ [LIA] FALLBACK A OPENAI. Motivo:', !isStudyPlanner ? 'Contexto incorrecto' : 'Falta API Key');
+          console.log('⚠️ [LIA] FALLBACK A OPENAI. Motivo:', !shouldUseGemini ? 'Contexto incorrecto o preferencia' : 'Falta API Key');
           // Fallback a OpenAI (o uso normal para otros contextos)
           result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage, effectiveLanguage, context);
         }
@@ -2351,16 +2404,18 @@ ${antiMarkdownInstructions}
   };
 }
 
-// Función para generar respuestas (simular IA)
+// Función para generar respuestas fallback (cuando no hay API disponible)
+// ⚠️ IMPORTANTE: NUNCA devolver el contextPrompt, solo el fallback message
 function generateAIResponse(
   _message: string,
   _context: string,
   _history: Array<{ role: string; content: string }>,
-  contextPrompt: string,
+  _contextPrompt: string, // No usar - mantenido por compatibilidad
   language: SupportedLanguage = 'es'
 ): string {
   const config = LANGUAGE_CONFIG[language] || LANGUAGE_CONFIG.es;
-  return `${config.fallback}\n\n${contextPrompt}`;
+  // Solo devolver el mensaje fallback, NUNCA el contextPrompt
+  return config.fallback;
 }
 
 

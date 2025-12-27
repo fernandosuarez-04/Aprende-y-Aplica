@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger';
 /**
  * Redirige al usuario al dashboard apropiado según su cargo_rol (Enfoque B2B)
  * - Administrador → /admin/dashboard
+ * - Instructor → /instructor/dashboard (Panel de Instructor)
  * - Business → /business-panel/dashboard (Panel Admin Empresas)
  * - Business User → /business-user/dashboard (Dashboard Usuario Business)
  * - Usuario (o cualquier otro) → /dashboard (Tour SOFIA + Planes)
@@ -37,34 +38,37 @@ export async function redirectToDashboard() {
       return;
     }
 
-    // Redirección basada en cargo_rol
-    const cargoRol = userData.cargo_rol?.trim();
-    logger.log(`Dashboard redirect: cargo_rol = ${cargoRol}`);
+    // Redirección basada en cargo_rol (normalizado a minúsculas)
+    const normalizedRole = userData.cargo_rol?.toLowerCase().trim();
+    logger.log(`Dashboard redirect: cargo_rol = ${userData.cargo_rol}, normalizedRole = ${normalizedRole}`);
 
-    if (cargoRol === 'Administrador') {
+    if (normalizedRole === 'administrador') {
       redirect('/admin/dashboard');
-    } else if (cargoRol === 'Business' || cargoRol === 'Business User') {
-      // Para roles de empresa, verificar que pertenezca a una organización
-      const { data: userOrg, error: orgError } = await supabase
-        .from('organization_users')
-        .select('organization_id, status')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single();
-
-      if (orgError || !userOrg) {
-        logger.warn(`Usuario ${cargoRol} sin organización activa, redirigiendo a /dashboard`);
-        redirect('/dashboard');
-      }
-
-      // Redirigir según el rol específico
-      if (cargoRol === 'Business') {
+    } else if (normalizedRole === 'instructor') {
+      redirect('/instructor/dashboard');
+    } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
+      
+      if (normalizedRole === 'business') {
+        // Redirigir siempre al panel de negocios
         redirect('/business-panel/dashboard');
       } else {
-        redirect('/business-user/dashboard');
+        // Para Business User (empleados), verificar organización
+        const { data: userOrg, error: orgError } = await supabase
+          .from('organization_users')
+          .select('organization_id, status')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .single();
+
+        if (orgError || !userOrg) {
+          logger.warn(`Usuario Business User sin organización activa, redirigiendo a /dashboard`);
+          redirect('/dashboard');
+        } else {
+          redirect('/business-user/dashboard');
+        }
       }
     } else {
-      // Usuario normal o sin rol definido → Tour de SOFIA + Planes
+      // Usuario normal (cargo_rol === 'usuario' o cualquier otro) → Tour de SOFIA + Planes
       redirect('/dashboard');
     }
   } catch (error) {
