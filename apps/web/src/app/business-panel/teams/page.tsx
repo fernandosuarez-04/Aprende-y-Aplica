@@ -24,6 +24,7 @@ import { Button } from '@aprende-y-aplica/ui'
 import { useRouter } from 'next/navigation'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { BusinessTeamModal } from '@/features/business-panel/components/BusinessTeamModal'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE: StatCard Premium para Teams
@@ -165,6 +166,7 @@ interface TeamCardProps {
 }
 
 function TeamCard({ team, index, primaryColor, cardBg, cardBorder, onClick }: TeamCardProps) {
+  const { t } = useTranslation('business')
   const [imageError, setImageError] = useState(false)
   const imageUrl = team.image_url || team.metadata?.image_url || null
 
@@ -264,7 +266,7 @@ function TeamCard({ team, index, primaryColor, cardBg, cardBorder, onClick }: Te
             animate={{ scale: 1 }}
             transition={{ delay: index * 0.08 + 0.2, type: 'spring' }}
           >
-            {team.status === 'active' ? 'Activo' : team.status === 'inactive' ? 'Inactivo' : 'Archivado'}
+            {team.status === 'active' ? t('teams.status.active') : team.status === 'inactive' ? t('teams.status.inactive') : t('teams.status.archived')}
           </motion.span>
         </div>
 
@@ -282,7 +284,7 @@ function TeamCard({ team, index, primaryColor, cardBg, cardBorder, onClick }: Te
               <Users className="w-4 h-4 opacity-60" />
             </div>
             <span className="font-semibold">{team.member_count || 0}</span>
-            <span className="opacity-50 text-xs">miembros</span>
+            <span className="opacity-50 text-xs">{t('teams.card.members')}</span>
           </div>
 
           {team.course && (
@@ -333,6 +335,7 @@ function EmptyState({
   primaryColor: string
   secondaryColor: string
 }) {
+  const { t } = useTranslation('business')
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -374,13 +377,13 @@ function EmptyState({
         </motion.div>
 
         <h3 className="text-2xl font-bold mb-3" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>
-          No hay equipos
+          {t('teams.empty.title')}
         </h3>
 
         <p className="text-sm opacity-60 mb-6 max-w-md mx-auto leading-relaxed">
           {searchTerm || filterStatus !== 'all'
-            ? 'No se encontraron equipos con los filtros aplicados. Intenta ajustar tu búsqueda.'
-            : 'Crea tu primer equipo de trabajo para comenzar a organizar y gestionar el aprendizaje de tu organización.'}
+            ? t('teams.empty.noResults')
+            : t('teams.empty.noTeams')}
         </p>
 
         {!searchTerm && filterStatus === 'all' && (
@@ -399,7 +402,7 @@ function EmptyState({
               }}
             >
               <Plus className="w-5 h-5 mr-2" />
-              Crear Primer Equipo
+              {t('teams.empty.createFirst')}
             </Button>
           </motion.div>
         )}
@@ -412,6 +415,7 @@ function EmptyState({
 // PÁGINA PRINCIPAL: Teams
 // ============================================
 export default function BusinessPanelTeamsPage() {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { teams, isLoading, error, refetch } = useTeams()
@@ -544,7 +548,7 @@ export default function BusinessPanelTeamsPage() {
                   <Sparkles className="w-6 h-6" style={{ color: accentColor }} />
                 </motion.div>
                 <span className="text-sm font-semibold tracking-wider uppercase" style={{ color: accentColor }}>
-                  Gestión de Equipos
+                  {t('teams.badge')}
                 </span>
               </div>
 
@@ -554,7 +558,7 @@ export default function BusinessPanelTeamsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                Equipos de Trabajo
+                {t('teams.title')}
               </motion.h1>
 
               <motion.p
@@ -563,7 +567,7 @@ export default function BusinessPanelTeamsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                Organiza y gestiona equipos para asignar cursos y objetivos de aprendizaje.
+                {t('teams.subtitle')}
               </motion.p>
             </div>
 
@@ -585,7 +589,7 @@ export default function BusinessPanelTeamsPage() {
                 }}
               >
                 <Plus className="w-5 h-5 mr-2" />
-                Crear Equipo
+                {t('teams.buttons.create')}
               </Button>
             </motion.div>
           </div>
@@ -595,7 +599,7 @@ export default function BusinessPanelTeamsPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <TeamStatCard
-          title="Total Equipos"
+          title={t('teams.stats.total')}
           value={stats.totalTeams}
           icon={<UsersRound className="w-6 h-6" style={{ color: '#818cf8' }} />}
           gradient="linear-gradient(135deg, #818cf8, #6366f1)"
@@ -603,7 +607,7 @@ export default function BusinessPanelTeamsPage() {
           trend={12}
         />
         <TeamStatCard
-          title="Equipos Activos"
+          title={t('teams.stats.active')}
           value={stats.activeTeams}
           icon={<Activity className="w-6 h-6" style={{ color: '#34d399' }} />}
           gradient="linear-gradient(135deg, #34d399, #10b981)"
@@ -611,7 +615,7 @@ export default function BusinessPanelTeamsPage() {
           trend={8}
         />
         <TeamStatCard
-          title="Total Miembros"
+          title={t('teams.stats.totalMembers')}
           value={stats.totalMembers}
           icon={<Users className="w-6 h-6" style={{ color: '#38bdf8' }} />}
           gradient="linear-gradient(135deg, #38bdf8, #0ea5e9)"
@@ -619,7 +623,7 @@ export default function BusinessPanelTeamsPage() {
           trend={15}
         />
         <TeamStatCard
-          title="Miembros Activos"
+          title={t('teams.stats.activeMembers')}
           value={stats.activeMembers}
           icon={<Target className="w-6 h-6" style={{ color: '#fbbf24' }} />}
           gradient="linear-gradient(135deg, #fbbf24, #f59e0b)"
@@ -640,7 +644,7 @@ export default function BusinessPanelTeamsPage() {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 opacity-40 group-focus-within:opacity-70 transition-opacity" />
           <input
             type="text"
-            placeholder="Buscar equipos por nombre, descripción o líder..."
+            placeholder={t('teams.filters.search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3.5 rounded-xl border backdrop-blur-sm focus:outline-none focus:ring-2 transition-all duration-300"
@@ -673,10 +677,10 @@ export default function BusinessPanelTeamsPage() {
               minWidth: '160px'
             }}
           >
-            <option value="all">Todos</option>
-            <option value="active">Activos</option>
-            <option value="inactive">Inactivos</option>
-            <option value="archived">Archivados</option>
+            <option value="all">{t('teams.filters.all')}</option>
+            <option value="active">{t('teams.filters.active')}</option>
+            <option value="inactive">{t('teams.filters.inactive')}</option>
+            <option value="archived">{t('teams.filters.archived')}</option>
           </select>
           <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 w-5 h-5 opacity-40 pointer-events-none" />
         </div>

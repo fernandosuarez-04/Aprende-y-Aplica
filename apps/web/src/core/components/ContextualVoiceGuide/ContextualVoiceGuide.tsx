@@ -238,7 +238,7 @@ export function ContextualVoiceGuide({
 
       // Acceder directamente a las variables sin validaciÃ³n previa
       const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
-      const voiceId = '15Y62ZlO8it2f5wduybx';
+      const voiceId = process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || 'ay4iqk10DLwc8KGSrf2t';
       // âœ… OPTIMIZACIÃ“N: Usar modelo turbo para mayor velocidad
       const modelId = 'eleven_turbo_v2_5';
 

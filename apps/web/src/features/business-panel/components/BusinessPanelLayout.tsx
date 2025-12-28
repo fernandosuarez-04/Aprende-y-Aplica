@@ -12,6 +12,7 @@ import { LiaSidePanel } from '@/core/components/LiaSidePanel'
 import { LiaFloatingButton } from '@/core/components/LiaSidePanel/LiaFloatingButton'
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 
+
 interface BusinessPanelLayoutProps {
   children: React.ReactNode
 }
@@ -40,6 +41,8 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   const isLoading = typeof authLoading === 'boolean' ? authLoading : true;
 
   // Obtener estado del panel de LIA para desplazar contenido
+
+  // Obtener estado del panel de LIA para desplazar contenido (solo el main, no el sidebar)
   let isLiaPanelOpen = false;
   try {
     const liaPanel = useLiaPanel();
@@ -154,7 +157,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   return (
     <div
       key={styles?.selectedTheme || 'default-theme'}
-      className="h-screen flex flex-col overflow-hidden transition-all duration-300 business-panel-layout"
+      className="fixed inset-0 z-0 h-screen flex flex-col overflow-hidden transition-all duration-300 business-panel-layout"
       style={{
         ...backgroundStyle,
         ...cssVariables
@@ -189,7 +192,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
         {/* Main Content Area */}
         <main 
           className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 business-panel-content transition-all duration-300"
-          style={{ paddingRight: isLiaPanelOpen ? '420px' : '0px' }}
+          style={{ marginRight: isLiaPanelOpen ? '420px' : '0px' }}
         >
           <div className="w-full max-w-[1920px] mx-auto">
             {children}

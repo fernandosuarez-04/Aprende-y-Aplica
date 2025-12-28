@@ -816,6 +816,8 @@ CREATE TABLE public.organizations (
   selected_theme character varying DEFAULT NULL::character varying,
   billing_cycle character varying CHECK (billing_cycle IS NULL OR (billing_cycle::text = ANY (ARRAY['monthly'::character varying::text, 'yearly'::character varying::text]))),
   brand_banner_url text,
+  google_login_enabled boolean DEFAULT false,
+  microsoft_login_enabled boolean DEFAULT false,
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.password_reset_tokens (

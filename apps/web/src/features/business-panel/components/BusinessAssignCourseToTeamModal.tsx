@@ -8,6 +8,7 @@ import { useOrganizationStylesContext } from '../contexts/OrganizationStylesCont
 import { TeamsService, WorkTeamMember } from '../services/teams.service'
 import { useBusinessCourses } from '../hooks/useBusinessCourses'
 import { PremiumSelect } from './PremiumSelect'
+import { useTranslation } from 'react-i18next'
 
 interface BusinessAssignCourseToTeamModalProps {
   isOpen: boolean
@@ -26,6 +27,7 @@ export function BusinessAssignCourseToTeamModal({
   teamMembers,
   onAssignComplete
 }: BusinessAssignCourseToTeamModalProps) {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { courses } = useBusinessCourses()
@@ -47,14 +49,14 @@ export function BusinessAssignCourseToTeamModal({
     e.preventDefault()
 
     if (!selectedCourseId) {
-      setError('Debes seleccionar un curso')
+      setError(t('assignCourse.errors.selectCourse'))
       return
     }
 
     // Validar que el curso seleccionado existe
     const selectedCourse = courses.find(c => c.id === selectedCourseId)
     if (!selectedCourse) {
-      setError('El curso seleccionado no es válido')
+      setError(t('assignCourse.errors.invalidCourse'))
       return
     }
 
@@ -71,7 +73,7 @@ export function BusinessAssignCourseToTeamModal({
         today.setHours(0, 0, 0, 0)
 
         if (selectedDate < today) {
-          setError('La fecha límite no puede ser anterior a hoy')
+          setError(t('assignCourse.errors.invalidDate'))
           setIsAssigning(false)
           return
         }
@@ -100,7 +102,7 @@ export function BusinessAssignCourseToTeamModal({
       const errorMessage = err instanceof Error ? err.message : 'Error al asignar curso'
       setError(errorMessage.includes('adquirir')
         ? errorMessage
-        : `Error al asignar curso: ${errorMessage}. Verifica que el curso esté disponible y que tu organización tenga acceso.`)
+        : `${t('assignCourse.errors.assignFailed')}: ${errorMessage}.`)
     } finally {
       setIsAssigning(false)
     }
@@ -151,10 +153,10 @@ export function BusinessAssignCourseToTeamModal({
                 </motion.div>
                 <div>
                   <h2 className="font-heading text-xl font-bold tracking-tight" style={{ color: textColor }}>
-                    Asignar Curso a Equipo
+                    {t('assignCourse.titleTeam')}
                   </h2>
                   <p className="font-body text-xs mt-1" style={{ color: textColor, opacity: 0.7 }}>
-                    {teamName} - {teamMembers.length} miembro(s)
+                    {teamName} - {teamMembers.length} {t('assignCourse.labels.members')}
                   </p>
                 </div>
               </div>
@@ -191,7 +193,7 @@ export function BusinessAssignCourseToTeamModal({
               {/* Selección de Curso */}
               <div>
                 <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Curso <span className="text-red-400">*</span>
+                  {t('assignCourse.labels.course')} <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <PremiumSelect
@@ -201,7 +203,7 @@ export function BusinessAssignCourseToTeamModal({
                       setSelectedCourseId(value)
                       setError(null) // Limpiar error al cambiar selección
                     }}
-                    placeholder="Seleccionar curso..."
+                    placeholder={t('assignCourse.placeholders.selectCourse')}
                     options={courses.map(course => ({
                       value: course.id,
                       label: course.title
@@ -211,12 +213,12 @@ export function BusinessAssignCourseToTeamModal({
                 </div>
                 {courses.length === 0 && (
                   <p className="text-xs font-body opacity-70 mt-2" style={{ color: textColor }}>
-                    No hay cursos disponibles. Asegúrate de que tu organización haya adquirido cursos.
+                    {t('assignCourse.errors.noCoursesAvailable')}
                   </p>
                 )}
                 {selectedCourse && (
                   <div className="mt-3 p-3 rounded-xl border" style={{ backgroundColor: sectionBg, borderColor: modalBorder }}>
-                    <p className="text-sm font-body opacity-70 mb-1">Curso seleccionado:</p>
+                    <p className="text-sm font-body opacity-70 mb-1">{t('assignCourse.labels.selectedCourse')}</p>
                     <p className="font-body font-medium">{selectedCourse.title}</p>
                     {selectedCourse.description && (
                       <p className="text-xs font-body opacity-70 mt-1 line-clamp-2">{selectedCourse.description}</p>
@@ -228,7 +230,7 @@ export function BusinessAssignCourseToTeamModal({
               {/* Miembros del Equipo */}
               <div>
                 <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
-                  Miembros que recibirán el curso ({teamMembers.length})
+                  {t('assignCourse.labels.receivingMembers')} ({teamMembers.length})
                 </label>
                 <div className="max-h-32 overflow-y-auto space-y-2 border rounded-xl p-3" style={{ borderColor: modalBorder, backgroundColor: sectionBg, scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
                   {teamMembers.map(member => (
@@ -245,7 +247,7 @@ export function BusinessAssignCourseToTeamModal({
                 <div>
                   <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
                     <Calendar className="w-4 h-4 inline mr-1" />
-                    Fecha Límite
+                    {t('assignCourse.labels.dueDate')}
                   </label>
                   <input
                     type="date"
@@ -261,7 +263,7 @@ export function BusinessAssignCourseToTeamModal({
                   />
                   {dueDate && (
                     <p className="text-xs font-body opacity-70 mt-1">
-                      Fecha límite: {new Date(dueDate).toLocaleDateString('es-ES', {
+                      {t('assignCourse.labels.dueDate')}: {new Date(dueDate).toLocaleDateString('es-ES', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric'
@@ -272,7 +274,7 @@ export function BusinessAssignCourseToTeamModal({
                 <div>
                   <label className="block font-body text-sm font-semibold mb-2" style={{ color: textColor }}>
                     <MessageSquare className="w-4 h-4 inline mr-1" />
-                    Mensaje (opcional)
+                    {t('assignCourse.optional.message')}
                   </label>
                   <textarea
                     value={customMessage}
@@ -285,7 +287,7 @@ export function BusinessAssignCourseToTeamModal({
                       backgroundColor: sectionBg,
                       color: textColor
                     }}
-                    placeholder="Mensaje personalizado para el equipo..."
+                    placeholder={t('assignCourse.placeholders.teamMessage')}
                   />
                   <p className="text-xs font-body opacity-70 mt-1">{customMessage.length}/200</p>
                 </div>
@@ -304,7 +306,7 @@ export function BusinessAssignCourseToTeamModal({
                 disabled={isAssigning}
                 className="font-body"
               >
-                Cancelar
+                {t('assignCourse.buttons.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -319,12 +321,12 @@ export function BusinessAssignCourseToTeamModal({
                 {isAssigning ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Asignando...
+                    {t('assignCourse.buttons.assigning')}
                   </>
                 ) : (
                   <>
                     <BookOpen className="w-4 h-4 mr-2" />
-                    Asignar Curso
+                    {t('assignCourse.buttons.assign')}
                   </>
                 )}
               </Button>

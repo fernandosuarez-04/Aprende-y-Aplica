@@ -7,6 +7,7 @@ Sistema modular de agentes de voz para guiar usuarios en diferentes secciones de
 ### Componente Base: `ContextualVoiceGuide`
 
 Componente reutilizable que proporciona:
+
 - ✅ Tours interactivos con voz (ElevenLabs + fallback nativo)
 - ✅ Conversación bidireccional (reconocimiento de voz)
 - ✅ Navegación paso a paso
@@ -19,28 +20,30 @@ Componente reutilizable que proporciona:
 
 ```typescript
 interface ContextualVoiceGuideProps {
-  tourId: string;              // ID único (ej: 'prompt-directory')
-  steps: VoiceGuideStep[];     // Pasos del tour
-  triggerPaths: string[];      // Rutas donde aparece automáticamente
-  isReplayable?: boolean;      // Si se puede repetir (default: true)
-  showDelay?: number;          // Delay antes de mostrar (default: 1000ms)
-  replayButtonLabel?: string;  // Texto del botón de replay
-  requireAuth?: boolean;       // Si requiere autenticación
+  tourId: string; // ID único (ej: 'prompt-directory')
+  steps: VoiceGuideStep[]; // Pasos del tour
+  triggerPaths: string[]; // Rutas donde aparece automáticamente
+  isReplayable?: boolean; // Si se puede repetir (default: true)
+  showDelay?: number; // Delay antes de mostrar (default: 1000ms)
+  replayButtonLabel?: string; // Texto del botón de replay
+  requireAuth?: boolean; // Si requiere autenticación
 }
 ```
 
 ## Tours Implementados
 
 ### 1. Tour Principal - Dashboard (OnboardingAgent)
+
 - **Ubicación**: `/dashboard` (solo primera vez)
 - **Storage Key**: `has-seen-onboarding`
-- **Características**: 
+- **Características**:
   - Introducción general a la plataforma
   - Presentación de LIA
   - Navegación a secciones principales
   - Botón de replay exclusivo del dashboard
 
 ### 2. Tour Prompt Directory
+
 - **Ubicación**: `/prompt-directory`
 - **Storage Key**: `has-seen-tour-prompt-directory`
 - **Características**:
@@ -56,18 +59,19 @@ interface ContextualVoiceGuideProps {
 
 ```typescript
 // src/features/[feature]/config/[feature]-tour.ts
-import { VoiceGuideStep } from '../../../core/components/ContextualVoiceGuide';
+import { VoiceGuideStep } from "../../../core/components/ContextualVoiceGuide";
 
 export const MI_TOUR_STEPS: VoiceGuideStep[] = [
   {
     id: 1,
-    title: 'Título del paso',
-    description: 'Descripción visual del paso',
-    speech: 'Texto que se lee en voz alta',
-    action: { // Opcional
-      label: 'Ir a X',
-      path: '/ruta'
-    }
+    title: "Título del paso",
+    description: "Descripción visual del paso",
+    speech: "Texto que se lee en voz alta",
+    action: {
+      // Opcional
+      label: "Ir a X",
+      path: "/ruta",
+    },
   },
   // ... más pasos
 ];
@@ -76,19 +80,22 @@ export const MI_TOUR_STEPS: VoiceGuideStep[] = [
 ### Paso 2: Integrar en la página
 
 ```tsx
-import { ContextualVoiceGuide, ReplayTourButton } from '@/core/components/ContextualVoiceGuide';
-import { MI_TOUR_STEPS } from '@/features/mi-feature/config/mi-tour';
+import {
+  ContextualVoiceGuide,
+  ReplayTourButton,
+} from "@/core/components/ContextualVoiceGuide";
+import { MI_TOUR_STEPS } from "@/features/mi-feature/config/mi-tour";
 
 export default function MiPagina() {
   return (
     <>
       {/* Tu contenido */}
-      
+
       {/* Tour contextual */}
       <ContextualVoiceGuide
         tourId="mi-feature"
         steps={MI_TOUR_STEPS}
-        triggerPaths={['/mi-ruta']}
+        triggerPaths={["/mi-ruta"]}
         isReplayable={true}
         showDelay={1500}
         replayButtonLabel="Ver tour de [Feature]"
@@ -98,7 +105,7 @@ export default function MiPagina() {
       <ReplayTourButton
         tourId="mi-feature"
         label="Ver tour de [Feature]"
-        allowedPaths={['/mi-ruta']}
+        allowedPaths={["/mi-ruta"]}
       />
     </>
   );
@@ -130,29 +137,34 @@ Paso 7: Cierre y próximos pasos
 ## Configuración de Voz
 
 ### ElevenLabs (Producción)
+
 ```env
 NEXT_PUBLIC_ELEVENLABS_API_KEY=tu_api_key
-NEXT_PUBLIC_ELEVENLABS_VOICE_ID=15Y62ZlO8it2f5wduybx
+NEXT_PUBLIC_ELEVENLABS_VOICE_ID=ay4iqk10DLwc8KGSrf2t
 ```
 
 **Optimizaciones aplicadas:**
+
 - Modelo: `eleven_turbo_v2_5`
 - Latencia: `optimize_streaming_latency: 4`
 - Formato: `mp3_22050_32`
 - Latencia reducida: ~500-1100ms
 
 ### Fallback Nativo
+
 Si no hay API key, usa `window.speechSynthesis` del navegador.
 
 ## Separación de Responsabilidades
 
 ### Tour Principal (Dashboard)
+
 - **Propósito**: Introducción general a la plataforma
 - **Alcance**: Features principales, LIA, navegación
 - **Frecuencia**: Una sola vez por usuario nuevo
 - **Botón**: Solo visible en `/dashboard`
 
 ### Tours Contextuales (Features específicos)
+
 - **Propósito**: Guía detallada de una sección específica
 - **Alcance**: Features y funcionalidades de esa sección
 - **Frecuencia**: Repetible cuando el usuario lo necesite
@@ -177,9 +189,11 @@ has-seen-tour-workshops                // Futuro: Tour workshops
 export const WORKSHOPS_TOUR_STEPS: VoiceGuideStep[] = [
   {
     id: 1,
-    title: '¡Bienvenido a los Talleres!',
-    description: 'Los talleres son experiencias prácticas donde aplicarás lo aprendido.',
-    speech: 'Bienvenido a los talleres. Aquí aplicarás lo aprendido en experiencias prácticas guiadas.'
+    title: "¡Bienvenido a los Talleres!",
+    description:
+      "Los talleres son experiencias prácticas donde aplicarás lo aprendido.",
+    speech:
+      "Bienvenido a los talleres. Aquí aplicarás lo aprendido en experiencias prácticas guiadas.",
   },
   // ... más pasos
 ];
@@ -216,8 +230,9 @@ export const WORKSHOPS_TOUR_STEPS: VoiceGuideStep[] = [
 Para probar un tour:
 
 1. **Primera visita**: Borra el localStorage correspondiente
+
    ```javascript
-   localStorage.removeItem('has-seen-tour-[tourId]')
+   localStorage.removeItem("has-seen-tour-[tourId]");
    ```
 
 2. **Botón de replay**: Usa el botón flotante en la página

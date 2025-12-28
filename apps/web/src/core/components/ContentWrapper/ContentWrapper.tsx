@@ -37,9 +37,9 @@ export function ContentWrapper({ children }: { children: React.ReactNode }) {
     <div
       className={`${bgClass} min-h-full transition-all duration-300 ease-in-out`}
       style={{ 
-        // Solo aplicar paddingRight si el panel está abierto Y no estamos en admin
+        // Solo aplicar paddingRight si el panel está abierto Y no estamos en admin Y no estamos en rutas con tema personalizado
         // Usamos 'mounted' para asegurar que coincida con el servidor (siempre cerrado inicialmente)
-        paddingRight: mounted && isPanelOpen && !isAdminRoute ? '420px' : '0px' 
+        paddingRight: mounted && isPanelOpen && !isAdminRoute && !isCustomThemedRoute ? '420px' : '0px' 
       }}
       suppressHydrationWarning
     >

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation, Trans } from 'react-i18next'
 import { X, AlertTriangle, Trash2 } from 'lucide-react'
 import { Button } from '@aprende-y-aplica/ui'
 import { BusinessUser } from '../services/businessUsers.service'
@@ -14,6 +15,7 @@ interface BusinessDeleteUserModalProps {
 }
 
 export function BusinessDeleteUserModal({ user, isOpen, onClose, onConfirm }: BusinessDeleteUserModalProps) {
+  const { t } = useTranslation('business')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,7 +27,7 @@ export function BusinessDeleteUserModal({ user, isOpen, onClose, onConfirm }: Bu
       await onConfirm()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar usuario')
+      setError(err instanceof Error ? err.message : t('users.modals.delete.error'))
     } finally {
       setIsLoading(false)
     }
@@ -76,10 +78,10 @@ export function BusinessDeleteUserModal({ user, isOpen, onClose, onConfirm }: Bu
                 </motion.div>
                 <div>
                   <h2 className="text-heading text-2xl font-bold text-white tracking-tight">
-                    Eliminar Usuario
+                    {t('users.modals.delete.title')}
                   </h2>
                   <p className="text-body text-sm text-carbon-400 mt-1">
-                    Acción irreversible
+                    {t('users.modals.delete.subtitle')}
                   </p>
                 </div>
               </div>
@@ -120,10 +122,15 @@ export function BusinessDeleteUserModal({ user, isOpen, onClose, onConfirm }: Bu
               className="p-5 bg-red-900/10 border border-red-500/20 rounded-xl backdrop-blur-sm"
             >
               <p className="text-body text-white mb-2 leading-relaxed">
-                ¿Estás seguro de que deseas eliminar a <span className="font-heading font-bold text-red-400">{displayName}</span> de tu organización?
+                <Trans
+                  i18nKey="users.modals.delete.confirmQuestion"
+                  t={t}
+                  values={{ name: displayName }}
+                  components={{ 1: <span className="font-heading font-bold text-red-400" /> }}
+                />
               </p>
               <p className="text-body text-carbon-400 text-sm">
-                Esta acción no se puede deshacer. El usuario perderá acceso inmediatamente.
+                {t('users.modals.delete.warning')}
               </p>
             </motion.div>
 
@@ -136,12 +143,15 @@ export function BusinessDeleteUserModal({ user, isOpen, onClose, onConfirm }: Bu
             >
               <div className="space-y-3">
                 <div>
-                  <p className="text-body text-xs text-carbon-400 mb-1.5 uppercase tracking-wider">Email</p>
+                  <p className="text-body text-xs text-carbon-400 mb-1.5 uppercase tracking-wider">{t('users.modals.delete.fields.email')}</p>
                   <p className="text-body text-white font-medium">{user.email}</p>
                 </div>
                 <div>
-                  <p className="text-body text-xs text-carbon-400 mb-1.5 uppercase tracking-wider">Rol</p>
-                  <p className="text-body text-white font-medium capitalize">{user.org_role || 'member'}</p>
+                  <p className="text-body text-xs text-carbon-400 mb-1.5 uppercase tracking-wider">{t('users.modals.delete.fields.role')}</p>
+                  <p className="text-body text-white font-medium capitalize">{
+                    user.org_role === 'owner' ? t('users.roles.owner') :
+                      user.org_role === 'admin' ? t('users.roles.admin') : t('users.roles.member')
+                  }</p>
                 </div>
               </div>
             </motion.div>
@@ -156,7 +166,7 @@ export function BusinessDeleteUserModal({ user, isOpen, onClose, onConfirm }: Bu
                   disabled={isLoading}
                   className="font-heading text-sm transition-all duration-200"
                 >
-                  Cancelar
+                  {t('users.buttons.cancel')}
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
@@ -170,12 +180,12 @@ export function BusinessDeleteUserModal({ user, isOpen, onClose, onConfirm }: Bu
                   {isLoading ? (
                     <span className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Eliminando...
+                      {t('users.buttons.deleting')}
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
                       <Trash2 className="w-4 h-4" />
-                      Eliminar Usuario
+                      {t('users.buttons.delete')}
                     </span>
                   )}
                 </Button>

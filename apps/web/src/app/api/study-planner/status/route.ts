@@ -1,7 +1,8 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { SessionService } from '@/features/auth/services/session.service';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/study-planner/status
@@ -20,18 +21,43 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const supabase = createClient();
+        console.log('🔍 StudyPlanner Status Check:', { userId: user.id, email: user.email });
+
+        let supabase;
+        // Intenta usar la clave de servicio (admin) si está disponible para omitir RLS
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (serviceRoleKey) {
+            const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+            // console.log('✅ Using Service Role Key for admin access');
+            supabase = createSupabaseClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                serviceRoleKey,
+                {
+                    auth: {
+                        persistSession: false,
+                        autoRefreshToken: false,
+                        detectSessionInUrl: false
+                    }
+                }
+            );
+        } else {
+            // console.log('⚠️ Using Standard Client');
+            // CRITICAL FIX: createClient is async in server.ts
+            supabase = await createClient();
+        }
 
         // Consultar el plan más reciente del usuario
         const { data: plans, error } = await supabase
             .from('study_plans')
-            .select('id')
+            .select('id, user_id, name, created_at')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
             .limit(1);
 
         if (error) {
             console.error('Error verificando estado del plan de estudio:', error);
+            // Si el error es por RLS (PGRST301 o similar), podría ser útil loguearlo
             return NextResponse.json(
                 { success: false, error: 'Error al verificar estado del plan' },
                 { status: 500 }
@@ -39,6 +65,7 @@ export async function GET(request: NextRequest) {
         }
 
         const hasPlan = plans && plans.length > 0;
+        console.log(`🔍 Plan status for user ${user.id}:`, { hasPlan, planId: hasPlan ? plans[0].id : null });
 
         return NextResponse.json({
             success: true,

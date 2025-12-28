@@ -14,6 +14,7 @@ import {
   Users,
   Sparkles
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 
 interface BusinessImportUsersModalProps {
@@ -30,6 +31,7 @@ interface ImportResult {
 }
 
 export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: BusinessImportUsersModalProps) {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
 
@@ -51,7 +53,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
       })
 
       if (!response.ok) {
-        throw new Error('Error al descargar la plantilla')
+        throw new Error(t('importUsers.errors.downloadTemplate'))
       }
 
       const blob = await response.blob()
@@ -64,13 +66,13 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al descargar la plantilla')
+      setError(err instanceof Error ? err.message : t('importUsers.errors.downloadTemplate'))
     }
   }
 
   const handleFileSelect = async (file: File) => {
     if (!file.name.endsWith('.csv')) {
-      setError('El archivo debe ser un CSV (.csv)')
+      setError(t('importUsers.errors.invalidFileType'))
       return
     }
     setSelectedFile(file)
@@ -226,10 +228,10 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
 
                   {/* Title */}
                   <h2 className="text-xl font-bold text-white mb-2 text-center">
-                    Importar Usuarios
+                    {t('users.modals.import.title')}
                   </h2>
                   <p className="text-sm text-white/50 text-center mb-8">
-                    Agrega múltiples usuarios desde un archivo CSV
+                    {t('users.modals.import.subtitle')}
                   </p>
 
                   {/* Stats Preview */}
@@ -278,7 +280,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                   className="w-full py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium text-white/80"
                 >
                   <Download className="w-4 h-4" />
-                  Descargar Plantilla CSV
+                  {t('users.modals.import.downloadTemplate')}
                 </motion.button>
               </div>
 
@@ -288,10 +290,10 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                 <div className="flex items-center justify-between p-4 lg:p-6 border-b border-white/5 shrink-0">
                   <div>
                     <h3 className="text-lg font-semibold text-white">
-                      {importResult ? 'Resultado de Importación' : 'Subir Archivo'}
+                      {importResult ? t('users.modals.import.resultTitle') : t('users.modals.import.uploadTitle')}
                     </h3>
                     <p className="text-sm text-white/40 mt-0.5">
-                      {importResult ? 'Resumen del proceso' : 'Selecciona o arrastra tu archivo CSV'}
+                      {importResult ? t('users.modals.import.resultSubtitle') : t('users.modals.import.uploadSubtitle')}
                     </p>
                   </div>
                   <button
@@ -337,7 +339,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                         )}
                         <div>
                           <p className="font-semibold text-white">
-                            {importResult.imported > 0 ? '¡Importación exitosa!' : 'No se importaron usuarios'}
+                            {importResult.imported > 0 ? t('users.modals.import.results.successTitle') : t('users.modals.import.results.noImportTitle')}
                           </p>
                           <p className="text-sm text-white/50 mt-0.5">
                             {importResult.imported} de {importResult.total} usuarios fueron importados correctamente
@@ -350,7 +352,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                         <div>
                           <p className="text-sm font-medium text-white mb-3 flex items-center gap-2">
                             <XCircle className="w-4 h-4 text-red-400" />
-                            Errores encontrados ({importResult.errors})
+                            {t('users.modals.import.results.errorsFound')} ({importResult.errors})
                           </p>
                           <div className="max-h-40 lg:max-h-48 overflow-y-auto space-y-2 p-3 rounded-xl bg-red-500/5 border border-red-500/10" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
                             {importResult.details.slice(0, 10).map((detail, index) => (
@@ -401,8 +403,8 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                                 style={{ borderColor: `${primaryColor}30`, borderTopColor: primaryColor }}
                               />
                               <div>
-                                <p className="font-medium text-white">Importando usuarios...</p>
-                                <p className="text-sm text-white/40 mt-1">Esto puede tardar unos segundos</p>
+                                <p className="font-medium text-white">{t('users.modals.import.loading.title')}</p>
+                                <p className="text-sm text-white/40 mt-1">{t('users.modals.import.loading.subtitle')}</p>
                               </div>
                             </div>
                           ) : (
@@ -414,10 +416,10 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                                 <Upload className="w-7 h-7" style={{ color: primaryColor }} />
                               </div>
                               <p className="font-medium text-white mb-1">
-                                {isDragging ? 'Suelta el archivo aquí' : 'Arrastra tu archivo CSV'}
+                                {isDragging ? t('users.modals.import.dragDrop.drop') : t('users.modals.import.dragDrop.drag')}
                               </p>
                               <p className="text-sm text-white/40">
-                                o haz clic para seleccionar
+                                {t('users.modals.import.dragDrop.orKey')}
                               </p>
                             </>
                           )}
@@ -428,14 +430,14 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                       <div className="rounded-xl p-4 bg-white/5 border border-white/5">
                         <p className="text-sm font-medium text-white mb-3 flex items-center gap-2">
                           <FileText className="w-4 h-4" style={{ color: accentColor }} />
-                          Formato requerido
+                          {t('users.modals.import.format.title')}
                         </p>
                         <div className="space-y-2">
                           {[
-                            { field: 'username', desc: 'Nombre de usuario único', required: true },
-                            { field: 'email', desc: 'Correo electrónico', required: true },
-                            { field: 'password', desc: 'Mínimo 6 caracteres', required: true },
-                            { field: 'org_role', desc: 'member, admin u owner', required: false },
+                            { field: 'username', desc: t('users.modals.import.format.username'), required: true },
+                            { field: 'email', desc: t('users.modals.import.format.email'), required: true },
+                            { field: 'password', desc: t('users.modals.import.format.password'), required: true },
+                            { field: 'org_role', desc: t('users.modals.import.format.role'), required: false },
                           ].map((item) => (
                             <div key={item.field} className="flex items-center justify-between text-sm">
                               <div className="flex items-center gap-2">
@@ -449,7 +451,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                               </div>
                               {item.required && (
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
-                                  Requerido
+                                  {t('users.modals.import.format.required')}
                                 </span>
                               )}
                             </div>
@@ -468,7 +470,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                         onClick={handleReset}
                         className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors"
                       >
-                        Importar otro
+                        {t('users.buttons.importAnother')}
                       </button>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -480,7 +482,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                           boxShadow: `0 4px 15px ${primaryColor}40`
                         }}
                       >
-                        Finalizar
+                        {t('users.buttons.finish')}
                       </motion.button>
                     </>
                   ) : (
@@ -490,7 +492,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                         disabled={isImporting}
                         className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
                       >
-                        Cancelar
+                        {t('users.buttons.cancel')}
                       </button>
                       <motion.button
                         whileHover={{ scale: selectedFile ? 1.02 : 1 }}
@@ -503,7 +505,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                           boxShadow: selectedFile ? `0 4px 15px ${primaryColor}40` : 'none'
                         }}
                       >
-                        {isImporting ? 'Importando...' : 'Importar Usuarios'}
+                        {isImporting ? t('users.modals.import.loading.title') : t('users.buttons.import')}
                       </motion.button>
                     </>
                   )}

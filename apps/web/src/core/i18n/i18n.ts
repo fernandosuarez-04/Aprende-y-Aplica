@@ -27,6 +27,9 @@ import communitiesPt from '../../../public/locales/pt/communities.json';
 import newsEs from '../../../public/locales/es/news.json';
 import newsEn from '../../../public/locales/en/news.json';
 import newsPt from '../../../public/locales/pt/news.json';
+import businessEs from '../../../public/locales/es/business.json';
+import businessEn from '../../../public/locales/en/business.json';
+import businessPt from '../../../public/locales/pt/business.json';
 
 export type SupportedLanguage = 'es' | 'en' | 'pt';
 
@@ -40,6 +43,7 @@ const resources: Resource = {
     'statistics-results': statisticsResultsEs,
     communities: communitiesEs,
     news: newsEs,
+    business: businessEs,
   },
   en: {
     common: commonEn,
@@ -50,6 +54,7 @@ const resources: Resource = {
     'statistics-results': statisticsResultsEn,
     communities: communitiesEn,
     news: newsEn,
+    business: businessEn,
   },
   pt: {
     common: commonPt,
@@ -60,6 +65,7 @@ const resources: Resource = {
     'statistics-results': statisticsResultsPt,
     communities: communitiesPt,
     news: newsPt,
+    business: businessPt,
   },
 };
 
@@ -71,7 +77,7 @@ export const initI18n = () => {
       resources,
       lng: 'es',
       fallbackLng: 'es',
-      ns: ['common', 'dashboard', 'content', 'learn', 'my-courses', 'statistics-results', 'communities', 'news'],
+      ns: ['common', 'dashboard', 'content', 'learn', 'my-courses', 'statistics-results', 'communities', 'news', 'business'],
       defaultNS: 'common',
       interpolation: {
         escapeValue: false,
@@ -81,6 +87,12 @@ export const initI18n = () => {
       },
     });
     initialized = true;
+  } else {
+    // Ensure business namespace is loaded even if i18n was already initialized (HMR/Singleton fix)
+    (['es', 'en', 'pt'] as SupportedLanguage[]).forEach(lang => {
+      // Always add/update the business resource bundle to ensure latest content
+      i18n.addResourceBundle(lang, 'business', resources[lang].business, true, true);
+    });
   }
 
   return i18n;

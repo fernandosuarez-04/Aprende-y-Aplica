@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, User, Mail, Shield, Lock, UserPlus, Camera, Sparkles, Briefcase } from 'lucide-react'
 import Image from 'next/image'
+import { useTranslation } from 'react-i18next'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 
 interface BusinessAddUserModalProps {
@@ -23,6 +24,7 @@ interface BusinessAddUserModalProps {
 }
 
 export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUserModalProps) {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -173,9 +175,9 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
   if (!isOpen) return null
 
   const roleLabels = {
-    member: { label: 'Miembro', desc: 'Acceso básico a cursos y contenido' },
-    admin: { label: 'Administrador', desc: 'Gestión de usuarios y configuración' },
-    owner: { label: 'Propietario', desc: 'Control total de la organización' }
+    member: { label: t('users.roles.member'), desc: t('users.modals.add.roleDesc.member') },
+    admin: { label: t('users.roles.admin'), desc: t('users.modals.add.roleDesc.admin') },
+    owner: { label: t('users.roles.owner'), desc: t('users.modals.add.roleDesc.owner') }
   }
 
   const getInitials = () => {
@@ -293,7 +295,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
 
                   {/* User Info Preview */}
                   <h2 className="text-xl font-bold text-white mb-1 text-center">
-                    {formData.display_name || formData.username || 'Nuevo Usuario'}
+                    {formData.display_name || formData.username || t('users.modals.add.title')}
                   </h2>
                   <p className="text-sm text-white/50 text-center mb-2">
                     {formData.email || 'email@ejemplo.com'}
@@ -317,13 +319,13 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
 
                   {/* Image hint */}
                   <p className="mt-6 text-xs text-white/30 text-center">
-                    Haz clic en el icono de cámara para agregar una foto
+                    {t('users.modals.add.hints.photo')}
                   </p>
                 </div>
 
                 {/* Info Note */}
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white/50">
-                  <p>El usuario recibirá sus credenciales por correo electrónico para acceder a la plataforma.</p>
+                  <p>{t('users.modals.add.hints.creds')}</p>
                 </div>
               </div>
 
@@ -332,8 +334,8 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 lg:p-6 border-b border-white/5 shrink-0">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Información del Usuario</h3>
-                    <p className="text-sm text-white/40 mt-0.5">Completa los datos para crear el nuevo usuario</p>
+                    <h3 className="text-lg font-semibold text-white">{t('users.modals.add.userInfoTitle')}</h3>
+                    <p className="text-sm text-white/40 mt-0.5">{t('users.modals.add.userInfoSubtitle')}</p>
                   </div>
                   <button
                     onClick={onClose}
@@ -362,7 +364,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-white/70 mb-2">
-                          Usuario <span className="text-red-400">*</span>
+                          {t('users.modals.add.fields.username')} <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -373,13 +375,13 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                             onChange={handleChange}
                             required
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                            placeholder="usuario123"
+                            placeholder={t('users.modals.add.placeholders.username')}
                           />
                         </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-white/70 mb-2">
-                          Email <span className="text-red-400">*</span>
+                          {t('users.modals.add.fields.email')} <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -390,7 +392,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                             onChange={handleChange}
                             required
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                            placeholder="correo@empresa.com"
+                            placeholder={t('users.modals.add.placeholders.email')}
                           />
                         </div>
                       </div>
@@ -399,25 +401,25 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                     {/* First Name & Last Name */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Nombre</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.add.fields.firstName')}</label>
                         <input
                           type="text"
                           name="first_name"
                           value={formData.first_name}
                           onChange={handleChange}
                           className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                          placeholder="Juan"
+                          placeholder={t('users.modals.add.placeholders.firstName')}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Apellido</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.add.fields.lastName')}</label>
                         <input
                           type="text"
                           name="last_name"
                           value={formData.last_name}
                           onChange={handleChange}
                           className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                          placeholder="Pérez"
+                          placeholder={t('users.modals.add.placeholders.lastName')}
                         />
                       </div>
                     </div>
@@ -425,7 +427,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                     {/* Password */}
                     <div>
                       <label className="block text-sm font-medium text-white/70 mb-2">
-                        Contraseña <span className="text-red-400">*</span>
+                        {t('users.modals.add.fields.password')} <span className="text-red-400">*</span>
                       </label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -437,7 +439,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                           required
                           minLength={6}
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                          placeholder="Mínimo 6 caracteres"
+                          placeholder={t('users.modals.add.placeholders.password')}
                         />
                       </div>
                     </div>
@@ -445,7 +447,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                     {/* Type Role */}
                     <div>
                       <label className="block text-sm font-medium text-white/70 mb-2">
-                        Cargo / Puesto <span className="text-red-400">*</span>
+                        {t('users.modals.add.fields.position')} <span className="text-red-400">*</span>
                       </label>
                       <div className="relative">
                         <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -456,7 +458,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                           onChange={handleChange}
                           required
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                          placeholder="Ej: Desarrollador, Diseñador, etc."
+                          placeholder={t('users.modals.add.placeholders.position')}
                         />
                       </div>
                     </div>
@@ -464,7 +466,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                     {/* Org Role */}
                     <div>
                       <label className="block text-sm font-medium text-white/70 mb-2">
-                        Rol en la Organización <span className="text-red-400">*</span>
+                       {t('users.modals.add.fields.orgRole')} <span className="text-red-400">*</span>
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:gap-3">
                         {(['member', 'admin', 'owner'] as const).map((role) => (
@@ -502,7 +504,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                       disabled={isLoading}
                       className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
                     >
-                      Cancelar
+                      {t('users.buttons.cancel')}
                     </button>
                     <motion.button
                       type="submit"
@@ -518,12 +520,12 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                       {isLoading || isUploadingImage ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          {isUploadingImage ? 'Subiendo imagen...' : 'Creando...'}
+                          {isUploadingImage ? t('users.buttons.uploading') : t('users.buttons.creating')}
                         </>
                       ) : (
                         <>
                           <UserPlus className="w-4 h-4" />
-                          Crear Usuario
+                          {t('users.buttons.create')}
                         </>
                       )}
                     </motion.button>

@@ -26,6 +26,7 @@ import { useBusinessCourses } from '@/features/business-panel/hooks/useBusinessC
 import { StarRating } from '@/features/courses/components/StarRating'
 import { PremiumSelect } from '@/features/business-panel/components/PremiumSelect'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE: StatCard Premium para Cursos
@@ -95,6 +96,7 @@ interface CourseCardProps {
 }
 
 function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
+  const { t } = useTranslation('business')
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return 'N/A'
     if (minutes < 60) return `${minutes} min`
@@ -103,23 +105,23 @@ function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
     return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`
   }
 
-  const getLevelStyles = (level: string | null) => {
+  const getLevelStyles = (level: string | null, t: any) => {
     switch (level?.toLowerCase()) {
       case 'beginner':
       case 'principiante':
-        return { bg: 'rgba(34, 197, 94, 0.2)', color: '#22C55E', text: 'Principiante' }
+        return { bg: 'rgba(34, 197, 94, 0.2)', color: '#22C55E', text: t('courses.levels.beginner') }
       case 'intermediate':
       case 'intermedio':
-        return { bg: 'rgba(234, 179, 8, 0.2)', color: '#EAB308', text: 'Intermedio' }
+        return { bg: 'rgba(234, 179, 8, 0.2)', color: '#EAB308', text: t('courses.levels.intermediate') }
       case 'advanced':
       case 'avanzado':
-        return { bg: 'rgba(239, 68, 68, 0.2)', color: '#EF4444', text: 'Avanzado' }
+        return { bg: 'rgba(239, 68, 68, 0.2)', color: '#EF4444', text: t('courses.levels.advanced') }
       default:
         return { bg: 'rgba(59, 130, 246, 0.2)', color: '#3B82F6', text: level || 'N/A' }
     }
   }
 
-  const levelStyles = getLevelStyles(course.level)
+  const levelStyles = getLevelStyles(course.level, t)
 
   return (
     <motion.div
@@ -210,7 +212,7 @@ function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
           className="text-sm mb-4 line-clamp-2"
           style={{ color: 'var(--org-border-color, #9CA3AF)' }}
         >
-          {course.description || 'Sin descripción disponible'}
+          {course.description || t('courses.card.noDescription')}
         </p>
 
         {/* Instructor */}
@@ -226,7 +228,7 @@ function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
               {course.instructor.name}
             </p>
             <p className="text-xs" style={{ color: 'var(--org-border-color, #9CA3AF)' }}>
-              Instructor
+              {t('courses.card.instructor')}
             </p>
           </div>
         </div>
@@ -264,6 +266,7 @@ function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
 // COMPONENTE PRINCIPAL: BusinessPanelCoursesPage
 // ============================================
 export default function BusinessPanelCoursesPage() {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { courses, stats, isLoading, error } = useBusinessCourses()
@@ -314,30 +317,30 @@ export default function BusinessPanelCoursesPage() {
   // Stats data
   const courseStats = useMemo(() => [
     {
-      title: 'Total Cursos',
+      title: t('courses.stats.total'),
       value: courses.length,
       icon: BookOpen,
       color: primaryColor
     },
     {
-      title: 'Categorías',
+      title: t('courses.stats.categories'),
       value: categories.length,
       icon: Layers,
       color: secondaryColor
     },
     {
-      title: 'Niveles',
+      title: t('courses.stats.levels'),
       value: levels.length,
       icon: BarChart3,
       color: accentColor
     },
     {
-      title: 'Estudiantes Totales',
+      title: t('courses.stats.totalStudents'),
       value: courses.reduce((acc, c) => acc + (c.student_count || 0), 0),
       icon: Users,
       color: '#F59E0B'
     },
-  ], [courses, categories, levels, primaryColor, secondaryColor, accentColor])
+  ], [courses, categories, levels, primaryColor, secondaryColor, accentColor, t])
 
   if (isLoading) {
     return (
@@ -408,7 +411,7 @@ export default function BusinessPanelCoursesPage() {
               className="text-sm font-semibold uppercase tracking-wider"
               style={{ color: accentColor }}
             >
-              Gestión de Cursos
+              {t('courses.badge')}
             </span>
           </div>
 
@@ -416,13 +419,13 @@ export default function BusinessPanelCoursesPage() {
             className="text-3xl lg:text-4xl font-bold mb-3"
             style={{ color: textColor }}
           >
-            Biblioteca de Cursos
+            {t('courses.title')}
           </h1>
           <p
             className="text-base lg:text-lg max-w-2xl"
             style={{ color: `${textColor}99` }}
           >
-            Explora, asigna y supervisa el progreso de tu equipo en nuestra colección de cursos especializados.
+            {t('courses.subtitle')}
           </p>
         </div>
       </motion.div>
@@ -448,7 +451,7 @@ export default function BusinessPanelCoursesPage() {
           <div className="flex items-center gap-3">
             <Award className="w-5 h-5 text-yellow-400" />
             <div>
-              <h4 className="text-sm font-semibold text-yellow-400">Información</h4>
+              <h4 className="text-sm font-semibold text-yellow-400">{t('courses.error.info')}</h4>
               <p className="text-xs mt-1" style={{ color: textColor, opacity: 0.8 }}>{error}</p>
             </div>
           </div>
@@ -472,7 +475,7 @@ export default function BusinessPanelCoursesPage() {
             />
             <input
               type="text"
-              placeholder="Buscar cursos por nombre, descripción o instructor..."
+              placeholder={t('courses.filters.search')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-white/10 bg-white/5 focus:outline-none focus:ring-2 transition-all duration-200"
@@ -489,10 +492,10 @@ export default function BusinessPanelCoursesPage() {
               value={filterCategory}
               onChange={setFilterCategory}
               options={[
-                { value: 'all', label: 'Todas las categorías' },
+                { value: 'all', label: t('courses.filters.allCategories') },
                 ...categories.map(cat => ({ value: cat, label: cat }))
               ]}
-              placeholder="Categoría"
+              placeholder={t('courses.filters.category')}
               icon={<Filter className="w-5 h-5" />}
             />
           </div>
@@ -503,10 +506,10 @@ export default function BusinessPanelCoursesPage() {
               value={filterLevel}
               onChange={setFilterLevel}
               options={[
-                { value: 'all', label: 'Todos los niveles' },
+                { value: 'all', label: t('courses.filters.allLevels') },
                 ...levels.map(level => ({ value: level, label: level }))
               ]}
-              placeholder="Nivel"
+              placeholder={t('courses.filters.level')}
               icon={<GraduationCap className="w-5 h-5" />}
             />
           </div>
@@ -528,12 +531,12 @@ export default function BusinessPanelCoursesPage() {
             <BookOpen className="w-10 h-10" style={{ color: primaryColor }} />
           </div>
           <h3 className="text-xl font-bold mb-2" style={{ color: textColor }}>
-            {courses.length === 0 ? 'No hay cursos disponibles' : 'No se encontraron cursos'}
+            {courses.length === 0 ? t('courses.empty.noCourses') : t('courses.empty.noResults')}
           </h3>
           <p className="text-sm" style={{ color: `${textColor}70` }}>
             {courses.length === 0
-              ? 'Aún no hay cursos disponibles en la plataforma'
-              : 'Intenta con otros filtros de búsqueda'}
+              ? t('courses.empty.noCoursesSubtitle')
+              : t('courses.empty.noResultsSubtitle')}
           </p>
         </motion.div>
       ) : (
@@ -545,7 +548,7 @@ export default function BusinessPanelCoursesPage() {
             className="flex items-center justify-between mb-6"
           >
             <p className="text-sm" style={{ color: `${textColor}70` }}>
-              Mostrando <span className="font-semibold" style={{ color: textColor }}>{filteredCourses.length}</span> cursos
+              {t('courses.results.showing')} <span className="font-semibold" style={{ color: textColor }}>{filteredCourses.length}</span> {t('courses.results.courses')}
             </p>
           </motion.div>
 

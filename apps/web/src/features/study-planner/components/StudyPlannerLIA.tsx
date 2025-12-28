@@ -1207,7 +1207,7 @@ INSTRUCCIONES:
       setIsSpeaking(true);
 
       const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
-      const voiceId = '15Y62ZlO8it2f5wduybx';
+      const voiceId = process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || 'ay4iqk10DLwc8KGSrf2t';
       const modelId = 'eleven_turbo_v2_5';
 
       if (!apiKey || !voiceId) {
@@ -9734,7 +9734,7 @@ Cuéntame:
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
                   >
                     {/* Overlay con blur */}
                     <motion.div
@@ -9978,7 +9978,7 @@ Cuéntame:
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
                   >
                     {/* Overlay - Cierra el modal sin afectar el flujo */}
                     <motion.div

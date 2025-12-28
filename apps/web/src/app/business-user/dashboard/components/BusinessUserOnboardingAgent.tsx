@@ -82,7 +82,6 @@ export function BusinessUserOnboardingAgent() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -113,17 +112,6 @@ export function BusinessUserOnboardingAgent() {
       console.warn('Error deteniendo audio:', err);
     }
   };
-
-  // Detectar tamaño de pantalla
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Verificar si es la primera visita
   useEffect(() => {
@@ -192,7 +180,7 @@ export function BusinessUserOnboardingAgent() {
       setIsSpeaking(true);
 
       const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
-      const voiceId = '15Y62ZlO8it2f5wduybx';
+      const voiceId = process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || 'ay4iqk10DLwc8KGSrf2t';
       const modelId = 'eleven_turbo_v2_5';
 
       if (!apiKey || !voiceId) {
@@ -389,24 +377,15 @@ export function BusinessUserOnboardingAgent() {
             >
               {/* Esfera animada estilo JARVIS */}
               <div className="relative flex flex-col items-center flex-shrink-0">
-                {/* Esfera central con anillos */}
+                {/* Esfera central con anillos - Simplified */}
                 <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 mb-1.5 sm:mb-2 md:mb-3">
-                  {/* Esfera central con foto de LIA */}
-                  <motion.div
+                  {/* Esfera central con foto de LIA - Static with simple glow */}
+                  <div
                     className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-1 overflow-hidden"
-                    animate={{
-                      scale: isSpeaking ? [1, 1.08, 1] : 1,
-                      boxShadow: isSpeaking
-                        ? [
-                            '0 0 30px rgba(16, 185, 129, 0.6)',
-                            '0 0 80px rgba(20, 184, 166, 0.9)',
-                            '0 0 30px rgba(16, 185, 129, 0.6)',
-                          ]
-                        : '0 0 50px rgba(20, 184, 166, 0.7)'
-                    }}
-                    transition={{
-                      scale: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' },
-                      boxShadow: { duration: 1.2, repeat: Infinity, ease: 'easeInOut' }
+                    style={{
+                      boxShadow: isSpeaking 
+                        ? '0 0 60px rgba(20, 184, 166, 0.8)' 
+                        : '0 0 40px rgba(20, 184, 166, 0.5)'
                     }}
                   >
                     {/* Foto de LIA */}
@@ -420,79 +399,31 @@ export function BusinessUserOnboardingAgent() {
                         priority
                       />
                     </div>
-                  </motion.div>
+                  </div>
 
-                  {/* Partículas flotantes */}
-                  {[...Array(8)].map((_, i) => {
-                    const radius = isMobile ? 50 : 70;
-                    return (
-                      <motion.div
-                        key={i}
-                        className="absolute w-1 h-1 sm:w-1.5 sm:h-1.5 bg-white rounded-full"
-                        style={{
-                          left: '50%',
-                          top: '50%',
-                        }}
-                        animate={{
-                          x: [0, Math.cos(i * 45 * Math.PI / 180) * radius],
-                          y: [0, Math.sin(i * 45 * Math.PI / 180) * radius],
-                          opacity: [0, 1, 0],
-                          scale: [0, 1, 0],
-                        }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                          delay: i * 0.2,
-                          ease: 'easeOut'
-                        }}
-                      />
-                    );
-                  })}
-
-                  {/* Pulso de voz cuando está hablando */}
+                  {/* Simple speaking indicator - CSS only */}
                   {isSpeaking && (
-                    <motion.div
-                      className="absolute inset-6 sm:inset-8 rounded-full border-2 border-white/50"
-                      animate={{
-                        scale: [1, 1.3, 1],
-                        opacity: [0.8, 0, 0.8],
-                      }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        ease: 'easeInOut'
-                      }}
+                    <div
+                      className="absolute inset-6 sm:inset-8 rounded-full border-2 border-white/40 animate-ping"
+                      style={{ animationDuration: '1.5s' }}
                     />
                   )}
                 </div>
 
-                {/* Panel de contenido */}
+                {/* Panel de contenido - Simplified */}
                 <motion.div
                   key={currentStep}
-                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -30, scale: 0.95 }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 300,
-                    damping: 30,
-                    duration: 0.5
-                  }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
                   className="relative bg-gradient-to-br from-white/95 via-white/90 to-white/95 dark:from-gray-900/95 dark:via-gray-800/95 dark:to-gray-900/95 backdrop-blur-2xl rounded-xl sm:rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl p-2.5 sm:p-3 md:p-4 w-full overflow-hidden flex-shrink min-h-0"
                 >
-                  {/* Efecto de brillo animado */}
-                  <motion.div
+                  {/* Static gradient background - no animation */}
+                  <div
                     className="absolute inset-0 rounded-3xl opacity-30"
                     style={{
                       background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(20, 184, 166, 0.1) 50%, rgba(6, 182, 212, 0.1) 100%)',
-                    }}
-                    animate={{
-                      backgroundPosition: ['0% 0%', '100% 100%'],
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      repeatType: 'reverse',
                     }}
                   />
 
@@ -506,284 +437,102 @@ export function BusinessUserOnboardingAgent() {
 
                   {/* Contenido relativo */}
                   <div className="relative z-10">
-                    {/* Botones de control */}
+                    {/* Botones de control - Simplified */}
                     <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 flex gap-1 sm:gap-1.5">
-                      <motion.button
+                      <button
                         onClick={toggleAudio}
-                        whileHover={{
-                          scale: 1.15,
-                          rotate: [0, -10, 10, -10, 0],
-                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                        }}
-                        whileTap={{ scale: 0.85 }}
-                        transition={{
-                          type: 'spring',
-                          stiffness: 400,
-                          damping: 17,
-                          rotate: { duration: 0.5 }
-                        }}
-                        className="relative p-1.5 sm:p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-700/80 transition-colors text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 shadow-lg overflow-hidden group"
+                        className="p-1.5 sm:p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-700/80 transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 shadow-lg hover:scale-110 active:scale-95"
                       >
-                        <motion.div
-                          className="absolute inset-0 bg-emerald-500/10 rounded-full"
-                          initial={{ scale: 0, opacity: 0 }}
-                          whileHover={{ scale: 1.5, opacity: 1 }}
-                          transition={{ duration: 0.3 }}
-                        />
-                        <motion.span
-                          className="relative z-10"
-                          animate={isSpeaking ? {
-                            scale: [1, 1.2, 1],
-                          } : {}}
-                          transition={{
-                            duration: 0.5,
-                            repeat: Infinity,
-                            ease: 'easeInOut'
-                          }}
-                        >
-                          {isAudioEnabled ? <Volume2 size={14} className="sm:w-4 sm:h-4" /> : <VolumeX size={14} className="sm:w-4 sm:h-4" />}
-                        </motion.span>
-                      </motion.button>
-                      <motion.button
+                        {isAudioEnabled ? <Volume2 size={14} className="sm:w-4 sm:h-4" /> : <VolumeX size={14} className="sm:w-4 sm:h-4" />}
+                      </button>
+                      <button
                         onClick={handleSkip}
-                        whileHover={{
-                          scale: 1.15,
-                          rotate: 90,
-                          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
-                        }}
-                        whileTap={{ scale: 0.85 }}
-                        transition={{
-                          type: 'spring',
-                          stiffness: 400,
-                          damping: 17,
-                          rotate: { duration: 0.3 }
-                        }}
-                        className="relative p-1.5 sm:p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-700/80 transition-colors text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 shadow-lg overflow-hidden group"
+                        className="p-1.5 sm:p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-700/80 transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 shadow-lg hover:scale-110 active:scale-95"
                       >
-                        <motion.div
-                          className="absolute inset-0 bg-red-500/10 rounded-full"
-                          initial={{ scale: 0, opacity: 0 }}
-                          whileHover={{ scale: 1.5, opacity: 1 }}
-                          transition={{ duration: 0.3 }}
-                        />
-                        <span className="relative z-10">
-                          <X size={14} className="sm:w-4 sm:h-4" />
-                        </span>
-                      </motion.button>
+                        <X size={14} className="sm:w-4 sm:h-4" />
+                      </button>
                     </div>
 
-                    {/* Indicador de progreso */}
+                    {/* Indicador de progreso - Simplified */}
                     <div className="flex gap-1 sm:gap-1.5 mb-1.5 sm:mb-2 md:mb-3 justify-center items-center">
                       {ONBOARDING_STEPS.map((_, idx) => (
-                        <motion.div
+                        <div
                           key={idx}
-                          className="relative"
-                          whileHover={{ scale: 1.2 }}
-                        >
-                          <motion.div
-                            className={`h-1 sm:h-1.5 rounded-full transition-all ${
-                              idx === currentStep
-                                ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 shadow-lg shadow-emerald-500/50'
-                                : idx < currentStep
-                                ? 'w-4 sm:w-5 md:w-6 bg-gradient-to-r from-green-500 to-emerald-500'
-                                : 'w-4 sm:w-5 md:w-6 bg-gray-300 dark:bg-gray-600'
-                            }`}
-                            animate={idx === currentStep ? {
-                              scale: [1, 1.15, 1],
-                              boxShadow: [
-                                '0 0 0px rgba(16, 185, 129, 0.5)',
-                                '0 0 20px rgba(20, 184, 166, 0.8)',
-                                '0 0 0px rgba(16, 185, 129, 0.5)',
-                              ]
-                            } : {}}
-                            transition={{
-                              duration: 1.5,
-                              repeat: Infinity,
-                              ease: 'easeInOut'
-                            }}
-                          />
-                          {idx === currentStep && (
-                            <motion.div
-                              className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 blur-md opacity-50"
-                              animate={{
-                                opacity: [0.3, 0.6, 0.3],
-                              }}
-                              transition={{
-                                duration: 1.5,
-                                repeat: Infinity,
-                              }}
-                            />
-                          )}
-                        </motion.div>
+                          className={`h-1 sm:h-1.5 rounded-full transition-all duration-300 ${
+                            idx === currentStep
+                              ? 'w-6 sm:w-8 md:w-10 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 shadow-lg shadow-emerald-500/50'
+                              : idx < currentStep
+                              ? 'w-4 sm:w-5 md:w-6 bg-gradient-to-r from-green-500 to-emerald-500'
+                              : 'w-4 sm:w-5 md:w-6 bg-gray-300 dark:bg-gray-600'
+                          }`}
+                        />
                       ))}
                     </div>
 
-                    {/* Icono del paso */}
+                    {/* Icono del paso - Simplified */}
                     <div className="flex justify-center mb-2">
-                      <motion.div
-                        key={`icon-${currentStep}`}
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                      <div
                         className="p-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg"
                       >
                         {step.icon}
-                      </motion.div>
+                      </div>
                     </div>
 
                     {/* Contenido del paso */}
                     <div className="text-center space-y-1.5 sm:space-y-2">
-                      <motion.h2
-                        key={`title-${currentStep}`}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1, duration: 0.4 }}
+                      <h2
                         className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent leading-tight px-2"
                       >
                         {step.title}
-                      </motion.h2>
+                      </h2>
 
-                      <motion.p
-                        key={`description-${currentStep}`}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.4 }}
+                      <p
                         className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm md:text-base leading-relaxed max-w-2xl mx-auto font-light px-2"
                       >
                         {step.description}
-                      </motion.p>
+                      </p>
                     </div>
 
-                    {/* Botones de navegación */}
+                    {/* Botones de navegación - Simplified */}
                     <div className="flex flex-col sm:flex-row gap-2 justify-center items-center mt-2 sm:mt-3 md:mt-4">
                       {currentStep > 0 && (
-                        <motion.button
+                        <button
                           onClick={handlePrevious}
-                          whileHover={{
-                            scale: 1.08,
-                            x: -4,
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                          }}
-                          whileTap={{ scale: 0.92 }}
-                          transition={{
-                            type: 'spring',
-                            stiffness: 400,
-                            damping: 17
-                          }}
-                          className="relative w-full sm:w-auto px-4 sm:px-5 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium transition-colors shadow-md border border-gray-200 dark:border-gray-600 text-xs sm:text-sm overflow-hidden group"
+                          className="w-full sm:w-auto px-4 sm:px-5 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium transition-all duration-200 shadow-md border border-gray-200 dark:border-gray-600 text-xs sm:text-sm hover:scale-105 active:scale-95"
                         >
-                          <motion.div
-                            className="absolute inset-0 bg-gradient-to-r from-gray-200/0 via-gray-200/50 to-gray-200/0 dark:from-gray-600/0 dark:via-gray-600/50 dark:to-gray-600/0"
-                            initial={{ x: '-100%' }}
-                            whileHover={{ x: '100%' }}
-                            transition={{ duration: 0.6, ease: 'easeInOut' }}
-                          />
-                          <span className="relative z-10">Anterior</span>
-                        </motion.button>
+                          Anterior
+                        </button>
                       )}
 
                       {currentStep < ONBOARDING_STEPS.length - 1 ? (
-                        <motion.button
+                        <button
                           onClick={handleNext}
-                          whileHover={{
-                            scale: 1.08,
-                            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)',
-                          }}
-                          whileTap={{ scale: 0.92 }}
-                          transition={{
-                            type: 'spring',
-                            stiffness: 400,
-                            damping: 17
-                          }}
-                          className="relative w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-emerald-500/30 dark:shadow-emerald-500/20 text-xs sm:text-sm overflow-hidden group"
+                          className="w-full sm:w-auto px-5 sm:px-6 py-2 rounded-lg bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white font-semibold flex items-center justify-center gap-1.5 shadow-xl shadow-emerald-500/30 text-xs sm:text-sm transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-2xl"
                         >
-                          <motion.div
-                            className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
-                            initial={{ x: '-100%' }}
-                            whileHover={{ x: '100%' }}
-                            transition={{ duration: 0.6, ease: 'easeInOut' }}
-                          />
-                          <span className="relative z-10">Siguiente</span>
-                          <motion.span
-                            className="relative z-10"
-                            whileHover={{ x: 4 }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                          >
-                            <ChevronRight size={16} className="sm:w-4 sm:h-4" />
-                          </motion.span>
-                        </motion.button>
+                          Siguiente
+                          <ChevronRight size={16} className="sm:w-4 sm:h-4" />
+                        </button>
                       ) : (
-                        <motion.button
+                        <button
                           onClick={handleComplete}
-                          whileHover={{
-                            scale: 1.1,
-                            boxShadow: '0 10px 30px rgba(16, 185, 129, 0.5)',
-                          }}
-                          whileTap={{ scale: 0.9 }}
-                          transition={{
-                            type: 'spring',
-                            stiffness: 400,
-                            damping: 17
-                          }}
-                          className="relative w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white font-bold shadow-xl shadow-emerald-500/30 dark:shadow-emerald-500/20 text-sm sm:text-base overflow-hidden group"
+                          className="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white font-bold shadow-xl shadow-emerald-500/30 text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-2xl flex items-center justify-center gap-2"
                         >
-                          <motion.div
-                            className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
-                            initial={{ x: '-100%' }}
-                            whileHover={{ x: '100%' }}
-                            transition={{ duration: 0.7, ease: 'easeInOut' }}
-                          />
-                          <motion.span
-                            className="relative z-10 flex items-center gap-2"
-                            animate={{
-                              scale: [1, 1.05],
-                            }}
-                            transition={{
-                              type: 'tween',
-                              duration: 2,
-                              repeat: Infinity,
-                              repeatType: 'reverse',
-                              ease: 'easeInOut'
-                            }}
-                          >
-                            <Rocket size={18} />
-                            Ir al Planificador
-                          </motion.span>
-                        </motion.button>
+                          <Rocket size={18} />
+                          Ir al Planificador
+                        </button>
                       )}
                     </div>
 
-                    {/* Botón de saltar */}
+                    {/* Botón de saltar - Simplified */}
                     {currentStep < ONBOARDING_STEPS.length - 1 && (
-                      <motion.div
-                        className="text-center mt-2 sm:mt-3"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <motion.button
+                      <div className="text-center mt-2 sm:mt-3">
+                        <button
                           onClick={handleSkip}
-                          whileHover={{
-                            scale: 1.05,
-                            y: -2
-                          }}
-                          whileTap={{ scale: 0.95 }}
-                          transition={{
-                            type: 'spring',
-                            stiffness: 400,
-                            damping: 17
-                          }}
-                          className="relative text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs sm:text-sm transition-colors font-medium group"
+                          className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs sm:text-sm transition-colors font-medium hover:underline"
                         >
-                          <span className="relative z-10">Saltar introducción</span>
-                          <motion.div
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-400 dark:bg-gray-500"
-                            initial={{ scaleX: 0 }}
-                            whileHover={{ scaleX: 1 }}
-                            transition={{ duration: 0.3 }}
-                          />
-                        </motion.button>
-                      </motion.div>
+                          Saltar introducción
+                        </button>
+                      </div>
                     )}
                   </div>
                 </motion.div>

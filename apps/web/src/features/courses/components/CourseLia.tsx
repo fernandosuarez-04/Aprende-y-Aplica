@@ -30,6 +30,7 @@ interface CourseLiaProps {
 
 const PANEL_WIDTH = 420;
 const NAVBAR_HEIGHT = 58; // Ajuste final milimétrico para cubrir totalmente el borde
+const MOBILE_BOTTOM_NAV_HEIGHT = 104; // Altura de la barra de navegación inferior móvil (70px base + safe-area)
 
 // Función helper para markdown
 function parseMarkdownContent(text: string, onLinkClick: (url: string) => void): React.ReactNode {
@@ -86,7 +87,7 @@ function parseMarkdownContent(text: string, onLinkClick: (url: string) => void):
   return <>{result}</>;
 }
 
-// Botón Flotante
+// Botón Flotante - Solo visible en tablets/desktop (md:), en móviles se integra en la barra inferior
 function CourseLiaFloatingButton() {
   const { isOpen, toggleLia } = useLiaCourse();
   
@@ -101,6 +102,7 @@ function CourseLiaFloatingButton() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={toggleLia}
+          className="hidden md:flex" // Oculto en móviles, visible en md+
           style={{
             position: 'fixed',
             bottom: '24px',
@@ -112,7 +114,6 @@ function CourseLiaFloatingButton() {
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
             border: '2px solid rgba(255,255,255,0.1)',
             cursor: 'pointer',
-            display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 9998,
@@ -141,6 +142,15 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
   const { resolvedTheme } = useThemeStore();
   const isDarkMode = resolvedTheme === 'dark';
   const isLightTheme = !isDarkMode;
+  
+  // Detectar si es móvil para ajustar el layout
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Detectar si estamos usando un tema personalizado (generalmente oscuro en esta empresa)
   const isCustomTheme = !!customColors?.panelBg;
@@ -265,28 +275,42 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
     }
   };
 
+  // Calcular dimensiones responsive
+  const panelWidth = isMobile ? '100%' : `${PANEL_WIDTH}px`;
+  const panelHeight = isMobile 
+    ? `calc(100vh - ${NAVBAR_HEIGHT}px - ${MOBILE_BOTTOM_NAV_HEIGHT}px)` 
+    : `calc(100vh - ${NAVBAR_HEIGHT}px)`;
+  const animationInitial = isMobile ? { y: '100%', opacity: 0 } : { x: PANEL_WIDTH };
+  const animationAnimate = isMobile ? { y: 0, opacity: 1 } : { x: 0 };
+  const animationExit = isMobile ? { y: '100%', opacity: 0 } : { x: PANEL_WIDTH };
+
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.aside
-          initial={{ x: PANEL_WIDTH }}
-          animate={{ x: 0 }}
-          exit={{ x: PANEL_WIDTH }}
+          initial={animationInitial}
+          animate={animationAnimate}
+          exit={animationExit}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           id="lia-course-sidebar"
           style={{
             position: 'fixed',
             top: `${NAVBAR_HEIGHT}px`,
             right: 0,
-            width: `${PANEL_WIDTH}px`,
-            height: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
+            width: panelWidth,
+            height: panelHeight,
             backgroundColor: themeColors.panelBg,
-            borderLeft: `1px solid ${themeColors.borderColor}`,
+            borderLeft: isMobile ? 'none' : `1px solid ${themeColors.borderColor}`,
             borderTop: 'none', 
-            zIndex: 90, 
+            borderTopLeftRadius: isMobile ? '20px' : 0,
+            borderTopRightRadius: isMobile ? '20px' : 0,
+            zIndex: 45, // Menor que la barra inferior (z-50) para que sea clickeable
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: `-4px 0 20px rgba(0, 0, 0, 0.1), 0 -2px 0 ${themeColors.panelBg}`,
+            boxShadow: isMobile 
+              ? '0 -8px 32px rgba(0, 0, 0, 0.3)' 
+              : `-4px 0 20px rgba(0, 0, 0, 0.1), 0 -2px 0 ${themeColors.panelBg}`,
+            overflow: 'hidden',
           }}
         >
           {/* Header */}

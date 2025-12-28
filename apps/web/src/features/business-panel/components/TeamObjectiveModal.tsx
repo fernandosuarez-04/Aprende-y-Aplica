@@ -7,6 +7,7 @@ import { useOrganizationStylesContext } from '../contexts/OrganizationStylesCont
 import { TeamsService, CreateTeamObjectiveRequest, UpdateTeamObjectiveRequest, WorkTeamObjective } from '../services/teams.service'
 import { PremiumSelect } from './PremiumSelect'
 import { PremiumDatePicker } from './PremiumDatePicker'
+import { useTranslation } from 'react-i18next'
 
 interface TeamObjectiveModalProps {
   isOpen: boolean
@@ -34,6 +35,7 @@ export function TeamObjectiveModal({
 }: TeamObjectiveModalProps) {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
+  const { t } = useTranslation('business')
 
   const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
   const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
@@ -110,12 +112,12 @@ export function TeamObjectiveModal({
     e.preventDefault()
 
     if (!formData.title.trim()) {
-      setError('El título del objetivo es requerido')
+      setError(t('teamObjective.errors.titleRequired'))
       return
     }
 
     if (formData.target_value <= 0) {
-      setError('El valor objetivo debe ser mayor a 0')
+      setError(t('teamObjective.errors.valueRequired'))
       return
     }
 
@@ -143,27 +145,27 @@ export function TeamObjectiveModal({
       onClose()
     } catch (err) {
       console.error('Error al guardar objetivo:', err)
-      setError(err instanceof Error ? err.message : 'Error al guardar objetivo')
+      setError(err instanceof Error ? err.message : t('teamObjective.errors.saveError'))
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const metricTypeOptions = [
-    { value: 'completion_percentage', label: 'Porcentaje de Completitud' },
-    { value: 'average_score', label: 'Calificación Promedio' },
-    { value: 'participation_rate', label: 'Tasa de Participación' },
-    { value: 'engagement_rate', label: 'Tasa de Compromiso' },
-    { value: 'custom', label: 'Personalizado' }
+    { value: 'completion_percentage', label: t('teamObjective.metrics.completion_percentage') },
+    { value: 'average_score', label: t('teamObjective.metrics.average_score') },
+    { value: 'participation_rate', label: t('teamObjective.metrics.participation_rate') },
+    { value: 'engagement_rate', label: t('teamObjective.metrics.engagement_rate') },
+    { value: 'custom', label: t('teamObjective.metrics.custom') }
   ]
 
   const getMetricLabel = (type: string) => {
     switch (type) {
-      case 'completion_percentage': return 'Porcentaje (0-100)'
-      case 'average_score': return 'Calificación (0-10)'
-      case 'participation_rate': return 'Participación (0-100)'
-      case 'engagement_rate': return 'Compromiso (0-100)'
-      default: return 'Valor personalizado'
+      case 'completion_percentage': return t('teamObjective.metricLabels.completion_percentage')
+      case 'average_score': return t('teamObjective.metricLabels.average_score')
+      case 'participation_rate': return t('teamObjective.metricLabels.participation_rate')
+      case 'engagement_rate': return t('teamObjective.metricLabels.engagement_rate')
+      default: return t('teamObjective.metricLabels.custom')
     }
   }
 
@@ -238,10 +240,10 @@ export function TeamObjectiveModal({
                 className="text-center mb-6"
               >
                 <h3 className="text-lg font-bold mb-1" style={{ color: textColor }}>
-                  {formData.title || 'Nuevo Objetivo'}
+                  {formData.title || t('teamObjective.title.new')}
                 </h3>
                 <p className="text-sm opacity-60" style={{ color: textColor }}>
-                  {formData.description || 'Define metas claras para tu equipo'}
+                  {formData.description || t('teamObjective.subtitle.default')}
                 </p>
               </motion.div>
 
@@ -258,7 +260,7 @@ export function TeamObjectiveModal({
                 >
                   <Zap className="w-4 h-4" style={{ color: primaryColor }} />
                   <div className="flex-1">
-                    <p className="text-xs opacity-50" style={{ color: textColor }}>Meta</p>
+                    <p className="text-xs opacity-50" style={{ color: textColor }}>{t('teamObjective.labels.goal')}</p>
                     <p className="text-sm font-semibold" style={{ color: textColor }}>
                       {formData.target_value} {formData.metric_type === 'completion_percentage' ? '%' : ''}
                     </p>
@@ -272,7 +274,7 @@ export function TeamObjectiveModal({
                   >
                     <Calendar className="w-4 h-4" style={{ color: accentColor }} />
                     <div className="flex-1">
-                      <p className="text-xs opacity-50" style={{ color: textColor }}>Fecha límite</p>
+                      <p className="text-xs opacity-50" style={{ color: textColor }}>{t('teamObjective.labels.deadline')}</p>
                       <p className="text-sm font-semibold" style={{ color: textColor }}>
                         {new Date(formData.deadline).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
@@ -286,9 +288,9 @@ export function TeamObjectiveModal({
                 >
                   <TrendingUp className="w-4 h-4" style={{ color: secondaryColor }} />
                   <div className="flex-1">
-                    <p className="text-xs opacity-50" style={{ color: textColor }}>Métrica</p>
+                    <p className="text-xs opacity-50" style={{ color: textColor }}>{t('teamObjective.labels.metric')}</p>
                     <p className="text-sm font-semibold" style={{ color: textColor }}>
-                      {metricTypeOptions.find(m => m.value === formData.metric_type)?.label || 'Porcentaje'}
+                      {metricTypeOptions.find(m => m.value === formData.metric_type)?.label || t('teamObjective.metrics.completion_percentage')}
                     </p>
                   </div>
                 </div>
@@ -301,10 +303,10 @@ export function TeamObjectiveModal({
               <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold" style={{ color: textColor }}>
-                    {objective ? 'Editar Objetivo' : 'Crear Objetivo'}
+                    {objective ? t('teamObjective.title.edit') : t('teamObjective.title.create')}
                   </h2>
                   <p className="text-sm opacity-50 mt-0.5" style={{ color: textColor }}>
-                    {objective ? 'Modifica los detalles del objetivo' : 'Define un nuevo objetivo para el equipo'}
+                    {objective ? t('teamObjective.subtitle.edit') : t('teamObjective.subtitle.create')}
                   </p>
                 </div>
                 <motion.button
@@ -339,13 +341,13 @@ export function TeamObjectiveModal({
                   {/* Título */}
                   <div>
                     <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
-                      Título del Objetivo <span className="text-red-400">*</span>
+                      {t('teamObjective.labels.title')} <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Ej: Completar 80% del curso de IA"
+                      placeholder={t('teamObjective.placeholders.title')}
                       className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
                       required
                       disabled={isSubmitting}
@@ -355,13 +357,13 @@ export function TeamObjectiveModal({
                   {/* Descripción */}
                   <div>
                     <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
-                      Descripción
+                      {t('teamObjective.labels.description')}
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       rows={2}
-                      placeholder="Describe el objetivo en detalle..."
+                      placeholder={t('teamObjective.placeholders.description')}
                       className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors resize-none"
                       disabled={isSubmitting}
                     />
@@ -371,32 +373,32 @@ export function TeamObjectiveModal({
                   <div>
                     <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: textColor }}>
                       <BookOpen className="w-4 h-4 opacity-50" />
-                      Curso (Opcional)
+                      {t('teamObjective.labels.course')}
                     </label>
                     {isLoadingCourses ? (
                       <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10">
                         <Loader2 className="w-4 h-4 animate-spin" style={{ color: primaryColor }} />
-                        <span className="text-sm opacity-70" style={{ color: textColor }}>Cargando cursos...</span>
+                        <span className="text-sm opacity-70" style={{ color: textColor }}>{t('teamObjective.labels.loadingCourses')}</span>
                       </div>
                     ) : (
                       <PremiumSelect
                         value={formData.course_id || '__general__'}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, course_id: value === '__general__' ? '' : value }))}
-                        placeholder="Seleccionar curso"
+                        placeholder={t('teamObjective.placeholders.selectCourse')}
                         options={[
-                          { value: '__general__', label: 'Objetivo General del Equipo' },
+                          { value: '__general__', label: t('teamObjective.labels.generalGoal') },
                           ...teamCourses
                             .filter(tc => tc.course)
                             .map(tc => ({
                               value: tc.course_id,
-                              label: tc.course?.title || 'Curso desconocido'
+                              label: tc.course?.title || t('teamObjective.labels.unknownCourse')
                             }))
                         ]}
                         className="w-full"
                       />
                     )}
                     <p className="text-xs opacity-50 mt-1.5" style={{ color: textColor }}>
-                      Deja vacío para objetivo general o selecciona un curso específico
+                      {t('teamObjective.labels.courseHint')}
                     </p>
                   </div>
 
@@ -405,19 +407,19 @@ export function TeamObjectiveModal({
                     <div>
                       <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: textColor }}>
                         <TrendingUp className="w-4 h-4 opacity-50" />
-                        Tipo de Métrica <span className="text-red-400">*</span>
+                        {t('teamObjective.labels.metricType')} <span className="text-red-400">*</span>
                       </label>
                       <PremiumSelect
                         value={formData.metric_type}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, metric_type: value as any }))}
-                        placeholder="Seleccionar..."
+                        placeholder={t('teamObjective.placeholders.selectMetric')}
                         options={metricTypeOptions}
                         className="w-full"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
-                        Valor Objetivo <span className="text-red-400">*</span>
+                        {t('teamObjective.labels.targetValue')} <span className="text-red-400">*</span>
                       </label>
                       <input
                         type="number"
@@ -440,12 +442,12 @@ export function TeamObjectiveModal({
                   <div>
                     <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: textColor }}>
                       <Calendar className="w-4 h-4 opacity-50" />
-                      Fecha Límite (Opcional)
+                      {t('teamObjective.labels.deadline')}
                     </label>
                     <PremiumDatePicker
                       value={formData.deadline}
                       onChange={(date) => setFormData(prev => ({ ...prev, deadline: date }))}
-                      placeholder="Seleccionar fecha límite"
+                      placeholder={t('teamObjective.placeholders.selectDate')}
                       minDate={new Date()}
                       disabled={isSubmitting}
                       className="w-full"
@@ -461,7 +463,7 @@ export function TeamObjectiveModal({
                     disabled={isSubmitting}
                     className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
                   >
-                    Cancelar
+                    {t('teamObjective.buttons.cancel')}
                   </button>
                   <motion.button
                     type="submit"
@@ -477,12 +479,12 @@ export function TeamObjectiveModal({
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Guardando...
+                        {t('teamObjective.buttons.saving')}
                       </>
                     ) : (
                       <>
                         {objective ? <CheckCircle className="w-4 h-4" /> : <Target className="w-4 h-4" />}
-                        {objective ? 'Actualizar' : 'Crear Objetivo'}
+                        {objective ? t('teamObjective.buttons.update') : t('teamObjective.buttons.create')}
                       </>
                     )}
                   </motion.button>

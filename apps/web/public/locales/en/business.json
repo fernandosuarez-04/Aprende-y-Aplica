@@ -1,0 +1,720 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "courses": "Courses",
+    "teams": "Teams",
+    "reports": "Reports",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "pinned": "Pinned Panel",
+    "unpinned": "Unpinned Panel",
+    "pinMenu": "Pin menu",
+    "collapseMenu": "Collapse menu"
+  },
+  "header": {
+    "myOrganization": "My Organization",
+    "userPanel": "User Panel",
+    "editProfile": "Edit Profile",
+    "logout": "Logout",
+    "learningPanel": "Learning Panel",
+    "adminPanel": "Admin Panel",
+    "manageOrganization": "Manage Organization",
+    "myPlanner": "My Planner",
+    "createStudyPlan": "Create Study Plan",
+    "viewSchedule": "View Schedule",
+    "organizeLearning": "Organize your learning",
+    "updateInfo": "Update your information",
+    "exitAccount": "Exit your account",
+    "language": "Language / Idioma"
+  },
+  "dashboard": {
+    "title": "Business Panel",
+    "subtitle": "Manage your team's learning and oversee their progress.",
+    "systemActive": "System Active",
+    "generalStats": "General Statistics",
+    "keyMetrics": "Key metrics of your team",
+    "stats": {
+      "activeUsers": "Active Users",
+      "assignedCourses": "Assigned Courses",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "avgProgress": "Average Progress",
+      "certificates": "Certificates",
+      "engagement": "Engagement"
+    },
+    "greetings": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "subtitle": "Shortcuts",
+      "manageUsers": {
+        "title": "Manage Users",
+        "desc": "Manage your team"
+      },
+      "assignCourses": {
+        "title": "Assign Courses",
+        "desc": "Assign workshops to users"
+      },
+      "viewReports": {
+        "title": "View Reports",
+        "desc": "Analytics and metrics"
+      },
+      "settings": {
+        "title": "Settings",
+        "desc": "Branding and settings"
+      }
+    },
+    "recentActivity": {
+      "title": "Recent Activity",
+      "subtitle": "Latest team actions",
+      "empty": "No recent activity",
+      "by": "by",
+      "time": {
+        "justNow": "Just now",
+        "minsAgo": "{{time}} min ago",
+        "hoursAgo": "{{time}}h ago",
+        "daysAgo": "{{time}}d ago"
+      }
+    },
+    "systemHealth": {
+      "activeAccount": "Active Account",
+      "servicesOperational": "All services operational",
+      "users": "Users",
+      "courses": "Courses",
+      "active": "active"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "subtitle": "Administer and manage members of your organization.",
+    "buttons": {
+      "template": "Template",
+      "import": "Import",
+      "add": "Add User",
+      "cancel": "Cancel",
+      "create": "Create User",
+      "uploading": "Uploading image...",
+      "creating": "Creating...",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "delete": "Delete User",
+      "deleting": "Deleting...",
+      "finish": "Finish",
+      "importAnother": "Import Another"
+    },
+    "placeholders": {
+      "search": "Search by name, email or username..."
+    },
+    "roles": {
+      "all": "All roles",
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "status": {
+      "all": "All statuses",
+      "active": "Active",
+      "invited": "Invited",
+      "suspended": "Suspended",
+      "removed": "Removed"
+    },
+    "stats": {
+      "total": "Total Users",
+      "active": "Active",
+      "invited": "Invited",
+      "admins": "Admins"
+    },
+    "empty": {
+      "title": "No users yet",
+      "subtitle": "Start by adding members to your organization to manage your team's learning.",
+      "cta": "Add First User"
+    },
+    "error": {
+      "loadFailed": "Could not load users. You can start by adding the first user."
+    },
+    "card": {
+      "lastAccess": "Last access",
+      "noAccess": "No access",
+      "resend": "Resend",
+      "suspend": "Suspend",
+      "activate": "Activate"
+    },
+    "modals": {
+      "add": {
+        "title": "New User",
+        "userInfoTitle": "User Information",
+        "userInfoSubtitle": "Complete the data to create the new user",
+        "fields": {
+          "username": "Username",
+          "email": "Email",
+          "firstName": "First Name",
+          "lastName": "Last Name",
+          "password": "Password",
+          "position": "Position / Role",
+          "orgRole": "Organization Role"
+        },
+        "placeholders": {
+          "username": "user123",
+          "email": "email@company.com",
+          "firstName": "John",
+          "lastName": "Doe",
+          "password": "Minimum 6 characters",
+          "position": "Ex: Developer, Designer, etc."
+        },
+        "hints": {
+          "photo": "Click on the camera icon to add a photo",
+          "creds": "The user will receive their credentials via email to access the platform."
+        },
+        "roleDesc": {
+          "member": "Basic access to courses and content",
+          "admin": "User management and settings",
+          "owner": "Full control of the organization"
+        }
+      },
+      "import": {
+        "title": "Import Users",
+        "subtitle": "Add multiple users from a CSV file",
+        "downloadTemplate": "Download CSV Template",
+        "uploadTitle": "Upload File",
+        "resultTitle": "Import Result",
+        "uploadSubtitle": "Select or drag your CSV file",
+        "resultSubtitle": "Process summary",
+        "dragDrop": {
+          "drag": "Drag your CSV file",
+          "drop": "Drop the file here",
+          "orKey": "or click to select"
+        },
+        "loading": {
+          "title": "Importing users...",
+          "subtitle": "This may take a few seconds"
+        },
+        "results": {
+          "successTitle": "Import successful!",
+          "noImportTitle": "No users imported",
+          "errorsFound": "Errors found"
+        },
+        "format": {
+          "title": "Required format",
+          "username": "Unique username",
+          "email": "Email address",
+          "password": "Minimum 6 characters",
+          "role": "member, admin or owner",
+          "required": "Required"
+        }
+      },
+      "edit": {
+        "title": "Edit User",
+        "subtitle": "Modify member information",
+        "infoNote": "Changes made will be saved and the user will receive a notification if necessary.",
+        "fields": {
+          "fullName": "Full Name",
+          "phone": "Phone",
+          "location": "Location",
+          "bio": "Biography",
+          "status": "Status",
+          "typeRole": "Type of Role"
+        },
+        "placeholders": {
+          "fullName": "John Doe",
+          "phone": "+1 234 567 8900",
+          "location": "City, Country",
+          "bio": "Write a short biography...",
+          "typeRole": "Freelancer, Employee, etc."
+        }
+      },
+      "delete": {
+        "title": "Delete User",
+        "subtitle": "Irreversible action",
+        "confirmQuestion": "Are you sure you want to delete <1>{{name}}</1> from your organization?",
+        "warning": "This action cannot be undone. The user will lose access immediately.",
+        "fields": {
+          "email": "Email",
+          "role": "Role"
+        }
+      },
+      "stats": {
+        "loading": "Loading statistics...",
+        "error": "Error loading statistics",
+        "tabs": {
+          "overview": "Overview",
+          "courses": "Courses",
+          "progress": "Progress",
+          "activity": "Activity"
+        },
+        "cards": {
+          "courses": "Courses",
+          "completed": "Completed",
+          "hours": "Hours",
+          "certificates": "Certificates"
+        },
+        "platformActivity": {
+          "title": "Platform Activity",
+          "liaQueries": "LIA Queries",
+          "messages": "messages",
+          "quizzesPassed": "Quizzes Passed",
+          "average": "average",
+          "liaActivities": "LIA Activities",
+          "total": "total"
+        },
+        "generalProgress": {
+          "title": "General Progress",
+          "subtitle": "Progress in all assigned courses",
+          "completed": "Completed",
+          "inProgress": "In Progress",
+          "notStarted": "Not Started"
+        },
+        "coursesList": {
+          "empty": "No assigned courses",
+          "enrolled": "Enrolled",
+          "certificate": "Certificate",
+          "completed": "Completed",
+          "inProgress": "In progress",
+          "notStarted": "Not started",
+          "progress": "Course progress",
+          "time": "Time",
+          "lia": "LIA",
+          "quiz": "Quiz",
+          "notes": "Notas"
+        },
+        "timeline": {
+          "empty": "No progress to show",
+          "modules": "modules",
+          "lessons": "lessons",
+          "quizzes": "quizzes"
+        },
+        "activity": {
+          "notesCreated": "Notes Created",
+          "assignments": "Assignments",
+          "certificates": "Certificates",
+          "completionHistory": "Completion History",
+          "courses": "course(s)",
+          "summary": "Activity Summary",
+          "studyTime": "Study Time",
+          "lessons": "Lessons"
+        },
+        "time": {
+          "moments": "Just now",
+          "minutes": "{{count}} minute{{plural}} ago",
+          "hours": "{{count}} hour{{plural}} ago",
+          "days": "{{count}} day(s) ago",
+          "weeks": "{{count}} week(s) ago",
+          "months": "{{count}} month(s) ago",
+          "years": "{{count}} year(s) ago",
+          "today": "Today",
+          "yesterday": "Yesterday",
+          "never": "Never",
+          "invalid": "Invalid date"
+        },
+        "labels": {
+          "joined": "Joined",
+          "lastConnection": "Last Connection",
+          "typeRole": "Type of Role"
+        }
+      }
+    }
+  },
+  "courses": {
+    "title": "Course Library",
+    "subtitle": "Explore, assign, and monitor your team's progress in our collection of specialized courses.",
+    "badge": "Course Management",
+    "stats": {
+      "total": "Total Courses",
+      "categories": "Categories",
+      "levels": "Levels",
+      "totalStudents": "Total Students"
+    },
+    "filters": {
+      "search": "Search courses by name, description, or instructor...",
+      "allCategories": "All categories",
+      "allLevels": "All levels",
+      "category": "Category",
+      "level": "Level"
+    },
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "card": {
+      "instructor": "Instructor",
+      "noDescription": "No description available"
+    },
+    "empty": {
+      "noCourses": "No courses available",
+      "noCoursesSubtitle": "There are no courses available on the platform yet",
+      "noResults": "No courses found",
+      "noResultsSubtitle": "Try different search filters"
+    },
+    "results": {
+      "showing": "Showing",
+      "courses": "courses"
+    },
+    "error": {
+      "info": "Information"
+    }
+  },
+  "teams": {
+    "title": "Work Teams",
+    "subtitle": "Organize and manage teams to assign courses and learning objectives.",
+    "badge": "Team Management",
+    "stats": {
+      "total": "Total Teams",
+      "active": "Active Teams",
+      "totalMembers": "Total Members",
+      "activeMembers": "Active Members"
+    },
+    "filters": {
+      "search": "Search teams by name, description, or leader...",
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive",
+      "archived": "Archived"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "archived": "Archived"
+    },
+    "card": {
+      "members": "members"
+    },
+    "empty": {
+      "title": "No teams",
+      "noResults": "No teams found with the applied filters. Try adjusting your search.",
+      "noTeams": "Create your first work team to start organizing and managing your organization's learning.",
+      "createFirst": "Create First Team"
+    },
+    "buttons": {
+      "create": "Create Team",
+      "cancel": "Cancel",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "creating": "Creating...",
+      "uploading": "Uploading image..."
+    },
+    "modal": {
+      "titleCreate": "Create New Team",
+      "titleEdit": "Edit Team",
+      "subtitle": "Configure team details and select members.",
+      "fields": {
+        "name": "Team Name",
+        "description": "Description",
+        "leader": "Team Leader",
+        "members": "Team Members",
+        "image": "Team Image",
+        "status": "Status"
+      },
+      "placeholders": {
+        "name": "E.g: Development Team",
+        "description": "Describe the team's purpose and objectives...",
+        "searchLeader": "Search leader...",
+        "searchMembers": "Search members...",
+        "noLeader": "Select leader",
+        "selectStatus": "Select status"
+      },
+      "labels": {
+        "optional": "Optional",
+        "required": "Required",
+        "selectLeader": "Select Leader",
+        "addMembers": "Add Members",
+        "selected": "selected",
+        "changeImage": "Change Image",
+        "uploadImage": "Upload Image",
+        "noMembers": "No members",
+        "noUsers": "No users available",
+        "leader": "Leader",
+        "setLeader": "Leader"
+      },
+      "subtitleEdit": "Update team information",
+      "errors": {
+        "nameRequired": "Team name is required",
+        "leaderRequired": "You must select a leader",
+        "createFailed": "Error creating team",
+        "updateFailed": "Error updating team",
+        "loadFailed": "Error loading team data"
+      }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your organization settings"
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Generate detailed reports and export data"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Detailed behavior and performance analytics"
+  },
+  "progress": {
+    "title": "Team Progress",
+    "subtitle": "Visualize and analyze learning progress"
+  },
+  "assignCourse": {
+    "title": "Assign Course",
+    "selectRecipients": "Select Recipients",
+    "modes": {
+      "users": "Users",
+      "teams": "Teams",
+      "individual": "Individual Users",
+      "workTeams": "Work Teams"
+    },
+    "stats": {
+      "selected": "Selected",
+      "of": "of",
+      "available": "available",
+      "usersSelected": "SELECTED USERS",
+      "teamsSelected": "SELECTED TEAMS"
+    },
+    "search": {
+      "users": "Search by name or email...",
+      "teams": "Search teams..."
+    },
+    "selectAll": "Select all",
+    "labels": {
+      "dueDate": "Due date",
+      "messageIncluded": "Message included",
+      "alreadyAssigned": "Already assigned",
+      "viaTeam": "Via",
+      "directAssignment": "Direct assignment",
+      "course": "Course",
+      "selectedCourse": "Selected course:",
+      "receivingMembers": "Members receiving the course",
+      "members": "member(s)"
+    },
+    "loading": {
+      "users": "Loading users...",
+      "teams": "Loading teams..."
+    },
+    "empty": {
+      "noUsers": "No users available",
+      "noTeams": "No teams available",
+      "createTeam": "Create your first team to get started"
+    },
+    "buttons": {
+      "assign": "Assign Course",
+      "assigning": "Assigning...",
+      "cancel": "Cancel",
+      "suggestDate": "Suggest with LIA",
+      "suggesting": "Suggesting..."
+    },
+    "errors": {
+      "selectUser": "You must select at least one user",
+      "selectTeam": "You must select at least one team",
+      "assignFailed": "Error assigning course",
+      "selectCourse": "You must select a course",
+      "invalidCourse": "Selected course is invalid",
+      "invalidDate": "Due date cannot be before today",
+      "noCoursesAvailable": "No courses available. Ensure your organization has access."
+    },
+    "optional": {
+      "dueDate": "Due date (optional)",
+      "message": "Custom message (optional)",
+      "messagePlaceholder": "Write a motivational message for recipients..."
+    },
+    "placeholders": {
+      "selectCourse": "Select course...",
+      "teamMessage": "Custom message for the team..."
+    },
+    "titleTeam": "Assign Course to Team"
+  },
+  "liaSuggestion": {
+    "title": "LIA Suggestions",
+    "error": "Error fetching suggestions",
+    "steps": {
+      "approach": {
+        "title": "What approach do you want to take?",
+        "subtitle": "Select the study pace that best suits your needs"
+      },
+      "suggestions": {
+        "title": "Deadline Suggestions",
+        "subtitle": "Based on course content and duration",
+        "calculating": "Calculating suggestions..."
+      },
+      "confirm": {
+        "title": "Confirm Assignment",
+        "subtitle": "Review details before confirming"
+      }
+    },
+    "approaches": {
+      "fast": {
+        "title": "Fast",
+        "subtitle": "Complete the course in the shortest time",
+        "ideal": "Urgent needs or quick updates"
+      },
+      "balanced": {
+        "title": "Balanced",
+        "subtitle": "Moderate and sustainable pace",
+        "ideal": "Continuous professional learning"
+      },
+      "long": {
+        "title": "Long",
+        "subtitle": "Deep and reflective learning",
+        "ideal": "Complex skill development"
+      }
+    },
+    "details": {
+      "focus": "Focus",
+      "completedRate": "completed",
+      "hoursPerWeek": "hours/week",
+      "dueDate": "Due date",
+      "estimatedDuration": "Estimated duration",
+      "studyPace": "Study pace",
+      "completionRate": "Completion rate",
+      "startDate": "Start date (optional)",
+      "defaultDate": "Default: today",
+      "completionTime": "The course should be completed in {{days}} days",
+      "notification": "Users will receive a notification with assignment details"
+    },
+    "buttons": {
+      "back": "Back",
+      "confirm": "Confirm Assignment"
+    }
+  },
+  "teamFeedback": {
+    "title": "Send Feedback",
+    "subtitle": "Share your feedback with the team",
+    "selectRecipient": "Recipient",
+    "selectRecipientPlaceholder": "Select member...",
+    "selectedUser": "User",
+    "feedbackType": "Feedback Type",
+    "content": "Content",
+    "contentPlaceholder": "Write your feedback here... (minimum 10 characters)",
+    "rating": "Rating (Optional)",
+    "anonymous": "Send anonymously",
+    "anonymousStatus": "🕵️ Sending anonymously",
+    "preview": {
+      "selectRecipient": "Select recipient",
+      "teamMember": "Team member"
+    },
+    "types": {
+      "peer_review": "Review",
+      "achievement": "Achievement",
+      "suggestion": "Suggestion",
+      "question": "Question"
+    },
+    "errors": {
+      "contentLength": "Content must be at least 10 characters",
+      "selectRecipient": "You must select a recipient",
+      "createError": "Error creating feedback"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "send": "Send Feedback",
+      "sending": "Sending..."
+    }
+  },
+  "teamObjective": {
+    "title": {
+      "create": "Create Objective",
+      "edit": "Edit Objective",
+      "new": "New Objective"
+    },
+    "subtitle": {
+      "create": "Define a new objective for the team",
+      "edit": "Modify objective details",
+      "default": "Define clear goals for your team"
+    },
+    "labels": {
+      "title": "Objective Title",
+      "description": "Description",
+      "course": "Course (Optional)",
+      "metricType": "Metric Type",
+      "targetValue": "Target Value",
+      "deadline": "Deadline (Optional)",
+      "goal": "Goal",
+      "metric": "Metric",
+      "loadingCourses": "Loading courses...",
+      "generalGoal": "General Team Objective",
+      "unknownCourse": "Unknown course",
+      "courseHint": "Leave empty for general objective or select a specific course"
+    },
+    "placeholders": {
+      "title": "Ex: Complete 80% of AI course",
+      "description": "Describe the objective in detail...",
+      "selectCourse": "Select course",
+      "selectMetric": "Select...",
+      "selectDate": "Select deadline"
+    },
+    "metrics": {
+      "completion_percentage": "Completion Percentage",
+      "average_score": "Average Score",
+      "participation_rate": "Participation Rate",
+      "engagement_rate": "Engagement Rate",
+      "custom": "Custom"
+    },
+    "metricLabels": {
+      "completion_percentage": "Percentage (0-100)",
+      "average_score": "Score (0-10)",
+      "participation_rate": "Participation (0-100)",
+      "engagement_rate": "Engagement (0-100)",
+      "custom": "Custom value"
+    },
+    "errors": {
+      "titleRequired": "Objective title is required",
+      "valueRequired": "Target value must be greater than 0",
+      "saveError": "Error saving objective",
+      "fetchCoursesError": "Error fetching team courses"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "save": "Save Objective",
+      "saving": "Saving...",
+      "update": "Update",
+      "create": "Create Objective"
+    }
+  },
+  "imageAdjustment": {
+    "title": "Adjust Image",
+    "labels": {
+      "adjustment": "Image Adjustment",
+      "zoom": "Zoom",
+      "rotation": "Rotation",
+      "position": "Position",
+      "dragHint": "Drag image to reposition"
+    },
+    "fit": {
+      "cover": "Cover",
+      "contain": "Contain",
+      "fill": "Fill"
+    },
+    "buttons": {
+      "reset": "Reset",
+      "resetAll": "Reset All",
+      "cancel": "Cancel",
+      "save": "Save Adjustments"
+    }
+  },
+  "importUsers": {
+    "title": "Import Users",
+    "subtitle": "Bulk user upload via CSV",
+    "downloadTemplate": "Download Template",
+    "dragDrop": "Drag your CSV file here or select",
+    "selectFile": "Select file",
+    "processing": "Processing import...",
+    "success": "Import completed successfully",
+    "partialSuccess": "Import completed with some errors",
+    "errorTitle": "Import Error",
+    "results": {
+      "total": "Total processed",
+      "imported": "Successfully imported",
+      "errors": "Errors",
+      "details": "Error details"
+    },
+    "errors": {
+      "downloadTemplate": "Error downloading template",
+      "invalidFileType": "File must be a CSV (.csv)",
+      "processFile": "Error processing file"
+    },
+    "buttons": {
+      "close": "Close",
+      "import": "Import Users",
+      "cancel": "Cancel"
+    }
+  }
+}

@@ -31,6 +31,7 @@ import { ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
 import { useBusinessUsers } from '@/features/business-panel/hooks/useBusinessUsers'
 import { BusinessUser } from '@/features/business-panel/services/businessUsers.service'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
+import { useTranslation } from 'react-i18next'
 
 const AddUserModal = dynamic(() => import('@/features/business-panel/components/BusinessAddUserModal').then(mod => ({ default: mod.BusinessAddUserModal })), { ssr: false })
 const EditUserModal = dynamic(() => import('@/features/business-panel/components/BusinessEditUserModal').then(mod => ({ default: mod.BusinessEditUserModal })), { ssr: false })
@@ -181,23 +182,24 @@ interface UserCardProps {
 }
 
 function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onResend, onSuspend, onActivate }: UserCardProps) {
+  const { t } = useTranslation('business')
   const [showActions, setShowActions] = useState(false)
   const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
 
   const getRoleConfig = (role: string) => {
     switch (role) {
-      case 'owner': return { label: 'Propietario', color: '#A855F7', bg: 'rgba(168,85,247,0.15)' }
-      case 'admin': return { label: 'Admin', color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' }
-      default: return { label: 'Miembro', color: '#10B981', bg: 'rgba(16,185,129,0.15)' }
+      case 'owner': return { label: t('users.roles.owner'), color: '#A855F7', bg: 'rgba(168,85,247,0.15)' }
+      case 'admin': return { label: t('users.roles.admin'), color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' }
+      default: return { label: t('users.roles.member'), color: '#10B981', bg: 'rgba(16,185,129,0.15)' }
     }
   }
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'active': return { label: 'Activo', color: '#10B981', icon: CheckCircle }
-      case 'invited': return { label: 'Invitado', color: '#F59E0B', icon: Mail }
-      case 'suspended': return { label: 'Suspendido', color: '#EF4444', icon: XCircle }
-      default: return { label: 'Removido', color: '#6B7280', icon: AlertCircle }
+      case 'active': return { label: t('users.status.active'), color: '#10B981', icon: CheckCircle }
+      case 'invited': return { label: t('users.status.invited'), color: '#F59E0B', icon: Mail }
+      case 'suspended': return { label: t('users.status.suspended'), color: '#EF4444', icon: XCircle }
+      default: return { label: t('users.status.removed'), color: '#6B7280', icon: AlertCircle }
     }
   }
 
@@ -344,9 +346,9 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
         <div className="flex items-center justify-between pt-3 border-t border-white/5">
           <div className="text-xs opacity-50">
             {user.last_login_at ? (
-              <span>Último acceso: {new Date(user.last_login_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>
+              <span>{t('users.card.lastAccess')}: {new Date(user.last_login_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>
             ) : (
-              <span>Sin accesos</span>
+              <span>{t('users.card.noAccess')}</span>
             )}
           </div>
 
@@ -365,7 +367,7 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
                 onClick={onSuspend}
                 className="text-xs px-2 py-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
               >
-                Suspender
+                {t('users.card.suspend')}
               </button>
             )}
             {user.org_status === 'suspended' && onActivate && (
@@ -373,7 +375,7 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
                 onClick={onActivate}
                 className="text-xs px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
               >
-                Activar
+                {t('users.card.activate')}
               </button>
             )}
           </div>
@@ -396,6 +398,7 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
 // COMPONENTE: Empty State Premium
 // ============================================
 function EmptyState({ onAddClick, primaryColor, secondaryColor }: { onAddClick: () => void, primaryColor: string, secondaryColor: string }) {
+  const { t } = useTranslation('business')
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -437,11 +440,11 @@ function EmptyState({ onAddClick, primaryColor, secondaryColor }: { onAddClick: 
         </motion.div>
 
         <h3 className="text-2xl font-bold mb-3" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>
-          Aún no hay usuarios
+          {t('users.empty.title')}
         </h3>
 
         <p className="text-sm opacity-60 mb-6 max-w-md mx-auto leading-relaxed">
-          Comienza agregando miembros a tu organización para gestionar el aprendizaje de tu equipo.
+          {t('users.empty.subtitle')}
         </p>
 
         <motion.button
@@ -455,7 +458,7 @@ function EmptyState({ onAddClick, primaryColor, secondaryColor }: { onAddClick: 
           whileTap={{ scale: 0.95 }}
         >
           <Plus className="w-5 h-5 inline mr-2" />
-          Agregar Primer Usuario
+          {t('users.empty.cta')}
         </motion.button>
       </div>
     </motion.div>
@@ -466,6 +469,7 @@ function EmptyState({ onAddClick, primaryColor, secondaryColor }: { onAddClick: 
 // PÁGINA PRINCIPAL: Users Management
 // ============================================
 export default function BusinessPanelUsersPage() {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { users, stats, isLoading, error, refetch, createUser, updateUser, deleteUser, resendInvitation, suspendUser, activateUser } = useBusinessUsers()
@@ -569,7 +573,7 @@ export default function BusinessPanelUsersPage() {
                   <Sparkles className="w-6 h-6" style={{ color: accentColor }} />
                 </motion.div>
                 <span className="text-sm font-semibold tracking-wider uppercase" style={{ color: accentColor }}>
-                  Gestión de Equipo
+                  {t('sidebar.teams')} {/* Using teams here as subtitle or management? Original was 'Gestión de Equipo' */}
                 </span>
               </div>
 
@@ -579,7 +583,7 @@ export default function BusinessPanelUsersPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                Usuarios
+                {t('users.title')}
               </motion.h1>
 
               <motion.p
@@ -588,7 +592,7 @@ export default function BusinessPanelUsersPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                Administra y gestiona los miembros de tu organización.
+                {t('users.subtitle')}
               </motion.p>
             </div>
 
@@ -613,7 +617,7 @@ export default function BusinessPanelUsersPage() {
                 whileTap={{ scale: 0.98 }}
               >
                 <Download className="w-4 h-4" />
-                Plantilla
+                {t('users.buttons.template')}
               </motion.button>
 
               <motion.button
@@ -626,7 +630,7 @@ export default function BusinessPanelUsersPage() {
                 whileTap={{ scale: 0.98 }}
               >
                 <Upload className="w-4 h-4" />
-                Importar
+                {t('users.buttons.import')}
               </motion.button>
 
               <motion.button
@@ -643,7 +647,7 @@ export default function BusinessPanelUsersPage() {
                 whileTap={{ scale: 0.95 }}
               >
                 <Plus className="w-5 h-5" />
-                Agregar Usuario
+                {t('users.buttons.add')}
               </motion.button>
             </div>
           </div>
@@ -659,7 +663,7 @@ export default function BusinessPanelUsersPage() {
         >
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-amber-400" />
-            <p className="text-sm text-amber-400">No se pudieron cargar los usuarios. Puedes comenzar agregando el primer usuario.</p>
+            <p className="text-sm text-amber-400">{t('users.error.loadFailed')}</p>
           </div>
         </motion.div>
       )}
@@ -667,7 +671,7 @@ export default function BusinessPanelUsersPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Usuarios"
+          title={t('users.stats.total')}
           value={stats.total}
           icon={<Users className="w-6 h-6" style={{ color: '#3B82F6' }} />}
           gradient="linear-gradient(135deg, #3B82F6, #1D4ED8)"
@@ -675,7 +679,7 @@ export default function BusinessPanelUsersPage() {
           trend={12}
         />
         <StatCard
-          title="Activos"
+          title={t('users.stats.active')}
           value={stats.active}
           icon={<CheckCircle className="w-6 h-6" style={{ color: '#10B981' }} />}
           gradient="linear-gradient(135deg, #10B981, #059669)"
@@ -683,14 +687,14 @@ export default function BusinessPanelUsersPage() {
           trend={8}
         />
         <StatCard
-          title="Invitados"
+          title={t('users.stats.invited')}
           value={stats.invited}
           icon={<Mail className="w-6 h-6" style={{ color: '#F59E0B' }} />}
           gradient="linear-gradient(135deg, #F59E0B, #D97706)"
           delay={2}
         />
         <StatCard
-          title="Administradores"
+          title={t('users.stats.admins')}
           value={stats.admins}
           icon={<Shield className="w-6 h-6" style={{ color: '#A855F7' }} />}
           gradient="linear-gradient(135deg, #A855F7, #7C3AED)"
@@ -711,7 +715,7 @@ export default function BusinessPanelUsersPage() {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 opacity-40 group-focus-within:opacity-70 transition-opacity" />
           <input
             type="text"
-            placeholder="Buscar por nombre, email o username..."
+            placeholder={t('users.placeholders.search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 focus:outline-none transition-all duration-300"
@@ -739,9 +743,9 @@ export default function BusinessPanelUsersPage() {
             }}
           >
             <span className="text-sm">
-              {filterRole === 'all' ? 'Todos los roles' :
-                filterRole === 'owner' ? 'Propietario' :
-                  filterRole === 'admin' ? 'Administrador' : 'Miembro'}
+              {filterRole === 'all' ? t('users.roles.all') :
+                filterRole === 'owner' ? t('users.roles.owner') :
+                  filterRole === 'admin' ? t('users.roles.admin') : t('users.roles.member')}
             </span>
             <motion.svg
               animate={{ rotate: isRoleDropdownOpen ? 180 : 0 }}
@@ -767,10 +771,10 @@ export default function BusinessPanelUsersPage() {
                 }}
               >
                 {[
-                  { value: 'all', label: 'Todos los roles' },
-                  { value: 'owner', label: 'Propietario' },
-                  { value: 'admin', label: 'Administrador' },
-                  { value: 'member', label: 'Miembro' }
+                  { value: 'all', label: t('users.roles.all') },
+                  { value: 'owner', label: t('users.roles.owner') },
+                  { value: 'admin', label: t('users.roles.admin') },
+                  { value: 'member', label: t('users.roles.member') }
                 ].map((option) => (
                   <button
                     key={option.value}
@@ -809,9 +813,9 @@ export default function BusinessPanelUsersPage() {
             }}
           >
             <span className="text-sm">
-              {filterStatus === 'all' ? 'Todos los estados' :
-                filterStatus === 'active' ? 'Activo' :
-                  filterStatus === 'invited' ? 'Invitado' : 'Suspendido'}
+              {filterStatus === 'all' ? t('users.status.all') :
+                filterStatus === 'active' ? t('users.status.active') :
+                  filterStatus === 'invited' ? t('users.status.invited') : t('users.status.suspended')}
             </span>
             <motion.svg
               animate={{ rotate: isStatusDropdownOpen ? 180 : 0 }}
@@ -837,10 +841,10 @@ export default function BusinessPanelUsersPage() {
                 }}
               >
                 {[
-                  { value: 'all', label: 'Todos los estados' },
-                  { value: 'active', label: 'Activo' },
-                  { value: 'invited', label: 'Invitado' },
-                  { value: 'suspended', label: 'Suspendido' }
+                  { value: 'all', label: t('users.status.all') },
+                  { value: 'active', label: t('users.status.active') },
+                  { value: 'invited', label: t('users.status.invited') },
+                  { value: 'suspended', label: t('users.status.suspended') }
                 ].map((option) => (
                   <button
                     key={option.value}

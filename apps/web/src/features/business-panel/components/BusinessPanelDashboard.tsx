@@ -20,6 +20,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE: StatCard Premium
@@ -396,7 +397,7 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
           className="text-xs mt-1 font-medium"
           style={{ color: 'var(--org-accent-color, #00D4B3)' }}
         >
-          por {user}
+          {t('dashboard.recentActivity.by')} {user}
         </p>
       </div>
     </motion.div>
@@ -413,6 +414,7 @@ export function BusinessPanelDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [activitiesLoading, setActivitiesLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const { t } = useTranslation('business')
 
   // Obtener estilos de la organización (incluyendo el estado de carga)
   const { styles, loading: stylesLoading } = useOrganizationStylesContext()
@@ -536,9 +538,9 @@ export function BusinessPanelDashboard() {
 
   const getGreeting = () => {
     const hour = currentTime.getHours()
-    if (hour < 12) return 'Buenos días'
-    if (hour < 18) return 'Buenas tardes'
-    return 'Buenas noches'
+    if (hour < 12) return t('dashboard.greetings.morning')
+    if (hour < 18) return t('dashboard.greetings.afternoon')
+    return t('dashboard.greetings.evening')
   }
 
   const getUserName = () => {
@@ -557,19 +559,19 @@ export function BusinessPanelDashboard() {
       const diffHours = Math.floor(diffMs / 3600000)
       const diffDays = Math.floor(diffMs / 86400000)
 
-      if (diffMins < 1) return 'Hace un momento'
-      if (diffMins < 60) return `Hace ${diffMins} min`
-      if (diffHours < 24) return `Hace ${diffHours}h`
-      if (diffDays < 7) return `Hace ${diffDays}d`
-      return date.toLocaleDateString('es-MX')
+      if (diffMins < 1) return t('dashboard.recentActivity.time.justNow')
+      if (diffMins < 60) return t('dashboard.recentActivity.time.minsAgo', { time: diffMins })
+      if (diffHours < 24) return t('dashboard.recentActivity.time.hoursAgo', { time: diffHours })
+      if (diffDays < 7) return t('dashboard.recentActivity.time.daysAgo', { time: diffDays })
+      return date.toLocaleDateString(t('language') === 'en' ? 'en-US' : 'es-MX') // Simple fallback for locale
     } catch {
-      return 'Hace un momento'
+      return t('dashboard.recentActivity.time.justNow')
     }
   }
 
-  const statsData = stats ? [
+  const statsData = useMemo(() => stats ? [
     {
-      title: 'Usuarios Activos',
+      title: t('dashboard.stats.activeUsers'),
       value: typeof stats.activeUsers === 'object' ? stats.activeUsers.value : (stats.activeUsers || 0),
       change: typeof stats.activeUsers === 'object' ? parseFloat(stats.activeUsers.change) : 0,
       backgroundImage: '/images/dashboard-cards/users-card-bg.png',
@@ -578,7 +580,7 @@ export function BusinessPanelDashboard() {
       href: '/business-panel/users'
     },
     {
-      title: 'Cursos Asignados',
+      title: t('dashboard.stats.assignedCourses'),
       value: typeof stats.assignedCourses === 'object' ? stats.assignedCourses.value : (stats.assignedCourses || 0),
       change: typeof stats.assignedCourses === 'object' ? parseFloat(stats.assignedCourses.change) : 0,
       backgroundImage: '/images/dashboard-cards/courses-card-bg.png',
@@ -587,7 +589,7 @@ export function BusinessPanelDashboard() {
       href: '/business-panel/courses'
     },
     {
-      title: 'Completados',
+      title: t('dashboard.stats.completed'),
       value: typeof stats.completed === 'object' ? stats.completed.value : (stats.completed || stats.completedCourses || 0),
       change: typeof stats.completed === 'object' ? parseFloat(stats.completed.change) : 0,
       backgroundImage: '/images/dashboard-cards/completed-card-bg.png',
@@ -595,7 +597,7 @@ export function BusinessPanelDashboard() {
       gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.accent}, ${themeColors.accent}cc)` },
     },
     {
-      title: 'Progreso Promedio',
+      title: t('dashboard.stats.avgProgress'),
       value: typeof stats.inProgress === 'object' ? stats.inProgress.value : `${stats.averageProgress || 0}%`,
       change: typeof stats.inProgress === 'object' ? parseFloat(stats.inProgress.change) : 0,
       backgroundImage: '/images/dashboard-cards/progress-card-bg.png',
@@ -603,7 +605,7 @@ export function BusinessPanelDashboard() {
       gradientStyle: { background: `linear-gradient(to bottom right, #F59E0B, #F59E0Bcc)` },
     },
     {
-      title: 'Certificados',
+      title: t('dashboard.stats.certificates'),
       value: stats.certificates || 0,
       change: stats.certificateGrowth || 0,
       backgroundImage: '/images/dashboard-cards/certificates-card-bg.png',
@@ -611,45 +613,45 @@ export function BusinessPanelDashboard() {
       gradientStyle: { background: `linear-gradient(to bottom right, #8B5CF6, #8B5CF6cc)` },
     },
     {
-      title: 'Engagement',
+      title: t('dashboard.stats.engagement'),
       value: `${stats.engagementRate || 0}%`,
       change: stats.engagementGrowth || 0,
       backgroundImage: '/images/dashboard-cards/engagement-card-bg.png',
       gradient: 'bg-gradient-to-br from-[#EC4899] to-[#EC4899]/80',
       gradientStyle: { background: `linear-gradient(to bottom right, #EC4899, #EC4899cc)` },
     },
-  ] : []
+  ] : [], [stats, themeColors, t])
 
-  const quickActions = [
+  const quickActions = useMemo(() => [
     {
-      title: 'Gestionar Usuarios',
-      description: 'Administra tu equipo',
+      title: t('dashboard.quickActions.manageUsers.title'),
+      description: t('dashboard.quickActions.manageUsers.desc'),
       icon: UsersIcon,
       href: '/business-panel/users',
       color: themeColors.primary
     },
     {
-      title: 'Asignar Cursos',
-      description: 'Asigna talleres a usuarios',
+      title: t('dashboard.quickActions.assignCourses.title'),
+      description: t('dashboard.quickActions.assignCourses.desc'),
       icon: PlusIcon,
       href: '/business-panel/courses',
       color: themeColors.secondary
     },
     {
-      title: 'Ver Reportes',
-      description: 'Analytics y métricas',
+      title: t('dashboard.quickActions.viewReports.title'),
+      description: t('dashboard.quickActions.viewReports.desc'),
       icon: ChartBarIcon,
       href: '/business-panel/reports',
       color: themeColors.accent
     },
     {
-      title: 'Configuración',
-      description: 'Branding y ajustes',
+      title: t('dashboard.quickActions.settings.title'),
+      description: t('dashboard.quickActions.settings.desc'),
       icon: Cog6ToothIcon,
       href: '/business-panel/settings',
       color: '#8B5CF6'
     },
-  ]
+  ], [themeColors, t])
 
   // Calcular estilo de fondo dinámico
   const getBackgroundStyles = () => {
@@ -733,7 +735,7 @@ export function BusinessPanelDashboard() {
               className="text-sm font-medium tracking-wide uppercase"
               style={{ color: themeColors.accent }}
             >
-              Panel Empresarial
+              {t('dashboard.title')}
             </span>
           </div>
 
@@ -753,7 +755,7 @@ export function BusinessPanelDashboard() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
-            Gestiona el aprendizaje de tu equipo y supervisa su progreso.
+            {t('dashboard.subtitle')}
           </motion.p>
 
           {/* Date & Status */}
@@ -774,7 +776,7 @@ export function BusinessPanelDashboard() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: themeColors.secondary }} />
-              <span className="text-sm font-medium" style={{ color: themeColors.secondary }}>Sistema Activo</span>
+              <span className="text-sm font-medium" style={{ color: themeColors.secondary }}>{t('dashboard.systemActive')}</span>
             </div>
           </motion.div>
         </div>
@@ -792,8 +794,8 @@ export function BusinessPanelDashboard() {
               transition={{ delay: 0.3 }}
             >
               <div>
-                <h2 className="text-xl font-bold" style={{ color: themeColors.text }}>Estadísticas Generales</h2>
-                <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>Métricas clave de tu equipo</p>
+                <h2 className="text-xl font-bold" style={{ color: themeColors.text }}>{t('dashboard.generalStats')}</h2>
+                <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>{t('dashboard.keyMetrics')}</p>
               </div>
             </motion.div>
 
@@ -831,8 +833,8 @@ export function BusinessPanelDashboard() {
               transition={{ delay: 0.6 }}
             >
               <div>
-                <h2 className="text-xl font-bold" style={{ color: themeColors.text }}>Actividad Reciente</h2>
-                <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>Últimas acciones de tu equipo</p>
+                <h2 className="text-xl font-bold" style={{ color: themeColors.text }}>{t('dashboard.recentActivity.title')}</h2>
+                <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>{t('dashboard.recentActivity.subtitle')}</p>
               </div>
             </motion.div>
 
@@ -861,7 +863,7 @@ export function BusinessPanelDashboard() {
               ) : activities.length === 0 ? (
                 <div className="p-12 text-center">
                   <ClockIcon className="h-12 w-12 text-[#6C757D]/50 mx-auto mb-4" />
-                  <p className="text-[#6C757D]">No hay actividad reciente</p>
+                  <p className="text-[#6C757D]">{t('dashboard.recentActivity.empty')}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-[#6C757D]/10">
@@ -891,8 +893,8 @@ export function BusinessPanelDashboard() {
             className="sticky top-24"
           >
             <div className="mb-6">
-              <h2 className="text-lg font-bold" style={{ color: themeColors.text }}>Acciones Rápidas</h2>
-              <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>Accesos directos</p>
+              <h2 className="text-lg font-bold" style={{ color: themeColors.text }}>{t('dashboard.quickActions.title')}</h2>
+              <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>{t('dashboard.quickActions.subtitle')}</p>
             </div>
 
             <div className="space-y-3">
@@ -932,20 +934,20 @@ export function BusinessPanelDashboard() {
                   <RocketLaunchIcon className="h-5 w-5 text-white" />
                 </motion.div>
                 <div>
-                  <h3 className="font-semibold" style={{ color: themeColors.text }}>Cuenta Activa</h3>
-                  <p className="text-xs" style={{ color: themeColors.secondary }}>Todos los servicios operativos</p>
+                  <h3 className="font-semibold" style={{ color: themeColors.text }}>{t('dashboard.systemHealth.activeAccount')}</h3>
+                  <p className="text-xs" style={{ color: themeColors.secondary }}>{t('dashboard.systemHealth.servicesOperational')}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: themeColors.borderColor }}>Usuarios</span>
+                  <span style={{ color: themeColors.borderColor }}>{t('dashboard.systemHealth.users')}</span>
                   <span className="font-medium" style={{ color: themeColors.secondary }}>
-                    {typeof stats?.activeUsers === 'object' ? stats.activeUsers.value : (stats?.activeUsers || 0)} activos
+                    {typeof stats?.activeUsers === 'object' ? stats.activeUsers.value : (stats?.activeUsers || 0)} {t('dashboard.systemHealth.active')}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: themeColors.borderColor }}>Cursos</span>
+                  <span style={{ color: themeColors.borderColor }}>{t('dashboard.systemHealth.courses')}</span>
                   <span className="font-medium" style={{ color: themeColors.secondary }}>
                     {typeof stats?.assignedCourses === 'object' ? stats.assignedCourses.value : (stats?.assignedCourses || 0)} asignados
                   </span>

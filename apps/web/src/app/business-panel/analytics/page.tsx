@@ -3,8 +3,10 @@
 import { motion } from 'framer-motion'
 import { BusinessAnalytics } from '@/features/business-panel/components/BusinessAnalytics'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
+import { useTranslation } from 'react-i18next'
 
 export default function BusinessPanelAnalyticsPage() {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const textColor = panelStyles?.text_color || '#f8fafc'
@@ -18,10 +20,10 @@ export default function BusinessPanelAnalyticsPage() {
     >
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-heading font-semibold mb-3" style={{ color: textColor }}>
-          Analytics
+          {t('analytics.title')}
         </h1>
         <p className="font-body" style={{ color: panelStyles?.text_color ? `${textColor}CC` : carbon300 }}>
-          Analíticas detalladas de comportamiento y rendimiento
+          {t('analytics.subtitle')}
         </p>
       </div>
       

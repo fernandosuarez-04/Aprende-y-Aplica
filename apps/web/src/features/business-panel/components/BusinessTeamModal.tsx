@@ -18,6 +18,7 @@ import {
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, CreateWorkTeamRequest, UpdateWorkTeamRequest } from '../services/teams.service'
 import { useBusinessUsers } from '../hooks/useBusinessUsers'
+import { useTranslation } from 'react-i18next'
 
 interface BusinessTeamModalProps {
   isOpen: boolean
@@ -27,6 +28,7 @@ interface BusinessTeamModalProps {
 }
 
 export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: BusinessTeamModalProps) {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { users } = useBusinessUsers()
@@ -82,7 +84,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
         })
         if (teamData.image_url) setImagePreview(teamData.image_url)
       } catch (err) {
-        setError('Error al cargar datos del equipo')
+        setError(t('teams.modal.errors.loadFailed'))
       } finally {
         setIsLoadingTeam(false)
       }
@@ -191,7 +193,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
       }
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar equipo')
+      setError(err instanceof Error ? err.message : t(teamId ? 'teams.modal.errors.updateFailed' : 'teams.modal.errors.createFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -280,17 +282,17 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
 
                   {/* Team Name Preview */}
                   <h3 className="text-xl font-bold text-white text-center mb-2 min-h-[28px]">
-                    {formData.name || 'Nombre del equipo'}
+                    {formData.name || t('teams.modal.fields.name')}
                   </h3>
                   <p className="text-sm text-white/40 text-center mb-8 min-h-[40px] line-clamp-2">
-                    {formData.description || 'Descripción del equipo...'}
+                    {formData.description || t('teams.modal.placeholders.description')}
                   </p>
 
                   {/* Selected Members Preview */}
                   <div className="w-full">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
-                        Miembros
+                        {t('teams.modal.fields.members')}
                       </span>
                       <span className="text-xs font-bold text-white/70">
                         {formData.member_ids.length}
@@ -336,7 +338,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                     ) : (
                       <div className="flex items-center gap-2 text-white/30 text-sm">
                         <UsersRound className="w-4 h-4" />
-                        Sin miembros
+                        {t('teams.modal.labels.noMembers', 'Sin miembros')}
                       </div>
                     )}
                   </div>
@@ -346,7 +348,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                 {formData.team_leader_id && (
                   <div className="pt-6 border-t border-white/5">
                     <span className="text-xs font-medium text-white/50 uppercase tracking-wider block mb-3">
-                      Líder del equipo
+                      {t('teams.modal.fields.leader')}
                     </span>
                     {(() => {
                       const leader = users.find(u => u.id === formData.team_leader_id)
@@ -383,10 +385,10 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                 <div className="flex items-center justify-between p-4 lg:p-6 border-b border-white/5 shrink-0">
                   <div>
                     <h2 className="text-lg lg:text-xl font-bold text-white">
-                      {teamId ? 'Editar equipo' : 'Nuevo equipo'}
+                      {teamId ? t('teams.modal.titleEdit') : t('teams.modal.titleCreate')}
                     </h2>
                     <p className="text-sm text-white/40 mt-0.5">
-                      {teamId ? 'Actualiza la información del equipo' : 'Configura tu nuevo equipo de trabajo'}
+                      {teamId ? t('teams.modal.subtitleEdit', 'Actualiza la información del equipo') : t('teams.modal.subtitle')}
                     </p>
                   </div>
                   <button
@@ -410,7 +412,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                     {/* Name */}
                     <div>
                       <label className="block text-sm font-medium text-white/70 mb-2">
-                        Nombre <span className="text-red-400">*</span>
+                        {t('teams.modal.fields.name')} <span className="text-red-400">*</span>
                       </label>
                       <input
                         type="text"
@@ -418,21 +420,21 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                         onChange={(e) => handleChange('name', e.target.value)}
                         required
                         className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors"
-                        placeholder="Ej: Equipo de Desarrollo"
+                        placeholder={t('teams.modal.placeholders.name')}
                       />
                     </div>
 
                     {/* Description */}
                     <div>
                       <label className="block text-sm font-medium text-white/70 mb-2">
-                        Descripción
+                        {t('teams.modal.fields.description')}
                       </label>
                       <textarea
                         value={formData.description}
                         onChange={(e) => handleChange('description', e.target.value)}
                         rows={2}
                         className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors resize-none"
-                        placeholder="¿Cuál es el propósito de este equipo?"
+                        placeholder={t('teams.modal.placeholders.description')}
                       />
                     </div>
 
@@ -440,11 +442,11 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-sm font-medium text-white/70">
-                          Agregar miembros
+                          {t('teams.modal.labels.addMembers')}
                         </label>
                         {formData.member_ids.length > 0 && (
                           <span className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/60">
-                            {formData.member_ids.length} seleccionados
+                            {formData.member_ids.length} {t('teams.modal.labels.selected')}
                           </span>
                         )}
                       </div>
@@ -457,7 +459,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors"
-                          placeholder="Buscar por nombre o email..."
+                          placeholder={t('teams.modal.placeholders.searchMembers')}
                         />
                       </div>
 
@@ -465,7 +467,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                       <div className="max-h-40 lg:max-h-48 overflow-y-auto rounded-xl border border-white/10 divide-y divide-white/5" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
                         {filteredUsers.length === 0 ? (
                           <div className="p-6 text-center text-white/30 text-sm">
-                            No hay usuarios disponibles
+                            {t('teams.modal.labels.noUsers', 'No hay usuarios disponibles')}
                           </div>
                         ) : (
                           filteredUsers.map((user) => {
@@ -519,7 +521,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                                       }`}
                                   >
                                     <Crown className="w-3 h-3" />
-                                    {isLeader ? 'Líder' : 'Líder'}
+                                    {isLeader ? t('teams.modal.labels.leader', 'Líder') : t('teams.modal.labels.setLeader', 'Líder')}
                                   </button>
                                 )}
                               </div>
@@ -538,7 +540,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                       disabled={isLoading}
                       className="px-5 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
                     >
-                      Cancelar
+                      {t('teams.buttons.cancel')}
                     </button>
                     <button
                       type="submit"
@@ -552,11 +554,11 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                       {isLoading ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Guardando...
+                          {t('teams.buttons.saving')}
                         </>
                       ) : (
                         <>
-                          {teamId ? 'Guardar cambios' : 'Crear equipo'}
+                          {teamId ? t('teams.buttons.save') : t('teams.buttons.create')}
                           <ChevronRight className="w-4 h-4" />
                         </>
                       )}

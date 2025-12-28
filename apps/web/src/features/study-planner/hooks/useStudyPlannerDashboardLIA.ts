@@ -199,7 +199,7 @@ Puedo ayudarte a organizar tu tiempo de estudio de manera eficiente según tu di
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                message: '[INICIO_PROACTIVO] El usuario acaba de abrir el dashboard. Analiza su calendario y plan de estudios. Si hay conflictos, alertas de burnout, sesiones perdidas o cualquier problema, mencionalo inmediatamente. Si todo está bien, da la bienvenida y menciona qué viene próximamente.',
+                trigger: 'proactive_init',
                 activePlanId: plan.id,
                 conversationHistory: [],
               }),

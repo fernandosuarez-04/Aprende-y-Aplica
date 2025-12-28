@@ -83,7 +83,7 @@ export async function POST(
 
     // Parsear body de la request
     const body = await request.json()
-    const { user_ids, due_date, message } = body
+    const { user_ids, due_date, start_date, approach, message } = body
 
     if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
       return NextResponse.json({
@@ -115,6 +115,27 @@ export async function POST(
       }, { status: 400 })
     }
 
+    // Validar que start_date <= due_date si ambos están presentes
+    if (start_date && due_date) {
+      const startDateObj = new Date(start_date)
+      const dueDateObj = new Date(due_date)
+      
+      if (startDateObj > dueDateObj) {
+        return NextResponse.json({
+          success: false,
+          error: 'La fecha de inicio no puede ser posterior a la fecha límite'
+        }, { status: 400 })
+      }
+    }
+
+    // Validar approach si está presente
+    if (approach && !['fast', 'balanced', 'long', 'custom'].includes(approach)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Enfoque inválido. Debe ser: fast, balanced, long o custom'
+      }, { status: 400 })
+    }
+
     // Verificar que los usuarios no tengan ya el curso asignado
     const { data: existingAssignments } = await supabase
       .from('organization_course_assignments')
@@ -141,6 +162,8 @@ export async function POST(
       assigned_by: currentUser.id,
       assigned_at: new Date().toISOString(),
       due_date: due_date || null,
+      start_date: start_date || null,
+      approach: approach || null,
       message: message && message.trim() ? message.trim() : null,
       status: 'assigned',
       completion_percentage: 0

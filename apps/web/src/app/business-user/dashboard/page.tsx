@@ -3,7 +3,6 @@
 import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import {
   BookOpen,
   Clock,
@@ -18,18 +17,14 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
 import { getBackgroundStyle, generateCSSVariables } from '@/features/business-panel/utils/styles'
-// import { useLiaPanel } from '@/core/contexts/LiaPanelContext' // Removed LIA logic
+import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
+import { LIA_PANEL_WIDTH } from '@/core/components/LiaSidePanel'
 
-// Lazy load components
-const ParticlesBackground = lazy(() =>
-  import('./components/ParticlesBackground').then(m => ({ default: m.ParticlesBackground }))
-)
-const Background3DEffects = lazy(() =>
-  import('./components/Background3DEffects').then(m => ({ default: m.Background3DEffects }))
-)
+// Lazy load components - Removed heavy 3D/Particles backgrounds for performance
 const ModernNavbar = lazy(() =>
   import('./components/ModernNavbar').then(m => ({ default: m.ModernNavbar }))
 )
+import { useTranslation } from 'react-i18next'
 const ModernStatsCard = lazy(() =>
   import('./components/ModernStatsCard').then(m => ({ default: m.ModernStatsCard }))
 )
@@ -72,8 +67,9 @@ interface Organization {
 export default function BusinessUserDashboardPage() {
   const router = useRouter()
   const { user, logout } = useAuth()
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStyles()
-  // const { isPanelOpen, isCollapsed, panelWidth } = useLiaPanel() // Removed LIA logic
+  const { isOpen: isPanelOpen } = useLiaPanel()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
@@ -107,10 +103,10 @@ export default function BusinessUserDashboardPage() {
   // Obtener saludo basado en hora
   const getGreeting = useCallback(() => {
     const hour = currentTime.getHours()
-    if (hour < 12) return 'Buenos días'
-    if (hour < 18) return 'Buenas tardes'
-    return 'Buenas noches'
-  }, [currentTime])
+    if (hour < 12) return t('dashboard.greetings.morning')
+    if (hour < 18) return t('dashboard.greetings.afternoon')
+    return t('dashboard.greetings.evening')
+  }, [currentTime, t])
 
   // Obtener información de la organización
   useEffect(() => {
@@ -131,11 +127,11 @@ export default function BusinessUserDashboardPage() {
   }, [])
 
   const myStats = useMemo(() => [
-    { label: 'Cursos Asignados', value: stats.total_assigned, icon: BookOpen, color: 'from-blue-500 to-cyan-500' },
-    { label: 'En Progreso', value: stats.in_progress, icon: Clock, color: 'from-purple-500 to-pink-500' },
-    { label: 'Completados', value: stats.completed, icon: CheckCircle2, color: 'from-green-500 to-emerald-500' },
-    { label: 'Certificados', value: stats.certificates, icon: Award, color: 'from-orange-500 to-red-500' },
-  ], [stats])
+    { label: t('dashboard.stats.assignedCourses', 'Cursos Asignados'), value: stats.total_assigned, icon: BookOpen, color: 'from-blue-500 to-cyan-500' },
+    { label: t('dashboard.stats.inProgress', 'En Progreso'), value: stats.in_progress, icon: Clock, color: 'from-purple-500 to-pink-500' },
+    { label: t('dashboard.stats.completed', 'Completados'), value: stats.completed, icon: CheckCircle2, color: 'from-green-500 to-emerald-500' },
+    { label: t('dashboard.stats.certificates', 'Certificados'), value: stats.certificates, icon: Award, color: 'from-orange-500 to-red-500' },
+  ], [stats, t])
 
   useEffect(() => {
     fetchDashboardData()
@@ -226,7 +222,7 @@ export default function BusinessUserDashboardPage() {
     return (user?.username || 'U').charAt(0).toUpperCase()
   }, [user])
 
-  // Loading state with premium animation
+  // Loading state - simplified without infinite animations
   if (loading) {
     return (
       <main
@@ -235,52 +231,26 @@ export default function BusinessUserDashboardPage() {
           background: '#0F1419'
         }}
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-8"
-        >
-          {/* Premium Loading Animation - No rotation */}
+        <div className="flex flex-col items-center gap-8">
+          {/* Simple loading indicator */}
           <div className="relative">
-            {/* Outer ring with pulse */}
-            <motion.div
+            <div
               className="w-20 h-20 rounded-full"
               style={{
                 background: `linear-gradient(135deg, ${orgColors.primary}15, ${orgColors.accent}15)`,
                 border: `2px solid ${orgColors.accent}50`
               }}
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.5, 0.8, 0.5]
-              }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            {/* Inner glow */}
-            <motion.div
-              className="absolute inset-2 rounded-full"
-              style={{
-                background: `radial-gradient(circle, ${orgColors.accent}50, transparent)`,
-              }}
-              animate={{
-                opacity: [0.3, 0.7, 0.3]
-              }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
             />
             {/* Center icon */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <GraduationCap className="w-8 h-8" style={{ color: orgColors.accent, filter: `drop-shadow(0 0 8px ${orgColors.accent}80)` }} />
-              </motion.div>
+              <GraduationCap className="w-8 h-8" style={{ color: orgColors.accent }} />
             </div>
           </div>
           <div className="text-center">
-            <p className="text-white text-lg font-semibold">Cargando tu panel</p>
-            <p className="text-gray-400 text-sm mt-2">Preparando tu experiencia de aprendizaje...</p>
+            <p className="text-white text-lg font-semibold">{t('common.loading', 'Cargando...')}</p>
+            <p className="text-gray-400 text-sm mt-2">{t('common.preparingExperience', 'Preparando tu experiencia...')}</p>
           </div>
-        </motion.div>
+        </div>
       </main>
     )
   }
@@ -330,9 +300,9 @@ export default function BusinessUserDashboardPage() {
     <div
       className="min-h-screen"
       style={{
-        ...backgroundStyle,
         ...cssVariables,
-        background: backgroundStyle?.background || '#0F1419'
+        // Usar solo 'background' para evitar conflicto con 'backgroundColor'
+        background: backgroundStyle?.background || backgroundStyle?.backgroundColor || '#0F1419'
       } as React.CSSProperties}
     >
       {/* Modern Navbar - Siempre ocupa el ancho completo, NO se desplaza */}
@@ -350,16 +320,20 @@ export default function BusinessUserDashboardPage() {
         />
       </Suspense>
 
-      {/* Main Content - Solo este contenido tiene margen cuando LIA está abierto */}
+      {/* Main Content */}
       <main
         className="relative overflow-hidden min-h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out"
-        // style={{ marginRight: contentMarginRight }} // Removed LIA logic
+        style={{
+          paddingRight: isPanelOpen ? `${LIA_PANEL_WIDTH}px` : '0'
+        }}
       >
-        {/* Background Effects */}
-        <Suspense fallback={null}>
-          <ParticlesBackground />
-          <Background3DEffects />
-        </Suspense>
+        {/* Background gradient - static, no heavy effects */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `radial-gradient(ellipse at 50% 0%, ${orgColors.primary}08 0%, transparent 50%)`,
+          }}
+        />
 
         <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20 py-8">
 
@@ -372,62 +346,63 @@ export default function BusinessUserDashboardPage() {
             transition={{ duration: 0.6 }}
             className="relative overflow-hidden rounded-3xl p-8 mb-10 group"
           >
-            {/* Background with gradient overlay */}
-            <div className="absolute inset-0 z-0">
-              <div
-                className="absolute inset-0 z-10"
+            {/* Background with layered gradients - no image dependency */}
+            <div className="absolute inset-0 z-0 overflow-hidden">
+              {/* Base dark background */}
+              <div 
+                className="absolute inset-0"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(16, 185, 129, 0.1), transparent)'
+                  background: 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)'
                 }}
               />
-              <div
-                className="absolute inset-0 z-10"
+              
+              {/* Subtle grid pattern */}
+              <div 
+                className="absolute inset-0 opacity-[0.03]"
                 style={{
-                  background: 'linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.7), transparent)'
+                  backgroundImage: `
+                    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '50px 50px'
                 }}
               />
-              <Image
-                src="/images/nanobanana-hero.png"
-                alt="Nanobanana Dashboard Background"
-                fill
-                priority
-                unoptimized
-                className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
-                sizes="100vw"
+              
+              {/* Accent glow on right side */}
+              <div 
+                className="absolute -right-20 top-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[120px]"
+                style={{ backgroundColor: `${orgColors.accent}20` }}
+              />
+              
+              {/* Secondary glow */}
+              <div 
+                className="absolute right-1/4 bottom-0 w-64 h-64 rounded-full blur-[100px]"
+                style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)' }}
+              />
+              
+              {/* Left side overlay for text readability */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: 'linear-gradient(to right, rgba(10, 22, 40, 0.9) 0%, rgba(10, 22, 40, 0.5) 50%, transparent 100%)'
+                }}
               />
             </div>
 
-            {/* Animated Orbs */}
-            <motion.div
-              className="absolute top-10 right-10 w-32 h-32 rounded-full blur-3xl pointer-events-none"
-              style={{ backgroundColor: 'rgba(14, 165, 233, 0.3)' }}
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.5, 0.3]
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
+            {/* Decorative elements */}
+            <div
+              className="absolute top-6 right-12 w-2 h-2 rounded-full z-10"
+              style={{ backgroundColor: orgColors.accent }}
             />
-            <motion.div
-              className="absolute bottom-10 right-40 w-24 h-24 rounded-full blur-3xl pointer-events-none"
-              style={{ backgroundColor: 'rgba(16, 185, 129, 0.3)' }}
-              animate={{
-                scale: [1, 1.3, 1],
-                opacity: [0.2, 0.4, 0.2]
-              }}
-              transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+            <div
+              className="absolute bottom-8 right-24 w-1.5 h-1.5 rounded-full z-10 opacity-60"
+              style={{ backgroundColor: orgColors.accent }}
             />
-
-            {/* Floating particles */}
-            <motion.div
-              animate={{ y: [0, -15, 0], opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="absolute top-8 right-24 w-2 h-2 rounded-full bg-cyan-400"
+            <div
+              className="absolute top-1/2 right-16 w-1 h-1 rounded-full z-10 opacity-40"
+              style={{ backgroundColor: 'rgb(14, 165, 233)' }}
             />
-            <motion.div
-              animate={{ y: [0, 12, 0], opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 4, repeat: Infinity, delay: 1 }}
-              className="absolute bottom-12 right-32 w-3 h-3 rounded-full bg-emerald-400"
-            />
+            <div className="absolute bottom-12 right-32 w-3 h-3 rounded-full bg-emerald-400/40" />
 
             {/* Content */}
             <div className="relative z-10">
@@ -443,7 +418,7 @@ export default function BusinessUserDashboardPage() {
                 }}
               >
                 <Sparkles className="w-4 h-4" style={{ color: orgColors.accent }} />
-                <span className="text-sm font-medium" style={{ color: orgColors.accent }}>Panel de Aprendizaje</span>
+                <span className="text-sm font-medium" style={{ color: orgColors.accent }}>{t('header.learningPanel')}</span>
               </motion.div>
 
               {/* Greeting */}
@@ -471,7 +446,7 @@ export default function BusinessUserDashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                Continúa tu camino de aprendizaje y alcanza tus metas profesionales.
+                {t('dashboard.subtitle')}
               </motion.p>
 
               {/* Date and Status */}
@@ -491,13 +466,11 @@ export default function BusinessUserDashboardPage() {
                   })}
                 </div>
                 <div className="flex items-center gap-2">
-                  <motion.div
+                  <div
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: orgColors.accent }}
-                    animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
                   />
-                  <span className="text-sm font-medium" style={{ color: orgColors.accent }}>Aprendizaje Activo</span>
+                  <span className="text-sm font-medium" style={{ color: orgColors.accent }}>{t('dashboard.systemActive')}</span>
                 </div>
               </motion.div>
             </div>
@@ -536,8 +509,8 @@ export default function BusinessUserDashboardPage() {
                   <TrendingUp className="w-5 h-5" style={{ color: orgColors.accent }} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Tu Progreso</h2>
-                  <p className="text-sm text-gray-400">Métricas de tu aprendizaje</p>
+                  <h2 className="text-xl font-bold text-white">{t('dashboard.generalStats', 'Tu Progreso')}</h2>
+                  <p className="text-sm text-gray-400">{t('dashboard.keyMetrics', 'Métricas de tu aprendizaje')}</p>
                 </div>
               </div>
             </motion.div>
@@ -594,8 +567,8 @@ export default function BusinessUserDashboardPage() {
                   <GraduationCap className="w-5 h-5" style={{ color: orgColors.primary }} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Mis Cursos</h2>
-                  <p className="text-sm text-gray-400">Continúa donde lo dejaste</p>
+                  <h2 className="text-xl font-bold text-white">{t('sidebar.courses')}</h2>
+                  <p className="text-sm text-gray-400">{t('dashboard.quickActions.assignCourses.desc', 'Continúa donde lo dejaste')}</p>
                 </div>
               </div>
             </motion.div>

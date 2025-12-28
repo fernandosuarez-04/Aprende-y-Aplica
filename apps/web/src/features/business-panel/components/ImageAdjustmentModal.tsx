@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, RotateCw, ZoomIn, ZoomOut, Maximize2, Minimize2, Move } from 'lucide-react';
 import Cropper from 'react-easy-crop';
+import { useTranslation } from 'react-i18next';
 import type { Area } from 'react-easy-crop';
 
 interface ImageAdjustmentModalProps {
@@ -35,6 +36,7 @@ export function ImageAdjustmentModal({
     initialAdjustments?.objectFit || 'cover'
   );
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const { t } = useTranslation('business');
 
   const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -83,7 +85,7 @@ export function ImageAdjustmentModal({
           <div className="flex items-center justify-between p-6 border-b border-carbon-700">
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
               <Move className="w-6 h-6 text-primary" />
-              Ajustar Imagen
+              {t('imageAdjustment.title')}
             </h2>
             <button
               onClick={onClose}
@@ -124,7 +126,7 @@ export function ImageAdjustmentModal({
               {/* Object Fit */}
               <div>
                 <label className="block text-sm font-medium text-carbon-300 mb-3">
-                  Ajuste de Imagen
+                  {t('imageAdjustment.labels.adjustment')}
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   <button
@@ -136,7 +138,7 @@ export function ImageAdjustmentModal({
                     }`}
                   >
                     <Maximize2 className="w-4 h-4" />
-                    Cubrir
+                    {t('imageAdjustment.fit.cover')}
                   </button>
                   <button
                     onClick={() => setObjectFit('contain')}
@@ -147,7 +149,7 @@ export function ImageAdjustmentModal({
                     }`}
                   >
                     <Minimize2 className="w-4 h-4" />
-                    Contener
+                    {t('imageAdjustment.fit.contain')}
                   </button>
                   <button
                     onClick={() => setObjectFit('fill')}
@@ -158,7 +160,7 @@ export function ImageAdjustmentModal({
                     }`}
                   >
                     <Move className="w-4 h-4" />
-                    Rellenar
+                    {t('imageAdjustment.fit.fill')}
                   </button>
                 </div>
               </div>
@@ -168,13 +170,13 @@ export function ImageAdjustmentModal({
                 <label className="block text-sm font-medium text-carbon-300 mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <ZoomIn className="w-4 h-4" />
-                    Zoom: {zoom.toFixed(1)}x
+                    {t('imageAdjustment.labels.zoom')}: {zoom.toFixed(1)}x
                   </span>
                   <button
                     onClick={() => setZoom(1)}
                     className="text-xs px-2 py-1 bg-carbon-800 hover:bg-carbon-700 rounded transition-colors"
                   >
-                    Resetear
+                    {t('imageAdjustment.buttons.reset')}
                   </button>
                 </label>
                 <div className="flex items-center gap-3">
@@ -197,13 +199,13 @@ export function ImageAdjustmentModal({
                 <label className="block text-sm font-medium text-carbon-300 mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <RotateCw className="w-4 h-4" />
-                    Rotación: {rotation}°
+                    {t('imageAdjustment.labels.rotation')}: {rotation}°
                   </span>
                   <button
                     onClick={() => setRotation(0)}
                     className="text-xs px-2 py-1 bg-carbon-800 hover:bg-carbon-700 rounded transition-colors"
                   >
-                    Resetear
+                    {t('imageAdjustment.buttons.reset')}
                   </button>
                 </label>
                 <input
@@ -220,10 +222,10 @@ export function ImageAdjustmentModal({
               {/* Position Info */}
               <div className="bg-carbon-800 rounded-lg p-4">
                 <p className="text-sm text-carbon-400">
-                  <span className="font-medium text-carbon-300">Posición:</span> X: {crop.x.toFixed(0)}, Y: {crop.y.toFixed(0)}
+                  <span className="font-medium text-carbon-300">{t('imageAdjustment.labels.position')}:</span> X: {crop.x.toFixed(0)}, Y: {crop.y.toFixed(0)}
                 </p>
                 <p className="text-xs text-carbon-500 mt-1">
-                  Arrastra la imagen para reposicionarla
+                  {t('imageAdjustment.labels.dragHint')}
                 </p>
               </div>
             </div>
@@ -241,7 +243,7 @@ export function ImageAdjustmentModal({
               onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
             >
               <RotateCw className="w-5 h-5" />
-              Resetear Todo
+              {t('imageAdjustment.buttons.resetAll')}
             </button>
             <div className="flex gap-3">
               <button
@@ -253,7 +255,7 @@ export function ImageAdjustmentModal({
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
               >
-                Cancelar
+                {t('imageAdjustment.buttons.cancel')}
               </button>
               <button
                 onClick={handleSave}
@@ -265,7 +267,7 @@ export function ImageAdjustmentModal({
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
               >
                 <Save className="w-5 h-5" />
-                Guardar Ajustes
+                {t('imageAdjustment.buttons.save')}
               </button>
             </div>
           </div>

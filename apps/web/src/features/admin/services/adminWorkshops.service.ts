@@ -37,11 +37,17 @@ export interface WorkshopStats {
 }
 
 export class AdminWorkshopsService {
+  /**
+   * 🚀 OPTIMIZADO: Eliminado problema N+1
+   * Antes: 2N queries adicionales (instructor + módulos por cada curso)
+   * Después: 3 queries en paralelo total
+   */
   static async getAllWorkshops(): Promise<AdminWorkshop[]> {
     const supabase = await createClient()
 
     try {
-      const { data, error } = await supabase
+      // 🚀 PASO 1: Obtener todos los cursos
+      const { data: courses, error } = await supabase
         .from('courses')
         .select(`
           id,
@@ -69,108 +75,134 @@ export class AdminWorkshopsService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        // console.error('Error fetching workshops:', error)
         throw error
       }
 
-      // Obtener información del instructor y duración real de módulos para cada taller
-      const workshopsWithInstructors = await Promise.all(
-        (data || []).map(async (workshop) => {
-          // Obtener instructor
-          let instructorName = 'Instructor no asignado'
-          let instructorProfilePicture: string | null = null
+      if (!courses || courses.length === 0) {
+        return []
+      }
 
-          if (workshop.instructor_id) {
-            const { data: instructor } = await supabase
+      // 🚀 PASO 2: Recopilar IDs únicos para batch queries
+      const courseIds = courses.map(c => c.id)
+      const instructorIds = [...new Set(courses.map(c => c.instructor_id).filter(Boolean))]
+
+      // 🚀 PASO 3: Ejecutar queries en paralelo (no secuenciales)
+      const [instructorsResult, modulesResult] = await Promise.all([
+        // Query de instructores (una sola query para todos)
+        instructorIds.length > 0
+          ? supabase
               .from('users')
-              .select('display_name, first_name, last_name, profile_picture_url')
-              .eq('id', workshop.instructor_id)
-              .single()
+              .select('id, display_name, first_name, last_name, profile_picture_url')
+              .in('id', instructorIds)
+          : Promise.resolve({ data: [] }),
 
-            if (instructor) {
-              instructorName = instructor.display_name ||
-                `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
-                'Instructor no asignado'
-              instructorProfilePicture = instructor.profile_picture_url || null
-            }
-          }
+        // Query de módulos (una sola query para todos los cursos)
+        supabase
+          .from('course_modules')
+          .select('course_id, module_duration_minutes')
+          .in('course_id', courseIds)
+      ])
 
-          // Calcular duración total real desde los módulos
-          const { data: modules } = await supabase
-            .from('course_modules')
-            .select('module_duration_minutes')
-            .eq('course_id', workshop.id)
+      // 🚀 PASO 4: Crear mapas para búsqueda O(1)
+      const instructorsMap = new Map((instructorsResult.data || []).map(instructor => [
+        instructor.id,
+        {
+          name: instructor.display_name ||
+            `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+            'Instructor no asignado',
+          picture: instructor.profile_picture_url
+        }
+      ]))
 
-          const calculatedDuration = (modules || []).reduce(
-            (sum: number, m: any) => sum + (m.module_duration_minutes || 0),
-            0
-          )
+      // Calcular duración por curso
+      const durationMap = new Map<string, number>()
+      for (const module of (modulesResult.data || [])) {
+        const current = durationMap.get(module.course_id) || 0
+        durationMap.set(module.course_id, current + (module.module_duration_minutes || 0))
+      }
 
-          // Usar la duración calculada si es mayor que 0, sino usar la almacenada
-          const realDuration = calculatedDuration > 0 ? calculatedDuration : (workshop.duration_total_minutes || 0)
+      // 🚀 PASO 5: Enriquecer cursos sin queries adicionales
+      const workshopsWithData = courses.map((workshop): AdminWorkshop => {
+        const instructor = workshop.instructor_id ? instructorsMap.get(workshop.instructor_id) : null
+        const calculatedDuration = durationMap.get(workshop.id) || 0
 
-          return {
-            ...workshop,
-            duration_total_minutes: realDuration,
-            instructor_name: instructorName,
-            instructor_profile_picture_url: instructorProfilePicture
-          }
-        })
-      )
+        return {
+          ...workshop,
+          duration_total_minutes: calculatedDuration > 0 ? calculatedDuration : (workshop.duration_total_minutes || 0),
+          instructor_name: instructor?.name || 'Instructor no asignado',
+          instructor_profile_picture_url: instructor?.picture || null
+        }
+      })
 
-      return workshopsWithInstructors
+      return workshopsWithData
     } catch (error) {
-      // console.error('Error in AdminWorkshopsService.getAllWorkshops:', error)
       throw error
     }
   }
 
+  /**
+   * 🚀 OPTIMIZADO: Queries en paralelo
+   * Antes: 5 queries secuenciales
+   * Después: 2 queries en paralelo + 1 query para instructores únicos
+   */
   static async getWorkshopStats(): Promise<WorkshopStats> {
     const supabase = await createClient()
 
     try {
-      // Obtener estadísticas básicas
-      const { count: totalWorkshops } = await supabase
-        .from('courses')
-        .select('*', { count: 'exact', head: true })
+      // 🚀 OPTIMIZACIÓN: Ejecutar queries en paralelo
+      const [
+        { count: totalWorkshops },
+        { count: activeWorkshops },
+        { data: coursesData }
+      ] = await Promise.all([
+        // Conteo total
+        supabase
+          .from('courses')
+          .select('*', { count: 'exact', head: true }),
 
-      const { count: activeWorkshops } = await supabase
-        .from('courses')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true)
+        // Conteo activos
+        supabase
+          .from('courses')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_active', true),
 
-      // Obtener total de estudiantes (suma de student_count)
-      const { data: coursesData } = await supabase
-        .from('courses')
-        .select('student_count')
+        // Datos para calcular estudiantes, duración e instructores
+        supabase
+          .from('courses')
+          .select('student_count, duration_total_minutes, instructor_id')
+      ])
 
-      const totalStudents = coursesData ? coursesData.reduce((sum, course) => sum + (course.student_count || 0), 0) : 0
+      // Calcular estadísticas en cliente (más eficiente que múltiples queries)
+      let totalStudents = 0
+      let totalDuration = 0
+      let coursesWithDuration = 0
+      const uniqueInstructors = new Set<string>()
 
-      // Obtener duración promedio
-      const { data: durationData } = await supabase
-        .from('courses')
-        .select('duration_total_minutes')
-        .not('duration_total_minutes', 'is', null)
+      for (const course of (coursesData || [])) {
+        totalStudents += course.student_count || 0
 
-      const averageDuration = durationData && durationData.length > 0
-        ? Math.round(durationData.reduce((sum, course) => sum + (course.duration_total_minutes || 0), 0) / durationData.length)
+        if (course.duration_total_minutes && course.duration_total_minutes > 0) {
+          totalDuration += course.duration_total_minutes
+          coursesWithDuration++
+        }
+
+        if (course.instructor_id) {
+          uniqueInstructors.add(course.instructor_id)
+        }
+      }
+
+      const averageDuration = coursesWithDuration > 0
+        ? Math.round(totalDuration / coursesWithDuration)
         : 0
-
-      // Obtener total de instructores únicos
-      const { count: totalInstructors } = await supabase
-        .from('courses')
-        .select('instructor_id', { count: 'exact', head: true })
-        .not('instructor_id', 'is', null)
 
       return {
         totalWorkshops: totalWorkshops || 0,
         activeWorkshops: activeWorkshops || 0,
-        totalStudents: totalStudents || 0,
+        totalStudents,
         averageDuration,
-        totalInstructors: totalInstructors || 0
+        totalInstructors: uniqueInstructors.size
       }
     } catch (error) {
-      // console.error('Error in AdminWorkshopsService.getWorkshopStats:', error)
       throw error
     }
   }

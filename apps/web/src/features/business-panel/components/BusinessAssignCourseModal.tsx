@@ -25,6 +25,8 @@ import { useTeams } from '../hooks/useTeams'
 import Image from 'next/image'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { PremiumDatePicker } from './PremiumDatePicker'
+import { LiaDeadlineSuggestionModal } from './LiaDeadlineSuggestionModal'
+import { useTranslation } from 'react-i18next'
 
 interface BusinessAssignCourseModalProps {
   isOpen: boolean
@@ -49,6 +51,7 @@ export function BusinessAssignCourseModal({
   courseTitle,
   onAssignComplete
 }: BusinessAssignCourseModalProps) {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { users, isLoading: loadingUsers, refetch: refetchUsers } = useBusinessUsers()
@@ -58,6 +61,8 @@ export function BusinessAssignCourseModal({
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set())
   const [dueDate, setDueDate] = useState<string>('')
+  const [startDate, setStartDate] = useState<string>('')
+  const [approach, setApproach] = useState<string | null>(null)
   const [customMessage, setCustomMessage] = useState<string>('')
   const [isAssigning, setIsAssigning] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +70,7 @@ export function BusinessAssignCourseModal({
   const [alreadyAssignedUserIds, setAlreadyAssignedUserIds] = useState<Set<string>>(new Set())
   const [assignedUsersInfo, setAssignedUsersInfo] = useState<Map<string, AssignedUserInfo>>(new Map())
   const [alreadyAssignedTeamIds, setAlreadyAssignedTeamIds] = useState<Set<string>>(new Set())
+  const [showLiaModal, setShowLiaModal] = useState(false)
   const [isSuggesting, setIsSuggesting] = useState(false)
   const [suggestionReason, setSuggestionReason] = useState<string | null>(null)
 
@@ -217,11 +223,11 @@ export function BusinessAssignCourseModal({
 
   const handleAssign = async () => {
     if (assignMode === 'users' && selectedUserIds.size === 0) {
-      setError('Debes seleccionar al menos un usuario')
+      setError(t('assignCourse.errors.selectUser'))
       return
     }
     if (assignMode === 'teams' && selectedTeamIds.size === 0) {
-      setError('Debes seleccionar al menos un equipo')
+      setError(t('assignCourse.errors.selectTeam'))
       return
     }
 
@@ -238,13 +244,15 @@ export function BusinessAssignCourseModal({
           body: JSON.stringify({
             user_ids: Array.from(selectedUserIds),
             due_date: dueDate || null,
+            start_date: startDate || null,
+            approach: approach || null,
             message: customMessage.trim() || null
           })
         })
 
         const data = await response.json()
         if (!response.ok) {
-          throw new Error(data.error || 'Error al asignar el curso')
+          throw new Error(data.error || t('assignCourse.errors.assignFailed'))
         }
       } else {
         // Assign to teams
@@ -273,7 +281,7 @@ export function BusinessAssignCourseModal({
         }
 
         if (successCount === 0) {
-          throw new Error(errorMessage || 'Error al asignar el curso a los equipos')
+          throw new Error(errorMessage || t('assignCourse.errors.assignFailed'))
         }
       }
 
@@ -284,10 +292,17 @@ export function BusinessAssignCourseModal({
       onAssignComplete()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al asignar el curso')
+      setError(err instanceof Error ? err.message : t('assignCourse.errors.assignFailed'))
     } finally {
       setIsAssigning(false)
     }
+  }
+
+  const handleLiaSelection = (deadline: string, start: string, selectedApproach: string) => {
+    setDueDate(deadline)
+    setStartDate(start)
+    setApproach(selectedApproach)
+    setShowLiaModal(false)
   }
 
   const handleSuggestLiaDate = async () => {
@@ -346,10 +361,13 @@ export function BusinessAssignCourseModal({
     setSelectedUserIds(new Set())
     setSelectedTeamIds(new Set())
     setDueDate('')
+    setStartDate('')
+    setApproach(null)
     setCustomMessage('')
     setError(null)
     setSearchTerm('')
     setAssignMode('users')
+    setShowLiaModal(false)
     onClose()
   }
 
@@ -366,7 +384,9 @@ export function BusinessAssignCourseModal({
   const currentAvailableCount = assignMode === 'users' ? availableUserCount : availableTeamCount
 
   return (
+    <>
     <AnimatePresence>
+      {!showLiaModal && (
       <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
         {/* Backdrop */}
         <motion.div
@@ -423,7 +443,7 @@ export function BusinessAssignCourseModal({
               {/* Course Title */}
               <div className="text-center mb-6">
                 <h3 className="font-bold text-lg mb-2" style={{ color: textColor }}>
-                  Asignar Curso
+                  {t('assignCourse.title')}
                 </h3>
                 <p className="text-sm line-clamp-2" style={{ color: `${textColor}70` }}>
                   {courseTitle}
@@ -442,7 +462,7 @@ export function BusinessAssignCourseModal({
                     <UsersRound className="w-4 h-4" style={{ color: primaryColor }} />
                   )}
                   <span className="text-sm font-medium" style={{ color: textColor }}>
-                    {assignMode === 'users' ? 'Usuarios Individuales' : 'Equipos de Trabajo'}
+                    {assignMode === 'users' ? t('assignCourse.modes.individual') : t('assignCourse.modes.workTeams')}
                   </span>
                 </div>
               </div>
@@ -454,7 +474,7 @@ export function BusinessAssignCourseModal({
                   style={{ backgroundColor: `${cardBackground}80` }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm" style={{ color: `${textColor}70` }}>Seleccionados</span>
+                    <span className="text-sm" style={{ color: `${textColor}70` }}>{t('assignCourse.stats.selected')}</span>
                     <span className="text-2xl font-bold" style={{ color: primaryColor }}>{currentSelectedCount}</span>
                   </div>
                   <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${primaryColor}20` }}>
@@ -466,7 +486,7 @@ export function BusinessAssignCourseModal({
                     />
                   </div>
                   <p className="text-xs mt-2" style={{ color: `${textColor}50` }}>
-                    de {currentAvailableCount} disponibles
+                    {t('assignCourse.stats.of')} {currentAvailableCount} {t('assignCourse.stats.available')}
                   </p>
                 </div>
               </div>
@@ -475,7 +495,7 @@ export function BusinessAssignCourseModal({
               {currentSelectedCount > 0 && (
                 <div className="flex-1 overflow-hidden">
                   <p className="text-xs font-medium mb-3" style={{ color: `${textColor}60` }}>
-                    {assignMode === 'users' ? 'USUARIOS SELECCIONADOS' : 'EQUIPOS SELECCIONADOS'}
+                    {assignMode === 'users' ? t('assignCourse.stats.usersSelected') : t('assignCourse.stats.teamsSelected')}
                   </p>
                   <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                     {assignMode === 'users' ? (
@@ -526,13 +546,13 @@ export function BusinessAssignCourseModal({
                 {dueDate && (
                   <div className="flex items-center gap-2 text-sm" style={{ color: `${textColor}70` }}>
                     <Clock className="w-4 h-4" style={{ color: accentColor }} />
-                    <span>Fecha límite: {new Date(dueDate).toLocaleDateString('es-ES')}</span>
+                    <span>{t('assignCourse.labels.dueDate')}: {new Date(dueDate).toLocaleDateString('es-ES')}</span>
                   </div>
                 )}
                 {customMessage && (
                   <div className="flex items-center gap-2 text-sm" style={{ color: `${textColor}70` }}>
                     <MessageSquare className="w-4 h-4" style={{ color: accentColor }} />
-                    <span>Mensaje incluido</span>
+                    <span>{t('assignCourse.labels.messageIncluded')}</span>
                   </div>
                 )}
               </div>
@@ -551,7 +571,7 @@ export function BusinessAssignCourseModal({
                   </div>
                   <div>
                     <h2 className="text-base sm:text-lg font-bold" style={{ color: textColor }}>
-                      Seleccionar Destinatarios
+                      {t('assignCourse.selectRecipients')}
                     </h2>
                     <p className="text-xs sm:text-sm xl:hidden line-clamp-1" style={{ color: `${textColor}60` }}>
                       {courseTitle}
@@ -581,7 +601,7 @@ export function BusinessAssignCourseModal({
                     }}
                   >
                     <User className="w-4 h-4" />
-                    <span className="hidden xs:inline">Usuarios</span> ({availableUserCount})
+                    <span className="hidden xs:inline">{t('assignCourse.modes.users')}</span> ({availableUserCount})
                   </button>
                   <button
                     onClick={() => { setAssignMode('teams'); setSearchTerm('') }}
@@ -592,7 +612,7 @@ export function BusinessAssignCourseModal({
                     }}
                   >
                     <UsersRound className="w-4 h-4" />
-                    <span className="hidden xs:inline">Equipos</span> ({availableTeamCount})
+                    <span className="hidden xs:inline">{t('assignCourse.modes.teams')}</span> ({availableTeamCount})
                   </button>
                 </div>
               </div>
@@ -620,7 +640,7 @@ export function BusinessAssignCourseModal({
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: `${textColor}40` }} />
                   <input
                     type="text"
-                    placeholder={assignMode === 'users' ? 'Buscar por nombre o email...' : 'Buscar equipos...'}
+                    placeholder={assignMode === 'users' ? t('assignCourse.search.users') : t('assignCourse.search.teams')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-white/10 focus:outline-none focus:border-white/20 transition-colors"
@@ -649,7 +669,7 @@ export function BusinessAssignCourseModal({
                           {selectedUserCount === availableUserCount && <Check className="w-4 h-4 text-white" />}
                         </div>
                         <span className="font-medium" style={{ color: textColor }}>
-                          Seleccionar todos ({availableUserCount} disponibles)
+                          {t('assignCourse.selectAll')} ({availableUserCount} {t('assignCourse.stats.available')})
                         </span>
                       </motion.button>
                     )}
@@ -660,12 +680,12 @@ export function BusinessAssignCourseModal({
                         <div className="text-center py-12">
                           <div className="w-10 h-10 border-3 rounded-full animate-spin mx-auto mb-4"
                             style={{ borderColor: `${primaryColor}30`, borderTopColor: primaryColor }} />
-                          <p style={{ color: `${textColor}50` }}>Cargando usuarios...</p>
+                          <p style={{ color: `${textColor}50` }}>{t('assignCourse.loading.users')}</p>
                         </div>
                       ) : availableUsers.length === 0 ? (
                         <div className="text-center py-12">
                           <Users className="w-16 h-16 mx-auto mb-4" style={{ color: `${textColor}20` }} />
-                          <p style={{ color: `${textColor}50` }}>No hay usuarios disponibles</p>
+                          <p style={{ color: `${textColor}50` }}>{t('assignCourse.empty.noUsers')}</p>
                         </div>
                       ) : (
                         availableUsers.map((user, index) => {
@@ -727,8 +747,8 @@ export function BusinessAssignCourseModal({
                                         : 'Asignación directa'}
                                     >
                                       {assignmentInfo?.source === 'team'
-                                        ? `Vía ${assignmentInfo?.team_name || 'equipo'}`
-                                        : 'Ya asignado'}
+                                        ? `${t('assignCourse.labels.viaTeam')} ${assignmentInfo?.team_name || 'equipo'}`
+                                        : t('assignCourse.labels.alreadyAssigned')}
                                     </span>
                                   )}
                                 </div>
@@ -763,7 +783,7 @@ export function BusinessAssignCourseModal({
                           {selectedTeamCount === availableTeamCount && <Check className="w-4 h-4 text-white" />}
                         </div>
                         <span className="font-medium" style={{ color: textColor }}>
-                          Seleccionar todos ({availableTeamCount} disponibles)
+                          {t('assignCourse.selectAll')} ({availableTeamCount} {t('assignCourse.stats.available')})
                         </span>
                       </motion.button>
                     )}
@@ -774,7 +794,7 @@ export function BusinessAssignCourseModal({
                         <div className="text-center py-12">
                           <div className="w-10 h-10 border-3 rounded-full animate-spin mx-auto mb-4"
                             style={{ borderColor: `${primaryColor}30`, borderTopColor: primaryColor }} />
-                          <p style={{ color: `${textColor}50` }}>Cargando equipos...</p>
+                          <p style={{ color: `${textColor}50` }}>{t('assignCourse.loading.teams')}</p>
                         </div>
                       ) : availableTeams.length === 0 ? (
                         <div className="text-center py-12">
@@ -855,43 +875,75 @@ export function BusinessAssignCourseModal({
                 {/* Options Section */}
                 <div className="pt-5 border-t border-white/10 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Due Date */}
+                    {/* Due Date & LIA */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="flex items-center gap-2 text-sm font-medium" style={{ color: `${textColor}80` }}>
-                          <span>Fecha límite</span>
+                          <Calendar className="w-4 h-4" />
+                          <span>Planificación del Curso</span>
                         </label>
-                        <button
-                          onClick={handleSuggestLiaDate}
-                          disabled={isSuggesting}
-                          className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg transition-all hover:bg-white/5 disabled:opacity-50"
-                          style={{ color: accentColor }}
-                          title="LIA analizará el contenido para sugerir una fecha ideal"
-                        >
-                          {isSuggesting ? (
-                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Sparkles className="w-3 h-3" />
-                          )}
-                          {isSuggesting ? 'Analizando...' : 'Sugerir con LIA'}
-                        </button>
                       </div>
-                      <PremiumDatePicker
-                        value={dueDate}
-                        onChange={setDueDate}
-                        placeholder="Seleccionar fecha"
-                        minDate={new Date()}
-                      />
-                      {suggestionReason && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          className="mt-2 text-xs flex items-start gap-1.5"
-                          style={{ color: accentColor }}
+                      
+                      {!dueDate ? (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setShowLiaModal(true)}
+                          className="w-full p-4 rounded-xl border border-dashed flex flex-col items-center justify-center gap-2 transition-all group"
+                          style={{ 
+                            borderColor: `${primaryColor}40`,
+                            backgroundColor: `${primaryColor}05`
+                          }}
                         >
-                          <Sparkles className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                          <span>{suggestionReason}</span>
-                        </motion.div>
+                          <div className="p-2 rounded-full mb-1 transition-colors group-hover:scale-110" style={{ backgroundColor: `${primaryColor}15` }}>
+                            <Sparkles className="w-6 h-6" style={{ color: primaryColor }} />
+                          </div>
+                          <span className="font-medium text-sm" style={{ color: textColor }}>
+                            Definir fechas con LIA
+                          </span>
+                          <span className="text-xs text-center px-4" style={{ color: `${textColor}50` }}>
+                            La IA analizará el curso para sugerir el mejor calendario
+                          </span>
+                        </motion.button>
+                      ) : (
+                        <div 
+                          className="p-3 rounded-xl border relative group"
+                          style={{ 
+                            backgroundColor: `${cardBackground}80`,
+                            borderColor: `${primaryColor}30`
+                          }}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
+                                <Calendar className="w-5 h-5" style={{ color: primaryColor }} />
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium mb-0.5" style={{ color: `${textColor}50` }}>Fecha límite sugerida</p>
+                                <p className="font-bold text-lg" style={{ color: textColor }}>
+                                  {new Date(dueDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </p>
+                                {approach && (
+                                  <div className="flex items-center gap-1.5 mt-1.5">
+                                    <span className="text-xs px-2 py-0.5 rounded-md bg-white/5 border border-white/10" style={{ color: `${textColor}70` }}>
+                                      Enfoque: {t(`liaSuggestion.approaches.${approach}.title`, approach)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => setShowLiaModal(true)}
+                              className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                              title="Cambiar planificación"
+                            >
+                              <Sparkles className="w-4 h-4" style={{ color: accentColor }} />
+                            </motion.button>
+                          </div>
+                        </div>
                       )}
                     </div>
 
@@ -964,6 +1016,17 @@ export function BusinessAssignCourseModal({
           </div>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
+
+    {/* LIA Deadline Suggestion Modal - Outside main AnimatePresence */}
+    <LiaDeadlineSuggestionModal
+      isOpen={showLiaModal}
+      onClose={() => setShowLiaModal(false)}
+      courseId={courseId}
+      courseTitle={courseTitle}
+      onSelectDeadline={handleLiaSelection}
+    />
+  </>
   )
 }

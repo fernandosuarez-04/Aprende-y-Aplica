@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useBusinessSettings } from '../hooks/useBusinessSettings'
@@ -18,7 +18,11 @@ import {
   X,
   Building2,
   UsersRound,
-  LogOut
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  MapPin
 } from 'lucide-react'
 
 interface BusinessPanelSidebarProps {
@@ -32,84 +36,120 @@ interface BusinessPanelSidebarProps {
   onTogglePin: () => void
 }
 
-const navigation = [
-  { name: 'Dashboard', href: '/business-panel/dashboard', icon: LayoutDashboard },
-  { name: 'Usuarios', href: '/business-panel/users', icon: Users },
-  { name: 'Cursos', href: '/business-panel/courses', icon: BookOpen },
-  { name: 'Equipos', href: '/business-panel/teams', icon: UsersRound },
-  { name: 'Reportes', href: '/business-panel/reports', icon: FileText },
-  { name: 'Analytics', href: '/business-panel/analytics', icon: BarChart3 },
-  { name: 'Configuración', href: '/business-panel/settings', icon: Settings },
-]
+import { useTranslation } from 'react-i18next'
+
+/* Removed external navigation constant to use translations inside component */
 
 export function BusinessPanelSidebar({
   isOpen,
   onClose,
+  activeSection,
+  onSectionChange,
   isCollapsed,
+  onToggleCollapse,
+  isPinned,
+  onTogglePin
 }: BusinessPanelSidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
   const { styles } = useOrganizationStylesContext()
   const { data: businessData } = useBusinessSettings()
   const { logout } = useAuth()
+  const [imageError, setImageError] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
+  
+  const { t } = useTranslation('business')
+
+  const navigation = useMemo(() => [
+    { name: t('sidebar.dashboard'), href: '/business-panel/dashboard', icon: LayoutDashboard },
+    { name: t('sidebar.users'), href: '/business-panel/users', icon: Users },
+    { name: t('sidebar.courses'), href: '/business-panel/courses', icon: BookOpen },
+    { name: t('sidebar.teams'), href: '/business-panel/teams', icon: UsersRound },
+    { name: t('sidebar.reports'), href: '/business-panel/reports', icon: FileText },
+    { name: t('sidebar.analytics'), href: '/business-panel/analytics', icon: BarChart3 },
+    { name: t('sidebar.settings'), href: '/business-panel/settings', icon: Settings },
+  ], [t])
+
+  // State for hover/pin interaction
+  const [isHovered, setIsHovered] = useState(false)
+  const [showPinFeedback, setShowPinFeedback] = useState(false)
+  const [isClicking, setIsClicking] = useState(false)
 
   const organization = businessData?.organization
   const panelStyles = styles?.panel
   const sidebarBackground = panelStyles?.sidebar_background || '#0a0a0a'
 
-  const sidebarStyle: React.CSSProperties = useMemo(() => {
-    const opacity = panelStyles?.sidebar_opacity || 1
+  /* State for mobile detection */
+  const [isMobile, setIsMobile] = useState(false)
 
-    if (!sidebarBackground) {
-      return { backgroundColor: `rgba(10, 10, 10, ${opacity})` }
+  // Detect mobile screen on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024) // lg breakpoint
     }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
-    if (sidebarBackground.includes('linear-gradient') || sidebarBackground.includes('radial-gradient')) {
-      return {
-        background: sidebarBackground,
-        backgroundColor: 'transparent',
-        opacity: opacity,
+  // Collapse hover logic
+  const shouldExpand = isPinned || (isCollapsed && isHovered)
+
+  // Handle click outside to close hover or mobile menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        if (isMobile && isOpen) {
+          // onClose() // Let the overlay handle closing on mobile to avoid conflicts
+        } else if (!isMobile && isCollapsed && isHovered && !isPinned) {
+          setIsHovered(false)
+        }
       }
     }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isCollapsed, isHovered, isPinned, isMobile, isOpen])
 
+  // Clear hover when uncollapsed manually
+  useEffect(() => {
+    if (!isCollapsed) {
+      setIsHovered(false)
+    }
+  }, [isCollapsed])
+
+  // Calcular estilos dinámicos para el fondo
+  const sidebarStyle: React.CSSProperties = useMemo(() => {
+    const opacity = panelStyles?.sidebar_opacity || 0.95
+    if (!sidebarBackground) return { backgroundColor: `rgba(10, 10, 10, ${opacity})` }
+    if (sidebarBackground.includes('linear-gradient') || sidebarBackground.includes('radial-gradient')) {
+      return { background: sidebarBackground, backgroundColor: 'transparent' }
+    }
     if (sidebarBackground.startsWith('#')) {
       const hex = sidebarBackground.replace('#', '')
       const r = parseInt(hex.substring(0, 2), 16)
       const g = parseInt(hex.substring(2, 4), 16)
       const b = parseInt(hex.substring(4, 6), 16)
-      return {
-        backgroundColor: `rgba(${r}, ${g}, ${b}, ${opacity})`,
-      }
+      return { backgroundColor: `rgba(${r}, ${g}, ${b}, ${opacity})` }
     }
-
-    return {
-      backgroundColor: sidebarBackground,
-      opacity: opacity,
-    }
+    return { backgroundColor: sidebarBackground, opacity: opacity }
   }, [sidebarBackground, panelStyles])
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
-        if (isOpen) {
-          onClose()
-        }
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen, onClose])
 
   const handleLogout = async () => {
     if (logout && typeof logout === 'function') {
       await logout()
     }
-    onClose()
+    if (isMobile) onClose()
   }
+
+  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
+  const accentColor = panelStyles?.accent_color || '#10b981'
+
+  // Determine X position: 
+  // - Desktop (not mobile): Always 0 (visible)
+  // - Mobile: 0 if Open, -100% if Closed
+  const xPosition = isMobile ? (isOpen ? 0 : '-100%') : 0
+  
+  // Calculate width
+  const sidebarWidth = (isCollapsed && !shouldExpand && !isMobile) ? 80 : 280
 
   return (
     <>
@@ -121,99 +161,168 @@ export function BusinessPanelSidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden"
             onClick={onClose}
+            aria-hidden="true"
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* Sidebar Container */}
       <motion.div
         ref={sidebarRef}
-        initial={{ x: 0 }}
-        animate={{ x: 0 }}
-        style={sidebarStyle}
+        initial={false}
+        animate={{ 
+          width: sidebarWidth,
+          x: xPosition
+        }}
+        transition={{
+          width: { duration: 0.3, ease: 'easeInOut' },
+          x: { duration: 0.3, ease: [0.32, 0.72, 0, 1] }
+        }}
         className={`
-          fixed lg:relative z-50 h-screen flex flex-col
-          w-64
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-[110] h-full flex flex-col
+          border-r border-white/10 shadow-2xl overflow-hidden
+          lg:translate-x-0 lg:relative lg:z-0 lg:shadow-none
         `}
+        style={{
+          ...sidebarStyle,
+          backdropFilter: 'blur(20px)'
+        }}
+        onHoverStart={() => {
+          if (!isMobile && isCollapsed && !isPinned) setIsHovered(true)
+        }}
+        onHoverEnd={() => {
+          if (!isMobile && isCollapsed && !isPinned) setIsHovered(false)
+        }}
+        onDoubleClick={(event) => {
+          if (isMobile) return;
+          const target = event.target as HTMLElement
+          // Avoid triggering pin when clicking specific interactive elements
+          if (target.tagName !== 'A' && target.tagName !== 'BUTTON' && !target.closest('a') && !target.closest('button')) {
+             onTogglePin()
+             setShowPinFeedback(true)
+             setTimeout(() => setShowPinFeedback(false), 2000)
+          }
+        }}
       >
-        {/* Close button for mobile */}
+        {/* Decoracion de fondo sutil */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-20"
+          style={{
+            background: `radial-gradient(circle at 100% 0%, ${primaryColor}40 0%, transparent 20%), 
+                         radial-gradient(circle at 0% 100%, ${accentColor}40 0%, transparent 20%)`
+          }}
+        />
+
+        {/* Mobile Close Button Container - Minimal */}
+        <div className="relative flex-shrink-0 flex items-center justify-end px-4 pt-4 pb-2 lg:hidden">
+            <button
+               onClick={onClose}
+               className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+             >
+               <X className="w-5 h-5" />
+            </button>
+        </div>
+
+        {/* Feedback Messages (Pin/Unpin) */}
         <AnimatePresence>
-          {isOpen && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              onClick={onClose}
-              className="lg:hidden absolute top-4 right-4 z-10 p-2 rounded-lg backdrop-blur-md transition-opacity hover:opacity-80"
-              style={{
-                color: panelStyles?.text_color || 'rgba(255, 255, 255, 0.9)',
-                backgroundColor: 'rgba(0, 0, 0, 0.3)'
-              }}
+          {showPinFeedback && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="px-4 py-1 bg-white/5 border-b border-white/5 overflow-hidden"
             >
-              <X className="w-5 h-5" />
-            </motion.button>
+                 <p className="text-[10px] text-accent font-medium flex items-center gap-1.5 justify-center py-1" style={{ color: accentColor }}>
+                  <MapPin className="w-3 h-3" />
+                  {isPinned ? t('sidebar.pinned') : t('sidebar.unpinned')}
+                 </p>
+            </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-6">
-          <div className="space-y-1">
-            {navigation.map((item, index) => {
+        {/* Navigation Section */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 custom-scrollbar relative">
+          <ul className="space-y-1.5">
+            {navigation.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href
+              const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
 
               return (
-                <motion.div
-                  key={item.name}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{
-                    delay: index * 0.03,
-                    duration: 0.2,
-                  }}
-                >
+                <li key={item.name}>
                   <Link
                     href={item.href}
-                    onClick={onClose}
-                    className={`
-                      group relative flex items-center gap-3 px-4 py-3 rounded-xl
-                      transition-all duration-200
-                      ${isActive
-                        ? 'text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    onClick={() => {
+                      if (isMobile) onClose();
+                      onSectionChange(item.href.replace('/business-panel/', ''));
+                      if (!isMobile && isCollapsed && !isPinned && isHovered) {
+                        setIsHovered(false)
                       }
+                    }}
+                    className={`
+                      group relative flex items-center px-3 py-3 rounded-xl
+                      transition-all duration-300 ease-out
+                      ${isActive
+                        ? 'text-white shadow-lg'
+                        : 'text-white/60 hover:text-white hover:bg-white/5'
+                      }
+                      ${(isCollapsed && !shouldExpand && !isMobile) ? 'justify-center' : 'justify-start gap-3'}
                     `}
                     style={{
                       background: isActive
-                        ? 'linear-gradient(90deg, var(--org-primary-button-color, #8B5CF6) 0%, var(--org-secondary-button-color, #7C3AED) 100%)'
+                        ? `linear-gradient(90deg, ${primaryColor}, ${accentColor})`
                         : undefined,
+                      boxShadow: isActive ? `0 4px 20px -5px ${primaryColor}60` : undefined
                     }}
+                    title={(isCollapsed && !shouldExpand && !isMobile) ? item.name : undefined}
                   >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    <span className="text-sm font-medium">{item.name}</span>
+                    <Icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                    
+                    {(!isCollapsed || shouldExpand || isMobile) && (
+                      <motion.span
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: 'auto' }}
+                        exit={{ opacity: 0, width: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                      >
+                        {item.name}
+                      </motion.span>
+                    )}
+                    
+                    {/* Active Indicator Glow for Collapsed */}
+                    {isCollapsed && !shouldExpand && !isMobile && isActive && (
+                       <div 
+                        className="absolute inset-0 rounded-xl blur-md -z-10 opacity-60"
+                        style={{ background: primaryColor }}
+                       />
+                    )}
                   </Link>
-                </motion.div>
+                </li>
               )
             })}
-          </div>
+          </ul>
         </nav>
 
-        {/* Logout Button */}
-        <div className="p-4 border-t border-white/10">
-          <motion.button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
-            whileHover={{ x: 2 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="text-sm font-medium">Cerrar sesión</span>
-          </motion.button>
+        {/* Footer Section */}
+        <div className="mt-auto px-4 pb-4 pt-2">
+           {/* Collapse Toggle Button - Desktop Only */}
+           {!isMobile && (
+             <div className={`flex ${(!isCollapsed || shouldExpand) ? 'justify-end' : 'justify-center'} mb-4`}>
+                <button
+                  onClick={onToggleCollapse}
+                  className="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all hover:scale-105 active:scale-95"
+                  title={isCollapsed ? t('sidebar.pinMenu') : t('sidebar.collapseMenu')}
+                >
+                  {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                </button>
+             </div>
+           )}
+
+
         </div>
+
       </motion.div>
     </>
   )

@@ -1,0 +1,720 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "users": "Usuarios",
+    "courses": "Cursos",
+    "teams": "Equipos",
+    "reports": "Reportes",
+    "analytics": "Analytics",
+    "settings": "Configuración",
+    "pinned": "Panel Fijado",
+    "unpinned": "Panel Desfijado",
+    "pinMenu": "Fijar menú",
+    "collapseMenu": "Colapsar menú"
+  },
+  "header": {
+    "myOrganization": "Mi Organización",
+    "userPanel": "Panel Usuario",
+    "editProfile": "Editar perfil",
+    "logout": "Cerrar sesión",
+    "learningPanel": "Panel de Aprendizaje",
+    "adminPanel": "Panel Administración",
+    "manageOrganization": "Gestionar organización",
+    "myPlanner": "Mi Planificador",
+    "createStudyPlan": "Crear Plan de Estudio",
+    "viewSchedule": "Ver cronograma",
+    "organizeLearning": "Organiza tu aprendizaje",
+    "updateInfo": "Actualiza tu información",
+    "exitAccount": "Salir de tu cuenta",
+    "language": "Idioma / Language"
+  },
+  "dashboard": {
+    "title": "Panel Empresarial",
+    "subtitle": "Gestiona el aprendizaje de tu equipo y supervisa su progreso.",
+    "systemActive": "Sistema Activo",
+    "generalStats": "Estadísticas Generales",
+    "keyMetrics": "Métricas clave de tu equipo",
+    "stats": {
+      "activeUsers": "Usuarios Activos",
+      "assignedCourses": "Cursos Asignados",
+      "inProgress": "En Progreso",
+      "completed": "Completados",
+      "avgProgress": "Progreso Promedio",
+      "certificates": "Certificados",
+      "engagement": "Engagement"
+    },
+    "greetings": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches"
+    },
+    "quickActions": {
+      "title": "Accesos Rápidos",
+      "subtitle": "Accesos directos",
+      "manageUsers": {
+        "title": "Gestionar Usuarios",
+        "desc": "Administra tu equipo"
+      },
+      "assignCourses": {
+        "title": "Asignar Cursos",
+        "desc": "Asigna talleres a usuarios"
+      },
+      "viewReports": {
+        "title": "Ver Reportes",
+        "desc": "Analytics y métricas"
+      },
+      "settings": {
+        "title": "Configuración",
+        "desc": "Branding y ajustes"
+      }
+    },
+    "recentActivity": {
+      "title": "Actividad Reciente",
+      "subtitle": "Últimas acciones de tu equipo",
+      "empty": "No hay actividad reciente",
+      "by": "por",
+      "time": {
+        "justNow": "Hace un momento",
+        "minsAgo": "Hace {{time}} min",
+        "hoursAgo": "Hace {{time}}h",
+        "daysAgo": "Hace {{time}}d"
+      }
+    },
+    "systemHealth": {
+      "activeAccount": "Cuenta Activa",
+      "servicesOperational": "Todos los servicios operativos",
+      "users": "Usuarios",
+      "courses": "Cursos",
+      "active": "activos"
+    }
+  },
+  "users": {
+    "title": "Usuarios",
+    "subtitle": "Administra y gestiona los miembros de tu organización.",
+    "buttons": {
+      "template": "Plantilla",
+      "import": "Importar",
+      "add": "Agregar Usuario",
+      "cancel": "Cancelar",
+      "create": "Crear Usuario",
+      "uploading": "Subiendo imagen...",
+      "creating": "Creando...",
+      "save": "Guardar Cambios",
+      "saving": "Guardando...",
+      "delete": "Eliminar Usuario",
+      "deleting": "Eliminando...",
+      "finish": "Finalizar",
+      "importAnother": "Importar otro"
+    },
+    "placeholders": {
+      "search": "Buscar por nombre, email o username..."
+    },
+    "roles": {
+      "all": "Todos los roles",
+      "owner": "Propietario",
+      "admin": "Administrador",
+      "member": "Miembro"
+    },
+    "status": {
+      "all": "Todos los estados",
+      "active": "Activo",
+      "invited": "Invitado",
+      "suspended": "Suspendido",
+      "removed": "Removido"
+    },
+    "stats": {
+      "total": "Total Usuarios",
+      "active": "Activos",
+      "invited": "Invitados",
+      "admins": "Administradores"
+    },
+    "empty": {
+      "title": "Aún no hay usuarios",
+      "subtitle": "Comienza agregando miembros a tu organización para gestionar el aprendizaje de tu equipo.",
+      "cta": "Agregar Primer Usuario"
+    },
+    "error": {
+      "loadFailed": "No se pudieron cargar los usuarios. Puedes comenzar agregando el primer usuario."
+    },
+    "card": {
+      "lastAccess": "Último acceso",
+      "noAccess": "Sin accesos",
+      "resend": "Reenviar",
+      "suspend": "Suspender",
+      "activate": "Activar"
+    },
+    "modals": {
+      "add": {
+        "title": "Nuevo Usuario",
+        "userInfoTitle": "Información del Usuario",
+        "userInfoSubtitle": "Completa los datos para crear el nuevo usuario",
+        "fields": {
+          "username": "Usuario",
+          "email": "Email",
+          "firstName": "Nombre",
+          "lastName": "Apellido",
+          "password": "Contraseña",
+          "position": "Cargo / Puesto",
+          "orgRole": "Rol en la Organización"
+        },
+        "placeholders": {
+          "username": "usuario123",
+          "email": "correo@empresa.com",
+          "firstName": "Juan",
+          "lastName": "Pérez",
+          "password": "Mínimo 6 caracteres",
+          "position": "Ej: Desarrollador, Diseñador, etc."
+        },
+        "hints": {
+          "photo": "Haz clic en el icono de cámara para agregar una foto",
+          "creds": "El usuario recibirá sus credenciales por correo electrónico para acceder a la plataforma."
+        },
+        "roleDesc": {
+          "member": "Acceso básico a cursos y contenido",
+          "admin": "Gestión de usuarios y configuración",
+          "owner": "Control total de la organización"
+        }
+      },
+      "import": {
+        "title": "Importar Usuarios",
+        "subtitle": "Agrega múltiples usuarios desde un archivo CSV",
+        "downloadTemplate": "Descargar Plantilla CSV",
+        "uploadTitle": "Subir Archivo",
+        "resultTitle": "Resultado de Importación",
+        "uploadSubtitle": "Selecciona o arrastra tu archivo CSV",
+        "resultSubtitle": "Resumen del proceso",
+        "dragDrop": {
+          "drag": "Arrastra tu archivo CSV",
+          "drop": "Suelta el archivo aquí",
+          "orKey": "o haz clic para seleccionar"
+        },
+        "loading": {
+          "title": "Importando usuarios...",
+          "subtitle": "Esto puede tardar unos segundos"
+        },
+        "results": {
+          "successTitle": "¡Importación exitosa!",
+          "noImportTitle": "No se importaron usuarios",
+          "errorsFound": "Errores encontrados"
+        },
+        "format": {
+          "title": "Formato requerido",
+          "username": "Nombre de usuario único",
+          "email": "Correo electrónico",
+          "password": "Mínimo 6 caracteres",
+          "role": "member, admin u owner",
+          "required": "Requerido"
+        }
+      },
+      "edit": {
+        "title": "Editar Usuario",
+        "subtitle": "Modificar información del miembro",
+        "infoNote": "Los cambios realizados se guardarán y el usuario recibirá una notificación si es necesario.",
+        "fields": {
+          "fullName": "Nombre Completo",
+          "phone": "Teléfono",
+          "location": "Ubicación",
+          "bio": "Biografía",
+          "status": "Estado",
+          "typeRole": "Tipo de Rol"
+        },
+        "placeholders": {
+          "fullName": "Juan Pérez",
+          "phone": "+1 234 567 8900",
+          "location": "Ciudad, País",
+          "bio": "Escribe una breve biografía...",
+          "typeRole": "Freelancer, Empleado, etc."
+        }
+      },
+      "delete": {
+        "title": "Eliminar Usuario",
+        "subtitle": "Acción irreversible",
+        "confirmQuestion": "¿Estás seguro de que deseas eliminar a <1>{{name}}</1> de tu organización?",
+        "warning": "Esta acción no se puede deshacer. El usuario perderá acceso inmediatamente.",
+        "fields": {
+          "email": "Email",
+          "role": "Rol"
+        }
+      },
+      "stats": {
+        "loading": "Cargando estadísticas...",
+        "error": "Error al cargar estadísticas",
+        "tabs": {
+          "overview": "Resumen",
+          "courses": "Cursos",
+          "progress": "Progreso",
+          "activity": "Actividad"
+        },
+        "cards": {
+          "courses": "Cursos",
+          "completed": "Completados",
+          "hours": "Horas",
+          "certificates": "Certificados"
+        },
+        "platformActivity": {
+          "title": "Actividad en la Plataforma",
+          "liaQueries": "Consultas LIA",
+          "messages": "mensajes",
+          "quizzesPassed": "Quiz Aprobados",
+          "average": "promedio",
+          "liaActivities": "Actividades LIA",
+          "total": "total"
+        },
+        "generalProgress": {
+          "title": "Progreso General",
+          "subtitle": "Avance en todos los cursos asignados",
+          "completed": "Completados",
+          "inProgress": "En Progreso",
+          "notStarted": "Sin Iniciar"
+        },
+        "coursesList": {
+          "empty": "No hay cursos asignados",
+          "enrolled": "Inscrito",
+          "certificate": "Certificado",
+          "completed": "Completado",
+          "inProgress": "En progreso",
+          "notStarted": "Sin iniciar",
+          "progress": "Progreso del curso",
+          "time": "Tiempo",
+          "lia": "LIA",
+          "quiz": "Quiz",
+          "notes": "Notas"
+        },
+        "timeline": {
+          "empty": "No hay progreso que mostrar",
+          "modules": "módulos",
+          "lessons": "lecciones",
+          "quizzes": "quiz"
+        },
+        "activity": {
+          "notesCreated": "Notas Creadas",
+          "assignments": "Asignaciones",
+          "certificates": "Certificados",
+          "completionHistory": "Historial de Completados",
+          "courses": "curso(s)",
+          "summary": "Resumen de Actividad",
+          "studyTime": "Tiempo de estudio",
+          "lessons": "Lecciones"
+        },
+        "time": {
+          "moments": "Hace unos momentos",
+          "minutes": "Hace {{count}} minuto{{plural}}",
+          "hours": "Hace {{count}} hora{{plural}}",
+          "days": "Hace {{count}} día(s)",
+          "weeks": "Hace {{count}} semana(s)",
+          "months": "Hace {{count}} mes(es)",
+          "years": "Hace {{count}} año(s)",
+          "today": "Hoy",
+          "yesterday": "Ayer",
+          "never": "Nunca",
+          "invalid": "Fecha inválida"
+        },
+        "labels": {
+          "joined": "Se unió",
+          "lastConnection": "Última Conexión",
+          "typeRole": "Tipo de Rol"
+        }
+      }
+    }
+  },
+  "courses": {
+    "title": "Biblioteca de Cursos",
+    "subtitle": "Explora, asigna y supervisa el progreso de tu equipo en nuestra colección de cursos especializados.",
+    "badge": "Gestión de Cursos",
+    "stats": {
+      "total": "Total Cursos",
+      "categories": "Categorías",
+      "levels": "Niveles",
+      "totalStudents": "Estudiantes Totales"
+    },
+    "filters": {
+      "search": "Buscar cursos por nombre, descripción o instructor...",
+      "allCategories": "Todas las categorías",
+      "allLevels": "Todos los niveles",
+      "category": "Categoría",
+      "level": "Nivel"
+    },
+    "levels": {
+      "beginner": "Principiante",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzado"
+    },
+    "card": {
+      "instructor": "Instructor",
+      "noDescription": "Sin descripción disponible"
+    },
+    "empty": {
+      "noCourses": "No hay cursos disponibles",
+      "noCoursesSubtitle": "Aún no hay cursos disponibles en la plataforma",
+      "noResults": "No se encontraron cursos",
+      "noResultsSubtitle": "Intenta con otros filtros de búsqueda"
+    },
+    "results": {
+      "showing": "Mostrando",
+      "courses": "cursos"
+    },
+    "error": {
+      "info": "Información"
+    }
+  },
+  "teams": {
+    "title": "Equipos de Trabajo",
+    "subtitle": "Organiza y gestiona equipos para asignar cursos y objetivos de aprendizaje.",
+    "badge": "Gestión de Equipos",
+    "stats": {
+      "total": "Total Equipos",
+      "active": "Equipos Activos",
+      "totalMembers": "Total Miembros",
+      "activeMembers": "Miembros Activos"
+    },
+    "filters": {
+      "search": "Buscar equipos por nombre, descripción o líder...",
+      "all": "Todos",
+      "active": "Activos",
+      "inactive": "Inactivos",
+      "archived": "Archivados"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "archived": "Archivado"
+    },
+    "card": {
+      "members": "miembros"
+    },
+    "empty": {
+      "title": "No hay equipos",
+      "noResults": "No se encontraron equipos con los filtros aplicados. Intenta ajustar tu búsqueda.",
+      "noTeams": "Crea tu primer equipo de trabajo para comenzar a organizar y gestionar el aprendizaje de tu organización.",
+      "createFirst": "Crear Primer Equipo"
+    },
+    "buttons": {
+      "create": "Crear Equipo",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios",
+      "saving": "Guardando...",
+      "creating": "Creando...",
+      "uploading": "Subiendo imagen..."
+    },
+    "modal": {
+      "titleCreate": "Crear Nuevo Equipo",
+      "titleEdit": "Editar Equipo",
+      "subtitle": "Configura los detalles del equipo y selecciona los miembros.",
+      "fields": {
+        "name": "Nombre del Equipo",
+        "description": "Descripción",
+        "leader": "Líder del Equipo",
+        "members": "Miembros del Equipo",
+        "image": "Imagen del Equipo",
+        "status": "Estado"
+      },
+      "placeholders": {
+        "name": "Ej: Equipo de Desarrollo",
+        "description": "Describe el propósito y objetivos del equipo...",
+        "searchLeader": "Buscar líder...",
+        "searchMembers": "Buscar miembros...",
+        "noLeader": "Seleccionar líder",
+        "selectStatus": "Seleccionar estado"
+      },
+      "labels": {
+        "optional": "Opcional",
+        "required": "Requerido",
+        "selectLeader": "Seleccionar Líder",
+        "addMembers": "Agregar Miembros",
+        "selected": "seleccionado(s)",
+        "changeImage": "Cambiar Imagen",
+        "uploadImage": "Subir Imagen",
+        "noMembers": "Sin miembros",
+        "noUsers": "No hay usuarios disponibles",
+        "leader": "Líder",
+        "setLeader": "Líder"
+      },
+      "subtitleEdit": "Actualiza la información del equipo",
+      "errors": {
+        "nameRequired": "El nombre del equipo es requerido",
+        "leaderRequired": "Debes seleccionar un líder",
+        "createFailed": "Error al crear el equipo",
+        "updateFailed": "Error al actualizar el equipo",
+        "loadFailed": "Error al cargar los datos del equipo"
+      }
+    }
+  },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Gestiona las configuraciones de tu organización"
+  },
+  "reports": {
+    "title": "Reportes",
+    "subtitle": "Genera reportes detallados y exporta datos"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Analíticas detalladas de comportamiento y rendimiento"
+  },
+  "progress": {
+    "title": "Progreso del Equipo",
+    "subtitle": "Visualiza y analiza el avance de aprendizaje"
+  },
+  "assignCourse": {
+    "title": "Asignar Curso",
+    "selectRecipients": "Seleccionar Destinatarios",
+    "modes": {
+      "users": "Usuarios",
+      "teams": "Equipos",
+      "individual": "Usuarios Individuales",
+      "workTeams": "Equipos de Trabajo"
+    },
+    "stats": {
+      "selected": "Seleccionados",
+      "of": "de",
+      "available": "disponibles",
+      "usersSelected": "USUARIOS SELECCIONADOS",
+      "teamsSelected": "EQUIPOS SELECCIONADOS"
+    },
+    "search": {
+      "users": "Buscar por nombre o email...",
+      "teams": "Buscar equipos..."
+    },
+    "selectAll": "Seleccionar todos",
+    "loading": {
+      "users": "Cargando usuarios...",
+      "teams": "Cargando equipos..."
+    },
+    "empty": {
+      "noUsers": "No hay usuarios disponibles",
+      "noTeams": "No hay equipos disponibles",
+      "createTeam": "Crea tu primer equipo para comenzar"
+    },
+    "buttons": {
+      "assign": "Asignar Curso",
+      "assigning": "Asignando...",
+      "cancel": "Cancelar",
+      "suggestDate": "Sugerir con LIA",
+      "suggesting": "Sugiriendo..."
+    },
+    "errors": {
+      "selectUser": "Debes seleccionar al menos un usuario",
+      "selectTeam": "Debes seleccionar al menos un equipo",
+      "assignFailed": "Error al asignar el curso",
+      "selectCourse": "Debes seleccionar un curso",
+      "invalidCourse": "El curso seleccionado no es válido",
+      "invalidDate": "La fecha límite no puede ser anterior a hoy",
+      "noCoursesAvailable": "No hay cursos disponibles. Asegúrate de que tu organización tenga acceso."
+    },
+    "optional": {
+      "dueDate": "Fecha límite (opcional)",
+      "message": "Mensaje personalizado (opcional)",
+      "messagePlaceholder": "Escribe un mensaje motivacional para los destinatarios..."
+    },
+    "labels": {
+      "dueDate": "Fecha límite",
+      "messageIncluded": "Mensaje incluido",
+      "alreadyAssigned": "Ya asignado",
+      "viaTeam": "Vía",
+      "directAssignment": "Asignación directa",
+      "course": "Curso",
+      "selectedCourse": "Curso seleccionado:",
+      "receivingMembers": "Miembros que recibirán el curso",
+      "members": "miembro(s)"
+    },
+    "placeholders": {
+      "selectCourse": "Seleccionar curso...",
+      "teamMessage": "Mensaje personalizado para el equipo..."
+    },
+    "titleTeam": "Asignar Curso a Equipo"
+  },
+  "liaSuggestion": {
+    "title": "Sugerencias de LIA",
+    "error": "Error al obtener sugerencias",
+    "steps": {
+      "approach": {
+        "title": "¿Con qué enfoque quieres hacer el curso?",
+        "subtitle": "Selecciona el ritmo de estudio que mejor se adapte a tus necesidades"
+      },
+      "suggestions": {
+        "title": "Sugerencias de fecha límite",
+        "subtitle": "Basadas en el contenido y duración del curso",
+        "calculating": "Calculando sugerencias..."
+      },
+      "confirm": {
+        "title": "Confirmar asignación",
+        "subtitle": "Revisa los detalles antes de confirmar"
+      }
+    },
+    "approaches": {
+      "fast": {
+        "title": "Rápido",
+        "subtitle": "Completa el curso en el menor tiempo",
+        "ideal": "Sprints intensivos o bootcamps"
+      },
+      "balanced": {
+        "title": "Equilibrado",
+        "subtitle": "Ritmo moderado y sostenible",
+        "ideal": "Aprendizaje profesional continuo"
+      },
+      "long": {
+        "title": "Largo",
+        "subtitle": "Aprendizaje profundo y reflexivo",
+        "ideal": "Desarrollo de habilidades complejas"
+      }
+    },
+    "details": {
+      "focus": "Enfoque",
+      "completedRate": "completado",
+      "hoursPerWeek": "horas/semana",
+      "dueDate": "Fecha límite",
+      "estimatedDuration": "Duración estimada",
+      "studyPace": "Ritmo de estudio",
+      "completionRate": "Tasa de completado",
+      "startDate": "Fecha de inicio (opcional)",
+      "defaultDate": "Por defecto: hoy",
+      "completionTime": "El curso debe completarse en {{days}} días",
+      "notification": "Los usuarios recibirán una notificación con los detalles de la asignación"
+    },
+    "buttons": {
+      "back": "Volver",
+      "confirm": "Confirmar Asignación"
+    }
+  },
+  "teamFeedback": {
+    "title": "Enviar Feedback",
+    "subtitle": "Comparte tu retroalimentación con el equipo",
+    "selectRecipient": "Destinatario",
+    "selectRecipientPlaceholder": "Seleccionar miembro...",
+    "selectedUser": "Usuario",
+    "feedbackType": "Tipo de Feedback",
+    "content": "Contenido",
+    "contentPlaceholder": "Escribe tu retroalimentación aquí... (mínimo 10 caracteres)",
+    "rating": "Calificación (Opcional)",
+    "anonymous": "Enviar feedback de forma anónima",
+    "anonymousStatus": "🕵️ Enviando anónimamente",
+    "preview": {
+      "selectRecipient": "Selecciona destinatario",
+      "teamMember": "Miembro del equipo"
+    },
+    "types": {
+      "peer_review": "Evaluación",
+      "achievement": "Logro",
+      "suggestion": "Sugerencia",
+      "question": "Pregunta"
+    },
+    "errors": {
+      "contentLength": "El contenido debe tener al menos 10 caracteres",
+      "selectRecipient": "Debes seleccionar un destinatario",
+      "createError": "Error al crear feedback"
+    },
+    "buttons": {
+      "cancel": "Cancelar",
+      "send": "Enviar Feedback",
+      "sending": "Enviando..."
+    }
+  },
+  "teamObjective": {
+    "title": {
+      "create": "Crear Objetivo",
+      "edit": "Editar Objetivo",
+      "new": "Nuevo Objetivo"
+    },
+    "subtitle": {
+      "create": "Define un nuevo objetivo para el equipo",
+      "edit": "Modifica los detalles del objetivo",
+      "default": "Define metas claras para tu equipo"
+    },
+    "labels": {
+      "title": "Título del Objetivo",
+      "description": "Descripción",
+      "course": "Curso (Opcional)",
+      "metricType": "Tipo de Métrica",
+      "targetValue": "Valor Objetivo",
+      "deadline": "Fecha Límite (Opcional)",
+      "goal": "Meta",
+      "metric": "Métrica",
+      "loadingCourses": "Cargando cursos...",
+      "generalGoal": "Objetivo General del Equipo",
+      "unknownCourse": "Curso desconocido",
+      "courseHint": "Deja vacío para objetivo general o selecciona un curso específico"
+    },
+    "placeholders": {
+      "title": "Ej: Completar 80% del curso de IA",
+      "description": "Describe el objetivo en detalle...",
+      "selectCourse": "Seleccionar curso",
+      "selectMetric": "Seleccionar...",
+      "selectDate": "Seleccionar fecha límite"
+    },
+    "metrics": {
+      "completion_percentage": "Porcentaje de Completitud",
+      "average_score": "Calificación Promedio",
+      "participation_rate": "Tasa de Participación",
+      "engagement_rate": "Tasa de Compromiso",
+      "custom": "Personalizado"
+    },
+    "metricLabels": {
+      "completion_percentage": "Porcentaje (0-100)",
+      "average_score": "Calificación (0-10)",
+      "participation_rate": "Participación (0-100)",
+      "engagement_rate": "Compromiso (0-100)",
+      "custom": "Valor personalizado"
+    },
+    "errors": {
+      "titleRequired": "El título del objetivo es requerido",
+      "valueRequired": "El valor objetivo debe ser mayor a 0",
+      "saveError": "Error al guardar objetivo",
+      "fetchCoursesError": "Error cargando cursos del equipo"
+    },
+    "buttons": {
+      "cancel": "Cancelar",
+      "save": "Guardar Objetivo",
+      "saving": "Guardando...",
+      "update": "Actualizar",
+      "create": "Crear Objetivo"
+    }
+  },
+  "imageAdjustment": {
+    "title": "Ajustar Imagen",
+    "labels": {
+      "adjustment": "Ajuste de Imagen",
+      "zoom": "Zoom",
+      "rotation": "Rotación",
+      "position": "Posición",
+      "dragHint": "Arrastra la imagen para reposicionarla"
+    },
+    "fit": {
+      "cover": "Cubrir",
+      "contain": "Contener",
+      "fill": "Rellenar"
+    },
+    "buttons": {
+      "reset": "Resetear",
+      "resetAll": "Resetear Todo",
+      "cancel": "Cancelar",
+      "save": "Guardar Ajustes"
+    }
+  },
+  "importUsers": {
+    "title": "Importar Usuarios",
+    "subtitle": "Carga masiva de usuarios vía CSV",
+    "downloadTemplate": "Descargar Plantilla",
+    "dragDrop": "Arrastra tu archivo CSV aquí o selecciona",
+    "selectFile": "Seleccionar archivo",
+    "processing": "Procesando importación...",
+    "success": "Importación completada con éxito",
+    "partialSuccess": "Importación completada con algunos errores",
+    "errorTitle": "Error en la importación",
+    "results": {
+      "total": "Total procesados",
+      "imported": "Importados correctamente",
+      "errors": "Errores",
+      "details": "Detalles de errores"
+    },
+    "errors": {
+      "downloadTemplate": "Error al descargar la plantilla",
+      "invalidFileType": "El archivo debe ser un CSV (.csv)",
+      "processFile": "Error al procesar el archivo"
+    },
+    "buttons": {
+      "close": "Cerrar",
+      "import": "Importar Usuarios",
+      "cancel": "Cancelar"
+    }
+  }
+}

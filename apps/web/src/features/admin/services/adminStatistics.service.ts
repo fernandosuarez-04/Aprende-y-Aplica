@@ -30,6 +30,7 @@ export interface RecentActivity {
 export class AdminStatisticsService {
   /**
    * Obtener datos de crecimiento mensual
+   * 🚀 OPTIMIZADO: 5 queries en paralelo en lugar de secuenciales
    * @param period - Período en meses: 1, 3, 6, 12
    */
   static async getMonthlyGrowth(period: number = 8): Promise<MonthlyGrowthData[]> {
@@ -39,38 +40,48 @@ export class AdminStatisticsService {
       // Calcular fecha de inicio
       const startDate = new Date()
       startDate.setMonth(startDate.getMonth() - period)
+      const startDateISO = startDate.toISOString()
       
-      // Obtener datos de usuarios por mes
-      const { data: usersData } = await supabase
-        .from('users')
-        .select('created_at')
-        .gte('created_at', startDate.toISOString())
-      
-      // Obtener datos de cursos por mes
-      const { data: coursesData } = await supabase
-        .from('courses')
-        .select('created_at')
-        .gte('created_at', startDate.toISOString())
-        .eq('is_active', true)
-      
-      // Obtener datos de comunidades por mes
-      const { data: communitiesData } = await supabase
-        .from('communities')
-        .select('created_at')
-        .gte('created_at', startDate.toISOString())
-      
-      // Obtener datos de prompts por mes
-      const { data: promptsData } = await supabase
-        .from('ai_prompts')
-        .select('created_at')
-        .gte('created_at', startDate.toISOString())
-        .eq('is_active', true)
-      
-      // Obtener datos de apps de IA por mes
-      const { data: aiAppsData } = await supabase
-        .from('ai_apps')
-        .select('created_at')
-        .gte('created_at', startDate.toISOString())
+      // 🚀 OPTIMIZACIÓN: Ejecutar todas las queries en paralelo
+      const [
+        { data: usersData },
+        { data: coursesData },
+        { data: communitiesData },
+        { data: promptsData },
+        { data: aiAppsData }
+      ] = await Promise.all([
+        // Usuarios
+        supabase
+          .from('users')
+          .select('created_at')
+          .gte('created_at', startDateISO),
+        
+        // Cursos
+        supabase
+          .from('courses')
+          .select('created_at')
+          .gte('created_at', startDateISO)
+          .eq('is_active', true),
+        
+        // Comunidades
+        supabase
+          .from('communities')
+          .select('created_at')
+          .gte('created_at', startDateISO),
+        
+        // Prompts
+        supabase
+          .from('ai_prompts')
+          .select('created_at')
+          .gte('created_at', startDateISO)
+          .eq('is_active', true),
+        
+        // Apps de IA
+        supabase
+          .from('ai_apps')
+          .select('created_at')
+          .gte('created_at', startDateISO)
+      ])
       
       // Agrupar por mes
       const monthMap = new Map<string, MonthlyGrowthData>()
@@ -243,14 +254,60 @@ export class AdminStatisticsService {
           startDate.setHours(startDate.getHours() - 24)
       }
       
-      const activities: RecentActivity[] = []
+      const startDateISO = startDate.toISOString()
+
+      // 🚀 OPTIMIZACIÓN: Ejecutar todas las queries en paralelo
+      const [
+        { data: newUsers },
+        { data: newCourses },
+        { data: newCommunities },
+        { data: newPrompts },
+        { data: newApps }
+      ] = await Promise.all([
+        // Usuarios
+        supabase
+          .from('users')
+          .select('id, created_at')
+          .gte('created_at', startDateISO)
+          .order('created_at', { ascending: false })
+          .limit(100),
+        
+        // Cursos
+        supabase
+          .from('courses')
+          .select('id, created_at')
+          .gte('created_at', startDateISO)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(100),
+        
+        // Comunidades
+        supabase
+          .from('communities')
+          .select('id, created_at')
+          .gte('created_at', startDateISO)
+          .order('created_at', { ascending: false })
+          .limit(100),
+        
+        // Prompts
+        supabase
+          .from('ai_prompts')
+          .select('prompt_id, created_at')
+          .gte('created_at', startDateISO)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(100),
+        
+        // Apps de IA
+        supabase
+          .from('ai_apps')
+          .select('app_id, created_at')
+          .gte('created_at', startDateISO)
+          .order('created_at', { ascending: false })
+          .limit(100)
+      ])
       
-      // Obtener nuevos usuarios
-      const { data: newUsers } = await supabase
-        .from('users')
-        .select('id, created_at')
-        .gte('created_at', startDate.toISOString())
-        .order('created_at', { ascending: false })
+      const activities: RecentActivity[] = []
       
       if (newUsers && newUsers.length > 0) {
         activities.push({
@@ -259,17 +316,9 @@ export class AdminStatisticsService {
           description: newUsers.length > 1 ? `${newUsers.length} nuevos usuarios registrados` : '1 nuevo usuario registrado',
           timestamp: newUsers[0].created_at,
           timeAgo: this.getTimeAgo(newUsers[0].created_at),
-          color: '#10b981' // green
+          color: '#10b981'
         })
       }
-      
-      // Obtener nuevos cursos
-      const { data: newCourses } = await supabase
-        .from('courses')
-        .select('id, created_at')
-        .gte('created_at', startDate.toISOString())
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
       
       if (newCourses && newCourses.length > 0) {
         activities.push({
@@ -278,16 +327,9 @@ export class AdminStatisticsService {
           description: newCourses.length > 1 ? `${newCourses.length} nuevos talleres creados` : '1 nuevo taller creado',
           timestamp: newCourses[0].created_at,
           timeAgo: this.getTimeAgo(newCourses[0].created_at),
-          color: '#3b82f6' // blue
+          color: '#3b82f6'
         })
       }
-      
-      // Obtener nuevas comunidades
-      const { data: newCommunities } = await supabase
-        .from('communities')
-        .select('id, created_at')
-        .gte('created_at', startDate.toISOString())
-        .order('created_at', { ascending: false })
       
       if (newCommunities && newCommunities.length > 0) {
         activities.push({
@@ -296,17 +338,9 @@ export class AdminStatisticsService {
           description: newCommunities.length > 1 ? `${newCommunities.length} nuevas comunidades creadas` : '1 nueva comunidad creada',
           timestamp: newCommunities[0].created_at,
           timeAgo: this.getTimeAgo(newCommunities[0].created_at),
-          color: '#8b5cf6' // purple
+          color: '#8b5cf6'
         })
       }
-      
-      // Obtener nuevos prompts
-      const { data: newPrompts } = await supabase
-        .from('ai_prompts')
-        .select('prompt_id, created_at')
-        .gte('created_at', startDate.toISOString())
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
       
       if (newPrompts && newPrompts.length > 0) {
         activities.push({
@@ -315,16 +349,9 @@ export class AdminStatisticsService {
           description: newPrompts.length > 1 ? `${newPrompts.length} nuevos prompts agregados` : '1 nuevo prompt agregado',
           timestamp: newPrompts[0].created_at,
           timeAgo: this.getTimeAgo(newPrompts[0].created_at),
-          color: '#f97316' // orange
+          color: '#f97316'
         })
       }
-      
-      // Obtener nuevas apps de IA
-      const { data: newApps } = await supabase
-        .from('ai_apps')
-        .select('app_id, created_at')
-        .gte('created_at', startDate.toISOString())
-        .order('created_at', { ascending: false })
       
       if (newApps && newApps.length > 0) {
         activities.push({
@@ -333,7 +360,7 @@ export class AdminStatisticsService {
           description: newApps.length > 1 ? `${newApps.length} nuevas apps de IA agregadas` : '1 nueva app de IA agregada',
           timestamp: newApps[0].created_at,
           timeAgo: this.getTimeAgo(newApps[0].created_at),
-          color: '#ec4899' // pink
+          color: '#ec4899'
         })
       }
       

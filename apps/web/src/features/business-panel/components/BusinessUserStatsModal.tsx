@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, BarChart3, TrendingUp, BookOpen, Award, Clock, FileText, Target, CheckCircle, PlayCircle, XCircle, User, Mail, Briefcase, Calendar, LogIn, MessageSquare, HelpCircle, Activity, Zap, Trophy, Layers, BookMarked, Eye } from 'lucide-react'
 import { Button } from '@aprende-y-aplica/ui'
+import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import { BusinessUser } from '../services/businessUsers.service'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
@@ -85,6 +86,7 @@ interface UserStats {
 }
 
 export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserStatsModalProps) {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const [stats, setStats] = useState<UserStats | null>(null)
@@ -147,12 +149,12 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
   }
 
   const formatRelativeTime = (dateString: string | null | undefined) => {
-    if (!dateString) return 'Nunca'
+    if (!dateString) return t('users.stats.time.never')
 
     try {
       const date = new Date(dateString)
       // Verificar si la fecha es válida
-      if (isNaN(date.getTime())) return 'Fecha inválida'
+      if (isNaN(date.getTime())) return t('users.stats.time.invalid')
 
       const now = new Date()
       const diffMs = now.getTime() - date.getTime()
@@ -166,15 +168,15 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
       const diffMinutes = Math.floor(diffMs / (1000 * 60))
 
-      if (diffMinutes < 1) return 'Hace unos momentos'
-      if (diffMinutes < 60) return `Hace ${diffMinutes} minuto${diffMinutes > 1 ? 's' : ''}`
-      if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`
-      if (diffDays === 0) return 'Hoy'
-      if (diffDays === 1) return 'Ayer'
-      if (diffDays < 7) return `Hace ${diffDays} días`
-      if (diffDays < 30) return `Hace ${Math.floor(diffDays / 7)} semana${Math.floor(diffDays / 7) > 1 ? 's' : ''}`
-      if (diffDays < 365) return `Hace ${Math.floor(diffDays / 30)} mes${Math.floor(diffDays / 30) > 1 ? 'es' : ''}`
-      return `Hace ${Math.floor(diffDays / 365)} año${Math.floor(diffDays / 365) > 1 ? 's' : ''}`
+      if (diffMinutes < 1) return t('users.stats.time.moments')
+      if (diffMinutes < 60) return t('users.stats.time.minutes', { count: diffMinutes, plural: diffMinutes > 1 ? 's' : '' })
+      if (diffHours < 24) return t('users.stats.time.hours', { count: diffHours, plural: diffHours > 1 ? 's' : '' })
+      if (diffDays === 0) return t('users.stats.time.today')
+      if (diffDays === 1) return t('users.stats.time.yesterday')
+      if (diffDays < 7) return t('users.stats.time.days', { count: diffDays })
+      if (diffDays < 30) return t('users.stats.time.weeks', { count: Math.floor(diffDays / 7) })
+      if (diffDays < 365) return t('users.stats.time.months', { count: Math.floor(diffDays / 30) })
+      return t('users.stats.time.years', { count: Math.floor(diffDays / 365) })
     } catch (error) {
       // Si hay algún error, intentar mostrar la fecha formateada
       return formatDate(dateString)
@@ -254,7 +256,8 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                     className="mt-3 px-3 py-1.5 rounded-full text-xs font-medium"
                     style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                   >
-                    {user.cargo_rol || user.type_rol || 'Miembro'}
+                    {user.org_role === 'owner' ? t('users.roles.owner') :
+                      user.org_role === 'admin' ? t('users.roles.admin') : t('users.roles.member')}
                   </div>
                 </div>
 
@@ -263,7 +266,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                   <div className="p-3 rounded-xl bg-white/5 border border-white/10">
                     <div className="flex items-center gap-2 mb-1">
                       <Briefcase className="w-4 h-4 text-white/50" />
-                      <span className="text-xs text-white/50">Tipo de Rol</span>
+                      <span className="text-xs text-white/50">{t('users.stats.labels.typeRole')}</span>
                     </div>
                     <p className="text-sm text-white font-medium">{user.type_rol || 'N/A'}</p>
                   </div>
@@ -271,10 +274,10 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                   <div className="p-3 rounded-xl bg-white/5 border border-white/10">
                     <div className="flex items-center gap-2 mb-1">
                       <Calendar className="w-4 h-4 text-white/50" />
-                      <span className="text-xs text-white/50">Última Conexión</span>
+                      <span className="text-xs text-white/50">{t('users.stats.labels.lastConnection')}</span>
                     </div>
                     <p className="text-sm text-white font-medium">
-                      {user.last_login_at ? formatRelativeTime(user.last_login_at) : 'Nunca'}
+                      {user.last_login_at ? formatRelativeTime(user.last_login_at) : t('users.stats.time.never')}
                     </p>
                     {user.last_login_at && (
                       <p className="text-xs text-white/40 mt-0.5">{formatDate(user.last_login_at)}</p>
@@ -285,7 +288,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                     <div className="p-3 rounded-xl bg-white/5 border border-white/10">
                       <div className="flex items-center gap-2 mb-1">
                         <LogIn className="w-4 h-4 text-white/50" />
-                        <span className="text-xs text-white/50">Se unió</span>
+                        <span className="text-xs text-white/50">{t('users.stats.labels.joined')}</span>
                       </div>
                       <p className="text-sm text-white font-medium">{formatDate(user.joined_at)}</p>
                     </div>
@@ -358,7 +361,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             {[
                               {
                                 icon: BookOpen,
-                                label: 'Cursos',
+                                label: t('users.stats.cards.courses'),
                                 value: stats.total_courses,
                                 gradient: 'from-blue-500/20 to-blue-600/5',
                                 iconBg: 'bg-blue-500/20',
@@ -366,7 +369,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               },
                               {
                                 icon: CheckCircle,
-                                label: 'Completados',
+                                label: t('users.stats.cards.completed'),
                                 value: stats.completed_courses,
                                 gradient: 'from-emerald-500/20 to-emerald-600/5',
                                 iconBg: 'bg-emerald-500/20',
@@ -374,7 +377,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               },
                               {
                                 icon: Clock,
-                                label: 'Horas',
+                                label: t('users.stats.cards.hours'),
                                 value: stats.total_time_spent_hours,
                                 gradient: 'from-amber-500/20 to-amber-600/5',
                                 iconBg: 'bg-amber-500/20',
@@ -382,7 +385,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               },
                               {
                                 icon: Award,
-                                label: 'Certificados',
+                                label: t('users.stats.cards.certificates'),
                                 value: stats.certificates_count,
                                 gradient: 'from-purple-500/20 to-purple-600/5',
                                 iconBg: 'bg-purple-500/20',
@@ -421,7 +424,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             >
                               <h3 className="text-sm font-medium text-white/70 mb-3 flex items-center gap-2">
                                 <Activity className="w-4 h-4" style={{ color: primaryColor }} />
-                                Actividad en la Plataforma
+                                {t('users.stats.platformActivity.title')}
                               </h3>
                               <div className="grid grid-cols-3 gap-3">
                                 {stats.lia_conversations_total !== undefined && (
@@ -432,11 +435,11 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                       </div>
                                       <div>
                                         <div className="text-2xl font-bold text-white">{stats.lia_conversations_total}</div>
-                                        <div className="text-xs text-white/50">Consultas LIA</div>
+                                        <div className="text-xs text-white/50">{t('users.stats.platformActivity.liaQueries')}</div>
                                       </div>
                                     </div>
                                     {stats.lia_messages_total !== undefined && (
-                                      <div className="mt-2 text-xs text-cyan-400/80">{stats.lia_messages_total} mensajes</div>
+                                      <div className="mt-2 text-xs text-cyan-400/80">{stats.lia_messages_total} {t('users.stats.platformActivity.messages')}</div>
                                     )}
                                   </div>
                                 )}
@@ -451,11 +454,11 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                         <div className="text-2xl font-bold text-white">
                                           {stats.quiz_passed || 0}<span className="text-white/40">/{stats.quiz_total}</span>
                                         </div>
-                                        <div className="text-xs text-white/50">Quiz Aprobados</div>
+                                        <div className="text-xs text-white/50">{t('users.stats.platformActivity.quizzesPassed')}</div>
                                       </div>
                                     </div>
                                     {stats.quiz_average_score !== undefined && (
-                                      <div className="mt-2 text-xs text-violet-400/80">{stats.quiz_average_score}% promedio</div>
+                                      <div className="mt-2 text-xs text-violet-400/80">{stats.quiz_average_score}% {t('users.stats.platformActivity.average')}</div>
                                     )}
                                   </div>
                                 )}
@@ -468,11 +471,11 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                       </div>
                                       <div>
                                         <div className="text-2xl font-bold text-white">{stats.lia_activities_completed}</div>
-                                        <div className="text-xs text-white/50">Actividades LIA</div>
+                                        <div className="text-xs text-white/50">{t('users.stats.platformActivity.liaActivities')}</div>
                                       </div>
                                     </div>
                                     {stats.lia_activities_total !== undefined && (
-                                      <div className="mt-2 text-xs text-rose-400/80">de {stats.lia_activities_total} total</div>
+                                      <div className="mt-2 text-xs text-rose-400/80">de {stats.lia_activities_total} {t('users.stats.platformActivity.total')}</div>
                                     )}
                                   </div>
                                 )}
@@ -521,21 +524,21 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                   <CheckCircle className="w-5 h-5 text-emerald-400" />
                                 </div>
                                 <div className="text-2xl font-bold text-emerald-400">{stats.completed_courses}</div>
-                                <div className="text-xs text-white/40">Completados</div>
+                                <div className="text-xs text-white/40">{t('users.stats.generalProgress.completed')}</div>
                               </div>
                               <div className="text-center">
                                 <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-blue-500/20 mb-2">
                                   <PlayCircle className="w-5 h-5 text-blue-400" />
                                 </div>
                                 <div className="text-2xl font-bold text-blue-400">{stats.in_progress_courses}</div>
-                                <div className="text-xs text-white/40">En Progreso</div>
+                                <div className="text-xs text-white/40">{t('users.stats.generalProgress.inProgress')}</div>
                               </div>
                               <div className="text-center">
                                 <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 mb-2">
                                   <XCircle className="w-5 h-5 text-white/40" />
                                 </div>
                                 <div className="text-2xl font-bold text-white/40">{stats.not_started_courses}</div>
-                                <div className="text-xs text-white/40">Sin Iniciar</div>
+                                <div className="text-xs text-white/40">{t('users.stats.generalProgress.notStarted')}</div>
                               </div>
                             </div>
                           </motion.div>
@@ -555,7 +558,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
                                 <BookOpen className="w-8 h-8 text-white/30" />
                               </div>
-                              <p className="text-white/50">No hay cursos asignados</p>
+                              <p className="text-white/50">{t('users.stats.coursesList.empty')}</p>
                             </div>
                           ) : (
                             stats.courses_data.map((course, index) => {
@@ -579,12 +582,12 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                         </h4>
                                         <div className="flex items-center gap-3 text-xs text-white/50">
                                           {course.enrolled_at && (
-                                            <span>Inscrito: {formatDate(course.enrolled_at)}</span>
+                                            <span>{t('users.stats.coursesList.enrolled')}: {formatDate(course.enrolled_at)}</span>
                                           )}
                                           {course.has_certificate && (
                                             <span className="flex items-center gap-1 text-amber-400">
                                               <Award className="w-3 h-3" />
-                                              Certificado
+                                              {t('users.stats.coursesList.certificate')}
                                             </span>
                                           )}
                                         </div>
@@ -598,15 +601,15 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                           color: progressColor
                                         }}
                                       >
-                                        {course.status === 'completed' ? '✓ Completado' :
-                                          course.progress > 0 ? 'En Progreso' : 'Sin Iniciar'}
+                                        {course.status === 'completed' ? `✓ ${t('users.stats.coursesList.completed')}` :
+                                          course.progress > 0 ? t('users.stats.coursesList.inProgress') : t('users.stats.coursesList.notStarted')}
                                       </div>
                                     </div>
 
                                     {/* Progress Bar */}
                                     <div className="mb-4">
                                       <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs text-white/50">Progreso del curso</span>
+                                        <span className="text-xs text-white/50">{t('users.stats.coursesList.progress')}</span>
                                         <span className="text-sm font-bold" style={{ color: progressColor }}>{course.progress}%</span>
                                       </div>
                                       <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
@@ -634,7 +637,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                           <div className="text-sm font-semibold text-white">
                                             {course.time_spent_minutes ? `${Math.round((course.time_spent_minutes / 60) * 10) / 10}h` : timeData ? `${timeData.total_hours}h` : '0h'}
                                           </div>
-                                          <div className="text-xs text-white/40">Tiempo</div>
+                                          <div className="text-xs text-white/40">{t('users.stats.coursesList.time')}</div>
                                         </div>
                                       </div>
 
@@ -647,7 +650,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                           <div className="text-sm font-semibold text-white">
                                             {course.lia_conversations_count || 0}
                                           </div>
-                                          <div className="text-xs text-white/40">LIA</div>
+                                          <div className="text-xs text-white/40">{t('users.stats.coursesList.lia')}</div>
                                         </div>
                                       </div>
 
@@ -660,7 +663,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                           <div className="text-sm font-semibold text-white">
                                             {course.quiz_passed || 0}/{course.quiz_total || 0}
                                           </div>
-                                          <div className="text-xs text-white/40">Quiz</div>
+                                          <div className="text-xs text-white/40">{t('users.stats.coursesList.quiz')}</div>
                                         </div>
                                       </div>
 
@@ -673,7 +676,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                           <div className="text-sm font-semibold text-white">
                                             {course.notes_count || 0}
                                           </div>
-                                          <div className="text-xs text-white/40">Notas</div>
+                                          <div className="text-xs text-white/40">{t('users.stats.coursesList.notes')}</div>
                                         </div>
                                       </div>
                                     </div>
@@ -697,7 +700,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
                                 <TrendingUp className="w-8 h-8 text-white/30" />
                               </div>
-                              <p className="text-white/50">No hay progreso que mostrar</p>
+                              <p className="text-white/50">{t('users.stats.timeline.empty')}</p>
                             </div>
                           ) : (
                             stats.courses_data.map((course, index) => {
@@ -739,10 +742,10 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                             <h4 className="text-base font-semibold text-white mb-1">{course.course_title}</h4>
                                             <p className="text-xs text-white/40">
                                               {course.status === 'completed'
-                                                ? `Completado el ${formatDate(course.completed_at)}`
+                                                ? `${t('users.stats.coursesList.completed')} ${formatDate(course.completed_at)}`
                                                 : course.progress > 0
-                                                  ? 'En progreso'
-                                                  : 'Sin iniciar'
+                                                  ? t('users.stats.coursesList.inProgress')
+                                                  : t('users.stats.coursesList.notStarted')
                                               }
                                             </p>
                                           </div>
@@ -774,7 +777,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                               <Layers className="w-4 h-4 text-blue-400" />
                                               <span className="text-sm text-white/70">
                                                 <span className="font-semibold text-white">{course.modules_completed || 0}</span>
-                                                /{course.modules_total} módulos
+                                                /{course.modules_total} {t('users.stats.timeline.modules')}
                                               </span>
                                             </div>
                                           )}
@@ -783,7 +786,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                               <BookOpen className="w-4 h-4 text-violet-400" />
                                               <span className="text-sm text-white/70">
                                                 <span className="font-semibold text-white">{course.lessons_completed || 0}</span>
-                                                /{course.lessons_total} lecciones
+                                                /{course.lessons_total} {t('users.stats.timeline.lessons')}
                                               </span>
                                             </div>
                                           )}
@@ -792,7 +795,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                               <HelpCircle className="w-4 h-4 text-amber-400" />
                                               <span className="text-sm text-white/70">
                                                 <span className="font-semibold text-white">{course.quiz_passed || 0}</span>
-                                                /{course.quiz_total} quiz
+                                                /{course.quiz_total} {t('users.stats.timeline.quizzes')}
                                               </span>
                                             </div>
                                           )}
@@ -827,7 +830,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                 <FileText className="w-6 h-6 text-emerald-400" />
                               </div>
                               <div className="text-3xl font-bold text-white mb-1">{stats.notes_count}</div>
-                              <div className="text-sm text-emerald-400/80">Notas Creadas</div>
+                              <div className="text-sm text-emerald-400/80">{t('users.stats.activity.notesCreated')}</div>
                             </motion.div>
 
                             {/* Assignments Card */}
@@ -842,7 +845,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                 <Target className="w-6 h-6 text-blue-400" />
                               </div>
                               <div className="text-3xl font-bold text-white mb-1">{stats.completed_assignments}<span className="text-white/40">/{stats.total_assignments}</span></div>
-                              <div className="text-sm text-blue-400/80">Asignaciones</div>
+                              <div className="text-sm text-blue-400/80">{t('users.stats.activity.assignments')}</div>
                             </motion.div>
 
                             {/* Certificates Card */}
@@ -857,7 +860,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                 <Award className="w-6 h-6 text-amber-400" />
                               </div>
                               <div className="text-3xl font-bold text-white mb-1">{stats.certificates_count}</div>
-                              <div className="text-sm text-amber-400/80">Certificados</div>
+                              <div className="text-sm text-amber-400/80">{t('users.stats.activity.certificates')}</div>
                             </motion.div>
                           </div>
 
@@ -871,7 +874,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             >
                               <div className="flex items-center gap-2 mb-4">
                                 <Calendar className="w-5 h-5" style={{ color: primaryColor }} />
-                                <h3 className="text-sm font-medium text-white">Historial de Completados</h3>
+                                <h3 className="text-sm font-medium text-white">{t('users.stats.activity.completionHistory')}</h3>
                               </div>
 
                               <div className="space-y-3">
@@ -902,7 +905,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                           }}
                                         >
                                           <span className="text-xs font-semibold text-white">
-                                            {item.count} curso{item.count !== 1 ? 's' : ''}
+                                            {item.count} {t('users.stats.activity.courses')}
                                           </span>
                                         </motion.div>
                                       </div>
@@ -930,14 +933,14 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                 <Clock className="w-5 h-5 text-white/50" />
                                 <div>
                                   <div className="text-lg font-semibold text-white">{stats.total_time_spent_hours}h</div>
-                                  <div className="text-xs text-white/40">Tiempo de estudio</div>
+                                  <div className="text-xs text-white/40">{t('users.stats.activity.studyTime')}</div>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
                                 <BookOpen className="w-5 h-5 text-white/50" />
                                 <div>
                                   <div className="text-lg font-semibold text-white">{stats.completed_lessons}/{stats.total_lessons}</div>
-                                  <div className="text-xs text-white/40">Lecciones</div>
+                                  <div className="text-xs text-white/40">{t('users.stats.activity.lessons')}</div>
                                 </div>
                               </div>
                             </div>

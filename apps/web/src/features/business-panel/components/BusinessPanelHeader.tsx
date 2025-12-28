@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ChevronDown, LogOut, Building2, User, LayoutDashboard } from 'lucide-react'
+import { Menu, X, ChevronDown, LogOut, Building2, User, LayoutDashboard, Globe, ChevronRight, Check } from 'lucide-react'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -10,6 +10,8 @@ import { useUserProfile } from '../../auth/hooks/useUserProfile'
 import { useBusinessSettings } from '../hooks/useBusinessSettings'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { hexToRgb } from '../utils/styles'
+import { useLanguage } from '../../../core/providers/I18nProvider'
+import { useTranslation } from 'react-i18next'
 
 interface BusinessPanelHeaderProps {
   onMenuClick: () => void
@@ -30,7 +32,16 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
   const { userProfile } = useUserProfile()
   const router = useRouter()
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null)
+  const { language, setLanguage } = useLanguage()
+  const { t } = useTranslation(['business', 'common'])
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const languageOptions = [
+    { value: 'es' as const, label: 'Español', flag: '🇪🇸' },
+    { value: 'en' as const, label: 'English', flag: '🇺🇸' },
+    { value: 'pt' as const, label: 'Português', flag: '🇧🇷' },
+  ]
 
   const organization = businessData?.organization
 
@@ -170,7 +181,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                   color: navbarStyle.color || 'rgba(255, 255, 255, 0.95)'
                 }}
               >
-                {organization?.name || 'Mi Organización'}
+                {organization?.name || t('business:header.myOrganization')}
               </h1>
             </div>
           </div>
@@ -231,7 +242,10 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="fixed inset-0 z-[998] bg-black/20 backdrop-blur-sm"
-                    onClick={() => setUserDropdownOpen(false)}
+                    onClick={() => {
+                      setUserDropdownOpen(false)
+                      setActiveSubmenu(null)
+                    }}
                   />
                   <motion.div
                     initial={{ opacity: 0, y: -8, scale: 0.95 }}
@@ -300,7 +314,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                         whileHover={{ x: 2 }}
                       >
                         <LayoutDashboard className="h-4 w-4 opacity-70" />
-                        <span>Panel Usuario</span>
+                        <span>{t('business:header.userPanel')}</span>
                       </motion.button>
 
                       <motion.button
@@ -313,8 +327,57 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                         whileHover={{ x: 2 }}
                       >
                         <User className="h-4 w-4 opacity-70" />
-                        <span>Editar perfil</span>
+                        <span>{t('business:header.editProfile')}</span>
                       </motion.button>
+
+                      <div className="relative">
+                        <motion.button
+                          onClick={() => setActiveSubmenu(activeSubmenu === 'language' ? null : 'language')}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                          style={{ color: navbarStyle.color || 'rgba(255, 255, 255, 0.8)' }}
+                          whileHover={{ x: 2 }}
+                        >
+                          <Globe className="h-4 w-4 opacity-70" />
+                          <span className="flex-1 text-left">{t('common:language')}</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs">{languageOptions.find(l => l.value === language)?.flag}</span>
+                            <ChevronRight 
+                              className={`h-3.5 w-3.5 transition-transform ${activeSubmenu === 'language' ? 'rotate-90' : ''}`}
+                              style={{ opacity: 0.7 }} 
+                            />
+                          </div>
+                        </motion.button>
+
+                        <AnimatePresence>
+                          {activeSubmenu === 'language' && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden bg-black/5"
+                            >
+                              {languageOptions.map((opt) => {
+                                const isActive = language === opt.value
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    onClick={() => { 
+                                      setLanguage(opt.value)
+                                      setActiveSubmenu(null)
+                                    }}
+                                    className="w-full flex items-center gap-3 px-10 py-2 text-xs transition-colors hover:bg-white/5"
+                                    style={{ color: isActive ? '#00D4B3' : (navbarStyle.color || 'rgba(255, 255, 255, 0.7)') }}
+                                  >
+                                    <span>{opt.flag}</span>
+                                    <span>{opt.label}</span>
+                                    {isActive && <Check className="h-3 w-3 ml-auto" />}
+                                  </button>
+                                )
+                              })}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
 
                       <div className="my-1 border-t border-white/10" />
                       <motion.button
@@ -323,7 +386,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                         whileHover={{ x: 2 }}
                       >
                         <LogOut className="h-4 w-4" />
-                        <span>Cerrar sesión</span>
+                        <span>{t('business:header.logout')}</span>
                       </motion.button>
                     </div>
                   </motion.div>

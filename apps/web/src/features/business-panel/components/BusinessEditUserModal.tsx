@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, User, Mail, Shield, Camera, Briefcase, MapPin, Phone, FileText, Sparkles, Edit3 } from 'lucide-react'
 import { BusinessUser } from '../services/businessUsers.service'
 import Image from 'next/image'
+import { useTranslation } from 'react-i18next'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 
 interface BusinessEditUserModalProps {
@@ -28,6 +29,7 @@ interface BusinessEditUserModalProps {
 }
 
 export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: BusinessEditUserModalProps) {
+  const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -162,16 +164,16 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
   const initials = (formData.first_name?.[0] || user.username[0] || 'U').toUpperCase() + (formData.last_name?.[0] || '').toUpperCase()
 
   const roleLabels = {
-    member: { label: 'Miembro', desc: 'Acceso básico a cursos y contenido' },
-    admin: { label: 'Administrador', desc: 'Gestión de usuarios y configuración' },
-    owner: { label: 'Propietario', desc: 'Control total de la organización' }
+    member: { label: t('users.roles.member'), desc: t('users.modals.add.roleDesc.member') },
+    admin: { label: t('users.roles.admin'), desc: t('users.modals.add.roleDesc.admin') },
+    owner: { label: t('users.roles.owner'), desc: t('users.modals.add.roleDesc.owner') }
   }
 
   const statusLabels = {
-    active: { label: 'Activo', color: '#10B981' },
-    invited: { label: 'Invitado', color: '#F59E0B' },
-    suspended: { label: 'Suspendido', color: '#EF4444' },
-    removed: { label: 'Removido', color: '#6B7280' }
+    active: { label: t('users.status.active'), color: '#10B981' },
+    invited: { label: t('users.status.invited'), color: '#F59E0B' },
+    suspended: { label: t('users.status.suspended'), color: '#EF4444' },
+    removed: { label: t('users.status.removed'), color: '#6B7280' }
   }
 
   return (
@@ -321,7 +323,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
 
                 {/* Info Note */}
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white/50">
-                  <p>Los cambios realizados se guardarán y el usuario recibirá una notificación si es necesario.</p>
+                  <p>{t('users.modals.edit.infoNote')}</p>
                 </div>
               </div>
 
@@ -330,8 +332,8 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 lg:p-6 border-b border-white/5 shrink-0">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Editar Usuario</h3>
-                    <p className="text-sm text-white/40 mt-0.5">Modificar información del miembro</p>
+                    <h3 className="text-lg font-semibold text-white">{t('users.modals.edit.title')}</h3>
+                    <p className="text-sm text-white/40 mt-0.5">{t('users.modals.edit.subtitle')}</p>
                   </div>
                   <button
                     onClick={onClose}
@@ -359,25 +361,25 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                     {/* First Name & Last Name */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Nombre</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.add.fields.firstName')}</label>
                         <input
                           type="text"
                           name="first_name"
                           value={formData.first_name}
                           onChange={handleChange}
                           className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                          placeholder="Juan"
+                          placeholder={t('users.modals.add.placeholders.firstName')}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Apellido</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.add.fields.lastName')}</label>
                         <input
                           type="text"
                           name="last_name"
                           value={formData.last_name}
                           onChange={handleChange}
                           className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                          placeholder="Pérez"
+                          placeholder={t('users.modals.add.placeholders.lastName')}
                         />
                       </div>
                     </div>
@@ -385,18 +387,18 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                     {/* Display Name & Email */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Nombre Completo</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.edit.fields.fullName')}</label>
                         <input
                           type="text"
                           name="display_name"
                           value={formData.display_name}
                           onChange={handleChange}
                           className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                          placeholder="Juan Pérez"
+                          placeholder={t('users.modals.edit.placeholders.fullName')}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Email</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.add.fields.email')}</label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                           <input
@@ -405,7 +407,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                             value={formData.email}
                             onChange={handleChange}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                            placeholder="usuario@ejemplo.com"
+                            placeholder={t('users.modals.add.placeholders.email')}
                           />
                         </div>
                       </div>
@@ -414,7 +416,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                     {/* Type Rol & Type Rol (Puesto) */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Cargo / Rol</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.add.fields.position')}</label>
                         <div className="relative">
                           <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                           <input
@@ -423,19 +425,19 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                             value={formData.cargo_rol}
                             onChange={handleChange}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                            placeholder="Desarrollador, Diseñador, etc."
+                            placeholder={t('users.modals.add.placeholders.position')}
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Tipo de Rol</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.edit.fields.typeRole')}</label>
                         <input
                           type="text"
                           name="type_rol"
                           value={formData.type_rol}
                           onChange={handleChange}
                           className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                          placeholder="Freelancer, Empleado, etc."
+                          placeholder={t('users.modals.edit.placeholders.typeRole')}
                         />
                       </div>
                     </div>
@@ -443,7 +445,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                     {/* Phone & Location */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Teléfono</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.edit.fields.phone')}</label>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                           <input
@@ -452,12 +454,12 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                             value={formData.phone}
                             onChange={handleChange}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                            placeholder="+1 234 567 8900"
+                            placeholder={t('users.modals.edit.placeholders.phone')}
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-white/70 mb-2">Ubicación</label>
+                        <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.edit.fields.location')}</label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                           <input
@@ -466,7 +468,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                             value={formData.location}
                             onChange={handleChange}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                            placeholder="Ciudad, País"
+                            placeholder={t('users.modals.edit.placeholders.location')}
                           />
                         </div>
                       </div>
@@ -474,7 +476,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
 
                     {/* Bio */}
                     <div>
-                      <label className="block text-sm font-medium text-white/70 mb-2">Biografía</label>
+                      <label className="block text-sm font-medium text-white/70 mb-2">{t('users.modals.edit.fields.bio')}</label>
                       <div className="relative">
                         <FileText className="absolute left-3 top-3 w-4 h-4 text-white/30" />
                         <textarea
@@ -483,7 +485,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                           onChange={handleChange}
                           rows={3}
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors resize-none"
-                          placeholder="Escribe una breve biografía..."
+                          placeholder={t('users.modals.edit.placeholders.bio')}
                         />
                       </div>
                     </div>
@@ -491,7 +493,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                     {/* Org Role */}
                     <div>
                       <label className="block text-sm font-medium text-white/70 mb-2">
-                        Rol en la Organización
+                        {t('users.modals.add.fields.orgRole')}
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:gap-3">
                         {(['member', 'admin', 'owner'] as const).map((role) => (
@@ -523,7 +525,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                     {/* Org Status */}
                     <div>
                       <label className="block text-sm font-medium text-white/70 mb-2">
-                        Estado
+                        {t('users.modals.edit.fields.status')}
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3">
                         {(['active', 'invited', 'suspended', 'removed'] as const).map((status) => (
@@ -557,7 +559,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                       disabled={isLoading}
                       className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
                     >
-                      Cancelar
+                      {t('users.buttons.cancel')}
                     </button>
                     <motion.button
                       type="submit"
@@ -573,10 +575,10 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                       {isLoading || isUploadingImage ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          {isUploadingImage ? 'Subiendo...' : 'Guardando...'}
+                          {isUploadingImage ? t('users.buttons.uploading') : t('users.buttons.saving')}
                         </>
                       ) : (
-                        'Guardar Cambios'
+                        t('users.buttons.save')
                       )}
                     </motion.button>
                   </div>

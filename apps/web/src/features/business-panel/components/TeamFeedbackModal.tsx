@@ -20,6 +20,7 @@ import {
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, WorkTeamMember, CreateTeamFeedbackRequest } from '../services/teams.service'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { useTranslation } from 'react-i18next'
 
 interface TeamFeedbackModalProps {
   isOpen: boolean
@@ -30,10 +31,10 @@ interface TeamFeedbackModalProps {
 }
 
 const FEEDBACK_TYPES = [
-  { value: 'peer_review', label: 'Evaluación', icon: Star, color: '#F59E0B' },
-  { value: 'achievement', label: 'Logro', icon: Award, color: '#10B981' },
-  { value: 'suggestion', label: 'Sugerencia', icon: Lightbulb, color: '#F97316' },
-  { value: 'question', label: 'Pregunta', icon: MessageSquare, color: '#3B82F6' }
+  { value: 'peer_review', icon: Star, color: '#F59E0B' },
+  { value: 'achievement', icon: Award, color: '#10B981' },
+  { value: 'suggestion', icon: Lightbulb, color: '#F97316' },
+  { value: 'question', icon: MessageSquare, color: '#3B82F6' }
 ]
 
 export function TeamFeedbackModal({
@@ -46,6 +47,7 @@ export function TeamFeedbackModal({
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { user } = useAuth()
+  const { t } = useTranslation('business')
 
   // Colores del tema
   const cardBg = panelStyles?.card_background || '#1a1f2e'
@@ -92,12 +94,12 @@ export function TeamFeedbackModal({
     setError(null)
 
     if (!formData.to_user_id) {
-      setError('Debes seleccionar un destinatario')
+      setError(t('teamFeedback.errors.selectRecipient'))
       return
     }
 
     if (!formData.content || formData.content.trim().length < 10) {
-      setError('El contenido debe tener al menos 10 caracteres')
+      setError(t('teamFeedback.errors.contentLength'))
       return
     }
 
@@ -123,7 +125,7 @@ export function TeamFeedbackModal({
       onFeedbackCreated()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear feedback')
+      setError(err instanceof Error ? err.message : t('teamFeedback.errors.createError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -206,13 +208,13 @@ export function TeamFeedbackModal({
                   className="text-lg font-semibold mb-1"
                   style={{ color: textColor }}
                 >
-                  {selectedMember?.user?.name || 'Selecciona destinatario'}
+                  {selectedMember?.user?.name || t('teamFeedback.preview.selectRecipient')}
                 </h3>
                 <p
                   className="text-sm"
                   style={{ color: textColor, opacity: 0.6 }}
                 >
-                  {selectedMember?.user?.email || 'Miembro del equipo'}
+                  {selectedMember?.user?.email || t('teamFeedback.preview.teamMember')}
                 </p>
               </div>
 
@@ -231,7 +233,7 @@ export function TeamFeedbackModal({
                       className="text-sm font-medium"
                       style={{ color: selectedType.color }}
                     >
-                      {selectedType.label}
+                      {t(`teamFeedback.types.${selectedType.value}`)}
                     </span>
                   </div>
                   {formData.content && (
@@ -267,7 +269,7 @@ export function TeamFeedbackModal({
                   style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                 >
                   <span className="text-sm" style={{ color: textColor, opacity: 0.7 }}>
-                    🕵️ Enviando anónimamente
+                    {t('teamFeedback.anonymousStatus')}
                   </span>
                 </div>
               )}
@@ -283,13 +285,13 @@ export function TeamFeedbackModal({
                       className="text-xl font-bold"
                       style={{ color: textColor }}
                     >
-                      Enviar Feedback
+                      {t('teamFeedback.title')}
                     </h2>
                     <p
                       className="text-sm mt-1"
                       style={{ color: textColor, opacity: 0.6 }}
                     >
-                      Comparte tu retroalimentación con el equipo
+                      {t('teamFeedback.subtitle')}
                     </p>
                   </div>
                   <motion.button
@@ -329,7 +331,7 @@ export function TeamFeedbackModal({
                       className="block text-sm font-medium mb-2"
                       style={{ color: textColor }}
                     >
-                      Destinatario <span className="text-red-400">*</span>
+                      {t('teamFeedback.selectRecipient')} <span className="text-red-400">*</span>
                     </label>
                     <div className="relative" ref={memberDropdownRef}>
                       <button
@@ -359,11 +361,11 @@ export function TeamFeedbackModal({
                                   <User className="w-4 h-4" style={{ color: primaryColor }} />
                                 </div>
                               )}
-                              <span className="text-sm">{selectedMember.user?.name || 'Usuario'}</span>
+                              <span className="text-sm">{selectedMember.user?.name || t('teamFeedback.selectedUser')}</span>
                             </>
                           ) : (
                             <span className="text-sm" style={{ opacity: 0.5 }}>
-                              Seleccionar miembro...
+                                {t('teamFeedback.selectRecipientPlaceholder')}
                             </span>
                           )}
                         </div>
@@ -412,7 +414,7 @@ export function TeamFeedbackModal({
                                   </div>
                                 )}
                                 <span className="text-sm" style={{ color: textColor }}>
-                                  {member.user?.name || member.user?.email || 'Usuario'}
+                                  {member.user?.name || member.user?.email || t('teamFeedback.selectedUser')}
                                 </span>
                               </button>
                             ))}
@@ -428,7 +430,7 @@ export function TeamFeedbackModal({
                       className="block text-sm font-medium mb-2"
                       style={{ color: textColor }}
                     >
-                      Tipo de Feedback <span className="text-red-400">*</span>
+                      {t('teamFeedback.feedbackType')} <span className="text-red-400">*</span>
                     </label>
                     <div className="relative" ref={typeDropdownRef}>
                       <button
@@ -448,7 +450,7 @@ export function TeamFeedbackModal({
                                 className="w-5 h-5"
                                 style={{ color: selectedType.color }}
                               />
-                              <span className="text-sm">{selectedType.label}</span>
+                              <span className="text-sm">{t(`teamFeedback.types.${selectedType.value}`)}</span>
                             </>
                           )}
                         </div>
@@ -484,7 +486,7 @@ export function TeamFeedbackModal({
                               >
                                 <type.icon className="w-5 h-5" style={{ color: type.color }} />
                                 <span className="text-sm" style={{ color: textColor }}>
-                                  {type.label}
+                                  {t(`teamFeedback.types.${type.value}`)}
                                 </span>
                               </button>
                             ))}
@@ -500,7 +502,7 @@ export function TeamFeedbackModal({
                       className="block text-sm font-medium mb-2"
                       style={{ color: textColor }}
                     >
-                      Contenido <span className="text-red-400">*</span>
+                      {t('teamFeedback.content')} <span className="text-red-400">*</span>
                     </label>
                     <textarea
                       value={formData.content}
@@ -509,7 +511,7 @@ export function TeamFeedbackModal({
                       maxLength={1000}
                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:border-white/20 transition-colors resize-none"
                       style={{ color: textColor }}
-                      placeholder="Escribe tu retroalimentación aquí... (mínimo 10 caracteres)"
+                      placeholder={t('teamFeedback.contentPlaceholder')}
                     />
                     <p
                       className="text-xs mt-2"
@@ -525,7 +527,7 @@ export function TeamFeedbackModal({
                       className="block text-sm font-medium mb-3"
                       style={{ color: textColor }}
                     >
-                      Calificación (Opcional)
+                      {t('teamFeedback.rating')}
                     </label>
                     <div className="flex items-center gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -576,7 +578,7 @@ export function TeamFeedbackModal({
                       )}
                     </div>
                     <span className="text-sm" style={{ color: textColor }}>
-                      Enviar feedback de forma anónima
+                      {t('teamFeedback.anonymous')}
                     </span>
                   </div>
                 </div>
@@ -590,7 +592,7 @@ export function TeamFeedbackModal({
                     className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-white/5"
                     style={{ color: `${textColor}99` }}
                   >
-                    Cancelar
+                    {t('teamFeedback.buttons.cancel')}
                   </button>
                   <motion.button
                     type="submit"
@@ -606,12 +608,12 @@ export function TeamFeedbackModal({
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Enviando...
+                        {t('teamFeedback.buttons.sending')}
                       </>
                     ) : (
                       <>
                         <Send className="w-4 h-4" />
-                        Enviar Feedback
+                        {t('teamFeedback.buttons.send')}
                       </>
                     )}
                   </motion.button>

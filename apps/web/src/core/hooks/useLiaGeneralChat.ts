@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import type { LiaMessage } from '../types/lia.types';
 import { useLanguage } from '../providers/I18nProvider';
+import { sessionRecorder } from '@/lib/rrweb/session-recorder';
 
 export interface UseLiaGeneralChatReturn {
   messages: LiaMessage[];
@@ -79,6 +80,10 @@ export function useLiaGeneralChat(initialMessage?: string | null): UseLiaGeneral
             currentPage: typeof window !== 'undefined' ? window.location.pathname : undefined,
             ...(pageContext || {}),
           },
+          // Si el mensaje sugiere un reporte de bug, incluir snapshot de la sesión
+          sessionSnapshot: (message.toLowerCase().match(/error|bug|falla|problema|no funciona|rompi|broken/)) 
+            ? sessionRecorder?.exportSessionBase64(sessionRecorder.captureSnapshot() as any) 
+            : undefined,
           stream: true,
         }),
       });

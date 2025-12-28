@@ -7,6 +7,7 @@ import { SessionService } from '@/features/auth/services/session.service'
 /**
  * GET /api/business/teams
  * Lista todos los equipos de la organización
+ * 🚀 OPTIMIZADO: Eliminado problema N+1, todas las queries en paralelo
  */
 export async function GET(request: NextRequest) {
   try {
@@ -24,19 +25,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'active'
 
-    // Debug: Log organization ID y status
-    console.log('🔍 [Teams API] Fetching teams for organization:', auth.organizationId)
-    console.log('🔍 [Teams API] Status filter:', status)
-
-    // Primero, verificar todos los equipos sin filtros
-    const { data: allTeams, error: allTeamsError } = await supabase
-      .from('work_teams')
-      .select('team_id, organization_id, name, status')
-
-    console.log('🔍 [Teams API] ALL teams in database:', allTeams)
-    console.log('🔍 [Teams API] ALL teams error:', allTeamsError)
-
-    // Obtener equipos de la organización
+    // 🚀 OPTIMIZACIÓN: Una sola query para obtener equipos
     const { data: teams, error: teamsError } = await supabase
       .from('work_teams')
       .select(`
@@ -57,12 +46,8 @@ export async function GET(request: NextRequest) {
       .eq('status', status)
       .order('created_at', { ascending: false })
 
-    console.log('🔍 [Teams API] Filtered teams:', teams)
-    console.log('🔍 [Teams API] Filtered teams error:', teamsError)
-
     if (teamsError) {
       logger.error('Error fetching teams:', teamsError)
-      // Si la tabla no existe, dar un mensaje más claro
       if (teamsError.code === '42P01' || teamsError.message?.includes('does not exist')) {
         return NextResponse.json({
           success: false,
@@ -75,82 +60,105 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Obtener conteo de miembros para cada equipo
-    const teamIds = teams?.map(t => t.team_id) || []
-    let memberCounts: Record<string, { total: number; active: number }> = {}
-
-    if (teamIds.length > 0) {
-      const { data: members, error: membersError } = await supabase
-        .from('work_team_members')
-        .select('team_id, status')
-        .in('team_id', teamIds)
-
-      if (!membersError && members) {
-        teamIds.forEach(teamId => {
-          const teamMembers = members.filter(m => m.team_id === teamId)
-          memberCounts[teamId] = {
-            total: teamMembers.length,
-            active: teamMembers.filter(m => m.status === 'active').length
-          }
-        })
-      }
-    }
-
-    // Enriquecer equipos con información adicional
-    const enrichedTeams = await Promise.all(
-      (teams || []).map(async (team) => {
-        const memberCount = memberCounts[team.team_id] || { total: 0, active: 0 }
-
-        // Obtener información del líder si existe
-        let teamLeader = null
-        if (team.team_leader_id) {
-          const { data: leader } = await supabase
-            .from('users')
-            .select('id, display_name, first_name, last_name, email, profile_picture_url')
-            .eq('id', team.team_leader_id)
-            .single()
-
-          if (leader) {
-            teamLeader = {
-              id: leader.id,
-              name: leader.display_name || `${leader.first_name || ''} ${leader.last_name || ''}`.trim() || leader.email,
-              email: leader.email,
-              profile_picture_url: leader.profile_picture_url
-            }
-          }
-        }
-
-        // Obtener información del curso si existe
-        let course = null
-        if (team.course_id) {
-          const { data: courseData } = await supabase
-            .from('courses')
-            .select('id, title, thumbnail_url')
-            .eq('id', team.course_id)
-            .single()
-
-          if (courseData) {
-            course = {
-              id: courseData.id,
-              title: courseData.title,
-              thumbnail_url: courseData.thumbnail_url
-            }
-          }
-        }
-
-        return {
-          ...team,
-          team_leader: teamLeader,
-          course: course,
-          member_count: memberCount.total,
-          active_member_count: memberCount.active
+    if (!teams || teams.length === 0) {
+      return NextResponse.json({
+        success: true,
+        teams: []
+      }, {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
         }
       })
-    )
+    }
+
+    // 🚀 OPTIMIZACIÓN: Recopilar todos los IDs necesarios
+    const teamIds = teams.map(t => t.team_id)
+    const leaderIds = [...new Set(teams.map(t => t.team_leader_id).filter(Boolean))]
+    const courseIds = [...new Set(teams.map(t => t.course_id).filter(Boolean))]
+
+    // 🚀 OPTIMIZACIÓN: Ejecutar todas las queries dependientes en paralelo
+    // Antes: N queries por cada equipo (problema N+1)
+    // Después: 3 queries en paralelo independientes del número de equipos
+    const [
+      { data: members, error: membersError },
+      { data: leaders },
+      { data: courses }
+    ] = await Promise.all([
+      // Query de miembros (una sola query para todos los equipos)
+      supabase
+        .from('work_team_members')
+        .select('team_id, status')
+        .in('team_id', teamIds),
+
+      // Query de líderes (una sola query para todos los líderes)
+      leaderIds.length > 0
+        ? supabase
+            .from('users')
+            .select('id, display_name, first_name, last_name, email, profile_picture_url')
+            .in('id', leaderIds)
+        : Promise.resolve({ data: [] }),
+
+      // Query de cursos (una sola query para todos los cursos)
+      courseIds.length > 0
+        ? supabase
+            .from('courses')
+            .select('id, title, thumbnail_url')
+            .in('id', courseIds)
+        : Promise.resolve({ data: [] })
+    ])
+
+    if (membersError) {
+      logger.error('Error fetching members:', membersError)
+    }
+
+    // 🚀 OPTIMIZACIÓN: Crear mapas para búsqueda O(1)
+    // Mapa de conteo de miembros por equipo
+    const memberCounts: Record<string, { total: number; active: number }> = {}
+    teamIds.forEach(teamId => {
+      const teamMembers = (members || []).filter(m => m.team_id === teamId)
+      memberCounts[teamId] = {
+        total: teamMembers.length,
+        active: teamMembers.filter(m => m.status === 'active').length
+      }
+    })
+
+    // Mapa de líderes
+    const leadersMap = new Map((leaders || []).map(leader => [
+      leader.id,
+      {
+        id: leader.id,
+        name: leader.display_name || `${leader.first_name || ''} ${leader.last_name || ''}`.trim() || leader.email,
+        email: leader.email,
+        profile_picture_url: leader.profile_picture_url
+      }
+    ]))
+
+    // Mapa de cursos
+    const coursesMap = new Map((courses || []).map(course => [
+      course.id,
+      {
+        id: course.id,
+        title: course.title,
+        thumbnail_url: course.thumbnail_url
+      }
+    ]))
+
+    // 🚀 OPTIMIZACIÓN: Enriquecer equipos sin queries adicionales
+    const enrichedTeams = teams.map(team => ({
+      ...team,
+      team_leader: team.team_leader_id ? leadersMap.get(team.team_leader_id) || null : null,
+      course: team.course_id ? coursesMap.get(team.course_id) || null : null,
+      member_count: memberCounts[team.team_id]?.total || 0,
+      active_member_count: memberCounts[team.team_id]?.active || 0
+    }))
 
     return NextResponse.json({
       success: true,
       teams: enrichedTeams
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
+      }
     })
   } catch (error) {
     logger.error('💥 Error in /api/business/teams GET:', error)
@@ -234,7 +242,6 @@ export async function POST(request: NextRequest) {
 
       if (orgUsersError) {
         logger.error('Error validating organization users:', orgUsersError)
-        // Continuar sin miembros, el equipo ya está creado
       } else if (orgUsers && orgUsers.length > 0) {
         const validUserIds = orgUsers.map(u => u.user_id)
 
@@ -256,7 +263,6 @@ export async function POST(request: NextRequest) {
 
         if (membersError) {
           logger.error('Error adding team members:', membersError)
-          // Continuar, el equipo ya está creado
         }
       }
     } else if (team_leader_id) {
@@ -316,4 +322,3 @@ export async function POST(request: NextRequest) {
     }, { status: 500 })
   }
 }
-

@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Paperclip, Sparkles, MessageSquare, Lightbulb, HelpCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useLiaPanel } from '../../contexts/LiaPanelContext';
 import { useLiaGeneralChat } from '../../hooks/useLiaGeneralChat';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
@@ -141,6 +141,7 @@ function LiaSidePanelContent() {
   const { isOpen, closePanel, pageContext } = useLiaPanel();
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   
   // Obtener tema del usuario (light/dark)
   const { resolvedTheme } = useThemeStore();
@@ -149,24 +150,31 @@ function LiaSidePanelContent() {
   // Obtener estilos de la organización para modo claro/oscuro
   const orgContext = useOrganizationStylesContext();
   const orgStyles = orgContext?.styles;
-  const panelStyles = orgStyles?.panel;
+
+  // Determinar si estamos en el dashboard de usuario o planner
+  const isUserDashboard = pathname?.includes('/business-user') || pathname?.includes('/study-planner') || pathname === '/dashboard';
+  
+  // Seleccionar los estilos activos según la ruta
+  const effectiveStyles = isUserDashboard 
+    ? (orgStyles?.userDashboard || orgStyles?.panel) 
+    : orgStyles?.panel;
   
   // Determinar si es tema claro
   const isLightTheme = !isDarkMode;
   
   // Colores dinámicos basados en el tema
   const themeColors = {
-    panelBg: isLightTheme ? '#FFFFFF' : '#0a0f14',
-    headerBg: isLightTheme ? '#F8FAFC' : '#0a0f14',
-    borderColor: isLightTheme ? '#E2E8F0' : (panelStyles?.border_color || '#1e2a35'),
-    messageBubbleAssistant: isLightTheme ? '#F1F5F9' : '#1e2a35',
-    messageBubbleUser: panelStyles?.primary_button_color || '#0A2540',
+    panelBg: isLightTheme ? '#FFFFFF' : (effectiveStyles?.sidebar_background || '#0a0f14'),
+    headerBg: isLightTheme ? '#F8FAFC' : (effectiveStyles?.sidebar_background || '#0a0f14'),
+    borderColor: isLightTheme ? '#E2E8F0' : (effectiveStyles?.border_color || '#1e2a35'),
+    messageBubbleAssistant: isLightTheme ? '#F1F5F9' : (effectiveStyles?.card_background || '#1e2a35'),
+    messageBubbleUser: effectiveStyles?.primary_button_color || '#0A2540',
     // Forzar texto oscuro en modo claro, ignorando el tema de la organización si este es 'sofia-predeterminado' (oscuro)
-    textPrimary: isLightTheme ? '#1E293B' : (panelStyles?.text_color || '#e5e7eb'),
+    textPrimary: isLightTheme ? '#1E293B' : (effectiveStyles?.text_color || '#e5e7eb'),
     textSecondary: isLightTheme ? '#64748B' : '#6b7280',
-    inputBg: isLightTheme ? '#F1F5F9' : '#1e2a35',
-    inputBorder: isLightTheme ? '#CBD5E1' : '#374151',
-    accentColor: panelStyles?.accent_color || '#00D4B3',
+    inputBg: isLightTheme ? '#F1F5F9' : 'rgba(255, 255, 255, 0.05)',
+    inputBorder: isLightTheme ? '#CBD5E1' : (effectiveStyles?.border_color || '#374151'),
+    accentColor: effectiveStyles?.accent_color || '#00D4B3',
   };
   
   const { messages, isLoading, sendMessage } = useLiaGeneralChat(
@@ -227,19 +235,20 @@ function LiaSidePanelContent() {
     <AnimatePresence>
       {isOpen && (
         <motion.aside
-          initial={{ x: PANEL_WIDTH }}
+          initial={{ x: '100%' }}
           animate={{ x: 0 }}
-          exit={{ x: PANEL_WIDTH }}
+          exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           style={{
             position: 'fixed',
             top: `${NAVBAR_HEIGHT}px`,
             right: 0,
-            width: `${PANEL_WIDTH}px`,
+            width: '100%',
+            maxWidth: `${PANEL_WIDTH}px`,
             height: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
             backgroundColor: themeColors.panelBg,
             borderLeft: `1px solid ${themeColors.borderColor}`,
-            zIndex: 40,
+            zIndex: 100,
             display: 'flex',
             flexDirection: 'column',
             boxShadow: isLightTheme ? '-4px 0 20px rgba(0, 0, 0, 0.1)' : '-4px 0 20px rgba(0, 0, 0, 0.3)',
