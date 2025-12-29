@@ -38,9 +38,9 @@ export default function StudyPlannerDashboardPage() {
     clearError,
   } = useStudyPlannerDashboardLIA();
 
-  // Estado para el panel de LIA (derecha)
-  const [isLiaPanelOpen, setIsLiaPanelOpen] = useState(false);
-  const [isLiaCollapsed, setIsLiaCollapsed] = useState(true);
+  // Estado para el panel de LIA (derecha) - abierto por defecto
+  const [isLiaPanelOpen, setIsLiaPanelOpen] = useState(true);
+  const [isLiaCollapsed, setIsLiaCollapsed] = useState(false);
   const liaPanelRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -905,174 +905,396 @@ export default function StudyPlannerDashboardPage() {
         </div>
       </div>
 
-      {/* Panel Derecho - Chat con LIA */}
+      {/* Panel Derecho - Chat con LIA (Diseño Premium) */}
       <AnimatePresence>
         {isLiaPanelOpen && !isLiaCollapsed && (
-          <motion.div
+          <motion.aside
             ref={liaPanelRef}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`fixed right-0 top-0 h-full z-40 bg-white dark:bg-[#1E2329] shadow-2xl flex flex-col ${expandedWidth} transition-all duration-300 ease-in-out`}
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              width: '100%',
+              maxWidth: '420px',
+              height: '100vh',
+              backgroundColor: '#0a0f14',
+              borderLeft: '1px solid #1e2a35',
+              borderTopLeftRadius: '30px',
+              borderBottomLeftRadius: '30px',
+              overflow: 'hidden',
+              zIndex: 40,
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '-4px 0 32px rgba(0, 0, 0, 0.4)',
+            }}
           >
-            {/* Header del Panel de LIA */}
-            <div className="absolute top-0 left-0 right-0 z-10 px-4 pt-3 pb-2">
-              <motion.div
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl shadow-lg border border-[#E9ECEF]/50 dark:border-[#6C757D]/30"
-              >
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-3 flex-1"
+            {/* Header del panel */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '20px 24px',
+                borderBottom: '1px solid #1e2a35',
+                backgroundColor: '#0a0f14',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Avatar de LIA con indicador online */}
+                <div style={{ position: 'relative' }}>
+                  <Image
+                    src="/lia-avatar.png"
+                    alt="LIA"
+                    width={40}
+                    height={40}
+                    style={{
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '2px solid #00D4B3',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      right: '-2px',
+                      width: '14px',
+                      height: '14px',
+                      backgroundColor: '#22c55e',
+                      borderRadius: '50%',
+                      border: '2px solid #0a0f14',
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <h2 style={{ color: '#FFFFFF', fontSize: '16px', fontWeight: 600, margin: 0, lineHeight: 1.2 }}>
+                    LIA
+                  </h2>
+                  <p style={{ color: '#00D4B3', fontSize: '12px', fontWeight: 500, margin: 0 }}>
+                    Asistente de tu plan
+                  </p>
+                </div>
+              </div>
+              
+              {/* Botones de acción (Limpiar + Cerrar) */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => {/* TODO: clearMessages */}}
+                  title="Limpiar conversación"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: messages.length > 0 ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background-color 0.2s',
+                    opacity: messages.length > 0 ? 1 : 0.5,
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#450a0a'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  {/* Avatar de LIA */}
-                  <div className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#0A2540]/20 dark:ring-[#00D4B3]/30 flex-shrink-0">
+                  <Trash2 style={{ width: '18px', height: '18px', color: '#f87171' }} />
+                </button>
+
+                <button
+                  onClick={() => setIsLiaCollapsed(true)}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e2a35'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <X style={{ width: '18px', height: '18px', color: '#6b7280' }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+              }}
+            >
+              {messages.length === 0 ? (
+                // Empty State / Loading Screen Style
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    opacity: 0.8,
+                    padding: '0 20px'
+                  }}
+                >
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    style={{ marginBottom: '24px', position: 'relative' }}
+                  >
+                    {/* Glow effect behind avatar */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: '120px',
+                      height: '120px',
+                      borderRadius: '50%',
+                      backgroundColor: '#00D4B3',
+                      filter: 'blur(40px)',
+                      opacity: 0.2,
+                      zIndex: 0
+                    }} />
+                    
                     <Image
                       src="/lia-avatar.png"
                       alt="LIA"
-                      fill
-                      className="object-cover"
-                      sizes="36px"
+                      width={80}
+                      height={80}
+                      style={{
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '3px solid #00D4B3',
+                        boxShadow: '0 0 20px rgba(0, 212, 179, 0.4)',
+                        position: 'relative',
+                        zIndex: 1
+                      }}
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.5 }}
+                  >
+                    <h3 style={{ 
+                      color: '#FFFFFF', 
+                      fontSize: '18px', 
+                      fontWeight: 600, 
+                      marginBottom: '8px' 
+                    }}>
+                      LIA
+                    </h3>
+                    <p style={{ 
+                      color: '#6b7280', 
+                      fontSize: '14px', 
+                      lineHeight: 1.5,
+                      maxWidth: '280px',
+                      margin: '0 auto'
+                    }}>
+                      Puedo ayudarte a reprogramar sesiones, ajustar tu plan o resolver conflictos de horario.
+                    </p>
+                  </motion.div>
+                </div>
+              ) : (
+                // Chat Messages
+                <>
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                      }}
+                    >
+                      {msg.role !== 'user' && (
+                        <div style={{ marginRight: '8px', flexShrink: 0 }}>
+                          <Image
+                            src="/lia-avatar.png"
+                            alt="LIA"
+                            width={32}
+                            height={32}
+                            style={{ borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
+                      <div
+                        style={{
+                          maxWidth: '85%',
+                          padding: '12px 16px',
+                          borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                          backgroundColor: msg.role === 'user' ? '#0A2540' : '#1e2a35',
+                          color: '#FFFFFF',
+                        }}
+                      >
+                        <div style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children }) => <p style={{ margin: '0 0 8px 0' }}>{children}</p>,
+                              strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+                              ul: ({ children }) => <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>{children}</ul>,
+                              li: ({ children }) => <li style={{ marginBottom: '4px' }}>{children}</li>,
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                        {msg.actionStatus === 'success' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px', fontSize: '12px', color: '#22c55e' }}>
+                            <CheckCircle style={{ width: '12px', height: '12px' }} />
+                            <span>Acción completada</span>
+                          </div>
+                        )}
+                        {msg.actionStatus === 'error' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px', fontSize: '12px', color: '#ef4444' }}>
+                            <XCircle style={{ width: '12px', height: '12px' }} />
+                            <span>Error en la acción</span>
+                          </div>
+                        )}
+                        <p
+                          style={{
+                            fontSize: '10px',
+                            marginTop: '6px',
+                            marginBottom: 0,
+                            color: msg.role === 'user' ? 'rgba(255,255,255,0.7)' : '#6b7280',
+                          }}
+                        >
+                          {msg.timestamp.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </>
+              )}
+              
+              {/* Loading indicator */}
+              {isSending && (
+                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <div style={{ marginRight: '8px', flexShrink: 0 }}>
+                    <Image
+                      src="/lia-avatar.png"
+                      alt="LIA"
+                      width={32}
+                      height={32}
+                      style={{ borderRadius: '50%', objectFit: 'cover' }}
                     />
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-[#0A2540] dark:text-white font-semibold text-sm truncate">LIA Coach</h3>
-                    <p className="text-[#6C757D] dark:text-gray-400 text-xs truncate">Tu asistente de estudio</p>
-                  </div>
-                </motion.div>
-                <button
-                  onClick={() => setIsLiaCollapsed(true)}
-                  className="p-1.5 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 rounded-lg transition-colors flex-shrink-0 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white"
-                  title="Colapsar"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </motion.div>
-            </div>
-
-            {/* Área de mensajes */}
-            <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-[#0F1419] pt-20">
-              <div className="flex-1 overflow-y-auto px-4 py-4">
-                {messages.length === 0 ? (
-                  <div className="text-center text-[#6C757D] dark:text-gray-400 text-sm py-8">
-                    <p>Escribe un mensaje para empezar a gestionar tu plan</p>
-                  </div>
-                ) : (
-                  <>
-                    {messages.map(renderMessage)}
-                    <div ref={messagesEndRef} />
-                  </>
-                )}
-                
-                {/* Indicador de carga */}
-                {isSending && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-2 text-gray-400 dark:text-gray-500 text-sm"
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: '16px 16px 16px 4px',
+                      backgroundColor: '#1e2a35',
+                      display: 'flex',
+                      gap: '6px',
+                    }}
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
-                      <Image
-                        src="/lia-avatar.png"
-                        alt="LIA"
-                        width={32}
-                        height={32}
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>LIA está pensando...</span>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-              
-              {/* Error */}
-              {error && (
-                <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-100 dark:border-red-800">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                    <button onClick={clearError} className="text-red-500 hover:text-red-600">
-                      <XCircle className="w-4 h-4" />
-                    </button>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00D4B3', animation: 'liaPulse 1s infinite' }} />
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00D4B3', animation: 'liaPulse 1s infinite 0.2s' }} />
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00D4B3', animation: 'liaPulse 1s infinite 0.4s' }} />
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Barra de input */}
-              <div className="px-3 pb-3 pt-2 bg-transparent">
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  className="flex items-end gap-3"
+            {/* Error message */}
+            {error && (
+              <div style={{ padding: '8px 20px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderTop: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <p style={{ fontSize: '14px', color: '#f87171', margin: 0 }}>{error}</p>
+                  <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                    <XCircle style={{ width: '16px', height: '16px', color: '#f87171' }} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Input Area */}
+            <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #1e2a35' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '24px',
+                  padding: '10px 16px',
+                  border: '1px solid #374151',
+                }}
+              >
+                <input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="Escribe un mensaje a LIA..."
+                  style={{
+                    flex: 1,
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: '#FFFFFF',
+                    fontSize: '14px',
+                  }}
+                />
+                
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!message.trim() || isSending}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: message.trim() && !isSending ? '#00D4B3' : '#374151',
+                    border: 'none',
+                    cursor: message.trim() && !isSending ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background-color 0.2s',
+                  }}
                 >
-                  {/* Campo de texto - Separado del botón */}
-                  <div className="flex-1 bg-white dark:bg-[#1E2329] rounded-full px-4 py-2.5 shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 backdrop-blur-sm">
-                    <textarea
-                      ref={messageInputRef}
-                      value={message}
-                      onChange={(e) => {
-                        setMessage(e.target.value);
-                        if (messageInputRef.current) {
-                          messageInputRef.current.style.height = 'auto';
-                          messageInputRef.current.style.height = `${Math.min(messageInputRef.current.scrollHeight, 100)}px`;
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      placeholder="Escribe un mensaje para gestionar tu plan..."
-                      rows={1}
-                      className="w-full resize-none bg-transparent text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-gray-500 text-sm focus:outline-none max-h-[60px] overflow-y-auto leading-5 py-0.5"
-                      style={{ 
-                        minHeight: '20px',
-                        textAlign: message ? 'left' : 'center',
-                        lineHeight: '20px'
-                      }}
-                    />
-                  </div>
-                  
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      if (message.trim()) {
-                        handleSendMessage();
-                      } else {
-                        setIsRecording(!isRecording);
-                      }
-                    }}
-                    disabled={isSending}
-                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 ${
-                      message.trim()
-                        ? 'bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-sm'
-                        : isRecording
-                        ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
-                        : 'bg-[#E9ECEF] dark:bg-[#6C757D] hover:bg-[#6C757D]/20 dark:hover:bg-[#6C757D]/80 text-[#6C757D] dark:text-gray-300'
-                    }`}
-                    title={message.trim() ? 'Enviar mensaje' : isRecording ? 'Detener grabación' : 'Grabar audio'}
-                  >
-                    {isSending ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : message.trim() ? (
-                      <Send className="w-5 h-5" />
-                    ) : isRecording ? (
-                      <MicOff className="w-5 h-5" />
-                    ) : (
-                      <Mic className="w-5 h-5" />
-                    )}
-                  </motion.button>
-                </motion.div>
+                  {isSending ? (
+                    <Loader2 style={{ width: '16px', height: '16px', color: 'white', animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <Send style={{ width: '16px', height: '16px', color: 'white' }} />
+                  )}
+                </button>
               </div>
             </div>
-          </motion.div>
+            
+            <style>{`
+              @keyframes liaPulse {
+                0%, 100% { opacity: 0.4; transform: scale(1); }
+                50% { opacity: 1; transform: scale(1.2); }
+              }
+              @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
+          </motion.aside>
         )}
       </AnimatePresence>
 

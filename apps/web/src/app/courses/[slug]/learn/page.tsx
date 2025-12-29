@@ -80,6 +80,8 @@ import { useLanguage } from '../../../../core/providers/I18nProvider';
 // ✨ Nuevos imports para integración de modos
 import { useOrganizationStyles } from '../../../../features/business-panel/hooks/useOrganizationStyles';
 import { hexToRgb } from '../../../../features/business-panel/utils/styles';
+// 🎯 Import para tracking de sesiones de estudio
+import { LessonTrackingProvider, useLessonTrackingOptional } from './LessonTrackingContext';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos

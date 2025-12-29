@@ -83,17 +83,26 @@ const BASE_LIA_INSTRUCTION = `Eres LIA, coach inteligente de estudios.
 TU OBJETIVO: Maximizar el cumplimiento del plan de estudios del usuario.
 TU SUPERPODER: Proactividad. No esperes a que te pregunten. Si ves un problema, propón una solución.
 
-CAPACIDADES (Responde con tags <action>JSON</action>):
-- MOVE_SESSION, DELETE_SESSION, CREATE_SESSION
-- LIST_CALENDAR_EVENTS, CREATE_CALENDAR_EVENT, MOVE_CALENDAR_EVENT
-- REBALANCE_PLAN, CREATE_MICRO_SESSION, RECOVER_MISSED_SESSION, REDUCE_SESSION_LOAD
+ACCIONES DISPONIBLES (usa tags <action>JSON</action>):
+- rebalance_plan: Redistribuir sesiones atrasadas en la semana
+- move_session: Mover una sesión a otro horario
+- delete_session: Eliminar una sesión
+- create_session: Crear nueva sesión
+- recover_missed_session: Reprogramar sesión perdida
+- reduce_session_load: Reducir carga de un día
+
+FORMATO OBLIGATORIO DE ACCIÓN (siempre incluir "type" y "data"):
+<action>{"type": "rebalance_plan", "data": {}}</action>
+<action>{"type": "move_session", "data": {"sessionId": "uuid", "newStartTime": "ISO", "newEndTime": "ISO"}}</action>
 
 REGLAS DE ORO:
-1. Si hay conflictos de horario: ¡AVISA Y PROPÓN CAMBIO INMEDIATAMENTE!
-2. Si hay sesiones perdidas: Pregunta si quiere reprogramar para hoy/mañana.
-3. Si el plan está vacío o desactualizado: Ofrece ayuda para reactivarlo.
-4. Sé breve, directa y útil. Cero charla vacía.
-5. Usa Markdown (negritas) para datos clave.
+1. SIEMPRE incluir "type" en el JSON de la acción
+2. Si no hay acción, NO uses el tag <action>
+3. Si hay conflictos de horario: ¡AVISA Y PROPÓN CAMBIO!
+4. Si hay sesiones perdidas: Pregunta si quiere reprogramar
+5. Sé breve, directa y útil. Cero charla vacía
+6. Usa Markdown (negritas) para datos clave
+7. NO uses emojis
 `;
 
 interface ChatResponse {
@@ -1225,27 +1234,40 @@ function extractAction(response: string): { action: ActionResult | null; actions
   
   for (const actionMatch of actionMatches) {
     try {
-      const actionData = JSON.parse(actionMatch[1]);
-      logger.info(`✅ Acción encontrada: type=${actionData.type}, data=${JSON.stringify(actionData.data)}`);
+      const rawJson = actionMatch[1].trim();
+      logger.info(`📋 JSON raw encontrado: ${rawJson.substring(0, 200)}`);
+      
+      const actionData = JSON.parse(rawJson);
+      
+      // VALIDAR que type existe y no es undefined
+      if (!actionData.type) {
+        logger.warn(`⚠️ Action sin type válido, ignorando: ${JSON.stringify(actionData).substring(0, 200)}`);
+        continue; // Saltar esta acción inválida
+      }
+      
+      const normalizedType = actionData.type.toLowerCase();
+      logger.info(`✅ Acción encontrada: type=${normalizedType}, data=${JSON.stringify(actionData.data || {}).substring(0, 200)}`);
       
       actions.push({
-        type: actionData.type?.toLowerCase() as ActionType,
-        data: actionData.data,
+        type: normalizedType as ActionType,
+        data: actionData.data || {},
         status: actionData.confirmationNeeded ? 'confirmation_needed' : 'pending',
         message: actionData.confirmationMessage,
       });
     } catch (error) {
-      logger.error('Error parsing action:', error);
+      logger.error('Error parsing action JSON:', error);
+      logger.error(`JSON que falló: ${actionMatch[1]?.substring(0, 200)}`);
     }
   }
   
   if (actions.length === 0) {
-    logger.warn(`⚠️ NO se encontró ningún tag <action> en la respuesta de LIA`);
-    logger.warn(`📝 Respuesta completa sin action: ${response}`);
-    return { action: null, actions: [], cleanResponse: response };
+    logger.info(`ℹ️ No se encontraron acciones válidas con \<action\> tags`);
+    // Limpiar cualquier tag <action> mal formado de la respuesta
+    const cleanResponse = response.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
+    return { action: null, actions: [], cleanResponse };
   }
 
-  logger.info(`✅ ${actions.length} acción(es) encontrada(s)`);
+  logger.info(`✅ ${actions.length} acción(es) válida(s) encontrada(s)`);
   const cleanResponse = response.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
   
   // Para compatibilidad con código existente, retornar la primera acción como 'action'
@@ -2226,10 +2248,91 @@ async function executeAction(
     }
 
     case 'rebalance_plan': {
-      const { sessionsToMove } = action.data;
+      let { sessionsToMove } = action.data || {};
       
+      // Timezone offset para México (America/Mexico_City)
+      const TZ_OFFSET = '-06:00';
+      
+      // Si no se proporcionaron sesiones específicas, calcular automáticamente
       if (!sessionsToMove || !Array.isArray(sessionsToMove) || sessionsToMove.length === 0) {
-        return { ...action, status: 'error', message: '❌ No se especificaron sesiones para rebalancear.' };
+        logger.info('📋 REBALANCE_PLAN - Calculando sesiones automáticamente...');
+        
+        // Obtener sesiones que necesitan ser reprogramadas (overdue o planned en el pasado)
+        const now = new Date();
+        const { data: overdueSessions, error: fetchError } = await supabase
+          .from('study_sessions')
+          .select('id, title, start_time, end_time, duration_minutes')
+          .eq('plan_id', planId)
+          .eq('status', 'planned')
+          .lt('end_time', now.toISOString())
+          .order('start_time', { ascending: true });
+        
+        if (fetchError || !overdueSessions || overdueSessions.length === 0) {
+          return { 
+            ...action, 
+            status: 'error', 
+            message: '❌ No se encontraron sesiones pendientes para redistribuir.' 
+          };
+        }
+        
+        logger.info(`📋 Encontradas ${overdueSessions.length} sesiones overdue para redistribuir`);
+        
+        // Calcular slots disponibles en los próximos 7 días
+        // Usar los horarios preferidos de las sesiones existentes
+        const preferredHours = [8, 9, 10, 17, 18, 19, 20]; // Horas comunes de estudio
+        
+        sessionsToMove = [];
+        let dayOffset = 0;
+        let hourIndex = 0;
+        
+        for (const session of overdueSessions) {
+          // Buscar el próximo slot disponible
+          let foundSlot = false;
+          while (!foundSlot && dayOffset < 14) {
+            const targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() + dayOffset);
+            targetDate.setHours(preferredHours[hourIndex], 0, 0, 0);
+            
+            // Verificar que la fecha/hora esté en el futuro
+            if (targetDate > now) {
+              const duration = session.duration_minutes || 30;
+              const endDate = new Date(targetDate.getTime() + duration * 60 * 1000);
+              
+              // Formatear como ISO sin milisegundos + timezone
+              const formatWithTZ = (date: Date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const mins = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${mins}:00${TZ_OFFSET}`;
+              };
+              
+              sessionsToMove.push({
+                sessionId: session.id,
+                newStartTime: formatWithTZ(targetDate),
+                newEndTime: formatWithTZ(endDate)
+              });
+              
+              foundSlot = true;
+            }
+            
+            // Avanzar al siguiente slot
+            hourIndex++;
+            if (hourIndex >= preferredHours.length) {
+              hourIndex = 0;
+              dayOffset++;
+            }
+          }
+        }
+        
+        if (sessionsToMove.length === 0) {
+          return { 
+            ...action, 
+            status: 'error', 
+            message: '❌ No se pudieron calcular nuevos horarios para las sesiones.' 
+          };
+        }
       }
       
       logger.info(`📋 REBALANCE_PLAN - Sesiones a mover: ${JSON.stringify(sessionsToMove)}`);
@@ -2241,16 +2344,16 @@ async function executeAction(
         
         logger.info(`🔄 Moviendo sesión ${moveSessionId}: ${newStartTime} -> ${newEndTime}`);
         
-        // Asegurar que los timestamps tengan zona horaria de Colombia si no la tienen
+        // Asegurar que los timestamps tengan zona horaria
         let startTimeISO = newStartTime;
         let endTimeISO = newEndTime;
         
-        // Si el timestamp no tiene zona horaria (formato: 2025-12-16T18:00:00), agregar -05:00 para Colombia
-        if (!newStartTime.includes('+') && !newStartTime.includes('Z') && !newStartTime.includes('-05')) {
-          startTimeISO = newStartTime + '-05:00';
+        // Si el timestamp no tiene zona horaria, agregar la de México
+        if (!newStartTime.includes('+') && !newStartTime.includes('Z') && !newStartTime.match(/-\d{2}:\d{2}$/)) {
+          startTimeISO = newStartTime + TZ_OFFSET;
         }
-        if (!newEndTime.includes('+') && !newEndTime.includes('Z') && !newEndTime.includes('-05')) {
-          endTimeISO = newEndTime + '-05:00';
+        if (!newEndTime.includes('+') && !newEndTime.includes('Z') && !newEndTime.match(/-\d{2}:\d{2}$/)) {
+          endTimeISO = newEndTime + TZ_OFFSET;
         }
         
         logger.info(`📅 Timestamps ajustados: ${startTimeISO} -> ${endTimeISO}`);
@@ -2262,8 +2365,8 @@ async function executeAction(
         const { error } = await supabase
           .from('study_sessions')
           .update({
-            start_time: newStartTime,
-            end_time: newEndTime,
+            start_time: startTimeISO,
+            end_time: endTimeISO,
             duration_minutes: durationMinutes,
           })
           .eq('id', moveSessionId);
@@ -2273,10 +2376,11 @@ async function executeAction(
           
           // Sincronizar con calendario
           await syncSessionWithCalendar(userId, moveSessionId, 'update', {
-            start_time: newStartTime,
-            end_time: newEndTime
+            start_time: startTimeISO,
+            end_time: endTimeISO
           });
         } else {
+          logger.error(`❌ Error moviendo sesión ${moveSessionId}: ${error.message}`);
           results.push({ sessionId: moveSessionId, success: false });
         }
       }
@@ -2285,9 +2389,11 @@ async function executeAction(
       
       return {
         ...action,
-        status: successCount === sessionsToMove.length ? 'success' : 'error',
-        message: `✅ Plan rebalanceado: ${successCount}/${sessionsToMove.length} sesiones movidas.`,
-        data: { results }
+        status: successCount > 0 ? 'success' : 'error',
+        message: successCount > 0 
+          ? `✅ Plan rebalanceado: ${successCount}/${sessionsToMove.length} sesiones reprogramadas.`
+          : '❌ No se pudieron reprogramar las sesiones.',
+        data: { results, sessionsRebalanced: successCount }
       };
     }
 
@@ -2394,8 +2500,19 @@ async function executeAction(
       };
     }
 
+    // Alias para acciones - LIA a veces envía nombres diferentes
+    case 'rebalance':
+    case 'rebalanzar':
+    case 'redistribuir': {
+      // Redirigir a rebalance_plan
+      logger.info('🔄 Alias detectado para rebalance_plan, redirigiendo...');
+      return executeAction(userId, planId, { ...action, type: 'rebalance_plan' });
+    }
+
     default:
-      return { ...action, status: 'error', message: 'Acción no reconocida' };
+      logger.error(`❌ Tipo de acción no reconocido: "${action.type}"`);
+      logger.error(`📋 Datos de la acción: ${JSON.stringify(action)}`);
+      return { ...action, status: 'error', message: `Acción no reconocida: ${action.type}` };
   }
 }
 
@@ -2434,8 +2551,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
     const genAI = new GoogleGenerativeAI(googleApiKey);
     
     // Configuración desde variables de entorno
-    // Actualizado a Gemini 2.0 Flash por defecto para coincidir con el otros endpoints y mejorar rendimiento
-    const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
+    // IMPORTANTE: Solo usar modelos válidos de Gemini
+    let modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
+    
+    // Validar que el modelo sea uno conocido, sino usar el default
+    const validModels = ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+    if (!validModels.some(m => modelName.includes(m.split('-')[0]))) {
+      logger.warn(`⚠️ Modelo "${modelName}" no reconocido, usando gemini-2.0-flash-exp`);
+      modelName = 'gemini-2.0-flash-exp';
+    }
+    
     const temperature = parseFloat(process.env.GEMINI_TEMPERATURE || '0.7');
     const maxOutputTokens = parseInt(process.env.GEMINI_MAX_TOKENS || '8192');
 
@@ -2508,10 +2633,13 @@ ${isProactiveInit
   : 'El usuario ha respondido. Continúa la conversación ayudándole a gestionar su plan.'}
 `;
 
-    // 7. Iniciar Chat
+    // 7. Iniciar Chat - systemInstruction debe ser un objeto con parts para versiones recientes del SDK
     const chatSession = model.startChat({
       history: chatHistory,
-      systemInstruction: dynamicSystemInstruction
+      systemInstruction: {
+        role: 'user',
+        parts: [{ text: dynamicSystemInstruction }]
+      }
     });
 
     logger.info(`🤖 LIA (${trigger}): Analizando contexto con Gemini...`);

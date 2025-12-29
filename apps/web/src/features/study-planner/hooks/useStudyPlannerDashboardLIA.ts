@@ -178,6 +178,8 @@ Puedo ayudarte a organizar tu tiempo de estudio de manera eficiente según tu di
 
       if (data.success && data.data) {
         const plan = data.data;
+        const isFirstLoad = state.messages.length === 0;
+        
         setState(prev => ({
           ...prev,
           activePlan: plan,
@@ -192,9 +194,11 @@ Puedo ayudarte a organizar tu tiempo de estudio de manera eficiente según tu di
         }));
         
         // Si es la primera carga, hacer una llamada proactiva a LIA para obtener análisis
-        if (state.messages.length === 0) {
+        if (isFirstLoad) {
           // Obtener análisis proactivo de LIA
           try {
+            console.log('[LIA Dashboard] Iniciando análisis proactivo para plan:', plan.id);
+            
             const chatResponse = await fetch('/api/study-planner/dashboard/chat', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -206,6 +210,7 @@ Puedo ayudarte a organizar tu tiempo de estudio de manera eficiente según tu di
             });
             
             const chatData = await chatResponse.json();
+            console.log('[LIA Dashboard] Respuesta proactiva:', chatData.success, chatData.response?.substring(0, 100));
             
             if (chatData.success && chatData.response) {
               setState(prev => ({
@@ -215,11 +220,35 @@ Puedo ayudarte a organizar tu tiempo de estudio de manera eficiente según tu di
                   role: 'assistant' as const,
                   content: chatData.response,
                   timestamp: new Date(),
+                  // Incluir información de la acción si existe
+                  actionType: chatData.action?.type,
+                  actionData: chatData.action?.data,
+                  actionStatus: chatData.action?.status,
                 }],
               }));
+              
+              // Si la acción fue exitosa, recargar el plan para reflejar los cambios
+              if (chatData.action?.status === 'success') {
+                console.log('[LIA Dashboard] Acción proactiva exitosa, recargando plan...');
+                // Recargar después de un breve delay para que la BD se actualice
+                setTimeout(() => {
+                  fetch('/api/study-planner/dashboard/plan')
+                    .then(res => res.json())
+                    .then(planData => {
+                      if (planData.success && planData.data) {
+                        setState(prev => ({ ...prev, activePlan: planData.data }));
+                      }
+                    })
+                    .catch(err => console.error('Error recargando plan:', err));
+                }, 500);
+              }
+            } else {
+              // API respondió pero sin éxito o sin respuesta - mostrar fallback
+              console.warn('[LIA Dashboard] Respuesta sin éxito:', chatData.error || 'Sin respuesta');
+              throw new Error(chatData.error || 'Sin respuesta del análisis');
             }
           } catch (chatError) {
-            console.error('Error obteniendo análisis proactivo:', chatError);
+            console.error('[LIA Dashboard] Error obteniendo análisis proactivo:', chatError);
             // Fallback al mensaje estático si falla
             setState(prev => ({
               ...prev,
