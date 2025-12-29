@@ -10,7 +10,8 @@ import {
   UserCircleIcon,
   VideoCameraIcon,
   DocumentTextIcon,
-  PlayIcon
+  PlayIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 import { ChevronDownIcon } from '@heroicons/react/20/solid'
 import { AdminLesson } from '../services/adminLessons.service'
@@ -202,6 +203,7 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
     instructor_id: ''
   })
   const [loading, setLoading] = useState(false)
+  const [generatingAI, setGeneratingAI] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [durationAutoDetected, setDurationAutoDetected] = useState(false)
   const [activeTab, setActiveTab] = useState<TabType>('basic')
@@ -227,6 +229,47 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
     }
     setError(null)
   }, [lesson, instructors])
+
+  const handleGenerateAI = async () => {
+    // Validar que haya un video válido para analizar
+    const canAnalyze = (formData.video_provider === 'direct' || formData.video_provider === 'custom') && 
+                       formData.video_provider_id && 
+                       formData.video_provider_id.startsWith('http')
+
+    if (!canAnalyze) {
+      setError('Debes subir un video o proporcionar una URL válida primero (proveedor: Directo o Custom).')
+      return
+    }
+
+    setGeneratingAI(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/admin/ai/process-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoUrl: formData.video_provider_id }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al procesar el video con IA')
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        transcript_content: data.transcript,
+        summary_content: data.summary
+      }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al generar contenido con IA')
+    } finally {
+      setGeneratingAI(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -538,6 +581,48 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
                           transition={{ duration: 0.2 }}
                           className="space-y-4"
                         >
+                          {/* Banner de IA */}
+                          <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 dark:from-purple-500/20 dark:to-blue-500/20 border border-purple-500/20 rounded-xl p-4 mb-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg text-white">
+                                  <SparklesIcon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-[#0A2540] dark:text-white">Generación Automática</h4>
+                                  <p className="text-xs text-[#6C757D] dark:text-white/70">
+                                    Analiza el video subido para generar transcripción y resumen automáticamente con Gemini 2.0 Flash.
+                                  </p>
+                                </div>
+                              </div>
+                              <motion.button
+                                type="button"
+                                onClick={handleGenerateAI}
+                                disabled={generatingAI || !formData.video_provider_id}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-medium shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              >
+                                {generatingAI ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Analizando...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <SparklesIcon className="h-4 w-4" />
+                                    <span>Generar con IA</span>
+                                  </>
+                                )}
+                              </motion.button>
+                            </div>
+                            {(!formData.video_provider_id || (formData.video_provider !== 'direct' && formData.video_provider !== 'custom')) && (
+                              <p className="text-xs text-orange-500 mt-2 ml-1">
+                                * Requiere subir un video (Directo) o URL directa (Custom) primero.
+                              </p>
+                            )}
+                          </div>
+
                           <div>
                             <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
                               Transcripción (Opcional)

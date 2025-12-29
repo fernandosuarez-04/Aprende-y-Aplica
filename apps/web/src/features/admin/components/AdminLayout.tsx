@@ -8,6 +8,8 @@ import { AdminHeader } from './AdminHeader'
 import { useLiaPanel } from '../../../core/contexts/LiaPanelContext'
 import { useOrganizationStylesContext } from '../../business-panel/contexts/OrganizationStylesContext'
 import { useThemeStore } from '@/core/stores/themeStore'
+import { LiaSidePanel } from '../../../core/components/LiaSidePanel'
+import { LiaFloatingButton } from '../../../core/components/LiaSidePanel/LiaFloatingButton'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -180,6 +182,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           {children}
         </main>
       </div>
+      
+      {/* Componentes de LIA */}
+      <LiaSidePanel />
+      <LiaFloatingButton />
     </div>
   )
 }

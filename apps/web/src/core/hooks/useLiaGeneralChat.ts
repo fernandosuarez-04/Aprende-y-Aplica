@@ -59,6 +59,126 @@ export function useLiaGeneralChat(initialMessage?: string | null): UseLiaGeneral
     setError(null);
 
     try {
+      // Detectar si el mensaje sugiere un reporte de bug con más palabras clave
+      const bugKeywords = /error|bug|falla|problema|no funciona|no carga|rompi|broken|crash|colgó|lento|cuelga|no responde|pantalla en blanco|500|404|timeout|se cayó/i;
+      const isBugReport = bugKeywords.test(message.toLowerCase());
+      
+      // Preparar session data solo si es probable reporte de bug
+      let sessionSnapshot: string | undefined;
+      let enrichedMetadata: any = undefined;
+      let recordingStatus: 'active' | 'inactive' | 'restarted' | 'unavailable' | 'error' = 'unavailable';
+      
+      if (isBugReport && sessionRecorder) {
+        try {
+          // Log detallado para debugging
+          console.log('[LIA Chat] 🔍 Verificando estado del recorder:', {
+            exists: !!sessionRecorder,
+            hasIsRrwebAvailable: typeof sessionRecorder.isRrwebAvailable === 'function',
+            hasIsActive: typeof sessionRecorder.isActive === 'function',
+            hasIsPaused: typeof sessionRecorder.isPaused === 'function',
+            hasCaptureSnapshot: typeof sessionRecorder.captureSnapshot === 'function',
+          });
+          
+          // Verificar que los métodos existen antes de llamarlos
+          const hasRequiredMethods = 
+            typeof sessionRecorder.isRrwebAvailable === 'function' &&
+            typeof sessionRecorder.isActive === 'function' &&
+            typeof sessionRecorder.captureSnapshot === 'function';
+          
+          if (!hasRequiredMethods) {
+            console.warn('[LIA Chat] ⚠️ sessionRecorder no tiene los métodos requeridos');
+            recordingStatus = 'error';
+          }
+          // Verificar si rrweb está disponible
+          else if (!sessionRecorder.isRrwebAvailable()) {
+            console.warn('[LIA Chat] ⚠️ rrweb no está disponible en este navegador');
+            recordingStatus = 'unavailable';
+          } 
+          // Verificar si la grabación está activa
+          else if (!sessionRecorder.isActive()) {
+            console.warn('[LIA Chat] ⚠️ La grabación no está activa, intentando reiniciar...');
+            
+            // Intentar reiniciar la grabación
+            try {
+              await sessionRecorder.startRecording(180000); // 3 minutos
+              console.log('[LIA Chat] ✅ Grabación reiniciada exitosamente');
+              recordingStatus = 'restarted';
+              
+              // Esperar un momento para capturar al menos el estado inicial
+              await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (restartError) {
+              console.error('[LIA Chat] ❌ No se pudo reiniciar la grabación:', restartError);
+              recordingStatus = 'error';
+            }
+          } else if (typeof sessionRecorder.isPaused === 'function' && sessionRecorder.isPaused()) {
+            // Si está pausada por inactividad, reanudarla
+            console.log('[LIA Chat] ▶️ Reanudando grabación pausada...');
+            if (typeof sessionRecorder.resume === 'function') {
+              sessionRecorder.resume();
+            }
+            recordingStatus = 'active';
+          } else {
+            recordingStatus = 'active';
+          }
+          
+          // Intentar capturar snapshot si la grabación está disponible
+          const snapshot = sessionRecorder.captureSnapshot();
+          
+          if (snapshot && snapshot.events.length > 0) {
+            // Usar compresión para reducir tamaño 60-80%
+            sessionSnapshot = await sessionRecorder.exportSessionCompressed(snapshot);
+            // Incluir metadata enriquecida del entorno
+            enrichedMetadata = sessionRecorder.getEnrichedMetadata(snapshot);
+            console.log(`[LIA Chat] 📹 Capturado snapshot para reporte de bug (${snapshot.events.length} eventos)`);
+          } else {
+            console.warn('[LIA Chat] ⚠️ No hay eventos en el snapshot');
+            // Generar metadata mínima sin grabación
+            enrichedMetadata = {
+              viewport: { width: window.innerWidth, height: window.innerHeight },
+              userAgent: navigator.userAgent,
+              platform: navigator.platform,
+              language: navigator.language,
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              currentUrl: window.location.href,
+              sessionDuration: 0,
+              errors: [],
+              errorSummary: { totalErrors: 0, byType: {}, recentErrors: [] },
+              contextMarkers: [],
+              sessionSummary: { totalMarkers: 0, pageVisits: [], modalsOpened: [], actionsCount: 0, errorsCount: 0, timeline: [] },
+              recordingInfo: {
+                eventCount: 0,
+                size: '0 B',
+                compressed: false,
+                status: recordingStatus
+              }
+            };
+          }
+        } catch (err) {
+          console.warn('[LIA Chat] ⚠️ Error capturando snapshot:', err);
+          recordingStatus = 'error';
+          
+          // Generar metadata mínima en caso de error
+          enrichedMetadata = {
+            viewport: typeof window !== 'undefined' ? { width: window.innerWidth, height: window.innerHeight } : { width: 0, height: 0 },
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+            platform: typeof navigator !== 'undefined' ? navigator.platform : 'unknown',
+            language: typeof navigator !== 'undefined' ? navigator.language : 'unknown',
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            currentUrl: typeof window !== 'undefined' ? window.location.href : 'unknown',
+            sessionDuration: 0,
+            errors: [],
+            errorSummary: { totalErrors: 0, byType: {}, recentErrors: [] },
+            recordingInfo: {
+              eventCount: 0,
+              size: '0 B',
+              compressed: false,
+              status: recordingStatus,
+              error: err instanceof Error ? err.message : 'Unknown error'
+            }
+          };
+        }
+      }
+      
       // Usar la nueva API de LIA (similar a ARIA en IRIS)
       const response = await fetch('/api/lia/chat', {
         method: 'POST',
@@ -80,10 +200,14 @@ export function useLiaGeneralChat(initialMessage?: string | null): UseLiaGeneral
             currentPage: typeof window !== 'undefined' ? window.location.pathname : undefined,
             ...(pageContext || {}),
           },
-          // Si el mensaje sugiere un reporte de bug, incluir snapshot de la sesión
-          sessionSnapshot: (message.toLowerCase().match(/error|bug|falla|problema|no funciona|rompi|broken/)) 
-            ? sessionRecorder?.exportSessionBase64(sessionRecorder.captureSnapshot() as any) 
-            : undefined,
+          // Datos de grabación de sesión (comprimido)
+          sessionSnapshot,
+          // Metadata enriquecida del entorno
+          enrichedMetadata,
+          // Indicar si está probablemente reportando un bug
+          isBugReport,
+          // Estado de la grabación para el servidor
+          recordingStatus: isBugReport ? recordingStatus : undefined,
           stream: true,
         }),
       });

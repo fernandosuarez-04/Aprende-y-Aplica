@@ -8,7 +8,6 @@ import {
   ChevronDownIcon,
   HomeIcon,
   ShieldCheckIcon,
-  BuildingOfficeIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline'
 import { Sun, Moon, Monitor, Check } from 'lucide-react'
@@ -70,10 +69,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
     }
   }
 
-  const handleCompanyPanel = () => {
-    router.push('/business-panel/dashboard')
-    setIsOpen(false)
-  }
+
 
   const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme)
@@ -123,7 +119,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
     <Menu as="div" className="relative">
       <Menu.Button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 p-2 rounded-xl hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] transition-all duration-300 group"
+        className="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300 group outline-none"
       >
         {/* Avatar */}
         <div className="relative">
@@ -131,25 +127,27 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
             <motion.img
               src={user.profile_picture_url}
               alt={getDisplayName()}
-              className="w-9 h-9 rounded-full object-cover border-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/50 group-hover:border-[#00D4B3] transition-colors duration-300"
+              className="w-9 h-9 rounded-full object-cover ring-2 ring-[#E9ECEF] dark:ring-[#334155] group-hover:ring-[#00D4B3] transition-all duration-300"
               whileHover={{ scale: 1.05 }}
             />
           ) : (
             <motion.div 
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center text-white text-sm font-semibold shadow-lg shadow-[#00D4B3]/20"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-[#0A2540]/20"
               whileHover={{ scale: 1.05 }}
             >
               {getInitials()}
             </motion.div>
           )}
+          {/* Status Indicator */}
+          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10B981] border-2 border-white dark:border-[#0F1419] rounded-full"></div>
         </div>
 
-        {/* User Info */}
-        <div className="hidden md:block text-left">
-          <p className="text-sm font-semibold text-[#0A2540] dark:text-white transition-colors duration-300">
+        {/* User Info - Desktop */}
+        <div className="hidden md:block text-left mr-1">
+          <p className="text-sm font-bold text-[#0A2540] dark:text-white leading-none mb-1">
             {getDisplayName()}
           </p>
-          <p className="text-xs text-[#6C757D] dark:text-white/70">
+          <p className="text-[11px] font-medium text-[#00D4B3] uppercase tracking-wider leading-none">
             {user.cargo_rol}
           </p>
         </div>
@@ -160,7 +158,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
           <ChevronDownIcon 
-            className="w-4 h-4 text-[#6C757D] dark:text-white/70 group-hover:text-[#00D4B3] transition-colors duration-300" 
+            className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" 
           />
         </motion.div>
       </Menu.Button>
@@ -174,200 +172,135 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
         leaveFrom="transform opacity-100 scale-100 translate-y-0"
         leaveTo="transform opacity-0 scale-95 translate-y-2"
       >
-        <Menu.Items className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1E2329] rounded-2xl shadow-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 py-3 z-50 backdrop-blur-xl overflow-hidden">
-          {/* User Info Header */}
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-            className="px-5 py-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-gradient-to-r from-[#0A2540]/5 to-transparent dark:from-[#00D4B3]/5"
-          >
-            <div className="flex items-center space-x-3">
+        <Menu.Items className="absolute right-0 mt-3 w-[260px] origin-top-right bg-white dark:bg-[#1E2329] rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/40 border border-[#E9ECEF] dark:border-[#334155] focus:outline-none overflow-hidden z-[120]">
+          
+          {/* Header del Dropdown */}
+          <div className="p-4 border-b border-[#E9ECEF] dark:border-[#334155] bg-[#F8FAFC]/50 dark:bg-[#0A0D12]/30">
+            <div className="flex items-center gap-3 mb-2">
               {user.profile_picture_url ? (
-                <motion.img
+                <img
                   src={user.profile_picture_url}
                   alt={getDisplayName()}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/50 ring-2 ring-[#00D4B3]/10"
-                  whileHover={{ scale: 1.05 }}
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-[#E9ECEF] dark:ring-[#334155]"
                 />
               ) : (
-                <motion.div 
-                  className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center text-white text-base font-semibold shadow-lg shadow-[#00D4B3]/20 ring-2 ring-[#00D4B3]/10"
-                  whileHover={{ scale: 1.05 }}
-                >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center text-white text-xs font-bold">
                   {getInitials()}
-                </motion.div>
+                </div>
               )}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-[#0A2540] dark:text-white truncate">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-[#0A2540] dark:text-white truncate">
                   {getDisplayName()}
                 </p>
-                <p className="text-xs text-[#6C757D] dark:text-white/60 truncate mt-0.5" title={user.email}>
+                <p className="text-xs text-[#6C757D] dark:text-gray-400 truncate font-medium">
                   {user.email}
-                </p>
-                <p className="text-xs text-[#00D4B3] font-medium mt-1">
-                  {user.cargo_rol}
                 </p>
               </div>
             </div>
-          </motion.div>
+            <div className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#00D4B3]/10 text-[#00D4B3] uppercase tracking-wider border border-[#00D4B3]/20">
+              {user.cargo_rol}
+            </div>
+          </div>
 
-          {/* Menu Items */}
-          <div className="py-2">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
+          <div className="p-2 space-y-1">
+            {/* Panel de Administración */}
+            {user.cargo_rol?.toLowerCase() === 'administrador' && (
               <Menu.Item>
                 {({ active }) => (
-                  <button
-                    onClick={handleCompanyPanel}
-                    className={`${
-                      active ? 'bg-[#E9ECEF] dark:bg-[#0A2540]/30' : ''
-                    } flex items-center w-full px-5 py-3 text-sm text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/30 transition-all duration-200 rounded-xl mx-2 group`}
-                  >
-                    <BuildingOfficeIcon className="w-5 h-5 mr-3 text-[#6C757D] dark:text-white/70 group-hover:text-[#00D4B3] transition-colors duration-200" />
-                    <span className="font-medium">
-                      {user.organization?.name 
-                        ? `Panel de ${user.organization.name}`
-                        : 'Panel de Empresa'}
-                    </span>
-                  </button>
+                  <Link href="/admin/dashboard" onClick={() => setIsOpen(false)}>
+                    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                      active 
+                        ? 'bg-[#00D4B3]/5 text-[#00D4B3]' 
+                        : 'text-[#0A2540] dark:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#334155]/50'
+                    }`}>
+                      <ShieldCheckIcon className={`w-5 h-5 ${active ? 'text-[#00D4B3]' : 'text-[#6C757D] dark:text-gray-400'}`} />
+                      <span className="text-sm font-medium">Panel de Administración</span>
+                    </div>
+                  </Link>
                 )}
               </Menu.Item>
-            </motion.div>
-
-            {/* Botón de acceso de administración - Solo visible para administradores */}
-            {user.cargo_rol?.toLowerCase() === 'administrador' && (
-              <>
-                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                >
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link href="/admin/dashboard" onClick={() => setIsOpen(false)}>
-                        <div
-                          className={`${
-                            active ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/30' : ''
-                          } flex items-center w-full px-5 py-3 text-sm text-[#0A2540] dark:text-white hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/30 transition-all duration-200 rounded-xl mx-2 group`}
-                        >
-                          <ShieldCheckIcon className="w-5 h-5 mr-3 text-[#00D4B3] group-hover:scale-110 transition-transform duration-200" />
-                          <span className="font-medium">Panel de Administración</span>
-                        </div>
-                      </Link>
-                    )}
-                  </Menu.Item>
-                </motion.div>
-                
-                {/* Panel de Instructor ELIMINADO */}
-              </>
             )}
 
-            <div className="border-t border-[#E9ECEF] dark:border-[#6C757D]/30 my-3 mx-4"></div>
-
-            {/* Opciones de Tema - Menú Desplegable */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-              className="px-2"
-              ref={themeMenuRef}
-            >
-              <Menu.Item>
-                {({ active }) => (
-                  <div>
-                    <button
-                      onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-                      className={`${
-                        active ? 'bg-[#E9ECEF] dark:bg-[#0A2540]/30' : ''
-                      } flex items-center justify-between w-full px-5 py-3 text-sm text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/30 transition-all duration-200 rounded-xl group`}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-5 h-5 mr-3 text-[#6C757D] dark:text-white/70 group-hover:text-[#00D4B3] transition-colors duration-200 flex items-center justify-center">
-                          {getThemeIcon()}
-                        </div>
-                        <span className="font-medium">Tema</span>
-                      </div>
-                      <motion.div
-                        animate={{ rotate: isThemeMenuOpen ? 90 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ChevronRightIcon className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
-                      </motion.div>
-                    </button>
-
-                    <AnimatePresence>
-                      {isThemeMenuOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="mt-2 ml-8 space-y-1 overflow-hidden"
-                        >
-                          {[
-                            { value: 'light' as Theme, label: 'Modo Claro', icon: Sun, color: '#F59E0B' },
-                            { value: 'dark' as Theme, label: 'Modo Oscuro', icon: Moon, color: '#00D4B3' },
-                            { value: 'system' as Theme, label: 'Seguir Sistema', icon: Monitor, color: '#6C757D' },
-                          ].map((themeOption) => (
-                            <button
-                              key={themeOption.value}
-                              onClick={() => handleThemeChange(themeOption.value)}
-                              className={`${
-                                theme === themeOption.value
-                                  ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3]'
-                                  : 'text-[#6C757D] dark:text-white/70 hover:text-[#0A2540] dark:hover:text-white'
-                              } flex items-center justify-between w-full px-4 py-2.5 text-sm rounded-lg transition-all duration-200 group`}
-                            >
-                              <div className="flex items-center">
-                                <themeOption.icon className={`w-4 h-4 mr-3 transition-colors duration-200 ${
-                                  theme === themeOption.value ? 'text-[#00D4B3]' : 'text-[#6C757D] dark:text-white/70 group-hover:text-[#00D4B3]'
-                                }`} />
-                                <span className="font-medium">{themeOption.label}</span>
-                              </div>
-                              {theme === themeOption.value && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                                >
-                                  <Check className="w-4 h-4 text-[#00D4B3]" />
-                                </motion.div>
-                              )}
-                            </button>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
-              </Menu.Item>
-            </motion.div>
-
-            <div className="border-t border-[#E9ECEF] dark:border-[#6C757D]/30 my-3 mx-4"></div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Menu.Item>
-                {({ active }) => (
+            {/* Selector de Tema */}
+            <Menu.Item>
+              {({ active }) => (
+                <div className="relative">
                   <button
-                    onClick={handleLogout}
-                    className={`${
-                      active ? 'bg-red-500/10 dark:bg-red-500/20' : ''
-                    } flex items-center w-full px-5 py-3 text-sm text-red-500 dark:text-red-400 hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-all duration-200 rounded-xl mx-2 group`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsThemeMenuOpen(!isThemeMenuOpen);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                      active || isThemeMenuOpen
+                        ? 'bg-[#F8FAFC] dark:bg-[#334155]/50 text-[#0A2540] dark:text-white'
+                        : 'text-[#0A2540] dark:text-white'
+                    }`}
                   >
-                    <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform duration-200" />
-                    <span className="font-medium">Cerrar Sesión</span>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 flex items-center justify-center ${active || isThemeMenuOpen ? 'text-[#0A2540] dark:text-white' : 'text-[#6C757D] dark:text-gray-400'}`}>
+                        {getThemeIcon()}
+                      </div>
+                      <span className="text-sm font-medium">Tema</span>
+                    </div>
+                    <ChevronRightIcon className={`w-4 h-4 text-[#6C757D] dark:text-gray-400 transition-transform duration-200 ${isThemeMenuOpen ? 'rotate-90' : ''}`} />
                   </button>
-                )}
-              </Menu.Item>
-            </motion.div>
+
+                  {/* Submenú de Tema */}
+                  <AnimatePresence>
+                    {isThemeMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden bg-[#F8FAFC] dark:bg-[#0A0D12]/30 rounded-xl mt-1 border border-[#E9ECEF] dark:border-[#334155]"
+                      >
+                        {[
+                          { value: 'light', label: 'Claro', icon: Sun },
+                          { value: 'dark', label: 'Oscuro', icon: Moon },
+                          { value: 'system', label: 'Sistema', icon: Monitor },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleThemeChange(option.value as Theme);
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-2 text-xs font-medium transition-colors ${
+                              theme === option.value
+                                ? 'text-[#00D4B3] bg-[#00D4B3]/5'
+                                : 'text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white'
+                            }`}
+                          >
+                            <option.icon className="w-3.5 h-3.5" />
+                            {option.label}
+                            {theme === option.value && <Check className="w-3 h-3 ml-auto" />}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </Menu.Item>
+          </div>
+
+          {/* Footer - Cerrar Sesión */}
+          <div className="p-2 border-t border-[#E9ECEF] dark:border-[#334155] mt-1">
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={handleLogout}
+                  className={`flex items-center w-full px-3 py-2.5 rounded-xl transition-all duration-200 group ${
+                    active ? 'bg-red-50 dark:bg-red-900/10' : ''
+                  }`}
+                >
+                  <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3 text-red-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                    Cerrar Sesión
+                  </span>
+                </button>
+              )}
+            </Menu.Item>
           </div>
         </Menu.Items>
       </Transition>

@@ -151,6 +151,31 @@
     "adminPanel": "Admin panel",
     "instructorPanel": "Instructor panel",
     "logout": "Sign out"
+  },
+  "lia": {
+    "tips": [
+      "Found a bug? Tell me and I'll report it.",
+      "Lost on this page? Tell me and I'll guide you.",
+      "Looking for a specific resource? Just ask.",
+      "I can explain any concept from your course.",
+      "Need to check your progress? I'm here to help.",
+      "Ask me for a summary of your last lesson.",
+      "Want to practice with a quick quiz? Just ask."
+    ],
+    "quickActions": {
+      "capabilities": "What can you do?",
+      "courses": "View my courses",
+      "recommend": "Recommend me",
+      "help": "Quick help"
+    },
+    "header": {
+      "title": "LIA",
+      "subtitle": "AI Assistant"
+    },
+    "chat": {
+      "inputPlaceholder": "Type a message to LIA...",
+      "cleanHistory": "Clear conversation"
+    }
   }
 }
 

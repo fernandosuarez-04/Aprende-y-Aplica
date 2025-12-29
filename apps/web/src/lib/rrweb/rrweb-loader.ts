@@ -156,6 +156,37 @@ export async function loadRrweb(): Promise<RrwebModule | null> {
 }
 
 /**
+ * Carga los estilos CSS de rrweb-player
+ */
+async function loadRrwebPlayerStyles(): Promise<void> {
+  if (typeof document === 'undefined') return;
+  
+  // Verificar si ya se cargaron los estilos
+  const existingStyle = document.getElementById('rrweb-player-styles');
+  if (existingStyle) return;
+  
+  try {
+    // Crear un elemento style con los estilos necesarios
+    const styleElement = document.createElement('style');
+    styleElement.id = 'rrweb-player-styles';
+    styleElement.textContent = `
+      /* Estilos mínimos */
+      .rr-player { background: #0f0f23 !important; }
+      .rr-player__frame { background: #1a1a2e !important; }
+      .replayer-mouse { 
+        width: 16px; height: 16px; border-radius: 50%;
+        background: #ff6b6b; border: 2px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      }
+    `;
+    document.head.appendChild(styleElement);
+    console.log('✅ Estilos de rrweb-player cargados');
+  } catch (error) {
+    console.warn('⚠️ Error cargando estilos de rrweb-player:', error);
+  }
+}
+
+/**
  * Carga dinámicamente el módulo rrweb-player solo en el cliente
  * 
  * @returns Promise que resuelve con el módulo rrweb-player o null si falla
@@ -165,6 +196,9 @@ export async function loadRrwebPlayer(): Promise<any | null> {
   if (!isBrowserEnvironment()) {
     return null;
   }
+  
+  // Cargar estilos CSS primero
+  await loadRrwebPlayerStyles();
 
   // Si ya está cargado, retornarlo
   if (rrwebPlayerModule) {

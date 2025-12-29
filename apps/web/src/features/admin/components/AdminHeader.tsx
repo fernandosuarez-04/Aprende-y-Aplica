@@ -43,7 +43,7 @@ export function AdminHeader({ onMenuClick, title, isCollapsed, isPinned, onToggl
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className={`fixed top-0 right-0 z-50 backdrop-blur-md shadow-sm border-b transition-all duration-300 ${sidebarWidth} left-0`}
+      className={`fixed top-0 right-0 z-[120] backdrop-blur-md shadow-sm border-b transition-all duration-300 ${sidebarWidth} left-0`}
       style={{ 
         backgroundColor: themeColors.background,
         borderColor: themeColors.borderColor

@@ -189,7 +189,10 @@ export class AdminReportesService {
           created_at,
           updated_at,
           resuelto_at,
-          metadata
+          metadata,
+          session_recording,
+          recording_size,
+          recording_duration
         `)
         .eq('id', reporteId)
         .single()

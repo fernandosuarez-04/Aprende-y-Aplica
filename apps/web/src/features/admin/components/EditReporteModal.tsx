@@ -51,7 +51,7 @@ export function EditReporteModal({ reporte, isOpen, onClose, onSave, isProcessin
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/25 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-[#0F1419]/80 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -65,32 +65,33 @@ export function EditReporteModal({ reporte, isOpen, onClose, onSave, isProcessin
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#334155] shadow-2xl transition-all">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
-                  <Dialog.Title className="text-xl font-bold text-white">
+                <div className="bg-[#0A2540] px-6 py-4 flex items-center justify-between border-b border-[#334155]">
+                  <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
+                    <CheckCircleIcon className="h-6 w-6 text-[#00D4B3]" />
                     Editar Reporte
                   </Dialog.Title>
                   <button
                     onClick={onClose}
-                    className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
+                    className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                   >
                     <XMarkIcon className="h-5 w-5" />
                   </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
+                <div className="p-8">
                   <div className="space-y-6">
                     {/* Estado */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-bold text-[#0A2540] dark:text-gray-300 mb-2 uppercase tracking-wider">
                         Estado
                       </label>
                       <select
                         value={estado}
                         onChange={(e) => setEstado(e.target.value as AdminReporte['estado'])}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 rounded-xl border border-[#E9ECEF] dark:border-[#334155] bg-[#F8FAFC] dark:bg-[#0F1419] text-[#0A2540] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00D4B3] transition-all"
                       >
                         <option value="pendiente">Pendiente</option>
                         <option value="en_revision">En Revisión</option>
@@ -103,13 +104,13 @@ export function EditReporteModal({ reporte, isOpen, onClose, onSave, isProcessin
 
                     {/* Prioridad */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-bold text-[#0A2540] dark:text-gray-300 mb-2 uppercase tracking-wider">
                         Prioridad
                       </label>
                       <select
                         value={prioridad}
                         onChange={(e) => setPrioridad(e.target.value as AdminReporte['prioridad'])}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 rounded-xl border border-[#E9ECEF] dark:border-[#334155] bg-[#F8FAFC] dark:bg-[#0F1419] text-[#0A2540] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00D4B3] transition-all"
                       >
                         <option value="baja">Baja</option>
                         <option value="media">Media</option>
@@ -120,29 +121,29 @@ export function EditReporteModal({ reporte, isOpen, onClose, onSave, isProcessin
 
                     {/* Notas del Admin */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-bold text-[#0A2540] dark:text-gray-300 mb-2 uppercase tracking-wider">
                         Notas del Administrador
                       </label>
                       <textarea
                         value={notasAdmin}
                         onChange={(e) => setNotasAdmin(e.target.value)}
                         rows={6}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        className="w-full px-4 py-3 rounded-xl border border-[#E9ECEF] dark:border-[#334155] bg-[#F8FAFC] dark:bg-[#0F1419] text-[#0A2540] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00D4B3] transition-all resize-none placeholder-gray-400"
                         placeholder="Agrega notas internas sobre este reporte..."
                       />
                     </div>
 
                     {/* Información del reporte (solo lectura) */}
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Información del Reporte
+                    <div className="p-5 bg-[#0A2540]/5 dark:bg-[#0A2540]/20 rounded-xl border border-[#0A2540]/10 dark:border-[#0A2540]/40">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-[#0A2540] dark:text-[#00D4B3] mb-3">
+                        Resumen del Reporte
                       </h3>
-                      <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                        <p><span className="font-medium">Título:</span> {reporte.titulo}</p>
-                        <p><span className="font-medium">Categoría:</span> {reporte.categoria}</p>
+                      <div className="space-y-2 text-sm text-[#6C757D] dark:text-gray-400">
+                        <p><span className="font-semibold text-[#0A2540] dark:text-gray-300">Título:</span> {reporte.titulo}</p>
+                        <p><span className="font-semibold text-[#0A2540] dark:text-gray-300">Categoría:</span> {reporte.categoria}</p>
                         {reporte.usuario && (
                           <p>
-                            <span className="font-medium">Usuario:</span>{' '}
+                            <span className="font-semibold text-[#0A2540] dark:text-gray-300">Usuario:</span>{' '}
                             {reporte.usuario.display_name || reporte.usuario.username}
                           </p>
                         )}
@@ -152,18 +153,18 @@ export function EditReporteModal({ reporte, isOpen, onClose, onSave, isProcessin
                 </div>
 
                 {/* Footer */}
-                <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="bg-[#F8FAFC] dark:bg-[#0F1419] px-6 py-4 flex justify-end gap-3 border-t border-[#E9ECEF] dark:border-[#334155]">
                   <button
                     onClick={onClose}
                     disabled={isProcessing}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                    className="px-5 py-2.5 text-[#0A2540] dark:text-white hover:bg-white dark:hover:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#334155] rounded-xl transition-all font-medium text-sm shadow-sm disabled:opacity-50"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={isProcessing}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-5 py-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-xl transition-all font-medium text-sm shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isProcessing ? (
                       <>

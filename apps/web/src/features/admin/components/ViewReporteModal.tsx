@@ -2,12 +2,13 @@
 
 import { Fragment, useState, useMemo, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon, UserIcon, ComputerDesktopIcon, PhotoIcon, LinkIcon, CalendarIcon, PencilIcon, PlayIcon, VideoCameraIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, UserIcon, ComputerDesktopIcon, PhotoIcon, LinkIcon, CalendarIcon, PencilIcon, PlayIcon, VideoCameraIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import { AdminReporte } from '../services/adminReportes.service'
 import type { RecordingSession } from '../../../lib/rrweb/session-recorder'
 
 // Importar componentes directamente (solo se cargan en el cliente)
 import { SessionPlayer, SessionInfo } from '../../../core/components/SessionPlayer/SessionPlayer'
+import { SessionRecordingLoader, RecordingInfo } from '../../../core/components/SessionPlayer/SessionRecordingLoader'
 
 interface ViewReporteModalProps {
   reporte: AdminReporte
@@ -25,9 +26,16 @@ export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewRepor
     setIsMounted(true)
   }, [])
 
-  // Parsear la sesión grabada
+  // Detectar si session_recording es una URL o datos base64
+  const isRecordingUrl = useMemo(() => {
+    if (!reporte.session_recording) return false
+    return reporte.session_recording.startsWith('http://') || 
+           reporte.session_recording.startsWith('https://')
+  }, [reporte.session_recording])
+
+  // Parsear la sesión grabada (solo si NO es URL)
   const session = useMemo<RecordingSession | null>(() => {
-    if (!reporte.session_recording) return null
+    if (!reporte.session_recording || isRecordingUrl) return null
     
     try {
       // Decodificar base64 manejando UTF-8 correctamente
@@ -41,7 +49,7 @@ export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewRepor
       const parsedSession = JSON.parse(jsonString)
       
       // Debug: Verificar estructura de la sesión
-      console.log('📦 Sesión parseada:', {
+      console.log('📦 Sesión parseada (base64):', {
         totalEvents: parsedSession.events?.length || 0,
         hasSnapshot: parsedSession.events?.some((e: any) => e.type === 2) || false,
         eventTypes: parsedSession.events?.map((e: any) => e.type).slice(0, 10) || [],
@@ -54,38 +62,41 @@ export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewRepor
       console.error('Error al parsear sesión:', error)
       return null
     }
-  }, [reporte.session_recording])
+  }, [reporte.session_recording, isRecordingUrl])
+
+  // Verificar si hay grabación disponible (URL o datos)
+  const hasRecording = Boolean(reporte.session_recording)
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'pendiente':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+        return 'bg-yellow-100/50 text-yellow-800 dark:bg-[#F59E0B]/20 dark:text-[#F59E0B] border border-yellow-200 dark:border-[#F59E0B]/30'
       case 'en_revision':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+        return 'bg-blue-100/50 text-blue-800 dark:bg-[#00D4B3]/20 dark:text-[#00D4B3] border border-blue-200 dark:border-[#00D4B3]/30'
       case 'en_progreso':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+        return 'bg-purple-100/50 text-purple-800 dark:bg-[#0A2540]/60 dark:text-blue-200 border border-purple-200 dark:border-blue-800'
       case 'resuelto':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+        return 'bg-green-100/50 text-green-800 dark:bg-[#10B981]/20 dark:text-[#10B981] border border-green-200 dark:border-[#10B981]/30'
       case 'rechazado':
       case 'duplicado':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+        return 'bg-red-100/50 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-900/50'
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
     }
   }
 
   const getPrioridadColor = (prioridad: string) => {
     switch (prioridad) {
       case 'critica':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-300 dark:border-red-700'
+        return 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-800/50'
       case 'alta':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-300 dark:border-orange-700'
+        return 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 border-orange-200 dark:border-orange-800/50'
       case 'media':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-300 dark:border-yellow-700'
+        return 'bg-yellow-50 text-yellow-700 dark:bg-[#F59E0B]/10 dark:text-[#F59E0B] border-yellow-200 dark:border-[#F59E0B]/20'
       case 'baja':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-700'
+        return 'bg-green-50 text-green-700 dark:bg-[#10B981]/10 dark:text-[#10B981] border-green-200 dark:border-[#10B981]/20'
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+        return 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700'
     }
   }
 
@@ -125,7 +136,7 @@ export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewRepor
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/25 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-[#0F1419]/80 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -139,308 +150,310 @@ export function ViewReporteModal({ reporte, isOpen, onClose, onEdit }: ViewRepor
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-xl transition-all">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
-                  <Dialog.Title className="text-xl font-bold text-white">
-                    Detalles del Reporte
-                  </Dialog.Title>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={onEdit}
-                      className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
-                      title="Editar reporte"
-                    >
-                      <PencilIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={onClose}
-                      className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
-                    >
-                      <XMarkIcon className="h-5 w-5" />
-                    </button>
+              <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#334155] shadow-2xl transition-all flex h-[85vh]">
+                
+                {/* 👈 LEFT PREVIEW PANEL (320px fixed) */}
+                <div className="hidden lg:flex w-80 flex-col border-r border-[#E9ECEF] dark:border-[#334155] bg-gradient-to-br from-[#0A2540]/5 to-[#00D4B3]/5 dark:from-[#0A2540]/30 dark:to-[#00D4B3]/10 relative overflow-y-auto custom-scrollbar">
+                  <div className="p-8 flex flex-col h-full">
+                    {/* Icono Animado */}
+                    <div className="relative mb-8 self-center">
+                      <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-lg shadow-[#00D4B3]/20">
+                         <ExclamationTriangleIcon className="h-10 w-10 text-white" />
+                      </div>
+                      <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#00D4B3] flex items-center justify-center border-2 border-[#1E2329]">
+                         <span className="text-xs font-bold text-[#0A2540]">!</span>
+                      </div>
+                    </div>
+
+                    {/* Meta Info */}
+                    <div className="space-y-6 flex-1">
+                      <div>
+                        <h4 className="text-xs font-bold text-[#6C757D] dark:text-gray-400 uppercase tracking-wider mb-2">Estado</h4>
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${getEstadoColor(reporte.estado)} bg-opacity-10 w-full justify-center`}>
+                           <span className="font-medium text-sm">{getEstadoLabel(reporte.estado)}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-bold text-[#6C757D] dark:text-gray-400 uppercase tracking-wider mb-2">Prioridad</h4>
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${getPrioridadColor(reporte.prioridad)} bg-opacity-10 w-full justify-center`}>
+                           <span className="font-medium text-sm">{reporte.prioridad.toUpperCase()}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-bold text-[#6C757D] dark:text-gray-400 uppercase tracking-wider mb-2">Categoría</h4>
+                        <div className="px-3 py-1.5 rounded-lg bg-[#F8FAFC] dark:bg-[#0F1419] border border-[#E9ECEF] dark:border-[#334155] text-center">
+                           <span className="text-sm text-[#0A2540] dark:text-white font-medium">{getCategoriaLabel(reporte.categoria)}</span>
+                        </div>
+                      </div>
+
+                      {/* Info Usuario */}
+                      {reporte.usuario && (
+                        <div className="pt-6 border-t border-[#E9ECEF] dark:border-[#334155]">
+                           <h4 className="text-xs font-bold text-[#6C757D] dark:text-gray-400 uppercase tracking-wider mb-3">Reportado por</h4>
+                           <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-[#0A2540] flex items-center justify-center text-white font-bold flex-shrink-0">
+                                {reporte.usuario.display_name?.charAt(0) || reporte.usuario.username.charAt(0)}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-[#0A2540] dark:text-white truncate">
+                                  {reporte.usuario.display_name || reporte.usuario.username}
+                                </p>
+                                <p className="text-xs text-[#6C757D] dark:text-gray-400 truncate">
+                                  {reporte.usuario.email}
+                                </p>
+                              </div>
+                           </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fechas Footer */}
+                    <div className="mt-8 pt-6 border-t border-[#E9ECEF] dark:border-[#334155] text-xs text-[#6C757D] dark:text-gray-500 space-y-2">
+                       <div className="flex justify-between">
+                          <span>Creado:</span>
+                          <span className="text-[#0A2540] dark:text-gray-300">{new Date(reporte.created_at).toLocaleDateString()}</span>
+                       </div>
+                       <div className="flex justify-between">
+                          <span>Hora:</span>
+                          <span className="text-[#0A2540] dark:text-gray-300">{new Date(reporte.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                       </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-                  {/* Título y badges */}
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                      {reporte.titulo}
-                    </h2>
-                    <div className="flex flex-wrap gap-2">
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getPrioridadColor(reporte.prioridad)}`}>
-                        Prioridad: {reporte.prioridad.toUpperCase()}
-                      </span>
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${getEstadoColor(reporte.estado)}`}>
-                        {getEstadoLabel(reporte.estado)}
-                      </span>
-                      <span className="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                        {getCategoriaLabel(reporte.categoria)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Descripción */}
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Descripción</h3>
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                      {reporte.descripcion}
-                    </p>
-                  </div>
-
-                  {/* Información del usuario */}
-                  {reporte.usuario && (
-                    <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <UserIcon className="h-5 w-5" />
-                        Usuario que reportó
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Nombre:</span>
-                          <p className="text-gray-900 dark:text-white font-medium">
-                            {reporte.usuario.display_name || reporte.usuario.username}
-                          </p>
-                        </div>
-                        {reporte.usuario.email && (
-                          <div>
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Email:</span>
-                            <p className="text-gray-900 dark:text-white font-medium">{reporte.usuario.email}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Información técnica */}
-                  {(reporte.navegador || reporte.screen_resolution || reporte.user_agent || reporte.pagina_url) && (
-                    <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <ComputerDesktopIcon className="h-5 w-5" />
-                        Información Técnica
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {reporte.pagina_url && (
-                          <div>
-                            <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                              <LinkIcon className="h-4 w-4" />
-                              URL:
-                            </span>
-                            <a
-                              href={reporte.pagina_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:underline break-all"
-                            >
-                              {reporte.pagina_url}
-                            </a>
-                          </div>
-                        )}
-                        {reporte.navegador && (
-                          <div>
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Navegador:</span>
-                            <p className="text-gray-900 dark:text-white font-medium">{reporte.navegador}</p>
-                          </div>
-                        )}
-                        {reporte.screen_resolution && (
-                          <div>
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Resolución:</span>
-                            <p className="text-gray-900 dark:text-white font-medium">{reporte.screen_resolution}</p>
-                          </div>
-                        )}
-                        {reporte.user_agent && (
-                          <div className="md:col-span-2">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">User Agent:</span>
-                            <p className="text-gray-900 dark:text-white font-medium text-sm break-all">
-                              {reporte.user_agent}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pasos para reproducir */}
-                  {reporte.pasos_reproducir && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Pasos para Reproducir
-                      </h3>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        {reporte.pasos_reproducir}
+                {/* 👉 RIGHT FORM/CONTENT PANEL (flex-1) */}
+                <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#1E2329]">
+                  {/* Header */}
+                  <div className="px-8 py-5 border-b border-[#E9ECEF] dark:border-[#334155] bg-white dark:bg-[#1E2329] flex items-center justify-between sticky top-0 z-10">
+                    <div>
+                      <h2 className="text-xl font-bold text-[#0A2540] dark:text-white truncate pr-4">
+                        {reporte.titulo}
+                      </h2>
+                      <p className="text-sm text-[#6C757D] dark:text-gray-400 mt-1 flex items-center gap-2">
+                         ID: <span className="font-mono text-xs opacity-70">{reporte.id.slice(0, 8)}</span>
                       </p>
                     </div>
-                  )}
-
-                  {/* Comportamiento esperado */}
-                  {reporte.comportamiento_esperado && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Comportamiento Esperado
-                      </h3>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        {reporte.comportamiento_esperado}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Screenshot */}
-                  {reporte.screenshot_url && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <PhotoIcon className="h-5 w-5" />
-                        Captura de Pantalla
-                      </h3>
-                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                        <img
-                          src={reporte.screenshot_url}
-                          alt="Screenshot del reporte"
-                          className="w-full h-auto max-h-96 object-contain bg-gray-50 dark:bg-gray-800"
-                          onError={(e) => {
-                            // Si la imagen falla al cargar, mostrar un mensaje
-                            const target = e.target as HTMLImageElement
-                            target.style.display = 'none'
-                            const parent = target.parentElement
-                            if (parent) {
-                              parent.innerHTML = `
-                                <div class="p-8 text-center text-gray-500 dark:text-gray-400">
-                                  <p>No se pudo cargar la imagen</p>
-                                  <p class="text-sm mt-2">URL: ${reporte.screenshot_url}</p>
-                                </div>
-                              `
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 🎬 NUEVO: Grabación de Sesión con rrweb */}
-                  {session && (
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                          <VideoCameraIcon className="h-5 w-5 text-purple-600" />
-                          Grabación de Sesión
-                        </h3>
-                        {!showPlayer && (
-                          <button
-                            onClick={() => setShowPlayer(true)}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-sm"
-                          >
-                            <PlayIcon className="h-4 w-4" />
-                            Reproducir
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Info de la grabación */}
-                      <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <SessionInfo session={session} showSize={true} />
-                        <div className="mt-3 text-sm text-purple-700 dark:text-purple-300">
-                          <p className="flex items-center gap-1">
-                            💡 <strong>Tip:</strong> Esta grabación muestra exactamente lo que hizo el usuario
-                            antes de reportar el problema. Incluye clicks, scrolls, inputs y navegación.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Reproductor */}
-                      {showPlayer && isMounted && (
-                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-lg">
-                          <SessionPlayer
-                            key={`player-${reporte.id}-${showPlayer}`}
-                            session={session}
-                            width="100%"
-                            height="600px"
-                            autoPlay={false}
-                            showController={true}
-                            skipInactive={true}
-                            speed={1}
-                          />
-                        </div>
-                      )}
-
-                      {!showPlayer && (
-                        <div className="p-8 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded-lg text-center">
-                          <VideoCameraIcon className="h-16 w-16 mx-auto mb-3 text-purple-400" />
-                          <p className="text-gray-600 dark:text-gray-400 mb-4">
-                            Haz clic en "Reproducir" para ver la grabación de la sesión
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-500">
-                            Tamaño: {reporte.recording_size || 'Desconocido'} • 
-                            Duración: {reporte.recording_duration ? `${Math.round(reporte.recording_duration / 1000)}s` : 'Desconocida'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Notas del admin */}
-                  {reporte.notas_admin && (
-                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Notas del Administrador
-                      </h3>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        {reporte.notas_admin}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Admin asignado */}
-                  {reporte.admin_asignado_info && (
-                    <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Administrador Asignado
-                      </h3>
-                      <p className="text-gray-700 dark:text-gray-300">
-                        {reporte.admin_asignado_info.display_name || reporte.admin_asignado_info.username}
-                        {reporte.admin_asignado_info.email && (
-                          <span className="text-gray-500 dark:text-gray-400"> ({reporte.admin_asignado_info.email})</span>
-                        )}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Fechas */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4" />
-                      <span>Creado: {new Date(reporte.created_at).toLocaleString('es-ES')}</span>
+                      <button
+                        onClick={onClose}
+                        className="p-2 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#334155] rounded-xl transition-all"
+                      >
+                        <XMarkIcon className="h-6 w-6" />
+                      </button>
                     </div>
-                    {reporte.updated_at && (
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4" />
-                        <span>Actualizado: {new Date(reporte.updated_at).toLocaleString('es-ES')}</span>
+                  </div>
+
+                  {/* Scrollable Content */}
+                  <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8">
+                    
+                    {/* Descripción */}
+                    <section>
+                       <h3 className="text-sm font-bold text-[#0A2540] dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                          <span className="w-1 h-4 bg-[#00D4B3] rounded-full"></span>
+                          Descripción
+                       </h3>
+                       <div className="p-5 bg-[#F8FAFC] dark:bg-[#0F1419] rounded-xl border border-[#E9ECEF] dark:border-[#334155]">
+                          <p className="text-[#0A2540] dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            {reporte.descripcion}
+                          </p>
+                       </div>
+                    </section>
+
+                    {/* Pasos y Comportamiento (Grid) */}
+                    {(reporte.pasos_reproducir || reporte.comportamiento_esperado) && (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                         {reporte.pasos_reproducir && (
+                            <section>
+                               <h3 className="text-sm font-bold text-[#0A2540] dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                                  <span className="w-1 h-4 bg-[#F59E0B] rounded-full"></span>
+                                  Pasos para Reproducir
+                               </h3>
+                               <div className="p-4 bg-[#F8FAFC] dark:bg-[#0F1419] rounded-xl border border-[#E9ECEF] dark:border-[#334155] h-full">
+                                  <p className="text-sm text-[#0A2540] dark:text-gray-300 whitespace-pre-wrap font-mono">
+                                    {reporte.pasos_reproducir}
+                                  </p>
+                               </div>
+                            </section>
+                         )}
+                         {reporte.comportamiento_esperado && (
+                            <section>
+                               <h3 className="text-sm font-bold text-[#0A2540] dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                                  <span className="w-1 h-4 bg-[#10B981] rounded-full"></span>
+                                  Comportamiento Esperado
+                               </h3>
+                               <div className="p-4 bg-[#F8FAFC] dark:bg-[#0F1419] rounded-xl border border-[#E9ECEF] dark:border-[#334155] h-full">
+                                  <p className="text-sm text-[#0A2540] dark:text-gray-300 whitespace-pre-wrap">
+                                    {reporte.comportamiento_esperado}
+                                  </p>
+                               </div>
+                            </section>
+                         )}
                       </div>
                     )}
-                    {reporte.resuelto_at && (
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4" />
-                        <span>Resuelto: {new Date(reporte.resuelto_at).toLocaleString('es-ES')}</span>
-                      </div>
+
+                    {/* Contexto Técnico Completo */}
+                    <section>
+                       <h3 className="text-sm font-bold text-[#0A2540] dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                          <span className="w-1 h-4 bg-[#0A2540] dark:bg-gray-500 rounded-full"></span>
+                          Contexto Técnico
+                       </h3>
+                       <div className="bg-[#0F1419] rounded-xl border border-[#334155] overflow-hidden">
+                          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#334155]">
+                             {reporte.pagina_url && (
+                                <div className="p-4">
+                                   <div className="text-xs text-[#6C757D] dark:text-gray-500 mb-1">URL</div>
+                                   <a href={reporte.pagina_url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#00D4B3] hover:underline break-all block">
+                                      {(() => {
+                                        try {
+                                          return new URL(reporte.pagina_url).pathname
+                                        } catch {
+                                          return reporte.pagina_url
+                                        }
+                                      })()}
+                                   </a>
+                                </div>
+                             )}
+                             {reporte.navegador && (
+                                <div className="p-4">
+                                   <div className="text-xs text-[#6C757D] dark:text-gray-500 mb-1">Navegador</div>
+                                   <div className="text-sm text-white">{reporte.navegador}</div>
+                                </div>
+                             )}
+                             {reporte.screen_resolution && (
+                                <div className="p-4">
+                                   <div className="text-xs text-[#6C757D] dark:text-gray-500 mb-1">Resolución</div>
+                                   <div className="text-sm text-white">{reporte.screen_resolution}</div>
+                                </div>
+                             )}
+                          </div>
+                       </div>
+                    </section>
+
+                    {/* Evidencia Visual (Screenshot & Video) */}
+                    {(reporte.screenshot_url || hasRecording) && (
+                      <section>
+                         <h3 className="text-sm font-bold text-[#0A2540] dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <span className="w-1 h-4 bg-purple-500 rounded-full"></span>
+                            Evidencia
+                         </h3>
+                         
+                         <div className="space-y-4">
+                            {/* Screenshot */}
+                            {reporte.screenshot_url && (
+                               <div className="rounded-xl border border-[#E9ECEF] dark:border-[#334155] overflow-hidden bg-black/5 dark:bg-black/20 group">
+                                  <div className="relative">
+                                     <img 
+                                       src={reporte.screenshot_url} 
+                                       alt="Screenshot" 
+                                       className="w-full max-h-[300px] object-contain mx-auto"
+                                     />
+                                     <a 
+                                       href={reporte.screenshot_url} 
+                                       target="_blank" 
+                                       rel="noopener noreferrer"
+                                       className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-medium"
+                                     >
+                                        <div className="flex items-center gap-2 bg-[#1E2329] px-4 py-2 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                                           <PhotoIcon className="h-5 w-5" />
+                                           Ver imagen original
+                                        </div>
+                                     </a>
+                                  </div>
+                               </div>
+                            )}
+
+                            {/* Recording */}
+                            {hasRecording && (
+                               <div className="p-1 rounded-xl bg-gradient-to-r from-[#0A2540] via-[#00D4B3] to-[#0A2540]">
+                                   <div className="bg-[#0F1419] rounded-lg p-6 text-center">
+                                      {showPlayer ? (
+                                         <div className="rounded-lg overflow-hidden border border-[#334155]">
+                                             {isRecordingUrl ? (
+                                                <SessionRecordingLoader
+                                                  key={`url-player-${reporte.id}`}
+                                                  recordingUrl={reporte.session_recording!}
+                                                  width="100%"
+                                                  height="400px"
+                                                  autoPlay={false}
+                                                  showController={true}
+                                                  skipInactive={true}
+                                                  speed={1}
+                                                />
+                                              ) : session ? (
+                                                <SessionPlayer
+                                                  key={`player-${reporte.id}-${showPlayer}`}
+                                                  session={session}
+                                                  width="100%"
+                                                  height="400px"
+                                                  autoPlay={false}
+                                                  showController={true}
+                                                  skipInactive={true}
+                                                  speed={1}
+                                                />
+                                              ) : (
+                                                <div className="p-8 text-center text-gray-500">Error cargando sesión</div>
+                                              )}
+                                         </div>
+                                      ) : (
+                                        <div className="flex flex-col items-center py-4">
+                                           <div className="w-16 h-16 rounded-full bg-[#00D4B3]/10 flex items-center justify-center mb-4 animate-pulse">
+                                              <VideoCameraIcon className="h-8 w-8 text-[#00D4B3]" />
+                                           </div>
+                                           <h3 className="text-white font-bold text-lg mb-2">Grabación de Sesión Disponible</h3>
+                                           <p className="text-gray-400 text-sm mb-6 max-w-md">
+                                              Reproduce la sesión exacta del usuario para entender el contexto del problema paso a paso.
+                                           </p>
+                                           <button 
+                                              onClick={() => setShowPlayer(true)}
+                                              className="px-6 py-2.5 bg-[#00D4B3] hover:bg-[#00bda0] text-white font-bold rounded-xl shadow-lg shadow-[#00D4B3]/20 flex items-center gap-2 transition-transform hover:scale-105"
+                                           >
+                                              <PlayIcon className="h-5 w-5" />
+                                              Reproducir Sesión
+                                           </button>
+                                        </div>
+                                      )}
+                                   </div>
+                               </div>
+                            )}
+                         </div>
+                    </section>
+                  )}
+                    
+                    {/* Admin Notes */}
+                    {reporte.notas_admin && (
+                      <section className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-xl border border-blue-100 dark:border-blue-900/20">
+                         <h3 className="text-sm font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <PencilIcon className="h-4 w-4" />
+                            Notas del Administrador
+                         </h3>
+                         <p className="text-sm text-blue-900 dark:text-blue-200">
+                           {reporte.notas_admin}
+                         </p>
+                      </section>
                     )}
+
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="px-8 py-5 border-t border-[#E9ECEF] dark:border-[#334155] bg-[#F8FAFC] dark:bg-[#1E2329] flex justify-end gap-3 rounded-br-2xl sticky bottom-0 z-10">
+                     <button
+                        onClick={onClose}
+                        className="px-6 py-2.5 rounded-xl font-medium text-[#6C757D] dark:text-gray-300 hover:bg-[#E9ECEF] dark:hover:bg-[#334155] transition-colors"
+                     >
+                        Cerrar
+                     </button>
+                     <button
+                        onClick={onEdit}
+                        className="px-6 py-2.5 rounded-xl font-medium text-white bg-gradient-to-r from-[#0A2540] to-[#0F2E4D] hover:shadow-lg hover:to-[#0A2540] border border-transparent hover:border-[#00D4B3]/50 transition-all flex items-center gap-2"
+                     >
+                        <PencilIcon className="h-5 w-5" />
+                        Gestionar Reporte
+                     </button>
                   </div>
                 </div>
 
-                {/* Footer */}
-                <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={onClose}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  >
-                    Cerrar
-                  </button>
-                  <button
-                    onClick={onEdit}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    Editar Reporte
-                  </button>
-                </div>
               </Dialog.Panel>
             </Transition.Child>
           </div>

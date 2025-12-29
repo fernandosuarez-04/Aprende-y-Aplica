@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { createClient } from '../../../../lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { DATABASE_SCHEMA_CONTEXT } from '../../../../lib/lia-context/database-schema';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,7 +17,12 @@ const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asiste
 '- Plataforma: SOFIA (Sistema de Formación Inteligente y Aprendizaje)\n' +
 '- Rol: Asistente inteligente de aprendizaje y desarrollo profesional\n' +
 '- Personalidad: Profesional, amigable, proactiva y motivadora\n' +
-'- Idioma: Español (México) por defecto\n\n' +
+'- Idioma: Multilingüe (Español, Inglés, Portugués)\n\n' +
+'## Manejo de Idioma\n' +
+'1. Eres capaz de comunicarte fluidamente en Español, Inglés y Portugués.\n' +
+'2. Detecta AUTOMÁTICAMENTE el idioma del último mensaje del usuario y responde en ese mismo idioma.\n' +
+'3. Si el usuario cambia de idioma a mitad de la conversación, adáptate inmediatamente.\n' +
+'4. Mantén la personalidad y formato profesional en todos los idiomas.\n\n' +
 '## Tus Capacidades\n' +
 '1. Gestión de Cursos: Ayudar a organizar y dar seguimiento al aprendizaje\n' +
 '2. Orientación Educativa: Guiar sobre talleres, certificaciones y rutas de aprendizaje \n' +
@@ -38,7 +45,7 @@ const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asiste
 '- Usa *cursivas* para términos técnicos o énfasis suave\n' +
 '- Usa guiones simples (-) para listas\n' +
 '- Usa números (1., 2., 3.) para pasos ordenados\n' +
-'- Usa emojis de forma moderada para ser amigable 🎯\n' +
+'- NUNCA uses emojis en tus respuestas. Mantén un tono estrictamente profesional.\n' +
 '- NUNCA uses almohadillas (#) para títulos\n\n' +
 '## IMPORTANTE - Formato de Enlaces\n' +
 'Cuando menciones páginas o rutas de la plataforma, SIEMPRE usa formato de hipervínculo:\n' +
@@ -259,68 +266,412 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
 // CONTEXTO GLOBAL DE UI Y MODALES
 // ============================================
 const GLOBAL_UI_CONTEXT = `
-## GLOSARIO DE INTERFAZ Y MODALES (SOFIA UI)
-Usa esta información para entender los elementos visuales que el usuario puede estar viendo y responder dudas sobre "qué significa esto en este modal" o "qué hago aquí".
+## GLOSARIO COMPLETO DE LA PLATAFORMA SOFIA
+Usa esta información para entender todos los elementos, páginas, modales y funcionalidades de la plataforma.
+Cuando el usuario pregunte "¿qué es esto?" o "¿cómo hago X?", usa este contexto para dar respuestas precisas.
 
-### 🏢 PANEL DE NEGOCIOS (/business-panel)
+---
+
+### 🏢 PANEL DE NEGOCIOS (BUSINESS PANEL) - Solo Administradores Empresariales
+Ruta base: /business-panel
 
 **1. DASHBOARD PRINCIPAL (/business-panel/dashboard)**
-- **Resumen**: Vista general de métricas clave (Usuarios Activos, Tasa de Finalización, Horas de Formación).
-- **Widgets**: Actividad reciente, Gráficos de progreso general, Rankings de aprendizaje.
+- **Estadísticas Generales**: Tarjetas con métricas clave:
+  - Cursos Asignados (total de cursos distribuidos)
+  - En Progreso (cursos que los usuarios están tomando)
+  - Completados (cursos finalizados)
+  - Certificados (diplomas emitidos)
+- **Widgets disponibles**:
+  - Actividad reciente de usuarios
+  - Gráficos de progreso general
+  - Rankings de aprendizaje
+  - Cursos más populares
+- **Fecha del sistema**: Muestra la fecha actual y estado del sistema ("System Active")
 
 **2. GESTIÓN DE EQUIPOS (/business-panel/teams)**
 - **Lista de Equipos**: Permite crear y gestionar departamentos o grupos de trabajo.
-- **Modal: Nuevo Equipo / Editar Equipo**:
-  - Campos: Nombre del equipo, Descripción, Líder asignado.
-  - **Líder de Equipo**: Usuario con permisos especiales para ver el progreso SOLO de su equipo.
-- **Detalle de Equipo (Pestañas)**:
-  - **Analíticas**: Gráficos específicos del rendimiento del equipo.
-  - **Objetivos**: Metas de aprendizaje grupales (ej: "Completar 3 cursos este mes").
-  - **Cursos**: Formación asignada obligatoria u opcional para el grupo.
-  - **Miembros**: Lista de empleados en este equipo.
+- **Modal: Crear/Editar Equipo (BusinessTeamModal)**:
+  - Campos: Nombre del equipo, Descripción, Imagen del equipo
+  - **Líder de Equipo**: Usuario con permisos especiales para ver el progreso SOLO de su equipo
+  - Permite subir imagen corporativa del equipo
+- **Detalle de Equipo - PESTAÑAS**:
+  - **📊 Analíticas (TeamAnalyticsTab)**: Gráficos específicos del rendimiento del equipo, métricas de avance, engagement
+  - **🎯 Objetivos (TeamObjectivesTab)**: Metas de aprendizaje grupales (ej: "Completar 3 cursos este mes")
+    - Modal: TeamObjectiveModal para crear/editar objetivos
+  - **📚 Cursos (TeamCoursesTab)**: Formación asignada obligatoria u opcional para el grupo
+    - Modal: BusinessAssignCourseToTeamModal para asignar cursos al equipo
+  - **👥 Miembros**: Lista de empleados en este equipo
+  - **💬 Chat (TeamChatTab)**: Comunicación interna del equipo
+  - **📝 Feedback (TeamFeedbackTab)**: Sistema de retroalimentación
+    - Modal: TeamFeedbackModal para dar/recibir feedback
 
 **3. GESTIÓN DE USUARIOS (/business-panel/users)**
-- **Modal: Agregar Usuario**:
-  - Invitación individual por correo electrónico.
-  - Asignación inmediata a equipo y rol.
-- **Modal: Importar Usuarios (CSV)**: Para cargas masivas de empleados.
-- **Roles de Usuario**:
+- **Lista de usuarios**: Tabla con todos los empleados de la organización
+- **Modal: Agregar Usuario (BusinessAddUserModal)**:
+  - Invitación individual por correo electrónico
+  - Campos: Email, Nombre, Apellido, Rol, Equipo asignado
+  - Asignación inmediata a equipo y rol
+- **Modal: Editar Usuario (BusinessEditUserModal)**:
+  - Modificar datos del empleado
+  - Cambiar rol o equipo
+  - Activar/desactivar usuario
+- **Modal: Eliminar Usuario (BusinessDeleteUserModal)**:
+  - Confirmación antes de eliminar
+  - Opción de transferir cursos a otro usuario
+- **Modal: Importar Usuarios CSV (BusinessImportUsersModal)**:
+  - Para cargas masivas de empleados
+  - Formato CSV con columnas: email, nombre, apellido, equipo, rol
+  - Validación automática de datos
+- **Modal: Estadísticas de Usuario (BusinessUserStatsModal)**:
+  - Detalle individual completo
+  - Tiempo invertido en formación
+  - Cursos terminados y en progreso
+  - Notas y calificaciones
+  - Historial de acceso
+- **Roles de Usuario disponibles**:
   * **Administrador (Admin)**: Acceso total. Puede ver todos los equipos, facturación y configuración.
   * **Manager (Gerente)**: Gestiona equipos asignados. Solo ve progreso de sus subordinados.
-  * **Estudiante (Empleado)**: Solo accede a "Mis Cursos" y su propio perfil.
-- **Modal: Estadísticas de Usuario**: Detalle individual de tiempo invertido, cursos terminados y notas.
+  * **Estudiante (Empleado/User)**: Solo accede a "Mis Cursos" y su propio perfil.
 
-**4. ASIGNACIÓN DE CURSOS Y FECHAS (/business-panel/courses)**
-- **Modal: Asignar Curso**:
-  - Se puede asignar a: Usuario individual o Equipo completo.
-  - **Sugerencias de Fecha Límite (LIA)**:
-    * **Rápido (⚡)**: ~12 horas/semana. Dedicación muy intensiva (Sprints).
-    * **Equilibrado (⚖️)**: ~4 horas/semana. Ritmo estándar sostenible.
-    * **Largo (🌱)**: ~2 horas/semana. Aprendizaje ligero y pausado.
+**4. CATÁLOGO Y ASIGNACIÓN DE CURSOS (/business-panel/courses)**
+- **Catálogo de cursos**: Grid de cursos disponibles para asignar
+- **Tarjeta de curso**: Muestra imagen, título, duración, progreso actual
+- **Etiqueta "En progreso"**: Indica cursos ya asignados
+- **Modal: Asignar Curso (BusinessAssignCourseModal)**:
+  - **Paso 1 - Selección de destino**:
+    - Pestaña "Usuarios": Lista de empleados con checkbox para seleccionar
+    - Pestaña "Equipos": Lista de equipos para asignar a todo el grupo
+    - Búsqueda y filtros
+    - "Seleccionar todos" disponible
+  - **Paso 2 - Configuración de fechas**:
+    - Fecha de inicio
+    - Fecha límite (deadline)
+    - **Botón "✨ Sugerir con IA"**: Abre el modal de sugerencias de LIA
+  - **Icono de candado 🔒**: Indica funciones bloqueadas por plan
+- **Modal: Sugerencias de Fecha Límite LIA (LiaDeadlineSuggestionModal)**:
+  - **Paso 1**: Elegir enfoque de aprendizaje:
+    * **⚡ Rápido**: ~12 horas/semana. Sprint intensivo. Para urgencias.
+    * **⚖️ Equilibrado**: ~4 horas/semana. Ritmo estándar sostenible.
+    * **🌱 Largo**: ~2 horas/semana. Aprendizaje ligero y pausado.
+  - **Paso 2**: Ver fechas sugeridas con duración estimada
+  - **Paso 3**: Confirmar selección
 
 **5. REPORTES Y ANALÍTICAS (/business-panel/analytics)**
+- **Componente BusinessAnalytics**: Dashboard de métricas avanzado
 - **Secciones**:
-  - **Progreso**: Curvas de avance en el tiempo.
-  - **Engagement**: Frecuencia de acceso de los usuarios.
-  - **Contenido**: Qué cursos son más populares o difíciles.
-- **Exportación**: Posibilidad de descargar reportes en CSV/PDF.
+  - **Progreso**: Curvas de avance en el tiempo, gráficos de línea
+  - **Engagement**: Frecuencia de acceso de los usuarios, horas activas
+  - **Contenido**: Qué cursos son más populares o difíciles
+  - **Comparativas**: Rendimiento entre equipos
+- **Exportación**: Posibilidad de descargar reportes en CSV/PDF
+- **Filtros**: Por fecha, equipo, curso, usuario
 
-**6. CONFIGURACIÓN (/business-panel/settings)**
-- **General**: Datos de la empresa (Nombre, Sector, Tamaño).
-- **Branding (Personalización)**:
-  - Subida de Logo corporativo.
-  - Selección de colores primarios y secundarios para la interfaz de los empleados.
-- **Certificados**: Personalización del diploma que reciben los empleados al finalizar (Logos, firmas).
-- **Suscripción**: Gestión del plan contratado, métodos de pago y facturas.
+**6. REPORTES (/business-panel/reports)**
+- **BusinessReports**: Generación de reportes personalizados
+- **ReportTable**: Tablas de datos exportables
+- **Tipos de reportes**:
+  - Progreso por usuario
+  - Progreso por equipo
+  - Completados por curso
+  - Engagement semanal/mensual
 
-### 🎓 PLANIFICADOR DE ESTUDIO (Dashboard Estudiante)
-Contexto: Organización personal del tiempo de aprendizaje.
-- **Configuración Inicial**: El usuario elige días de la semana y franjas horarias (Mañana/Tarde/Noche).
-- **Reprogramación**: Si el usuario pierde una sesión, puede "Reagendar" para mover el contenido pendiente al siguiente hueco libre.
+**7. CONFIGURACIÓN (/business-panel/settings)**
+- **BusinessSettings**: Panel de configuración completo
+- **Pestañas disponibles**:
+  - **General**: Datos de la empresa (Nombre, Sector, Tamaño, Logo)
+  - **Branding (Personalización visual - BusinessThemeCustomizer)**:
+    - Subida de Logo corporativo (diferentes tamaños)
+    - Modal: ImageAdjustmentModal para recortar/ajustar imágenes
+    - Selección de colores primarios y secundarios
+    - BrandingColorPicker para elegir colores
+    - Vista previa en tiempo real
+  - **Certificados (BusinessCertificateCustomizer)**:
+    - Personalización del diploma que reciben los empleados
+    - Subir logo de la empresa
+    - Agregar firma digital
+    - Cambiar colores del certificado
+  - **Suscripción (BusinessSubscriptionPlans)**:
+    - Ver plan actual
+    - Comparar planes disponibles
+    - Gestión de métodos de pago
+    - Historial de facturas
 
-### 🛠️ GENERAL
-- **Modales de Confirmación**: Suelen requerir una acción explícita ("Aceptar", "Eliminar") para cambios destructivos.
-- **Notificaciones**: Alertas sobre asignaciones nuevas, recordatorios de fechas límite o logros desbloqueados.
+**8. PROGRESO (/business-panel/progress)**
+- **BusinessTeamProgress**: Vista de progreso por equipos
+- Métricas de avance visual
+- Alertas de usuarios rezagados
+
+---
+
+### 👤 PANEL DE USUARIO EMPRESARIAL (BUSINESS USER)
+Ruta base: /business-user
+Vista para empleados de una organización que usan la plataforma.
+
+**1. DASHBOARD (/business-user/dashboard)**
+- **Vista personalizada**: Dashboard con branding de la empresa
+- **Mis cursos asignados**: Cursos que la empresa le asignó
+- **Progreso personal**: Estadísticas individuales
+- **Fechas límite**: Deadlines de cursos obligatorios
+- **Certificados obtenidos**: Diplomas descargables
+
+**2. SCORM (/business-user/scorm)**
+- Visor de contenido SCORM
+- Cursos de terceros integrados
+
+**3. EQUIPOS (/business-user/teams)**
+- Ver equipo al que pertenece
+- Chat con compañeros
+- Objetivos del equipo
+
+---
+
+### 🏠 DASHBOARD PRINCIPAL (/dashboard)
+Vista principal para usuarios individuales (B2C).
+
+**Elementos visuales**:
+- **Estadísticas rápidas (Sidebar)**:
+  - Horas totales de aprendizaje
+  - Cursos completados
+  - Racha de días
+- **Catálogo de cursos/talleres**: Grid con todos los cursos disponibles
+- **Filtros por categoría**: Barras de categorías dinámicas
+- **Tarjeta de curso**:
+  - Imagen del curso
+  - Título y descripción breve
+  - Rating y número de estudiantes
+  - Precio o "Inscrito"
+  - Botón de favoritos (corazón)
+  - Botón de carrito
+- **Actividad reciente**: Últimas acciones del usuario
+
+---
+
+### 📚 MIS CURSOS (/my-courses)
+Cursos en los que el usuario está inscrito.
+
+**Elementos**:
+- **Estadísticas de progreso**: Cursos totales, completados, en progreso
+- **Grid de cursos**: Solo cursos donde está inscrito
+- **Indicador de progreso**: Barra de porcentaje completado
+- **Botón "Continuar"**: Ir a la última lección vista
+- **Filtros**: Por estado (todos, en progreso, completados)
+
+---
+
+### 📖 VISTA DE CURSO (/courses/[slug])
+Página de detalle de un curso específico.
+
+**Secciones**:
+- **Hero del curso**: Imagen, título, descripción
+- **Información del instructor**
+- **Temario/Contenido**: Lista de módulos y lecciones
+- **Botón de inscripción/compra**
+- **Reviews y ratings**
+
+---
+
+### 🎬 REPRODUCTOR DE LECCIONES (/courses/[slug]/learn)
+Vista de aprendizaje activo.
+
+**Elementos**:
+- **Video player**: Reproductor con transcripción sincronizada
+- **Panel de contenido**: Resumen, materiales descargables
+- **Navegación de lecciones**: Lista lateral de módulos/lecciones
+- **Actividades interactivas**: Quizzes, ejercicios, reflexiones
+- **LIA en contexto**: Puedo ayudar con dudas sobre el contenido actual
+- **Barra de progreso**: Indicador de avance en el módulo
+
+---
+
+### 👥 COMUNIDADES (/communities)
+Espacio de networking y aprendizaje grupal.
+
+**Elementos**:
+- **Lista de comunidades**: Cards con imagen, nombre, miembros
+- **Búsqueda y filtros**: Por categoría, nivel
+- **Modal de detalles**: Información completa de la comunidad
+- **Modal de normas**: Reglas de participación
+- **Botón "Unirse"**: Acceso público o solicitud de acceso
+- **Estadísticas globales**: Total de comunidades, miembros activos
+
+---
+
+### 📰 NOTICIAS (/news)
+Centro de contenido editorial.
+
+**Pestañas**:
+- **Noticias**: Artículos escritos sobre IA y tecnología
+- **Reels**: Videos cortos verticales (similar a TikTok/Instagram)
+
+**Elementos**:
+- **Noticias destacadas**: Carousel de las más importantes
+- **Grid/Lista de noticias**: Vista configurable
+- **Filtros**: Por categoría, idioma, fecha
+- **Búsqueda**: Por texto
+
+---
+
+### 🎥 REELS (/reels o pestaña en /news)
+Videos cortos sobre IA.
+
+**Funcionalidades**:
+- Reproducción automática
+- Navegación vertical (swipe)
+- Likes y compartir
+- Comentarios
+
+---
+
+### 👤 PERFIL (/profile)
+Configuración de datos personales.
+
+**Secciones**:
+- **Avatar**: Subir foto de perfil
+- **Información personal**: Nombre, apellido, email
+- **Información profesional**: Cargo, empresa, área
+- **Enlaces sociales**: LinkedIn, Twitter, portafolio
+- **CV**: Subir curriculum en PDF
+- **Puntos del usuario**: Sistema de gamificación
+
+---
+
+### 🏆 CERTIFICADOS (/certificates)
+Diplomas obtenidos.
+
+**Elementos**:
+- **Grid de certificados**: Cards con miniatura
+- **Botón descargar**: PDF con diseño profesional
+- **Botón compartir**: LinkedIn, redes sociales
+- **Detalles**: Fecha de obtención, curso, instructor
+
+---
+
+### ⚙️ CONFIGURACIÓN DE CUENTA (/account-settings)
+Preferencias del usuario.
+
+**Secciones**:
+- **Notificaciones**: Configurar alertas por email, push
+- **Privacidad**: Visibilidad del perfil
+- **Idioma**: Español, Inglés, Portugués
+- **Tema**: Claro/Oscuro
+
+---
+
+### 🛒 CARRITO (/cart)
+Gestión de compras.
+
+**Elementos**:
+- **Lista de items**: Cursos agregados
+- **Precio individual y total**
+- **Botón eliminar**
+- **Proceso de checkout**
+- **Métodos de pago**
+
+---
+
+### 📋 HISTORIAL DE COMPRAS (/purchase-history)
+Transacciones pasadas.
+
+**Elementos**:
+- **Lista de compras**: Fecha, monto, cursos
+- **Descarga de facturas**: PDF
+- **Estado**: Completado, pendiente, reembolsado
+
+---
+
+### 🎓 PLANIFICADOR DE ESTUDIO (Study Planner)
+Organización personal del tiempo de aprendizaje.
+
+**Configuración inicial**:
+- Elegir días de la semana disponibles
+- Elegir franjas horarias (Mañana/Tarde/Noche)
+- Duración de sesiones preferida
+
+**Funcionalidades**:
+- **Calendario visual**: Ver sesiones programadas
+- **Reprogramación automática**: Si pierdes una sesión, se mueve al siguiente hueco
+- **Recordatorios**: Notificaciones antes de cada sesión
+- **Modo focus**: Temporizador Pomodoro integrado
+
+---
+
+### 🛠️ ELEMENTOS COMUNES DE UI
+
+**Modales de Confirmación**:
+- Aparecen antes de acciones destructivas (eliminar, desasignar)
+- Botones: "Cancelar" y "Confirmar"
+- Texto explicativo del impacto de la acción
+
+**Notificaciones (Toast)**:
+- Aparecen en esquina inferior derecha
+- Tipos: éxito (verde), error (rojo), info (azul), advertencia (amarillo)
+- Se cierran automáticamente o con click
+
+**Loading States**:
+- Skeleton loaders en cards
+- Spinners en botones mientras procesan
+- Overlay en modales durante carga
+
+**Sistema de Temas**:
+- Modo oscuro (por defecto)
+- Colores personalizables en Business Panel
+- Gradientes y glassmorphism
+
+---
+
+### 🤖 YO (LIA - Learning Intelligence Assistant)
+
+**Quién soy**:
+- Soy LIA, la asistente de IA de SOFIA
+- Estoy aquí para ayudar con cualquier duda sobre la plataforma
+- Puedo guiar sobre cursos, navegación, funcionalidades
+
+**Quick Actions disponibles** (botones rápidos):
+- "¿Qué puedes hacer?" - Explico mis capacidades
+- "Ver mis cursos" - Dirijo a /my-courses
+- "Recomiéndame" - Sugiero cursos según perfil
+- "Ayuda rápida" - Guía de navegación
+
+**Dónde aparezco**:
+- Panel lateral derecho (LiaSidePanel)
+- Botón flotante en esquina inferior derecha (LiaFloatingButton)
+- Dentro de lecciones como mentor contextual (EmbeddedLiaPanel)
+- En Business Panel para ayuda administrativa
+
+---
+
+### 🔑 ACCESO POR ROLES
+
+| Funcionalidad | Usuario | Business User | Business Admin | Super Admin |
+|--------------|---------|---------------|----------------|-------------|
+| Dashboard | ✅ | ✅ | ✅ | ✅ |
+| Mis Cursos | ✅ | ✅ | ✅ | ✅ |
+| Comunidades | ✅ | ✅ | ✅ | ✅ |
+| Business Panel | ❌ | ❌ | ✅ | ✅ |
+| Admin Panel | ❌ | ❌ | ❌ | ✅ |
+| Asignar cursos | ❌ | ❌ | ✅ | ✅ |
+| Ver reportes empresa | ❌ | ❌ | ✅ | ✅ |
+| Configurar branding | ❌ | ❌ | ✅ | ✅ |
+
+---
+
+### 💡 GUÍAS DE AYUDA POR CONTEXTO
+
+**Si el usuario está en Business Panel y pregunta "¿qué hago aquí?":**
+- Explica que es el panel de administración de su empresa
+- Menciona las secciones: Dashboard, Equipos, Usuarios, Cursos, Reportes, Configuración
+- Ofrece guiar a la sección que necesite
+
+**Si el usuario pregunta sobre un modal específico:**
+- Usa la información de arriba para explicar cada campo
+- Da ejemplos de valores válidos
+- Advierte sobre campos obligatorios
+
+**Si el usuario está perdido:**
+- Pregunta qué intenta lograr
+- Sugiere la ruta o modal correcto
+- Ofrece guiar paso a paso
+
 `;
 
 // ============================================
@@ -345,6 +696,9 @@ function getLIASystemPrompt(context?: PlatformContext): string {
 
   // Inyectar Conocimiento Global de UI
   prompt += '\n' + GLOBAL_UI_CONTEXT + '\n';
+
+  // Inyectar Esquema de Base de Datos (Contexto Técnico)
+  prompt += '\n' + DATABASE_SCHEMA_CONTEXT + '\n';
 
   if (context) {
     prompt += '\n\n## Contexto Actual de SOFIA\n';
@@ -682,15 +1036,34 @@ export async function POST(request: NextRequest) {
 
     // ----------------------------------------------------------------
     // PROCESAMIENTO DE REPORTE DE BUGS (Server-Side Tool Call)
+    // MEJORAS v2.0:
+    // - Regex mejorado para manejar JSON multilínea
+    // - Confirmación visual al usuario
+    // - Metadata enriquecida del entorno
     // ----------------------------------------------------------------
     let clientContent = finalContent;
-    const bugReportRegex = /\[\[BUG_REPORT:({.*?})\]\]/;
+    let bugReportSaved = false;
+    
+    // Regex mejorado: permite saltos de línea y espacios dentro del JSON
+    const bugReportRegex = /\[\[BUG_REPORT:(\{[\s\S]*?\})\]\]/;
     const bugMatch = finalContent.match(bugReportRegex);
 
     if (bugMatch && bugMatch[1]) {
       try {
         console.log('🐛 Detectado intento de reporte de bug por Lia');
-        const bugData = JSON.parse(bugMatch[1]);
+        
+        // Intentar parsear el JSON (puede tener formato pretty o minificado)
+        let bugData;
+        try {
+          bugData = JSON.parse(bugMatch[1]);
+        } catch (parseError) {
+          // Intentar limpiar el JSON si tiene problemas de formato
+          const cleanedJson = bugMatch[1]
+            .replace(/[\n\r]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          bugData = JSON.parse(cleanedJson);
+        }
         
         // Limpiar el mensaje para el usuario
         clientContent = finalContent.replace(bugMatch[0], '').trim();
@@ -698,6 +1071,100 @@ export async function POST(request: NextRequest) {
         // Insertar en Base de Datos
         if (requestContext?.userId) {
           const supabase = await createClient();
+          
+          // Construir metadata enriquecida
+          const enrichedMeta = {
+            source: 'lia_chat_automatic',
+            chat_message_content: lastMessage.content,
+            ai_generated_title: bugData.title,
+            // Agregar metadata del cliente si está disponible
+            ...(body.enrichedMetadata ? {
+              client_viewport: body.enrichedMetadata.viewport,
+              client_platform: body.enrichedMetadata.platform,
+              client_language: body.enrichedMetadata.language,
+              client_timezone: body.enrichedMetadata.timezone,
+              client_connection: body.enrichedMetadata.connection,
+              client_memory: body.enrichedMetadata.memory,
+              session_duration_ms: body.enrichedMetadata.sessionDuration,
+              recent_errors: body.enrichedMetadata.errors?.slice(-5), // Últimos 5 errores
+              error_summary: body.enrichedMetadata.errorSummary,
+              context_markers: body.enrichedMetadata.contextMarkers?.slice(-10), // Últimos 10 marcadores
+              session_summary: body.enrichedMetadata.sessionSummary,
+              recording_info: body.enrichedMetadata.recordingInfo,
+            } : {}),
+            is_compressed: body.sessionSnapshot?.startsWith('gzip:') || false,
+            detected_as_bug: body.isBugReport || false,
+          };
+          
+          // 🎬 Subir grabación de rrweb al bucket si existe
+          let recordingUrl: string | null = null;
+          if (body.sessionSnapshot) {
+            try {
+              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+              const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+              
+              if (supabaseServiceKey) {
+                const supabaseAdmin = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+                  auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                  }
+                });
+                
+                // Convertir el snapshot a buffer
+                const snapshotData = body.sessionSnapshot;
+                const isCompressed = snapshotData.startsWith('gzip:');
+                let buffer: Buffer;
+                let extension: string;
+                let contentType: string;
+                
+                if (isCompressed) {
+                  // Si viene como "gzip:base64data", decodificar el base64 para obtener bytes gzip reales
+                  const base64Data = snapshotData.slice(5); // Quitar "gzip:"
+                  buffer = Buffer.from(base64Data, 'base64');
+                  extension = 'json.gz';
+                  contentType = 'application/gzip';
+                  console.log('📦 Grabación comprimida detectada, tamaño:', buffer.length, 'bytes');
+                } else {
+                  // Si es JSON plano, guardarlo como está
+                  buffer = Buffer.from(snapshotData, 'utf-8');
+                  extension = 'json';
+                  contentType = 'application/json';
+                  console.log('📋 Grabación JSON detectada, tamaño:', buffer.length, 'bytes');
+                }
+                
+                // Generar nombre único
+                const timestamp = Date.now();
+                const randomId = Math.random().toString(36).substring(2, 9);
+                const fileName = `recording-${requestContext.userId}-${timestamp}-${randomId}.${extension}`;
+                
+                // Subir a Storage
+                const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+                  .from('reportes-screenshots')
+                  .upload(fileName, buffer, {
+                    contentType,
+                    cacheControl: '3600',
+                    upsert: false
+                  });
+
+                if (uploadError) {
+                  console.error('❌ Error subiendo grabación:', uploadError);
+                } else {
+                  // Obtener URL pública
+                  const { data: publicUrlData } = supabaseAdmin.storage
+                    .from('reportes-screenshots')
+                    .getPublicUrl(uploadData.path);
+                  
+                  recordingUrl = publicUrlData.publicUrl;
+                  console.log('✅ Grabación subida exitosamente:', recordingUrl);
+                }
+              } else {
+                console.warn('⚠️ Missing SUPABASE_SERVICE_ROLE_KEY, grabación no subida');
+              }
+            } catch (uploadErr) {
+              console.error('❌ Error procesando grabación:', uploadErr);
+            }
+          }
           
           const reportPayload = {
             user_id: requestContext.userId,
@@ -708,12 +1175,21 @@ export async function POST(request: NextRequest) {
             pagina_url: requestContext.currentPage || 'chat-lia',
             user_agent: request.headers.get('user-agent'),
             estado: 'pendiente',
-            // Si hay snapshot de rrweb, guardarlo
-            session_recording: body.sessionSnapshot || null,
+            // URL de la grabación en el bucket (o null si no se pudo subir)
+            session_recording: recordingUrl,
+            // Calcular información de la grabación
+            recording_size: body.enrichedMetadata?.recordingInfo?.size || null,
+            recording_duration: body.enrichedMetadata?.sessionDuration 
+              ? Math.round(body.enrichedMetadata.sessionDuration / 1000) 
+              : null,
+            screen_resolution: body.enrichedMetadata?.viewport 
+              ? `${body.enrichedMetadata.viewport.width}x${body.enrichedMetadata.viewport.height}` 
+              : null,
             metadata: {
-              source: 'lia_chat_automatic',
-              chat_message_content: lastMessage.content,
-              ai_generated_title: bugData.title
+              ...enrichedMeta,
+              recording_status: body.recordingStatus || 'unknown',
+              has_session_recording: !!recordingUrl,
+              recording_url: recordingUrl,
             }
           };
 
@@ -721,15 +1197,36 @@ export async function POST(request: NextRequest) {
             .from('reportes_problemas')
             .insert(reportPayload);
 
-          if (matchError) {
+           if (matchError) {
              console.error('❌ Error guardando reporte de bug:', matchError);
-             // Opcional: Avisar al usuario en el chat appendiando un mensaje
+             // Agregar nota de error al mensaje
+             clientContent += '\n\n> ⚠️ _Nota: Hubo un problema técnico al guardar tu reporte, pero lo tengo registrado. El equipo técnico será notificado._';
           } else {
              console.log('✅ Reporte de bug guardado exitosamente');
+             bugReportSaved = true;
+             
+             // Mensaje diferenciado según si hay grabación o no
+             if (recordingUrl) {
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado exitosamente con grabación de sesión.** El equipo técnico podrá ver exactamente lo que pasó. ¡Gracias por ayudarnos a mejorar!';
+             } else if (body.sessionSnapshot && !recordingUrl) {
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado.** _Nota: No pudimos subir la grabación, pero hemos guardado la información del problema._ ¡Gracias por reportarlo!';
+             } else if (body.recordingStatus === 'unavailable') {
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado.** _Nota: La grabación de pantalla no estaba disponible, pero hemos guardado toda la información del problema._ ¡Gracias por reportarlo!';
+             } else if (body.recordingStatus === 'error' || body.recordingStatus === 'inactive') {
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado.** _Nota: No pudimos capturar la grabación de pantalla, pero hemos guardado los detalles del problema._ ¡Gracias por reportarlo!';
+             } else {
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado exitosamente.** El equipo técnico lo revisará pronto. ¡Gracias por ayudarnos a mejorar!';
+             }
           }
+        } else {
+          // Usuario no autenticado
+          console.warn('⚠️ No se pudo guardar el bug report: usuario no autenticado');
+          clientContent += '\n\n> ⚠️ _Para poder guardar tu reporte, necesitas estar conectado a tu cuenta._';
         }
       } catch (e) {
         console.error('❌ Error procesando JSON de bug report:', e);
+        // Log del contenido que falló para debugging
+        console.error('Contenido del match:', bugMatch[1]?.substring(0, 200));
       }
     }
 

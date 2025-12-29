@@ -151,6 +151,31 @@
     "adminPanel": "Panel de Administración",
     "instructorPanel": "Panel de Instructor",
     "logout": "Cerrar sesión"
+  },
+  "lia": {
+    "tips": [
+      "¿Encontraste un bug? Cuéntame y lo reportaré.",
+      "Si te perdiste en esta página, dime y te guío.",
+      "¿Buscas un recurso específico? Pregúntame.",
+      "Puedo explicarte cualquier concepto de tu curso.",
+      "¿Necesitas revisar tu progreso? Estoy aquí para ayudar.",
+      "Pídeme un resumen de tu última lección.",
+      "¿Quieres practicar con un quiz rápido? Solo pídelo."
+    ],
+    "quickActions": {
+      "capabilities": "¿Qué puedes hacer?",
+      "courses": "Ver mis cursos",
+      "recommend": "Recomiéndame",
+      "help": "Ayuda rápida"
+    },
+    "header": {
+      "title": "LIA",
+      "subtitle": "Asistente IA"
+    },
+    "chat": {
+      "inputPlaceholder": "Escribe un mensaje a LIA...",
+      "cleanHistory": "Limpiar conversación"
+    }
   }
 }
 

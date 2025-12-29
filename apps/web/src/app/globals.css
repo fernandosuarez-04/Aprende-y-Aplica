@@ -202,7 +202,8 @@ a {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 0px;
+  display: none;
 }
 
 /* Dark mode scrollbar */

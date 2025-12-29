@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -44,6 +45,12 @@ export function AdminReportesPage() {
   const [selectedCategoria, setSelectedCategoria] = useState('all')
   const [selectedPrioridad, setSelectedPrioridad] = useState('all')
   const [isProcessing, setIsProcessing] = useState<string | null>(null)
+  
+  // Estados para dropdowns
+  const [isStatusOpen, setIsStatusOpen] = useState(false)
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false)
+  const [isPriorityOpen, setIsPriorityOpen] = useState(false)
+
 
   // Estados para modales
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
@@ -104,33 +111,33 @@ export function AdminReportesPage() {
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'pendiente':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+        return 'bg-yellow-100/50 text-yellow-800 dark:bg-[#F59E0B]/20 dark:text-[#F59E0B] border border-yellow-200 dark:border-[#F59E0B]/30'
       case 'en_revision':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+        return 'bg-blue-100/50 text-blue-800 dark:bg-[#00D4B3]/20 dark:text-[#00D4B3] border border-blue-200 dark:border-[#00D4B3]/30'
       case 'en_progreso':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+        return 'bg-purple-100/50 text-purple-800 dark:bg-[#0A2540]/60 dark:text-blue-200 border border-purple-200 dark:border-blue-800'
       case 'resuelto':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+        return 'bg-green-100/50 text-green-800 dark:bg-[#10B981]/20 dark:text-[#10B981] border border-green-200 dark:border-[#10B981]/30'
       case 'rechazado':
       case 'duplicado':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+        return 'bg-red-100/50 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-900/50'
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
     }
   }
 
   const getPrioridadColor = (prioridad: string) => {
     switch (prioridad) {
       case 'critica':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-300 dark:border-red-700'
+        return 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-800/50'
       case 'alta':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-300 dark:border-orange-700'
+        return 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 border-orange-200 dark:border-orange-800/50'
       case 'media':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-300 dark:border-yellow-700'
+        return 'bg-yellow-50 text-yellow-700 dark:bg-[#F59E0B]/10 dark:text-[#F59E0B] border-yellow-200 dark:border-[#F59E0B]/20'
       case 'baja':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-700'
+        return 'bg-green-50 text-green-700 dark:bg-[#10B981]/10 dark:text-[#10B981] border-green-200 dark:border-[#10B981]/20'
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+        return 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700'
     }
   }
 
@@ -160,9 +167,9 @@ export function AdminReportesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F1419] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0A2540] dark:border-[#00D4B3] mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Cargando reportes...</p>
         </div>
       </div>
@@ -171,12 +178,12 @@ export function AdminReportesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F1419] flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 dark:text-red-400 mb-4">Error al cargar reportes: {error}</p>
           <button
             onClick={refetch}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-colors"
           >
             Reintentar
           </button>
@@ -186,194 +193,337 @@ export function AdminReportesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-800">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-6">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-white dark:bg-[#0F1419] transition-colors duration-300">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Reportes</h1>
-              <p className="text-gray-600 dark:text-gray-400">Administra los reportes de problemas de los usuarios</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#0A2540] dark:text-white mb-1">
+                Gestión de Reportes
+              </h1>
+              <p className="text-sm text-[#6C757D] dark:text-white/70">
+                Administra los reportes de problemas de los usuarios
+              </p>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 dark:bg-blue-600/20 rounded-lg">
-                <ExclamationTriangleIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+          <motion.div 
+            whileHover={{ y: -2, scale: 1.02 }}
+            className="bg-gradient-to-br from-[#0A2540] to-[#0A2540]/80 dark:from-[#1E2329] dark:to-[#0A2540]/30 rounded-xl p-4 border border-[#0A2540]/10 dark:border-[#6C757D]/30 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/70 dark:text-white/60 mb-1">Total</p>
+                <p className="text-2xl font-bold text-white">{stats.total}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+              <div className="w-10 h-10 rounded-lg bg-white/10 dark:bg-[#00D4B3]/10 flex items-center justify-center">
+                <ExclamationTriangleIcon className="h-5 w-5 text-white" />
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-600/20 rounded-lg">
-                <ClockIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+          <motion.div 
+            whileHover={{ y: -2, scale: 1.02 }}
+            className="bg-gradient-to-br from-[#F59E0B] to-[#F59E0B]/80 dark:from-[#1E2329] dark:to-[#F59E0B]/20 rounded-xl p-4 border border-[#F59E0B]/10 dark:border-[#6C757D]/30 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/70 dark:text-white/60 mb-1">Pendientes</p>
+                <p className="text-2xl font-bold text-white">{stats.pendientes}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pendientes</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.pendientes}</p>
+              <div className="w-10 h-10 rounded-lg bg-white/10 dark:bg-[#F59E0B]/10 flex items-center justify-center">
+                <ClockIcon className="h-5 w-5 text-white" />
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 dark:bg-purple-600/20 rounded-lg">
-                <PencilIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          <motion.div 
+            whileHover={{ y: -2, scale: 1.02 }}
+            className="bg-gradient-to-br from-[#00D4B3] to-[#00D4B3]/80 dark:from-[#1E2329] dark:to-[#00D4B3]/20 rounded-xl p-4 border border-[#00D4B3]/10 dark:border-[#6C757D]/30 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/70 dark:text-white/60 mb-1">En Progreso</p>
+                <p className="text-2xl font-bold text-white">{stats.en_progreso}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">En Progreso</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.en_progreso}</p>
+              <div className="w-10 h-10 rounded-lg bg-white/10 dark:bg-[#00D4B3]/10 flex items-center justify-center">
+                <PencilIcon className="h-5 w-5 text-white" />
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 dark:bg-green-600/20 rounded-lg">
-                <CheckCircleIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
+          <motion.div 
+            whileHover={{ y: -2, scale: 1.02 }}
+            className="bg-gradient-to-br from-[#10B981] to-[#10B981]/80 dark:from-[#1E2329] dark:to-[#10B981]/20 rounded-xl p-4 border border-[#10B981]/10 dark:border-[#6C757D]/30 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/70 dark:text-white/60 mb-1">Resueltos</p>
+                <p className="text-2xl font-bold text-white">{stats.resueltos}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Resueltos</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.resueltos}</p>
+              <div className="w-10 h-10 rounded-lg bg-white/10 dark:bg-[#10B981]/10 flex items-center justify-center">
+                <CheckCircleIcon className="h-5 w-5 text-white" />
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Filtros y Búsqueda */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-700 mb-8">
+        <div className="bg-white dark:bg-[#1E2329] rounded-2xl p-6 border border-[#E9ECEF] dark:border-[#334155] mb-8 shadow-sm">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Búsqueda */}
             <div className="flex-1">
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#6C757D]" />
                 <input
                   type="text"
                   placeholder="Buscar por título o descripción..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E9ECEF] dark:border-[#334155] bg-white dark:bg-[#0F1419] text-[#0A2540] dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] transition-all"
                 />
               </div>
             </div>
 
-            {/* Filtro Estado */}
-            <select
-              value={selectedEstado}
-              onChange={(e) => setSelectedEstado(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="en_revision">En Revisión</option>
-              <option value="en_progreso">En Progreso</option>
-              <option value="resuelto">Resuelto</option>
-              <option value="rechazado">Rechazado</option>
-              <option value="duplicado">Duplicado</option>
-            </select>
+            {/* Filtros */}
+            <div className="flex flex-wrap gap-3">
+              {/* Filtro Estado */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setIsStatusOpen(!isStatusOpen)
+                    setIsCategoryOpen(false)
+                    setIsPriorityOpen(false)
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl bg-white dark:bg-[#0A0D12] text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] transition-colors duration-200 min-w-[180px] justify-between"
+                >
+                  <span className="text-sm font-medium">
+                    {selectedEstado === 'all' ? 'Todos los estados' : getEstadoLabel(selectedEstado)}
+                  </span>
+                  <FunnelIcon className="h-4 w-4 text-[#6C757D] dark:text-white/60" />
+                </button>
+                
+                <AnimatePresence>
+                  {isStatusOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute left-0 mt-2 w-56 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-xl z-50 overflow-hidden"
+                    >
+                      {[
+                        { value: 'all', label: 'Todos los estados' },
+                        { value: 'pendiente', label: 'Pendiente' },
+                        { value: 'en_revision', label: 'En Revisión' },
+                        { value: 'en_progreso', label: 'En Progreso' },
+                        { value: 'resuelto', label: 'Resuelto' },
+                        { value: 'rechazado', label: 'Rechazado' },
+                        { value: 'duplicado', label: 'Duplicado' }
+                      ].map((item) => (
+                        <button
+                          key={item.value}
+                          onClick={() => {
+                            setSelectedEstado(item.value)
+                            setIsStatusOpen(false)
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-200 flex items-center justify-between ${
+                            selectedEstado === item.value
+                              ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] font-medium'
+                              : 'text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/30'
+                          }`}
+                        >
+                          {item.label}
+                          {selectedEstado === item.value && (
+                            <CheckCircleIcon className="h-4 w-4" />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-            {/* Filtro Categoría */}
-            <select
-              value={selectedCategoria}
-              onChange={(e) => setSelectedCategoria(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Todas las categorías</option>
-              <option value="bug">Bug</option>
-              <option value="sugerencia">Sugerencia</option>
-              <option value="contenido">Contenido</option>
-              <option value="performance">Performance</option>
-              <option value="ui-ux">UI/UX</option>
-              <option value="otro">Otro</option>
-            </select>
+              {/* Filtro Categoría */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setIsCategoryOpen(!isCategoryOpen)
+                    setIsStatusOpen(false)
+                    setIsPriorityOpen(false)
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl bg-white dark:bg-[#0A0D12] text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] transition-colors duration-200 min-w-[180px] justify-between"
+                >
+                  <span className="text-sm font-medium">
+                    {selectedCategoria === 'all' ? 'Todas las categorías' : getCategoriaLabel(selectedCategoria)}
+                  </span>
+                  <FunnelIcon className="h-4 w-4 text-[#6C757D] dark:text-white/60" />
+                </button>
+                
+                <AnimatePresence>
+                  {isCategoryOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute left-0 mt-2 w-56 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-xl z-50 overflow-hidden"
+                    >
+                      {[
+                        { value: 'all', label: 'Todas las categorías' },
+                        { value: 'bug', label: 'Bug' },
+                        { value: 'sugerencia', label: 'Sugerencia' },
+                        { value: 'contenido', label: 'Contenido' },
+                        { value: 'performance', label: 'Performance' },
+                        { value: 'ui-ux', label: 'UI/UX' },
+                        { value: 'otro', label: 'Otro' }
+                      ].map((item) => (
+                        <button
+                          key={item.value}
+                          onClick={() => {
+                            setSelectedCategoria(item.value)
+                            setIsCategoryOpen(false)
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-200 flex items-center justify-between ${
+                            selectedCategoria === item.value
+                              ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] font-medium'
+                              : 'text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/30'
+                          }`}
+                        >
+                          {item.label}
+                          {selectedCategoria === item.value && (
+                            <CheckCircleIcon className="h-4 w-4" />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-            {/* Filtro Prioridad */}
-            <select
-              value={selectedPrioridad}
-              onChange={(e) => setSelectedPrioridad(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Todas las prioridades</option>
-              <option value="critica">Crítica</option>
-              <option value="alta">Alta</option>
-              <option value="media">Media</option>
-              <option value="baja">Baja</option>
-            </select>
+              {/* Filtro Prioridad */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setIsPriorityOpen(!isPriorityOpen)
+                    setIsStatusOpen(false)
+                    setIsCategoryOpen(false)
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl bg-white dark:bg-[#0A0D12] text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] transition-colors duration-200 min-w-[180px] justify-between"
+                >
+                  <span className="text-sm font-medium">
+                    {selectedPrioridad === 'all' ? 'Todas las prioridades' : selectedPrioridad.charAt(0).toUpperCase() + selectedPrioridad.slice(1)}
+                  </span>
+                  <FunnelIcon className="h-4 w-4 text-[#6C757D] dark:text-white/60" />
+                </button>
+                
+                <AnimatePresence>
+                  {isPriorityOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute left-0 mt-2 w-56 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl shadow-xl z-50 overflow-hidden"
+                    >
+                      {[
+                        { value: 'all', label: 'Todas las prioridades' },
+                        { value: 'critica', label: 'Crítica' },
+                        { value: 'alta', label: 'Alta' },
+                        { value: 'media', label: 'Media' },
+                        { value: 'baja', label: 'Baja' }
+                      ].map((item) => (
+                        <button
+                          key={item.value}
+                          onClick={() => {
+                            setSelectedPrioridad(item.value)
+                            setIsPriorityOpen(false)
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-200 flex items-center justify-between ${
+                            selectedPrioridad === item.value
+                              ? 'bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] font-medium'
+                              : 'text-[#0A2540] dark:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/30'
+                          }`}
+                        >
+                          {item.label}
+                          {selectedPrioridad === item.value && (
+                            <CheckCircleIcon className="h-4 w-4" />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-            {/* Botones */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleApplyFilters}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
-              >
-                <FunnelIcon className="h-5 w-5" />
-                Filtrar
-              </button>
-              <button
-                onClick={handleResetFilters}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
-              >
-                Limpiar
-              </button>
+              {/* Botones de Acción */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleApplyFilters}
+                  className="px-6 py-2.5 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                >
+                  <FunnelIcon className="h-5 w-5" />
+                  Filtrar
+                </button>
+                <button
+                  onClick={handleResetFilters}
+                  className="px-6 py-2.5 border border-[#E9ECEF] dark:border-[#6C757D]/30 text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF] dark:hover:bg-[#1E2329] hover:text-[#0A2540] dark:hover:text-white font-medium rounded-xl transition-all"
+                >
+                  Limpiar
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Lista de Reportes */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-[#1E2329] rounded-2xl border border-[#E9ECEF] dark:border-[#334155] overflow-hidden shadow-sm">
           {reportes.length === 0 ? (
             <div className="p-12 text-center">
-              <ExclamationTriangleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">No se encontraron reportes</p>
+              <div className="w-16 h-16 bg-[#F8FAFC] dark:bg-[#0F1419] rounded-full flex items-center justify-center mx-auto mb-4">
+                <ExclamationTriangleIcon className="h-8 w-8 text-[#6C757D]" />
+              </div>
+              <h3 className="text-lg font-medium text-[#0A2540] dark:text-white mb-2">No se encontraron reportes</h3>
+              <p className="text-[#6C757D] dark:text-gray-400">Intenta ajustar los filtros de búsqueda</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="divide-y divide-[#E9ECEF] dark:divide-[#334155]">
               {reportes.map((reporte) => (
                 <div
                   key={reporte.id}
-                  className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  className="p-6 hover:bg-[#F8FAFC] dark:hover:bg-[#0F1419]/50 transition-colors group"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-lg font-bold text-[#0A2540] dark:text-white group-hover:text-[#00D4B3] transition-colors">
                           {reporte.titulo}
                         </h3>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getPrioridadColor(reporte.prioridad)}`}>
+                        <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${getPrioridadColor(reporte.prioridad)}`}>
                           {reporte.prioridad.toUpperCase()}
                         </span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getEstadoColor(reporte.estado)}`}>
+                        <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${getEstadoColor(reporte.estado)}`}>
                           {getEstadoLabel(reporte.estado)}
                         </span>
                       </div>
                       
-                      <p className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                      <p className="text-[#6C757D] dark:text-gray-400 mb-4 line-clamp-2 text-sm leading-relaxed">
                         {reporte.descripcion}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <span className="font-medium">Categoría:</span>
+                      <div className="flex flex-wrap items-center gap-6 text-xs font-medium text-[#6C757D] dark:text-gray-500">
+                        <span className="flex items-center gap-1.5 bg-[#F8FAFC] dark:bg-[#0F1419] px-2 py-1 rounded-md border border-[#E9ECEF] dark:border-[#334155]">
+                          <span className="text-[#0A2540] dark:text-gray-300">Categoría:</span>
                           {getCategoriaLabel(reporte.categoria)}
                         </span>
                         {reporte.usuario && (
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1.5">
                             <UserIcon className="h-4 w-4" />
                             {reporte.usuario.display_name || reporte.usuario.username}
                           </span>
                         )}
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1.5">
                           <ClockIcon className="h-4 w-4" />
                           {new Date(reporte.created_at).toLocaleDateString('es-ES', {
                             year: 'numeric',
@@ -384,7 +534,7 @@ export function AdminReportesPage() {
                           })}
                         </span>
                         {reporte.screenshot_url && (
-                          <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                          <span className="flex items-center gap-1.5 text-[#00D4B3]">
                             <PhotoIcon className="h-4 w-4" />
                             Con imagen
                           </span>
@@ -392,17 +542,17 @@ export function AdminReportesPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-2 ml-6">
                       <button
                         onClick={() => handleViewReporte(reporte)}
-                        className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        className="p-2.5 text-[#6C757D] dark:text-gray-400 hover:text-[#00D4B3] dark:hover:text-[#00D4B3] hover:bg-[#F8FAFC] dark:hover:bg-[#0F1419] rounded-xl border border-transparent hover:border-[#00D4B3]/30 transition-all"
                         title="Ver detalles"
                       >
                         <EyeIcon className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => handleEditReporte(reporte)}
-                        className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                        className="p-2.5 text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-blue-400 hover:bg-[#F8FAFC] dark:hover:bg-[#0F1419] rounded-xl border border-transparent hover:border-[#0A2540]/30 transition-all"
                         title="Editar"
                       >
                         <PencilIcon className="h-5 w-5" />

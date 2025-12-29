@@ -5,8 +5,9 @@
 ### Colores Principales (Core)
 
 #### 1.1 Azul Profundo - `#0A2540`
+
 - **Psicología**: Transmite seriedad, estabilidad, confianza B2B. Evoca tecnología profesional y confiabilidad.
-- **Uso**: 
+- **Uso**:
   - Fondos de header
   - Botones primarios
   - Elementos clave de navegación
@@ -15,8 +16,9 @@
 - **Aplicación**: Color principal de la marca, representa la base tecnológica sólida.
 
 #### 1.2 Aqua / Verde Azulado - `#00D4B3`
+
 - **Psicología**: Evoca crecimiento, innovación, frescura. Representa aprendizaje activo e IA viva.
-- **Uso**: 
+- **Uso**:
   - Acentos y resaltes en UI
   - Estado activo de elementos
   - Barras de progreso
@@ -26,8 +28,9 @@
 - **Aplicación**: Color de acción y dinamismo, representa el aprendizaje continuo.
 
 #### 1.3 Blanco / Casi Blanco - `#FFFFFF`
+
 - **Psicología**: Sensación de espacio, transparencia, foco. Claridad y orden.
-- **Uso**: 
+- **Uso**:
   - Fondos de tarjetas
   - Áreas de lectura
   - Pantallas principales en modo claro
@@ -38,8 +41,9 @@
 ### Colores Secundarios
 
 #### 2.1 Verde Suave - `#10B981`
+
 - **Psicología**: Logro, progreso, éxito, completado.
-- **Uso**: 
+- **Uso**:
   - Estados de éxito
   - Indicadores de completado
   - "Objetivo alcanzado"
@@ -47,8 +51,9 @@
   - Confirmaciones positivas
 
 #### 2.2 Amarillo Ámbar Suave - `#F59E0B`
+
 - **Psicología**: Alerta, foco, atención, advertencia suave.
-- **Uso**: 
+- **Uso**:
   - Notificaciones importantes
   - Módulos pendientes
   - Riesgos detectados
@@ -58,14 +63,16 @@
 #### 2.3 Grises Neutros
 
 **Gris Claro - `#E9ECEF`**
-- **Uso**: 
+
+- **Uso**:
   - Fondos secundarios
   - Separadores sutiles
   - Bordes suaves
   - Estados hover suaves
 
 **Gris Medio - `#6C757D`**
-- **Uso**: 
+
+- **Uso**:
   - Textos secundarios
   - Iconos deshabilitados
   - Separar secciones
@@ -75,17 +82,20 @@
 ### Colores para Modo Oscuro
 
 #### Fondo Principal Oscuro - `#0F1419`
+
 - **Uso**: Fondo principal de la aplicación en modo oscuro
 - **Psicología**: Profundidad, enfoque, reduce fatiga visual
 
 #### Fondo Secundario Oscuro - `#1E2329`
-- **Uso**: 
+
+- **Uso**:
   - Tarjetas y modales en modo oscuro
   - Fondos de secciones secundarias
   - Superficies elevadas
 
 #### Fondo Terciario Oscuro - `#0A0D12`
-- **Uso**: 
+
+- **Uso**:
   - Fondos de elementos anidados
   - Áreas de menor jerarquía visual
 
@@ -94,6 +104,7 @@
 ### Familia Principal: Inter
 
 **Características**:
+
 - Sans serif moderna
 - Legible en pantalla
 - Buena variedad de pesos
@@ -104,6 +115,7 @@
 #### Títulos
 
 **H1 - Título Principal**
+
 - **Peso**: Bold (700)
 - **Tamaño**: 40px (2.5rem)
 - **Line Height**: 1.2
@@ -111,6 +123,7 @@
 - **Uso**: Títulos principales de página, hero sections
 
 **H2 - Título de Sección**
+
 - **Peso**: Semibold (600) o Bold (700)
 - **Tamaño**: 28px (1.75rem)
 - **Line Height**: 1.3
@@ -119,6 +132,7 @@
 #### Subtítulos
 
 **Subtítulo / Secciones**
+
 - **Peso**: Medium (500)
 - **Tamaño**: 20px (1.25rem)
 - **Line Height**: 1.4
@@ -127,12 +141,14 @@
 #### Cuerpo de Texto
 
 **Body - Texto Principal**
+
 - **Peso**: Regular (400)
 - **Tamaño**: 16px (1rem)
 - **Line Height**: 1.5
 - **Uso**: Párrafos, contenido principal, descripciones
 
 **Body Small - Texto Secundario**
+
 - **Peso**: Regular (400)
 - **Tamaño**: 14px (0.875rem)
 - **Line Height**: 1.5
@@ -141,12 +157,14 @@
 #### UI Elements
 
 **UI - Elementos de Interfaz**
+
 - **Peso**: Medium (500)
 - **Tamaño**: 14px (0.875rem)
 - **Line Height**: 1.4
 - **Uso**: Botones, labels, elementos interactivos
 
 **UI Small - Elementos Pequeños**
+
 - **Peso**: Medium (500)
 - **Tamaño**: 12px (0.75rem)
 - **Line Height**: 1.4
@@ -158,7 +176,7 @@
 
 - **Estilo**: Line icons con peso medio (1.5-2px)
 - **Tamaño estándar**: 20px, 24px, 32px
-- **Color**: 
+- **Color**:
   - Primario: `#0A2540` (modo claro) / `#FFFFFF` (modo oscuro)
   - Acento: `#00D4B3` para estados activos
   - Secundario: `#6C757D` para iconos deshabilitados
@@ -248,13 +266,13 @@
 
 #### Botones
 
-- **Primarios**: 
+- **Primarios**:
   - Relleno sólido en azul profundo (`#0A2540`)
   - Bordes ligeramente redondeados (12px-16px)
   - Texto blanco para máximo contraste
   - Hover con ligera elevación y cambio de tono
 
-- **Secundarios**: 
+- **Secundarios**:
   - Borde visible y fondo blanco
   - Mantienen jerarquía clara sin competir con primarios
   - Texto en azul profundo para coherencia
@@ -288,12 +306,14 @@
 #### Coherencia entre Pantallas
 
 **Dashboards (Pantallas Densas)**:
+
 - Layouts de 2-3 columnas con tarjetas de datos
 - Overview primero, detalle en clic
 - KPIs clave visibles de inmediato
 - Gráficos secundarios organizados jerárquicamente
 
 **Módulos de Aprendizaje (Pantallas Ligeras)**:
+
 - Vistas más enfocadas
 - Un solo foco de atención por pantalla
 - Elementos de distracción mínimos
@@ -342,12 +362,12 @@
 
 #### Acciones Primarias vs. Secundarias
 
-- **Primaria**: 
+- **Primaria**:
   - Botón sólido con color de alta saturación
   - Máxima visibilidad y contraste
   - Acción principal de la pantalla
 
-- **Secundaria**: 
+- **Secundaria**:
   - Contorno o texto solamente
   - Nunca compiten en saturación con primarias
   - Mantienen jerarquía visual clara
@@ -371,7 +391,8 @@
 
 **Principio**: El sistema debe explicar por qué recomienda algo.
 
-**Ejemplo**: 
+**Ejemplo**:
+
 - En el panel de ruta de aprendizaje, cada módulo incluye "¿por qué lo ves?" con una breve explicación
 - LIA siempre justifica sus recomendaciones
 - Los filtros muestran el impacto de su selección
@@ -380,7 +401,8 @@
 
 **Principio**: Mostrar lo esencial de un vistazo, sin adornos innecesarios.
 
-**Ejemplo**: 
+**Ejemplo**:
+
 - En el dashboard, KPIs clave (progreso, adopción, impacto) arriba
 - Gráficos secundarios abajo
 - Información accesible pero no abrumadora
@@ -389,7 +411,8 @@
 
 **Principio**: Gráficos simples, con foco; nada de dashboards "árbol de Navidad".
 
-**Ejemplo**: 
+**Ejemplo**:
+
 - En el panel de analítica, preferir un gráfico principal con filtros claros
 - Evitar cinco gráficos pequeños e ilegibles
 - Calidad sobre cantidad en visualizaciones
@@ -398,7 +421,8 @@
 
 **Principio**: Cada vista debe tener una acción principal clara.
 
-**Ejemplo**: 
+**Ejemplo**:
+
 - En la cápsula de microaprendizaje, reducir opciones a:
   - "Completar" (acción principal)
   - "Guardar para después" (secundaria)
@@ -408,7 +432,8 @@
 
 **Principio**: Lo que se ve y lo que se lee deben contar la misma historia.
 
-**Ejemplo**: 
+**Ejemplo**:
+
 - Si LIA habla de "ruta simplificada", la interfaz muestra:
   - Menos pasos visibles
   - Solo módulos esenciales resaltados
@@ -418,7 +443,8 @@
 
 **Principio**: Que el usuario perciba que la experiencia está hecha para él/ella.
 
-**Ejemplo**: 
+**Ejemplo**:
+
 - En el panel personal, mostrar:
   - Rol del usuario
   - Metas establecidas
@@ -429,7 +455,8 @@
 
 **Principio**: Patrones repetibles de botones, tarjetas, iconos y estilos de gráficos.
 
-**Ejemplo**: 
+**Ejemplo**:
+
 - Las cápsulas de microaprendizaje tienen siempre los mismos elementos:
   - Duración
   - Formato
@@ -491,6 +518,7 @@ El **Split Panel Modal** es el patrón de diseño oficial para todos los modales
 ```
 
 #### Panel Izquierdo (Preview)
+
 - **Ancho fijo**: `320px` (`w-80`)
 - **Contenido**:
   - Icono o avatar con animación
@@ -502,6 +530,7 @@ El **Split Panel Modal** es el patrón de diseño oficial para todos los modales
 - **Fondo**: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)`
 
 #### Panel Derecho (Form)
+
 - **Ancho flexible**: `flex-1`
 - **Secciones**:
   1. **Header**: Título, subtítulo y botón de cerrar
@@ -511,12 +540,13 @@ El **Split Panel Modal** es el patrón de diseño oficial para todos los modales
 ### 8.3 Especificaciones Técnicas
 
 #### Backdrop
+
 ```tsx
 // SIN fondo - Transparente
 <motion.div className="absolute inset-0" onClick={onClose} />
 
 // O con glassmorphism suave (opcional)
-<motion.div 
+<motion.div
   className="absolute inset-0 backdrop-blur-md"
   style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
   onClick={onClose}
@@ -524,31 +554,34 @@ El **Split Panel Modal** es el patrón de diseño oficial para todos los modales
 ```
 
 #### Contenedor Principal
+
 ```tsx
-<div 
+<div
   className="fixed inset-0 flex items-center justify-center"
   style={{ zIndex: 99999 }}
 >
 ```
 
 #### Modal Box
+
 ```tsx
-<div 
+<div
   className="rounded-2xl shadow-2xl overflow-hidden border border-white/10"
-  style={{ backgroundColor: 'var(--org-card-background, #1a1f2e)' }}
+  style={{ backgroundColor: "var(--org-card-background, #1a1f2e)" }}
 >
   <div className="flex min-h-[550px]">
     {/* Left Panel */}
-    <div className="w-80 p-8 border-r border-white/5" style={{ 
-      background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)` 
-    }}>
+    <div
+      className="w-80 p-8 border-r border-white/5"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)`,
+      }}
+    >
       ...
     </div>
-    
+
     {/* Right Panel */}
-    <div className="flex-1 flex flex-col">
-      ...
-    </div>
+    <div className="flex-1 flex flex-col">...</div>
   </div>
 </div>
 ```
@@ -556,22 +589,23 @@ El **Split Panel Modal** es el patrón de diseño oficial para todos los modales
 ### 8.4 Elementos del Preview Panel
 
 #### Avatar/Icono Animado
+
 ```tsx
 <motion.div
   initial={{ scale: 0.8, opacity: 0 }}
   animate={{ scale: 1, opacity: 1 }}
   className="relative"
 >
-  <div 
+  <div
     className="w-24 h-24 rounded-2xl flex items-center justify-center"
-    style={{ 
+    style={{
       background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
-      boxShadow: `0 8px 30px ${primaryColor}40`
+      boxShadow: `0 8px 30px ${primaryColor}40`,
     }}
   >
     {/* Contenido del avatar */}
   </div>
-  
+
   {/* Badge animado */}
   <motion.div
     animate={{ scale: [1, 1.2, 1] }}
@@ -589,14 +623,15 @@ El **Split Panel Modal** es el patrón de diseño oficial para todos los modales
 Los modales **DEBEN** usar los colores personalizados de la organización:
 
 ```tsx
-const { styles } = useOrganizationStylesContext()
-const panelStyles = styles?.panel
+const { styles } = useOrganizationStylesContext();
+const panelStyles = styles?.panel;
 
-const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
-const accentColor = panelStyles?.accent_color || '#10B981'
+const primaryColor = panelStyles?.primary_button_color || "#0EA5E9";
+const accentColor = panelStyles?.accent_color || "#10B981";
 ```
 
 #### Aplicación de Colores
+
 - **Gradientes de botones**: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`
 - **Sombras**: `0 4px 15px ${primaryColor}40`
 - **Badges y estados activos**: `backgroundColor: ${primaryColor}20`
@@ -605,6 +640,7 @@ const accentColor = panelStyles?.accent_color || '#10B981'
 ### 8.6 Inputs y Campos
 
 #### Estilo de Input
+
 ```tsx
 <input
   className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 
@@ -614,6 +650,7 @@ const accentColor = panelStyles?.accent_color || '#10B981'
 ```
 
 #### Input con Icono
+
 ```tsx
 <div className="relative">
   <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -624,43 +661,51 @@ const accentColor = panelStyles?.accent_color || '#10B981'
 ### 8.7 Botones del Footer
 
 ```tsx
-{/* Botón Cancelar */}
-<button className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 
-                   hover:text-white hover:bg-white/5 transition-colors">
+{
+  /* Botón Cancelar */
+}
+<button
+  className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 
+                   hover:text-white hover:bg-white/5 transition-colors"
+>
   Cancelar
-</button>
+</button>;
 
-{/* Botón Principal */}
+{
+  /* Botón Principal */
+}
 <motion.button
   whileHover={{ scale: 1.02 }}
   whileTap={{ scale: 0.98 }}
   className="px-5 py-2.5 rounded-xl text-sm font-medium text-white"
-  style={{ 
+  style={{
     background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
-    boxShadow: `0 4px 15px ${primaryColor}40`
+    boxShadow: `0 4px 15px ${primaryColor}40`,
   }}
 >
   Acción Principal
-</motion.button>
+</motion.button>;
 ```
 
 ### 8.8 Modales Implementados con este Patrón
 
-| Modal | Archivo | Descripción |
-|-------|---------|-------------|
-| Crear Equipo | `BusinessTeamModal.tsx` | Crear/editar equipos de trabajo |
-| Agregar Usuario | `BusinessAddUserModal.tsx` | Agregar nuevo usuario a la organización |
-| Importar Usuarios | `BusinessImportUsersModal.tsx` | Importar usuarios desde CSV |
+| Modal             | Archivo                        | Descripción                             |
+| ----------------- | ------------------------------ | --------------------------------------- |
+| Crear Equipo      | `BusinessTeamModal.tsx`        | Crear/editar equipos de trabajo         |
+| Agregar Usuario   | `BusinessAddUserModal.tsx`     | Agregar nuevo usuario a la organización |
+| Importar Usuarios | `BusinessImportUsersModal.tsx` | Importar usuarios desde CSV             |
 
 ### 8.9 Cuándo Usar Este Patrón
 
 ✅ **Usar Split Panel Modal para:**
+
 - Formularios de creación/edición con múltiples campos
 - Acciones que requieren preview o visualización previa
 - Wizards o procesos de varios pasos
 - Modales con acciones secundarias
 
 ❌ **NO usar para:**
+
 - Confirmaciones simples (usar Alert Dialog)
 - Mensajes de éxito/error (usar Toast)
 - Pop-ups informativos breves (usar Popover)
@@ -683,15 +728,15 @@ El **Premium Dropdown** es el patrón de diseño oficial para todos los selector
 
 ```tsx
 // Estado para controlar visibilidad
-const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-const [selectedValue, setSelectedValue] = useState('all')
+const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+const [selectedValue, setSelectedValue] = useState("all");
 
 // Opciones del dropdown
 const options = [
-  { value: 'all', label: 'Todas las opciones' },
-  { value: 'option1', label: 'Opción 1' },
-  { value: 'option2', label: 'Opción 2' },
-]
+  { value: "all", label: "Todas las opciones" },
+  { value: "option1", label: "Opción 1" },
+  { value: "option2", label: "Opción 2" },
+];
 ```
 
 ### 9.4 Especificaciones Técnicas
@@ -705,25 +750,31 @@ const options = [
     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
     className="w-full px-4 py-3.5 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300"
     style={{
-      backgroundColor: 'var(--org-card-background, #1E2329)',
-      borderColor: selectedValue !== 'all' ? primaryColor : 'rgba(255,255,255,0.1)',
-      color: 'var(--org-text-color, #FFFFFF)'
+      backgroundColor: "var(--org-card-background, #1E2329)",
+      borderColor:
+        selectedValue !== "all" ? primaryColor : "rgba(255,255,255,0.1)",
+      color: "var(--org-text-color, #FFFFFF)",
     }}
   >
     <span className="text-sm">
-      {options.find(o => o.value === selectedValue)?.label}
+      {options.find((o) => o.value === selectedValue)?.label}
     </span>
-    <motion.svg 
+    <motion.svg
       animate={{ rotate: isDropdownOpen ? 180 : 0 }}
-      className="w-4 h-4 opacity-50" 
-      fill="none" 
-      stroke="currentColor" 
+      className="w-4 h-4 opacity-50"
+      fill="none"
+      stroke="currentColor"
       viewBox="0 0 24 24"
     >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 9l-7 7-7-7"
+      />
     </motion.svg>
   </button>
-  
+
   {/* Menu desplegable */}
 </div>
 ```
@@ -740,8 +791,8 @@ const options = [
       transition={{ duration: 0.15 }}
       className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50"
       style={{
-        backgroundColor: 'var(--org-card-background, #1E2329)',
-        borderColor: 'rgba(255,255,255,0.15)'
+        backgroundColor: "var(--org-card-background, #1E2329)",
+        borderColor: "rgba(255,255,255,0.15)",
       }}
     >
       {options.map((option) => (
@@ -749,17 +800,18 @@ const options = [
           key={option.value}
           type="button"
           onClick={() => {
-            setSelectedValue(option.value)
-            setIsDropdownOpen(false)
+            setSelectedValue(option.value);
+            setIsDropdownOpen(false);
           }}
           className={`w-full px-4 py-3 text-left text-sm transition-colors ${
             selectedValue === option.value
-              ? 'text-white'
-              : 'text-white/70 hover:text-white hover:bg-white/5'
+              ? "text-white"
+              : "text-white/70 hover:text-white hover:bg-white/5"
           }`}
-          style={selectedValue === option.value 
-            ? { backgroundColor: `${primaryColor}30` } 
-            : {}
+          style={
+            selectedValue === option.value
+              ? { backgroundColor: `${primaryColor}30` }
+              : {}
           }
         >
           {option.label}
@@ -773,45 +825,51 @@ const options = [
 ### 9.5 Estilos y Tokens
 
 #### Contenedor Principal
-| Propiedad | Valor |
-|-----------|-------|
-| `min-width` | `160px` |
-| `position` | `relative` |
+
+| Propiedad   | Valor      |
+| ----------- | ---------- |
+| `min-width` | `160px`    |
+| `position`  | `relative` |
 
 #### Botón Trigger
-| Propiedad | Valor |
-|-----------|-------|
-| `padding` | `14px 16px` (`py-3.5 px-4`) |
-| `border-radius` | `12px` (`rounded-xl`) |
-| `border-width` | `2px` |
-| `background` | `var(--org-card-background, #1E2329)` |
-| `border-color (inactivo)` | `rgba(255,255,255,0.1)` |
-| `border-color (activo)` | `${primaryColor}` |
+
+| Propiedad                 | Valor                                 |
+| ------------------------- | ------------------------------------- |
+| `padding`                 | `14px 16px` (`py-3.5 px-4`)           |
+| `border-radius`           | `12px` (`rounded-xl`)                 |
+| `border-width`            | `2px`                                 |
+| `background`              | `var(--org-card-background, #1E2329)` |
+| `border-color (inactivo)` | `rgba(255,255,255,0.1)`               |
+| `border-color (activo)`   | `${primaryColor}`                     |
 
 #### Menú Desplegable
-| Propiedad | Valor |
-|-----------|-------|
-| `margin-top` | `8px` (`mt-2`) |
-| `border-radius` | `12px` (`rounded-xl`) |
-| `border-color` | `rgba(255,255,255,0.15)` |
-| `box-shadow` | `shadow-2xl` |
-| `z-index` | `50` |
+
+| Propiedad       | Valor                    |
+| --------------- | ------------------------ |
+| `margin-top`    | `8px` (`mt-2`)           |
+| `border-radius` | `12px` (`rounded-xl`)    |
+| `border-color`  | `rgba(255,255,255,0.15)` |
+| `box-shadow`    | `shadow-2xl`             |
+| `z-index`       | `50`                     |
 
 #### Opciones
-| Estado | Background | Text Color |
-|--------|------------|------------|
-| Normal | `transparent` | `rgba(255,255,255,0.7)` |
-| Hover | `rgba(255,255,255,0.05)` | `white` |
-| Seleccionado | `${primaryColor}30` | `white` |
+
+| Estado       | Background               | Text Color              |
+| ------------ | ------------------------ | ----------------------- |
+| Normal       | `transparent`            | `rgba(255,255,255,0.7)` |
+| Hover        | `rgba(255,255,255,0.05)` | `white`                 |
+| Seleccionado | `${primaryColor}30`      | `white`                 |
 
 ### 9.6 Animaciones
 
 #### Chevron Icon
+
 ```tsx
 animate={{ rotate: isDropdownOpen ? 180 : 0 }}
 ```
 
 #### Menú Entrada
+
 ```tsx
 initial={{ opacity: 0, y: -10, scale: 0.95 }}
 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -819,6 +877,7 @@ transition={{ duration: 0.15 }}
 ```
 
 #### Menú Salida
+
 ```tsx
 exit={{ opacity: 0, y: -10, scale: 0.95 }}
 ```
@@ -847,12 +906,14 @@ onClick={() => {
 ### 9.9 Cuándo Usar Este Patrón
 
 ✅ **Usar Premium Dropdown para:**
+
 - Filtros de búsqueda
 - Selectores de rol, estado, categoría
 - Cualquier selector que reemplace un `<select>` nativo
 - Menús de ordenamiento
 
 ❌ **NO usar para:**
+
 - Menús de navegación (usar Sidebar o NavigationMenu)
 - Acciones contextuales (usar ContextMenu)
 - Autocompletado de búsqueda (usar ComboBox con input)
@@ -892,6 +953,7 @@ El **Premium DatePicker** es el componente oficial para selección de fechas en 
 ### 10.3 Componentes
 
 #### Trigger Button
+
 - **Fondo**: `${cardBackground}80`
 - **Borde**: `rgba(255,255,255,0.1)` → `primaryColor` cuando está abierto
 - **Box Shadow activo**: `0 0 0 3px ${primaryColor}20`
@@ -899,6 +961,7 @@ El **Premium DatePicker** es el componente oficial para selección de fechas en 
 - **Botón X para limpiar**: Visible cuando hay fecha seleccionada
 
 #### Calendar Popup
+
 - **Fondo**: `cardBackground`
 - **Borde**: `rgba(255,255,255,0.1)`
 - **Sombra**: `0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px ${primaryColor}20`
@@ -908,18 +971,19 @@ El **Premium DatePicker** es el componente oficial para selección de fechas en 
 
 ### 10.4 Estados de Días
 
-| Estado | Background | Color | Box Shadow |
-|--------|------------|-------|------------|
-| Normal | `transparent` | `textColor` | ninguno |
-| Hover | animación scale 1.1 | - | - |
-| Hoy | `${primaryColor}20` | `primaryColor` | + punto indicador |
-| Seleccionado | `primaryColor` | `#FFFFFF` | `0 4px 15px ${primaryColor}40` |
-| Otro mes | opacity: 0.3 | - | - |
-| Deshabilitado | - | opacity: 0.3 | cursor: not-allowed |
+| Estado        | Background          | Color          | Box Shadow                     |
+| ------------- | ------------------- | -------------- | ------------------------------ |
+| Normal        | `transparent`       | `textColor`    | ninguno                        |
+| Hover         | animación scale 1.1 | -              | -                              |
+| Hoy           | `${primaryColor}20` | `primaryColor` | + punto indicador              |
+| Seleccionado  | `primaryColor`      | `#FFFFFF`      | `0 4px 15px ${primaryColor}40` |
+| Otro mes      | opacity: 0.3        | -              | -                              |
+| Deshabilitado | -                   | opacity: 0.3   | cursor: not-allowed            |
 
 ### 10.5 Animaciones
 
 #### Popup Entrada
+
 ```tsx
 initial={{ opacity: 0, y: -10, scale: 0.95 }}
 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -927,17 +991,20 @@ transition={{ type: 'spring', stiffness: 400, damping: 25 }}
 ```
 
 #### Popup Salida
+
 ```tsx
 exit={{ opacity: 0, y: -10, scale: 0.95 }}
 ```
 
 #### Días Hover
+
 ```tsx
 whileHover={{ scale: 1.1 }}
 whileTap={{ scale: 0.9 }}
 ```
 
 #### Navegación de Mes
+
 ```tsx
 // Chevron izquierdo
 whileHover={{ scale: 1.1, x: -2 }}
@@ -955,13 +1022,13 @@ whileHover={{ scale: 1.1, x: 2 }}
 
 ```tsx
 interface PremiumDatePickerProps {
-  value: string              // Formato YYYY-MM-DD
-  onChange: (date: string) => void
-  placeholder?: string       // Default: "Seleccionar fecha"
-  minDate?: Date            // Fecha mínima permitida
-  maxDate?: Date            // Fecha máxima permitida
-  disabled?: boolean        // Deshabilitar el picker
-  className?: string        // Clases adicionales
+  value: string; // Formato YYYY-MM-DD
+  onChange: (date: string) => void;
+  placeholder?: string; // Default: "Seleccionar fecha"
+  minDate?: Date; // Fecha mínima permitida
+  maxDate?: Date; // Fecha máxima permitida
+  disabled?: boolean; // Deshabilitar el picker
+  className?: string; // Clases adicionales
 }
 ```
 
@@ -983,17 +1050,128 @@ const [dueDate, setDueDate] = useState('')
 ### 10.9 Cuándo Usar Este Patrón
 
 ✅ **Usar Premium DatePicker para:**
+
 - Selección de fechas límite
 - Filtros de fecha
 - Programación de eventos
 - Cualquier input de tipo fecha
 
 ❌ **NO usar para:**
+
 - Rangos de fecha (crear componente específico)
 - Selección de hora (crear TimePicker)
 
 ---
 
 **Última actualización**: Diciembre 2024
-**Versión**: 1.4
+**Versión**: 1.5
 
+## 11. Patrón de Menú de Usuario: Standard User Dropdown
+
+### 11.1 Descripción
+
+El **Standard User Dropdown** es el componente de menú de usuario unificado para toda la plataforma SOFIA. Sigue el diseño implementado en el **Business Panel**, garantizando consistencia visual, animaciones fluidas y una estructura clara de información.
+
+### 11.2 Características del Patrón
+
+- **Contenedor Flotante Premium**: Uso de `backdrop-blur`, bordes sutiles y sombras elevadas.
+- **Cabecera de Usuario**: Sección destacada con avatar (con anillo de color), nombre y rol.
+- **Animaciones**: Entrada/salida suave con escalado y opacidad usando Framer Motion.
+- **Iconografía Consistente**: Uso de iconos Lucide con opacidad reducida (70%) que se aclaran al hover.
+- **Micro-interacciones**: Efecto de deslizamiento (`x: 2`) al hacer hover en las opciones.
+
+### 11.3 Estructura del Componente
+
+```tsx
+// Dropdown Menu Container
+<motion.div
+  initial={{ opacity: 0, y: -8, scale: 0.95 }}
+  animate={{ opacity: 1, y: 0, scale: 1 }}
+  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+  className="absolute right-0 mt-2 w-56 rounded-xl border backdrop-blur-xl shadow-xl z-[999] overflow-hidden"
+  style={{
+    backgroundColor: 'var(--bg-panel, rgba(15, 23, 42, 0.85))',
+    borderColor: 'var(--border-panel, rgba(71, 85, 105, 0.3))'
+  }}
+>
+  {/* 1. Header de Usuario */}
+  <div className="px-4 py-3 border-b border-white/10">
+    <div className="flex items-center gap-3">
+      {/* Avatar con Ring de Gradiente */}
+      <div
+        className="h-10 w-10 rounded-full flex items-center justify-center ring-2 ring-white/20"
+        style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-active))' }}
+      >
+        <img src={user.avatar} className="h-full w-full rounded-full object-cover" />
+      </div>
+
+      {/* Detalle Texto */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate text-white">
+          {user.name}
+        </p>
+        <p className="text-xs truncate opacity-70 text-white">
+          {user.role}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* 2. Opciones del Menú */}
+  <div className="py-1.5">
+    <MenuOption icon={LayoutDashboard} label="Panel Principal" onClick={...} />
+    <MenuOption icon={User} label="Editar Perfil" onClick={...} />
+
+    {/* Submenú (ej. Idioma) */}
+    <div className="relative">
+       <MenuOption icon={Globe} label="Idioma" hasSubmenu />
+       {/* Lógica de submenú recursivo o expandible */}
+    </div>
+
+    <div className="my-1 border-t border-white/10" />
+
+    <MenuOption icon={LogOut} label="Cerrar Sesión" isDestructive onClick={handleLogout} />
+  </div>
+</motion.div>
+```
+
+### 11.4 Componente de Opción (Menu Item)
+
+```tsx
+const MenuOption = ({ icon: Icon, label, onClick, isDestructive }) => (
+  <motion.button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors 
+      ${isDestructive ? "text-red-400 hover:opacity-80" : "text-white/80 hover:bg-white/5"}`}
+    whileHover={{ x: 2 }}
+  >
+    <Icon className="h-4 w-4 opacity-70" />
+    <span>{label}</span>
+  </motion.button>
+);
+```
+
+### 11.5 Especificaciones Visuales
+
+#### Contenedor
+
+- **Ancho**: `w-56` (224px)
+- **Radio**: `rounded-xl` (12px)
+- **Fondo**: Se recomienda usar colores con transparencia (alpha 0.85 - 0.95) para el efecto backdrop.
+- **Z-Index**: `z-[999]` para asegurar que flote sobre otros elementos UI.
+
+#### Avatar en Header
+
+- **Tamaño**: `h-10 w-10` (40px)
+- **Anillo**: `ring-2` con color sutil (`white/20`) para separar del fondo.
+- **Fondo de fallback**: Gradiente lineal entre el color primario y secundario de la marca.
+
+#### Tipografía
+
+- **Nombre**: `text-sm font-semibold`
+- **Rol/Email**: `text-xs opacity-70`
+
+### 11.6 Implementación de Referencia
+
+Para ver la implementación "canonical" de este diseño, consultar archivo:
+`apps/web/src/features/business-panel/components/BusinessPanelHeader.tsx`

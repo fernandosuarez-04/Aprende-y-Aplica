@@ -15,7 +15,9 @@ import {
   LayoutDashboard,
   CalendarDays,
   CalendarPlus,
-  Globe
+  Globe,
+  Check,
+  ChevronRight
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect, useMemo } from 'react'
@@ -59,6 +61,7 @@ export function ModernNavbar({
 }: ModernNavbarProps) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null)
   const [hasStudyPlan, setHasStudyPlan] = useState<boolean | null>(null)
   const [mounted, setMounted] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -344,7 +347,7 @@ export function ModernNavbar({
   return (
     <>
       <nav
-        className="sticky top-0 z-50 w-full backdrop-blur-xl"
+        className="sticky top-0 z-[120] w-full backdrop-blur-xl"
         style={{
           backgroundColor: colors.navBg,
         }}
@@ -357,7 +360,7 @@ export function ModernNavbar({
           }}
         />
 
-        <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Left: Logo y Nombre */}
             <div className="flex items-center gap-4">
@@ -474,117 +477,74 @@ export function ModernNavbar({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[998]"
-                        onClick={() => setUserDropdownOpen(false)}
+                        className="fixed inset-0 z-[998] bg-black/5 backdrop-blur-[1px]"
+                        onClick={() => {
+                          setUserDropdownOpen(false)
+                          setActiveSubmenu(null)
+                        }}
                       />
                       <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.2, ease: 'easeOut' }}
-                        className="absolute right-0 mt-3 w-80 rounded-2xl border overflow-hidden z-[999]"
+                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-64 rounded-xl border backdrop-blur-xl shadow-xl z-[999] overflow-hidden"
                         style={{
-                          backgroundColor: colors.cardBg,
-                          borderColor: 'rgba(255, 255, 255, 0.1)',
-                          boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px ${colors.primary}15`
+                          backgroundColor: colors.navBg,
+                          borderColor: colors.border,
                         }}
                       >
-                         {/* Header del dropdown */}
-                         <div
-                          className="p-5 relative overflow-hidden"
-                          style={{
-                            background: `linear-gradient(135deg, ${colors.primary}20, ${colors.accent}10)`
-                          }}
-                        >
-                          <div
-                            className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-30"
-                            style={{ backgroundColor: colors.accent }}
-                          />
-                          <div className="flex items-center gap-4 relative z-10">
+                        {/* User Info Header */}
+                        <div className="px-4 py-3 border-b" style={{ borderColor: colors.border }}>
+                          <div className="flex items-center gap-3">
                             <div
-                              className="h-14 w-14 rounded-2xl flex items-center justify-center relative"
+                              className="h-10 w-10 rounded-full flex items-center justify-center ring-2"
                               style={{
                                 background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
-                                boxShadow: `0 4px 20px ${colors.primary}40`
+                                ringColor: 'rgba(255, 255, 255, 0.1)'
                               }}
                             >
                               {user?.profile_picture_url ? (
                                 <Image
                                   src={user.profile_picture_url}
                                   alt={getDisplayName()}
-                                  width={56}
-                                  height={56}
-                                  className="h-full w-full rounded-2xl object-cover"
+                                  width={40}
+                                  height={40}
+                                  className="h-full w-full rounded-full object-cover"
                                 />
                               ) : (
-                                <span className="text-xl font-bold text-white">
+                                <span className="text-sm font-bold text-white">
                                   {getInitials()}
                                 </span>
                               )}
-                              <div
-                                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
-                                style={{
-                                  backgroundColor: colors.accent,
-                                  boxShadow: `0 2px 8px ${colors.accent}50`
-                                }}
-                              >
-                                <Sparkles className="w-3 h-3 text-white" />
-                              </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-base font-semibold text-white truncate">
-                                {getDisplayName()}</p>
-                              <p className="text-sm text-white/60 truncate mt-0.5">
+                              <p className="text-sm font-semibold truncate text-white">
+                                {getDisplayName()}
+                              </p>
+                              <p className="text-xs truncate opacity-70 text-white">
                                 {user?.email || ''}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        <div
-                          className="h-px mx-4"
-                          style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)' }}
-                        />
-
-                        {/* Items del dropdown desktop */}
-                        <div className="py-2 px-2">
+                        {/* Menu Items */}
+                        <div className="py-1.5">
                           {user?.cargo_rol === 'Business' && (
                             <motion.button
                               onClick={() => {
                                 router.push('/business-panel/dashboard')
                                 setUserDropdownOpen(false)
                               }}
-                              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group mb-1"
-                              whileHover={{ x: 4 }}
-                              style={{ backgroundColor: 'transparent' }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = `${colors.primary}10`
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent'
-                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                              style={{ color: colors.text }}
+                              whileHover={{ x: 2 }}
                             >
-                              <div
-                                className="p-2.5 rounded-xl text-white"
-                                style={{
-                                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
-                                  boxShadow: `0 4px 12px ${colors.primary}40`
-                                }}
-                              >
-                                <LayoutDashboard className="h-4 w-4" />
+                              <LayoutDashboard className="h-4 w-4 opacity-70" />
+                              <div className="flex-1 text-left">
+                                <span className="block">{t('header.adminPanel')}</span>
                               </div>
-                              <div className="text-left flex-1">
-                                <span className="font-semibold block" style={{ color: colors.text }}>
-                                  {t('header.adminPanel')}
-                                </span>
-                                <span className="text-xs" style={{ color: `${colors.text}80` }}>
-                                  {t('header.manageOrganization')}
-                                </span>
-                              </div>
-                              <ChevronDown
-                                className="w-4 h-4 -rotate-90 opacity-0 group-hover:opacity-50 transition-opacity"
-                                style={{ color: colors.text }}
-                              />
                             </motion.button>
                           )}
 
@@ -594,41 +554,16 @@ export function ModernNavbar({
                                 router.push(hasStudyPlan ? '/study-planner/dashboard' : '/study-planner/create')
                                 setUserDropdownOpen(false)
                               }}
-                              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group mb-1"
-                              whileHover={{ x: 4 }}
-                              style={{ backgroundColor: 'transparent' }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = `${colors.accent}10`
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent'
-                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                              style={{ color: colors.text }}
+                              whileHover={{ x: 2 }}
                             >
-                              <div
-                                className="p-2.5 rounded-xl text-white"
-                                style={{
-                                  background: `linear-gradient(135deg, ${colors.accent}, ${colors.primary})`,
-                                  boxShadow: `0 4px 12px ${colors.accent}40`
-                                }}
-                              >
-                                {hasStudyPlan ? (
-                                  <CalendarDays className="h-4 w-4" />
-                                ) : (
-                                  <CalendarPlus className="h-4 w-4" />
-                                )}
-                              </div>
-                              <div className="text-left flex-1">
-                                  <span className="font-semibold block" style={{ color: colors.text }}>
-                                    {hasStudyPlan ? t('header.myPlanner') : t('header.createStudyPlan')}
-                                  </span>
-                                <span className="text-xs" style={{ color: `${colors.text}80` }}>
-                                  {hasStudyPlan ? t('header.viewSchedule') : t('header.organizeLearning')}
-                                </span>
-                              </div>
-                              <ChevronDown
-                                className="w-4 h-4 -rotate-90 opacity-0 group-hover:opacity-50 transition-opacity"
-                                style={{ color: colors.text }}
-                              />
+                              {hasStudyPlan ? (
+                                <CalendarDays className="h-4 w-4 opacity-70" />
+                              ) : (
+                                <CalendarPlus className="h-4 w-4 opacity-70" />
+                              )}
+                              <span className="block">{hasStudyPlan ? t('header.myPlanner') : t('header.createStudyPlan')}</span>
                             </motion.button>
                           )}
 
@@ -637,107 +572,79 @@ export function ModernNavbar({
                               onProfileClick()
                               setUserDropdownOpen(false)
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group"
-                            whileHover={{ x: 4 }}
-                            style={{ backgroundColor: 'transparent' }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = `${colors.primary}15`
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent'
-                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                            style={{ color: colors.text }}
+                            whileHover={{ x: 2 }}
                           >
-                            <div
-                              className="p-2.5 rounded-xl transition-all duration-200"
-                              style={{
-                                backgroundColor: `${colors.accent}15`,
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                              }}
-                            >
-                              <User
-                                className="h-4 w-4 transition-colors"
-                                style={{ color: colors.accent }}
-                              />
-                            </div>
-                            <div className="text-left flex-1">
-                              <span className="text-white font-medium block">{t('header.editProfile')}</span>
-                              <span className="text-xs text-white/50">{t('header.updateInfo')}</span>
-                            </div>
-                            <ChevronDown
-                              className="w-4 h-4 -rotate-90 opacity-0 group-hover:opacity-50 transition-opacity"
-                              style={{ color: colors.text }}
-                            />
+                            <User className="h-4 w-4 opacity-70" />
+                            <span>{t('header.editProfile')}</span>
                           </motion.button>
 
+                          {/* Language Submenu */}
+                          <div className="relative">
+                            <motion.button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setActiveSubmenu(activeSubmenu === 'language' ? null : 'language')
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                              style={{ color: colors.text }}
+                              whileHover={{ x: 2 }}
+                            >
+                              <Globe className="h-4 w-4 opacity-70" />
+                              <span className="flex-1 text-left">{t('header.language')}</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs opacity-70">
+                                  {language.toUpperCase()}
+                                </span>
+                                <ChevronRight 
+                                  className={`h-3.5 w-3.5 opacity-70 transition-transform ${activeSubmenu === 'language' ? 'rotate-90' : ''}`}
+                                />
+                              </div>
+                            </motion.button>
 
-                          {/* Language Selector */}
-                          <div className="px-4 py-2 mt-1 mb-1">
-                             <div className="flex items-center gap-2 mb-2 px-1">
-                                <Globe className="w-3.5 h-3.5 opacity-70" style={{ color: colors.text }} />
-                                <span className="text-xs font-medium opacity-70" style={{ color: colors.text }}>{t('header.language')}</span>
-                             </div>
-                             <div className="grid grid-cols-3 gap-1">
-                                {(['es', 'en', 'pt'] as const).map((lang) => (
-                                  <motion.button
-                                    key={lang}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setLanguage(lang);
-                                    }}
-                                    className="relative overflow-hidden rounded-lg py-1.5 text-xs font-medium transition-colors border"
-                                    style={{
-                                      backgroundColor: language === lang ? `${colors.accent}15` : 'transparent',
-                                      borderColor: language === lang ? `${colors.accent}30` : 'transparent',
-                                      color: language === lang ? colors.accent : `${colors.text}60`
-                                    }}
-                                    whileTap={{ scale: 0.95 }}
-                                    whileHover={{ backgroundColor: language === lang ? `${colors.accent}20` : 'rgba(255,255,255,0.05)' }}
-                                  >
-                                    {lang.toUpperCase()}
-                                  </motion.button>
-                                ))}
-                             </div>
+                            <AnimatePresence>
+                              {activeSubmenu === 'language' && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden bg-black/20"
+                                >
+                                  {(['es', 'en', 'pt'] as const).map((lang) => (
+                                    <button
+                                      key={lang}
+                                      onClick={() => {
+                                        setLanguage(lang)
+                                        setActiveSubmenu(null)
+                                      }}
+                                      className="w-full flex items-center gap-3 px-10 py-2 text-xs transition-colors hover:bg-white/5"
+                                      style={{ color: language === lang ? colors.accent : colors.text }}
+                                    >
+                                      <span>{lang === 'es' ? '🇪🇸' : lang === 'en' ? '🇺🇸' : '🇧🇷'}</span>
+                                      <span className="capitalize">{lang === 'es' ? 'Español' : lang === 'en' ? 'English' : 'Português'}</span>
+                                      {language === lang && <Check className="h-3 w-3 ml-auto" />}
+                                    </button>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
 
+                          <div className="my-1 border-t" style={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
+                          
                           <motion.button
                             onClick={() => {
                               onLogout()
                               setUserDropdownOpen(false)
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group mt-1"
-                            whileHover={{ x: 4 }}
-                            style={{ backgroundColor: 'transparent' }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent'
-                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                            whileHover={{ x: 2 }}
                           >
-                            <div
-                              className="p-2.5 rounded-xl"
-                              style={{
-                                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                              }}
-                            >
-                              <LogOut className="h-4 w-4 text-red-400" />
-                            </div>
-                            <div className="text-left flex-1">
-                              <span className="text-red-400 font-medium block">{t('header.logout')}</span>
-                              <span className="text-xs text-white/50">{t('header.exitAccount')}</span>
-                            </div>
-                            <ChevronDown
-                              className="w-4 h-4 -rotate-90 opacity-0 group-hover:opacity-50 transition-opacity text-red-400"
-                            />
+                            <LogOut className="h-4 w-4" />
+                            <span>{t('header.logout')}</span>
                           </motion.button>
                         </div>
-                        <div
-                          className="h-1"
-                          style={{
-                            background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})`
-                          }}
-                        />
                       </motion.div>
                     </>
                   )}

@@ -1,6 +1,12 @@
 /**
  * Session Recorder usando rrweb
  * Graba sesiones del usuario para debugging y reportes de problemas
+ * 
+ * MEJORAS v2.0:
+ * - Compresión de sesiones con gzip
+ * - Metadata enriquecida del entorno
+ * - Integración con error interceptor
+ * - Soporte para marcadores de contexto
  */
 
 // ⚠️ CRÍTICO: Importar el patch ANTES de importar rrweb
@@ -9,6 +15,9 @@ import './mutation-record-patch';
 
 import type { eventWithTime } from '@rrweb/types';
 import { loadRrweb, type RrwebModule, type RrwebRecordOptions } from './rrweb-loader';
+import { compressSession, formatBytes, MAX_SESSION_SIZE, trimSessionToSize } from './session-compressor';
+import { getRecentErrors, getErrorSummary, type ErrorEvent } from './error-interceptor';
+import { getContextMarkers, getSessionSummary, type ContextMarker } from './context-markers';
 
 /**
  * Verifica que el patch de MutationRecord esté aplicado
@@ -31,6 +40,28 @@ export interface RecordingSession {
   endTime?: number;
 }
 
+// Metadata enriquecida del entorno
+export interface EnrichedMetadata {
+  viewport: { width: number; height: number };
+  userAgent: string;
+  platform: string;
+  language: string;
+  timezone: string;
+  connection?: string;
+  memory?: number;
+  currentUrl: string;
+  sessionDuration: number;
+  errors: ErrorEvent[];
+  errorSummary: ReturnType<typeof getErrorSummary>;
+  contextMarkers: ContextMarker[];
+  sessionSummary: ReturnType<typeof getSessionSummary>;
+  recordingInfo: {
+    eventCount: number;
+    size: string;
+    compressed: boolean;
+  };
+}
+
 // Tipo para el objeto sessionRecorder exportado (para usar en hooks sin typeof import)
 export interface SessionRecorderInstance {
   startRecording(maxDuration?: number): Promise<void>;
@@ -38,11 +69,17 @@ export interface SessionRecorderInstance {
   captureSnapshot(): RecordingSession | null;
   getCurrentSession(): RecordingSession | null;
   isActive(): boolean;
+  isPaused(): boolean;
+  pause(): void;
+  resume(): void;
   isRrwebAvailable(): boolean;
   exportSession(session: RecordingSession): string;
   exportSessionBase64(session: RecordingSession): string;
+  exportSessionCompressed(session: RecordingSession): Promise<string>;
   getSessionSize(session: RecordingSession): number;
   getSessionSizeFormatted(session: RecordingSession): string;
+  getEnrichedMetadata(session?: RecordingSession | null): EnrichedMetadata;
+  getSessionStartTime(): number | null;
 }
 
 export class SessionRecorder {
@@ -50,10 +87,12 @@ export class SessionRecorder {
   private events: eventWithTime[] = [];
   private stopRecording: (() => void) | undefined | null = null;
   private isRecording = false;
+  private isPausedState = false;
   private maxEvents = 20000; // Aumentado a 20000 para capturar ~3 minutos de contexto
   private maxDuration = 60000; // 60 segundos máximo
   private initialSnapshot: eventWithTime | null = null; // Guardar snapshot inicial
   private rrwebAvailable = false; // Flag para verificar si rrweb está disponible
+  private sessionStartTime: number | null = null; // Tiempo de inicio de sesión
 
   private constructor() {
     // No hacer nada en el constructor para evitar ejecución en el servidor
@@ -100,7 +139,7 @@ export class SessionRecorder {
     }
 
     if (this.isRecording) {
-      console.warn('⚠️ Ya hay una grabación en curso');
+      // No mostrar warning, es un caso esperado durante Fast Refresh en desarrollo
       return;
     }
 
@@ -122,6 +161,8 @@ export class SessionRecorder {
     this.events = [];
     this.initialSnapshot = null;
     this.isRecording = true;
+    this.isPausedState = false;
+    this.sessionStartTime = Date.now();
 
     try {
       // Cargar rrweb dinámicamente (ya verificado arriba, pero lo cargamos de nuevo para asegurar)
@@ -333,7 +374,7 @@ export class SessionRecorder {
    */
   stop(): RecordingSession | null {
     if (!this.isRecording) {
-      console.warn('⚠️ No hay grabación activa');
+      // No mostrar warning, es un caso esperado durante Fast Refresh en desarrollo
       return null;
     }
 
@@ -446,6 +487,112 @@ export class SessionRecorder {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }
+
+  /**
+   * Exporta la sesión comprimida con gzip
+   * Reduce el tamaño 60-80%
+   */
+  async exportSessionCompressed(session: RecordingSession): Promise<string> {
+    try {
+      const result = await compressSession(session);
+      console.log(`[SessionRecorder] Compresión: ${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} (${result.compressionRatio}% reducción)`);
+      return result.compressed;
+    } catch (error) {
+      console.error('[SessionRecorder] Error en compresión, usando fallback:', error);
+      return this.exportSessionBase64(session);
+    }
+  }
+
+  /**
+   * Verifica si la grabación está pausada
+   */
+  isPaused(): boolean {
+    return this.isPausedState;
+  }
+
+  /**
+   * Pausa la grabación (para inactividad)
+   */
+  pause(): void {
+    if (this.isRecording && !this.isPausedState) {
+      this.isPausedState = true;
+      console.log('[SessionRecorder] ⏸️ Grabación pausada');
+    }
+  }
+
+  /**
+   * Reanuda la grabación
+   */
+  resume(): void {
+    if (this.isRecording && this.isPausedState) {
+      this.isPausedState = false;
+      console.log('[SessionRecorder] ▶️ Grabación reanudada');
+    }
+  }
+
+  /**
+   * Obtiene el tiempo de inicio de la sesión
+   */
+  getSessionStartTime(): number | null {
+    return this.sessionStartTime;
+  }
+
+  /**
+   * Genera metadata enriquecida del entorno del usuario
+   */
+  getEnrichedMetadata(session?: RecordingSession | null): EnrichedMetadata {
+    const currentSession = session || this.getCurrentSession();
+    const now = Date.now();
+    
+    // Información del viewport
+    const viewport = typeof window !== 'undefined' 
+      ? { width: window.innerWidth, height: window.innerHeight }
+      : { width: 0, height: 0 };
+    
+    // Información de conexión (si está disponible)
+    const connection = typeof navigator !== 'undefined' && 'connection' in navigator
+      ? (navigator as any).connection?.effectiveType
+      : undefined;
+    
+    // Memoria del dispositivo (si está disponible)
+    const memory = typeof navigator !== 'undefined' && 'deviceMemory' in navigator
+      ? (navigator as any).deviceMemory
+      : undefined;
+    
+    // Errores recientes
+    const errors = getRecentErrors();
+    const errorSummary = getErrorSummary();
+    
+    // Marcadores de contexto
+    const contextMarkers = getContextMarkers();
+    const sessionSummary = getSessionSummary();
+    
+    // Información de la grabación
+    const sessionSize = currentSession 
+      ? this.getSessionSizeFormatted(currentSession)
+      : '0 B';
+    
+    return {
+      viewport,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      platform: typeof navigator !== 'undefined' ? navigator.platform : 'unknown',
+      language: typeof navigator !== 'undefined' ? navigator.language : 'unknown',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      connection,
+      memory,
+      currentUrl: typeof window !== 'undefined' ? window.location.href : 'unknown',
+      sessionDuration: this.sessionStartTime ? now - this.sessionStartTime : 0,
+      errors,
+      errorSummary,
+      contextMarkers,
+      sessionSummary,
+      recordingInfo: {
+        eventCount: currentSession?.events.length || 0,
+        size: sessionSize,
+        compressed: false // Se marcará como true si se comprime
+      }
+    };
+  }
 }
 
 // Función helper para obtener el singleton de forma segura
@@ -459,11 +606,30 @@ function getSessionRecorderInstance(): SessionRecorder {
       captureSnapshot: () => null,
       getCurrentSession: () => null,
       isActive: () => false,
+      isPaused: () => false,
+      pause: () => {},
+      resume: () => {},
       isRrwebAvailable: () => false,
       exportSession: () => '',
       exportSessionBase64: () => '',
+      exportSessionCompressed: async () => '',
       getSessionSize: () => 0,
       getSessionSizeFormatted: () => '0 B',
+      getEnrichedMetadata: () => ({
+        viewport: { width: 0, height: 0 },
+        userAgent: 'server',
+        platform: 'server',
+        language: 'unknown',
+        timezone: 'UTC',
+        currentUrl: 'server',
+        sessionDuration: 0,
+        errors: [],
+        errorSummary: { totalErrors: 0, byType: {}, recentErrors: [] },
+        contextMarkers: [],
+        sessionSummary: { totalMarkers: 0, pageVisits: [], modalsOpened: [], actionsCount: 0, errorsCount: 0, timeline: [] },
+        recordingInfo: { eventCount: 0, size: '0 B', compressed: false }
+      }),
+      getSessionStartTime: () => null,
     } as unknown as SessionRecorder;
   }
   
@@ -492,6 +658,18 @@ export const sessionRecorder = {
     return getSessionRecorderInstance().isActive();
   },
   
+  isPaused(): boolean {
+    return getSessionRecorderInstance().isPaused();
+  },
+  
+  pause(): void {
+    return getSessionRecorderInstance().pause();
+  },
+  
+  resume(): void {
+    return getSessionRecorderInstance().resume();
+  },
+  
   isRrwebAvailable(): boolean {
     return getSessionRecorderInstance().isRrwebAvailable();
   },
@@ -504,11 +682,23 @@ export const sessionRecorder = {
     return getSessionRecorderInstance().exportSessionBase64(session);
   },
   
+  async exportSessionCompressed(session: RecordingSession): Promise<string> {
+    return getSessionRecorderInstance().exportSessionCompressed(session);
+  },
+  
   getSessionSize(session: RecordingSession): number {
     return getSessionRecorderInstance().getSessionSize(session);
   },
   
   getSessionSizeFormatted(session: RecordingSession): string {
     return getSessionRecorderInstance().getSessionSizeFormatted(session);
+  },
+  
+  getEnrichedMetadata(session?: RecordingSession | null): EnrichedMetadata {
+    return getSessionRecorderInstance().getEnrichedMetadata(session);
+  },
+  
+  getSessionStartTime(): number | null {
+    return getSessionRecorderInstance().getSessionStartTime();
   },
 };

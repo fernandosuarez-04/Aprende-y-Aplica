@@ -1,105 +1,126 @@
 /**
  * Hook global para grabar sesiones en background
- * Se inicia automáticamente al montar la app y mantiene los últimos 60 segundos
+ * Se inicia automáticamente al montar la app y mantiene los últimos 3 minutos
+ * 
+ * VERSIÓN SIMPLIFICADA:
+ * - Evita race conditions verificando existencia de métodos
+ * - No usa detector de inactividad por ahora (causaba errores)
  */
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
-// Importación dinámica para evitar problemas en el servidor
-// Usar tipo genérico en lugar de typeof import para evitar análisis estático
-import type { SessionRecorderInstance } from './session-recorder';
-
-let sessionRecorder: SessionRecorderInstance | null = null;
-
-async function getSessionRecorder() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
-  if (!sessionRecorder) {
-    // Destructure sessionRecorder from the module export
-    const { sessionRecorder: recorder } = await import('./session-recorder');
-    sessionRecorder = recorder;
-  }
-  
-  return sessionRecorder;
-}
+// Flag global para evitar inicializaciones duplicadas
+let isInitialized = false;
+let errorInterceptorStarted = false;
 
 export function useGlobalRecorder() {
+  const mountedRef = useRef(true);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     // Solo en el cliente
     if (typeof window === 'undefined') return;
-
-    // Cargar sessionRecorder de forma asíncrona
-    let restartInterval: NodeJS.Timeout | null = null;
     
-    getSessionRecorder().then((recorder) => {
-      if (!recorder) {
-        console.warn('⚠️ [Global] sessionRecorder no está disponible');
-        return;
-      }
+    mountedRef.current = true;
 
-      // Iniciar grabación automática con 3 MINUTOS de buffer
-      // Se reiniciará automáticamente cada 3 minutos
-      recorder.startRecording(180000).catch((error) => {
-        console.error('❌ [Global] Error al iniciar grabación:', error);
-      }); // 3 minutos = 180000ms
+    // Si ya está inicializado, no hacer nada
+    if (isInitialized) {
+      return;
+    }
 
-      // Reiniciar grabación cada 3 minutos para mantener el sistema activo
-      // Usar reinicio seguro para evitar race conditions y pérdida de eventos
-      restartInterval = setInterval(async () => {
-        try {
-          
-          // Detener grabación actual de forma segura
-          const stoppedSession = recorder.stop();
-          
-          if (stoppedSession) {
+    const initRecorder = async () => {
+      try {
+        // Cargar el módulo
+        const { sessionRecorder } = await import('./session-recorder');
+        
+        // Verificar que el componente siga montado
+        if (!mountedRef.current) {
+          return;
+        }
 
+        // Verificar que sessionRecorder tenga los métodos necesarios
+        if (!sessionRecorder || typeof sessionRecorder.startRecording !== 'function') {
+          console.warn('[Global] ⚠️ sessionRecorder no está disponible o no tiene los métodos requeridos');
+          return;
+        }
+
+        // Iniciar error interceptor (si no está iniciado)
+        if (!errorInterceptorStarted) {
+          try {
+            const { startErrorInterceptor } = await import('./error-interceptor');
+            startErrorInterceptor();
+            errorInterceptorStarted = true;
+          } catch (e) {
+            // Silenciar
           }
-          
-          // Esperar un tiempo suficiente para asegurar que la limpieza se complete
-          // Esto previene race conditions donde el recorder aún está procesando
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Verificar que el recorder no esté activo antes de reiniciar
-          if (recorder.isActive()) {
-            console.warn('⚠️ [Global] El recorder aún está activo, esperando más tiempo...');
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-          
-          // Iniciar nueva grabación
-          await recorder.startRecording(180000);
+        }
 
-        } catch (error) {
-          console.error('❌ [Global] Error al reiniciar grabación:', error);
-          // Intentar reiniciar después de un delay más largo en caso de error
-          setTimeout(async () => {
+        // Solo iniciar grabación si no hay una activa
+        const isActive = typeof sessionRecorder.isActive === 'function' && sessionRecorder.isActive();
+        
+        if (!isActive) {
+          try {
+            await sessionRecorder.startRecording(180000); // 3 minutos
+            console.log('[Global] 🎬 Grabación global iniciada');
+          } catch (error) {
+            // Silenciar errores de grabación ya activa
+          }
+        } else {
+          console.log('[Global] ℹ️ Grabación ya estaba activa');
+        }
+        
+        isInitialized = true;
+
+        // Reiniciar grabación cada 3 minutos
+        if (!intervalRef.current) {
+          intervalRef.current = setInterval(async () => {
+            if (!mountedRef.current) return;
+            
             try {
-              await recorder.startRecording(180000);
-
-            } catch (retryError) {
-              console.error('❌ [Global] Error en reintento de grabación:', retryError);
+              const mod = await import('./session-recorder');
+              const recorder = mod.sessionRecorder;
+              
+              if (!recorder || typeof recorder.isActive !== 'function') return;
+              
+              // Verificar si hay grabación activa antes de detener
+              if (!recorder.isActive()) {
+                await recorder.startRecording(180000);
+                return;
+              }
+              
+              // Detener y reiniciar
+              if (typeof recorder.stop === 'function') {
+                recorder.stop();
+              }
+              
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              if (mountedRef.current) {
+                await recorder.startRecording(180000);
+                console.log('[Global] 🔄 Grabación reiniciada');
+              }
+            } catch (error) {
+              // Silenciar errores
             }
-          }, 2000);
+          }, 180000); // 3 minutos
         }
-      }, 180000); // 3 minutos
-    }).catch((error) => {
-      console.error('❌ [Global] Error cargando sessionRecorder:', error);
-    });
-
-    // Cleanup al desmontar (aunque normalmente no se desmonta)
-    return () => {
-
-      if (restartInterval) {
-        clearInterval(restartInterval);
+      } catch (error) {
+        console.error('[Global] Error inicializando recorder:', error);
       }
-      getSessionRecorder().then((recorder) => {
-        if (recorder) {
-          recorder.stop();
-        }
-      });
+    };
+
+    initRecorder();
+
+    // Cleanup
+    return () => {
+      mountedRef.current = false;
+      
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, []);
 }

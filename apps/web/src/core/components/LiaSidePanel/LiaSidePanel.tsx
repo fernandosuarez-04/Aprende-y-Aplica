@@ -3,13 +3,14 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Paperclip, Sparkles, MessageSquare, Lightbulb, HelpCircle } from 'lucide-react';
+import { X, Send, Sparkles, MessageSquare, Lightbulb, HelpCircle, Trash2 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLiaPanel } from '../../contexts/LiaPanelContext';
 import { useLiaGeneralChat } from '../../hooks/useLiaGeneralChat';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { useOrganizationStylesContext } from '../../../features/business-panel/contexts/OrganizationStylesContext';
 import { useThemeStore } from '@/core/stores/themeStore';
+import { useTranslation } from 'react-i18next';
 
 // Función para parsear Markdown completo y convertirlo a elementos React
 function parseMarkdownContent(text: string, onLinkClick: (url: string) => void): React.ReactNode {
@@ -110,34 +111,15 @@ interface QuickAction {
   prompt: string;
 }
 
-const quickActions: QuickAction[] = [
-  {
-    id: 'capabilities',
-    label: '¿Qué puedes hacer?',
-    icon: HelpCircle,
-    prompt: '¿Qué puedes hacer? ¿Cómo me puedes ayudar?'
-  },
-  {
-    id: 'courses',
-    label: 'Ver mis cursos',
-    icon: MessageSquare,
-    prompt: '¿Qué cursos tengo disponibles?'
-  },
-  {
-    id: 'recommend',
-    label: 'Recomiéndame',
-    icon: Lightbulb,
-    prompt: '¿Qué curso me recomiendas para empezar?'
-  },
-  {
-    id: 'help',
-    label: 'Ayuda rápida',
-    icon: Sparkles,
-    prompt: 'Necesito ayuda para navegar en la plataforma'
-  }
-];
+interface QuickAction {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  prompt: string;
+}
 
 function LiaSidePanelContent() {
+  const { t } = useTranslation('common');
   const { isOpen, closePanel, pageContext } = useLiaPanel();
   const { user } = useAuth();
   const router = useRouter();
@@ -177,15 +159,51 @@ function LiaSidePanelContent() {
     accentColor: effectiveStyles?.accent_color || '#00D4B3',
   };
   
-  const { messages, isLoading, sendMessage } = useLiaGeneralChat(
-    user?.first_name 
-      ? `¡Hola ${user.first_name}! 👋 Soy LIA, tu asistente de inteligencia artificial en SOFIA. Puedo ayudarte a gestionar tus cursos, responder preguntas y guiarte en la plataforma. ¿En qué te puedo ayudar?`
-      : '¡Hola! 👋 Soy LIA, tu asistente de inteligencia artificial en SOFIA. Puedo ayudarte a gestionar tus cursos, responder preguntas y guiarte en la plataforma. ¿En qué te puedo ayudar?'
-  );
+  const { messages, isLoading, sendMessage, clearHistory } = useLiaGeneralChat();
   
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [currentTip, setCurrentTip] = useState('');
+  const [isAvatarExpanded, setIsAvatarExpanded] = useState(false);
+
+  const quickActions: QuickAction[] = [
+    {
+      id: 'capabilities',
+      label: t('lia.quickActions.capabilities'),
+      icon: HelpCircle,
+      prompt: t('lia.quickActions.capabilities')
+    },
+    {
+      id: 'courses',
+      label: t('lia.quickActions.courses'),
+      icon: MessageSquare,
+      prompt: t('lia.quickActions.courses')
+    },
+    {
+      id: 'recommend',
+      label: t('lia.quickActions.recommend'),
+      icon: Lightbulb,
+      prompt: t('lia.quickActions.recommend')
+    },
+    {
+      id: 'help',
+      label: t('lia.quickActions.help'),
+      icon: Sparkles,
+      prompt: t('lia.quickActions.help')
+    }
+  ];
+
+  // Cast tips to string array just to be safe with unknown return type of returnObjects
+  const tips = (t('lia.tips', { returnObjects: true }) as string[]) || [];
+
+  // Seleccionar tip aleatorio al abrir el panel
+  useEffect(() => {
+    if (isOpen && tips.length > 0) {
+      const randomTip = tips[Math.floor(Math.random() * tips.length)];
+      setCurrentTip(randomTip);
+    }
+  }, [isOpen, t]); // Re-run if language changes (t changes)
 
   // Función para manejar clicks en enlaces del chat
   const handleLinkClick = useCallback((url: string) => {
@@ -248,10 +266,13 @@ function LiaSidePanelContent() {
             height: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
             backgroundColor: themeColors.panelBg,
             borderLeft: `1px solid ${themeColors.borderColor}`,
+            borderTopLeftRadius: '30px',
+            borderBottomLeftRadius: '30px',
+            overflow: 'hidden',
             zIndex: 100,
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: isLightTheme ? '-4px 0 20px rgba(0, 0, 0, 0.1)' : '-4px 0 20px rgba(0, 0, 0, 0.3)',
+            boxShadow: isLightTheme ? '-4px 0 24px rgba(0, 0, 0, 0.08)' : '-4px 0 32px rgba(0, 0, 0, 0.4)',
           }}
         >
           {/* Header del panel */}
@@ -260,7 +281,7 @@ function LiaSidePanelContent() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '16px 20px',
+              padding: '20px 24px',
               borderBottom: `1px solid ${themeColors.borderColor}`,
               backgroundColor: themeColors.headerBg,
             }}
@@ -268,15 +289,19 @@ function LiaSidePanelContent() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {/* Avatar de LIA */}
               <div style={{ position: 'relative' }}>
-                <img
+                <motion.img
+                  layoutId="lia-avatar-header"
                   src="/lia-avatar.png"
                   alt="LIA"
+                  onClick={() => setIsAvatarExpanded(true)}
+                  whileHover={{ scale: 1.05 }}
                   style={{
                     width: '40px',
                     height: '40px',
                     borderRadius: '50%',
                     objectFit: 'cover',
                     border: `2px solid ${themeColors.accentColor}`,
+                    cursor: 'zoom-in'
                   }}
                 />
                 <div
@@ -295,33 +320,59 @@ function LiaSidePanelContent() {
               
               <div>
                 <h2 style={{ color: themeColors.textPrimary, fontSize: '16px', fontWeight: 600, margin: 0, lineHeight: 1.2 }}>
-                  LIA
+                  {t('lia.header.title')}
                 </h2>
                 <p style={{ color: themeColors.accentColor, fontSize: '12px', fontWeight: 500, margin: 0 }}>
-                  • Asistente IA • En línea
+                  {t('lia.header.subtitle')}
                 </p>
               </div>
             </div>
             
-            <button
-              onClick={closePanel}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLightTheme ? '#E2E8F0' : '#1e2a35'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              <X style={{ width: '18px', height: '18px', color: themeColors.textSecondary }} />
-            </button>
+            {/* Contenedor de acciones (Limpiar + Cerrar) */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={clearHistory}
+                title={t('lia.chat.cleanHistory')}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background-color 0.2s',
+                  opacity: messages.length > 0 ? 1 : 0.5,
+                  pointerEvents: messages.length > 0 ? 'auto' : 'none',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLightTheme ? '#fee2e2' : '#450a0a'} // Fondo rojo suave al hover
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <Trash2 style={{ width: '18px', height: '18px', color: isLightTheme ? '#ef4444' : '#f87171' }} />
+              </button>
+
+              <button
+                onClick={closePanel}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLightTheme ? '#E2E8F0' : '#1e2a35'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <X style={{ width: '18px', height: '18px', color: themeColors.textSecondary }} />
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}
@@ -335,7 +386,85 @@ function LiaSidePanelContent() {
               gap: '12px',
             }}
           >
-            {messages.map((message) => (
+            {messages.length === 0 ? (
+               // Empty State / Loading Screen Style
+               <div
+                 style={{
+                   flex: 1,
+                   display: 'flex',
+                   flexDirection: 'column',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   textAlign: 'center',
+                   opacity: 0.8,
+                   padding: '0 20px'
+                 }}
+               >
+                 <motion.div
+                   initial={{ scale: 0.9, opacity: 0 }}
+                   animate={{ scale: 1, opacity: 1 }}
+                   transition={{ duration: 0.5 }}
+                   style={{ marginBottom: '24px', position: 'relative' }}
+                 >
+                   {/* Glow effect behind avatar */}
+                   <div style={{
+                     position: 'absolute',
+                     top: '50%',
+                     left: '50%',
+                     transform: 'translate(-50%, -50%)',
+                     width: '120px',
+                     height: '120px',
+                     borderRadius: '50%',
+                     backgroundColor: themeColors.accentColor,
+                     filter: 'blur(40px)',
+                     opacity: 0.2,
+                     zIndex: 0
+                   }} />
+                   
+                   <img
+                    src="/lia-avatar.png"
+                    alt="LIA"
+                    style={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: `3px solid ${themeColors.accentColor}`,
+                      boxShadow: `0 0 20px ${themeColors.accentColor}40`,
+                      position: 'relative',
+                      zIndex: 1
+                    }}
+                   />
+                 </motion.div>
+
+                 <motion.div
+                   key={currentTip} // Animate when tip changes
+                   initial={{ y: 10, opacity: 0 }}
+                   animate={{ y: 0, opacity: 1 }}
+                   transition={{ delay: 0.2, duration: 0.5 }}
+                 >
+                   <h3 style={{ 
+                     color: themeColors.textPrimary, 
+                     fontSize: '18px', 
+                     fontWeight: 600, 
+                     marginBottom: '8px' 
+                   }}>
+                     LIA
+                   </h3>
+                   <p style={{ 
+                     color: themeColors.textSecondary, 
+                     fontSize: '14px', 
+                     lineHeight: 1.5,
+                     maxWidth: '280px',
+                     margin: '0 auto'
+                   }}>
+                     {currentTip}
+                   </p>
+                 </motion.div>
+               </div>
+            ) : (
+              // Chat Messages
+              messages.map((message) => (
               <div
                 key={message.id}
                 style={{
@@ -370,7 +499,8 @@ function LiaSidePanelContent() {
                   </p>
                 </div>
               </div>
-            ))}
+            ))
+            )}
             
             {isLoading && (
               <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
@@ -448,26 +578,20 @@ function LiaSidePanelContent() {
                 border: `1px solid ${themeColors.inputBorder}`,
               }}
             >
-              <button
-                style={{
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <Paperclip style={{ width: '20px', height: '20px', color: themeColors.textSecondary }} />
-              </button>
+
               
               <input
                 ref={inputRef}
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Escribe un mensaje a LIA..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                placeholder={t('lia.chat.inputPlaceholder')}
                 style={{
                   flex: 1,
                   backgroundColor: 'transparent',
@@ -505,6 +629,63 @@ function LiaSidePanelContent() {
               50% { opacity: 1; transform: scale(1.2); }
             }
           `}</style>
+          {/* Expanded Avatar Overlay (Easter Egg) */}
+          <AnimatePresence>
+            {isAvatarExpanded && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsAvatarExpanded(false)}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                  zIndex: 9999,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'zoom-out',
+                  backdropFilter: 'blur(5px)'
+                }}
+              >
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ position: 'relative' }}
+                >
+                    <motion.img
+                      layoutId="lia-avatar-header"
+                      src="/lia-avatar.png"
+                      alt="LIA Expanded"
+                      style={{
+                        width: 'min(80vw, 400px)',
+                        height: 'min(80vw, 400px)',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: `4px solid ${themeColors.accentColor}`,
+                        boxShadow: `0 0 50px ${themeColors.accentColor}80`
+                      }}
+                    />
+                    <div style={{
+                      marginTop: '20px',
+                      textAlign: 'center',
+                      color: 'white'
+                    }}>
+                      <h3 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>LIA</h3>
+                      <p style={{ opacity: 0.8, margin: 0 }}>Asistente de Inteligencia Artificial</p>
+                    </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
         </motion.aside>
       )}
     </AnimatePresence>

@@ -6,8 +6,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { RecordingSession } from '../../../lib/rrweb/session-recorder';
 import { loadRrwebPlayer } from '../../../lib/rrweb/rrweb-loader';
-// Nota: Los estilos de rrweb-player están incluidos en el paquete JavaScript
-// No es necesario importar CSS adicional para la versión alpha
+// Estilos de rrweb-player
+import 'rrweb-player/dist/style.css';
+// Estilos personalizados para el reproductor
+import './SessionPlayer.css';
 
 interface SessionPlayerProps {
   session: RecordingSession;
@@ -98,17 +100,20 @@ export function SessionPlayer({
 
         // Crear nuevo player usando el módulo cargado dinámicamente
         const PlayerClass = RrwebPlayer.default || RrwebPlayer;
+        
+        // Usar dimensiones fijas para asegurar escalado correcto
         playerRef.current = new PlayerClass({
           target: container,
           props: {
             events: session.events,
-            width: typeof width === 'number' ? width : undefined,
-            height: typeof height === 'number' ? height : undefined,
+            width: 800,  // Ancho fijo
+            height: 520, // Alto fijo (deja espacio para controles)
             autoPlay: autoPlay,
             showController: showController,
             skipInactive: skipInactive,
             speed: speed,
-            UNSAFE_replayCanvas: false, // No reproducir canvas por seguridad
+            mouseTail: true,
+            UNSAFE_replayCanvas: false,
           },
         });
 
@@ -147,13 +152,24 @@ export function SessionPlayer({
   }, [session, width, height, autoPlay, showController, skipInactive, speed]);
 
   return (
-    <div className="session-player-wrapper" style={{ width, height, position: 'relative' }}>
+    <div 
+      className="session-player-wrapper" 
+      style={{ 
+        width: '100%', 
+        minHeight: '600px',
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#0f0f23',
+        borderRadius: '12px',
+        overflow: 'hidden'
+      }}
+    >
       {/* Div del player - SIEMPRE presente */}
       <div 
         ref={containerRef} 
         style={{ 
-          width: '100%', 
-          height: '100%',
           display: isLoading || error ? 'none' : 'block'
         }} 
       />

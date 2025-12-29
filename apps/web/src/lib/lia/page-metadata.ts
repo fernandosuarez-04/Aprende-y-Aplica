@@ -200,6 +200,167 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     availableActions: ['Ver compras pasadas', 'Descargar facturas'],
     relatedPages: ['/my-courses', '/cart'],
     features: ['Visualización de compras', 'Descarga de facturas']
+  },
+  // ==========================================
+  // BUSINESS PANEL - ADMINISTRADOR EMPRESARIAL
+  // ==========================================
+  '/business-panel': {
+    path: '/business-panel',
+    title: 'Panel de Negocios - Dashboard',
+    description: 'Dashboard principal del panel de administración empresarial. Muestra estadísticas generales: cursos asignados, en progreso, completados y certificados emitidos.',
+    category: 'negocios',
+    keywords: ['business', 'empresa', 'dashboard', 'estadísticas', 'administración', 'panel empresarial'],
+    availableActions: ['Ver estadísticas generales', 'Ver cursos asignados', 'Ver actividad reciente', 'Navegar a secciones'],
+    relatedPages: ['/business-panel/teams', '/business-panel/users', '/business-panel/courses', '/business-panel/analytics'],
+    features: ['Estadísticas de cursos', 'Métricas de progreso', 'Widgets de actividad', 'Gráficos de rendimiento'],
+    contentSections: ['Tarjetas de estadísticas', 'Cursos en catálogo', 'Actividad reciente'],
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  '/business-panel/dashboard': {
+    path: '/business-panel/dashboard',
+    title: 'Panel de Negocios - Dashboard',
+    description: 'Vista principal del panel empresarial con métricas clave de formación corporativa.',
+    category: 'negocios',
+    keywords: ['dashboard', 'métricas', 'empresa', 'estadísticas'],
+    availableActions: ['Ver progreso general', 'Ver actividad', 'Acceder a reportes'],
+    relatedPages: ['/business-panel/teams', '/business-panel/users', '/business-panel/courses'],
+    features: ['Estadísticas en tiempo real', 'Rankings de aprendizaje', 'Gráficos interactivos'],
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  '/business-panel/teams': {
+    path: '/business-panel/teams',
+    title: 'Gestión de Equipos',
+    description: 'Crear y gestionar departamentos o grupos de trabajo. Asignar líderes, ver progreso por equipo, configurar objetivos grupales.',
+    category: 'negocios',
+    keywords: ['equipos', 'teams', 'departamentos', 'grupos', 'líder', 'manager'],
+    availableActions: ['Crear equipo', 'Editar equipo', 'Eliminar equipo', 'Asignar líder', 'Ver miembros', 'Ver progreso del equipo'],
+    relatedPages: ['/business-panel/users', '/business-panel/courses', '/business-panel/analytics'],
+    features: ['Modal: Crear/Editar Equipo', 'Pestañas: Analíticas, Objetivos, Cursos, Miembros, Chat, Feedback', 'Asignación de líder'],
+    contentSections: ['Lista de equipos', 'Detalle de equipo con pestañas', 'Estadísticas por equipo'],
+    specialNotes: 'Al hacer clic en un equipo se abre su detalle con múltiples pestañas: Analíticas, Objetivos, Cursos, Miembros, Chat y Feedback.',
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  '/business-panel/users': {
+    path: '/business-panel/users',
+    title: 'Gestión de Usuarios',
+    description: 'Administrar empleados de la organización: invitar, editar, eliminar, importar masivamente y ver estadísticas individuales.',
+    category: 'negocios',
+    keywords: ['usuarios', 'empleados', 'invitar', 'importar', 'CSV', 'roles', 'estadísticas'],
+    availableActions: ['Agregar usuario', 'Editar usuario', 'Eliminar usuario', 'Importar CSV', 'Ver estadísticas', 'Asignar a equipo', 'Cambiar rol'],
+    relatedPages: ['/business-panel/teams', '/business-panel/courses'],
+    features: ['Modal: Agregar Usuario', 'Modal: Editar Usuario', 'Modal: Eliminar Usuario', 'Modal: Importar CSV', 'Modal: Estadísticas de Usuario', 'Tabla de usuarios con filtros'],
+    contentSections: ['Tabla de usuarios', 'Filtros y búsqueda', 'Acciones en lote'],
+    specialNotes: 'Roles disponibles: Administrador (acceso total), Manager (solo su equipo), Estudiante (solo sus cursos). La importación CSV permite cargar múltiples empleados de una vez.',
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  '/business-panel/courses': {
+    path: '/business-panel/courses',
+    title: 'Catálogo y Asignación de Cursos',
+    description: 'Ver el catálogo de cursos disponibles y asignarlos a usuarios individuales o equipos completos. Configurar fechas límite con ayuda de LIA.',
+    category: 'negocios',
+    keywords: ['cursos', 'asignar', 'catálogo', 'formación', 'capacitación', 'deadline', 'fecha límite'],
+    availableActions: ['Ver catálogo', 'Asignar curso a usuario', 'Asignar curso a equipo', 'Configurar fecha límite', 'Usar sugerencias de LIA'],
+    relatedPages: ['/business-panel/teams', '/business-panel/users', '/business-panel/analytics'],
+    features: ['Grid de cursos', 'Modal: Asignar Curso (con pestañas Usuarios/Equipos)', 'Modal: Sugerencias de Fecha LIA', 'Configuración de deadline'],
+    contentSections: ['Catálogo de cursos', 'Filtros', 'Indicadores de progreso'],
+    specialNotes: 'El botón "✨ Sugerir con IA" abre un modal donde LIA recomienda fechas límite según 3 enfoques: Rápido (⚡), Equilibrado (⚖️) o Largo (🌱).',
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  '/business-panel/analytics': {
+    path: '/business-panel/analytics',
+    title: 'Analíticas Empresariales',
+    description: 'Dashboard avanzado de métricas: progreso, engagement, contenido popular, comparativas entre equipos. Exportar reportes.',
+    category: 'negocios',
+    keywords: ['analytics', 'métricas', 'reportes', 'engagement', 'progreso', 'gráficos'],
+    availableActions: ['Ver gráficos de progreso', 'Analizar engagement', 'Comparar equipos', 'Exportar CSV/PDF', 'Filtrar por fecha/equipo/curso'],
+    relatedPages: ['/business-panel/reports', '/business-panel/teams'],
+    features: ['Gráficos de línea', 'Métricas de engagement', 'Exportación de datos', 'Filtros avanzados'],
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  '/business-panel/reports': {
+    path: '/business-panel/reports',
+    title: 'Reportes Personalizados',
+    description: 'Generación de reportes detallados: progreso por usuario, por equipo, completados por curso, engagement semanal/mensual.',
+    category: 'negocios',
+    keywords: ['reportes', 'informes', 'exportar', 'datos', 'análisis'],
+    availableActions: ['Generar reporte', 'Exportar CSV', 'Exportar PDF', 'Filtrar datos'],
+    relatedPages: ['/business-panel/analytics', '/business-panel/teams'],
+    features: ['Tablas exportables', 'Múltiples tipos de reportes', 'Filtros por fecha y entidad'],
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  '/business-panel/settings': {
+    path: '/business-panel/settings',
+    title: 'Configuración Empresarial',
+    description: 'Configurar datos de la empresa, personalizar branding (logo, colores), personalizar certificados, gestionar suscripción.',
+    category: 'negocios',
+    keywords: ['configuración', 'settings', 'branding', 'logo', 'colores', 'certificados', 'suscripción'],
+    availableActions: ['Editar datos empresa', 'Subir logo', 'Cambiar colores', 'Personalizar certificados', 'Ver plan de suscripción', 'Gestionar facturación'],
+    relatedPages: ['/business-panel/subscription'],
+    features: ['Pestañas: General, Branding, Certificados, Suscripción', 'Modal: Ajustar imagen', 'Selector de colores', 'Vista previa en tiempo real'],
+    contentSections: ['Información general', 'Personalización visual', 'Diseño de certificados', 'Planes y facturación'],
+    specialNotes: 'El branding (logo y colores) se aplica automáticamente a la vista de los empleados (business-user) para mantener la identidad corporativa.',
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  '/business-panel/subscription': {
+    path: '/business-panel/subscription',
+    title: 'Suscripción y Facturación',
+    description: 'Ver plan actual, comparar planes disponibles, gestionar métodos de pago, descargar facturas.',
+    category: 'negocios',
+    keywords: ['suscripción', 'plan', 'facturación', 'pago', 'upgrade'],
+    availableActions: ['Ver plan actual', 'Comparar planes', 'Cambiar plan', 'Agregar método de pago', 'Descargar facturas'],
+    relatedPages: ['/business-panel/settings'],
+    features: ['Comparador de planes', 'Historial de facturas', 'Gestión de pagos'],
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  '/business-panel/progress': {
+    path: '/business-panel/progress',
+    title: 'Progreso por Equipos',
+    description: 'Vista consolidada del progreso de formación por equipos. Alertas de usuarios rezagados.',
+    category: 'negocios',
+    keywords: ['progreso', 'equipos', 'avance', 'alertas'],
+    availableActions: ['Ver progreso por equipo', 'Identificar rezagados', 'Ver tendencias'],
+    relatedPages: ['/business-panel/teams', '/business-panel/analytics'],
+    features: ['Métricas visuales', 'Alertas automáticas', 'Comparativas'],
+    isBusinessOnly: true,
+    allowedRoles: ['business', 'administrador']
+  },
+  // ==========================================
+  // BUSINESS USER - EMPLEADO EMPRESARIAL
+  // ==========================================
+  '/business-user/dashboard': {
+    path: '/business-user/dashboard',
+    title: 'Dashboard del Empleado',
+    description: 'Vista personalizada para empleados: cursos asignados por la empresa, progreso personal, fechas límite, certificados obtenidos.',
+    category: 'negocios',
+    keywords: ['empleado', 'cursos asignados', 'progreso', 'deadline', 'certificados'],
+    availableActions: ['Ver cursos asignados', 'Ver progreso', 'Ver fechas límite', 'Descargar certificados', 'Continuar aprendizaje'],
+    relatedPages: ['/business-user/teams', '/my-courses'],
+    features: ['Branding corporativo', 'Cursos obligatorios', 'Indicadores de deadline', 'Certificados'],
+    contentSections: ['Mis cursos asignados', 'Progreso', 'Próximas fechas', 'Logros'],
+    specialNotes: 'Esta vista tiene el branding (logo y colores) de la empresa configurado por el administrador.',
+    isBusinessOnly: true,
+    allowedRoles: ['business user', 'business', 'administrador']
+  },
+  '/business-user/teams': {
+    path: '/business-user/teams',
+    title: 'Mi Equipo',
+    description: 'Ver el equipo al que perteneces, chat con compañeros, objetivos del equipo.',
+    category: 'negocios',
+    keywords: ['equipo', 'compañeros', 'chat', 'objetivos'],
+    availableActions: ['Ver equipo', 'Chatear con compañeros', 'Ver objetivos'],
+    relatedPages: ['/business-user/dashboard'],
+    features: ['Información del equipo', 'Chat grupal', 'Objetivos compartidos'],
+    isBusinessOnly: true,
+    allowedRoles: ['business user', 'business', 'administrador']
   }
 };
 

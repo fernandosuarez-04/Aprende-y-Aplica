@@ -98,3 +98,4 @@ export const initI18n = () => {
   return i18n;
 };
 
+// Force re-compile to pick up new JSON translations (LIA update)
