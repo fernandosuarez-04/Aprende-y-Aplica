@@ -81,6 +81,8 @@ import { useOrganizationStyles } from '../../../../features/business-panel/hooks
 import { hexToRgb } from '../../../../features/business-panel/utils/styles';
 // 🎯 Import para tracking de sesiones de estudio
 import { LessonTrackingProvider, useLessonTrackingOptional } from './LessonTrackingContext';
+// 🎯 Import para el tour del curso
+import { useCourseLearnTour } from '../../../../features/tours/hooks/useCourseLearnTour';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
@@ -500,6 +502,13 @@ export default function CourseLearnPage() {
   // Inicializar paneles cerrados en móviles, abiertos en desktop
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   // const [isRightPanelOpen, setIsRightPanelOpen] = useState(false); // Removed LIA
+
+  // 🎯 Tour del curso - con acciones interactivas
+  useCourseLearnTour({
+    enabled: true,
+    onOpenLia: openLia,
+    onSwitchTab: (tab) => setActiveTab(tab),
+  });
 
   // const [isLiaExpanded, setIsLiaExpanded] = useState(false);
   const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
@@ -2646,6 +2655,7 @@ export default function CourseLearnPage() {
                 )}
 
                 <motion.div
+                  id="tour-course-sidebar"
                   initial={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
                   animate={isMobile ? { x: 0 } : { width: 320, opacity: 1 }}
                   exit={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
@@ -3091,7 +3101,7 @@ export default function CourseLearnPage() {
                     <div className="border-b border-[#E9ECEF] dark:border-[#6C757D]/30 mb-6"></div>
 
                     {/* Sección de Notas */}
-                    <div className="space-y-4">
+                    <div className="space-y-4" id="tour-notes-section">
                       {/* Header de Notas con botones de colapsar y nueva nota */}
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-white/40 uppercase tracking-widest flex items-center gap-2 text-xs" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -3101,6 +3111,7 @@ export default function CourseLearnPage() {
                         <div className="flex items-center gap-2">
                           {!isNotesCollapsed && (
                             <button
+                              id="tour-notes-button"
                               onClick={openNewNoteModal}
                               className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
                               title={t('leftPanel.notesSection.newNote')}
@@ -3328,6 +3339,7 @@ export default function CourseLearnPage() {
                       return (
                         <button
                           key={tab.id}
+                          id={`tour-tab-${tab.id}`}
                           onClick={() => setActiveTab(tab.id)}
                           className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${shouldHideText
                             ? 'px-2 py-2 hover:px-3 hover:gap-2'

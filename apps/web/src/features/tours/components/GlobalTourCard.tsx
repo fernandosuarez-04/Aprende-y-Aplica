@@ -31,6 +31,10 @@ export const GlobalTourCard: React.FC<CardComponentProps> = ({
 
   const isLastStep = currentStep === totalSteps - 1;
 
+  // Detectar si es el paso del botón de LIA para aplicar el fix de posición específico
+  // Usamos el selector para identificarlo de forma única
+  const isLiaButtonStep = step.selector === '#tour-lia-course-button';
+
   return (
     <div
       className="relative flex flex-col rounded-2xl shadow-2xl overflow-hidden max-w-sm w-[380px] max-h-[85vh] border-0"
@@ -38,6 +42,7 @@ export const GlobalTourCard: React.FC<CardComponentProps> = ({
         backgroundColor: theme.background,
         color: theme.text,
         boxShadow: `0 20px 50px -10px rgba(0,0,0,0.5), 0 0 0 1px ${theme.border}`,
+        marginBottom: isLiaButtonStep ? 280 : 0, // Solo aplicar el offset grande para el botón de LIA
       }}
     >
       {/* Background decoration */}

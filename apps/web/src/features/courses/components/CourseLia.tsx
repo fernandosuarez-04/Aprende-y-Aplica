@@ -95,6 +95,7 @@ function CourseLiaFloatingButton() {
     <AnimatePresence>
       {!isOpen && (
         <motion.button
+          id="tour-lia-course-button"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0, opacity: 0 }}
@@ -292,7 +293,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
           animate={animationAnimate}
           exit={animationExit}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          id="lia-course-sidebar"
+          id="tour-lia-panel"
           style={{
             position: 'fixed',
             top: `${NAVBAR_HEIGHT}px`,
@@ -394,7 +395,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
             }
 
             /* Eliminar borde blanco superior del panel */
-            #lia-course-sidebar {
+            #tour-lia-panel {
               border-top: 0 !important;
               border-top-width: 0 !important;
             }
