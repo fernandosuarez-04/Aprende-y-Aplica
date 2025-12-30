@@ -21,6 +21,7 @@ import Link from 'next/link'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useTranslation } from 'react-i18next'
+import { useBusinessPanelTour } from '@/features/tours/hooks/useBusinessPanelTour'
 
 // ============================================
 // COMPONENTE: StatCard Premium
@@ -37,226 +38,111 @@ interface StatCardProps {
   gradientStyle?: React.CSSProperties
   delay: number
   href?: string
+  id?: string
 }
 
-function StatCard({ title, value, change, backgroundImage, gradient, gradientStyle, delay, href }: StatCardProps) {
+function StatCard({ title, value, change, backgroundImage, gradient, gradientStyle, delay, href, id }: StatCardProps) {
   const isPositive = change >= 0
 
   const CardContent = (
     <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.9, rotateX: -10 }}
-      animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{
-        delay: delay * 0.12,
-        duration: 0.6,
-        type: "spring",
-        stiffness: 120,
-        damping: 14
+        delay: delay * 0.08,
+        duration: 0.4,
+        ease: 'easeOut'
       }}
-      whileHover={{
-        y: -8,
-        scale: 1.03,
-        rotateY: 2,
-        transition: { duration: 0.3, type: "spring", stiffness: 300 }
-      }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
       className="relative group overflow-hidden rounded-3xl cursor-pointer h-40"
+      id={id}
       style={{
-        backgroundColor: 'var(--org-card-background, #1E2329)',
-        perspective: '1000px',
-        transformStyle: 'preserve-3d'
+        backgroundColor: 'var(--org-card-background, #1E2329)'
       }}
     >
-      {/* Animated Border Glow */}
-      <motion.div
-        className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{
-          background: `linear-gradient(135deg, ${gradientStyle?.background || 'var(--org-accent-color, #00D4B3)'}, transparent, ${gradientStyle?.background || 'var(--org-accent-color, #00D4B3)'})`,
-          padding: '1px',
-          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-          maskComposite: 'exclude',
-          WebkitMaskComposite: 'xor'
-        }}
-      />
+      {/* Border */}
+      <div className="absolute inset-0 rounded-3xl border border-white/10 group-hover:border-white/20 transition-colors duration-300" />
 
-      {/* Glassmorphism Border */}
-      <div className="absolute inset-0 rounded-3xl border border-white/10 group-hover:border-white/20 transition-colors duration-500" />
-
-      {/* Background Image with Enhanced Overlay */}
+      {/* Background Image with Overlay */}
       {backgroundImage && (
         <div className="absolute inset-0 z-0">
           <Image
             src={backgroundImage}
             alt={title}
             fill
-            className="object-cover opacity-70 group-hover:opacity-90 group-hover:scale-110 transition-all duration-700 ease-out"
+            className="object-cover opacity-70 group-hover:opacity-80 transition-opacity duration-300"
           />
-          {/* Subtle Gradient Overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-br from-[var(--org-card-background,#1E2329)]/70 via-[var(--org-card-background,#1E2329)]/40 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-[var(--org-card-background,#1E2329)]/80 via-transparent to-transparent" />
         </div>
       )}
 
-      {/* Animated Shimmer Effect on Hover */}
-      <motion.div
-        className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100"
-        initial={{ x: '-100%' }}
-        whileHover={{
-          x: '100%',
-          transition: { duration: 0.8, ease: 'easeInOut' }
-        }}
-        style={{
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
-          pointerEvents: 'none'
-        }}
-      />
-
-      {/* Soft Glow Effect */}
-      <motion.div
-        className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-60 transition-all duration-700"
-        style={{ backgroundColor: gradientStyle?.background ? 'currentColor' : 'var(--org-accent-color, #00D4B3)' }}
-        animate={{
-          scale: [1, 1.2, 1],
-        }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-      />
-
       {/* Content Container */}
       <div className="relative z-10 p-5 h-full flex flex-col justify-between">
         {/* Top Row: Indicator + Badge */}
         <div className="flex items-start justify-between">
-          {/* Enhanced Visual Indicator */}
-          <motion.div
-            className="relative p-2.5 rounded-xl backdrop-blur-md border border-white/10 overflow-hidden"
+          {/* Visual Indicator */}
+          <div
+            className="p-2.5 rounded-xl backdrop-blur-md border border-white/10"
             style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            transition={{ type: 'spring', stiffness: 400 }}
           >
-            {/* Animated gradient bar */}
-            <motion.div
+            <div
               className="w-8 h-1.5 rounded-full"
               style={gradientStyle}
-              animate={{
-                boxShadow: ['0 0 10px rgba(0,212,179,0.3)', '0 0 20px rgba(0,212,179,0.6)', '0 0 10px rgba(0,212,179,0.3)']
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
             />
-            {/* Pulse ring */}
-            <motion.div
-              className="absolute inset-0 rounded-xl"
-              style={{ border: `1px solid ${gradientStyle?.background || 'var(--org-accent-color, #00D4B3)'}` }}
-              animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          </motion.div>
+          </div>
 
-          {/* Enhanced Change Badge */}
-          <motion.div
+          {/* Change Badge */}
+          <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border ${isPositive
               ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
               : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
               }`}
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{
-              delay: delay * 0.12 + 0.4,
-              type: "spring",
-              stiffness: 200,
-              damping: 12
-            }}
-            whileHover={{ scale: 1.1 }}
           >
-            <motion.div
-              animate={{ y: isPositive ? [-2, 0, -2] : [0, 2, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              {isPositive ? (
-                <ArrowTrendingUpIcon className="h-4 w-4" />
-              ) : (
-                <ArrowTrendingDownIcon className="h-4 w-4" />
-              )}
-            </motion.div>
+            {isPositive ? (
+              <ArrowTrendingUpIcon className="h-4 w-4" />
+            ) : (
+              <ArrowTrendingDownIcon className="h-4 w-4" />
+            )}
             <span>{isPositive ? '+' : ''}{change}%</span>
-          </motion.div>
+          </div>
         </div>
 
         {/* Bottom Row: Value + Title */}
         <div className="space-y-1">
-          {/* Animated Value with Gradient Text */}
-          <motion.div
-            className="relative"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: delay * 0.12 + 0.25, duration: 0.5 }}
+          <h3
+            className="text-4xl font-black tracking-tight"
+            style={{
+              color: 'var(--org-text-color, #FFFFFF)'
+            }}
           >
-            <motion.h3
-              className="text-4xl font-black tracking-tight"
-              style={{
-                color: 'var(--org-text-color, #FFFFFF)',
-                textShadow: '0 0 30px rgba(0,212,179,0.3), 0 2px 10px rgba(0,0,0,0.5)'
-              }}
-              whileHover={{
-                textShadow: '0 0 40px rgba(0,212,179,0.5), 0 2px 15px rgba(0,0,0,0.6)'
-              }}
-            >
-              {typeof value === 'number' ? value.toLocaleString() : value}
-            </motion.h3>
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </h3>
 
-            {/* Decorative underline with animation */}
-            <motion.div
-              className="absolute -bottom-1 left-0 h-0.5 rounded-full"
-              style={{ background: gradientStyle?.background || 'var(--org-accent-color, #00D4B3)' }}
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: '50%', opacity: 0.6 }}
-              transition={{ delay: delay * 0.12 + 0.5, duration: 0.8, ease: 'easeOut' }}
-            />
-          </motion.div>
-
-          {/* Enhanced Title */}
-          <motion.p
-            className="text-sm font-semibold tracking-wide uppercase"
+          <p
+            className="text-sm font-semibold tracking-wide uppercase opacity-80"
             style={{
               color: 'var(--org-border-color, #9CA3AF)',
               letterSpacing: '0.05em'
             }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.8 }}
-            transition={{ delay: delay * 0.12 + 0.35 }}
           >
             {title}
-          </motion.p>
+          </p>
         </div>
 
-        {/* Animated Progress Bar at Bottom */}
-        <motion.div
+        {/* Progress Bar at Bottom */}
+        <div
           className="absolute bottom-0 left-0 right-0 h-1 overflow-hidden"
           style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
         >
-          <motion.div
-            className="h-full rounded-r-full"
+          <div
+            className="h-full rounded-r-full w-[60%]"
             style={{
               background: `linear-gradient(90deg, ${gradientStyle?.background || 'var(--org-accent-color, #00D4B3)'}, transparent)`
             }}
-            initial={{ width: 0 }}
-            animate={{ width: '60%' }}
-            transition={{ delay: delay * 0.12 + 0.6, duration: 1, ease: 'easeOut' }}
           />
-          {/* Animated shine on the bar */}
-          <motion.div
-            className="absolute inset-0"
-            style={{
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
-              width: '30%'
-            }}
-            animate={{ x: ['-100%', '400%'] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: delay * 0.2 + 1 }}
-          />
-        </motion.div>
+        </div>
       </div>
-
-      {/* Corner Decorations */}
-      <div className="absolute top-3 right-3 w-8 h-8 border-t border-r border-white/10 rounded-tr-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      <div className="absolute bottom-3 left-3 w-8 h-8 border-b border-l border-white/10 rounded-bl-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     </motion.div>
   )
 
@@ -283,22 +169,20 @@ interface QuickActionProps {
 function QuickAction({ title, description, icon: Icon, href, color, delay }: QuickActionProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: delay * 0.1 + 0.5, duration: 0.4 }}
+      transition={{ delay: delay * 0.05 + 0.3, duration: 0.3 }}
     >
       <Link href={href}>
-        <motion.div
-          whileHover={{ x: 5, scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="flex items-center gap-4 p-4 rounded-xl border transition-all duration-300 group"
+        <div
+          className="flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 hover:scale-[1.01] hover:brightness-110 group cursor-pointer"
           style={{
             backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 35, 41), 0.5)',
             borderColor: 'var(--org-border-color, #6C757D)33'
           }}
         >
           <div
-            className="p-3 rounded-lg"
+            className="p-3 rounded-lg transition-colors"
             style={{ backgroundColor: color }}
           >
             <Icon className="h-5 w-5 text-white" />
@@ -311,22 +195,21 @@ function QuickAction({ title, description, icon: Icon, href, color, delay }: Qui
               {title}
             </h4>
             <p
-              className="text-xs mt-0.5"
+              className="text-xs mt-0.5 opacity-80"
               style={{ color: 'var(--org-border-color, #6C757D)' }}
             >
               {description}
             </p>
           </div>
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            whileHover={{ opacity: 1, x: 0 }}
+          <div
+            className="opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-[-5px] group-hover:translate-x-0"
             style={{ color: 'var(--org-accent-color, #00D4B3)' }}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </Link>
     </motion.div>
   )
@@ -356,15 +239,8 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: delay * 0.08, duration: 0.4 }}
-      whileHover={{ x: 5 }}
-      className="flex items-start gap-4 p-4 rounded-xl transition-all duration-300 border-l-2 border-transparent"
-      style={{
-        ['--hover-bg' as any]: 'rgba(var(--org-card-background-rgb, 30, 35, 41), 0.8)'
-      }}
+    <div
+      className="flex items-start gap-4 p-4 rounded-xl transition-all duration-200 hover:bg-[rgba(var(--org-card-background-rgb),0.8)] border-l-2 border-transparent hover:border-[var(--org-accent-color)]"
     >
       <div
         className="w-2 h-2 mt-2 rounded-full"
@@ -380,7 +256,7 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
             {title}
           </h4>
           <div
-            className="flex items-center gap-1 text-xs whitespace-nowrap"
+            className="flex items-center gap-1 text-xs whitespace-nowrap opacity-70"
             style={{ color: 'var(--org-border-color, #6C757D)' }}
           >
             <ClockIcon className="h-3.5 w-3.5" />
@@ -388,7 +264,7 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
           </div>
         </div>
         <p
-          className="text-xs mt-1 line-clamp-1"
+          className="text-xs mt-1 line-clamp-1 opacity-80"
           style={{ color: 'var(--org-border-color, #6C757D)' }}
         >
           {description}
@@ -400,7 +276,7 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
           {t('dashboard.recentActivity.by')} {user}
         </p>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -498,6 +374,9 @@ export function BusinessPanelDashboard() {
     return () => clearInterval(timer)
   }, [])
 
+  // Inicializar tour del dashboard de gestión
+  useBusinessPanelTour()
+
   // Cargar estadísticas
   useEffect(() => {
     const fetchStats = async () => {
@@ -586,7 +465,9 @@ export function BusinessPanelDashboard() {
       backgroundImage: '/images/dashboard-cards/courses-card-bg.png',
       gradient: `bg-gradient-to-br from-[${themeColors.secondary}] to-[${themeColors.secondary}]/80`,
       gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.secondary}cc)` },
-      href: '/business-panel/courses'
+      gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.secondary}cc)` },
+      href: '/business-panel/courses',
+      id: 'tour-stat-courses'
     },
     {
       title: t('dashboard.stats.completed'),
@@ -610,7 +491,9 @@ export function BusinessPanelDashboard() {
       change: stats.certificateGrowth || 0,
       backgroundImage: '/images/dashboard-cards/certificates-card-bg.png',
       gradient: 'bg-gradient-to-br from-[#8B5CF6] to-[#8B5CF6]/80',
+      gradient: 'bg-gradient-to-br from-[#8B5CF6] to-[#8B5CF6]/80',
       gradientStyle: { background: `linear-gradient(to bottom right, #8B5CF6, #8B5CF6cc)` },
+      id: 'tour-stat-certificates'
     },
     {
       title: t('dashboard.stats.engagement'),
@@ -675,6 +558,7 @@ export function BusinessPanelDashboard() {
     >
       {/* Hero Section */}
       <motion.div
+        id="tour-hero-section"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -704,33 +588,15 @@ export function BusinessPanelDashboard() {
         </div>
 
         {/* Animated Particles */}
-        <motion.div
-          animate={{
-            y: [0, -10, 0],
-            opacity: [0.5, 1, 0.5]
-          }}
-          transition={{ duration: 3, repeat: Infinity }}
-          className="absolute top-10 right-20 w-2 h-2 rounded-full"
-          style={{ backgroundColor: themeColors.accent }}
-        />
-        <motion.div
-          animate={{
-            y: [0, 10, 0],
-            opacity: [0.3, 0.8, 0.3]
-          }}
-          transition={{ duration: 4, repeat: Infinity, delay: 1 }}
-          className="absolute bottom-10 right-40 w-3 h-3 rounded-full"
-          style={{ backgroundColor: themeColors.accent }}
-        />
+
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            <div
+              className="transition-transform duration-[10s] ease-linear hover:rotate-180"
             >
               <SparklesIcon className="h-6 w-6" style={{ color: themeColors.accent }} />
-            </motion.div>
+            </div>
             <span
               className="text-sm font-medium tracking-wide uppercase"
               style={{ color: themeColors.accent }}
@@ -786,7 +652,7 @@ export function BusinessPanelDashboard() {
         {/* Main Content */}
         <div className="xl:col-span-3 space-y-8">
           {/* Stats Grid */}
-          <section>
+          <section id="tour-stats-section">
             <motion.div
               className="flex items-center justify-between mb-6"
               initial={{ opacity: 0, y: 10 }}
@@ -825,7 +691,7 @@ export function BusinessPanelDashboard() {
           </section>
 
           {/* Activity Section */}
-          <section>
+          <section id="tour-activity-section">
             <motion.div
               className="flex items-center justify-between mb-6"
               initial={{ opacity: 0, y: 10 }}
@@ -839,6 +705,7 @@ export function BusinessPanelDashboard() {
             </motion.div>
 
             <motion.div
+              id="tour-activity-card"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
@@ -885,30 +752,32 @@ export function BusinessPanelDashboard() {
         </div>
 
         {/* Sidebar - Quick Actions */}
-        <div className="xl:col-span-1">
+        <div id="tour-quick-actions" className="xl:col-span-1">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5 }}
             className="sticky top-24"
           >
-            <div className="mb-6">
-              <h2 className="text-lg font-bold" style={{ color: themeColors.text }}>{t('dashboard.quickActions.title')}</h2>
-              <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>{t('dashboard.quickActions.subtitle')}</p>
-            </div>
+            <div id="tour-quick-actions-list">
+              <div className="mb-6">
+                <h2 className="text-lg font-bold" style={{ color: themeColors.text }}>{t('dashboard.quickActions.title')}</h2>
+                <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>{t('dashboard.quickActions.subtitle')}</p>
+              </div>
 
-            <div className="space-y-3">
-              {quickActions.map((action, index) => (
-                <QuickAction
-                  key={action.title}
-                  title={action.title}
-                  description={action.description}
-                  icon={action.icon}
-                  href={action.href}
-                  color={action.color}
-                  delay={index}
-                />
-              ))}
+              <div className="space-y-3">
+                {quickActions.map((action, index) => (
+                  <QuickAction
+                    key={action.title}
+                    title={action.title}
+                    description={action.description}
+                    icon={action.icon}
+                    href={action.href}
+                    color={action.color}
+                    delay={index}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* System Health Card */}
@@ -925,14 +794,12 @@ export function BusinessPanelDashboard() {
               }}
             >
               <div className="flex items-center gap-3 mb-4">
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                <div
                   className="p-2 rounded-lg"
                   style={{ backgroundColor: themeColors.secondary }}
                 >
                   <RocketLaunchIcon className="h-5 w-5 text-white" />
-                </motion.div>
+                </div>
                 <div>
                   <h3 className="font-semibold" style={{ color: themeColors.text }}>{t('dashboard.systemHealth.activeAccount')}</h3>
                   <p className="text-xs" style={{ color: themeColors.secondary }}>{t('dashboard.systemHealth.servicesOperational')}</p>

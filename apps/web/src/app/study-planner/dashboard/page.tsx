@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   CheckCircle,
   XCircle,
+  Zap,
 } from 'lucide-react';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
@@ -25,6 +26,7 @@ import { StudyPlannerCalendar } from '@/features/study-planner/components/StudyP
 import { ToastNotification } from '@/core/components/ToastNotification';
 import { redirectToDashboard } from '@/features/auth/actions/dashboard-redirect';
 import { useStudyPlannerDashboardLIA, type DashboardMessage } from '@/features/study-planner/hooks/useStudyPlannerDashboardLIA';
+import { useStudyPlannerDashboardTour } from '@/features/study-planner/hooks/useStudyPlannerDashboardTour';
 
 export default function StudyPlannerDashboardPage() {
   const router = useRouter();
@@ -37,6 +39,9 @@ export default function StudyPlannerDashboardPage() {
     sendMessage,
     clearError,
   } = useStudyPlannerDashboardLIA();
+
+  // Hook del Tour
+  const { restartTour } = useStudyPlannerDashboardTour();
 
   // Estado para el panel de LIA (derecha) - abierto por defecto
   const [isLiaPanelOpen, setIsLiaPanelOpen] = useState(true);
@@ -569,6 +574,7 @@ export default function StudyPlannerDashboardPage() {
     <div className="min-h-screen flex overflow-hidden bg-white dark:bg-[#0F1419]">
       {/* Panel Central - Calendario */}
       <div 
+        id="dashboard-calendar-container"
         className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
           isLiaPanelOpen && !isLiaCollapsed ? 'mr-[520px]' : ''
         }`}
@@ -578,21 +584,10 @@ export default function StudyPlannerDashboardPage() {
           {/* Botón Dashboard */}
           <div className="relative">
             <motion.button
+              id="dashboard-back-button"
               layout
-              onClick={async () => {
-                try {
-                  await redirectToDashboard();
-                } catch (error) {
-                  // Verificar si es una redirección de Next.js (no es un error real)
-                  if (error && typeof error === 'object' && 'digest' in error) {
-                    const digest = (error as any).digest;
-                    if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
-                      // Es una redirección exitosa, dejar que Next.js la maneje
-                      return;
-                    }
-                  }
-                  console.error('Error redirigiendo al dashboard:', error);
-                }
+              onClick={() => {
+                router.push('/business-user/dashboard');
               }}
               onMouseEnter={() => setHoveredButton('dashboard')}
               onMouseLeave={() => setHoveredButton(null)}
@@ -632,9 +627,52 @@ export default function StudyPlannerDashboardPage() {
             </motion.button>
           </div>
 
+          {/* Botón Ver Tour */}
+          <div className="relative">
+            <motion.button
+              layout
+              onClick={restartTour}
+              onMouseEnter={() => setHoveredButton('tour')}
+              onMouseLeave={() => setHoveredButton(null)}
+              whileTap={{ scale: 0.95 }}
+              className="rounded-lg bg-white dark:bg-[#1E2329] text-[#6C757D] dark:text-gray-400 hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 border border-[#E9ECEF] dark:border-[#6C757D]/30 transition-colors flex items-center overflow-hidden"
+              title="Ver Tour"
+            >
+              <motion.div 
+                className="p-2.5 flex-shrink-0 flex items-center justify-center"
+                animate={hoveredButton === 'tour' ? {
+                  scale: [1, 1.1, 1],
+                  rotate: [0, -10, 10, 0],
+                } : {}}
+                transition={{
+                  duration: 0.5,
+                  repeat: hoveredButton === 'tour' ? Infinity : 0,
+                  repeatType: 'reverse',
+                  ease: 'easeInOut'
+                }}
+              >
+                <Zap className="w-5 h-5" />
+              </motion.div>
+              <AnimatePresence>
+                {hoveredButton === 'tour' && (
+                  <motion.span
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 'auto', opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+                  >
+                    Ver Tour
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          </div>
+
           {/* Icono de Calendario de Google */}
           <div className="relative calendar-menu-container">
             <motion.button
+              id="dashboard-connect-calendar-button"
               layout
               onClick={() => {
                 setIsCalendarModalOpen(true);
@@ -700,6 +738,7 @@ export default function StudyPlannerDashboardPage() {
           {/* Botón Añadir y Eliminar Plan */}
           <div className="relative">
             <motion.button
+              id="dashboard-new-plan-button"
               layout
               onClick={handleRecreatePlan}
               disabled={isRecreatingPlan}
@@ -746,6 +785,7 @@ export default function StudyPlannerDashboardPage() {
           {/* Botón Eliminar Plan */}
           <div className="relative">
             <motion.button
+              id="dashboard-delete-plan-button"
               layout
               onClick={handleDeletePlan}
               disabled={isDeletingPlan}
@@ -792,6 +832,7 @@ export default function StudyPlannerDashboardPage() {
           {/* Icono de Configuraciones */}
           <div ref={settingsMenuRef} className="relative">
             <motion.button
+              id="dashboard-settings-button"
               layout
               onClick={() => {
                 setIsSettingsMenuOpen(!isSettingsMenuOpen);
@@ -909,6 +950,7 @@ export default function StudyPlannerDashboardPage() {
       <AnimatePresence>
         {isLiaPanelOpen && !isLiaCollapsed && (
           <motion.aside
+            id="dashboard-lia-panel"
             ref={liaPanelRef}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -1240,6 +1282,7 @@ export default function StudyPlannerDashboardPage() {
                 }}
               >
                 <input
+                  id="dashboard-chat-input"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={(e) => {

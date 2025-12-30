@@ -39,7 +39,8 @@ export async function GET() {
           display_name,
           profile_picture_url,
           last_login_at,
-          created_at
+          created_at,
+          type_rol
         )
       `)
       .eq('organization_id', organizationId)
@@ -85,6 +86,24 @@ export async function GET() {
         course_metrics: {
           distribution: [],
           top_by_time: []
+        },
+        study_planner: {
+          users_with_plans: 0,
+          total_plans: 0,
+          total_sessions: 0,
+          completed_sessions: 0,
+          missed_sessions: 0,
+          pending_sessions: 0,
+          in_progress_sessions: 0,
+          ai_generated_sessions: 0,
+          sessions_by_status: [],
+          usage_rate: 0,
+          average_session_duration_minutes: 0,
+          total_study_hours: 0,
+          plan_adherence_rate: 0,
+          on_time_completion_rate: 0,
+          avg_sessions_per_user: 0,
+          user_adherence: []
         }
       })
     }
@@ -155,7 +174,25 @@ export async function GET() {
           )
         `)
         .in('user_id', userIds)
-        .order('issued_at', { ascending: false })
+        .order('issued_at', { ascending: false }),
+
+      // 6. Study Plans (Planificador de Estudios)
+      supabase
+        .from('study_plans')
+        .select(`
+          id,
+          user_id,
+          course_id,
+          created_at,
+          study_sessions (
+            id,
+            status,
+            scheduled_date,
+            start_time,
+            completed_at
+          )
+        `)
+        .in('user_id', userIds)
     ])
 
     // Log de errores (no bloqueantes)
@@ -171,6 +208,29 @@ export async function GET() {
     if (certificatesError) {
       logger.error('Error fetching certificates for analytics:', certificatesError)
     }
+
+    // Extraer study plans del resultado - consulta mejorada con más datos de sesiones
+    const studyPlansResult = await supabase
+      .from('study_plans')
+      .select(`
+        id,
+        user_id,
+        course_id,
+        created_at,
+        study_sessions (
+          id,
+          title,
+          status,
+          scheduled_date,
+          start_time,
+          end_time,
+          completed_at,
+          is_ai_generated
+        )
+      `)
+      .in('user_id', userIds)
+    
+    const studyPlans = studyPlansResult.data || []
 
     // Obtener IDs de instructores únicos
     const instructorIds = [...new Set((certificates || [])
@@ -277,12 +337,14 @@ export async function GET() {
         email: user.email,
         username: user.username,
         role: ou.role,
+        type_rol: user.type_rol || null,
         profile_picture_url: user.profile_picture_url,
         courses_assigned: userAssignments.length,
         courses_completed: userCompleted,
         average_progress: userAverageProgress,
         total_time_hours: userTimeHours,
         certificates_count: userCertificates.length,
+        certificates_earned: userCertificates.length,
         last_login_at: user.last_login_at,
         joined_at: ou.joined_at
       }
@@ -340,60 +402,196 @@ export async function GET() {
         .sort((a, b) => a.month.localeCompare(b.month))
     }
 
-    // Análisis por rol
-    const roleDistribution = new Map<string, number>()
-    const roleProgress = new Map<string, { sum: number; count: number }>()
-    const roleCompletions = new Map<string, number>()
-    const roleTime = new Map<string, { sum: number; count: number }>()
+    // Análisis por rol (usando type_rol para roles como Director, Analista, etc.)
+    const typeRolDistribution = new Map<string, number>()
+    const typeRolProgress = new Map<string, { sum: number; count: number }>()
+    const typeRolCompletions = new Map<string, number>()
+    const typeRolTime = new Map<string, { sum: number; count: number }>()
 
     orgUsers?.forEach((ou: any) => {
-      const role = ou.role
-      roleDistribution.set(role, (roleDistribution.get(role) || 0) + 1)
+      // Usar type_rol si existe, si no usar role como fallback
+      const typeRol = ou.users?.type_rol || ou.role || 'Sin especificar'
+      typeRolDistribution.set(typeRol, (typeRolDistribution.get(typeRol) || 0) + 1)
 
       const userEnrollments = enrollments?.filter((e: any) => e.user_id === ou.user_id) || []
       const userProgress = lessonProgress?.filter((p: any) => p.user_id === ou.user_id) || []
       const userAssignments = assignments?.filter((a: any) => a.user_id === ou.user_id) || []
 
       userEnrollments.forEach((e: any) => {
-        if (!roleProgress.has(role)) {
-          roleProgress.set(role, { sum: 0, count: 0 })
+        if (!typeRolProgress.has(typeRol)) {
+          typeRolProgress.set(typeRol, { sum: 0, count: 0 })
         }
-        const roleData = roleProgress.get(role)!
+        const roleData = typeRolProgress.get(typeRol)!
         roleData.sum += Number(e.overall_progress_percentage) || 0
         roleData.count++
       })
 
       const userCompleted = userAssignments.filter((a: any) => a.status === 'completed' || (a.completion_percentage || 0) >= 100).length
-      roleCompletions.set(role, (roleCompletions.get(role) || 0) + userCompleted)
+      typeRolCompletions.set(typeRol, (typeRolCompletions.get(typeRol) || 0) + userCompleted)
 
       userProgress.forEach((p: any) => {
-        if (!roleTime.has(role)) {
-          roleTime.set(role, { sum: 0, count: 0 })
+        if (!typeRolTime.has(typeRol)) {
+          typeRolTime.set(typeRol, { sum: 0, count: 0 })
         }
-        const roleData = roleTime.get(role)!
+        const roleData = typeRolTime.get(typeRol)!
         roleData.sum += p.time_spent_minutes || 0
         roleData.count++
       })
     })
 
-    // Métricas de cursos
+    // Métricas de cursos - usar tanto assignments como enrollments
     const courseDistribution = new Map<string, number>()
     const courseTime = new Map<string, number>()
 
-    assignments?.forEach((a: any) => {
-      const status = a.status === 'completed' || (a.completion_percentage || 0) >= 100 
-        ? 'completed' 
-        : a.status === 'in_progress' || (a.completion_percentage || 0) > 0
-        ? 'in_progress'
-        : 'not_started'
+    // Si hay assignments, usarlos
+    if (assignments && assignments.length > 0) {
+      assignments.forEach((a: any) => {
+        const status = a.status === 'completed' || (a.completion_percentage || 0) >= 100 
+          ? 'completed' 
+          : a.status === 'in_progress' || (a.completion_percentage || 0) > 0
+          ? 'in_progress'
+          : 'not_started'
+        
+        courseDistribution.set(status, (courseDistribution.get(status) || 0) + 1)
+      })
+    } else if (enrollments && enrollments.length > 0) {
+      // Si no hay assignments, usar enrollments
+      enrollments.forEach((e: any) => {
+        const progress = Number(e.overall_progress_percentage) || 0
+        const status = e.enrollment_status === 'completed' || progress >= 100
+          ? 'completed'
+          : progress > 0 || e.enrollment_status === 'active'
+          ? 'in_progress'
+          : 'not_started'
+        
+        courseDistribution.set(status, (courseDistribution.get(status) || 0) + 1)
+      })
+    }
+
+    // Métricas del planificador de estudios - análisis detallado
+    const usersWithPlans = new Set(studyPlans.map((p: any) => p.user_id)).size
+    const totalPlans = studyPlans.length
+    let totalSessions = 0
+    let completedSessions = 0
+    let missedSessions = 0
+    let pendingSessions = 0
+    let inProgressSessions = 0
+    let aiGeneratedSessions = 0
+    let totalSessionDurationMinutes = 0
+    let completedSessionDurationMinutes = 0
+    let onTimeCompletions = 0 // Sesiones completadas a tiempo (antes o en la fecha programada)
+    let lateCompletions = 0 // Sesiones completadas tarde
+    const sessionsByStatus = new Map<string, number>()
+    const sessionsPerUser = new Map<string, { total: number; completed: number; missed: number }>()
+
+    const now = new Date()
+
+    studyPlans.forEach((plan: any) => {
+      const sessions = plan.study_sessions || []
+      const userId = plan.user_id
       
-      courseDistribution.set(status, (courseDistribution.get(status) || 0) + 1)
+      if (!sessionsPerUser.has(userId)) {
+        sessionsPerUser.set(userId, { total: 0, completed: 0, missed: 0 })
+      }
+      const userStats = sessionsPerUser.get(userId)!
+      
+      totalSessions += sessions.length
+      userStats.total += sessions.length
+      
+      sessions.forEach((session: any) => {
+        const status = session.status || 'pending'
+        sessionsByStatus.set(status, (sessionsByStatus.get(status) || 0) + 1)
+        
+        // Contar por estado
+        if (status === 'completed' || session.completed_at) {
+          completedSessions++
+          userStats.completed++
+          
+          // Calcular si fue a tiempo o tarde
+          if (session.scheduled_date && session.completed_at) {
+            const scheduledDate = new Date(session.scheduled_date)
+            scheduledDate.setHours(23, 59, 59, 999) // Fin del día programado
+            const completedDate = new Date(session.completed_at)
+            if (completedDate <= scheduledDate) {
+              onTimeCompletions++
+            } else {
+              lateCompletions++
+            }
+          }
+          
+          // Calcular duración de sesiones completadas
+          if (session.start_time && session.end_time) {
+            const start = new Date(session.start_time)
+            const end = new Date(session.end_time)
+            const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
+            if (durationMinutes > 0 && durationMinutes < 480) { // Máximo 8 horas
+              completedSessionDurationMinutes += durationMinutes
+            }
+          }
+        } else if (status === 'missed') {
+          missedSessions++
+          userStats.missed++
+        } else if (status === 'in_progress') {
+          inProgressSessions++
+        } else {
+          // Verificar si ya pasó la fecha y está pendiente (se convierte en missed)
+          if (session.scheduled_date) {
+            const scheduledDate = new Date(session.scheduled_date)
+            scheduledDate.setHours(23, 59, 59, 999)
+            if (scheduledDate < now) {
+              missedSessions++
+              userStats.missed++
+            } else {
+              pendingSessions++
+            }
+          } else {
+            pendingSessions++
+          }
+        }
+        
+        // Contar sesiones generadas por IA
+        if (session.is_ai_generated) {
+          aiGeneratedSessions++
+        }
+        
+        // Calcular duración total planificada
+        if (session.start_time && session.end_time) {
+          const start = new Date(session.start_time)
+          const end = new Date(session.end_time)
+          const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
+          if (durationMinutes > 0 && durationMinutes < 480) { // Máximo 8 horas
+            totalSessionDurationMinutes += durationMinutes
+          }
+        }
+      })
     })
 
-    lessonProgress?.forEach((p: any) => {
-      // Necesitamos mapear lesson a course, esto es una simplificación
-      // En producción necesitarías un join apropiado
-    })
+    // Calcular métricas finales
+    const averageSessionDuration = totalSessions > 0 
+      ? Math.round(totalSessionDurationMinutes / totalSessions) 
+      : 0
+    const planAdherenceRate = totalSessions > 0 
+      ? Math.round((completedSessions / totalSessions) * 100) 
+      : 0
+    const onTimeRate = completedSessions > 0 
+      ? Math.round((onTimeCompletions / completedSessions) * 100) 
+      : 0
+    const avgSessionsPerUser = usersWithPlans > 0 
+      ? Math.round((totalSessions / usersWithPlans) * 10) / 10 
+      : 0
+    const totalStudyHours = Math.round((completedSessionDurationMinutes / 60) * 10) / 10
+
+    // Top usuarios por adherencia al plan
+    const userAdherence = Array.from(sessionsPerUser.entries())
+      .filter(([_, stats]) => stats.total > 0)
+      .map(([userId, stats]) => ({
+        user_id: userId,
+        total: stats.total,
+        completed: stats.completed,
+        missed: stats.missed,
+        adherence_rate: Math.round((stats.completed / stats.total) * 100)
+      }))
+      .sort((a, b) => b.adherence_rate - a.adherence_rate)
 
     return NextResponse.json({
       success: true,
@@ -415,20 +613,38 @@ export async function GET() {
         active_users_by_month: formatTrends(activeUsersByMonth)
       },
       by_role: {
-        distribution: Array.from(roleDistribution.entries()).map(([role, count]) => ({ role, count })),
-        progress_comparison: Array.from(roleProgress.entries()).map(([role, data]) => ({
+        distribution: Array.from(typeRolDistribution.entries()).map(([role, count]) => ({ role, count })),
+        progress_comparison: Array.from(typeRolProgress.entries()).map(([role, data]) => ({
           role,
           average_progress: data.count > 0 ? Math.round((data.sum / data.count) * 10) / 10 : 0
         })),
-        completions: Array.from(roleCompletions.entries()).map(([role, count]) => ({ role, total_completed: count })),
-        time_spent: Array.from(roleTime.entries()).map(([role, data]) => ({
+        completions: Array.from(typeRolCompletions.entries()).map(([role, count]) => ({ role, total_completed: count })),
+        time_spent: Array.from(typeRolTime.entries()).map(([role, data]) => ({
           role,
           average_hours: data.count > 0 ? Math.round((data.sum / 60 / data.count) * 10) / 10 : 0
         }))
       },
       course_metrics: {
         distribution: Array.from(courseDistribution.entries()).map(([status, count]) => ({ status, count })),
-        top_by_time: [] // Se puede implementar después con join apropiado
+        top_by_time: []
+      },
+      study_planner: {
+        users_with_plans: usersWithPlans,
+        total_plans: totalPlans,
+        total_sessions: totalSessions,
+        completed_sessions: completedSessions,
+        missed_sessions: missedSessions,
+        pending_sessions: pendingSessions,
+        in_progress_sessions: inProgressSessions,
+        ai_generated_sessions: aiGeneratedSessions,
+        sessions_by_status: Array.from(sessionsByStatus.entries()).map(([status, count]) => ({ status, count })),
+        usage_rate: totalUsers > 0 ? Math.round((usersWithPlans / totalUsers) * 100) : 0,
+        average_session_duration_minutes: averageSessionDuration,
+        total_study_hours: totalStudyHours,
+        plan_adherence_rate: planAdherenceRate,
+        on_time_completion_rate: onTimeRate,
+        avg_sessions_per_user: avgSessionsPerUser,
+        user_adherence: userAdherence.slice(0, 10) // Top 10 usuarios
       }
     })
   } catch (error) {

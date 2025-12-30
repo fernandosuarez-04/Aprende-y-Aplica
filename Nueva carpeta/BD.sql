@@ -1415,6 +1415,18 @@ CREATE TABLE public.user_streaks (
   CONSTRAINT user_streaks_pkey PRIMARY KEY (user_id),
   CONSTRAINT user_streaks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.user_tour_progress (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  tour_id text NOT NULL,
+  completed_at timestamp with time zone,
+  skipped_at timestamp with time zone,
+  step_reached integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_tour_progress_pkey PRIMARY KEY (id),
+  CONSTRAINT user_tour_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.user_warnings (
   warning_id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,

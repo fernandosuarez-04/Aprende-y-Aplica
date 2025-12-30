@@ -20,6 +20,8 @@ import { getBackgroundStyle, generateCSSVariables } from '@/features/business-pa
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 import { LIA_PANEL_WIDTH } from '@/core/components/LiaSidePanel'
 
+import { useDashboardTour } from '@/features/tours/hooks/useDashboardTour'
+
 // Lazy load components - Removed heavy 3D/Particles backgrounds for performance
 const ModernNavbar = lazy(() =>
   import('./components/ModernNavbar').then(m => ({ default: m.ModernNavbar }))
@@ -79,6 +81,9 @@ export default function BusinessUserDashboardPage() {
   const userDashboardStyles = styles?.userDashboard
   const backgroundStyle = getBackgroundStyle(userDashboardStyles)
   const cssVariables = generateCSSVariables(userDashboardStyles)
+
+  // Inicializar tour
+  useDashboardTour()
 
   // Colores personalizados de la organización
   const orgColors = {
@@ -340,211 +345,217 @@ export default function BusinessUserDashboardPage() {
           {/* ============================================ */}
           {/* HERO SECTION - Premium Design */}
           {/* ============================================ */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="relative overflow-hidden rounded-3xl p-8 mb-10 group"
-          >
-            {/* Background with layered gradients - no image dependency */}
-            <div className="absolute inset-0 z-0 overflow-hidden">
-              {/* Base dark background */}
-              <div 
-                className="absolute inset-0"
-                style={{
-                  background: 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)'
-                }}
-              />
-              
-              {/* Subtle grid pattern */}
-              <div 
-                className="absolute inset-0 opacity-[0.03]"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-                  `,
-                  backgroundSize: '50px 50px'
-                }}
-              />
-              
-              {/* Accent glow on right side */}
-              <div 
-                className="absolute -right-20 top-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[120px]"
-                style={{ backgroundColor: `${orgColors.accent}20` }}
-              />
-              
-              {/* Secondary glow */}
-              <div 
-                className="absolute right-1/4 bottom-0 w-64 h-64 rounded-full blur-[100px]"
-                style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)' }}
-              />
-              
-              {/* Left side overlay for text readability */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: 'linear-gradient(to right, rgba(10, 22, 40, 0.9) 0%, rgba(10, 22, 40, 0.5) 50%, transparent 100%)'
-                }}
-              />
-            </div>
-
-            {/* Decorative elements */}
-            <div
-              className="absolute top-6 right-12 w-2 h-2 rounded-full z-10"
-              style={{ backgroundColor: orgColors.accent }}
-            />
-            <div
-              className="absolute bottom-8 right-24 w-1.5 h-1.5 rounded-full z-10 opacity-60"
-              style={{ backgroundColor: orgColors.accent }}
-            />
-            <div
-              className="absolute top-1/2 right-16 w-1 h-1 rounded-full z-10 opacity-40"
-              style={{ backgroundColor: 'rgb(14, 165, 233)' }}
-            />
-            <div className="absolute bottom-12 right-32 w-3 h-3 rounded-full bg-emerald-400/40" />
-
-            {/* Content */}
-            <div className="relative z-10">
-              {/* Badge */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 border"
-                style={{
-                  backgroundColor: `${orgColors.accent}15`,
-                  borderColor: `${orgColors.accent}50`
-                }}
-              >
-                <Sparkles className="w-4 h-4" style={{ color: orgColors.accent }} />
-                <span className="text-sm font-medium" style={{ color: orgColors.accent }}>{t('header.learningPanel')}</span>
-              </motion.div>
-
-              {/* Greeting */}
-              <motion.h1
-                className="text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                {getGreeting()},{' '}
-                <span
-                  className="bg-clip-text text-transparent"
+          <div id="tour-hero-section" className="scroll-mt-28 mb-10">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="relative overflow-hidden rounded-3xl p-8 group"
+            >
+              {/* Background with layered gradients - no image dependency */}
+              <div className="absolute inset-0 z-0 overflow-hidden">
+                {/* Base dark background */}
+                <div 
+                  className="absolute inset-0"
                   style={{
-                    backgroundImage: `linear-gradient(135deg, ${orgColors.accent}, ${orgColors.primary})`,
+                    background: 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)'
+                  }}
+                />
+                
+                {/* Subtle grid pattern */}
+                <div 
+                  className="absolute inset-0 opacity-[0.03]"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+                    `,
+                    backgroundSize: '50px 50px'
+                  }}
+                />
+                
+                {/* Accent glow on right side */}
+                <div 
+                  className="absolute -right-20 top-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[120px]"
+                  style={{ backgroundColor: `${orgColors.accent}20` }}
+                />
+                
+                {/* Secondary glow */}
+                <div 
+                  className="absolute right-1/4 bottom-0 w-64 h-64 rounded-full blur-[100px]"
+                  style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)' }}
+                />
+                
+                {/* Left side overlay for text readability */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: 'linear-gradient(to right, rgba(10, 22, 40, 0.9) 0%, rgba(10, 22, 40, 0.5) 50%, transparent 100%)'
+                  }}
+                />
+              </div>
+
+              {/* Decorative elements */}
+              <div
+                className="absolute top-6 right-12 w-2 h-2 rounded-full z-10"
+                style={{ backgroundColor: orgColors.accent }}
+              />
+              <div
+                className="absolute bottom-8 right-24 w-1.5 h-1.5 rounded-full z-10 opacity-60"
+                style={{ backgroundColor: orgColors.accent }}
+              />
+              <div
+                className="absolute top-1/2 right-16 w-1 h-1 rounded-full z-10 opacity-40"
+                style={{ backgroundColor: 'rgb(14, 165, 233)' }}
+              />
+              <div className="absolute bottom-12 right-32 w-3 h-3 rounded-full bg-emerald-400/40" />
+
+              {/* Content */}
+              <div className="relative z-10">
+                {/* Badge */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 border"
+                  style={{
+                    backgroundColor: `${orgColors.accent}15`,
+                    borderColor: `${orgColors.accent}50`
                   }}
                 >
-                  {user?.first_name || 'Usuario'}
-                </span>
-              </motion.h1>
+                  <Sparkles className="w-4 h-4" style={{ color: orgColors.accent }} />
+                  <span className="text-sm font-medium" style={{ color: orgColors.accent }}>{t('header.learningPanel')}</span>
+                </motion.div>
 
-              {/* Subtitle */}
-              <motion.p
-                className="text-lg text-gray-300 max-w-xl mb-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                {t('dashboard.subtitle')}
-              </motion.p>
+                {/* Greeting */}
+                <motion.h1
+                  className="text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  {getGreeting()},{' '}
+                  <span
+                    className="bg-clip-text text-transparent"
+                    style={{
+                      backgroundImage: `linear-gradient(135deg, ${orgColors.accent}, ${orgColors.primary})`,
+                    }}
+                  >
+                    {user?.first_name || 'Usuario'}
+                  </span>
+                </motion.h1>
 
-              {/* Date and Status */}
-              <motion.div
-                className="flex flex-wrap items-center gap-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                <div className="flex items-center gap-2 text-gray-400 text-sm">
-                  <Clock className="w-4 h-4" />
-                  {currentTime.toLocaleDateString('es-MX', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </div>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: orgColors.accent }}
-                  />
-                  <span className="text-sm font-medium" style={{ color: orgColors.accent }}>{t('dashboard.systemActive')}</span>
-                </div>
-              </motion.div>
-            </div>
+                {/* Subtitle */}
+                <motion.p
+                  className="text-lg text-gray-300 max-w-xl mb-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  {t('dashboard.subtitle')}
+                </motion.p>
 
-            {/* Decorative border gradient */}
-            <div
-              className="absolute inset-0 rounded-3xl pointer-events-none"
-              style={{
-                background: `linear-gradient(135deg, ${orgColors.primary}50, transparent, ${orgColors.accent}30)`,
-                padding: '1px',
-                mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                maskComposite: 'exclude',
-                WebkitMaskComposite: 'xor'
-              }}
-            />
-          </motion.div>
+                {/* Date and Status */}
+                <motion.div
+                  className="flex flex-wrap items-center gap-6"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
+                    <Clock className="w-4 h-4" />
+                    {currentTime.toLocaleDateString('es-MX', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: orgColors.accent }}
+                    />
+                    <span className="text-sm font-medium" style={{ color: orgColors.accent }}>{t('dashboard.systemActive')}</span>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Decorative border gradient */}
+              <div
+                className="absolute inset-0 rounded-3xl pointer-events-none"
+                style={{
+                  background: `linear-gradient(135deg, ${orgColors.primary}50, transparent, ${orgColors.accent}30)`,
+                  padding: '1px',
+                  mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  maskComposite: 'exclude',
+                  WebkitMaskComposite: 'xor'
+                }}
+              />
+            </motion.div>
+          </div>
 
           {/* ============================================ */}
           {/* STATS SECTION - Premium Cards */}
           {/* ============================================ */}
-          <section className="mb-10">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-center justify-between mb-6"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="p-2 rounded-xl border"
-                  style={{
-                    background: `linear-gradient(135deg, ${orgColors.accent}25, ${orgColors.accent}08)`,
-                    borderColor: `${orgColors.accent}30`
-                  }}
-                >
-                  <TrendingUp className="w-5 h-5" style={{ color: orgColors.accent }} />
+          {/* Envoltura dedicada para el tour para asegurar posicionamiento correcto */}
+          <div id="tour-stats-section" className="scroll-mt-32 relative">
+            <section className="mb-10">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex items-center justify-between mb-6"
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="p-2 rounded-xl border"
+                    style={{
+                      background: `linear-gradient(135deg, ${orgColors.accent}25, ${orgColors.accent}08)`,
+                      borderColor: `${orgColors.accent}30`
+                    }}
+                  >
+                    <TrendingUp className="w-5 h-5" style={{ color: orgColors.accent }} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">{t('dashboard.generalStats', 'Tu Progreso')}</h2>
+                    <p className="text-sm text-gray-400">{t('dashboard.keyMetrics', 'Métricas de tu aprendizaje')}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">{t('dashboard.generalStats', 'Tu Progreso')}</h2>
-                  <p className="text-sm text-gray-400">{t('dashboard.keyMetrics', 'Métricas de tu aprendizaje')}</p>
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-              <Suspense fallback={
-                <>
-                  {myStats.map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="rounded-2xl border border-white/5 bg-slate-900/50 p-5 animate-pulse h-32"
-                    />
-                  ))}
-                </>
-              }>
-                {myStats.map((stat, index) => {
-                  const isCertificates = stat.label === 'Certificados'
-                  return (
-                    <ModernStatsCard
-                      key={stat.label}
-                      label={stat.label}
-                      value={stat.value}
-                      icon={stat.icon}
-                      color={stat.color}
-                      index={index}
-                      onClick={isCertificates && stats.certificates > 0 ? handleCertificatesClick : undefined}
-                      isClickable={isCertificates && stats.certificates > 0}
-                      styles={userDashboardStyles}
-                    />
-                  )
-                })}
-              </Suspense>
-            </div>
-          </section>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                <Suspense fallback={
+                  <>
+                    {myStats.map((stat) => (
+                      <div
+                        key={stat.label}
+                        className="rounded-2xl border border-white/5 bg-slate-900/50 p-5 animate-pulse h-32"
+                      />
+                    ))}
+                  </>
+                }>
+                  {myStats.map((stat, index) => {
+                    const isCertificates = stat.label === 'Certificados'
+                    return (
+                      <ModernStatsCard
+                        key={stat.label}
+                        label={stat.label}
+                        value={stat.value}
+                        icon={stat.icon}
+                        color={stat.color}
+                        index={index}
+                        onClick={isCertificates && stats.certificates > 0 ? handleCertificatesClick : undefined}
+                        isClickable={isCertificates && stats.certificates > 0}
+                        styles={userDashboardStyles}
+                        id={index === 0 ? 'tour-stat-courses' : index === 3 ? 'tour-stat-certificates' : undefined}
+                      />
+                    )
+                  })}
+                </Suspense>
+              </div>
+            </section>
+          </div>
 
           {/* ============================================ */}
           {/* COURSES SECTION - Premium Grid */}

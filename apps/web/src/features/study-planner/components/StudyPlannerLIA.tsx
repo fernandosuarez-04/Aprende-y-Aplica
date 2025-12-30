@@ -10,6 +10,8 @@ import { useOrganizationStylesContext } from '../../business-panel/contexts/Orga
 import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
 import { useLIAData } from '../hooks/useLIAData';
 import { parseLiaResponseToSchedules } from '../services/plan-parser.service';
+import { useNextStep } from 'nextstepjs';
+import { useStudyPlannerTour } from '../hooks/useStudyPlannerTour';
 
 // Componentes de iconos de Google y Microsoft
 const GoogleIcon = () => (
@@ -121,6 +123,8 @@ function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
 
 export function StudyPlannerLIA() {
   const router = useRouter();
+  const { currentTour } = useNextStep();
+  const { restartTour } = useStudyPlannerTour();
   const { styles, loading: loadingStyles } = useOrganizationStylesContext();
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -849,7 +853,13 @@ export function StudyPlannerLIA() {
       assignedCoursesCount: assignedCourses.length,
     });
 
-    const generateWelcomeMessage = async () => {
+    const generateWelcomeMessage = async (externalController?: AbortController) => {
+      // ✅ NUEVO: Si hay un tour activo, esperar
+      if (currentTour) {
+        console.log('⏳ [Welcome] Tour activo, esperando...');
+        return;
+      }
+
       if (!showConversation || conversationHistory.length > 0 || showCourseSelector) {
         console.log('❌ [Welcome] Condiciones iniciales no cumplidas');
         return;
@@ -935,7 +945,7 @@ INSTRUCCIONES:
           currentDate: currentDate
         });
 
-        const controller = new AbortController();
+        const controller = externalController || new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos timeout
 
         const response = await fetch('/api/study-planner-chat', {
@@ -974,10 +984,9 @@ INSTRUCCIONES:
             speakText(audioText);
           }
 
-          // Abrir automáticamente el modal de tipo de sesiones después del mensaje
-          // ✅ NOTA: El modal se muestra pero la selección NO afecta el multiplicador de duración
+          // Texto de introducción...
           if (assignedCourses.length > 0) {
-            setTimeout(() => {
+            return setTimeout(() => {
               setShowApproachModal(true);
             }, 4000); // Esperar 4 segundos para que el usuario lea el mensaje de LIA
           }
@@ -989,12 +998,17 @@ INSTRUCCIONES:
             content: '¡Hola! Soy LIA, tu asistente del Planificador de Estudios. Estoy aquí para ayudarte a organizar tu tiempo de estudio. ¿Qué tipo de sesiones prefieres: rápidas, normales o largas?'
           }]);
           if (assignedCourses.length > 0) {
-            setTimeout(() => {
+            return setTimeout(() => {
               setShowApproachModal(true);
             }, 4000); // Esperar 4 segundos
           }
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (externalController?.signal.aborted || error.name === 'AbortError') {
+            console.log('🛑 [Welcome] Generación cancelada por aborto/tour');
+            return;
+        }
+
         console.error('Error generando mensaje de bienvenida:', error);
         // Fallback en caso de error
         setConversationHistory([{
@@ -1002,7 +1016,7 @@ INSTRUCCIONES:
           content: '¡Hola! Soy LIA, tu asistente del Planificador de Estudios. ¿Cómo te gustaría organizar tus sesiones de estudio?'
         }]);
         if (assignedCourses.length > 0) {
-          setTimeout(() => {
+          return setTimeout(() => {
             setShowApproachModal(true);
           }, 4000); // Esperar 4 segundos
         }
@@ -1011,8 +1025,18 @@ INSTRUCCIONES:
       }
     };
 
-    generateWelcomeMessage();
-  }, [showConversation, conversationHistory.length, showCourseSelector, userContext, assignedCourses, connectedCalendar, liaData.isReady]);
+    const controller = new AbortController();
+    let welcomeTimeoutId: NodeJS.Timeout;
+
+    generateWelcomeMessage(controller).then((timeoutId) => {
+      if (timeoutId) welcomeTimeoutId = timeoutId;
+    });
+
+    return () => {
+      controller.abort();
+      if (welcomeTimeoutId) clearTimeout(welcomeTimeoutId);
+    };
+  }, [showConversation, conversationHistory.length, showCourseSelector, userContext, assignedCourses, connectedCalendar, liaData.isReady, currentTour]);
 
   // NO mostrar automáticamente el modal - solo cuando el usuario lo solicite mediante el botón
 
@@ -9377,7 +9401,7 @@ Cuéntame:
         showConversation && (
           <div className="h-screen bg-white dark:bg-[#0F1419] flex flex-col overflow-hidden" suppressHydrationWarning>
             {/* Header */}
-            <div className="flex-shrink-0 z-10 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
+            <div id="lia-planner-header" className="flex-shrink-0 z-10 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
               <div className="max-w-4xl mx-auto flex items-center gap-4">
                 <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#0A2540]/20 dark:border-[#00D4B3]/30">
                   <Image
@@ -9398,6 +9422,7 @@ Cuéntame:
                   {/* Botón Calendario conectado / Conectar calendario */}
                   {connectedCalendar ? (
                     <motion.button
+                      id="lia-calendar-button"
                       layout
                       onClick={() => setShowCalendarModal(true)}
                       disabled={isProcessing}
@@ -9426,6 +9451,7 @@ Cuéntame:
                     </motion.button>
                   ) : (
                     <motion.button
+                      id="lia-calendar-button"
                       layout
                       onClick={() => setShowCalendarModal(true)}
                       disabled={isProcessing || showCalendarModal}
@@ -9455,6 +9481,37 @@ Cuéntame:
                       </AnimatePresence>
                     </motion.button>
                   )}
+
+                  {/* Botón Iniciar Tour */}
+                  <motion.button
+                    layout
+                    onClick={restartTour}
+                    disabled={isProcessing}
+                    onMouseEnter={() => setHoveredButton('tour')}
+                    onMouseLeave={() => setHoveredButton(null)}
+                    whileTap={{ scale: 0.95 }}
+                    className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${isProcessing
+                      ? 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
+                      : 'bg-[#E9ECEF] dark:bg-[#0A2540]/10 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/20 text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                      }`}
+                  >
+                    <div className="p-2.5 flex-shrink-0">
+                      <Zap size={20} />
+                    </div>
+                    <AnimatePresence>
+                      {hoveredButton === 'tour' && (
+                        <motion.span
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: 100, opacity: 1 }}
+                          exit={{ width: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: 'easeInOut' }}
+                          className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+                        >
+                          Ver Tour
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
 
                   {/* Botón ¿Cómo funciona? */}
                   <motion.button
@@ -10677,6 +10734,7 @@ Cuéntame:
                 <div className="flex items-center gap-3">
                   {/* Input de texto */}
                   <input
+                    id="lia-chat-input"
                     type="text"
                     value={userMessage}
                     onChange={(e) => setUserMessage(e.target.value)}
@@ -10694,6 +10752,7 @@ Cuéntame:
 
                   {/* Botón dinámico fusionado: micrófono cuando está vacío, enviar cuando hay texto */}
                   <motion.button
+                    id="lia-voice-button"
                     onClick={() => {
                       if (userMessage.trim()) {
                         // Si hay texto, enviar mensaje

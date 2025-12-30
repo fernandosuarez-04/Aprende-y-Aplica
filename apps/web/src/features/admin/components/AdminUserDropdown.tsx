@@ -3,16 +3,20 @@
 import { useState, useRef, useEffect } from 'react'
 import { Menu, Transition } from '@headlessui/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ArrowRightOnRectangleIcon,
-  ChevronDownIcon,
-  HomeIcon,
-  ShieldCheckIcon,
-  ChevronRightIcon
-} from '@heroicons/react/24/outline'
 import { Sun, Moon, Monitor, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
+import { 
+  ArrowRightOnRectangleIcon, 
+  ChevronDownIcon, 
+  ShieldCheckIcon, 
+  ChevronRightIcon,
+  AcademicCapIcon,
+  UserIcon,
+  GlobeAltIcon,
+  LanguageIcon
+} from '@heroicons/react/24/outline'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useThemeStore, Theme } from '@/core/stores/themeStore'
 
@@ -34,8 +38,10 @@ interface AdminUserDropdownProps {
 export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false)
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false)
   const router = useRouter()
   const { logout } = useAuth()
+  const { t, i18n } = useTranslation()
   const { theme, setTheme, initializeTheme } = useThemeStore()
   const themeMenuRef = useRef<HTMLDivElement>(null)
 
@@ -115,9 +121,15 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
     return user.email
   }
 
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang)
+    setIsLangMenuOpen(false)
+  }
+
   return (
     <Menu as="div" className="relative">
       <Menu.Button
+        id="tour-user-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300 group outline-none"
       >
@@ -220,6 +232,100 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
                 )}
               </Menu.Item>
             )}
+
+            {/* Crear Plan de Estudio */}
+            <Menu.Item>
+              {({ active }) => (
+                <Link href="/study-planner/create" onClick={() => setIsOpen(false)}>
+                  <div id="tour-dropdown-create-plan" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                    active 
+                      ? 'bg-[#00D4B3]/5 text-[#00D4B3]' 
+                      : 'text-[#0A2540] dark:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#334155]/50'
+                  }`}>
+                    <AcademicCapIcon className={`w-5 h-5 ${active ? 'text-[#00D4B3]' : 'text-[#6C757D] dark:text-gray-400'}`} />
+                    <span className="text-sm font-medium">Crear Plan de Estudio</span>
+                  </div>
+                </Link>
+              )}
+            </Menu.Item>
+
+            {/* Editar Perfil */}
+            <Menu.Item>
+              {({ active }) => (
+                <Link href="/profile" onClick={() => setIsOpen(false)}>
+                  <div id="tour-dropdown-edit-profile" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                    active 
+                      ? 'bg-[#00D4B3]/5 text-[#00D4B3]' 
+                      : 'text-[#0A2540] dark:text-white hover:bg-[#F8FAFC] dark:hover:bg-[#334155]/50'
+                  }`}>
+                    <UserIcon className={`w-5 h-5 ${active ? 'text-[#00D4B3]' : 'text-[#6C757D] dark:text-gray-400'}`} />
+                    <span className="text-sm font-medium">Editar perfil</span>
+                  </div>
+                </Link>
+              )}
+            </Menu.Item>
+
+            {/* Idioma / Language */}
+            <Menu.Item>
+              {({ active }) => (
+                <div className="relative">
+                  <button
+                    id="tour-dropdown-language"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsLangMenuOpen(!isLangMenuOpen);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                      active || isLangMenuOpen
+                        ? 'bg-[#F8FAFC] dark:bg-[#334155]/50 text-[#0A2540] dark:text-white'
+                        : 'text-[#0A2540] dark:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 flex items-center justify-center ${active || isLangMenuOpen ? 'text-[#0A2540] dark:text-white' : 'text-[#6C757D] dark:text-gray-400'}`}>
+                        <GlobeAltIcon className="w-5 h-5" />
+                      </div>
+                      <span className="text-sm font-medium">Idioma / Language</span>
+                    </div>
+                    <ChevronRightIcon className={`w-4 h-4 text-[#6C757D] dark:text-gray-400 transition-transform duration-200 ${isLangMenuOpen ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {isLangMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden bg-[#F8FAFC] dark:bg-[#0A0D12]/30 rounded-xl mt-1 border border-[#E9ECEF] dark:border-[#334155]"
+                      >
+                        {[
+                          { value: 'es', label: 'Español' },
+                          { value: 'en', label: 'English' },
+                          { value: 'pt', label: 'Português' },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleLanguageChange(option.value);
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-2 text-xs font-medium transition-colors ${
+                              i18n.language === option.value
+                                ? 'text-[#00D4B3] bg-[#00D4B3]/5'
+                                : 'text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white'
+                            }`}
+                          >
+                            <span className="uppercase">{option.value}</span>
+                            {option.label}
+                            {i18n.language === option.value && <Check className="w-3 h-3 ml-auto" />}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </Menu.Item>
 
             {/* Selector de Tema */}
             <Menu.Item>

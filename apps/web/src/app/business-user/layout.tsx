@@ -1,8 +1,5 @@
-'use client';
-
 import React from 'react';
-import { LiaSidePanel } from '@/core/components/LiaSidePanel';
-import { LiaFloatingButton } from '@/core/components/LiaSidePanel/LiaFloatingButton';
+import { BusinessUserTourWrapper } from '@/features/tours/components/BusinessUserTourWrapper';
 
 export default function BusinessUserLayout({
   children,
@@ -10,10 +7,9 @@ export default function BusinessUserLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <BusinessUserTourWrapper>
       {children}
-      <LiaSidePanel />
-      <LiaFloatingButton />
-    </>
+    </BusinessUserTourWrapper>
   );
 }
+

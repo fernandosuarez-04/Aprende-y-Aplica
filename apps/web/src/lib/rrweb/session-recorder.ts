@@ -465,8 +465,8 @@ export class SessionRecorder {
       const binaryString = Array.from(data, byte => String.fromCharCode(byte)).join('');
       return btoa(binaryString);
     } else {
-      // En Node.js, usar Buffer
-      return Buffer.from(json, 'utf-8').toString('base64');
+      // En servidor no soportamos exportación a base64 por ahora para evitar dependencias de Buffer
+      return '';
     }
   }
 

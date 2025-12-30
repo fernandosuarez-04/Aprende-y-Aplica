@@ -679,7 +679,7 @@ function LiaSidePanelContent() {
                       color: 'white'
                     }}>
                       <h3 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 8px 0' }}>LIA</h3>
-                      <p style={{ opacity: 0.8, margin: 0 }}>Asistente de Inteligencia Artificial</p>
+                      <p style={{ opacity: 0.8, margin: 0 }}>Learning Intelligence Assistant</p>
                     </div>
                 </motion.div>
               </motion.div>

@@ -9,8 +9,6 @@ import { useUserProfile } from '../../../features/auth/hooks/useUserProfile'
 import { useThemeStore, Theme } from '../../stores/themeStore'
 import { useShoppingCartStore } from '../../stores/shoppingCartStore'
 import { useLanguage } from '../../providers/I18nProvider'
-import { usePathname } from 'next/navigation'
-import { resetOnboarding } from '../OnboardingAgent/utils'
 
 // Lucide Icons
 import {
@@ -33,7 +31,6 @@ import {
   Bell,
   ShoppingBag,
   Globe,
-  Sparkles,
   ExternalLink,
   LucideIcon,
   Check
@@ -53,11 +50,10 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
   const { getItemCount } = useShoppingCartStore()
   const { language, setLanguage } = useLanguage()
   const router = useRouter()
-  const pathname = usePathname()
   const { t } = useTranslation('common')
   
   const itemCount = getItemCount()
-  const isOnDashboard = pathname === '/dashboard'
+
 
   useEffect(() => {
     initializeTheme()
@@ -88,13 +84,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
     setActiveSubmenu(null)
   }, [router])
 
-  const handleTourClick = useCallback(() => {
-    if (isOnDashboard) {
-      resetOnboarding()
-      window.location.reload()
-    }
-    setIsOpen(false)
-  }, [isOnDashboard])
+
 
   const getDisplayName = () => {
     if (userProfile?.first_name && userProfile?.last_name) {
@@ -361,9 +351,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
                   </AnimatePresence>
                 </div>
 
-                {isOnDashboard && (
-                  <MenuItem icon={Sparkles} label="Ver Tour" onClick={handleTourClick} />
-                )}
+
 
                 {/* Admin/Instructor Panels */}
                 {(isAdmin || isInstructor) && (

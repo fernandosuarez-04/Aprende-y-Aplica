@@ -22,12 +22,15 @@ export function ContentWrapper({ children }: { children: React.ReactNode }) {
   // Detectar si estamos en rutas que manejan su propio layout (admin tiene su propio sistema)
   const isAdminRoute = pathname?.startsWith('/admin');
 
-  // Estado para controlar la hidratación y evitar mismatch
-  const [mounted, setMounted] = React.useState(false);
+  // Estado para controlar el estilo y evitar hydration mismatch
+  const [contentStyle, setContentStyle] = React.useState<React.CSSProperties>({ paddingRight: '0px' });
 
   React.useEffect(() => {
-    setMounted(true);
-  }, []);
+    // Calcular padding solo en el cliente después del montaje
+    // Usar un timeout pequeño para asegurar que el contexto de LIA esté listo si es necesario
+    const newPadding = isPanelOpen && !isAdminRoute && !isCustomThemedRoute ? '420px' : '0px';
+    setContentStyle({ paddingRight: newPadding });
+  }, [isPanelOpen, isAdminRoute, isCustomThemedRoute]);
 
   // Si es una ruta con tema personalizado (business-panel, business-user),
   // no aplicar fondo para evitar conflictos con el tema de la organización
@@ -36,11 +39,7 @@ export function ContentWrapper({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`${bgClass} min-h-full transition-all duration-300 ease-in-out`}
-      style={{ 
-        // Solo aplicar paddingRight si el panel está abierto Y no estamos en admin Y no estamos en rutas con tema personalizado
-        // Usamos 'mounted' para asegurar que coincida con el servidor (siempre cerrado inicialmente)
-        paddingRight: mounted && isPanelOpen && !isAdminRoute && !isCustomThemedRoute ? '420px' : '0px' 
-      }}
+      style={contentStyle}
       suppressHydrationWarning
     >
       {children}

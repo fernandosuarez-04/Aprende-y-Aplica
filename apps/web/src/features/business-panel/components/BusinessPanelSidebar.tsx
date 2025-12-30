@@ -243,7 +243,7 @@ export function BusinessPanelSidebar({
         </AnimatePresence>
 
         {/* Navigation Section */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 custom-scrollbar relative">
+        <nav id="tour-sidebar-nav" className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 custom-scrollbar relative">
           <ul className="space-y-1.5">
             {navigation.map((item) => {
               const Icon = item.icon

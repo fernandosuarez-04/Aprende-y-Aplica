@@ -11,6 +11,7 @@ interface ModernStatsCardProps {
   onClick?: () => void
   isClickable?: boolean
   styles?: any
+  id?: string
 }
 
 /**
@@ -25,18 +26,20 @@ export function ModernStatsCard({
   index,
   onClick,
   isClickable,
-  styles
+  styles,
+  id
 }: ModernStatsCardProps) {
   const primaryColor = styles?.primary_button_color || '#0A2540'
   const accentColor = styles?.accent_color || '#00D4B3'
 
   return (
     <div
+      id={id}
       onClick={onClick}
       className={`
         relative overflow-hidden rounded-2xl p-5
         border border-white/10 backdrop-blur-xl
-        transition-all duration-300
+        transition-all duration-300 scroll-mt-24
         ${isClickable ? 'cursor-pointer hover:scale-[1.02] hover:border-white/20' : ''}
       `}
       style={{

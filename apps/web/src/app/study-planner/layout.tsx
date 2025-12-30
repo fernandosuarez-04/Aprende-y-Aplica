@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { SessionService } from '../../features/auth/services/session.service';
 import { OrganizationStylesProvider } from '../../features/business-panel/contexts/OrganizationStylesContext';
+import { StudyPlannerTourWrapper } from '../../features/tours/components/StudyPlannerTourWrapper';
 
 export default async function StudyPlannerLayout({
   children,
@@ -16,7 +17,9 @@ export default async function StudyPlannerLayout({
 
   return (
     <OrganizationStylesProvider>
-      {children}
+      <StudyPlannerTourWrapper>
+        {children}
+      </StudyPlannerTourWrapper>
     </OrganizationStylesProvider>
   );
 }

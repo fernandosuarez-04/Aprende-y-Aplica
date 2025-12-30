@@ -56,11 +56,10 @@ import {
   Sparkles,
   Brain,
   Palette,
-  Compass,
   ExternalLink,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-// ⚡ OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
+// ⚡  OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
 import dynamic from 'next/dynamic';
 import { ExpandableText } from '../../../../core/components/ExpandableText';
 // import { useLiaChat } from '../../../../core/hooks'; // Removed - Deleted
@@ -2619,21 +2618,6 @@ export default function CourseLearnPage() {
               </span>
             </div>
 
-            {/* Sección derecha: Botón de Tour */}
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => {
-                  // Disparar evento personalizado para abrir el tour manualmente
-                  const eventName = 'open-tour-course-learn';
-                  window.dispatchEvent(new CustomEvent(eventName));
-                }}
-                className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-                title={t('tour.replayLabel')}
-                aria-label={t('tour.replayLabel')}
-              >
-                <Compass className="w-5 h-5 text-[#0A2540] dark:text-white" />
-              </button>
-            </div>
           </div>
         </motion.div>
 

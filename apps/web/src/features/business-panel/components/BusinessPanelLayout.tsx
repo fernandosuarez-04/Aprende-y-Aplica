@@ -11,6 +11,10 @@ import { generateCSSVariables, getBackgroundStyle } from '../utils/styles'
 import { LiaSidePanel } from '@/core/components/LiaSidePanel'
 import { LiaFloatingButton } from '@/core/components/LiaSidePanel/LiaFloatingButton'
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
+import { NextStepProvider, NextStep } from 'nextstepjs'
+import { businessPanelTourSteps, BUSINESS_PANEL_TOUR_ID } from '@/features/tours/config/business-panel-tour-steps'
+import { useTourProgress } from '@/features/tours/hooks/useTourProgress'
+import { GlobalTourCard } from '@/features/tours/components/GlobalTourCard'
 
 
 interface BusinessPanelLayoutProps {
@@ -21,6 +25,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const { styles, loading: stylesLoading } = useOrganizationStylesContext()
+  const { completeTour, skipTour } = useTourProgress(BUSINESS_PANEL_TOUR_ID)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -155,14 +160,24 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   }
 
   return (
-    <div
-      key={styles?.selectedTheme || 'default-theme'}
-      className="fixed inset-0 z-0 h-screen flex flex-col overflow-hidden transition-all duration-300 business-panel-layout"
-      style={{
-        ...backgroundStyle,
-        ...cssVariables
-      } as React.CSSProperties}
-    >
+    <NextStepProvider>
+      <NextStep
+        steps={businessPanelTourSteps}
+        showNextStep={false}
+        shadowRgb="0, 0, 0"
+        shadowOpacity="0.7"
+        cardComponent={GlobalTourCard}
+        onComplete={completeTour}
+        onSkip={skipTour}
+      >
+        <div
+          key={styles?.selectedTheme || 'default-theme'}
+          className="fixed inset-0 z-0 h-screen flex flex-col overflow-hidden transition-all duration-300 business-panel-layout"
+          style={{
+            ...backgroundStyle,
+            ...cssVariables
+          } as React.CSSProperties}
+        >
       {/* Header Global - Full Width */}
       <BusinessPanelHeader 
         onMenuClick={handleMenuClick}
@@ -191,6 +206,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
 
         {/* Main Content Area */}
         <main 
+          id="main-scroll-container"
           className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 business-panel-content transition-all duration-300"
           style={{ marginRight: isLiaPanelOpen ? '420px' : '0px' }}
         >
@@ -199,7 +215,9 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
           </div>
         </main>
       </div>
-    </div>
+        </div>
+      </NextStep>
+    </NextStepProvider>
   )
 }
 

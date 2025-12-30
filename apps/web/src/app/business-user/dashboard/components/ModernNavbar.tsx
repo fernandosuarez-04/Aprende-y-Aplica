@@ -442,6 +442,7 @@ export function ModernNavbar({
               {/* Desktop User Menu */}
               <div className="hidden md:block relative" ref={dropdownRef}>
                 <motion.button
+                  id="tour-user-dropdown-trigger"
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                   className="flex items-center justify-center transition-all duration-300 p-1"
                   whileHover={{ scale: 1.05 }}
