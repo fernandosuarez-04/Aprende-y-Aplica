@@ -1,11 +1,11 @@
 'use client'
 
-import { LucideIcon } from 'lucide-react'
+import React from 'react'
 
 interface ModernStatsCardProps {
   label: string
   value: number
-  icon: LucideIcon
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
   color: string
   index: number
   onClick?: () => void

@@ -24,11 +24,12 @@ import { LIA_PANEL_WIDTH } from '@/core/components/LiaSidePanel'
 import { useBusinessUserJoyride } from '@/features/tours/hooks/useBusinessUserJoyride'
 import Joyride from 'react-joyride'
 
+import { useTranslation } from 'react-i18next'
+
 // Lazy load components - Removed heavy 3D/Particles backgrounds for performance
 const ModernNavbar = lazy(() =>
   import('./components/ModernNavbar').then(m => ({ default: m.ModernNavbar }))
 )
-import { useTranslation } from 'react-i18next'
 const ModernStatsCard = lazy(() =>
   import('./components/ModernStatsCard').then(m => ({ default: m.ModernStatsCard }))
 )
