@@ -1229,6 +1229,99 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
             </div>
           </div>
         </div>
+      ) : (
+        /* Vista de Día */
+        <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329] w-full max-w-full">
+          {/* Grid de horas para el día */}
+          <div className="flex-1 overflow-y-auto relative">
+             <div className="flex min-h-full">
+               {/* Columna de horas */}
+               <div className="w-16 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 flex-shrink-0 bg-gray-50/50 dark:bg-[#1E2329]/50">
+                 {hours.map((hour) => (
+                   <div
+                     key={hour}
+                     className="h-16 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-1.5 flex items-start justify-end pt-1"
+                   >
+                     <span className="text-xs text-[#6C757D] dark:text-gray-400">
+                       {hour.toString().padStart(2, '0')}:00
+                     </span>
+                   </div>
+                 ))}
+               </div>
+
+               {/* Columna del día */}
+               <div className="flex-1 relative min-w-0">
+                 {/* Líneas de horas */}
+                 {hours.map((hour) => (
+                   <div
+                     key={`line-${hour}`}
+                     className="absolute w-full border-b border-[#E9ECEF] dark:border-[#6C757D]/30 h-16 pointer-events-none"
+                     style={{ top: `${(hour - 6) * 64}px` }}
+                   />
+                 ))}
+
+                 {/* Eventos del día */}
+                 {(() => {
+                   const dayEvents = getEventsForDay(currentDate);
+                   return dayEvents.map((event) => {
+                     const position = getEventPosition(event);
+                     const eventColor = getEventColor(event);
+                     
+                     if (!position) return null;
+
+                     return (
+                       <div
+                         key={event.id}
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setSelectedEvent(event);
+                           setIsEventModalOpen(true);
+                         }}
+                         style={{
+                           top: `${position.top}px`,
+                           height: `${position.height}px`,
+                           backgroundColor: eventColor,
+                           borderColor: eventColor,
+                         }}
+                         className="absolute left-2 right-2 px-3 py-2 rounded-md border-l-[4px] cursor-pointer transition-all duration-200 hover:opacity-90 hover:shadow-md text-white overflow-hidden"
+                       >
+                         <div className="font-semibold text-sm truncate">{event.title}</div>
+                         <div className="text-xs opacity-90 truncate mt-0.5">
+                           {moment(event.start).format('h:mm A')} - {moment(event.end).format('h:mm A')}
+                         </div>
+                         {event.description && (
+                           <div className="text-xs opacity-80 truncate mt-1 line-clamp-2">
+                             {event.description}
+                           </div>
+                         )}
+                       </div>
+                     );
+                   });
+                 })()}
+
+                 {/* Indicador de hora actual */}
+                 {(() => {
+                    const now = moment();
+                    const currentHour = now.hour();
+                    const currentMinute = now.minute();
+                    
+                    if (currentHour >= 6 && currentHour <= 23 && currentDate.isSame(now, 'day')) {
+                      const top = ((currentHour - 6) * 64) + ((currentMinute / 60) * 64);
+                      return (
+                        <div 
+                          className="absolute left-0 right-0 border-t-2 border-red-500 z-20 pointer-events-none flex items-center"
+                          style={{ top: `${top}px` }}
+                        >
+                          <div className="w-2 h-2 bg-red-500 rounded-full -ml-1"></div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+               </div>
+             </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de Detalle de Evento */}
