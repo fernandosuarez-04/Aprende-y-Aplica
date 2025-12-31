@@ -831,98 +831,100 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           {/* Días del calendario */}
           <div className="flex-1 grid grid-cols-7 auto-rows-fr">
             {monthDays.map((day, index) => {
-              const isWeekend = day.date.day() === 0 || day.date.day() === 6;
+              const isCurrentMonth = day.isCurrentMonth;
+              const isToday = day.isToday;
               
+              // Calcular eventos para este día
+              const dayEvents = getEventsForDay(day.date);
+              const MAX_EVENTS_TO_SHOW = 3;
+              const eventsToDisplay = dayEvents.slice(0, MAX_EVENTS_TO_SHOW);
+              const moreCount = dayEvents.length - MAX_EVENTS_TO_SHOW;
+
               return (
                 <div
+                  onClick={(e) => {
+                    // Solo permitir crear evento si es clic directo al fondo
+                    if (e.target === e.currentTarget) {
+                      setSelectedDate(day);
+                      handleCreateEvent();
+                    }
+                  }}
                   key={index}
                   className={`
-                    min-h-[100px] border-r border-b border-[#E9ECEF] dark:border-[#6C757D]/30 last:border-r-0
-                  <div
-                    onClick={(e) => {
-                      // Solo permitir crear evento si es clic directo al fondo
-                      if (e.target === e.currentTarget) {
-                        setSelectedDate(day);
-                        handleCreateEvent();
-                      }
-                    }}
-                    key={index}
-                    className={`
-                      min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-[#E9ECEF] dark:border-[#6C757D]/30 relative transition-colors
-                      ${isCurrentMonth ? 'bg-white dark:bg-[#1E2329]' : 'bg-gray-50/50 dark:bg-[#1E2329]/50'}
-                      ${isToday ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}
-                      ${(index + 1) % 7 === 0 ? 'border-r-0' : ''}
-                      hover:bg-gray-50 dark:hover:bg-[#2C333A] cursor-pointer
-                    `}
-                  >
-                    {/* Número del día */}
-                    <div className="flex justify-between items-start mb-1">
-                      <span
-                        className={`
-                          text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full
-                          ${isToday
-                            ? 'bg-[#0A2540] text-white shadow-sm'
-                            : isCurrentMonth
-                              ? 'text-[#0A2540] dark:text-gray-300'
-                              : 'text-gray-400 dark:text-gray-600'
-                          }
-                        `}
-                      >
-                        {day.format('D')}
-                      </span>
-                    </div>
+                    min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-[#E9ECEF] dark:border-[#6C757D]/30 relative transition-colors
+                    ${isCurrentMonth ? 'bg-white dark:bg-[#1E2329]' : 'bg-gray-50/50 dark:bg-[#1E2329]/50'}
+                    ${isToday ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}
+                    ${(index + 1) % 7 === 0 ? 'border-r-0' : ''}
+                    hover:bg-gray-50 dark:hover:bg-[#2C333A] cursor-pointer
+                  `}
+                >
+                  {/* Número del día */}
+                  <div className="flex justify-between items-start mb-1">
+                    <span
+                      className={`
+                        text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full
+                        ${isToday
+                          ? 'bg-[#0A2540] text-white shadow-sm'
+                          : isCurrentMonth
+                            ? 'text-[#0A2540] dark:text-gray-300'
+                            : 'text-gray-400 dark:text-gray-600'
+                        }
+                      `}
+                    >
+                      {day.format('D')}
+                    </span>
+                  </div>
 
-                    {/* Desktop: Lista de eventos (Badges) */}
-                    <div className="hidden sm:flex flex-col gap-1">
-                      {eventsToDisplay.map((event) => {
-                        const eventColor = getEventColor(event);
-                        return (
-                          <div
-                            key={event.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedEvent(event);
-                              setIsEventModalOpen(true);
-                            }}
-                            className="px-2 py-0.5 rounded text-[10px] font-medium truncate border-l-[3px] cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-sm text-white"
-                            style={{
-                              backgroundColor: eventColor,
-                              borderColor: eventColor,
-                            }}
-                            title={`${event.title}${event.isAllDay ? ' (Todo el día)' : ''}`}
-                          >
-                            {event.title}
-                          </div>
-                        );
-                      })}
-                      {moreCount > 0 && (
-                        <div className="text-[10px] text-gray-500 font-medium pl-1">
-                          +{moreCount} más
+                  {/* Desktop: Lista de eventos (Badges) */}
+                  <div className="hidden sm:flex flex-col gap-1">
+                    {eventsToDisplay.map((event) => {
+                      const eventColor = getEventColor(event);
+                      return (
+                        <div
+                          key={event.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEvent(event);
+                            setIsEventModalOpen(true);
+                          }}
+                          className="px-2 py-0.5 rounded text-[10px] font-medium truncate border-l-[3px] cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-sm text-white"
+                          style={{
+                            backgroundColor: eventColor,
+                            borderColor: eventColor,
+                          }}
+                          title={`${event.title}${event.isAllDay ? ' (Todo el día)' : ''}`}
+                        >
+                          {event.title}
                         </div>
-                      )}
-                    </div>
+                      );
+                    })}
+                    {moreCount > 0 && (
+                      <div className="text-[10px] text-gray-500 font-medium pl-1">
+                        +{moreCount} más
+                      </div>
+                    )}
+                  </div>
 
-                    {/* Mobile: Puntos indicadores (Dots) */}
-                    <div className="flex sm:hidden flex-wrap content-start gap-1 mt-1">
-                      {dayEvents.slice(0, 6).map((event) => {
-                         const eventColor = getEventColor(event);
-                         return (
-                           <div
-                             key={event.id}
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               setSelectedEvent(event);
-                               setIsEventModalOpen(true);
-                             }}
-                             className="w-1.5 h-1.5 rounded-full"
-                             style={{ backgroundColor: eventColor }}
-                           />
-                         );
-                      })}
-                      {dayEvents.length > 6 && (
-                        <span className="text-[8px] text-gray-400 leading-none self-center">+</span>
-                      )}
-                    </div>
+                  {/* Mobile: Puntos indicadores (Dots) */}
+                  <div className="flex sm:hidden flex-wrap content-start gap-1 mt-1">
+                    {dayEvents.slice(0, 6).map((event) => {
+                       const eventColor = getEventColor(event);
+                       return (
+                         <div
+                           key={event.id}
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setSelectedEvent(event);
+                             setIsEventModalOpen(true);
+                           }}
+                           className="w-1.5 h-1.5 rounded-full"
+                           style={{ backgroundColor: eventColor }}
+                         />
+                       );
+                    })}
+                    {dayEvents.length > 6 && (
+                      <span className="text-[8px] text-gray-400 leading-none self-center">+</span>
+                    )}
                   </div>
                 </div>
               );
