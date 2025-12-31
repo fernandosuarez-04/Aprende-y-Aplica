@@ -10679,7 +10679,7 @@ Cuéntame:
             </AnimatePresence>
 
             {/* Área de input */}
-            <div className="flex-shrink-0 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-t border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 py-3 sm:px-4 sm:py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="flex-shrink-0 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-t border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-4">
               <div className="max-w-4xl mx-auto w-full">
                 <div className="flex items-center gap-2 sm:gap-3 w-full">
                   {/* Input de texto */}

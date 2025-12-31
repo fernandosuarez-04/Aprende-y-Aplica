@@ -813,9 +813,9 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       {/* Contenido del Calendario según la vista */}
       {view === 'month' ? (
         /* Vista de Mes */
-        <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329]">
-          <div className="flex-1 flex flex-col overflow-x-auto">
-            <div className="flex-1 flex flex-col min-w-[800px]">
+        <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329] w-full max-w-full">
+          <div className="flex-1 flex flex-col overflow-x-auto touch-pan-x w-full">
+            <div className="flex-1 flex flex-col w-full">
               {/* Headers de días de la semana */}
               <div className="grid grid-cols-7 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             {weekDayNames.map((day, index) => (
@@ -838,72 +838,91 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                   key={index}
                   className={`
                     min-h-[100px] border-r border-b border-[#E9ECEF] dark:border-[#6C757D]/30 last:border-r-0
-                    ${day.isCurrentMonth ? 'bg-white dark:bg-[#1E2329]' : 'bg-[#E9ECEF]/30 dark:bg-[#0F1419]/50'}
-                    ${day.isToday ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20' : ''}
-                    ${isWeekend && day.isCurrentMonth ? 'bg-[#E9ECEF]/30 dark:bg-[#0F1419]/30' : ''}
-                    p-2 relative
-                    hover:bg-[#E9ECEF]/50 dark:hover:bg-[#1E2329]/50 transition-colors
-                  `}
-                >
-                  {/* Número del día */}
                   <div
+                    onClick={(e) => {
+                      // Solo permitir crear evento si es clic directo al fondo
+                      if (e.target === e.currentTarget) {
+                        setSelectedDate(day);
+                        handleCreateEvent();
+                      }
+                    }}
+                    key={index}
                     className={`
-                      text-right mb-1
-                      ${day.isCurrentMonth ? 'text-[#0A2540] dark:text-white' : 'text-[#6C757D] dark:text-gray-600'}
-                      ${day.isToday ? 'font-bold text-[#0A2540] dark:text-[#00D4B3]' : 'font-normal'}
-                      text-sm
+                      min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-[#E9ECEF] dark:border-[#6C757D]/30 relative transition-colors
+                      ${isCurrentMonth ? 'bg-white dark:bg-[#1E2329]' : 'bg-gray-50/50 dark:bg-[#1E2329]/50'}
+                      ${isToday ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}
+                      ${(index + 1) % 7 === 0 ? 'border-r-0' : ''}
+                      hover:bg-gray-50 dark:hover:bg-[#2C333A] cursor-pointer
                     `}
                   >
-                    {day.dayNumber}
-                  </div>
+                    {/* Número del día */}
+                    <div className="flex justify-between items-start mb-1">
+                      <span
+                        className={`
+                          text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full
+                          ${isToday
+                            ? 'bg-[#0A2540] text-white shadow-sm'
+                            : isCurrentMonth
+                              ? 'text-[#0A2540] dark:text-gray-300'
+                              : 'text-gray-400 dark:text-gray-600'
+                          }
+                        `}
+                      >
+                        {day.format('D')}
+                      </span>
+                    </div>
 
-                  {/* Área para eventos */}
-                  <div className="space-y-1 mt-1 min-h-[60px]">
-                    {(() => {
-                      const dayEvents = getEventsForDay(day.date);
-                      const visibleEvents = dayEvents.slice(0, 3); // Mostrar máximo 3 eventos
-                      const moreCount = dayEvents.length - 3;
-                      
-                      return (
-                        <>
-                          {visibleEvents.map((event) => {
-                            const isStudySession = event.source === 'study_session';
-                            const isGoogle = event.provider === 'google';
-                            const isMicrosoft = event.provider === 'microsoft';
-                            
-                            // Usar color personalizado si existe, sino usar colores SOFIA
-                            const eventColor = event.color || 
-                              (isStudySession ? '#0A2540' : 
-                               isGoogle ? '#0066CC' : 
-                               isMicrosoft ? '#0078D4' : '#0A2540');
-                            
-                            return (
-                              <div
-                                key={event.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedEvent(event);
-                                  setIsEventModalOpen(true);
-                                }}
-                                className="px-2.5 py-1 rounded-md text-xs font-medium truncate border-l-[3px] cursor-pointer transition-all duration-200 hover:opacity-90 hover:shadow-md text-white"
-                                style={{
-                                  backgroundColor: eventColor,
-                                  borderColor: eventColor,
-                                }}
-                                title={`${event.title}${event.isAllDay ? ' (Todo el día)' : ''}`}
-                              >
-                                {event.title}
-                              </div>
-                            );
-                          })}
-                          {moreCount > 0 && (
-                            <div className="text-xs text-[#6C757D] dark:text-gray-400 px-2 py-0.5">
-                              +{moreCount} más
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
+                    {/* Desktop: Lista de eventos (Badges) */}
+                    <div className="hidden sm:flex flex-col gap-1">
+                      {eventsToDisplay.map((event) => {
+                        const eventColor = getEventColor(event);
+                        return (
+                          <div
+                            key={event.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedEvent(event);
+                              setIsEventModalOpen(true);
+                            }}
+                            className="px-2 py-0.5 rounded text-[10px] font-medium truncate border-l-[3px] cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-sm text-white"
+                            style={{
+                              backgroundColor: eventColor,
+                              borderColor: eventColor,
+                            }}
+                            title={`${event.title}${event.isAllDay ? ' (Todo el día)' : ''}`}
+                          >
+                            {event.title}
+                          </div>
+                        );
+                      })}
+                      {moreCount > 0 && (
+                        <div className="text-[10px] text-gray-500 font-medium pl-1">
+                          +{moreCount} más
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Mobile: Puntos indicadores (Dots) */}
+                    <div className="flex sm:hidden flex-wrap content-start gap-1 mt-1">
+                      {dayEvents.slice(0, 6).map((event) => {
+                         const eventColor = getEventColor(event);
+                         return (
+                           <div
+                             key={event.id}
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setSelectedEvent(event);
+                               setIsEventModalOpen(true);
+                             }}
+                             className="w-1.5 h-1.5 rounded-full"
+                             style={{ backgroundColor: eventColor }}
+                           />
+                         );
+                      })}
+                      {dayEvents.length > 6 && (
+                        <span className="text-[8px] text-gray-400 leading-none self-center">+</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -911,11 +930,10 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           </div>
         </div>
       </div>
-    </div>
       ) : view === 'week' ? (
         /* Vista de Semana - Estilo Google Calendar */
-        <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329]">
-          <div className="flex-1 flex flex-col overflow-x-auto">
+        <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329] w-full max-w-full">
+          <div className="flex-1 flex flex-col overflow-x-auto touch-pan-x w-full">
             <div className="flex-1 flex flex-col min-w-[800px]">
               {/* Headers de días de la semana */}
               <div className="flex border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
