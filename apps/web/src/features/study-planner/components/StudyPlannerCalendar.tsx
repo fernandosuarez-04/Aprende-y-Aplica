@@ -40,7 +40,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
   const [currentDate, setCurrentDate] = useState(moment());
   const [view, setView] = useState<ViewType>('month');
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]); // Todos los eventos sin filtrar
+  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hoveredRefreshButton, setHoveredRefreshButton] = useState(false);
@@ -49,6 +49,12 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
   const [isEditMode, setIsEditMode] = useState(false);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [eventForm, setEventForm] = useState({
     title: '',
     description: '',
@@ -56,8 +62,10 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     end: '',
     location: '',
     isAllDay: false,
-    color: '#0A2540', // Color por defecto (Azul Profundo SOFIA)
+    color: '#0A2540',
   });
+
+
   
   // Estado para notificaciones toast
   const [toast, setToast] = useState<{
@@ -663,16 +671,21 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
   };
   
   // Calcular datos según la vista activa
+  
+  if (!isMounted) {
+    return null;
+  }
+
   const monthDays = view === 'month' ? getMonthData() : [];
   const weekDays = view === 'week' ? getWeekDays() : [];
   const weekRange = view === 'week' ? getWeekRange() : null;
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col max-w-[100vw] overflow-x-hidden">
       {/* Header del Calendario - Estilo Google Calendar */}
-      <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 pb-3 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 gap-4 sm:gap-0">
         {/* Título del mes/año, rango de semana o día */}
-        <h2 className="text-xl font-semibold text-[#0A2540] dark:text-white">
+        <h2 className="text-xl font-semibold text-[#0A2540] dark:text-white truncate max-w-full">
           {view === 'month' 
             ? currentDate.format('MMMM YYYY')
             : view === 'week'
@@ -682,14 +695,15 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         </h2>
 
         {/* Controles de navegación y vista */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end overflow-x-auto no-scrollbar">
           {/* Botón para crear evento */}
           <button
             onClick={handleCreateEvent}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#0A2540] hover:bg-[#0d2f4d] rounded-lg transition-colors flex items-center gap-2"
+            className="px-3 sm:px-4 py-2 text-sm font-medium text-white bg-[#0A2540] hover:bg-[#0d2f4d] rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
+            title="Crear evento"
           >
-            <Plus className="w-4 h-4" />
-            Crear evento
+            <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Crear evento</span>
           </button>
           
           {/* Selector de vista */}
@@ -821,29 +835,29 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       {/* Contenido del Calendario según la vista */}
       {view === 'month' && (
         /* Vista de Mes */
-        <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329] w-full max-w-full">
-          <div className="flex-1 flex flex-col overflow-x-auto touch-pan-x w-full">
-            <div className="flex-1 flex flex-col w-full">
+        <div className="flex-1 flex flex-col border-x-0 sm:border border-y sm:border-y border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-none sm:rounded-lg overflow-hidden bg-white dark:bg-[#1E2329] w-full max-w-full">
+          <div className="flex-1 flex flex-col w-full min-w-0">
+            <div className="flex-1 flex flex-col w-full min-w-0">
               {/* Headers de días de la semana */}
               <div className="grid grid-cols-7 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
-            {weekDayNames.map((day, index) => (
-              <div
-                key={index}
-                className="px-3 py-3 text-xs font-medium text-[#6C757D] dark:text-gray-400 uppercase tracking-wider text-center border-r border-[#E9ECEF] dark:border-[#6C757D]/30 last:border-r-0"
-              >
-                {day}
+                {weekDayNames.map((day, index) => (
+                  <div
+                    key={index}
+                    className="py-1 text-[9px] sm:text-xs font-medium text-[#6C757D] dark:text-gray-400 uppercase tracking-wider text-center border-r border-[#E9ECEF] dark:border-[#6C757D]/30 last:border-r-0 truncate overflow-hidden"
+                  >
+                    {day}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
           {/* Días del calendario */}
           <div className="flex-1 grid grid-cols-7 auto-rows-fr">
-            {monthDays.map((day, index) => {
-              const isCurrentMonth = day.isCurrentMonth;
-              const isToday = day.isToday;
+            {monthDays.map((dayInfo, index) => {
+              const isCurrentMonth = dayInfo.isCurrentMonth;
+              const isToday = dayInfo.isToday;
               
               // Calcular eventos para este día
-              const dayEvents = getEventsForDay(day.date);
+              const dayEvents = getEventsForDay(dayInfo.date);
               const MAX_EVENTS_TO_SHOW = 3;
               const eventsToDisplay = dayEvents.slice(0, MAX_EVENTS_TO_SHOW);
               const moreCount = dayEvents.length - MAX_EVENTS_TO_SHOW;
@@ -853,17 +867,17 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                   onClick={(e) => {
                     // Solo permitir crear evento si es clic directo al fondo
                     if (e.target === e.currentTarget) {
-                      setCurrentDate(day);
+                      setCurrentDate(dayInfo.date);
                       handleCreateEvent();
                     }
                   }}
                   key={index}
                   className={`
-                    min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border-r border-b border-[#E9ECEF] dark:border-[#6C757D]/30 relative transition-colors
+                    min-h-[60px] sm:min-h-[120px] p-0.5 sm:p-2 border-r border-b border-[#E9ECEF] dark:border-[#6C757D]/30 relative transition-colors
                     ${isCurrentMonth ? 'bg-white dark:bg-[#1E2329]' : 'bg-gray-50/50 dark:bg-[#1E2329]/50'}
                     ${isToday ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}
                     ${(index + 1) % 7 === 0 ? 'border-r-0' : ''}
-                    hover:bg-gray-50 dark:hover:bg-[#2C333A] cursor-pointer
+                    hover:bg-gray-50 dark:hover:bg-[#2C333A] cursor-pointer flex flex-col items-center sm:items-stretch overflow-hidden min-w-0
                   `}
                 >
                   {/* Número del día */}
@@ -879,12 +893,12 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                         }
                       `}
                     >
-                      {day.format('D')}
+                      {dayInfo.date.format('D')}
                     </span>
                   </div>
 
-                  {/* Desktop: Lista de eventos (Badges) */}
-                  <div className="hidden sm:flex flex-col gap-1">
+                  {/* Lista de eventos (Badges) - Visible en todas las pantallas */}
+                  <div className="flex flex-col gap-0.5 sm:gap-1 w-full overflow-hidden">
                     {eventsToDisplay.map((event) => {
                       const eventColor = getEventColor(event);
                       return (
@@ -895,7 +909,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                             setSelectedEvent(event);
                             setIsEventModalOpen(true);
                           }}
-                          className="px-2 py-0.5 rounded text-[10px] font-medium truncate border-l-[3px] cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-sm text-white"
+                          className="px-0.5 sm:px-2 py-0 sm:py-0.5 rounded-[2px] sm:rounded text-[8px] sm:text-[10px] font-medium truncate border-l-[1px] sm:border-l-[3px] cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-sm text-white leading-tight min-w-0"
                           style={{
                             backgroundColor: eventColor,
                             borderColor: eventColor,
@@ -907,31 +921,9 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                       );
                     })}
                     {moreCount > 0 && (
-                      <div className="text-[10px] text-gray-500 font-medium pl-1">
+                      <div className="text-[8px] sm:text-[10px] text-gray-500 font-medium pl-1">
                         +{moreCount} más
                       </div>
-                    )}
-                  </div>
-
-                  {/* Mobile: Puntos indicadores (Dots) */}
-                  <div className="flex sm:hidden flex-wrap content-start gap-1 mt-1">
-                    {dayEvents.slice(0, 6).map((event) => {
-                       const eventColor = getEventColor(event);
-                       return (
-                         <div
-                           key={event.id}
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setSelectedEvent(event);
-                             setIsEventModalOpen(true);
-                           }}
-                           className="w-1.5 h-1.5 rounded-full"
-                           style={{ backgroundColor: eventColor }}
-                         />
-                       );
-                    })}
-                    {dayEvents.length > 6 && (
-                      <span className="text-[8px] text-gray-400 leading-none self-center">+</span>
                     )}
                   </div>
                 </div>
@@ -1252,22 +1244,33 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => {
-                setIsEventModalOpen(false);
-                setSelectedEvent(null);
+                if (!isEditMode && !isCreatingEvent) {
+                  setIsEventModalOpen(false);
+                  setSelectedEvent(null);
+                }
               }}
-              className="fixed inset-0 bg-[#0F1419]/80 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-[#0F1419]/80 backdrop-blur-sm z-50 transition-opacity"
             />
             
-            {/* Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            >
-              <div className="bg-white dark:bg-[#1E2329] rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-[#E9ECEF] dark:border-[#6C757D]/30">
+            {/* Modal Container - Bottom Sheet on Mobile, Centered on Desktop */}
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-none">
+              <motion.div
+                initial={{ y: "100%", opacity: 0, scale: 0.95 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: "100%", opacity: 0, scale: 0.95 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                onClick={(e) => e.stopPropagation()}
+                className="
+                  pointer-events-auto
+                  bg-white dark:bg-[#1E2329] 
+                  w-full sm:max-w-xl 
+                  rounded-t-2xl sm:rounded-xl 
+                  shadow-2xl overflow-hidden 
+                  border-t sm:border border-[#E9ECEF] dark:border-[#6C757D]/30
+                  max-h-[90vh] sm:max-h-[85vh]
+                  flex flex-col
+                "
+              >
                 {/* Header mejorado - Estilo Google Calendar */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1318,7 +1321,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                 </div>
 
                 {/* Contenido del Modal - Mejorado */}
-                <div className="px-5 py-4 space-y-4 max-h-[75vh] overflow-y-auto">
+                <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 overscroll-contain">
                   {isEditMode || isCreatingEvent ? (
                     /* Formulario de Edición/Creación - Mejorado */
                     <form
@@ -1628,8 +1631,8 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                     </>
                   )}
                 </div>
-              </div>
             </motion.div>
+          </div>
           </>
         )}
       </AnimatePresence>

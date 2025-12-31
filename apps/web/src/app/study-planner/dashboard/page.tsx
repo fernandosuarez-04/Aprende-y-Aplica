@@ -944,9 +944,9 @@ export default function StudyPlannerDashboardPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto px-6 pb-6">
+        <div className="flex-1 overflow-auto px-0 sm:px-6 pb-6">
           {/* Calendario de Estudios */}
-          <div className="bg-white dark:bg-[#1E2329] rounded-xl shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6 min-h-full">
+          <div className="bg-white dark:bg-[#1E2329] rounded-none sm:rounded-xl shadow-sm border-x-0 sm:border border-[#E9ECEF] dark:border-[#6C757D]/30 p-0 sm:p-6 h-full flex flex-col">
             <StudyPlannerCalendar showOnlyPlanEvents={showOnlyPlanEvents} />
           </div>
         </div>
