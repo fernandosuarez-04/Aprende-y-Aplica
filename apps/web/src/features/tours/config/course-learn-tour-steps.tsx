@@ -164,30 +164,7 @@ export const courselearnTourSteps: Step[] = [
         pointerPadding: 8,
         pointerRadius: 12,
       },
-      // 8. Notes Button
-      {
-        icon: <StickyNote className="w-6 h-6 text-[#00D4B3]" />,
-        title: 'Tus Notas Personales',
-        content: (
-          <div className="space-y-3">
-            <p>
-              Crea y organiza tus <strong className="text-white">notas personales</strong>:
-            </p>
-            <ul className="space-y-2 list-disc pl-4 text-white/90">
-              <li>Guarda ideas importantes</li>
-              <li>Añade etiquetas para organizar</li>
-              <li>Relaciona notas con lecciones específicas</li>
-              <li>Exporta tus notas cuando quieras</li>
-            </ul>
-          </div>
-        ),
-        selector: '#tour-notes-section',
-        side: 'right',
-        showControls: true,
-        showSkip: true,
-        pointerPadding: 10,
-        pointerRadius: 15,
-      },
+
       // 9. LIA Assistant - Main Highlight
       {
         icon: <Bot className="w-6 h-6 text-[#00D4B3]" />,

@@ -18,7 +18,7 @@ export const businessPanelTourSteps: Step[] = [
           </p>
         ),
         selector: '#tour-hero-section',
-        side: 'bottom', // Mantener bottom, el scroll reset debería arreglarlo
+        side: 'center', // Usar center para garantizar visibilidad en todas las pantallas
         showControls: true,
         showSkip: true,
         pointerPadding: 10,
@@ -48,11 +48,12 @@ export const businessPanelTourSteps: Step[] = [
           </p>
         ),
         selector: '#tour-stats-section',
-        side: 'bottom',
+        side: 'right',
         showControls: true,
         showSkip: true,
         pointerPadding: 10,
         pointerRadius: 15,
+        viewportID: 'main-scroll-container',
       },
       {
         icon: <Clock className="w-6 h-6 text-[#00D4B3]" />,
@@ -63,11 +64,12 @@ export const businessPanelTourSteps: Step[] = [
           </p>
         ),
         selector: '#tour-activity-card',
-        side: 'bottom',
+        side: 'top',
         showControls: true,
         showSkip: true,
         pointerPadding: 10,
         pointerRadius: 15,
+        viewportID: 'main-scroll-container',
       },
       {
         icon: <Zap className="w-6 h-6 text-[#00D4B3]" />,
@@ -89,6 +91,7 @@ export const businessPanelTourSteps: Step[] = [
         showSkip: true,
         pointerPadding: 30,
         pointerRadius: 15,
+        viewportID: 'main-scroll-container',
       },
       {
         icon: <Bot className="w-6 h-6 text-[#00D4B3]" />,
@@ -106,7 +109,7 @@ export const businessPanelTourSteps: Step[] = [
           </div>
         ),
         selector: '#tour-lia-button',
-        side: 'left',
+        side: 'top',
         showControls: true,
         showSkip: true,
         pointerPadding: 10,

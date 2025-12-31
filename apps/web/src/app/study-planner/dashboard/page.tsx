@@ -27,6 +27,7 @@ import { ToastNotification } from '@/core/components/ToastNotification';
 import { redirectToDashboard } from '@/features/auth/actions/dashboard-redirect';
 import { useStudyPlannerDashboardLIA, type DashboardMessage } from '@/features/study-planner/hooks/useStudyPlannerDashboardLIA';
 import { useStudyPlannerDashboardTour } from '@/features/study-planner/hooks/useStudyPlannerDashboardTour';
+import Joyride from 'react-joyride';
 
 export default function StudyPlannerDashboardPage() {
   const router = useRouter();
@@ -41,7 +42,12 @@ export default function StudyPlannerDashboardPage() {
   } = useStudyPlannerDashboardLIA();
 
   // Hook del Tour
-  const { restartTour } = useStudyPlannerDashboardTour();
+  const { restartTour, joyrideProps } = useStudyPlannerDashboardTour();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Estado para el panel de LIA (derecha) - abierto por defecto
   const [isLiaPanelOpen, setIsLiaPanelOpen] = useState(true);
@@ -1624,6 +1630,7 @@ export default function StudyPlannerDashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      {isMounted && <Joyride {...joyrideProps} />}
     </div>
   );
 }

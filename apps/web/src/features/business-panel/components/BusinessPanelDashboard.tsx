@@ -21,7 +21,6 @@ import Link from 'next/link'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useTranslation } from 'react-i18next'
-import { useBusinessPanelTour } from '@/features/tours/hooks/useBusinessPanelTour'
 
 // ============================================
 // COMPONENTE: StatCard Premium
@@ -374,8 +373,7 @@ export function BusinessPanelDashboard() {
     return () => clearInterval(timer)
   }, [])
 
-  // Inicializar tour del dashboard de gestión
-  useBusinessPanelTour()
+  // Tour is now managed in BusinessPanelLayout with Joyride
 
   // Cargar estadísticas
   useEffect(() => {
@@ -699,7 +697,7 @@ export function BusinessPanelDashboard() {
               transition={{ delay: 0.6 }}
             >
               <div>
-                <h2 className="text-xl font-bold" style={{ color: themeColors.text }}>{t('dashboard.recentActivity.title')}</h2>
+                <h2 id="tour-activity-title" className="text-xl font-bold" style={{ color: themeColors.text }}>{t('dashboard.recentActivity.title')}</h2>
                 <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>{t('dashboard.recentActivity.subtitle')}</p>
               </div>
             </motion.div>

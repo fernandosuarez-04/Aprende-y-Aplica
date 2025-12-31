@@ -1,0 +1,55 @@
+import { Step } from 'react-joyride';
+
+export const DASHBOARD_TOUR_ID = 'business-dashboard';
+
+export const businessUserJoyrideSteps: Step[] = [
+  {
+    target: '#tour-hero-section',
+    title: '¡Bienvenido a tu Espacio de Aprendizaje!',
+    content: 'Este es tu centro personal de desarrollo. Desde aquí podrás visualizar tu progreso, continuar tus cursos y alcanzar tus metas profesionales.',
+    placement: 'center',
+    disableBeacon: true,
+  },
+  {
+    target: '#tour-stats-section',
+    title: 'Estadísticas Generales',
+    content: 'Aquí tienes una vista rápida de tu actividad. Revisa tus cursos asignados, el estado de tu progreso y los certificados que has ganado.',
+    placement: 'bottom',
+    disableBeacon: true,
+  },
+  {
+    target: '#tour-stat-courses',
+    title: 'Tus Cursos',
+    content: 'Consulta los cursos asignados y su estado actual. Mantén un seguimiento detallado de la formación.',
+    placement: 'top',
+    disableBeacon: true,
+  },
+  {
+    target: '#tour-stat-certificates',
+    title: 'Tus Certificados',
+    content: 'Visualiza los certificados obtenidos y el crecimiento profesional de tu equipo.',
+    placement: 'top',
+    disableBeacon: true,
+  },
+  {
+    target: '#tour-user-dropdown-trigger',
+    title: 'Menú de Usuario',
+    content: 'En este menú encontrarás herramientas vitales: Planificador de Estudios, Editar Perfil y configuración de Idioma.',
+    placement: 'bottom-end',
+    disableBeacon: true,
+  },
+  {
+    target: '#tour-lia-button',
+    title: '¡Tu Asistente LIA!',
+    content: 'LIA es lo más importante de tu experiencia. Está aquí 24/7 para resolver dudas, analizar tu progreso y recibir feedback.',
+    placement: 'top-end',
+    disableBeacon: true,
+  },
+  {
+    target: 'body',
+    title: '¡Hora de Planificar!',
+    content: 'Para comenzar con el pie derecho, te recomendamos visitar el Planificador de Estudios para crear tu primer plan personalizado.',
+    placement: 'center',
+    disableBeacon: true,
+  },
+];

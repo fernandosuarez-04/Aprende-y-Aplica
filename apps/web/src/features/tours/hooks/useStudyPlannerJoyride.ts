@@ -1,23 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CallBackProps, STATUS, Step, ACTIONS, EVENTS } from 'react-joyride';
-import { useTourProgress } from '../../tours/hooks/useTourProgress';
-import { studyPlannerDashboardJoyrideSteps } from '../../tours/config/study-planner-dashboard-joyride-config';
-import { JoyrideTooltip } from '../../tours/components/JoyrideTooltip';
+import { useTourProgress } from './useTourProgress';
+import { studyPlannerJoyrideSteps } from '../config/study-planner-joyride-config';
+import { JoyrideTooltip } from '../components/JoyrideTooltip';
 
-export function useStudyPlannerDashboardTour() {
+export const useStudyPlannerJoyride = () => {
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
-  const tourProgress = useTourProgress('study-planner-dashboard-tour');
+  const tourProgress = useTourProgress('study-planner-joyride-v1');
 
   // Initiate tour check on mount
   useEffect(() => {
     const checkTourStatus = async () => {
       if (!tourProgress.isLoading) {
+        // If tour hasn't been seen, start it
         if (!tourProgress.hasSeenTour) {
-           // Small delay to ensure elements are rendered
-           setTimeout(() => {
-              setRun(true);
-           }, 1500); // 1.5s delay for dashboard to load
+          // Small delay to ensure elements are rendered
+          setTimeout(() => {
+             setRun(true);
+          }, 1000);
         }
       }
     };
@@ -26,8 +27,8 @@ export function useStudyPlannerDashboardTour() {
 
   const handleJoyrideCallback = useCallback(async (data: CallBackProps) => {
     const { action, index, status, type } = data;
-
-    // Controlled navigation
+    
+    // Controlled navigation logic
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       if (action === ACTIONS.NEXT) {
         setStepIndex(index + 1);
@@ -35,10 +36,11 @@ export function useStudyPlannerDashboardTour() {
         setStepIndex(index - 1);
       }
     }
-    // Handle finish/skip
+    // Handle tour finish or skip
     else if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
       setStepIndex(0);
+      
       if (status === STATUS.FINISHED) {
         await tourProgress.completeTour();
       } else {
@@ -48,23 +50,20 @@ export function useStudyPlannerDashboardTour() {
   }, [tourProgress]);
 
   const restartTour = useCallback(() => {
-    setRun(false);
     setStepIndex(0);
-    setTimeout(() => {
-      setRun(true);
-    }, 100);
+    setRun(true);
   }, []);
 
   const joyrideProps = {
     run,
-    steps: studyPlannerDashboardJoyrideSteps,
+    steps: studyPlannerJoyrideSteps,
     stepIndex,
     callback: handleJoyrideCallback,
     continuous: true,
     showProgress: true,
     showSkipButton: true,
     tooltipComponent: JoyrideTooltip,
-    scrollOffset: 120,
+    scrollOffset: 120,    
     styles: {
       options: {
         zIndex: 10000,
@@ -74,4 +73,4 @@ export function useStudyPlannerDashboardTour() {
   };
 
   return { joyrideProps, restartTour, isRunning: run };
-}
+};

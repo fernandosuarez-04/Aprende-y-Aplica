@@ -17,7 +17,8 @@ import {
   CalendarPlus,
   Globe,
   Check,
-  ChevronRight
+  ChevronRight,
+  Zap
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect, useMemo } from 'react'
@@ -48,6 +49,7 @@ interface ModernNavbarProps {
   onProfileClick: () => void
   onLogout: () => void
   styles?: StyleConfig | null
+  onRestartTour?: () => void
 }
 
 export function ModernNavbar({
@@ -57,7 +59,8 @@ export function ModernNavbar({
   getInitials,
   onProfileClick,
   onLogout,
-  styles
+  styles,
+  onRestartTour
 }: ModernNavbarProps) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -259,7 +262,7 @@ export function ModernNavbar({
             )}
 
              {/* Editar Perfil */}
-             <motion.button
+            <motion.button
               onClick={() => {
                 onProfileClick()
                 setMobileMenuOpen(false)
@@ -282,6 +285,33 @@ export function ModernNavbar({
                 <span className="text-xs text-white/50">{t('header.updateInfo')}</span>
               </div>
             </motion.button>
+
+            {/* Restart Tour Mobile */}
+            {onRestartTour && (
+              <motion.button
+                onClick={() => {
+                  onRestartTour()
+                  setMobileMenuOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors"
+                whileTap={{ scale: 0.98 }}
+                style={{
+                  backgroundColor: `${colors.primary}10`,
+                  border: `1px solid ${colors.border}`
+                }}
+              >
+                <div
+                  className="p-2 rounded-xl flex-shrink-0"
+                  style={{ backgroundColor: `${colors.accent}20` }}
+                >
+                  <Zap className="h-4 w-4" style={{ color: colors.accent }} />
+                </div>
+                <div className="text-left flex-1 min-w-0">
+                  <span className="text-white font-medium block text-sm">Ver Tour</span>
+                  <span className="text-xs text-white/50">Reiniciar el tour guiado</span>
+                </div>
+              </motion.button>
+            )}
 
 
             {/* Language Selector */}
@@ -501,8 +531,7 @@ export function ModernNavbar({
                             <div
                               className="h-10 w-10 rounded-full flex items-center justify-center ring-2"
                               style={{
-                                background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
-                                ringColor: 'rgba(255, 255, 255, 0.1)'
+                                background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`
                               }}
                             >
                               {user?.profile_picture_url ? (
@@ -580,6 +609,23 @@ export function ModernNavbar({
                             <User className="h-4 w-4 opacity-70" />
                             <span>{t('header.editProfile')}</span>
                           </motion.button>
+
+                          {/* Restart Tour Button */}
+                          {onRestartTour && (
+                            <motion.button
+                              onClick={() => {
+                                onRestartTour()
+                                setUserDropdownOpen(false)
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                              style={{ color: colors.text }}
+                              whileHover={{ x: 2 }}
+                            >
+                              <Zap className="h-4 w-4 opacity-70" />
+                              <span>Ver Tour</span>
+                            </motion.button>
+                          )}
+
 
                           {/* Language Submenu */}
                           <div className="relative">

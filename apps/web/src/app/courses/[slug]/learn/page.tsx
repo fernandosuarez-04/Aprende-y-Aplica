@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { dedupedFetch } from '../../../../lib/supabase/request-deduplication';
-import { createClient } from '../../../../lib/supabase/client';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import { dedupedFetch } from "../../../../lib/supabase/request-deduplication";
+import { createClient } from "../../../../lib/supabase/client";
 import {
   Play,
   BookOpen,
@@ -57,39 +63,53 @@ import {
   Brain,
   Palette,
   ExternalLink,
-} from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+} from "lucide-react";
+import ReactMarkdown from "react-markdown";
 // ⚡  OPTIMIZACIÓN: Lazy loading de componentes pesados para reducir bundle inicial
-import dynamic from 'next/dynamic';
-import { ExpandableText } from '../../../../core/components/ExpandableText';
+import dynamic from "next/dynamic";
+import { ExpandableText } from "../../../../core/components/ExpandableText";
 // import { useLiaChat } from '../../../../core/hooks'; // Removed - Deleted
-import type { CourseLessonContext } from '../../../../core/types/lia.types';
-import { WorkshopLearningProvider } from '../../../../components/WorkshopLearningProvider';
-import { CourseRatingModal } from '../../../../features/courses/components/CourseRatingModal';
-import { CourseLia } from '../../../../features/courses/components/CourseLia';
-import { useLiaCourse } from '../../../../features/courses/context/LiaCourseContext';
-import { useLiaCourseChat } from '../../../../core/hooks/useLiaCourseChat';
+import type { CourseLessonContext } from "../../../../core/types/lia.types";
+import { WorkshopLearningProvider } from "../../../../components/WorkshopLearningProvider";
+import { CourseRatingModal } from "../../../../features/courses/components/CourseRatingModal";
+import { CourseLia } from "../../../../features/courses/components/CourseLia";
+import { useLiaCourse } from "../../../../features/courses/context/LiaCourseContext";
+import { useLiaCourseChat } from "../../../../core/hooks/useLiaCourseChat";
 
-import { CourseRatingService } from '../../../../features/courses/services/course-rating.service';
-import { useAuth } from '../../../../features/auth/hooks/useAuth';
-import { useSwipe } from '../../../../hooks/useSwipe';
-import { useTranslation } from 'react-i18next';
-import { ContentTranslationService } from '../../../../core/services/contentTranslation.service';
-import { useLanguage } from '../../../../core/providers/I18nProvider';
+import { CourseRatingService } from "../../../../features/courses/services/course-rating.service";
+import { useAuth } from "../../../../features/auth/hooks/useAuth";
+import { useSwipe } from "../../../../hooks/useSwipe";
+import { useTranslation } from "react-i18next";
+import { ContentTranslationService } from "../../../../core/services/contentTranslation.service";
+import { useLanguage } from "../../../../core/providers/I18nProvider";
 // ✨ Nuevos imports para integración de modos
-import { useOrganizationStyles } from '../../../../features/business-panel/hooks/useOrganizationStyles';
-import { hexToRgb } from '../../../../features/business-panel/utils/styles';
+import { useOrganizationStyles } from "../../../../features/business-panel/hooks/useOrganizationStyles";
+import { hexToRgb } from "../../../../features/business-panel/utils/styles";
 // 🎯 Import para tracking de sesiones de estudio
-import { LessonTrackingProvider, useLessonTrackingOptional } from './LessonTrackingContext';
+import {
+  LessonTrackingProvider,
+  useLessonTrackingOptional,
+} from "./LessonTrackingContext";
 // 🎯 Import para el tour del curso
-import { useCourseLearnTour } from '../../../../features/tours/hooks/useCourseLearnTour';
+import { useCourseLearnTour } from "../../../../features/tours/hooks/useCourseLearnTour";
+import Joyride from 'react-joyride';
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
-const VideoPlayer = dynamic(() => import('../../../../core/components/VideoPlayer').then(mod => ({ default: mod.VideoPlayer })), {
-  loading: () => <div className="flex items-center justify-center aspect-video bg-[#0F1419] dark:bg-[#0F1419] rounded-xl">Cargando video...</div>,
-  ssr: false
-});
+const VideoPlayer = dynamic(
+  () =>
+    import("../../../../core/components/VideoPlayer").then((mod) => ({
+      default: mod.VideoPlayer,
+    })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center aspect-video bg-[#0F1419] dark:bg-[#0F1419] rounded-xl">
+        Cargando video...
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 const MOBILE_BOTTOM_NAV_HEIGHT_PX = 104; // Altura real: 70px base + 34px safe-area máximo en iPhone
 const CONTENT_BOTTOM_PADDING_MOBILE = 32;
@@ -103,7 +123,7 @@ interface Lesson {
   is_completed: boolean;
   progress_percentage: number;
   video_provider_id?: string;
-  video_provider?: 'youtube' | 'vimeo' | 'direct' | 'custom';
+  video_provider?: "youtube" | "vimeo" | "direct" | "custom";
 }
 
 interface Module {
@@ -127,14 +147,14 @@ interface CourseData {
 // Componente del botón de LIA para la barra de navegación móvil
 function LiaMobileButton() {
   const { isOpen, toggleLia } = useLiaCourse();
-  
+
   return (
     <button
       onClick={toggleLia}
       className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all relative ${
         isOpen
-          ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
-          : 'text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
+          ? "bg-[#00D4B3]/20 text-[#00D4B3]"
+          : "text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
       }`}
     >
       <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-current">
@@ -157,14 +177,27 @@ export default function CourseLearnPage() {
   const slug = params.slug as string;
   const { isOpen: isLiaOpen, openLia, liaChat } = useLiaCourse();
   // Hook para enviar mensajes a LIA (usando instancia compartida del Sidebar)
-  const sendLiaMessage = useCallback(async (message: string, courseContext?: any, workshopContext?: any, isSystemMessage: boolean = false) => {
+  const sendLiaMessage = useCallback(
+    async (
+      message: string,
+      courseContext?: any,
+      workshopContext?: any,
+      isSystemMessage: boolean = false
+    ) => {
       if (liaChat?.sendMessage) {
-          if (!isLiaOpen) openLia();
-          await liaChat.sendMessage(message, courseContext, workshopContext, isSystemMessage);
+        if (!isLiaOpen) openLia();
+        await liaChat.sendMessage(
+          message,
+          courseContext,
+          workshopContext,
+          isSystemMessage
+        );
       } else {
-          console.warn('LIA Chat no inicializado');
+        console.warn("LIA Chat no inicializado");
       }
-  }, [liaChat, isLiaOpen, openLia]);
+    },
+    [liaChat, isLiaOpen, openLia]
+  );
 
   // Obtener usuario y su rol
   const { user } = useAuth();
@@ -172,20 +205,21 @@ export default function CourseLearnPage() {
 
   // Calcular colores dinámicos
   const colors = useMemo(() => {
-    const DEFAULT_ACCENT = '#00D4B3';
-    const DEFAULT_BG_PRIMARY = '#0F1419';
-    const DEFAULT_BG_SECONDARY = '#1E2329'; // Para paneles laterales
+    const DEFAULT_ACCENT = "#00D4B3";
+    const DEFAULT_BG_PRIMARY = "#0F1419";
+    const DEFAULT_BG_SECONDARY = "#1E2329"; // Para paneles laterales
 
     if (!orgStyles?.userDashboard) {
       return {
         accent: DEFAULT_ACCENT,
-        primary: '#0A2540',
+        primary: "#0A2540",
         bgPrimary: DEFAULT_BG_PRIMARY,
-        bgSecondary: DEFAULT_BG_SECONDARY
+        bgSecondary: DEFAULT_BG_SECONDARY,
       };
     }
 
-    const { accent_color, primary_button_color, background_value } = orgStyles.userDashboard;
+    const { accent_color, primary_button_color, background_value } =
+      orgStyles.userDashboard;
     const panelStyles = orgStyles.panel;
 
     // Determinar fondo principal (body)
@@ -193,23 +227,24 @@ export default function CourseLearnPage() {
 
     // Determinar fondo secundario (paneles, tarjetas que eran blancas)
     const sidebarBg = panelStyles?.sidebar_background || DEFAULT_BG_SECONDARY;
-    const bgSecondary = (sidebarBg && sidebarBg.startsWith('#')) ? sidebarBg : DEFAULT_BG_SECONDARY;
+    const bgSecondary =
+      sidebarBg && sidebarBg.startsWith("#") ? sidebarBg : DEFAULT_BG_SECONDARY;
 
     return {
       accent: accent_color || DEFAULT_ACCENT,
-      primary: primary_button_color || '#0A2540',
+      primary: primary_button_color || "#0A2540",
       bgPrimary,
-      bgSecondary
+      bgSecondary,
     };
   }, [orgStyles]);
 
   // Hook de traducción con verificación de inicialización
-  const { t, i18n, ready } = useTranslation('learn');
+  const { t, i18n, ready } = useTranslation("learn");
   // Detectar idioma seleccionado
-  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+  const selectedLang =
+    i18n.language === "en" ? "en" : i18n.language === "pt" ? "pt" : "es";
 
   // Obtener steps del tour traducidos
-
 
   // Estado para evitar errores de hidratación
   const [mounted, setMounted] = useState(false);
@@ -221,11 +256,11 @@ export default function CourseLearnPage() {
   // Aplicar estilos personalizados globalmente a esta página mediante CSS injection
   // Esto sobrescribe las clases de utilidad de Tailwind (verdes/emerald) con el color de la marca
   useEffect(() => {
-    const styleId = 'custom-course-theme';
+    const styleId = "custom-course-theme";
     let styleTag = document.getElementById(styleId);
 
     if (!styleTag) {
-      styleTag = document.createElement('style');
+      styleTag = document.createElement("style");
       styleTag.id = styleId;
       document.head.appendChild(styleTag);
     }
@@ -235,8 +270,10 @@ export default function CourseLearnPage() {
     // Helper para convertir hex a rgb string
     const hexToRgbVals = (hex: string) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(result[3], 16)}` : '0 212 179';
-    }
+      return result
+        ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(result[3], 16)}`
+        : "0 212 179";
+    };
     const accentRgb = hexToRgbVals(accent);
 
     styleTag.innerHTML = `
@@ -477,73 +514,132 @@ export default function CourseLearnPage() {
   }, [colors]);
 
   // Crear componentes dinámicos con loaders traducidos
-  const NotesModal = useMemo(() => dynamic(() => import('../../../../core/components/NotesModal').then(mod => ({ default: mod.NotesModal })), {
-    loading: () => <div className="flex items-center justify-center p-8">{mounted && ready ? t('loading.notes') : 'Cargando notas...'}</div>,
-    ssr: false
-  }), [t, mounted, ready]);
+  const NotesModal = useMemo(
+    () =>
+      dynamic(
+        () =>
+          import("../../../../core/components/NotesModal").then((mod) => ({
+            default: mod.NotesModal,
+          })),
+        {
+          loading: () => (
+            <div className="flex items-center justify-center p-8">
+              {mounted && ready ? t("loading.notes") : "Cargando notas..."}
+            </div>
+          ),
+          ssr: false,
+        }
+      ),
+    [t, mounted, ready]
+  );
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   // ✅ Estado para metadatos del taller (módulos y lecciones completos)
-  const [workshopMetadata, setWorkshopMetadata] = useState<CourseLessonContext | null>(null);
+  const [workshopMetadata, setWorkshopMetadata] =
+    useState<CourseLessonContext | null>(null);
   // ✅ Estados para contexto extendido de LIA (transcript/summary)
   const [liaTranscript, setLiaTranscript] = useState<string | null>(null);
   const [liaSummary, setLiaSummary] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'video' | 'transcript' | 'summary' | 'activities' | 'questions'>('video');
+  const [activeTab, setActiveTab] = useState<
+    "video" | "transcript" | "summary" | "activities" | "questions"
+  >("video");
 
   // Estado para detectar si estamos en móvil
   const [isMobile, setIsMobile] = useState(false);
   // Estado para la altura de la pantalla (para adaptar padding en diferentes dispositivos)
   const [screenHeight, setScreenHeight] = useState(0);
   // Estado para la altura del visualViewport (para manejar el teclado en móvil)
-  const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
+  const [visualViewportHeight, setVisualViewportHeight] = useState<
+    number | null
+  >(null);
 
   // Inicializar paneles cerrados en móviles, abiertos en desktop
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   // const [isRightPanelOpen, setIsRightPanelOpen] = useState(false); // Removed LIA
 
   // 🎯 Tour del curso - con acciones interactivas
-  useCourseLearnTour({
+  const { joyrideProps } = useCourseLearnTour({
     enabled: true,
     onOpenLia: openLia,
     onSwitchTab: (tab) => setActiveTab(tab),
+    onOpenNotes: (shouldScroll = true) => {
+      setIsLeftPanelOpen(true);
+      setIsNotesCollapsed(false);
+      // Dar tiempo para que se expanda antes de que el tour busque el elemento
+      if (shouldScroll) {
+        setTimeout(() => {
+          const element = document.getElementById("tour-notes-section");
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 100);
+      }
+    },
   });
 
+  // Estado para renderizar Joyride solo en cliente
+  const [isJoyrideMounted, setIsJoyrideMounted] = useState(false);
+  useEffect(() => {
+    setIsJoyrideMounted(true);
+  }, []);
+
   // const [isLiaExpanded, setIsLiaExpanded] = useState(false);
-  const [currentActivityPrompts, setCurrentActivityPrompts] = useState<string[]>([]);
+  const [currentActivityPrompts, setCurrentActivityPrompts] = useState<
+    string[]
+  >([]);
   const [isPromptsCollapsed, setIsPromptsCollapsed] = useState(false);
   const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
-  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
-  const [lessonsActivities, setLessonsActivities] = useState<Record<string, Array<{
-    activity_id: string;
-    activity_title: string;
-    activity_type: string;
-    is_required: boolean;
-  }>>>({});
-  const [lessonsMaterials, setLessonsMaterials] = useState<Record<string, Array<{
-    material_id: string;
-    material_title: string;
-    material_type: string;
-    is_required?: boolean;
-  }>>>({});
-  const [lessonsQuizStatus, setLessonsQuizStatus] = useState<Record<string, {
-    hasRequiredQuizzes: boolean;
-    totalRequiredQuizzes: number;
-    completedQuizzes: number;
-    passedQuizzes: number;
-    allQuizzesPassed: boolean;
-    quizzes: Array<{
-      id: string;
-      title: string;
-      type: string;
-      isCompleted: boolean;
-      isPassed: boolean;
-      percentage: number;
-    }>;
-  } | null>>({});
+  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(
+    new Set()
+  );
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(
+    new Set()
+  );
+  const [lessonsActivities, setLessonsActivities] = useState<
+    Record<
+      string,
+      Array<{
+        activity_id: string;
+        activity_title: string;
+        activity_type: string;
+        is_required: boolean;
+      }>
+    >
+  >({});
+  const [lessonsMaterials, setLessonsMaterials] = useState<
+    Record<
+      string,
+      Array<{
+        material_id: string;
+        material_title: string;
+        material_type: string;
+        is_required?: boolean;
+      }>
+    >
+  >({});
+  const [lessonsQuizStatus, setLessonsQuizStatus] = useState<
+    Record<
+      string,
+      {
+        hasRequiredQuizzes: boolean;
+        totalRequiredQuizzes: number;
+        completedQuizzes: number;
+        passedQuizzes: number;
+        allQuizzesPassed: boolean;
+        quizzes: Array<{
+          id: string;
+          title: string;
+          type: string;
+          isCompleted: boolean;
+          isPassed: boolean;
+          percentage: number;
+        }>;
+      } | null
+    >
+  >({});
   // const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen;
   const mobileContentPaddingBottom = isMobileBottomNavVisible
@@ -645,80 +741,98 @@ export default function CourseLearnPage() {
   // }, [showLiaMenu]);
 
   // 🎯 SISTEMA DE TRACKING AVANZADO DE COMPORTAMIENTO DEL USUARIO
-  const [userBehaviorLog, setUserBehaviorLog] = useState<Array<{
-    action: string;
-    timestamp: number;
-    lessonId?: string;
-    lessonTitle?: string;
-    hasCompletedActivities?: boolean;
-    activityDetails?: string;
-    metadata?: any;
-  }>>([]);
+  const [userBehaviorLog, setUserBehaviorLog] = useState<
+    Array<{
+      action: string;
+      timestamp: number;
+      lessonId?: string;
+      lessonTitle?: string;
+      hasCompletedActivities?: boolean;
+      activityDetails?: string;
+      metadata?: any;
+    }>
+  >([]);
 
   // Función para registrar acciones del usuario
-  const trackUserAction = useCallback((action: string, metadata?: any) => {
-    const logEntry = {
-      action,
-      timestamp: Date.now(),
-      lessonId: currentLesson?.lesson_id,
-      lessonTitle: currentLesson?.lesson_title,
-      metadata
-    };
+  const trackUserAction = useCallback(
+    (action: string, metadata?: any) => {
+      const logEntry = {
+        action,
+        timestamp: Date.now(),
+        lessonId: currentLesson?.lesson_id,
+        lessonTitle: currentLesson?.lesson_title,
+        metadata,
+      };
 
-    setUserBehaviorLog(prev => {
-      const newLog = [...prev, logEntry];
-      // Mantener solo las últimas 50 acciones para no sobrecargar memoria
-      return newLog.slice(-50);
-    });
-
-  }, [currentLesson]);
+      setUserBehaviorLog((prev) => {
+        const newLog = [...prev, logEntry];
+        // Mantener solo las últimas 50 acciones para no sobrecargar memoria
+        return newLog.slice(-50);
+      });
+    },
+    [currentLesson]
+  );
 
   // Función para analizar el comportamiento y generar contexto detallado
   const analyzeUserBehavior = useCallback((): string => {
     const recentActions = userBehaviorLog.slice(-10); // Últimas 10 acciones
     const now = Date.now();
-    const last5Minutes = recentActions.filter(a => now - a.timestamp < 300000);
+    const last5Minutes = recentActions.filter(
+      (a) => now - a.timestamp < 300000
+    );
 
-    let behaviorContext = '';
+    let behaviorContext = "";
 
     // Detectar intentos de cambiar de lección sin completar
-    const lessonChangeAttempts = last5Minutes.filter(a => a.action === 'attempted_lesson_change_without_completion');
+    const lessonChangeAttempts = last5Minutes.filter(
+      (a) => a.action === "attempted_lesson_change_without_completion"
+    );
     if (lessonChangeAttempts.length > 0) {
-      const attemptDetails = lessonChangeAttempts[lessonChangeAttempts.length - 1];
+      const attemptDetails =
+        lessonChangeAttempts[lessonChangeAttempts.length - 1];
       behaviorContext += `El usuario ha intentado ${lessonChangeAttempts.length} veces cambiar a otra lección sin completar las actividades requeridas. `;
-      behaviorContext += `Actividades pendientes: ${attemptDetails.metadata?.pendingActivities || 'desconocidas'}. `;
+      behaviorContext += `Actividades pendientes: ${attemptDetails.metadata?.pendingActivities || "desconocidas"}. `;
     }
 
     // Detectar clics repetidos en lecciones bloqueadas
-    const blockedAttempts = last5Minutes.filter(a => a.action === 'attempted_locked_lesson');
+    const blockedAttempts = last5Minutes.filter(
+      (a) => a.action === "attempted_locked_lesson"
+    );
     if (blockedAttempts.length > 0) {
       behaviorContext += `Ha intentado ${blockedAttempts.length} veces acceder a lecciones bloqueadas. `;
     }
 
     // Detectar expansión/colapso frecuente de materiales
-    const expandCollapseActions = last5Minutes.filter(a => a.action === 'expand_lesson_materials' || a.action === 'collapse_lesson_materials');
+    const expandCollapseActions = last5Minutes.filter(
+      (a) =>
+        a.action === "expand_lesson_materials" ||
+        a.action === "collapse_lesson_materials"
+    );
     if (expandCollapseActions.length > 3) {
       behaviorContext += `Está explorando los materiales de forma repetitiva (${expandCollapseActions.length} veces en 5 min). `;
     }
 
     // Detectar cambios frecuentes de tabs
-    const tabChanges = last5Minutes.filter(a => a.action === 'tab_change');
+    const tabChanges = last5Minutes.filter((a) => a.action === "tab_change");
     if (tabChanges.length > 5) {
-      const tabs = tabChanges.map(a => a.metadata?.tab).filter(Boolean);
-      behaviorContext += `Ha cambiado de sección ${tabChanges.length} veces (${tabs.join(' → ')}), parece estar buscando algo específico. `;
+      const tabs = tabChanges.map((a) => a.metadata?.tab).filter(Boolean);
+      behaviorContext += `Ha cambiado de sección ${tabChanges.length} veces (${tabs.join(" → ")}), parece estar buscando algo específico. `;
     }
 
     // Detectar tiempo sin interacciones (último registro)
     if (recentActions.length > 0) {
       const lastAction = recentActions[recentActions.length - 1];
       const timeSinceLastAction = (now - lastAction.timestamp) / 1000; // en segundos
-      if (timeSinceLastAction > 120) { // más de 2 minutos
+      if (timeSinceLastAction > 120) {
+        // más de 2 minutos
         behaviorContext += `Lleva ${Math.floor(timeSinceLastAction / 60)} minutos en la misma acción sin interactuar. `;
       }
     }
 
     // Detectar intentos fallidos de actividades
-    const failedAttempts = last5Minutes.filter(a => a.action === 'activity_failed_attempt');
+    const failedAttempts = last5Minutes.filter(
+      (a) => a.action === "activity_failed_attempt"
+    );
     if (failedAttempts.length > 0) {
       behaviorContext += `Ha fallado ${failedAttempts.length} intentos en actividades. `;
     }
@@ -727,118 +841,134 @@ export default function CourseLearnPage() {
   }, [userBehaviorLog, currentLesson]);
 
   // Función mejorada para manejar cambio de lección con tracking
-  const handleLessonChange = useCallback(async (lesson: Lesson) => {
-    // Si es la misma lección, no hacer nada
-    if (currentLesson?.lesson_id === lesson.lesson_id) {
-      return;
-    }
+  const handleLessonChange = useCallback(
+    async (lesson: Lesson) => {
+      // Si es la misma lección, no hacer nada
+      if (currentLesson?.lesson_id === lesson.lesson_id) {
+        return;
+      }
 
-    // Si no hay lección actual, cambiar directamente
-    if (!currentLesson) {
-      setCurrentLesson(lesson);
-      setActiveTab('video');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      trackUserAction('lesson_opened', {
-        lessonId: lesson.lesson_id,
-        lessonTitle: lesson.lesson_title
-      });
-      return;
-    }
+      // Si no hay lección actual, cambiar directamente
+      if (!currentLesson) {
+        setCurrentLesson(lesson);
+        setActiveTab("video");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        trackUserAction("lesson_opened", {
+          lessonId: lesson.lesson_id,
+          lessonTitle: lesson.lesson_title,
+        });
+        return;
+      }
 
-    // Verificar si hay actividades requeridas sin completar en la lección actual
-    const currentActivities = lessonsActivities[currentLesson.lesson_id] || [];
-    const requiredActivities = currentActivities.filter(a => a.is_required);
-    const pendingRequired = requiredActivities.filter(a => !a.is_completed);
+      // Verificar si hay actividades requeridas sin completar en la lección actual
+      const currentActivities =
+        lessonsActivities[currentLesson.lesson_id] || [];
+      const requiredActivities = currentActivities.filter((a) => a.is_required);
+      const pendingRequired = requiredActivities.filter((a) => !a.is_completed);
 
-    if (pendingRequired.length > 0) {
-      const pendingTitles = pendingRequired.map(a => a.activity_title).join(', ');
-      trackUserAction('attempted_lesson_change_without_completion', {
-        currentLessonId: currentLesson.lesson_id,
-        currentLessonTitle: currentLesson.lesson_title,
-        targetLessonId: lesson.lesson_id,
-        targetLessonTitle: lesson.lesson_title,
-        pendingActivities: pendingTitles,
-        pendingCount: pendingRequired.length
-      });
+      if (pendingRequired.length > 0) {
+        const pendingTitles = pendingRequired
+          .map((a) => a.activity_title)
+          .join(", ");
+        trackUserAction("attempted_lesson_change_without_completion", {
+          currentLessonId: currentLesson.lesson_id,
+          currentLessonTitle: currentLesson.lesson_title,
+          targetLessonId: lesson.lesson_id,
+          targetLessonTitle: lesson.lesson_title,
+          pendingActivities: pendingTitles,
+          pendingCount: pendingRequired.length,
+        });
 
-      console.warn('⚠️ Usuario intenta cambiar de lección con actividades pendientes:', {
-        current: currentLesson.lesson_title,
-        target: lesson.lesson_title,
-        pending: pendingTitles
-      });
-    } else {
-      trackUserAction('lesson_change', {
-        from: currentLesson.lesson_title,
-        to: lesson.lesson_title
-      });
-    }
+        console.warn(
+          "⚠️ Usuario intenta cambiar de lección con actividades pendientes:",
+          {
+            current: currentLesson.lesson_title,
+            target: lesson.lesson_title,
+            pending: pendingTitles,
+          }
+        );
+      } else {
+        trackUserAction("lesson_change", {
+          from: currentLesson.lesson_title,
+          to: lesson.lesson_title,
+        });
+      }
 
-    // Verificar si está avanzando o retrocediendo
-    const allLessons = getAllLessonsOrdered();
-    const currentIndex = allLessons.findIndex(
-      (item) => item.lesson.lesson_id === currentLesson.lesson_id
-    );
-    const selectedIndex = allLessons.findIndex(
-      (item) => item.lesson.lesson_id === lesson.lesson_id
-    );
+      // Verificar si está avanzando o retrocediendo
+      const allLessons = getAllLessonsOrdered();
+      const currentIndex = allLessons.findIndex(
+        (item) => item.lesson.lesson_id === currentLesson.lesson_id
+      );
+      const selectedIndex = allLessons.findIndex(
+        (item) => item.lesson.lesson_id === lesson.lesson_id
+      );
 
-    // 🚀 OPTIMISTIC UPDATE: Cambiar INMEDIATAMENTE (antes de validar)
-    if (selectedIndex > currentIndex) {
-      // Guardar lección previa para poder revertir si falla
-      const previousLesson = currentLesson;
+      // 🚀 OPTIMISTIC UPDATE: Cambiar INMEDIATAMENTE (antes de validar)
+      if (selectedIndex > currentIndex) {
+        // Guardar lección previa para poder revertir si falla
+        const previousLesson = currentLesson;
 
-      // CAMBIO INSTANTÁNEO (UI no se bloquea)
-      setCurrentLesson(lesson);
-      setActiveTab('video');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      trackUserAction('lesson_opened', {
-        lessonId: lesson.lesson_id,
-        lessonTitle: lesson.lesson_title
-      });
+        // CAMBIO INSTANTÁNEO (UI no se bloquea)
+        setCurrentLesson(lesson);
+        setActiveTab("video");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        trackUserAction("lesson_opened", {
+          lessonId: lesson.lesson_id,
+          lessonTitle: lesson.lesson_title,
+        });
 
-      // VALIDAR en segundo plano (async, no bloquea UI)
-      // Usar AbortController para poder cancelar si el usuario cambia de lección rápidamente
-      const abortController = new AbortController();
+        // VALIDAR en segundo plano (async, no bloquea UI)
+        // Usar AbortController para poder cancelar si el usuario cambia de lección rápidamente
+        const abortController = new AbortController();
 
-      markLessonAsCompleted(previousLesson.lesson_id, abortController.signal).then(canComplete => {
-        // Si falla la validación, REVERTIR cambio
-        if (!canComplete) {
-          console.warn('❌ Validación falló, revirtiendo a lección anterior');
-          setCurrentLesson(previousLesson);
-          setActiveTab('video');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+        markLessonAsCompleted(previousLesson.lesson_id, abortController.signal)
+          .then((canComplete) => {
+            // Si falla la validación, REVERTIR cambio
+            if (!canComplete) {
+              console.warn(
+                "❌ Validación falló, revirtiendo a lección anterior"
+              );
+              setCurrentLesson(previousLesson);
+              setActiveTab("video");
+              window.scrollTo({ top: 0, behavior: "smooth" });
 
-          trackUserAction('attempted_locked_lesson', {
-            targetLessonId: lesson.lesson_id,
-            targetLessonTitle: lesson.lesson_title,
-            reason: 'previous_lesson_not_completed'
+              trackUserAction("attempted_locked_lesson", {
+                targetLessonId: lesson.lesson_id,
+                targetLessonTitle: lesson.lesson_title,
+                reason: "previous_lesson_not_completed",
+              });
+            }
+          })
+          .catch((error) => {
+            // Ignorar errores de cancelación
+            if (
+              error?.name !== "AbortError" &&
+              process.env.NODE_ENV === "development"
+            ) {
+              console.warn("Error en validación de lección (ignorado):", error);
+            }
           });
-        }
-      }).catch(error => {
-        // Ignorar errores de cancelación
-        if (error?.name !== 'AbortError' && process.env.NODE_ENV === 'development') {
-          console.warn('Error en validación de lección (ignorado):', error);
-        }
+
+        // Limpiar el abort controller cuando se cambie de lección
+        // Esto se manejará en un useEffect que limpie cuando currentLesson cambie
+        return;
+      }
+
+      // Si se está retrocediendo, cambiar directamente (sin validación)
+      setCurrentLesson(lesson);
+      setActiveTab("video");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      trackUserAction("lesson_opened", {
+        lessonId: lesson.lesson_id,
+        lessonTitle: lesson.lesson_title,
       });
-
-      // Limpiar el abort controller cuando se cambie de lección
-      // Esto se manejará en un useEffect que limpie cuando currentLesson cambie
-      return;
-    }
-
-    // Si se está retrocediendo, cambiar directamente (sin validación)
-    setCurrentLesson(lesson);
-    setActiveTab('video');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    trackUserAction('lesson_opened', {
-      lessonId: lesson.lesson_id,
-      lessonTitle: lesson.lesson_title
-    });
-  }, [currentLesson, lessonsActivities, trackUserAction]);
+    },
+    [currentLesson, lessonsActivities, trackUserAction]
+  );
 
   // Limpiar prompts cuando se cambia de tab
   useEffect(() => {
-    if (activeTab !== 'activities') {
+    if (activeTab !== "activities") {
       setCurrentActivityPrompts([]);
       setIsPromptsCollapsed(false);
       prevPromptsLengthRef.current = 0;
@@ -860,9 +990,7 @@ export default function CourseLearnPage() {
 
   // Callback memoizado para evitar loops infinitos
   const handlePromptsChange = useCallback((prompts: string[]) => {
-
     setCurrentActivityPrompts(prompts);
-
   }, []);
 
   // Detectar tamaño de pantalla y ajustar estado inicial de paneles
@@ -877,8 +1005,8 @@ export default function CourseLearnPage() {
     checkMobile();
 
     // Escuchar cambios de tamaño de ventana
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []); // Solo ejecutar al montar
 
   // Detectar cambios en visualViewport para manejar el teclado en móvil
@@ -890,7 +1018,7 @@ export default function CourseLearnPage() {
     }
 
     // Verificar si visualViewport está disponible
-    if (typeof window !== 'undefined' && window.visualViewport) {
+    if (typeof window !== "undefined" && window.visualViewport) {
       const updateViewportHeight = () => {
         setVisualViewportHeight(window.visualViewport?.height || null);
       };
@@ -899,12 +1027,18 @@ export default function CourseLearnPage() {
       updateViewportHeight();
 
       // Escuchar cambios en el visualViewport (cuando se abre/cierra el teclado)
-      window.visualViewport.addEventListener('resize', updateViewportHeight);
-      window.visualViewport.addEventListener('scroll', updateViewportHeight);
+      window.visualViewport.addEventListener("resize", updateViewportHeight);
+      window.visualViewport.addEventListener("scroll", updateViewportHeight);
 
       return () => {
-        window.visualViewport?.removeEventListener('resize', updateViewportHeight);
-        window.visualViewport?.removeEventListener('scroll', updateViewportHeight);
+        window.visualViewport?.removeEventListener(
+          "resize",
+          updateViewportHeight
+        );
+        window.visualViewport?.removeEventListener(
+          "scroll",
+          updateViewportHeight
+        );
       };
     } else {
       // Fallback: usar window.innerHeight si visualViewport no está disponible
@@ -913,12 +1047,10 @@ export default function CourseLearnPage() {
       };
 
       handleResize();
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }
   }, [isMobile]);
-
-
 
   // Calcular altura máxima disponible para el panel de contenido dinámicamente
   // Ahora incluye soporte para visualViewport cuando el teclado está abierto
@@ -929,7 +1061,9 @@ export default function CourseLearnPage() {
         // Calcular altura disponible: visualViewport height menos el header
         // El safe-area-inset-bottom se maneja en el padding del área de entrada
         const headerHeight = 56; // Altura del header
-        const bottomNavHeight = isMobileBottomNavVisible ? MOBILE_BOTTOM_NAV_HEIGHT_PX : 0;
+        const bottomNavHeight = isMobileBottomNavVisible
+          ? MOBILE_BOTTOM_NAV_HEIGHT_PX
+          : 0;
 
         // Usar calc() para incluir safe-area-inset-bottom en el cálculo CSS
         return `calc(${visualViewportHeight - headerHeight - bottomNavHeight}px - env(safe-area-inset-bottom, 0px))`;
@@ -938,12 +1072,12 @@ export default function CourseLearnPage() {
       return undefined;
     }
 
-    return 'calc(100vh - 3rem)';
+    return "calc(100vh - 3rem)";
   }, [isMobile, isMobileBottomNavVisible, visualViewportHeight]);
 
   // Calcular padding dinámico para el área de entrada según altura de pantalla
   const getInputAreaPadding = (): string => {
-    if (!isMobile) return '1rem';
+    if (!isMobile) return "1rem";
 
     // Para pantallas muy pequeñas (menos de 600px de altura), usar padding mínimo
     if (screenHeight < 600) {
@@ -987,24 +1121,28 @@ export default function CourseLearnPage() {
     onSwipeLeft: () => {},
     threshold: 50, // Mínimo 50px de desplazamiento
     velocity: 0.3, // Mínimo 0.3px/ms de velocidad
-    enabled: isMobile && !isLeftPanelOpen // Solo habilitado en móvil cuando panel izquierdo está cerrado
+    enabled: isMobile && !isLeftPanelOpen, // Solo habilitado en móvil cuando panel izquierdo está cerrado
   });
-  const [savedNotes, setSavedNotes] = useState<Array<{
-    id: string;
-    title: string;
-    content: string;
-    timestamp: string;
-    lessonId: string;
-    fullContent?: string;
-    tags?: string[];
-  }>>([]);
+  const [savedNotes, setSavedNotes] = useState<
+    Array<{
+      id: string;
+      title: string;
+      content: string;
+      timestamp: string;
+      lessonId: string;
+      fullContent?: string;
+      tags?: string[];
+    }>
+  >([]);
   const [notesStats, setNotesStats] = useState({
     totalNotes: 0,
-    lessonsWithNotes: '0/0',
-    lastUpdate: '-'
+    lessonsWithNotes: "0/0",
+    lastUpdate: "-",
   });
-  const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] = useState(false);
-  const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] = useState(false);
+  const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] =
+    useState(false);
+  const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] =
+    useState(false);
   const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [hasUserRated, setHasUserRated] = useState(false);
@@ -1013,48 +1151,51 @@ export default function CourseLearnPage() {
     title: string;
     message: string;
     details?: string;
-    type: 'activity' | 'video' | 'quiz';
+    type: "activity" | "video" | "quiz";
     lessonId?: string; // ID de la lección que se intentó completar
   }>({
     isOpen: false,
-    title: '',
-    message: '',
-    type: 'activity',
+    title: "",
+    message: "",
+    type: "activity",
     lessonId: undefined,
   });
 
   // Función para convertir HTML a texto plano con formato mejorado
-  const htmlToPlainText = (html: string, addLineBreaks: boolean = true): string => {
-    if (!html) return '';
+  const htmlToPlainText = (
+    html: string,
+    addLineBreaks: boolean = true
+  ): string => {
+    if (!html) return "";
 
     // Verificar que estamos en el cliente
-    if (typeof document === 'undefined') {
+    if (typeof document === "undefined") {
       // Fallback simple para SSR: eliminar etiquetas HTML básicas
       return html
-        .replace(/<[^>]*>/g, '') // Eliminar todas las etiquetas HTML
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
+        .replace(/<[^>]*>/g, "") // Eliminar todas las etiquetas HTML
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
         .replace(/&quot;/g, '"')
         .trim();
     }
 
     // Crear un elemento temporal para parsear el HTML
-    const tempDiv = document.createElement('div');
+    const tempDiv = document.createElement("div");
     tempDiv.innerHTML = html;
 
     // Convertir listas a texto legible con saltos de línea
-    const lists = tempDiv.querySelectorAll('ul, ol');
-    lists.forEach(list => {
-      const items = list.querySelectorAll('li');
+    const lists = tempDiv.querySelectorAll("ul, ol");
+    lists.forEach((list) => {
+      const items = list.querySelectorAll("li");
       items.forEach((li, index) => {
         const listType = list.tagName.toLowerCase();
-        const prefix = listType === 'ol' ? `${index + 1}. ` : '• ';
-        const text = li.textContent?.trim() || '';
+        const prefix = listType === "ol" ? `${index + 1}. ` : "• ";
+        const text = li.textContent?.trim() || "";
         // Agregar prefijo y salto de línea si está habilitado
         if (addLineBreaks) {
-          li.textContent = prefix + text + '\n';
+          li.textContent = prefix + text + "\n";
         } else {
           li.textContent = prefix + text;
         }
@@ -1063,57 +1204,69 @@ export default function CourseLearnPage() {
 
     // Convertir <p> y <div> a saltos de línea si está habilitado
     if (addLineBreaks) {
-      const paragraphs = tempDiv.querySelectorAll('p, div');
-      paragraphs.forEach(p => {
-        if (p.textContent && !p.textContent.trim().endsWith('\n')) {
-          p.textContent = (p.textContent || '') + '\n';
+      const paragraphs = tempDiv.querySelectorAll("p, div");
+      paragraphs.forEach((p) => {
+        if (p.textContent && !p.textContent.trim().endsWith("\n")) {
+          p.textContent = (p.textContent || "") + "\n";
         }
       });
     }
 
     // Obtener el texto plano
-    let text = tempDiv.textContent || tempDiv.innerText || '';
+    let text = tempDiv.textContent || tempDiv.innerText || "";
 
     // Limpiar espacios múltiples y saltos de línea excesivos
     if (addLineBreaks) {
-      text = text.replace(/\n{3,}/g, '\n\n'); // Máximo 2 saltos de línea consecutivos
+      text = text.replace(/\n{3,}/g, "\n\n"); // Máximo 2 saltos de línea consecutivos
     }
 
     return text.trim();
   };
 
   // Función para generar vista previa inteligente
-  const generateNotePreview = (html: string, maxLength: number = 50): string => {
-    if (!html) return '';
+  const generateNotePreview = (
+    html: string,
+    maxLength: number = 50
+  ): string => {
+    if (!html) return "";
 
     // Verificar que estamos en el cliente
-    if (typeof document === 'undefined') {
+    if (typeof document === "undefined") {
       const plainText = htmlToPlainText(html, false);
-      return plainText.substring(0, maxLength) + (plainText.length > maxLength ? '...' : '');
+      return (
+        plainText.substring(0, maxLength) +
+        (plainText.length > maxLength ? "..." : "")
+      );
     }
 
-    const tempDiv = document.createElement('div');
+    const tempDiv = document.createElement("div");
     tempDiv.innerHTML = html;
 
     // Verificar si el primer elemento es una lista
     const firstChild = tempDiv.firstElementChild;
-    if (firstChild && (firstChild.tagName === 'UL' || firstChild.tagName === 'OL')) {
+    if (
+      firstChild &&
+      (firstChild.tagName === "UL" || firstChild.tagName === "OL")
+    ) {
       // Si es una lista, obtener solo el primer elemento
-      const firstItem = firstChild.querySelector('li');
+      const firstItem = firstChild.querySelector("li");
       if (firstItem) {
         const listType = firstChild.tagName.toLowerCase();
-        const prefix = listType === 'ol' ? '1. ' : '• ';
-        const text = firstItem.textContent?.trim() || '';
+        const prefix = listType === "ol" ? "1. " : "• ";
+        const text = firstItem.textContent?.trim() || "";
         const preview = prefix + text;
         return preview.length > maxLength
-          ? preview.substring(0, maxLength) + '...'
-          : preview + '...';
+          ? preview.substring(0, maxLength) + "..."
+          : preview + "...";
       }
     }
 
     // Si no es una lista o no tiene elementos, usar el método normal
     const plainText = htmlToPlainText(html, false);
-    return plainText.substring(0, maxLength) + (plainText.length > maxLength ? '...' : '');
+    return (
+      plainText.substring(0, maxLength) +
+      (plainText.length > maxLength ? "..." : "")
+    );
   };
 
   // Función para formatear timestamp
@@ -1125,19 +1278,23 @@ export default function CourseLearnPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Ahora';
-    if (diffMins < 60) return `Hace ${diffMins} minuto${diffMins > 1 ? 's' : ''}`;
-    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
-    if (diffDays === 1) return 'Ayer';
+    if (diffMins < 1) return "Ahora";
+    if (diffMins < 60)
+      return `Hace ${diffMins} minuto${diffMins > 1 ? "s" : ""}`;
+    if (diffHours < 24)
+      return `Hace ${diffHours} hora${diffHours > 1 ? "s" : ""}`;
+    if (diffDays === 1) return "Ayer";
     if (diffDays < 7) return `Hace ${diffDays} días`;
 
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
   };
 
   // Función para cargar notas de una lección
   const loadLessonNotes = async (lessonId: string, courseSlug: string) => {
     try {
-      const response = await fetch(`/api/courses/${courseSlug}/lessons/${lessonId}/notes`);
+      const response = await fetch(
+        `/api/courses/${courseSlug}/lessons/${lessonId}/notes`
+      );
       if (response.ok) {
         const notes = await response.json();
         // Mapear notas de BD al formato del frontend
@@ -1151,7 +1308,7 @@ export default function CourseLearnPage() {
             timestamp: formatTimestamp(note.updated_at || note.created_at),
             lessonId: note.lesson_id,
             fullContent: note.note_content, // Guardar contenido completo
-            tags: note.note_tags || []
+            tags: note.note_tags || [],
           };
         });
         setSavedNotes(mappedNotes);
@@ -1174,7 +1331,9 @@ export default function CourseLearnPage() {
         setNotesStats({
           totalNotes: stats.totalNotes,
           lessonsWithNotes: `${stats.lessonsWithNotes}/${stats.totalLessons}`,
-          lastUpdate: stats.lastUpdate ? formatTimestamp(stats.lastUpdate) : '-'
+          lastUpdate: stats.lastUpdate
+            ? formatTimestamp(stats.lastUpdate)
+            : "-",
         });
       } else if (response.status === 401) {
         // Usuario no autenticado - usar valores por defecto
@@ -1183,7 +1342,7 @@ export default function CourseLearnPage() {
         setNotesStats({
           totalNotes: 0,
           lessonsWithNotes: `0/${totalLessons}`,
-          lastUpdate: '-'
+          lastUpdate: "-",
         });
       } else if (response.status === 404) {
         // Endpoint no encontrado - usar valores por defecto sin mostrar error
@@ -1192,7 +1351,7 @@ export default function CourseLearnPage() {
         setNotesStats({
           totalNotes: 0,
           lessonsWithNotes: `0/${totalLessons}`,
-          lastUpdate: '-'
+          lastUpdate: "-",
         });
       }
     } catch (error) {
@@ -1202,36 +1361,43 @@ export default function CourseLearnPage() {
       setNotesStats({
         totalNotes: 0,
         lessonsWithNotes: `0/${totalLessons}`,
-        lastUpdate: '-'
+        lastUpdate: "-",
       });
     }
   };
 
   // ⚡ OPTIMIZACIÓN: Función para actualizar estadísticas de manera optimizada
   // Calcula las estadísticas localmente cuando es posible, evitando llamadas al servidor
-  const updateNotesStatsOptimized = async (operation: 'create' | 'update' | 'delete', lessonId?: string) => {
+  const updateNotesStatsOptimized = async (
+    operation: "create" | "update" | "delete",
+    lessonId?: string
+  ) => {
     if (!slug) return;
 
     const allLessons = modules.flatMap((m: Module) => m.lessons);
     const totalLessons = allLessons.length;
 
     // Para operaciones de creación/eliminación, podemos actualizar optimistamente
-    if (operation === 'create' || operation === 'delete') {
+    if (operation === "create" || operation === "delete") {
       // Actualizar total de notas optimistamente
       setNotesStats((prev) => {
         const currentTotal = prev.totalNotes || 0;
-        const newTotal = operation === 'create' ? currentTotal + 1 : Math.max(0, currentTotal - 1);
+        const newTotal =
+          operation === "create"
+            ? currentTotal + 1
+            : Math.max(0, currentTotal - 1);
 
         // Para lecciones con notas, usar el valor anterior y ajustar optimistamente
         // La recarga del servidor corregirá cualquier discrepancia
-        const prevLessonsWithNotes = parseInt(prev.lessonsWithNotes.split('/')[0]) || 0;
+        const prevLessonsWithNotes =
+          parseInt(prev.lessonsWithNotes.split("/")[0]) || 0;
         let lessonsWithNotes = prevLessonsWithNotes;
 
-        if (lessonId && operation === 'create') {
+        if (lessonId && operation === "create") {
           // Si creamos una nota, asumimos que la lección no tenía notas antes
           // (será corregido por la recarga del servidor si es incorrecto)
           lessonsWithNotes = Math.min(prevLessonsWithNotes + 1, totalLessons);
-        } else if (lessonId && operation === 'delete') {
+        } else if (lessonId && operation === "delete") {
           // Si eliminamos una nota, asumimos que era la última de la lección
           // (será corregido por la recarga del servidor si es incorrecto)
           lessonsWithNotes = Math.max(0, prevLessonsWithNotes - 1);
@@ -1241,7 +1407,7 @@ export default function CourseLearnPage() {
           ...prev,
           totalNotes: newTotal,
           lessonsWithNotes: `${lessonsWithNotes}/${totalLessons}`,
-          lastUpdate: 'Ahora' // Actualizar timestamp inmediatamente
+          lastUpdate: "Ahora", // Actualizar timestamp inmediatamente
         };
       });
 
@@ -1255,7 +1421,7 @@ export default function CourseLearnPage() {
       // Para actualizaciones, solo actualizar el timestamp y recargar en background
       setNotesStats((prev) => ({
         ...prev,
-        lastUpdate: 'Ahora'
+        lastUpdate: "Ahora",
       }));
 
       setTimeout(async () => {
@@ -1266,20 +1432,23 @@ export default function CourseLearnPage() {
 
   // ⚡ OPTIMIZACIÓN: Función para agregar una nota al estado local inmediatamente
   const addNoteToLocalState = (noteData: any, lessonId: string) => {
-    const preview = generateNotePreview(noteData.note_content || noteData.noteContent, 50);
+    const preview = generateNotePreview(
+      noteData.note_content || noteData.noteContent,
+      50
+    );
     const newNote = {
       id: noteData.note_id || noteData.id,
       title: noteData.note_title || noteData.title,
       content: preview,
-      timestamp: 'Ahora',
+      timestamp: "Ahora",
       lessonId: lessonId,
       fullContent: noteData.note_content || noteData.content,
-      tags: noteData.note_tags || noteData.tags || []
+      tags: noteData.note_tags || noteData.tags || [],
     };
 
     setSavedNotes((prev) => {
       // Si la nota ya existe (por ID), reemplazarla; si no, agregarla al inicio
-      const existingIndex = prev.findIndex(n => n.id === newNote.id);
+      const existingIndex = prev.findIndex((n) => n.id === newNote.id);
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex] = newNote;
@@ -1292,7 +1461,7 @@ export default function CourseLearnPage() {
 
   // ⚡ OPTIMIZACIÓN: Función para eliminar una nota del estado local inmediatamente
   const removeNoteFromLocalState = (noteId: string) => {
-    setSavedNotes((prev) => prev.filter(note => note.id !== noteId));
+    setSavedNotes((prev) => prev.filter((note) => note.id !== noteId));
   };
 
   // Función para construir el contexto de la lección actual
@@ -1300,8 +1469,8 @@ export default function CourseLearnPage() {
     if (!currentLesson || !course) return undefined;
 
     // Encontrar el módulo actual
-    const currentModule = modules.find(m =>
-      m.lessons.some(l => l.lesson_id === currentLesson.lesson_id)
+    const currentModule = modules.find((m) =>
+      m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
     );
 
     // ✅ Si tenemos metadatos del taller, usarlos (incluye allModules)
@@ -1312,13 +1481,13 @@ export default function CourseLearnPage() {
         lessonTitle: currentLesson.lesson_title,
         lessonDescription: currentLesson.lesson_description,
         durationSeconds: currentLesson.duration_seconds,
-        userRole: user?.type_rol || undefined
+        userRole: user?.type_rol || undefined,
       };
     }
 
     // Fallback: contexto básico sin metadatos completos
     return {
-      contextType: 'course', // Por defecto es curso, pero puede ser workshop
+      contextType: "course", // Por defecto es curso, pero puede ser workshop
       courseId: course.id || course.course_id || undefined,
       courseSlug: slug || undefined,
       courseTitle: course.title || course.course_title,
@@ -1327,12 +1496,10 @@ export default function CourseLearnPage() {
       lessonTitle: currentLesson.lesson_title,
       lessonDescription: currentLesson.lesson_description,
       durationSeconds: currentLesson.duration_seconds,
-      userRole: user?.type_rol || undefined
+      userRole: user?.type_rol || undefined,
       // transcriptContent y summaryContent se cargan bajo demanda desde sus respectivos endpoints
     };
   };
-
-
 
   // ✨ Función para convertir enlaces Markdown [texto](url) en hipervínculos HTML
   const parseMarkdownLinks = useCallback((text: string) => {
@@ -1350,16 +1517,16 @@ export default function CourseLearnPage() {
       // Agregar texto antes del enlace
       if (match.index > lastIndex) {
         parts.push({
-          type: 'text',
-          content: text.substring(lastIndex, match.index)
+          type: "text",
+          content: text.substring(lastIndex, match.index),
         });
       }
 
       // Agregar el enlace
       parts.push({
-        type: 'link',
+        type: "link",
         text: match[1], // El texto del enlace
-        url: match[2]   // La URL
+        url: match[2], // La URL
       });
 
       lastIndex = match.index + match[0].length;
@@ -1368,24 +1535,15 @@ export default function CourseLearnPage() {
     // Agregar el texto restante después del último enlace
     if (lastIndex < text.length) {
       parts.push({
-        type: 'text',
-        content: text.substring(lastIndex)
+        type: "text",
+        content: text.substring(lastIndex),
       });
     }
 
-    return parts.length > 0 ? parts : [{ type: 'text', content: text }];
+    return parts.length > 0 ? parts : [{ type: "text", content: text }];
   }, []);
 
-
-
-
-
   // Función para adaptar contenido de actividad según el rol
-
-
-
-
-
 
   // Función para abrir modal de nueva nota
   const openNewNoteModal = () => {
@@ -1399,16 +1557,20 @@ export default function CourseLearnPage() {
       id: note.id,
       title: note.title,
       content: note.fullContent || note.content,
-      tags: note.tags || []
+      tags: note.tags || [],
     });
     setIsNotesModalOpen(true);
   };
 
   // ⚡ OPTIMIZADO: Función para guardar nota (nueva o editada) con actualización optimista
-  const handleSaveNote = async (noteData: { title: string; content: string; tags: string[] }) => {
+  const handleSaveNote = async (noteData: {
+    title: string;
+    content: string;
+    tags: string[];
+  }) => {
     try {
       if (!currentLesson?.lesson_id || !slug) {
-        alert('Debe seleccionar una lección para guardar la nota');
+        alert("Debe seleccionar una lección para guardar la nota");
         return;
       }
       // Preparar payload según el formato que espera la API REST
@@ -1416,20 +1578,27 @@ export default function CourseLearnPage() {
         note_title: noteData.title.trim(),
         note_content: noteData.content.trim(),
         note_tags: noteData.tags || [],
-        source_type: 'manual' // Siempre manual desde el modal
+        source_type: "manual", // Siempre manual desde el modal
       };
 
-      if (editingNote && editingNote.id && editingNote.id.trim() !== '') {
+      if (editingNote && editingNote.id && editingNote.id.trim() !== "") {
         // Editar nota existente
-        const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${editingNote.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(notePayload)
-        });
+        const response = await fetch(
+          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${editingNote.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(notePayload),
+          }
+        );
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-          alert(`Error al actualizar la nota: ${errorData.error || 'Error desconocido'}`);
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: "Error desconocido" }));
+          alert(
+            `Error al actualizar la nota: ${errorData.error || "Error desconocido"}`
+          );
           return;
         }
 
@@ -1439,25 +1608,33 @@ export default function CourseLearnPage() {
           addNoteToLocalState(updatedNote, currentLesson.lesson_id);
 
           // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
-          await updateNotesStatsOptimized('update', currentLesson.lesson_id);
+          await updateNotesStatsOptimized("update", currentLesson.lesson_id);
 
           // Cerrar modal solo después de que todo se haya guardado correctamente
           setIsNotesModalOpen(false);
           setEditingNote(null);
         } else {
-          throw new Error('La respuesta del servidor no contiene los datos esperados de la nota');
+          throw new Error(
+            "La respuesta del servidor no contiene los datos esperados de la nota"
+          );
         }
       } else {
         // Crear nueva nota
-        const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(notePayload)
-        });
+        const response = await fetch(
+          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(notePayload),
+          }
+        );
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-          const errorMessage = errorData.error || errorData.message || 'Error desconocido';
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: "Error desconocido" }));
+          const errorMessage =
+            errorData.error || errorData.message || "Error desconocido";
           alert(`Error al guardar la nota: ${errorMessage}`);
           throw new Error(errorMessage);
         }
@@ -1468,13 +1645,15 @@ export default function CourseLearnPage() {
           addNoteToLocalState(newNote, currentLesson.lesson_id);
 
           // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
-          await updateNotesStatsOptimized('create', currentLesson.lesson_id);
+          await updateNotesStatsOptimized("create", currentLesson.lesson_id);
 
           // Cerrar modal solo después de que todo se haya guardado correctamente
           setIsNotesModalOpen(false);
           setEditingNote(null);
         } else {
-          throw new Error('La respuesta del servidor no contiene los datos esperados de la nota');
+          throw new Error(
+            "La respuesta del servidor no contiene los datos esperados de la nota"
+          );
         }
       }
     } catch (error) {
@@ -1489,11 +1668,11 @@ export default function CourseLearnPage() {
 
   // ⚡ OPTIMIZADO: Función para eliminar nota con actualización optimista
   const handleDeleteNote = async (noteId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta nota?')) return;
+    if (!confirm("¿Estás seguro de que quieres eliminar esta nota?")) return;
 
     try {
       if (!currentLesson?.lesson_id || !slug) {
-        alert('No se puede eliminar la nota: lección no seleccionada');
+        alert("No se puede eliminar la nota: lección no seleccionada");
         return;
       }
 
@@ -1501,19 +1680,26 @@ export default function CourseLearnPage() {
       removeNoteFromLocalState(noteId);
 
       // ⚡ OPTIMIZACIÓN: Actualizar estadísticas optimistamente
-      await updateNotesStatsOptimized('delete', currentLesson.lesson_id);
+      await updateNotesStatsOptimized("delete", currentLesson.lesson_id);
 
-      const response = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${noteId}`, {
-        method: 'DELETE'
-      });
+      const response = await fetch(
+        `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${noteId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         // Si falla, recargar desde el servidor para revertir el cambio optimista
         await loadLessonNotes(currentLesson.lesson_id, slug);
         await loadNotesStats(slug);
 
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        alert(`Error al eliminar la nota: ${errorData.error || 'Error desconocido'}`);
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Error desconocido" }));
+        alert(
+          `Error al eliminar la nota: ${errorData.error || "Error desconocido"}`
+        );
       }
       // Si tiene éxito, el estado ya fue actualizado optimistamente
     } catch (error) {
@@ -1523,7 +1709,7 @@ export default function CourseLearnPage() {
         await loadLessonNotes(currentLesson.lesson_id, slug);
         await loadNotesStats(slug);
       }
-      alert('Error al eliminar la nota. Por favor, intenta de nuevo.');
+      alert("Error al eliminar la nota. Por favor, intenta de nuevo.");
     }
   };
 
@@ -1541,17 +1727,20 @@ export default function CourseLearnPage() {
 
         // ⚡ OPTIMIZACIÓN CRÍTICA: Usar endpoint unificado para reducir de 7 requests a 1
         // Determinar lessonId para incluir datos de lección actual (opcional)
-        const lessonId = currentLesson?.lesson_id || modules[0]?.lessons[0]?.lesson_id;
+        const lessonId =
+          currentLesson?.lesson_id || modules[0]?.lessons[0]?.lesson_id;
         // Pasar el idioma para obtener transcript y summary desde la tabla correcta
         const queryParams = new URLSearchParams();
         if (lessonId) {
-          queryParams.append('lessonId', lessonId);
+          queryParams.append("lessonId", lessonId);
         }
-        queryParams.append('language', selectedLang);
+        queryParams.append("language", selectedLang);
         const queryString = queryParams.toString();
-        const fullQuery = queryString ? `?${queryString}` : '';
+        const fullQuery = queryString ? `?${queryString}` : "";
 
-        const learnData = await dedupedFetch(`/api/courses/${slug}/learn-data${fullQuery}`);
+        const learnData = await dedupedFetch(
+          `/api/courses/${slug}/learn-data${fullQuery}`
+        );
 
         // Extraer datos del response unificado
         if (learnData.course) {
@@ -1562,17 +1751,20 @@ export default function CourseLearnPage() {
           if (learnData.course.id || learnData.course.course_id) {
             const courseId = learnData.course.id || learnData.course.course_id;
             try {
-              const metadataResponse = await fetch(`/api/workshops/${courseId}/metadata`);
+              const metadataResponse = await fetch(
+                `/api/workshops/${courseId}/metadata`
+              );
               if (metadataResponse.ok) {
                 const metadataData = await metadataResponse.json();
                 if (metadataData.success && metadataData.metadata) {
                   // Construir el contexto con todos los metadatos
                   const workshopContext: CourseLessonContext = {
-                    contextType: 'workshop',
+                    contextType: "workshop",
                     courseId: metadataData.metadata.workshopId,
                     courseSlug: slug,
                     courseTitle: metadataData.metadata.workshopTitle,
-                    courseDescription: metadataData.metadata.workshopDescription,
+                    courseDescription:
+                      metadataData.metadata.workshopDescription,
                     allModules: metadataData.metadata.modules.map((m: any) => ({
                       moduleId: m.moduleId,
                       moduleTitle: m.moduleTitle,
@@ -1583,17 +1775,20 @@ export default function CourseLearnPage() {
                         lessonTitle: l.lessonTitle,
                         lessonDescription: l.lessonDescription,
                         lessonOrderIndex: l.lessonOrderIndex,
-                        durationSeconds: l.durationSeconds
-                      }))
+                        durationSeconds: l.durationSeconds,
+                      })),
                     })),
-                    userRole: user?.type_rol || undefined
+                    userRole: user?.type_rol || undefined,
                   };
                   setWorkshopMetadata(workshopContext);
                 }
               }
             } catch (error) {
               // Silenciar errores - no es crítico si no se pueden cargar los metadatos
-              console.warn('No se pudieron cargar metadatos del taller para LIA:', error);
+              console.warn(
+                "No se pudieron cargar metadatos del taller para LIA:",
+                error
+              );
             }
           }
         }
@@ -1602,36 +1797,44 @@ export default function CourseLearnPage() {
           // IMPORTANTE: Las traducciones ya se aplicaron en el servidor (endpoint learn-data)
           // Solo necesitamos usar los datos tal como vienen del servidor
           // El servidor ya aplicó traducciones usando ContentTranslationService
-          console.log('[learn/page] Módulos recibidos del servidor (ya traducidos):', learnData.modules.length);
+          console.log(
+            "[learn/page] Módulos recibidos del servidor (ya traducidos):",
+            learnData.modules.length
+          );
           setModules(learnData.modules);
 
           // Calcular progreso
-          const allLessons = learnData.modules.flatMap((m: Module) => m.lessons);
-          const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
-          const totalProgress = allLessons.length > 0
-            ? Math.round((completedLessons.length / allLessons.length) * 100)
-            : 0;
+          const allLessons = learnData.modules.flatMap(
+            (m: Module) => m.lessons
+          );
+          const completedLessons = allLessons.filter(
+            (l: Lesson) => l.is_completed
+          );
+          const totalProgress =
+            allLessons.length > 0
+              ? Math.round((completedLessons.length / allLessons.length) * 100)
+              : 0;
           setCourseProgress(totalProgress);
 
           // ⚡ OPTIMIZACIÓN: Cargar automáticamente el último video visto
           if (learnData.lastWatchedLessonId && allLessons.length > 0) {
-
             const lastWatchedLesson = allLessons.find(
               (l: Lesson) => l.lesson_id === learnData.lastWatchedLessonId
             );
             if (lastWatchedLesson) {
-
               setCurrentLesson(lastWatchedLesson);
             } else {
-
               // Fallback: primera lección no completada o primera lección
-              const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
+              const nextIncomplete = allLessons.find(
+                (l: Lesson) => !l.is_completed
+              );
               setCurrentLesson(nextIncomplete || allLessons[0]);
             }
           } else if (allLessons.length > 0) {
-
             // Si no hay último video visto, cargar primera lección no completada o primera lección
-            const nextIncomplete = allLessons.find((l: Lesson) => !l.is_completed);
+            const nextIncomplete = allLessons.find(
+              (l: Lesson) => !l.is_completed
+            );
             setCurrentLesson(nextIncomplete || allLessons[0]);
           }
         }
@@ -1653,7 +1856,6 @@ export default function CourseLearnPage() {
             `/api/courses/${slug}/learn-data?lessonId=${learnData.lastWatchedLessonId}`
           ).catch(() => null); // Ignorar errores, es solo precarga
         }
-
       } catch (error) {
         // Error manejado silenciosamente
       } finally {
@@ -1678,26 +1880,33 @@ export default function CourseLearnPage() {
     const loadLiaContext = async () => {
       // Cargar transcript en background
       try {
-        const tRes = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/transcript?language=${selectedLang}`);
+        const tRes = await fetch(
+          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/transcript?language=${selectedLang}`
+        );
         if (tRes.ok) {
           const tData = await tRes.json();
-          if (tData.transcript_content) setLiaTranscript(tData.transcript_content);
+          if (tData.transcript_content)
+            setLiaTranscript(tData.transcript_content);
         }
       } catch (error) {
         // Silently fail or log in dev
-        if (process.env.NODE_ENV === 'development') console.warn('Error loading transcript for LIA:', error);
+        if (process.env.NODE_ENV === "development")
+          console.warn("Error loading transcript for LIA:", error);
       }
 
       // Cargar summary en background
       try {
-        const sRes = await fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/summary?language=${selectedLang}`);
+        const sRes = await fetch(
+          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/summary?language=${selectedLang}`
+        );
         if (sRes.ok) {
           const sData = await sRes.json();
           if (sData.summary_content) setLiaSummary(sData.summary_content);
         }
       } catch (error) {
         // Silently fail
-        if (process.env.NODE_ENV === 'development') console.warn('Error loading summary for LIA:', error);
+        if (process.env.NODE_ENV === "development")
+          console.warn("Error loading summary for LIA:", error);
       }
     };
 
@@ -1714,8 +1923,8 @@ export default function CourseLearnPage() {
     if (currentLesson && slug) {
       // Fire-and-forget: No esperar respuesta, no manejar errores
       fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/access`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       }).catch(() => null); // Ignorar errores silenciosamente
     }
   }, [currentLesson?.lesson_id, slug]);
@@ -1744,7 +1953,9 @@ export default function CourseLearnPage() {
       setModules(modulesResponse);
 
       const allLessons = modulesResponse.flatMap((module) => module.lessons);
-      const completedLessons = allLessons.filter((lesson) => lesson.is_completed);
+      const completedLessons = allLessons.filter(
+        (lesson) => lesson.is_completed
+      );
       const fallbackProgress =
         allLessons.length > 0
           ? Math.round((completedLessons.length / allLessons.length) * 100)
@@ -1764,12 +1975,14 @@ export default function CourseLearnPage() {
       const totalLessons = allLessons.length;
       setNotesStats((prev) => ({
         ...prev,
-        lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : '0/0',
+        lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : "0/0",
       }));
 
       // Esta función ya no se usa frecuentemente, pero mantenemos la lógica por compatibilidad
       if (modulesResponse.length > 0 && modulesResponse[0].lessons.length > 0) {
-        const nextIncomplete = allLessons.find((lesson) => !lesson.is_completed);
+        const nextIncomplete = allLessons.find(
+          (lesson) => !lesson.is_completed
+        );
         const selectedLesson = nextIncomplete || modulesResponse[0].lessons[0];
         setCurrentLesson(selectedLesson);
       }
@@ -1781,7 +1994,7 @@ export default function CourseLearnPage() {
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   // 🚀 FUNCIÓN OPTIMIZADA: Cargar actividades y materiales de una lección
@@ -1790,72 +2003,77 @@ export default function CourseLearnPage() {
     if (!slug) return;
 
     // Solo cargar si no están ya cargados
-    if (lessonsActivities[lessonId] !== undefined && lessonsMaterials[lessonId] !== undefined) {
+    if (
+      lessonsActivities[lessonId] !== undefined &&
+      lessonsMaterials[lessonId] !== undefined
+    ) {
       return; // Ya están cargados
     }
 
     try {
       // ⚡ OPTIMIZACIÓN: Una sola petición en lugar de 3
-      const response = await fetch(`/api/courses/${slug}/lessons/${lessonId}/sidebar-data`);
+      const response = await fetch(
+        `/api/courses/${slug}/lessons/${lessonId}/sidebar-data`
+      );
 
       if (response.ok) {
         const data = await response.json();
 
         // Procesar actividades
-        setLessonsActivities(prev => ({
+        setLessonsActivities((prev) => ({
           ...prev,
           [lessonId]: (data.activities || []).map((a: any) => ({
             activity_id: a.activity_id,
             activity_title: a.activity_title,
             activity_type: a.activity_type,
-            is_required: a.is_required
-          }))
+            is_required: a.is_required,
+          })),
         }));
 
         // Procesar materiales
-        setLessonsMaterials(prev => ({
+        setLessonsMaterials((prev) => ({
           ...prev,
           [lessonId]: (data.materials || []).map((m: any) => ({
             material_id: m.material_id,
             material_title: m.material_title,
             material_type: m.material_type,
-            is_required: m.is_required || m.material_type === 'quiz' // Los quizzes son requeridos por defecto
-          }))
+            is_required: m.is_required || m.material_type === "quiz", // Los quizzes son requeridos por defecto
+          })),
         }));
 
         // Procesar estado de quizzes
-        setLessonsQuizStatus(prev => ({
+        setLessonsQuizStatus((prev) => ({
           ...prev,
-          [lessonId]: data.quizStatus
+          [lessonId]: data.quizStatus,
         }));
       } else {
         // Si falla, establecer como arrays vacíos para no intentar cargar de nuevo
-        setLessonsActivities(prev => ({
+        setLessonsActivities((prev) => ({
           ...prev,
-          [lessonId]: []
+          [lessonId]: [],
         }));
-        setLessonsMaterials(prev => ({
+        setLessonsMaterials((prev) => ({
           ...prev,
-          [lessonId]: []
+          [lessonId]: [],
         }));
-        setLessonsQuizStatus(prev => ({
+        setLessonsQuizStatus((prev) => ({
           ...prev,
-          [lessonId]: null
+          [lessonId]: null,
         }));
       }
     } catch (error) {
       // En caso de error, establecer como arrays vacíos
-      setLessonsActivities(prev => ({
+      setLessonsActivities((prev) => ({
         ...prev,
-        [lessonId]: []
+        [lessonId]: [],
       }));
-      setLessonsMaterials(prev => ({
+      setLessonsMaterials((prev) => ({
         ...prev,
-        [lessonId]: []
+        [lessonId]: [],
       }));
-      setLessonsQuizStatus(prev => ({
+      setLessonsQuizStatus((prev) => ({
         ...prev,
-        [lessonId]: null
+        [lessonId]: null,
       }));
     }
   };
@@ -1869,7 +2087,7 @@ export default function CourseLearnPage() {
       await loadLessonActivitiesAndMaterials(lessonId);
     }
 
-    setExpandedLessons(prev => {
+    setExpandedLessons((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(lessonId)) {
         newSet.delete(lessonId);
@@ -1882,7 +2100,7 @@ export default function CourseLearnPage() {
 
   // Función para toggle de expandir/colapsar módulo
   const toggleModuleExpand = (moduleId: string) => {
-    setExpandedModules(prev => {
+    setExpandedModules((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(moduleId)) {
         newSet.delete(moduleId);
@@ -1896,12 +2114,14 @@ export default function CourseLearnPage() {
   // Expandir automáticamente el módulo que contiene la lección actual
   useEffect(() => {
     if (currentLesson && modules.length > 0) {
-      const moduleWithCurrentLesson = modules.find(module =>
-        module.lessons.some(lesson => lesson.lesson_id === currentLesson.lesson_id)
+      const moduleWithCurrentLesson = modules.find((module) =>
+        module.lessons.some(
+          (lesson) => lesson.lesson_id === currentLesson.lesson_id
+        )
       );
 
       if (moduleWithCurrentLesson) {
-        setExpandedModules(prev => {
+        setExpandedModules((prev) => {
           const newSet = new Set(prev);
           newSet.add(moduleWithCurrentLesson.module_id);
           return newSet;
@@ -1915,8 +2135,10 @@ export default function CourseLearnPage() {
     if (!currentLesson || !slug || modules.length === 0) return;
 
     // Encontrar el módulo de la lección actual
-    const currentModule = modules.find(module =>
-      module.lessons.some(lesson => lesson.lesson_id === currentLesson.lesson_id)
+    const currentModule = modules.find((module) =>
+      module.lessons.some(
+        (lesson) => lesson.lesson_id === currentLesson.lesson_id
+      )
     );
 
     if (!currentModule) return;
@@ -1924,18 +2146,20 @@ export default function CourseLearnPage() {
     // Precargar en segundo plano las lecciones del módulo actual (excepto la actual)
     const prefetchLessons = async () => {
       const lessonsToPreload = currentModule.lessons
-        .filter(lesson => lesson.lesson_id !== currentLesson.lesson_id)
-        .filter(lesson => {
+        .filter((lesson) => lesson.lesson_id !== currentLesson.lesson_id)
+        .filter((lesson) => {
           // Solo precargar si no está ya cargado
-          return lessonsActivities[lesson.lesson_id] === undefined ||
-            lessonsMaterials[lesson.lesson_id] === undefined;
+          return (
+            lessonsActivities[lesson.lesson_id] === undefined ||
+            lessonsMaterials[lesson.lesson_id] === undefined
+          );
         });
 
       // Limitar a máximo 3 lecciones para no sobrecargar
       const limitedLessons = lessonsToPreload.slice(0, 3);
 
       // Precargar en paralelo pero sin esperar (fire and forget)
-      limitedLessons.forEach(lesson => {
+      limitedLessons.forEach((lesson) => {
         loadLessonActivitiesAndMaterials(lesson.lesson_id).catch(() => {
           // Ignorar errores en precarga
         });
@@ -1949,15 +2173,22 @@ export default function CourseLearnPage() {
   }, [currentLesson, modules, slug, lessonsActivities, lessonsMaterials]);
 
   // Función para encontrar todas las lecciones ordenadas en una lista plana
-  const getAllLessonsOrdered = (): Array<{ lesson: Lesson; module: Module }> => {
+  const getAllLessonsOrdered = (): Array<{
+    lesson: Lesson;
+    module: Module;
+  }> => {
     const allLessons: Array<{ lesson: Lesson; module: Module }> = [];
 
     // Ordenar módulos por module_order_index
-    const sortedModules = [...modules].sort((a, b) => a.module_order_index - b.module_order_index);
+    const sortedModules = [...modules].sort(
+      (a, b) => a.module_order_index - b.module_order_index
+    );
 
     sortedModules.forEach((module) => {
       // Ordenar lecciones por lesson_order_index dentro de cada módulo
-      const sortedLessons = [...module.lessons].sort((a, b) => a.lesson_order_index - b.lesson_order_index);
+      const sortedLessons = [...module.lessons].sort(
+        (a, b) => a.lesson_order_index - b.lesson_order_index
+      );
       sortedLessons.forEach((lesson) => {
         allLessons.push({ lesson, module });
       });
@@ -1989,7 +2220,8 @@ export default function CourseLearnPage() {
       (item) => item.lesson.lesson_id === currentLesson.lesson_id
     );
 
-    if (currentIndex === -1 || currentIndex === allLessons.length - 1) return null;
+    if (currentIndex === -1 || currentIndex === allLessons.length - 1)
+      return null;
 
     return allLessons[currentIndex + 1].lesson;
   };
@@ -2012,11 +2244,17 @@ export default function CourseLearnPage() {
   };
 
   // Función para verificar el estado de los quizzes obligatorios
-  const checkQuizStatus = async (lessonId: string, signal?: AbortSignal): Promise<{ canComplete: boolean; error?: string; details?: any }> => {
+  const checkQuizStatus = async (
+    lessonId: string,
+    signal?: AbortSignal
+  ): Promise<{ canComplete: boolean; error?: string; details?: any }> => {
     try {
-      const response = await fetch(`/api/courses/${params.slug}/lessons/${lessonId}/quiz/status`, {
-        signal, // Pasar el signal para poder cancelar la petición
-      });
+      const response = await fetch(
+        `/api/courses/${params.slug}/lessons/${lessonId}/quiz/status`,
+        {
+          signal, // Pasar el signal para poder cancelar la petición
+        }
+      );
 
       // Si la petición fue cancelada, retornar sin error
       if (signal?.aborted) {
@@ -2027,7 +2265,11 @@ export default function CourseLearnPage() {
         // Si hay error HTTP, permitir completar (retrocompatibilidad)
         // No loguear errores 404/401 ya que pueden ser normales
         if (response.status !== 404 && response.status !== 401) {
-          console.warn('Error verificando estado de quizzes:', response.status, response.statusText);
+          console.warn(
+            "Error verificando estado de quizzes:",
+            response.status,
+            response.statusText
+          );
         }
         return { canComplete: true };
       }
@@ -2044,7 +2286,7 @@ export default function CourseLearnPage() {
 
       return {
         canComplete: false,
-        error: 'Hace falta realizar actividad',
+        error: "Hace falta realizar actividad",
         details: {
           totalRequired: data.totalRequiredQuizzes,
           passed: data.passedQuizzes,
@@ -2053,30 +2295,39 @@ export default function CourseLearnPage() {
       };
     } catch (error: any) {
       // Ignorar errores de cancelación (AbortError)
-      if (error?.name === 'AbortError' || signal?.aborted) {
+      if (error?.name === "AbortError" || signal?.aborted) {
         return { canComplete: true };
       }
 
       // Ignorar errores de red (Failed to fetch) - pueden ocurrir si la página se está desmontando
       // o si hay problemas de conectividad temporales
-      if (error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')) {
+      if (
+        error?.message?.includes("Failed to fetch") ||
+        error?.message?.includes("NetworkError")
+      ) {
         // No loguear en producción para evitar ruido
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Error de red verificando estado de quizzes (ignorado):', error.message);
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "Error de red verificando estado de quizzes (ignorado):",
+            error.message
+          );
         }
         return { canComplete: true }; // En caso de error de red, permitir completar
       }
 
       // Para otros errores, loguear pero permitir completar
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error verificando estado de quizzes:', error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Error verificando estado de quizzes:", error);
       }
       return { canComplete: true }; // En caso de error, permitir completar
     }
   };
 
   // ⚡ OPTIMIZADO: Marcar lección como completada con validaciones en paralelo
-  const markLessonAsCompleted = async (lessonId: string, signal?: AbortSignal): Promise<boolean> => {
+  const markLessonAsCompleted = async (
+    lessonId: string,
+    signal?: AbortSignal
+  ): Promise<boolean> => {
     if (!canCompleteLesson(lessonId)) {
       return false;
     }
@@ -2094,7 +2345,9 @@ export default function CourseLearnPage() {
     });
 
     if (currentLesson?.lesson_id === lessonId) {
-      setCurrentLesson((prev) => prev ? { ...prev, is_completed: true } : null);
+      setCurrentLesson((prev) =>
+        prev ? { ...prev, is_completed: true } : null
+      );
     }
 
     // 🚀 PARALLELIZAR: Verificar quizzes Y guardar en BD al mismo tiempo
@@ -2102,25 +2355,31 @@ export default function CourseLearnPage() {
       const [quizStatus, saveResponse] = await Promise.all([
         checkQuizStatus(lessonId, signal),
         fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           signal, // Pasar el signal para poder cancelar
         }).catch((fetchError: any) => {
           // Si el fetch falla (red, cancelación, etc.), retornar una respuesta simulada
           // que permita continuar sin errores
-          if (fetchError?.name === 'AbortError' || signal?.aborted) {
+          if (fetchError?.name === "AbortError" || signal?.aborted) {
             // Crear una respuesta simulada para cancelación
-            return new Response(null, { status: 200, statusText: 'Cancelled' });
+            return new Response(null, { status: 200, statusText: "Cancelled" });
           }
           // Para otros errores de red, crear una respuesta simulada
           // El estado local ya se actualizó, así que permitir continuar
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('Error de red guardando progreso (ignorado):', fetchError.message);
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "Error de red guardando progreso (ignorado):",
+              fetchError.message
+            );
           }
-          return new Response(null, { status: 200, statusText: 'Network Error (ignored)' });
-        })
+          return new Response(null, {
+            status: 200,
+            statusText: "Network Error (ignored)",
+          });
+        }),
       ]);
 
       // Si la petición fue cancelada, retornar true (el estado local ya se actualizó)
@@ -2143,18 +2402,23 @@ export default function CourseLearnPage() {
         });
 
         if (currentLesson?.lesson_id === lessonId) {
-          setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+          setCurrentLesson((prev) =>
+            prev ? { ...prev, is_completed: false } : null
+          );
         }
 
         // Mostrar modal de validación
         setValidationModal({
           isOpen: true,
-          title: 'Hace falta realizar actividad',
-          message: quizStatus.details?.message || quizStatus.error || 'Debes completar y aprobar todos los quizzes obligatorios para continuar.',
+          title: "Hace falta realizar actividad",
+          message:
+            quizStatus.details?.message ||
+            quizStatus.error ||
+            "Debes completar y aprobar todos los quizzes obligatorios para continuar.",
           details: quizStatus.details
             ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
             : undefined,
-          type: 'activity',
+          type: "activity",
           lessonId: lessonId,
         });
         return false;
@@ -2167,8 +2431,16 @@ export default function CourseLearnPage() {
       if (!response.ok) {
         // Si es un error 404/401, puede ser normal (no inscrito, etc.)
         // Si es otro error, loguear pero permitir continuar
-        if (response.status !== 404 && response.status !== 401 && process.env.NODE_ENV === 'development') {
-          console.warn('Error guardando progreso de lección:', response.status, response.statusText);
+        if (
+          response.status !== 404 &&
+          response.status !== 401 &&
+          process.env.NODE_ENV === "development"
+        ) {
+          console.warn(
+            "Error guardando progreso de lección:",
+            response.status,
+            response.statusText
+          );
         }
         // Retornar true porque el estado local ya se actualizó
         return true;
@@ -2181,8 +2453,11 @@ export default function CourseLearnPage() {
       } catch (jsonError) {
         // Si no es JSON válido, manejar como éxito (el estado local ya se actualizó)
         // No loguear en producción para evitar ruido
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Respuesta no es JSON válido - Status:', response.status);
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "Respuesta no es JSON válido - Status:",
+            response.status
+          );
         }
         // Retornar true porque el estado local se actualizó
         return true;
@@ -2190,7 +2465,7 @@ export default function CourseLearnPage() {
 
       if (!response.ok) {
         // Si el error es que la lección anterior no está completada, revertir el estado local
-        if (responseData?.code === 'PREVIOUS_LESSON_NOT_COMPLETED') {
+        if (responseData?.code === "PREVIOUS_LESSON_NOT_COMPLETED") {
           // Revertir el estado local
           setModules((prevModules) => {
             const updatedModules = prevModules.map((module) => ({
@@ -2203,17 +2478,24 @@ export default function CourseLearnPage() {
             }));
 
             const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
-            const completedLessons = allLessons.filter((l: Lesson) => l.is_completed);
-            const totalProgress = allLessons.length > 0
-              ? Math.round((completedLessons.length / allLessons.length) * 100)
-              : 0;
+            const completedLessons = allLessons.filter(
+              (l: Lesson) => l.is_completed
+            );
+            const totalProgress =
+              allLessons.length > 0
+                ? Math.round(
+                    (completedLessons.length / allLessons.length) * 100
+                  )
+                : 0;
 
             setCourseProgress(totalProgress);
             return updatedModules;
           });
 
           if (currentLesson?.lesson_id === lessonId) {
-            setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+            setCurrentLesson((prev) =>
+              prev ? { ...prev, is_completed: false } : null
+            );
           }
 
           // console.error('Error del servidor:', responseData?.error || responseData);
@@ -2221,7 +2503,7 @@ export default function CourseLearnPage() {
         }
 
         // Si el error es que falta realizar actividad (quiz obligatorio)
-        if (responseData?.code === 'REQUIRED_QUIZ_NOT_PASSED') {
+        if (responseData?.code === "REQUIRED_QUIZ_NOT_PASSED") {
           // Revertir el estado local (solo el estado de la lección, NO el progreso)
           setModules((prevModules) => {
             return prevModules.map((module) => ({
@@ -2235,27 +2517,35 @@ export default function CourseLearnPage() {
           });
 
           if (currentLesson?.lesson_id === lessonId) {
-            setCurrentLesson((prev) => prev ? { ...prev, is_completed: false } : null);
+            setCurrentLesson((prev) =>
+              prev ? { ...prev, is_completed: false } : null
+            );
           }
 
           // Mostrar modal de validación según el tipo de error
-          if (responseData?.code === 'REQUIRED_QUIZ_NOT_PASSED') {
+          if (responseData?.code === "REQUIRED_QUIZ_NOT_PASSED") {
             setValidationModal({
               isOpen: true,
-              title: 'Hace falta realizar actividad',
-              message: responseData?.details?.message || responseData?.error || 'Debes completar y aprobar todos los quizzes obligatorios para continuar.',
+              title: "Hace falta realizar actividad",
+              message:
+                responseData?.details?.message ||
+                responseData?.error ||
+                "Debes completar y aprobar todos los quizzes obligatorios para continuar.",
               details: responseData?.details
                 ? `Completados: ${responseData.details.passed} de ${responseData.details.totalRequired}`
                 : undefined,
-              type: 'activity',
+              type: "activity",
               lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
             });
           } else {
             setValidationModal({
               isOpen: true,
-              title: 'No se puede completar',
-              message: responseData?.details?.message || responseData?.error || 'No se puede completar la lección en este momento.',
-              type: 'activity',
+              title: "No se puede completar",
+              message:
+                responseData?.details?.message ||
+                responseData?.error ||
+                "No se puede completar la lección en este momento.",
+              type: "activity",
               lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
             });
           }
@@ -2284,22 +2574,28 @@ export default function CourseLearnPage() {
       return true;
     } catch (error: any) {
       // Si el error es de cancelación, retornar true (el estado local ya se actualizó)
-      if (error?.name === 'AbortError' || signal?.aborted) {
+      if (error?.name === "AbortError" || signal?.aborted) {
         return true;
       }
 
       // Para errores de red, también permitir continuar
-      if (error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Error de red marcando lección como completada (ignorado):', error.message);
+      if (
+        error?.message?.includes("Failed to fetch") ||
+        error?.message?.includes("NetworkError")
+      ) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "Error de red marcando lección como completada (ignorado):",
+            error.message
+          );
         }
         // El estado local ya se actualizó, así que permitir continuar
         return true;
       }
 
       // Para otros errores, loguear pero permitir continuar
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Error al guardar progreso en BD (ignorado):', error);
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Error al guardar progreso en BD (ignorado):", error);
       }
       // Mantener el estado local aunque falle la BD
       return true;
@@ -2312,9 +2608,9 @@ export default function CourseLearnPage() {
     if (previousLesson) {
       setCurrentLesson(previousLesson);
       // Cambiar al tab de video cuando navegas
-      setActiveTab('video');
+      setActiveTab("video");
       // Hacer scroll hacia arriba
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -2331,19 +2627,27 @@ export default function CourseLearnPage() {
       // Solo cambiar de lección si se pudo completar la anterior
       if (canComplete) {
         setCurrentLesson(nextLesson);
-        setActiveTab('video');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setActiveTab("video");
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
       // Si no se pudo completar, el modal ya se mostró y no cambiamos de lección
     }
   };
 
   const tabs = [
-    { id: 'video' as const, label: t('tabs.video'), icon: Play },
-    { id: 'transcript' as const, label: t('tabs.transcript'), icon: ScrollText },
-    { id: 'summary' as const, label: t('tabs.summary'), icon: FileText },
-    { id: 'activities' as const, label: t('tabs.activities'), icon: Activity },
-    { id: 'questions' as const, label: t('tabs.questions'), icon: MessageCircle },
+    { id: "video" as const, label: t("tabs.video"), icon: Play },
+    {
+      id: "transcript" as const,
+      label: t("tabs.transcript"),
+      icon: ScrollText,
+    },
+    { id: "summary" as const, label: t("tabs.summary"), icon: FileText },
+    { id: "activities" as const, label: t("tabs.activities"), icon: Activity },
+    {
+      id: "questions" as const,
+      label: t("tabs.questions"),
+      icon: MessageCircle,
+    },
   ];
 
   // Mostrar loading mientras i18n no esté listo o mientras se cargan los datos
@@ -2352,8 +2656,11 @@ export default function CourseLearnPage() {
       <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#0A2540] dark:text-white text-lg" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-            {mounted && ready ? t('loading.general') : 'Cargando...'}
+          <p
+            className="text-[#0A2540] dark:text-white text-lg"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+          >
+            {mounted && ready ? t("loading.general") : "Cargando..."}
           </p>
         </div>
       </div>
@@ -2364,13 +2671,23 @@ export default function CourseLearnPage() {
     return (
       <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-[#0A2540] dark:text-white mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{t('errors.courseNotFound')}</h1>
-          <p className="text-[#6C757D] dark:text-white/80 mb-8" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('errors.courseNotFoundMessage')}</p>
+          <h1
+            className="text-3xl font-bold text-[#0A2540] dark:text-white mb-4"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+          >
+            {t("errors.courseNotFound")}
+          </h1>
+          <p
+            className="text-[#6C757D] dark:text-white/80 mb-8"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+          >
+            {t("errors.courseNotFoundMessage")}
+          </p>
           <button
-            onClick={() => router.push('/my-courses')}
+            onClick={() => router.push("/my-courses")}
             className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-colors"
           >
-            {t('navigation.backToCourses')}
+            {t("navigation.backToCourses")}
           </button>
         </div>
       </div>
@@ -2380,14 +2697,12 @@ export default function CourseLearnPage() {
   return (
     <WorkshopLearningProvider
       workshopId={course?.id || course?.course_id || slug}
-      activityId={currentLesson?.lesson_id || 'no-lesson'}
+      activityId={currentLesson?.lesson_id || "no-lesson"}
       enabled={!!course && !!currentLesson}
       checkInterval={15000}
       assistantPosition="bottom-right"
       assistantCompact={false}
-      onDifficultyDetected={(analysis) => {
-
-      }}
+      onDifficultyDetected={(analysis) => {}}
       onHelpAccepted={async (analysis) => {
         // Abrir el panel de LIA (panel derecho)
         openLia();
@@ -2395,52 +2710,78 @@ export default function CourseLearnPage() {
         // Generar mensaje personalizado basado en los patrones detectados
         const generatePersonalizedMessage = (patterns: any[]) => {
           // Priorizar patrones por severidad
-          const highSeverityPatterns = patterns.filter(p => p.severity === 'high');
-          const mediumSeverityPatterns = patterns.filter(p => p.severity === 'medium');
+          const highSeverityPatterns = patterns.filter(
+            (p) => p.severity === "high"
+          );
+          const mediumSeverityPatterns = patterns.filter(
+            (p) => p.severity === "medium"
+          );
 
           // Usar el patrón de mayor severidad primero
-          const primaryPattern = highSeverityPatterns[0] || mediumSeverityPatterns[0] || patterns[0];
+          const primaryPattern =
+            highSeverityPatterns[0] || mediumSeverityPatterns[0] || patterns[0];
 
           if (!primaryPattern) {
-            return 'Necesito ayuda con esta lección';
+            return "Necesito ayuda con esta lección";
           }
 
           // Mensajes específicos por tipo de patrón
           const messageMap: Record<string, string> = {
-            'inactivity': 'Llevo varios minutos sin poder avanzar en esta lección',
-            'excessive_scroll': 'Estoy buscando información en la lección pero no encuentro lo que necesito',
-            'failed_attempts': 'He intentado completar la actividad varias veces pero no lo logro',
-            'frequent_deletion': 'Estoy teniendo problemas para escribir la respuesta correcta',
-            'repetitive_cycles': 'Estoy confundido y no sé cómo continuar con esta lección',
-            'erroneous_clicks': 'He intentado varias opciones pero no consigo avanzar',
-            'back_navigation': 'Necesito revisar contenido anterior porque no entiendo esta parte'
+            inactivity:
+              "Llevo varios minutos sin poder avanzar en esta lección",
+            excessive_scroll:
+              "Estoy buscando información en la lección pero no encuentro lo que necesito",
+            failed_attempts:
+              "He intentado completar la actividad varias veces pero no lo logro",
+            frequent_deletion:
+              "Estoy teniendo problemas para escribir la respuesta correcta",
+            repetitive_cycles:
+              "Estoy confundido y no sé cómo continuar con esta lección",
+            erroneous_clicks:
+              "He intentado varias opciones pero no consigo avanzar",
+            back_navigation:
+              "Necesito revisar contenido anterior porque no entiendo esta parte",
           };
 
           // Si hay múltiples patrones de alta severidad, combinarlos
           if (highSeverityPatterns.length > 1) {
-            const mainIssue = messageMap[primaryPattern.type] || 'Estoy teniendo dificultades con esta lección';
+            const mainIssue =
+              messageMap[primaryPattern.type] ||
+              "Estoy teniendo dificultades con esta lección";
             return `${mainIssue} y estoy un poco bloqueado`;
           }
 
-          return messageMap[primaryPattern.type] || 'Necesito ayuda con esta lección';
+          return (
+            messageMap[primaryPattern.type] || "Necesito ayuda con esta lección"
+          );
         };
 
         // Construir mensaje visible personalizado para el usuario
-        const visibleUserMessage = generatePersonalizedMessage(analysis.patterns);
+        const visibleUserMessage = generatePersonalizedMessage(
+          analysis.patterns
+        );
 
         // 🎯 ANÁLISIS PROFUNDO DEL COMPORTAMIENTO DEL USUARIO
         const behaviorAnalysis = analyzeUserBehavior();
 
         // Obtener información sobre actividades pendientes
-        const currentActivities = currentLesson ? (lessonsActivities[currentLesson.lesson_id] || []) : [];
-        const requiredActivities = currentActivities.filter(a => a.is_required);
-        const pendingRequired = requiredActivities.filter(a => !a.is_completed);
-        const completedActivities = currentActivities.filter(a => a.is_completed);
+        const currentActivities = currentLesson
+          ? lessonsActivities[currentLesson.lesson_id] || []
+          : [];
+        const requiredActivities = currentActivities.filter(
+          (a) => a.is_required
+        );
+        const pendingRequired = requiredActivities.filter(
+          (a) => !a.is_completed
+        );
+        const completedActivities = currentActivities.filter(
+          (a) => a.is_completed
+        );
 
         // 🎯 ANÁLISIS INTELIGENTE: Detectar la actividad actual en la que está trabajando
         // Basado en el tab activo y el scroll/interacciones recientes
         let currentActivityFocus = null;
-        if (activeTab === 'activities' && pendingRequired.length > 0) {
+        if (activeTab === "activities" && pendingRequired.length > 0) {
           // Si está en la pestaña de actividades y hay pendientes, asumir que está en la primera pendiente
           currentActivityFocus = pendingRequired[0];
         } else if (pendingRequired.length > 0) {
@@ -2449,133 +2790,171 @@ export default function CourseLearnPage() {
         }
 
         // 🎯 Detectar patrones temporales y de progreso
-        const totalLessonsInCourse = modules.reduce((total, module) => total + module.lessons.length, 0);
-        const currentLessonIndex = getAllLessonsOrdered().findIndex(
-          item => item.lesson.lesson_id === currentLesson?.lesson_id
+        const totalLessonsInCourse = modules.reduce(
+          (total, module) => total + module.lessons.length,
+          0
         );
-        const progressPercentage = totalLessonsInCourse > 0
-          ? Math.round(((currentLessonIndex + 1) / totalLessonsInCourse) * 100)
-          : 0;
+        const currentLessonIndex = getAllLessonsOrdered().findIndex(
+          (item) => item.lesson.lesson_id === currentLesson?.lesson_id
+        );
+        const progressPercentage =
+          totalLessonsInCourse > 0
+            ? Math.round(
+                ((currentLessonIndex + 1) / totalLessonsInCourse) * 100
+              )
+            : 0;
 
         // Construir contexto enriquecido de la lección con información de la dificultad detectada
         // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
-        const baseContext = workshopMetadata ? {
-          ...workshopMetadata,
-          moduleTitle: modules.find(m => m.lessons.some(l => l.lesson_id === currentLesson.lesson_id))?.module_title,
-          lessonTitle: currentLesson.lesson_title,
-          lessonDescription: currentLesson.lesson_description,
-          durationSeconds: currentLesson.duration_seconds,
-        } : (currentLesson && course ? {
-          contextType: 'course' as const,
-          courseId: course.id || course.course_id || undefined,
-          courseSlug: slug || undefined,
-          courseTitle: course.title || course.course_title,
-          courseDescription: course.description || course.course_description,
-          moduleTitle: modules.find(m => m.lessons.some(l => l.lesson_id === currentLesson.lesson_id))?.module_title,
-          lessonTitle: currentLesson.lesson_title,
-          lessonDescription: currentLesson.lesson_description,
-          durationSeconds: currentLesson.duration_seconds,
-        } : undefined);
-
-        const enrichedLessonContext = baseContext ? {
-          ...baseContext,
-          userRole: user?.type_rol || undefined,
-          // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
-          activitiesContext: {
-            totalActivities: currentActivities.length,
-            requiredActivities: requiredActivities.length,
-            completedActivities: completedActivities.length,
-            pendingRequiredCount: pendingRequired.length,
-            pendingRequiredTitles: pendingRequired.map(a => a.activity_title).join(', '),
-            activityTypes: currentActivities.map(a => ({
-              title: a.activity_title,
-              type: a.activity_type,
-              isRequired: a.is_required,
-              isCompleted: a.is_completed
-            })),
-            // 🎯 NUEVO: Actividad actual en foco
-            currentActivityFocus: currentActivityFocus ? {
-              title: currentActivityFocus.activity_title,
-              type: currentActivityFocus.activity_type,
-              isRequired: currentActivityFocus.is_required,
-              description: currentActivityFocus.activity_description || 'Sin descripción'
-            } : null
-          },
-          // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
-          userBehaviorContext: behaviorAnalysis,
-          // 🎯 NUEVO: Contexto de progreso del usuario
-          learningProgressContext: {
-            currentLessonNumber: currentLessonIndex + 1,
-            totalLessons: totalLessonsInCourse,
-            progressPercentage: progressPercentage,
-            currentTab: activeTab, // video, transcript, summary, activities
-            timeInCurrentLesson: currentLesson?.duration_seconds
-              ? `${Math.round(currentLesson.duration_seconds / 60)} minutos`
-              : 'Desconocido'
-          },
-          // Agregar información de la dificultad detectada al contexto
-          difficultyDetected: {
-            patterns: analysis.patterns.map(p => ({
-              type: p.type,
-              severity: p.severity,
-              description: (() => {
-                switch (p.type) {
-                  case 'inactivity':
-                    return `Ha estado ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : 'varios'} minutos sin avanzar`;
-                  case 'excessive_scroll':
-                    return 'Ha estado haciendo scroll repetidamente buscando información';
-                  case 'failed_attempts':
-                    return 'Ha intentado completar la actividad varias veces sin éxito';
-                  case 'frequent_deletion':
-                    return 'Ha estado escribiendo y borrando varias veces';
-                  case 'repetitive_cycles':
-                    return 'Ha estado yendo y viniendo entre diferentes secciones';
-                  case 'erroneous_clicks':
-                    return 'Ha hecho varios clicks sin resultado';
-                  default:
-                    return 'Está teniendo dificultades para avanzar';
-                }
-              })()
-            })),
-            overallScore: analysis.overallScore,
-            shouldIntervene: analysis.shouldIntervene,
-            // 🎯 NUEVO: Sugerencia de tipo de ayuda basada en patrones
-            suggestedHelpType: (() => {
-              const primaryPattern = analysis.patterns[0];
-              if (!primaryPattern) return 'general';
-
-              switch (primaryPattern.type) {
-                case 'inactivity':
-                  return activeTab === 'activities' ? 'activity_guidance' : 'content_explanation';
-                case 'excessive_scroll':
-                  return 'content_navigation';
-                case 'failed_attempts':
-                  return 'activity_hints';
-                case 'frequent_deletion':
-                  return 'activity_structure';
-                case 'repetitive_cycles':
-                  return 'concept_clarification';
-                case 'erroneous_clicks':
-                  return 'interface_guidance';
-                default:
-                  return 'general';
+        const baseContext = workshopMetadata
+          ? {
+              ...workshopMetadata,
+              moduleTitle: modules.find((m) =>
+                m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
+              )?.module_title,
+              lessonTitle: currentLesson.lesson_title,
+              lessonDescription: currentLesson.lesson_description,
+              durationSeconds: currentLesson.duration_seconds,
+            }
+          : currentLesson && course
+            ? {
+                contextType: "course" as const,
+                courseId: course.id || course.course_id || undefined,
+                courseSlug: slug || undefined,
+                courseTitle: course.title || course.course_title,
+                courseDescription:
+                  course.description || course.course_description,
+                moduleTitle: modules.find((m) =>
+                  m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
+                )?.module_title,
+                lessonTitle: currentLesson.lesson_title,
+                lessonDescription: currentLesson.lesson_description,
+                durationSeconds: currentLesson.duration_seconds,
               }
-            })()
-          }
-        } : getLessonContext();
+            : undefined;
+
+        const enrichedLessonContext = baseContext
+          ? {
+              ...baseContext,
+              userRole: user?.type_rol || undefined,
+              // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
+              activitiesContext: {
+                totalActivities: currentActivities.length,
+                requiredActivities: requiredActivities.length,
+                completedActivities: completedActivities.length,
+                pendingRequiredCount: pendingRequired.length,
+                pendingRequiredTitles: pendingRequired
+                  .map((a) => a.activity_title)
+                  .join(", "),
+                activityTypes: currentActivities.map((a) => ({
+                  title: a.activity_title,
+                  type: a.activity_type,
+                  isRequired: a.is_required,
+                  isCompleted: a.is_completed,
+                })),
+                // 🎯 NUEVO: Actividad actual en foco
+                currentActivityFocus: currentActivityFocus
+                  ? {
+                      title: currentActivityFocus.activity_title,
+                      type: currentActivityFocus.activity_type,
+                      isRequired: currentActivityFocus.is_required,
+                      description:
+                        currentActivityFocus.activity_description ||
+                        "Sin descripción",
+                    }
+                  : null,
+              },
+              // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
+              userBehaviorContext: behaviorAnalysis,
+              // 🎯 NUEVO: Contexto de progreso del usuario
+              learningProgressContext: {
+                currentLessonNumber: currentLessonIndex + 1,
+                totalLessons: totalLessonsInCourse,
+                progressPercentage: progressPercentage,
+                currentTab: activeTab, // video, transcript, summary, activities
+                timeInCurrentLesson: currentLesson?.duration_seconds
+                  ? `${Math.round(currentLesson.duration_seconds / 60)} minutos`
+                  : "Desconocido",
+              },
+              // Agregar información de la dificultad detectada al contexto
+              difficultyDetected: {
+                patterns: analysis.patterns.map((p) => ({
+                  type: p.type,
+                  severity: p.severity,
+                  description: (() => {
+                    switch (p.type) {
+                      case "inactivity":
+                        return `Ha estado ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : "varios"} minutos sin avanzar`;
+                      case "excessive_scroll":
+                        return "Ha estado haciendo scroll repetidamente buscando información";
+                      case "failed_attempts":
+                        return "Ha intentado completar la actividad varias veces sin éxito";
+                      case "frequent_deletion":
+                        return "Ha estado escribiendo y borrando varias veces";
+                      case "repetitive_cycles":
+                        return "Ha estado yendo y viniendo entre diferentes secciones";
+                      case "erroneous_clicks":
+                        return "Ha hecho varios clicks sin resultado";
+                      default:
+                        return "Está teniendo dificultades para avanzar";
+                    }
+                  })(),
+                })),
+                overallScore: analysis.overallScore,
+                shouldIntervene: analysis.shouldIntervene,
+                // 🎯 NUEVO: Sugerencia de tipo de ayuda basada en patrones
+                suggestedHelpType: (() => {
+                  const primaryPattern = analysis.patterns[0];
+                  if (!primaryPattern) return "general";
+
+                  switch (primaryPattern.type) {
+                    case "inactivity":
+                      return activeTab === "activities"
+                        ? "activity_guidance"
+                        : "content_explanation";
+                    case "excessive_scroll":
+                      return "content_navigation";
+                    case "failed_attempts":
+                      return "activity_hints";
+                    case "frequent_deletion":
+                      return "activity_structure";
+                    case "repetitive_cycles":
+                      return "concept_clarification";
+                    case "erroneous_clicks":
+                      return "interface_guidance";
+                    default:
+                      return "general";
+                  }
+                })(),
+              },
+            }
+          : getLessonContext();
 
         try {
           // Enviar mensaje con contexto enriquecido en segundo plano
           // ✅ isSystemMessage=true: El mensaje NO se mostrará en el chat como mensaje del usuario
           // pero SÍ se enviará al API para que LIA responda con ayuda contextual
           // ✅ Si es un taller, enviar como workshopContext
-          if (workshopMetadata && enrichedLessonContext?.contextType === 'workshop') {
-            await sendLiaMessage(visibleUserMessage, undefined, enrichedLessonContext as CourseLessonContext, true);
+          if (
+            workshopMetadata &&
+            enrichedLessonContext?.contextType === "workshop"
+          ) {
+            await sendLiaMessage(
+              visibleUserMessage,
+              undefined,
+              enrichedLessonContext as CourseLessonContext,
+              true
+            );
           } else {
-            await sendLiaMessage(visibleUserMessage, enrichedLessonContext as CourseLessonContext, undefined, true);
+            await sendLiaMessage(
+              visibleUserMessage,
+              enrichedLessonContext as CourseLessonContext,
+              undefined,
+              true
+            );
           }
         } catch (error) {
-          console.error('❌ Error enviando mensaje proactivo a LIA:', error);
+          console.error("❌ Error enviando mensaje proactivo a LIA:", error);
         }
       }}
     >
@@ -2593,18 +2972,26 @@ export default function CourseLearnPage() {
               <button
                 onClick={() => router.back()}
                 className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-                aria-label={t('header.backButton')}
-                title={t('header.backButton')}
+                aria-label={t("header.backButton")}
+                title={t("header.backButton")}
               >
                 <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
               </button>
 
               {/* Nombre del taller */}
               <div className="min-w-0 flex-1">
-                <h1 className="text-sm md:text-base font-bold text-[#0A2540] dark:text-white truncate" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                <h1
+                  className="text-sm md:text-base font-bold text-[#0A2540] dark:text-white truncate"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                >
                   {course.title || course.course_title}
                 </h1>
-                <p className="hidden md:block text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('header.workshop')}</p>
+                <p
+                  className="hidden md:block text-xs text-[#6C757D] dark:text-white/60"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                >
+                  {t("header.workshop")}
+                </p>
               </div>
             </div>
 
@@ -2622,11 +3009,13 @@ export default function CourseLearnPage() {
                 </div>
               </div>
               {/* Porcentaje compacto - Visible siempre */}
-              <span className="text-xs text-[#0A2540] dark:text-white font-medium bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+              <span
+                className="text-xs text-[#0A2540] dark:text-white font-medium bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0"
+                style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+              >
                 {courseProgress}%
               </span>
             </div>
-
           </div>
         </motion.div>
 
@@ -2635,8 +3024,8 @@ export default function CourseLearnPage() {
           ref={swipeRef}
           className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white dark:bg-[#0F1419] relative z-10"
           style={{
-             marginRight: isLiaOpen && !isMobile ? '420px' : 0,
-             transition: 'margin-right 0.3s ease-in-out'
+            marginRight: isLiaOpen && !isMobile ? "420px" : 0,
+            transition: "margin-right 0.3s ease-in-out",
           }}
         >
           {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
@@ -2656,22 +3045,26 @@ export default function CourseLearnPage() {
 
                 <motion.div
                   id="tour-course-sidebar"
-                  initial={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
+                  initial={isMobile ? { x: "-100%" } : { width: 0, opacity: 0 }}
                   animate={isMobile ? { x: 0 } : { width: 320, opacity: 1 }}
-                  exit={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  exit={isMobile ? { x: "-100%" } : { width: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
                   className={`
-                  ${isMobile
-                      ? 'fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none'
-                      : 'relative h-full'
-                    }
+                  ${
+                    isMobile
+                      ? "fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none"
+                      : "relative h-full"
+                  }
                   bg-[#0F1419] flex flex-col overflow-hidden border-r border-white/5
-                  ${isMobile ? 'my-0 ml-0' : 'h-full'}
+                  ${isMobile ? "my-0 ml-0" : "h-full"}
                 `}
                 >
                   {/* Header con línea separadora alineada con panel central */}
                   <div className="bg-[#0F1419] border-b border-white/5 flex items-center justify-between p-4 shrink-0 h-[60px]">
-                    <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+                    <h2
+                      className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2"
+                      style={{ fontFamily: "Inter, sans-serif" }}
+                    >
                       <BookOpen className="w-4 h-4 text-[#00D4B3]" />
                       TEMARIO
                     </h2>
@@ -2693,14 +3086,23 @@ export default function CourseLearnPage() {
                     <div className="mb-8">
                       {/* Header de Contenido con botón de colapsar */}
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        <h3
+                          className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-2"
+                          style={{ fontFamily: "Inter, sans-serif" }}
+                        >
                           <Layers className="w-3 h-3 text-[#00D4B3]" />
-                          {t('leftPanel.content')}
+                          {t("leftPanel.content")}
                         </h3>
                         <button
-                          onClick={() => setIsMaterialCollapsed(!isMaterialCollapsed)}
+                          onClick={() =>
+                            setIsMaterialCollapsed(!isMaterialCollapsed)
+                          }
                           className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                          title={isMaterialCollapsed ? t('leftPanel.expandContent') : t('leftPanel.collapseContent')}
+                          title={
+                            isMaterialCollapsed
+                              ? t("leftPanel.expandContent")
+                              : t("leftPanel.collapseContent")
+                          }
                         >
                           {isMaterialCollapsed ? (
                             <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
@@ -2723,13 +3125,19 @@ export default function CourseLearnPage() {
                             {[...modules]
                               .sort((a, b) => {
                                 // Función para extraer número del módulo del título
-                                const extractModuleNumber = (title: string): number => {
+                                const extractModuleNumber = (
+                                  title: string
+                                ): number => {
                                   const match = title.match(/Módulo\s*(\d+)/i);
                                   return match ? parseInt(match[1], 10) : 999;
                                 };
 
-                                const aNumber = extractModuleNumber(a.module_title);
-                                const bNumber = extractModuleNumber(b.module_title);
+                                const aNumber = extractModuleNumber(
+                                  a.module_title
+                                );
+                                const bNumber = extractModuleNumber(
+                                  b.module_title
+                                );
 
                                 // Si ambos tienen número en el título, priorizar ese número
                                 if (aNumber !== 999 && bNumber !== 999) {
@@ -2737,30 +3145,47 @@ export default function CourseLearnPage() {
                                 }
 
                                 // Si solo uno tiene número, priorizarlo
-                                if (aNumber !== 999 && bNumber === 999) return -1;
-                                if (aNumber === 999 && bNumber !== 999) return 1;
+                                if (aNumber !== 999 && bNumber === 999)
+                                  return -1;
+                                if (aNumber === 999 && bNumber !== 999)
+                                  return 1;
 
                                 // Si ninguno tiene número o ambos tienen, usar module_order_index
-                                const orderDiff = (a.module_order_index || 0) - (b.module_order_index || 0);
+                                const orderDiff =
+                                  (a.module_order_index || 0) -
+                                  (b.module_order_index || 0);
                                 if (orderDiff !== 0) return orderDiff;
 
                                 // Último recurso: ordenar por título alfabéticamente
-                                return a.module_title.localeCompare(b.module_title);
+                                return a.module_title.localeCompare(
+                                  b.module_title
+                                );
                               })
                               .map((module, moduleIndex) => {
-                                const isModuleExpanded = expandedModules.has(module.module_id);
+                                const isModuleExpanded = expandedModules.has(
+                                  module.module_id
+                                );
 
                                 // Ordenar lecciones dentro del módulo por lesson_order_index
-                                const sortedLessons = [...(module.lessons || [])].sort(
-                                  (a, b) => (a.lesson_order_index || 0) - (b.lesson_order_index || 0)
+                                const sortedLessons = [
+                                  ...(module.lessons || []),
+                                ].sort(
+                                  (a, b) =>
+                                    (a.lesson_order_index || 0) -
+                                    (b.lesson_order_index || 0)
                                 );
 
                                 // Calcular estadísticas del módulo
-                                const completedLessons = sortedLessons.filter(l => l.is_completed).length;
+                                const completedLessons = sortedLessons.filter(
+                                  (l) => l.is_completed
+                                ).length;
                                 const totalLessons = sortedLessons.length;
-                                const completionPercentage = totalLessons > 0
-                                  ? Math.round((completedLessons / totalLessons) * 100)
-                                  : 0;
+                                const completionPercentage =
+                                  totalLessons > 0
+                                    ? Math.round(
+                                        (completedLessons / totalLessons) * 100
+                                      )
+                                    : 0;
 
                                 return (
                                   <div key={module.module_id} className="mb-6">
@@ -2772,12 +3197,25 @@ export default function CourseLearnPage() {
                                           </span>
                                           <div className="h-[1px] flex-1 bg-white/10" />
                                         </div>
-                                        <h3 className="font-semibold text-white/90 text-sm leading-tight pr-4" style={{ fontFamily: 'Inter, sans-serif' }}>{module.module_title}</h3>
+                                        <h3
+                                          className="font-semibold text-white/90 text-sm leading-tight pr-4"
+                                          style={{
+                                            fontFamily: "Inter, sans-serif",
+                                          }}
+                                        >
+                                          {module.module_title}
+                                        </h3>
                                       </div>
                                       <button
-                                        onClick={() => toggleModuleExpand(module.module_id)}
+                                        onClick={() =>
+                                          toggleModuleExpand(module.module_id)
+                                        }
                                         className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
-                                        title={isModuleExpanded ? t('leftPanel.collapseModule') : t('leftPanel.expandModule')}
+                                        title={
+                                          isModuleExpanded
+                                            ? t("leftPanel.collapseModule")
+                                            : t("leftPanel.expandModule")
+                                        }
                                       >
                                         {isModuleExpanded ? (
                                           <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
@@ -2792,297 +3230,520 @@ export default function CourseLearnPage() {
                                       {isModuleExpanded && (
                                         <motion.div
                                           initial={{ height: 0, opacity: 0 }}
-                                          animate={{ height: 'auto', opacity: 1 }}
+                                          animate={{
+                                            height: "auto",
+                                            opacity: 1,
+                                          }}
                                           exit={{ height: 0, opacity: 0 }}
                                           transition={{ duration: 0.2 }}
                                           className="overflow-hidden"
                                         >
                                           {/* Estadísticas del módulo mejoradas */}
                                           <div className="flex gap-3 mb-4">
-                                            <span className="px-3 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] text-xs rounded-full border border-[#10B981]/30 font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                                              {completedLessons}/{totalLessons} {t('leftPanel.completed')}
+                                            <span
+                                              className="px-3 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] text-xs rounded-full border border-[#10B981]/30 font-medium"
+                                              style={{
+                                                fontFamily: "Inter, sans-serif",
+                                                fontWeight: 500,
+                                              }}
+                                            >
+                                              {completedLessons}/{totalLessons}{" "}
+                                              {t("leftPanel.completed")}
                                             </span>
                                             <span className="px-3 py-1 bg-[#00D4B3]/20 text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 font-medium">
-                                              {completionPercentage}% {t('leftPanel.completedPercentage')}
+                                              {completionPercentage}%{" "}
+                                              {t(
+                                                "leftPanel.completedPercentage"
+                                              )}
                                             </span>
                                           </div>
 
                                           {/* Lista de lecciones mejorada - Estilo Minimalista */}
                                           <div className="space-y-2">
-                                            {sortedLessons.length > 0 ? sortedLessons.map((lesson, lessonIndex) => {
-                                              const isActive = currentLesson?.lesson_id === lesson.lesson_id;
-                                              const isCompleted = lesson.is_completed;
-                                              const isExpanded = expandedLessons.has(lesson.lesson_id);
-                                              const activities = lessonsActivities[lesson.lesson_id] || [];
-                                              const materials = lessonsMaterials[lesson.lesson_id] || [];
-                                              const hasContent = activities.length > 0 || materials.length > 0;
-                                              const isContentLoaded = lessonsActivities[lesson.lesson_id] !== undefined && lessonsMaterials[lesson.lesson_id] !== undefined;
+                                            {sortedLessons.length > 0 ? (
+                                              sortedLessons.map(
+                                                (lesson, lessonIndex) => {
+                                                  const isActive =
+                                                    currentLesson?.lesson_id ===
+                                                    lesson.lesson_id;
+                                                  const isCompleted =
+                                                    lesson.is_completed;
+                                                  const isExpanded =
+                                                    expandedLessons.has(
+                                                      lesson.lesson_id
+                                                    );
+                                                  const activities =
+                                                    lessonsActivities[
+                                                      lesson.lesson_id
+                                                    ] || [];
+                                                  const materials =
+                                                    lessonsMaterials[
+                                                      lesson.lesson_id
+                                                    ] || [];
+                                                  const hasContent =
+                                                    activities.length > 0 ||
+                                                    materials.length > 0;
+                                                  const isContentLoaded =
+                                                    lessonsActivities[
+                                                      lesson.lesson_id
+                                                    ] !== undefined &&
+                                                    lessonsMaterials[
+                                                      lesson.lesson_id
+                                                    ] !== undefined;
 
-                                              return (
-                                                <div key={lesson.lesson_id} className="w-full">
-                                                  <div className="flex items-start gap-2">
-                                                    <motion.button
-                                                      whileHover={{ x: 4 }}
-                                                      onClick={() => handleLessonChange(lesson)}
-                                                      className={`flex-1 flex items-center gap-3 py-2 px-3 transition-all duration-200 group relative overflow-hidden rounded-r-lg ${isActive
-                                                        ? 'bg-[#00D4B3]/10 border-l-2 border-[#00D4B3]'
-                                                        : 'border-l-2 border-transparent hover:bg-white/5'
-                                                        }`}
+                                                  return (
+                                                    <div
+                                                      key={lesson.lesson_id}
+                                                      className="w-full"
                                                     >
-                                                      <div className={`flex items-center justify-center flex-shrink-0 ${isCompleted
-                                                        ? 'text-[#00D4B3]'
-                                                        : isActive
-                                                          ? 'text-[#00D4B3]'
-                                                          : 'text-white/20 group-hover:text-white/40'
-                                                        }`}>
-                                                        {isCompleted ? (
-                                                          <CheckCircle2 className="w-4 h-4" />
-                                                        ) : (
-                                                          <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-[#00D4B3] animate-pulse' : 'bg-current'}`} />
-                                                        )}
-                                                      </div>
+                                                      <div className="flex items-start gap-2">
+                                                        <motion.button
+                                                          whileHover={{ x: 4 }}
+                                                          onClick={() =>
+                                                            handleLessonChange(
+                                                              lesson
+                                                            )
+                                                          }
+                                                          className={`flex-1 flex items-center gap-3 py-2 px-3 transition-all duration-200 group relative overflow-hidden rounded-r-lg ${
+                                                            isActive
+                                                              ? "bg-[#00D4B3]/10 border-l-2 border-[#00D4B3]"
+                                                              : "border-l-2 border-transparent hover:bg-white/5"
+                                                          }`}
+                                                        >
+                                                          <div
+                                                            className={`flex items-center justify-center flex-shrink-0 ${
+                                                              isCompleted
+                                                                ? "text-[#00D4B3]"
+                                                                : isActive
+                                                                  ? "text-[#00D4B3]"
+                                                                  : "text-white/20 group-hover:text-white/40"
+                                                            }`}
+                                                          >
+                                                            {isCompleted ? (
+                                                              <CheckCircle2 className="w-4 h-4" />
+                                                            ) : (
+                                                              <div
+                                                                className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#00D4B3] animate-pulse" : "bg-current"}`}
+                                                              />
+                                                            )}
+                                                          </div>
 
-                                                      <div className="flex-1 text-left min-w-0 z-10">
-                                                        <p className={`text-sm leading-snug line-clamp-2 ${isActive ? 'text-white font-medium' : 'text-white/60 group-hover:text-white/90 font-normal'}`} style={{ fontFamily: 'Inter, sans-serif' }}>
-                                                          {lesson.lesson_title}
-                                                        </p>
-                                                        {isActive && (
-                                                           <span className="text-[10px] text-[#00D4B3]/80 mt-1 block font-medium">
-                                                              En curso • {formatDuration(lesson.duration_seconds)}
-                                                           </span>
-                                                        )}
-                                                      </div>
-                                                    </motion.button>
-
-                                                    {/* Botón para expandir/colapsar actividades y materiales */}
-                                                    <button
-                                                      onClick={async (e) => {
-                                                        e.stopPropagation();
-                                                        // Si no se han cargado las actividades y materiales, cargarlas primero
-                                                        if (!isContentLoaded) {
-                                                          await loadLessonActivitiesAndMaterials(lesson.lesson_id);
-                                                        }
-                                                        toggleLessonExpand(lesson.lesson_id);
-                                                      }}
-                                                      className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
-                                                      title={isExpanded ? t('activities.collapse') : t('activities.expandCollapse')}
-                                                    >
-                                                      {isExpanded ? (
-                                                        <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                                      ) : (
-                                                        <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                                      )}
-                                                    </button>
-                                                  </div>
-
-                                                  {/* Actividades y Materiales desplegables */}
-                                                  <AnimatePresence>
-                                                    {/* 🚀 SKELETON LOADING - Mientras carga el contenido */}
-                                                    {isExpanded && !isContentLoaded && (
-                                                      <motion.div
-                                                        initial={{ height: 0, opacity: 0 }}
-                                                        animate={{ height: 'auto', opacity: 1 }}
-                                                        exit={{ height: 0, opacity: 0 }}
-                                                        transition={{ duration: 0.2 }}
-                                                        className="overflow-hidden"
-                                                      >
-                                                        <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
-                                                          {/* Skeleton items */}
-                                                          {[1, 2].map((i) => (
-                                                            <div
-                                                              key={i}
-                                                              className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-3 animate-pulse"
+                                                          <div className="flex-1 text-left min-w-0 z-10">
+                                                            <p
+                                                              className={`text-sm leading-snug line-clamp-2 ${isActive ? "text-white font-medium" : "text-white/60 group-hover:text-white/90 font-normal"}`}
+                                                              style={{
+                                                                fontFamily:
+                                                                  "Inter, sans-serif",
+                                                              }}
                                                             >
-                                                              <div className="flex items-start gap-3">
-                                                                <div className="w-8 h-8 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg flex-shrink-0"></div>
-                                                                <div className="flex-1 space-y-2">
-                                                                  <div className="h-4 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-3/4"></div>
-                                                                  <div className="h-3 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-1/4"></div>
-                                                                </div>
+                                                              {
+                                                                lesson.lesson_title
+                                                              }
+                                                            </p>
+                                                            {isActive && (
+                                                              <span className="text-[10px] text-[#00D4B3]/80 mt-1 block font-medium">
+                                                                En curso •{" "}
+                                                                {formatDuration(
+                                                                  lesson.duration_seconds
+                                                                )}
+                                                              </span>
+                                                            )}
+                                                          </div>
+                                                        </motion.button>
+
+                                                        {/* Botón para expandir/colapsar actividades y materiales */}
+                                                        <button
+                                                          onClick={async (
+                                                            e
+                                                          ) => {
+                                                            e.stopPropagation();
+                                                            // Si no se han cargado las actividades y materiales, cargarlas primero
+                                                            if (
+                                                              !isContentLoaded
+                                                            ) {
+                                                              await loadLessonActivitiesAndMaterials(
+                                                                lesson.lesson_id
+                                                              );
+                                                            }
+                                                            toggleLessonExpand(
+                                                              lesson.lesson_id
+                                                            );
+                                                          }}
+                                                          className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
+                                                          title={
+                                                            isExpanded
+                                                              ? t(
+                                                                  "activities.collapse"
+                                                                )
+                                                              : t(
+                                                                  "activities.expandCollapse"
+                                                                )
+                                                          }
+                                                        >
+                                                          {isExpanded ? (
+                                                            <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                                          ) : (
+                                                            <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                                          )}
+                                                        </button>
+                                                      </div>
+
+                                                      {/* Actividades y Materiales desplegables */}
+                                                      <AnimatePresence>
+                                                        {/* 🚀 SKELETON LOADING - Mientras carga el contenido */}
+                                                        {isExpanded &&
+                                                          !isContentLoaded && (
+                                                            <motion.div
+                                                              initial={{
+                                                                height: 0,
+                                                                opacity: 0,
+                                                              }}
+                                                              animate={{
+                                                                height: "auto",
+                                                                opacity: 1,
+                                                              }}
+                                                              exit={{
+                                                                height: 0,
+                                                                opacity: 0,
+                                                              }}
+                                                              transition={{
+                                                                duration: 0.2,
+                                                              }}
+                                                              className="overflow-hidden"
+                                                            >
+                                                              <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
+                                                                {/* Skeleton items */}
+                                                                {[1, 2].map(
+                                                                  (i) => (
+                                                                    <div
+                                                                      key={i}
+                                                                      className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-3 animate-pulse"
+                                                                    >
+                                                                      <div className="flex items-start gap-3">
+                                                                        <div className="w-8 h-8 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg flex-shrink-0"></div>
+                                                                        <div className="flex-1 space-y-2">
+                                                                          <div className="h-4 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-3/4"></div>
+                                                                          <div className="h-3 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-1/4"></div>
+                                                                        </div>
+                                                                      </div>
+                                                                    </div>
+                                                                  )
+                                                                )}
                                                               </div>
-                                                            </div>
-                                                          ))}
-                                                        </div>
-                                                      </motion.div>
-                                                    )}
+                                                            </motion.div>
+                                                          )}
 
-                                                    {/* Contenido cargado */}
-                                                    {isExpanded && isContentLoaded && hasContent && (
-                                                      <motion.div
-                                                        initial={{ height: 0, opacity: 0 }}
-                                                        animate={{ height: 'auto', opacity: 1 }}
-                                                        exit={{ height: 0, opacity: 0 }}
-                                                        transition={{ duration: 0.2 }}
-                                                        className="overflow-hidden"
-                                                      >
-                                                        <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
-                                                          {/* Actividades */}
-                                                          {activities.length > 0 && (
-                                                            <div className="space-y-2">
-                                                              {activities.map((activity) => {
-                                                                const isQuiz = activity.activity_type === 'quiz';
-                                                                const isRequired = activity.is_required;
+                                                        {/* Contenido cargado */}
+                                                        {isExpanded &&
+                                                          isContentLoaded &&
+                                                          hasContent && (
+                                                            <motion.div
+                                                              initial={{
+                                                                height: 0,
+                                                                opacity: 0,
+                                                              }}
+                                                              animate={{
+                                                                height: "auto",
+                                                                opacity: 1,
+                                                              }}
+                                                              exit={{
+                                                                height: 0,
+                                                                opacity: 0,
+                                                              }}
+                                                              transition={{
+                                                                duration: 0.2,
+                                                              }}
+                                                              className="overflow-hidden"
+                                                            >
+                                                              <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
+                                                                {/* Actividades */}
+                                                                {activities.length >
+                                                                  0 && (
+                                                                  <div className="space-y-2">
+                                                                    {activities.map(
+                                                                      (
+                                                                        activity
+                                                                      ) => {
+                                                                        const isQuiz =
+                                                                          activity.activity_type ===
+                                                                          "quiz";
+                                                                        const isRequired =
+                                                                          activity.is_required;
 
-                                                                return (
-                                                                  <div
-                                                                    key={activity.activity_id}
-                                                                    className="group relative hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
-                                                                  >
-                                                                    <div className="flex items-start gap-4">
-                                                                      {/* Icono mejorado estilo imagen referencia */}
-                                                                      <div className={`w-10 h-10 rounded-2xl bg-[#0F1419] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-white/20 transition-colors shadow-sm`}>
-                                                                        {isQuiz ? (
-                                                                          <FileText className="w-5 h-5 text-[#00D4B3]" />
-                                                                        ) : (
-                                                                          <Activity className="w-5 h-5 text-[#00D4B3]" />
-                                                                        )}
-                                                                      </div>
-
-                                                                      {/* Contenido principal */}
-                                                                      <div className="flex-1 min-w-0 pt-0.5">
-                                                                        <p className="text-sm font-medium text-white mb-2 leading-tight">
-                                                                          {activity.activity_title}
-                                                                        </p>
-
-                                                                        {/* Badges estilo Pill */}
-                                                                        <div className="flex flex-wrap items-center gap-2">
-                                                                          {/* Badge de tipo */}
-                                                                          <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-[#0F1419] border border-white/10 text-[#00D4B3]">
-                                                                            {activity.activity_type}
-                                                                          </span>
-
-                                                                          {/* Badge Requerida */}
-                                                                          {isRequired && (
-                                                                            <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-500/10 border border-red-500/30 text-red-400">
-                                                                              {t('activities.required')}
-                                                                            </span>
-                                                                          )}
-                                                                        </div>
-                                                                      </div>
-                                                                    </div>
-
-                                                                    {/* Indicador de estado para quizzes (si está disponible) */}
-                                                                    {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
-                                                                      const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
-                                                                      if (quizInfo) {
                                                                         return (
-                                                                          <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
-                                                                            {quizInfo.isPassed ? (
-                                                                              <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-                                                                                <CheckCircle className="w-3.5 h-3.5" />
-                                                                                <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
+                                                                          <div
+                                                                            key={
+                                                                              activity.activity_id
+                                                                            }
+                                                                            className="group relative hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
+                                                                          >
+                                                                            <div className="flex items-start gap-4">
+                                                                              {/* Icono mejorado estilo imagen referencia */}
+                                                                              <div
+                                                                                className={`w-10 h-10 rounded-2xl bg-[#0F1419] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-white/20 transition-colors shadow-sm`}
+                                                                              >
+                                                                                {isQuiz ? (
+                                                                                  <FileText className="w-5 h-5 text-[#00D4B3]" />
+                                                                                ) : (
+                                                                                  <Activity className="w-5 h-5 text-[#00D4B3]" />
+                                                                                )}
                                                                               </div>
-                                                                            ) : quizInfo.isCompleted ? (
-                                                                              <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
-                                                                                <X className="w-3.5 h-3.5" />
-                                                                                <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
+
+                                                                              {/* Contenido principal */}
+                                                                              <div className="flex-1 min-w-0 pt-0.5">
+                                                                                <p className="text-sm font-medium text-white mb-2 leading-tight">
+                                                                                  {
+                                                                                    activity.activity_title
+                                                                                  }
+                                                                                </p>
+
+                                                                                {/* Badges estilo Pill */}
+                                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                                  {/* Badge de tipo */}
+                                                                                  <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-[#0F1419] border border-white/10 text-[#00D4B3]">
+                                                                                    {
+                                                                                      activity.activity_type
+                                                                                    }
+                                                                                  </span>
+
+                                                                                  {/* Badge Requerida */}
+                                                                                  {isRequired && (
+                                                                                    <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-500/10 border border-red-500/30 text-red-400">
+                                                                                      {t(
+                                                                                        "activities.required"
+                                                                                      )}
+                                                                                    </span>
+                                                                                  )}
+                                                                                </div>
                                                                               </div>
-                                                                            ) : (
-                                                                              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
-                                                                                <Clock className="w-3.5 h-3.5" />
-                                                                                <span>Pendiente</span>
-                                                                              </div>
-                                                                            )}
+                                                                            </div>
+
+                                                                            {/* Indicador de estado para quizzes (si está disponible) */}
+                                                                            {isQuiz &&
+                                                                              lessonsQuizStatus[
+                                                                                lesson
+                                                                                  .lesson_id
+                                                                              ] &&
+                                                                              lessonsQuizStatus[
+                                                                                lesson
+                                                                                  .lesson_id
+                                                                              ]
+                                                                                ?.quizzes &&
+                                                                              (() => {
+                                                                                const quizInfo =
+                                                                                  lessonsQuizStatus[
+                                                                                    lesson
+                                                                                      .lesson_id
+                                                                                  ]!.quizzes.find(
+                                                                                    (
+                                                                                      q: any
+                                                                                    ) =>
+                                                                                      q.id ===
+                                                                                        activity.activity_id &&
+                                                                                      q.type ===
+                                                                                        "activity"
+                                                                                  );
+                                                                                if (
+                                                                                  quizInfo
+                                                                                ) {
+                                                                                  return (
+                                                                                    <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
+                                                                                      {quizInfo.isPassed ? (
+                                                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                                                          <CheckCircle className="w-3.5 h-3.5" />
+                                                                                          <span className="font-medium">
+                                                                                            Aprobado
+                                                                                            (
+                                                                                            {
+                                                                                              quizInfo.percentage
+                                                                                            }
+                                                                                            %)
+                                                                                          </span>
+                                                                                        </div>
+                                                                                      ) : quizInfo.isCompleted ? (
+                                                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                                                          <X className="w-3.5 h-3.5" />
+                                                                                          <span className="font-medium">
+                                                                                            Reprobado
+                                                                                            (
+                                                                                            {
+                                                                                              quizInfo.percentage
+                                                                                            }
+                                                                                            %)
+                                                                                          </span>
+                                                                                        </div>
+                                                                                      ) : (
+                                                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                                                          <Clock className="w-3.5 h-3.5" />
+                                                                                          <span>
+                                                                                            Pendiente
+                                                                                          </span>
+                                                                                        </div>
+                                                                                      )}
+                                                                                    </div>
+                                                                                  );
+                                                                                }
+                                                                                return null;
+                                                                              })()}
                                                                           </div>
                                                                         );
                                                                       }
-                                                                      return null;
-                                                                    })()}
+                                                                    )}
                                                                   </div>
-                                                                );
-                                                              })}
-                                                            </div>
-                                                          )}
+                                                                )}
 
-                                                          {/* Materiales */}
-                                                          {materials.length > 0 && (
-                                                            <div className="space-y-2">
-                                                              {materials.map((material) => {
-                                                                const isQuiz = material.material_type === 'quiz';
-                                                                const isReading = material.material_type === 'reading';
-                                                                const isRequired = material.is_required;
+                                                                {/* Materiales */}
+                                                                {materials.length >
+                                                                  0 && (
+                                                                  <div className="space-y-2">
+                                                                    {materials.map(
+                                                                      (
+                                                                        material
+                                                                      ) => {
+                                                                        const isQuiz =
+                                                                          material.material_type ===
+                                                                          "quiz";
+                                                                        const isReading =
+                                                                          material.material_type ===
+                                                                          "reading";
+                                                                        const isRequired =
+                                                                          material.is_required;
 
-                                                                return (
-                                                                  <div
-                                                                    key={material.material_id}
-                                                                    className="group relative hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
-                                                                  >
-                                                                    <div className="flex items-start gap-4">
-                                                                      {/* Icono mejorado estilo imagen referencia */}
-                                                                      <div className={`w-10 h-10 rounded-2xl bg-[#0F1419] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-white/20 transition-colors shadow-sm`}>
-                                                                        {isQuiz ? (
-                                                                           <FileText className="w-5 h-5 text-[#00D4B3]" />
-                                                                        ) : isReading ? (
-                                                                           <BookOpen className="w-5 h-5 text-[#10B981]" />
-                                                                        ) : (
-                                                                           <FileText className="w-5 h-5 text-[#00D4B3]" />
-                                                                        )}
-                                                                      </div>
-
-                                                                      {/* Contenido principal */}
-                                                                      <div className="flex-1 min-w-0 pt-0.5">
-                                                                        <p className="text-sm font-medium text-white mb-2 leading-tight">
-                                                                          {material.material_title}
-                                                                        </p>
-
-                                                                        {/* Badges estilo Pill */}
-                                                                        <div className="flex flex-wrap items-center gap-2">
-                                                                          {/* Badge Requerida primero si aplica */}
-                                                                           {isRequired && (
-                                                                            <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-500/10 border border-red-500/30 text-red-400">
-                                                                              Requerida
-                                                                            </span>
-                                                                          )}
-
-                                                                          {/* Badge de tipo */}
-                                                                          <span className={`px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-[#0F1419] border border-white/10 ${isReading ? 'text-[#10B981]' : 'text-[#00D4B3]'}`}>
-                                                                            {material.material_type}
-                                                                          </span>
-                                                                        </div>
-                                                                      </div>
-                                                                    </div>
-
-                                                                    {/* Indicador de estado para quizzes (si está disponible) */}
-                                                                    {isQuiz && lessonsQuizStatus[lesson.lesson_id] && lessonsQuizStatus[lesson.lesson_id]?.quizzes && (() => {
-                                                                      const quizInfo = lessonsQuizStatus[lesson.lesson_id]!.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
-                                                                      if (quizInfo) {
                                                                         return (
-                                                                          <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
-                                                                            {quizInfo.isPassed ? (
-                                                                              <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-                                                                                <CheckCircle className="w-3.5 h-3.5" />
-                                                                                <span className="font-medium">Aprobado ({quizInfo.percentage}%)</span>
+                                                                          <div
+                                                                            key={
+                                                                              material.material_id
+                                                                            }
+                                                                            className="group relative hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
+                                                                          >
+                                                                            <div className="flex items-start gap-4">
+                                                                              {/* Icono mejorado estilo imagen referencia */}
+                                                                              <div
+                                                                                className={`w-10 h-10 rounded-2xl bg-[#0F1419] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-white/20 transition-colors shadow-sm`}
+                                                                              >
+                                                                                {isQuiz ? (
+                                                                                  <FileText className="w-5 h-5 text-[#00D4B3]" />
+                                                                                ) : isReading ? (
+                                                                                  <BookOpen className="w-5 h-5 text-[#10B981]" />
+                                                                                ) : (
+                                                                                  <FileText className="w-5 h-5 text-[#00D4B3]" />
+                                                                                )}
                                                                               </div>
-                                                                            ) : quizInfo.isCompleted ? (
-                                                                              <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
-                                                                                <X className="w-3.5 h-3.5" />
-                                                                                <span className="font-medium">Reprobado ({quizInfo.percentage}%)</span>
+
+                                                                              {/* Contenido principal */}
+                                                                              <div className="flex-1 min-w-0 pt-0.5">
+                                                                                <p className="text-sm font-medium text-white mb-2 leading-tight">
+                                                                                  {
+                                                                                    material.material_title
+                                                                                  }
+                                                                                </p>
+
+                                                                                {/* Badges estilo Pill */}
+                                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                                  {/* Badge Requerida primero si aplica */}
+                                                                                  {isRequired && (
+                                                                                    <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-500/10 border border-red-500/30 text-red-400">
+                                                                                      Requerida
+                                                                                    </span>
+                                                                                  )}
+
+                                                                                  {/* Badge de tipo */}
+                                                                                  <span
+                                                                                    className={`px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-[#0F1419] border border-white/10 ${isReading ? "text-[#10B981]" : "text-[#00D4B3]"}`}
+                                                                                  >
+                                                                                    {
+                                                                                      material.material_type
+                                                                                    }
+                                                                                  </span>
+                                                                                </div>
                                                                               </div>
-                                                                            ) : (
-                                                                              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
-                                                                                <Clock className="w-3.5 h-3.5" />
-                                                                                <span>Pendiente</span>
-                                                                              </div>
-                                                                            )}
+                                                                            </div>
+
+                                                                            {/* Indicador de estado para quizzes (si está disponible) */}
+                                                                            {isQuiz &&
+                                                                              lessonsQuizStatus[
+                                                                                lesson
+                                                                                  .lesson_id
+                                                                              ] &&
+                                                                              lessonsQuizStatus[
+                                                                                lesson
+                                                                                  .lesson_id
+                                                                              ]
+                                                                                ?.quizzes &&
+                                                                              (() => {
+                                                                                const quizInfo =
+                                                                                  lessonsQuizStatus[
+                                                                                    lesson
+                                                                                      .lesson_id
+                                                                                  ]!.quizzes.find(
+                                                                                    (
+                                                                                      q: any
+                                                                                    ) =>
+                                                                                      q.id ===
+                                                                                        material.material_id &&
+                                                                                      q.type ===
+                                                                                        "material"
+                                                                                  );
+                                                                                if (
+                                                                                  quizInfo
+                                                                                ) {
+                                                                                  return (
+                                                                                    <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
+                                                                                      {quizInfo.isPassed ? (
+                                                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                                                          <CheckCircle className="w-3.5 h-3.5" />
+                                                                                          <span className="font-medium">
+                                                                                            Aprobado
+                                                                                            (
+                                                                                            {
+                                                                                              quizInfo.percentage
+                                                                                            }
+                                                                                            %)
+                                                                                          </span>
+                                                                                        </div>
+                                                                                      ) : quizInfo.isCompleted ? (
+                                                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                                                          <X className="w-3.5 h-3.5" />
+                                                                                          <span className="font-medium">
+                                                                                            Reprobado
+                                                                                            (
+                                                                                            {
+                                                                                              quizInfo.percentage
+                                                                                            }
+                                                                                            %)
+                                                                                          </span>
+                                                                                        </div>
+                                                                                      ) : (
+                                                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                                                          <Clock className="w-3.5 h-3.5" />
+                                                                                          <span>
+                                                                                            Pendiente
+                                                                                          </span>
+                                                                                        </div>
+                                                                                      )}
+                                                                                    </div>
+                                                                                  );
+                                                                                }
+                                                                                return null;
+                                                                              })()}
                                                                           </div>
                                                                         );
                                                                       }
-                                                                      return null;
-                                                                    })()}
+                                                                    )}
                                                                   </div>
-                                                                );
-                                                              })}
-                                                            </div>
+                                                                )}
+                                                              </div>
+                                                            </motion.div>
                                                           )}
-                                                        </div>
-                                                      </motion.div>
-                                                    )}
-                                                  </AnimatePresence>
-                                                </div>
-                                              );
-                                            }) : (
+                                                      </AnimatePresence>
+                                                    </div>
+                                                  );
+                                                }
+                                              )
+                                            ) : (
                                               <div className="text-center py-4 text-gray-500 dark:text-slate-400 text-sm">
-                                                Este módulo aún no tiene lecciones
+                                                Este módulo aún no tiene
+                                                lecciones
                                               </div>
                                             )}
                                           </div>
@@ -3104,9 +3765,12 @@ export default function CourseLearnPage() {
                     <div className="space-y-4" id="tour-notes-section">
                       {/* Header de Notas con botones de colapsar y nueva nota */}
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-white/40 uppercase tracking-widest flex items-center gap-2 text-xs" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        <h3
+                          className="font-bold text-white/40 uppercase tracking-widest flex items-center gap-2 text-xs"
+                          style={{ fontFamily: "Inter, sans-serif" }}
+                        >
                           <FileText className="w-3 h-3 text-[#00D4B3]" />
-                          {t('leftPanel.notesSection.myNotes')}
+                          {t("leftPanel.notesSection.myNotes")}
                         </h3>
                         <div className="flex items-center gap-2">
                           {!isNotesCollapsed && (
@@ -3114,15 +3778,23 @@ export default function CourseLearnPage() {
                               id="tour-notes-button"
                               onClick={openNewNoteModal}
                               className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                              title={t('leftPanel.notesSection.newNote')}
+                              title={t("leftPanel.notesSection.newNote")}
                             >
-                              <span className="text-sm font-bold text-gray-700 dark:text-white/70">+</span>
+                              <span className="text-sm font-bold text-gray-700 dark:text-white/70">
+                                +
+                              </span>
                             </button>
                           )}
                           <button
-                            onClick={() => setIsNotesCollapsed(!isNotesCollapsed)}
+                            onClick={() =>
+                              setIsNotesCollapsed(!isNotesCollapsed)
+                            }
                             className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                            title={isNotesCollapsed ? t('leftPanel.notesSection.expandNotes') : t('leftPanel.notesSection.collapseNotes')}
+                            title={
+                              isNotesCollapsed
+                                ? t("leftPanel.notesSection.expandNotes")
+                                : t("leftPanel.notesSection.collapseNotes")
+                            }
                           >
                             {isNotesCollapsed ? (
                               <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
@@ -3143,15 +3815,40 @@ export default function CourseLearnPage() {
                             transition={{ duration: 0.3 }}
                             className="overflow-hidden"
                           >
-
                             {/* Notas guardadas */}
                             <div className="space-y-3 mb-6">
-                              <h3 className="text-[#0A2540] dark:text-white font-semibold text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{t('leftPanel.notesSection.savedNotes')}</h3>
+                              <h3
+                                className="text-[#0A2540] dark:text-white font-semibold text-sm"
+                                style={{
+                                  fontFamily: "Inter, sans-serif",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {t("leftPanel.notesSection.savedNotes")}
+                              </h3>
                               <div className="space-y-2">
                                 {savedNotes.length === 0 ? (
                                   <div className="bg-white dark:bg-[#1E2329] rounded-xl p-4 border border-[#E9ECEF] dark:border-[#6C757D]/30 text-center">
-                                    <p className="text-sm text-[#0A2540] dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('leftPanel.notesSection.noSavedNotes')}</p>
-                                    <p className="text-xs text-[#6C757D] dark:text-white/60 mt-1" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('leftPanel.notesSection.saveFirstNote')}</p>
+                                    <p
+                                      className="text-sm text-[#0A2540] dark:text-white"
+                                      style={{
+                                        fontFamily: "Inter, sans-serif",
+                                        fontWeight: 400,
+                                      }}
+                                    >
+                                      {t("leftPanel.notesSection.noSavedNotes")}
+                                    </p>
+                                    <p
+                                      className="text-xs text-[#6C757D] dark:text-white/60 mt-1"
+                                      style={{
+                                        fontFamily: "Inter, sans-serif",
+                                        fontWeight: 400,
+                                      }}
+                                    >
+                                      {t(
+                                        "leftPanel.notesSection.saveFirstNote"
+                                      )}
+                                    </p>
                                   </div>
                                 ) : (
                                   savedNotes.map((note) => (
@@ -3160,9 +3857,25 @@ export default function CourseLearnPage() {
                                       className="bg-white dark:bg-[#1E2329] rounded-xl p-3 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 transition-colors group"
                                     >
                                       <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-[#0A2540] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{note.title}</span>
+                                        <span
+                                          className="text-sm text-[#0A2540] dark:text-[#00D4B3] font-medium"
+                                          style={{
+                                            fontFamily: "Inter, sans-serif",
+                                            fontWeight: 500,
+                                          }}
+                                        >
+                                          {note.title}
+                                        </span>
                                         <div className="flex items-center gap-2">
-                                          <span className="text-xs text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{note.timestamp}</span>
+                                          <span
+                                            className="text-xs text-[#6C757D] dark:text-white/60"
+                                            style={{
+                                              fontFamily: "Inter, sans-serif",
+                                              fontWeight: 400,
+                                            }}
+                                          >
+                                            {note.timestamp}
+                                          </span>
                                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                               onClick={(e) => {
@@ -3170,10 +3883,22 @@ export default function CourseLearnPage() {
                                                 openEditNoteModal(note);
                                               }}
                                               className="p-1 hover:bg-[#00D4B3]/20 rounded text-[#00D4B3] hover:text-[#00D4B3] transition-colors"
-                                              title={t('leftPanel.notesSection.editNote')}
+                                              title={t(
+                                                "leftPanel.notesSection.editNote"
+                                              )}
                                             >
-                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                              <svg
+                                                className="w-3 h-3"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                />
                                               </svg>
                                             </button>
                                             <button
@@ -3182,17 +3907,33 @@ export default function CourseLearnPage() {
                                                 handleDeleteNote(note.id);
                                               }}
                                               className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
-                                              title={t('leftPanel.notesSection.deleteNote')}
+                                              title={t(
+                                                "leftPanel.notesSection.deleteNote"
+                                              )}
                                             >
-                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                              <svg
+                                                className="w-3 h-3"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                />
                                               </svg>
                                             </button>
                                           </div>
                                         </div>
                                       </div>
                                       <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2 whitespace-pre-line">
-                                        {note.content || generateNotePreview(note.fullContent || '', 50)}
+                                        {note.content ||
+                                          generateNotePreview(
+                                            note.fullContent || "",
+                                            50
+                                          )}
                                       </p>
                                       {note.tags && note.tags.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-2">
@@ -3216,20 +3957,46 @@ export default function CourseLearnPage() {
                             <div className="bg-gradient-to-r from-[#10B981]/10 to-[#00D4B3]/10 border border-[#10B981]/30 rounded-xl p-4">
                               <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
                                 <TrendingUp className="w-4 h-4 text-green-400" />
-                                {t('leftPanel.notesSection.notesProgress')}
+                                {t("leftPanel.notesSection.notesProgress")}
                               </h3>
                               <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
-                                  <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.notesCreated')}</span>
-                                  <span className="text-green-600 dark:text-green-400 font-medium">{notesStats.totalNotes}</span>
+                                  <span className="text-gray-700 dark:text-white/70">
+                                    {t("leftPanel.notesSection.notesCreated")}
+                                  </span>
+                                  <span className="text-green-600 dark:text-green-400 font-medium">
+                                    {notesStats.totalNotes}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                  <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lessonsWithNotes')}</span>
-                                  <span className="text-[#00D4B3] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{notesStats.lessonsWithNotes}</span>
+                                  <span className="text-gray-700 dark:text-white/70">
+                                    {t(
+                                      "leftPanel.notesSection.lessonsWithNotes"
+                                    )}
+                                  </span>
+                                  <span
+                                    className="text-[#00D4B3] dark:text-[#00D4B3] font-medium"
+                                    style={{
+                                      fontFamily: "Inter, sans-serif",
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    {notesStats.lessonsWithNotes}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                  <span className="text-gray-700 dark:text-white/70">{t('leftPanel.notesSection.lastUpdate')}</span>
-                                  <span className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{notesStats.lastUpdate}</span>
+                                  <span className="text-gray-700 dark:text-white/70">
+                                    {t("leftPanel.notesSection.lastUpdate")}
+                                  </span>
+                                  <span
+                                    className="text-[#6C757D] dark:text-white/60"
+                                    style={{
+                                      fontFamily: "Inter, sans-serif",
+                                      fontWeight: 400,
+                                    }}
+                                  >
+                                    {notesStats.lastUpdate}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -3253,7 +4020,6 @@ export default function CourseLearnPage() {
                     setIsMaterialCollapsed(false);
                     setIsNotesCollapsed(false);
                     // Si LIA está abierto, ponerlo en tamaño pequeño
-
                   }}
                   className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
                   title="Mostrar material del curso"
@@ -3271,7 +4037,6 @@ export default function CourseLearnPage() {
                     setIsMaterialCollapsed(false);
                     setIsNotesCollapsed(true);
                     // Si LIA está abierto, ponerlo en tamaño pequeño
-
                   }}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
                   title="Ver lecciones"
@@ -3286,10 +4051,9 @@ export default function CourseLearnPage() {
                     setIsMaterialCollapsed(true);
                     setIsNotesCollapsed(false);
                     // Si LIA está abierto, ponerlo en tamaño pequeño
-
                   }}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
-                  title={t('leftPanel.notesSection.viewNotes')}
+                  title={t("leftPanel.notesSection.viewNotes")}
                 >
                   <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
                 </button>
@@ -3302,10 +4066,9 @@ export default function CourseLearnPage() {
                     setIsNotesCollapsed(false);
                     openNewNoteModal();
                     // Si LIA está abierto, ponerlo en tamaño pequeño
-
                   }}
                   className="w-8 h-8 flex items-center justify-center rounded-full bg-[#00D4B3] hover:bg-[#00b8a0] transition-colors shadow-lg shadow-[#00D4B3]/25"
-                  title={t('leftPanel.notesSection.newNote')}
+                  title={t("leftPanel.notesSection.newNote")}
                 >
                   <Plus className="w-4 h-4 text-white" />
                 </button>
@@ -3321,14 +4084,29 @@ export default function CourseLearnPage() {
                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4 border border-[#0A2540]/30">
                     <BookOpen className="w-10 h-10 text-[#00D4B3]" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Este curso aún no tiene contenido</h3>
-                  <p className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Los módulos y lecciones se agregarán pronto</p>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    Este curso aún no tiene contenido
+                  </h3>
+                  <p
+                    className="text-[#6C757D] dark:text-white/60"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                  >
+                    Los módulos y lecciones se agregarán pronto
+                  </p>
                 </div>
               </div>
             ) : currentLesson ? (
               <>
                 {/* Tabs mejorados - Responsive */}
-                <div className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-xl h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth" style={{ scrollPaddingLeft: '0.5rem', scrollPaddingRight: '0.5rem', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+                <div
+                  className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-xl h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth"
+                  style={{
+                    scrollPaddingLeft: "0.5rem",
+                    scrollPaddingRight: "0.5rem",
+                    scrollSnapType: "x mandatory",
+                    WebkitOverflowScrolling: "touch",
+                  }}
+                >
                   <div className="flex gap-1 md:gap-2 items-center min-w-max">
                     {tabs.map((tab) => {
                       const Icon = tab.icon;
@@ -3341,22 +4119,28 @@ export default function CourseLearnPage() {
                           key={tab.id}
                           id={`tour-tab-${tab.id}`}
                           onClick={() => setActiveTab(tab.id)}
-                          className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${shouldHideText
-                            ? 'px-2 py-2 hover:px-3 hover:gap-2'
-                            : 'px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit'
-                            } ${isActive
-                              ? 'bg-[#0A2540] text-white shadow-lg shadow-[#0A2540]/25'
-                              : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                            }`}
-                          style={{ fontFamily: 'Inter, sans-serif', fontWeight: isActive ? 600 : 500 }}
-                          style={{ scrollSnapAlign: 'start' }}
+                          className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
+                            shouldHideText
+                              ? "px-2 py-2 hover:px-3 hover:gap-2"
+                              : "px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit"
+                          } ${
+                            isActive
+                              ? "bg-[#0A2540] text-white shadow-lg shadow-[#0A2540]/25"
+                              : "text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
+                          }`}
+                          style={{
+                            fontFamily: "Inter, sans-serif",
+                            fontWeight: isActive ? 600 : 500,
+                          }}
+                          style={{ scrollSnapAlign: "start" }}
                         >
                           <Icon className="w-4 h-4 shrink-0" />
                           <span
-                            className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${shouldHideText
-                              ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100'
-                              : ''
-                              }`}
+                            className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
+                              shouldHideText
+                                ? "max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100"
+                                : ""
+                            }`}
                           >
                             {tab.label}
                           </span>
@@ -3370,7 +4154,9 @@ export default function CourseLearnPage() {
                 <div
                   className="flex-1 overflow-y-auto md:pb-0"
                   style={{
-                    paddingBottom: isMobile ? mobileContentPaddingBottom : undefined,
+                    paddingBottom: isMobile
+                      ? mobileContentPaddingBottom
+                      : undefined,
                   }}
                 >
                   <AnimatePresence mode="wait">
@@ -3382,7 +4168,7 @@ export default function CourseLearnPage() {
                       transition={{ duration: 0.3 }}
                       className="min-h-full p-3 md:p-6 flex flex-col gap-4"
                     >
-                      {activeTab === 'video' && (
+                      {activeTab === "video" && (
                         <VideoContent
                           lesson={currentLesson}
                           modules={modules}
@@ -3392,11 +4178,15 @@ export default function CourseLearnPage() {
                           getNextLesson={getNextLesson}
                           markLessonAsCompleted={markLessonAsCompleted}
                           canCompleteLesson={canCompleteLesson}
-                          onCourseCompleted={() => setIsCourseCompletedModalOpen(true)}
-                          onCannotComplete={() => setIsCannotCompleteModalOpen(true)}
+                          onCourseCompleted={() =>
+                            setIsCourseCompletedModalOpen(true)
+                          }
+                          onCannotComplete={() =>
+                            setIsCannotCompleteModalOpen(true)
+                          }
                         />
                       )}
-                      {activeTab === 'transcript' && (
+                      {activeTab === "transcript" && (
                         <TranscriptContent
                           lesson={currentLesson}
                           slug={slug}
@@ -3404,8 +4194,10 @@ export default function CourseLearnPage() {
                           onStatsUpdate={updateNotesStatsOptimized}
                         />
                       )}
-                      {activeTab === 'summary' && currentLesson && <SummaryContent lesson={currentLesson} slug={slug} />}
-                      {activeTab === 'activities' && (
+                      {activeTab === "summary" && currentLesson && (
+                        <SummaryContent lesson={currentLesson} slug={slug} />
+                      )}
+                      {activeTab === "activities" && (
                         <ActivitiesContent
                           lesson={currentLesson}
                           slug={slug}
@@ -3417,7 +4209,14 @@ export default function CourseLearnPage() {
                           colors={colors}
                         />
                       )}
-                      {activeTab === 'questions' && <QuestionsContent slug={slug} courseTitle={course?.title || course?.course_title || 'Curso'} />}
+                      {activeTab === "questions" && (
+                        <QuestionsContent
+                          slug={slug}
+                          courseTitle={
+                            course?.title || course?.course_title || "Curso"
+                          }
+                        />
+                      )}
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -3426,13 +4225,18 @@ export default function CourseLearnPage() {
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-                  <p className="text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.lesson')}</p>
+                  <p
+                    className="text-[#6C757D] dark:text-white/60"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                  >
+                    {t("loading.lesson")}
+                  </p>
                 </div>
               </div>
             )}
           </div>
 
-{/* Panel Derecho - Solo LIA - REMOVED */}
+          {/* Panel Derecho - Solo LIA - REMOVED */}
         </div>
 
         {/* Barra de navegación inferior flotante para móviles */}
@@ -3442,8 +4246,8 @@ export default function CourseLearnPage() {
             animate={{ y: 0, opacity: 1 }}
             className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-lg border-t border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl"
             style={{
-              paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
-              height: 'calc(70px + max(env(safe-area-inset-bottom), 8px))'
+              paddingBottom: "max(env(safe-area-inset-bottom), 8px)",
+              height: "calc(70px + max(env(safe-area-inset-bottom), 8px))",
             }}
           >
             <div className="flex items-center justify-around px-4 py-3">
@@ -3452,10 +4256,11 @@ export default function CourseLearnPage() {
                 onClick={() => {
                   setIsLeftPanelOpen(true);
                 }}
-                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${isLeftPanelOpen
-                  ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]'
-                  : 'text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30'
-                  }`}
+                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
+                  isLeftPanelOpen
+                    ? "bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]"
+                    : "text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
+                }`}
               >
                 <BookOpen className="w-5 h-5" />
                 <span className="text-xs font-medium">Material</span>
@@ -3485,7 +4290,6 @@ export default function CourseLearnPage() {
 
               {/* Botón LIA - Integrado en la barra inferior móvil */}
               <LiaMobileButton />
-
             </div>
           </motion.div>
         )}
@@ -3546,8 +4350,12 @@ export default function CourseLearnPage() {
 
                 {/* Mensaje informativo sobre certificado */}
                 <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-3 mb-6">
-                  <p className="text-[#0A2540] dark:text-white text-center text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                    📜 A continuación, completa una breve encuesta para acceder a tu certificado
+                  <p
+                    className="text-[#0A2540] dark:text-white text-center text-sm"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                  >
+                    📜 A continuación, completa una breve encuesta para acceder
+                    a tu certificado
                   </p>
                 </div>
 
@@ -3558,7 +4366,8 @@ export default function CourseLearnPage() {
                     // Verificar si el usuario ya calificó después de cerrar el modal de completado
                     if (!hasUserRated && slug) {
                       try {
-                        const ratingCheck = await CourseRatingService.checkUserRating(slug);
+                        const ratingCheck =
+                          await CourseRatingService.checkUserRating(slug);
                         if (!ratingCheck.hasRating) {
                           // Mostrar modal de rating después de un breve delay
                           setTimeout(() => {
@@ -3569,12 +4378,12 @@ export default function CourseLearnPage() {
                         }
                       } catch (error) {
                         // Si hay error, no mostrar el modal
-                        console.error('Error checking rating:', error);
+                        console.error("Error checking rating:", error);
                       }
                     }
                   }}
                   className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
                 >
                   Aceptar
                 </button>
@@ -3617,20 +4426,28 @@ export default function CourseLearnPage() {
                 </div>
 
                 {/* Título */}
-                <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                <h3
+                  className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                >
                   No puedes completar esta lección
                 </h3>
 
                 {/* Mensaje */}
-                <p className="text-[#6C757D] dark:text-white/80 text-center mb-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                  Tienes lecciones pendientes que debes completar antes de terminar el curso. Completa todas las lecciones anteriores en orden.
+                <p
+                  className="text-[#6C757D] dark:text-white/80 text-center mb-6"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                >
+                  Tienes lecciones pendientes que debes completar antes de
+                  terminar el curso. Completa todas las lecciones anteriores en
+                  orden.
                 </p>
 
                 {/* Botón de cerrar */}
                 <button
                   onClick={() => setIsCannotCompleteModalOpen(false)}
                   className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
                 >
                   Entendido
                 </button>
@@ -3647,7 +4464,9 @@ export default function CourseLearnPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              onClick={() => setValidationModal({ ...validationModal, isOpen: false })}
+              onClick={() =>
+                setValidationModal({ ...validationModal, isOpen: false })
+              }
             >
               {/* Overlay */}
               <motion.div
@@ -3667,15 +4486,20 @@ export default function CourseLearnPage() {
               >
                 {/* Icono según el tipo de validación */}
                 <div className="flex justify-center mb-4">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${validationModal.type === 'activity' || validationModal.type === 'quiz'
-                    ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/25'
-                    : validationModal.type === 'video'
-                      ? 'bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-[#0A2540]/25'
-                      : 'bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] shadow-[#F59E0B]/25'
-                    }`}>
-                    {validationModal.type === 'activity' || validationModal.type === 'quiz' ? (
+                  <div
+                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
+                      validationModal.type === "activity" ||
+                      validationModal.type === "quiz"
+                        ? "bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/25"
+                        : validationModal.type === "video"
+                          ? "bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-[#0A2540]/25"
+                          : "bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] shadow-[#F59E0B]/25"
+                    }`}
+                  >
+                    {validationModal.type === "activity" ||
+                    validationModal.type === "quiz" ? (
                       <AlertCircle className="w-10 h-10 text-white" />
-                    ) : validationModal.type === 'video' ? (
+                    ) : validationModal.type === "video" ? (
                       <Info className="w-10 h-10 text-white" />
                     ) : (
                       <XCircle className="w-10 h-10 text-white" />
@@ -3684,19 +4508,31 @@ export default function CourseLearnPage() {
                 </div>
 
                 {/* Título */}
-                <h3 className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                <h3
+                  className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                >
                   {validationModal.title}
                 </h3>
 
                 {/* Mensaje */}
-                <p className="text-[#6C757D] dark:text-white/80 text-center mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                <p
+                  className="text-[#6C757D] dark:text-white/80 text-center mb-4"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                >
                   {validationModal.message}
                 </p>
 
                 {/* Detalles adicionales si existen */}
                 {validationModal.details && (
                   <div className="mb-6 p-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
-                    <p className="text-[#0A2540] dark:text-white text-sm text-center font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                    <p
+                      className="text-[#0A2540] dark:text-white text-sm text-center font-medium"
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontWeight: 500,
+                      }}
+                    >
                       {validationModal.details}
                     </p>
                   </div>
@@ -3721,13 +4557,13 @@ export default function CourseLearnPage() {
                         // Cambiar a la lección correspondiente
                         setCurrentLesson(lessonToShow.lesson);
                         // Cambiar al tab de actividades
-                        setActiveTab('activities');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        setActiveTab("activities");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
                       }
                     }
                   }}
                   className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
                 >
                   Entendido
                 </button>
@@ -3735,8 +4571,6 @@ export default function CourseLearnPage() {
             </motion.div>
           )}
         </AnimatePresence>
-
-
 
         {/* Modal de Rating */}
         <CourseRatingModal
@@ -3748,12 +4582,12 @@ export default function CourseLearnPage() {
             setHasUserRated(true);
             setIsRatingModalOpen(false);
             // Redirigir a la página de certificados después de completar la encuesta
-            router.push('/certificates');
+            router.push("/certificates");
           }}
         />
 
         {/* LIA In-Context Chat for Courses */}
-        <CourseLia 
+        <CourseLia
           lessonId={currentLesson?.lesson_id}
           lessonTitle={currentLesson?.lesson_title}
           courseSlug={slug}
@@ -3762,16 +4596,17 @@ export default function CourseLearnPage() {
           lessonContent={currentLesson?.lesson_description}
           customColors={{
             panelBg: colors.bgSecondary,
-            borderColor: 'rgba(255,255,255,0.1)',
+            borderColor: "rgba(255,255,255,0.1)",
             accentColor: colors.accent,
-            textPrimary: '#FFFFFF',
-            textSecondary: 'rgba(255,255,255,0.6)',
+            textPrimary: "#FFFFFF",
+            textSecondary: "rgba(255,255,255,0.6)",
           }}
         />
 
         {/* Tour de voz contextual para la página de aprendizaje */}
-
-
+        
+        {/* Joyride Tour */}
+        {isJoyrideMounted && <Joyride {...joyrideProps} />}
       </div>
     </WorkshopLearningProvider>
   );
@@ -3788,7 +4623,7 @@ function VideoContent({
   markLessonAsCompleted,
   canCompleteLesson,
   onCourseCompleted,
-  onCannotComplete
+  onCannotComplete,
 }: {
   lesson: Lesson;
   modules: Module[];
@@ -3813,8 +4648,12 @@ function VideoContent({
   const hasNextLesson = nextLesson !== null;
 
   // Determinar si hay video anterior y siguiente
-  const hasPreviousVideo = hasPreviousLesson && previousLesson.video_provider && previousLesson.video_provider_id;
-  const hasNextVideo = hasNextLesson && nextLesson.video_provider && nextLesson.video_provider_id;
+  const hasPreviousVideo =
+    hasPreviousLesson &&
+    previousLesson.video_provider &&
+    previousLesson.video_provider_id;
+  const hasNextVideo =
+    hasNextLesson && nextLesson.video_provider && nextLesson.video_provider_id;
 
   // Determinar si es la última lección
   const isLastLesson = !hasNextLesson;
@@ -3861,28 +4700,35 @@ function VideoContent({
               {/* Botón siguiente o terminar - lado derecho */}
               {(hasNextVideo || isLastLesson) && (
                 <button
-                  onClick={isLastLesson ? async () => {
-                    // Verificar si se puede completar la lección
-                    if (lesson && canCompleteLesson(lesson.lesson_id)) {
-                      // Marcar la última lección como completada antes de terminar
-                      const success = await markLessonAsCompleted(lesson.lesson_id);
-                      if (success) {
-                        // Mostrar modal de curso completado
-                        onCourseCompleted();
-                      } else {
-                        // Mostrar modal de error si no se puede completar
-                        onCannotComplete();
-                      }
-                    } else {
-                      // Mostrar modal de error si no se puede completar
-                      onCannotComplete();
-                    }
-                  } : onNavigateNext}
-                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${isLastLesson ? 'bg-[#10B981]/50 hover:bg-[#10B981]/70' : ''
-                    }`}
+                  onClick={
+                    isLastLesson
+                      ? async () => {
+                          // Verificar si se puede completar la lección
+                          if (lesson && canCompleteLesson(lesson.lesson_id)) {
+                            // Marcar la última lección como completada antes de terminar
+                            const success = await markLessonAsCompleted(
+                              lesson.lesson_id
+                            );
+                            if (success) {
+                              // Mostrar modal de curso completado
+                              onCourseCompleted();
+                            } else {
+                              // Mostrar modal de error si no se puede completar
+                              onCannotComplete();
+                            }
+                          } else {
+                            // Mostrar modal de error si no se puede completar
+                            onCannotComplete();
+                          }
+                        }
+                      : onNavigateNext
+                  }
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
+                    isLastLesson ? "bg-[#10B981]/50 hover:bg-[#10B981]/70" : ""
+                  }`}
                 >
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
-                    {isLastLesson ? 'Terminar' : 'Siguiente'}
+                    {isLastLesson ? "Terminar" : "Siguiente"}
                   </span>
                   {isLastLesson ? (
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
@@ -3900,7 +4746,9 @@ function VideoContent({
               <div className="w-20 h-20 bg-[#0A2540] rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:bg-[#0d2f4d] transition-all transform group-hover:scale-110">
                 <Play className="w-10 h-10 text-white ml-1" />
               </div>
-              <p className="text-gray-700 dark:text-white/70">Video no disponible</p>
+              <p className="text-gray-700 dark:text-white/70">
+                Video no disponible
+              </p>
             </div>
 
             {/* Botones de navegación incluso si no hay video - Centrados verticalmente */}
@@ -3921,28 +4769,35 @@ function VideoContent({
               {/* Botón siguiente o terminar - lado derecho */}
               {(hasNextVideo || isLastLesson) && (
                 <button
-                  onClick={isLastLesson ? async () => {
-                    // Verificar si se puede completar la lección
-                    if (lesson && canCompleteLesson(lesson.lesson_id)) {
-                      // Marcar la última lección como completada antes de terminar
-                      const success = await markLessonAsCompleted(lesson.lesson_id);
-                      if (success) {
-                        // Mostrar modal de curso completado
-                        onCourseCompleted();
-                      } else {
-                        // Mostrar modal de error si no se puede completar
-                        onCannotComplete();
-                      }
-                    } else {
-                      // Mostrar modal de error si no se puede completar
-                      onCannotComplete();
-                    }
-                  } : onNavigateNext}
-                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${isLastLesson ? 'bg-[#10B981]/50 hover:bg-[#10B981]/70' : ''
-                    }`}
+                  onClick={
+                    isLastLesson
+                      ? async () => {
+                          // Verificar si se puede completar la lección
+                          if (lesson && canCompleteLesson(lesson.lesson_id)) {
+                            // Marcar la última lección como completada antes de terminar
+                            const success = await markLessonAsCompleted(
+                              lesson.lesson_id
+                            );
+                            if (success) {
+                              // Mostrar modal de curso completado
+                              onCourseCompleted();
+                            } else {
+                              // Mostrar modal de error si no se puede completar
+                              onCannotComplete();
+                            }
+                          } else {
+                            // Mostrar modal de error si no se puede completar
+                            onCannotComplete();
+                          }
+                        }
+                      : onNavigateNext
+                  }
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
+                    isLastLesson ? "bg-[#10B981]/50 hover:bg-[#10B981]/70" : ""
+                  }`}
                 >
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
-                    {isLastLesson ? 'Terminar' : 'Siguiente'}
+                    {isLastLesson ? "Terminar" : "Siguiente"}
                   </span>
                   {isLastLesson ? (
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-all duration-300 group-hover:ml-2 order-2" />
@@ -3957,7 +4812,12 @@ function VideoContent({
       </div>
 
       <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-6">
-        <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{lesson.lesson_title}</h2>
+        <h2
+          className="text-2xl font-bold text-[#0A2540] dark:text-white mb-4"
+          style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+        >
+          {lesson.lesson_title}
+        </h2>
         {lesson.lesson_description && (
           <ExpandableText
             text={lesson.lesson_description}
@@ -3974,18 +4834,24 @@ function TranscriptContent({
   lesson,
   slug,
   onNoteCreated,
-  onStatsUpdate
+  onStatsUpdate,
 }: {
   lesson: Lesson | null;
   slug: string;
   onNoteCreated: (noteData: any, lessonId: string) => void;
-  onStatsUpdate: (operation: 'create' | 'update' | 'delete', lessonId?: string) => Promise<void>;
+  onStatsUpdate: (
+    operation: "create" | "update" | "delete",
+    lessonId?: string
+  ) => Promise<void>;
 }) {
-  const { t, i18n } = useTranslation('learn');
-  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+  const { t, i18n } = useTranslation("learn");
+  const selectedLang =
+    i18n.language === "en" ? "en" : i18n.language === "pt" ? "pt" : "es";
   const [isSaving, setIsSaving] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [transcriptContent, setTranscriptContent] = useState<string | null>(null);
+  const [transcriptContent, setTranscriptContent] = useState<string | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
 
   // Cargar transcripción bajo demanda
@@ -3998,7 +4864,9 @@ function TranscriptContent({
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/transcript?language=${selectedLang}`);
+        const response = await fetch(
+          `/api/courses/${slug}/lessons/${lesson.lesson_id}/transcript?language=${selectedLang}`
+        );
         if (response.ok) {
           const data = await response.json();
           setTranscriptContent(data.transcript_content || null);
@@ -4017,7 +4885,8 @@ function TranscriptContent({
   }, [lesson?.lesson_id, slug, selectedLang]);
 
   // Verificar si existe contenido de transcripción
-  const hasTranscript = transcriptContent && transcriptContent.trim().length > 0;
+  const hasTranscript =
+    transcriptContent && transcriptContent.trim().length > 0;
 
   // Calcular tiempo de lectura estimado (palabras por minuto promedio: 200)
   const estimatedReadingTime = transcriptContent
@@ -4028,11 +4897,13 @@ function TranscriptContent({
   const handleDownloadTranscript = () => {
     if (!transcriptContent || !lesson) return;
 
-    const blob = new Blob([transcriptContent], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([transcriptContent], {
+      type: "text/plain;charset=utf-8",
+    });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `transcripcion-${lesson.lesson_title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.txt`;
+    link.download = `transcripcion-${lesson.lesson_title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -4049,7 +4920,7 @@ function TranscriptContent({
       setTimeout(() => setIsCopied(false), 2000); // Reset después de 2 segundos
     } catch (error) {
       // console.error('Error al copiar al portapapeles:', error);
-      alert('Error al copiar al portapapeles');
+      alert("Error al copiar al portapapeles");
     }
   };
 
@@ -4064,22 +4935,25 @@ function TranscriptContent({
       const notePayload = {
         note_title: `Transcripción: ${lesson.lesson_title}`,
         note_content: transcriptContent,
-        note_tags: ['transcripción', 'automática'],
-        source_type: 'manual' // Usar valor válido según la restricción de la BD
+        note_tags: ["transcripción", "automática"],
+        source_type: "manual", // Usar valor válido según la restricción de la BD
       };
 
       // console.log('=== DEBUG TRANSCRIPCIÓN ===');
       // console.log('Enviando payload de nota:', notePayload);
       // console.log('URL de la API:', `/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`);
 
-      const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(notePayload)
-      });
+      const response = await fetch(
+        `/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(notePayload),
+        }
+      );
 
       // console.log('Respuesta del servidor:', response.status, response.statusText);
       // console.log('Headers de respuesta:', Object.fromEntries(response.headers.entries()));
@@ -4093,15 +4967,17 @@ function TranscriptContent({
           if (responseText) {
             errorData = JSON.parse(responseText);
           } else {
-            errorData = { error: 'Respuesta vacía del servidor' };
+            errorData = { error: "Respuesta vacía del servidor" };
           }
         } catch (parseError) {
           // console.error('Error al parsear respuesta JSON:', parseError);
-          errorData = { error: 'Error al procesar respuesta del servidor' };
+          errorData = { error: "Error al procesar respuesta del servidor" };
         }
 
         // console.error('Error detallado del servidor:', errorData);
-        alert(`Error al guardar la transcripción en notas:\n\n${errorData.error || 'Error desconocido'}\n\nDetalles: ${errorData.message || 'Sin detalles adicionales'}\n\nCódigo de estado: ${response.status}`);
+        alert(
+          `Error al guardar la transcripción en notas:\n\n${errorData.error || "Error desconocido"}\n\nDetalles: ${errorData.message || "Sin detalles adicionales"}\n\nCódigo de estado: ${response.status}`
+        );
         return;
       }
 
@@ -4112,16 +4988,17 @@ function TranscriptContent({
       // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
       if (lesson?.lesson_id) {
         onNoteCreated(newNote, lesson.lesson_id);
-        await onStatsUpdate('create', lesson.lesson_id);
+        await onStatsUpdate("create", lesson.lesson_id);
       }
 
       // Mostrar mensaje de éxito
-      alert('✅ Transcripción guardada exitosamente en notas');
-
+      alert("✅ Transcripción guardada exitosamente en notas");
     } catch (error) {
       // console.error('Error al guardar transcripción en notas:', error);
       // console.log('=== FIN DEBUG (ERROR) ===');
-      alert(`❌ Error al guardar la transcripción en notas:\n\n${error instanceof Error ? error.message : 'Error desconocido'}\n\nRevisa la consola para más detalles.`);
+      alert(
+        `❌ Error al guardar la transcripción en notas:\n\n${error instanceof Error ? error.message : "Error desconocido"}\n\nRevisa la consola para más detalles.`
+      );
     } finally {
       setIsSaving(false);
     }
@@ -4131,14 +5008,18 @@ function TranscriptContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">Transcripción del Video</h2>
+          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">
+            Transcripción del Video
+          </h2>
         </div>
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center">
           <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
             <ScrollText className="w-8 h-8 text-white/20" />
           </div>
-          <h3 className="text-white font-semibold text-lg mb-2">Selecciona una lección</h3>
-           <p className="text-white/40 max-w-md mx-auto">
+          <h3 className="text-white font-semibold text-lg mb-2">
+            Selecciona una lección
+          </h3>
+          <p className="text-white/40 max-w-md mx-auto">
             Selecciona una lección del panel izquierdo para ver su transcripción
           </p>
         </div>
@@ -4150,7 +5031,9 @@ function TranscriptContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">Transcripción del Video</h2>
+          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">
+            Transcripción del Video
+          </h2>
           <div className="h-4 w-1/3 bg-white/10 rounded animate-pulse" />
         </div>
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 flex flex-col items-center justify-center">
@@ -4160,7 +5043,7 @@ function TranscriptContent({
               <ScrollText className="w-8 h-8 text-[#00D4B3] animate-pulse" />
             </div>
           </div>
-          <p className="text-white/60 font-medium">{t('loading.transcript')}</p>
+          <p className="text-white/60 font-medium">{t("loading.transcript")}</p>
         </div>
       </div>
     );
@@ -4176,117 +5059,169 @@ function TranscriptContent({
           </h2>
           <p className="text-white/40 text-sm">{lesson.lesson_title}</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
             <div className="w-1.5 h-1.5 rounded-full bg-[#00D4B3]" />
-            <span className="text-sm font-medium text-white">{transcriptContent?.length || 0}</span>
+            <span className="text-sm font-medium text-white">
+              {transcriptContent?.length || 0}
+            </span>
             <span className="text-xs text-white/40">caracteres</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
             <Clock className="w-3.5 h-3.5 text-[#00D4B3]" />
-            <span className="text-sm font-medium text-white">{estimatedReadingTime}</span>
+            <span className="text-sm font-medium text-white">
+              {estimatedReadingTime}
+            </span>
             <span className="text-xs text-white/40">min</span>
           </div>
         </div>
       </div>
 
       <AnimatePresence mode="wait">
-      {hasTranscript ? (
-        <motion.div 
+        {hasTranscript ? (
+          <motion.div
             key="transcript-content"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
             className="relative rounded-2xl border border-white/10 bg-[#0F1419]/40 overflow-hidden shadow-2xl backdrop-blur-sm group"
-        >
+          >
             {/* Decoración de gradiente superior */}
             <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4B3]/50 to-transparent opacity-50" />
-            
+
             {/* Glow de fondo sutil */}
             <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#00D4B3]/5 rounded-full blur-3xl pointer-events-none" />
-            
+
             {/* Contenido Renderizado */}
             <div className="relative p-8 prose prose-invert max-w-none">
-            <ReactMarkdown
+              <ReactMarkdown
                 components={{
-                h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-white mb-6 mt-8 flex items-center gap-2 not-prose" {...props} />,
-                h2: ({node, ...props}) => <h2 className="text-xl font-bold text-white mb-4 mt-8 pb-2 border-b border-white/5 not-prose" {...props} />,
-                h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose" {...props} />,
-                strong: ({node, ...props}) => <strong className="font-bold text-white/90" {...props} />,
-                p: ({node, ...props}) => <p className="mb-4 text-white/80 leading-relaxed font-light tracking-wide text-base" {...props} />,
-                ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]" {...props} />,
-                ol: ({node, ...props}) => <ol className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-white/80" {...props} />,
-                li: ({node, ...props}) => <li className="pl-1 leading-relaxed" {...props} />,
-                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-[#00D4B3] pl-4 italic text-white/60 my-6 bg-white/5 py-2 pr-4 rounded-r-lg not-prose" {...props} />,
+                  h1: ({ node, ...props }) => (
+                    <h1
+                      className="text-2xl font-bold text-white mb-6 mt-8 flex items-center gap-2 not-prose"
+                      {...props}
+                    />
+                  ),
+                  h2: ({ node, ...props }) => (
+                    <h2
+                      className="text-xl font-bold text-white mb-4 mt-8 pb-2 border-b border-white/5 not-prose"
+                      {...props}
+                    />
+                  ),
+                  h3: ({ node, ...props }) => (
+                    <h3
+                      className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose"
+                      {...props}
+                    />
+                  ),
+                  strong: ({ node, ...props }) => (
+                    <strong className="font-bold text-white/90" {...props} />
+                  ),
+                  p: ({ node, ...props }) => (
+                    <p
+                      className="mb-4 text-white/80 leading-relaxed font-light tracking-wide text-base"
+                      {...props}
+                    />
+                  ),
+                  ul: ({ node, ...props }) => (
+                    <ul
+                      className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]"
+                      {...props}
+                    />
+                  ),
+                  ol: ({ node, ...props }) => (
+                    <ol
+                      className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-white/80"
+                      {...props}
+                    />
+                  ),
+                  li: ({ node, ...props }) => (
+                    <li className="pl-1 leading-relaxed" {...props} />
+                  ),
+                  blockquote: ({ node, ...props }) => (
+                    <blockquote
+                      className="border-l-4 border-[#00D4B3] pl-4 italic text-white/60 my-6 bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
+                      {...props}
+                    />
+                  ),
                 }}
-            >
-                {transcriptContent || ''}
-            </ReactMarkdown>
+              >
+                {transcriptContent || ""}
+              </ReactMarkdown>
             </div>
 
             {/* Footer con acciones */}
             <div className="relative px-8 py-4 bg-white/[0.02] border-t border-white/5 flex flex-wrap gap-4 justify-between items-center">
-                <div className="text-xs text-white/20 font-medium tracking-widest uppercase hidden md:block">
+              <div className="text-xs text-white/20 font-medium tracking-widest uppercase hidden md:block">
                 Generado automáticamente
-                </div>
+              </div>
 
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <button
-                    onClick={handleCopyToClipboard}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all"
+                  onClick={handleCopyToClipboard}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all"
                 >
-                    {isCopied ? <Check className="w-3.5 h-3.5 text-[#00D4B3]" /> : <Copy className="w-3.5 h-3.5" />}
-                    {isCopied ? 'Copiado' : 'Copiar'}
+                  {isCopied ? (
+                    <Check className="w-3.5 h-3.5 text-[#00D4B3]" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                  {isCopied ? "Copiado" : "Copiar"}
                 </button>
 
                 <button
-                    onClick={handleDownloadTranscript}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all"
+                  onClick={handleDownloadTranscript}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all"
                 >
-                    <FileDown className="w-3.5 h-3.5" />
-                    Descargar
+                  <FileDown className="w-3.5 h-3.5" />
+                  Descargar
                 </button>
 
                 <button
-                    onClick={handleSaveToNotes}
-                    disabled={isSaving}
-                    className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-medium bg-[#00D4B3]/10 text-[#00D4B3] hover:bg-[#00D4B3]/20 border border-[#00D4B3]/20 hover:border-[#00D4B3]/40 transition-all disabled:opacity-50"
+                  onClick={handleSaveToNotes}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-medium bg-[#00D4B3]/10 text-[#00D4B3] hover:bg-[#00D4B3]/20 border border-[#00D4B3]/20 hover:border-[#00D4B3]/40 transition-all disabled:opacity-50"
                 >
-                    <Save className={`w-3.5 h-3.5 ${isSaving ? 'animate-spin' : ''}`} />
-                    {isSaving ? 'Guardando...' : 'Guardar en notas'}
+                  <Save
+                    className={`w-3.5 h-3.5 ${isSaving ? "animate-spin" : ""}`}
+                  />
+                  {isSaving ? "Guardando..." : "Guardar en notas"}
                 </button>
-                </div>
+              </div>
             </div>
-        </motion.div>
-      ) : (
-        <motion.div 
+          </motion.div>
+        ) : (
+          <motion.div
             key="empty-transcript"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center"
-        >
-          <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
-            <ScrollText className="w-8 h-8 text-white/20" />
-          </div>
-          <h3 className="text-white font-semibold text-lg mb-2">Transcripción no disponible</h3>
-          <p className="text-white/40 max-w-md mx-auto mb-6">
-            Esta lección aún no cuenta con una transcripción disponible.
-          </p>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-white/40">
-            <Info className="w-4 h-4" />
-            <span>El contenido se actualizará pronto</span>
-          </div>
-        </motion.div>
-      )}
+          >
+            <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
+              <ScrollText className="w-8 h-8 text-white/20" />
+            </div>
+            <h3 className="text-white font-semibold text-lg mb-2">
+              Transcripción no disponible
+            </h3>
+            <p className="text-white/40 max-w-md mx-auto mb-6">
+              Esta lección aún no cuenta con una transcripción disponible.
+            </p>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-white/40">
+              <Info className="w-4 h-4" />
+              <span>El contenido se actualizará pronto</span>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
 }
 
 function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
-  const { t, i18n } = useTranslation('learn');
-  const selectedLang = i18n.language === 'en' ? 'en' : i18n.language === 'pt' ? 'pt' : 'es';
+  const { t, i18n } = useTranslation("learn");
+  const selectedLang =
+    i18n.language === "en" ? "en" : i18n.language === "pt" ? "pt" : "es";
   const [summaryContent, setSummaryContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -4300,7 +5235,9 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
 
       try {
         setLoading(true);
-        const response = await fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/summary?language=${selectedLang}`);
+        const response = await fetch(
+          `/api/courses/${slug}/lessons/${lesson.lesson_id}/summary?language=${selectedLang}`
+        );
         if (response.ok) {
           const data = await response.json();
           setSummaryContent(data.summary_content || null);
@@ -4330,7 +5267,9 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">Resumen del Video</h2>
+          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">
+            Resumen del Video
+          </h2>
           <div className="h-4 w-1/3 bg-white/10 rounded animate-pulse" />
         </div>
         <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 flex flex-col items-center justify-center">
@@ -4340,7 +5279,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
               <Sparkles className="w-8 h-8 text-[#00D4B3] animate-pulse" />
             </div>
           </div>
-          <p className="text-white/60 font-medium">{t('loading.summary')}</p>
+          <p className="text-white/60 font-medium">{t("loading.summary")}</p>
         </div>
       </div>
     );
@@ -4350,7 +5289,9 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">Resumen del Video</h2>
+          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">
+            Resumen del Video
+          </h2>
           <p className="text-white/40 text-sm">{lesson.lesson_title}</p>
         </div>
 
@@ -4358,7 +5299,9 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
             <FileText className="w-8 h-8 text-white/20" />
           </div>
-          <h3 className="text-white font-semibold text-lg mb-2">Resumen no disponible</h3>
+          <h3 className="text-white font-semibold text-lg mb-2">
+            Resumen no disponible
+          </h3>
           <p className="text-white/40 max-w-md mx-auto mb-6">
             Esta lección aún no cuenta con un resumen generado automáticamente.
           </p>
@@ -4382,23 +5325,27 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           </h2>
           <p className="text-white/40 text-sm">{lesson.lesson_title}</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
             <div className="w-1.5 h-1.5 rounded-full bg-[#00D4B3]" />
-            <span className="text-sm font-medium text-white">{summaryContent?.split(/\s+/).length || 0}</span>
+            <span className="text-sm font-medium text-white">
+              {summaryContent?.split(/\s+/).length || 0}
+            </span>
             <span className="text-xs text-white/40">palabras</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
             <Clock className="w-3.5 h-3.5 text-[#00D4B3]" />
-            <span className="text-sm font-medium text-white">{estimatedReadingTime}</span>
+            <span className="text-sm font-medium text-white">
+              {estimatedReadingTime}
+            </span>
             <span className="text-xs text-white/40">min</span>
           </div>
         </div>
       </div>
 
       {/* Tarjeta de Contenido */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -4406,44 +5353,90 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
       >
         {/* Decoración de gradiente superior */}
         <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4B3]/50 to-transparent opacity-50" />
-        
+
         {/* Glow de fondo sutil */}
         <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#00D4B3]/5 rounded-full blur-3xl pointer-events-none" />
-        
+
         {/* Contenido */}
         {/* Contenido */}
         <div className="relative p-8 prose prose-invert max-w-none">
           <ReactMarkdown
             components={{
-              h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-white mb-6 mt-8 flex items-center gap-2 not-prose" {...props} />,
-              h2: ({node, ...props}) => <h2 className="text-xl font-bold text-white mb-4 mt-8 pb-2 border-b border-white/5 not-prose" {...props} />,
-              h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose" {...props} />,
-              strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
-              p: ({node, ...props}) => <p className="mb-4 text-white/80 leading-relaxed font-light tracking-wide text-base" {...props} />,
-              ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]" {...props} />,
-              ol: ({node, ...props}) => <ol className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-white/80" {...props} />,
-              li: ({node, ...props}) => <li className="pl-1 leading-relaxed" {...props} />,
-              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-[#00D4B3] pl-4 italic text-white/60 my-6 bg-white/5 py-2 pr-4 rounded-r-lg not-prose" {...props} />,
-              code: ({node, ...props}) => <code className="bg-black/30 px-1.5 py-0.5 rounded text-sm font-mono text-[#00D4B3]" {...props} />,
+              h1: ({ node, ...props }) => (
+                <h1
+                  className="text-2xl font-bold text-white mb-6 mt-8 flex items-center gap-2 not-prose"
+                  {...props}
+                />
+              ),
+              h2: ({ node, ...props }) => (
+                <h2
+                  className="text-xl font-bold text-white mb-4 mt-8 pb-2 border-b border-white/5 not-prose"
+                  {...props}
+                />
+              ),
+              h3: ({ node, ...props }) => (
+                <h3
+                  className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose"
+                  {...props}
+                />
+              ),
+              strong: ({ node, ...props }) => (
+                <strong className="font-bold text-white" {...props} />
+              ),
+              p: ({ node, ...props }) => (
+                <p
+                  className="mb-4 text-white/80 leading-relaxed font-light tracking-wide text-base"
+                  {...props}
+                />
+              ),
+              ul: ({ node, ...props }) => (
+                <ul
+                  className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]"
+                  {...props}
+                />
+              ),
+              ol: ({ node, ...props }) => (
+                <ol
+                  className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-white/80"
+                  {...props}
+                />
+              ),
+              li: ({ node, ...props }) => (
+                <li className="pl-1 leading-relaxed" {...props} />
+              ),
+              blockquote: ({ node, ...props }) => (
+                <blockquote
+                  className="border-l-4 border-[#00D4B3] pl-4 italic text-white/60 my-6 bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
+                  {...props}
+                />
+              ),
+              code: ({ node, ...props }) => (
+                <code
+                  className="bg-black/30 px-1.5 py-0.5 rounded text-sm font-mono text-[#00D4B3]"
+                  {...props}
+                />
+              ),
             }}
           >
-            {summaryContent || ''}
+            {summaryContent || ""}
           </ReactMarkdown>
         </div>
 
         {/* Footer simple */}
         <div className="relative px-8 py-4 bg-white/[0.02] border-t border-white/5 flex justify-between items-center">
-            <span className="text-xs text-white/20 font-medium tracking-widest uppercase">Generado por IA • Revisado por Expertos</span>
-             <button 
-              onClick={() => {
-                navigator.clipboard.writeText(summaryContent || '');
-                // Podríamos añadir un toast aquí
-              }}
-              className="p-2 text-white/20 hover:text-[#00D4B3] transition-colors rounded-lg hover:bg-[#00D4B3]/10"
-              title="Copiar resumen"
-            >
-              <Copy className="w-4 h-4" />
-            </button>
+          <span className="text-xs text-white/20 font-medium tracking-widest uppercase">
+            Generado por IA • Revisado por Expertos
+          </span>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(summaryContent || "");
+              // Podríamos añadir un toast aquí
+            }}
+            className="p-2 text-white/20 hover:text-[#00D4B3] transition-colors rounded-lg hover:bg-[#00D4B3]/10"
+            title="Copiar resumen"
+          >
+            <Copy className="w-4 h-4" />
+          </button>
         </div>
       </motion.div>
     </div>
@@ -4457,7 +5450,7 @@ function QuizRenderer({
   lessonId,
   slug,
   materialId,
-  activityId
+  activityId,
 }: {
   quizData: Array<{
     id: string;
@@ -4474,7 +5467,9 @@ function QuizRenderer({
   materialId?: string;
   activityId?: string;
 }) {
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<string, string | number>
+  >({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [pointsEarned, setPointsEarned] = useState(0);
@@ -4483,9 +5478,9 @@ function QuizRenderer({
   const [serverMessage, setServerMessage] = useState<string | null>(null);
 
   const handleAnswerSelect = (questionId: string, answer: string | number) => {
-    setSelectedAnswers(prev => ({
+    setSelectedAnswers((prev) => ({
       ...prev,
-      [questionId]: answer
+      [questionId]: answer,
     }));
   };
 
@@ -4493,42 +5488,54 @@ function QuizRenderer({
   const normalizeOption = (text: string): string => {
     return text
       .trim()
-      .replace(/\s+/g, ' ') // Normalizar espacios múltiples
+      .replace(/\s+/g, " ") // Normalizar espacios múltiples
       .toLowerCase();
   };
 
   // Función para convertir entre "true"/"false" y "Verdadero"/"Falso"
   const normalizeTrueFalse = (value: string): string => {
     const normalized = normalizeOption(value);
-    if (normalized === 'true' || normalized === 'verdadero') return 'verdadero';
-    if (normalized === 'false' || normalized === 'falso') return 'falso';
+    if (normalized === "true" || normalized === "verdadero") return "verdadero";
+    if (normalized === "false" || normalized === "falso") return "falso";
     return normalized;
   };
 
   // Función para verificar si una respuesta es correcta
-  const isAnswerCorrect = (question: any, selectedAnswer: string | number): boolean => {
+  const isAnswerCorrect = (
+    question: any,
+    selectedAnswer: string | number
+  ): boolean => {
     const correctAnswer = question.correctAnswer;
     const options = question.options;
 
     // Si es pregunta de verdadero/falso, usar normalización especial
-    if (question.questionType === 'true_false') {
+    if (question.questionType === "true_false") {
       // Si la respuesta seleccionada es un índice
-      if (typeof selectedAnswer === 'number') {
+      if (typeof selectedAnswer === "number") {
         const selectedOption = options[selectedAnswer];
-        if (typeof correctAnswer === 'string') {
-          return normalizeTrueFalse(selectedOption) === normalizeTrueFalse(correctAnswer);
+        if (typeof correctAnswer === "string") {
+          return (
+            normalizeTrueFalse(selectedOption) ===
+            normalizeTrueFalse(correctAnswer)
+          );
         }
-        if (typeof correctAnswer === 'number') {
+        if (typeof correctAnswer === "number") {
           return selectedAnswer === correctAnswer;
         }
       }
       // Si la respuesta seleccionada es un string
-      if (typeof selectedAnswer === 'string') {
-        if (typeof correctAnswer === 'string') {
-          return normalizeTrueFalse(selectedAnswer) === normalizeTrueFalse(correctAnswer);
+      if (typeof selectedAnswer === "string") {
+        if (typeof correctAnswer === "string") {
+          return (
+            normalizeTrueFalse(selectedAnswer) ===
+            normalizeTrueFalse(correctAnswer)
+          );
         }
-        if (typeof correctAnswer === 'number') {
-          return normalizeTrueFalse(selectedAnswer) === normalizeTrueFalse(options[correctAnswer]);
+        if (typeof correctAnswer === "number") {
+          return (
+            normalizeTrueFalse(selectedAnswer) ===
+            normalizeTrueFalse(options[correctAnswer])
+          );
         }
       }
       return false;
@@ -4536,27 +5543,34 @@ function QuizRenderer({
 
     // Para otros tipos de preguntas, usar la lógica original
     // Si la respuesta seleccionada es un índice
-    if (typeof selectedAnswer === 'number') {
+    if (typeof selectedAnswer === "number") {
       // Caso 1: correctAnswer es también un índice
-      if (typeof correctAnswer === 'number') {
+      if (typeof correctAnswer === "number") {
         return selectedAnswer === correctAnswer;
       }
 
       // Caso 2: correctAnswer es un string (texto de la opción)
-      if (typeof correctAnswer === 'string') {
+      if (typeof correctAnswer === "string") {
         const selectedOption = options[selectedAnswer];
         // Comparación flexible ignorando espacios y mayúsculas
-        return normalizeOption(selectedOption) === normalizeOption(correctAnswer);
+        return (
+          normalizeOption(selectedOption) === normalizeOption(correctAnswer)
+        );
       }
     }
 
     // Si la respuesta seleccionada es un string
-    if (typeof selectedAnswer === 'string') {
-      if (typeof correctAnswer === 'string') {
-        return normalizeOption(selectedAnswer) === normalizeOption(correctAnswer);
+    if (typeof selectedAnswer === "string") {
+      if (typeof correctAnswer === "string") {
+        return (
+          normalizeOption(selectedAnswer) === normalizeOption(correctAnswer)
+        );
       }
-      if (typeof correctAnswer === 'number') {
-        return normalizeOption(selectedAnswer) === normalizeOption(options[correctAnswer]);
+      if (typeof correctAnswer === "number") {
+        return (
+          normalizeOption(selectedAnswer) ===
+          normalizeOption(options[correctAnswer])
+        );
       }
     }
 
@@ -4565,14 +5579,18 @@ function QuizRenderer({
 
   // Normalizar preguntas: asegurar que las de verdadero/falso tengan las opciones correctas
   const normalizedQuizData = quizData.map((question) => {
-    if (question.questionType === 'true_false') {
+    if (question.questionType === "true_false") {
       // Si no tiene opciones o tiene opciones incorrectas, inicializar con las correctas
-      if (!question.options || question.options.length !== 2 ||
-        (question.options[0] !== 'Verdadero' && question.options[0] !== 'Falso') ||
-        (question.options[1] !== 'Verdadero' && question.options[1] !== 'Falso')) {
+      if (
+        !question.options ||
+        question.options.length !== 2 ||
+        (question.options[0] !== "Verdadero" &&
+          question.options[0] !== "Falso") ||
+        (question.options[1] !== "Verdadero" && question.options[1] !== "Falso")
+      ) {
         return {
           ...question,
-          options: ['Verdadero', 'Falso']
+          options: ["Verdadero", "Falso"],
         };
       }
     }
@@ -4586,7 +5604,9 @@ function QuizRenderer({
     );
 
     if (unansweredQuestions.length > 0) {
-      setSubmitError(`Por favor responde todas las preguntas (${unansweredQuestions.length} sin responder)`);
+      setSubmitError(
+        `Por favor responde todas las preguntas (${unansweredQuestions.length} sin responder)`
+      );
       return;
     }
 
@@ -4597,9 +5617,12 @@ function QuizRenderer({
       // Calcular puntuación localmente primero
       let correct = 0;
       let points = 0;
-      normalizedQuizData.forEach(question => {
+      normalizedQuizData.forEach((question) => {
         const selectedAnswer = selectedAnswers[question.id];
-        if (selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer)) {
+        if (
+          selectedAnswer !== undefined &&
+          isAnswerCorrect(question, selectedAnswer)
+        ) {
           correct++;
           points += question.points || 1;
         }
@@ -4611,25 +5634,28 @@ function QuizRenderer({
       // Si tenemos lessonId y slug, guardar en la base de datos
       if (lessonId && slug) {
         try {
-          const response = await fetch(`/api/courses/${slug}/lessons/${lessonId}/quiz/submit`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              answers: selectedAnswers,
-              quizData: normalizedQuizData,
-              materialId: materialId || null,
-              activityId: activityId || null,
-              totalPoints: totalPoints,
-            }),
-          });
+          const response = await fetch(
+            `/api/courses/${slug}/lessons/${lessonId}/quiz/submit`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                answers: selectedAnswers,
+                quizData: normalizedQuizData,
+                materialId: materialId || null,
+                activityId: activityId || null,
+                totalPoints: totalPoints,
+              }),
+            }
+          );
 
           const result = await response.json();
 
           if (!response.ok) {
-            console.error('Error guardando quiz:', result.error);
-            setSubmitError(result.error || 'Error al guardar las respuestas');
+            console.error("Error guardando quiz:", result.error);
+            setSubmitError(result.error || "Error al guardar las respuestas");
           } else {
             // Quiz guardado exitosamente o no se guardó porque no mejoró
 
@@ -4639,21 +5665,22 @@ function QuizRenderer({
             }
           }
         } catch (error) {
-          console.error('Error al enviar quiz:', error);
+          console.error("Error al enviar quiz:", error);
           // No mostrar error al usuario si el cálculo local fue exitoso
           // Solo loguear el error
         }
       }
     } catch (error) {
-      console.error('Error procesando quiz:', error);
-      setSubmitError('Error al procesar el quiz');
+      console.error("Error procesando quiz:", error);
+      setSubmitError("Error al procesar el quiz");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const totalQuestions = normalizedQuizData.length;
-  const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+  const percentage =
+    totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
   const passingThreshold = 80;
   const passed = percentage >= passingThreshold;
 
@@ -4663,14 +5690,17 @@ function QuizRenderer({
     if (!explanation) return null;
 
     // Verificar si la explicación tiene el formato con "---"
-    if (explanation.includes('---')) {
-      const parts = explanation.split('---').map((p: string) => p.trim());
+    if (explanation.includes("---")) {
+      const parts = explanation.split("---").map((p: string) => p.trim());
 
       // Obtener el texto de la opción seleccionada
-      let selectedOptionText = '';
-      if (typeof selectedAnswer === 'number' && question.options[selectedAnswer]) {
+      let selectedOptionText = "";
+      if (
+        typeof selectedAnswer === "number" &&
+        question.options[selectedAnswer]
+      ) {
         selectedOptionText = question.options[selectedAnswer];
-      } else if (typeof selectedAnswer === 'string') {
+      } else if (typeof selectedAnswer === "string") {
         selectedOptionText = selectedAnswer;
       }
 
@@ -4682,7 +5712,12 @@ function QuizRenderer({
         // Buscar el feedback para esa letra
         for (const part of parts) {
           // Buscar feedback que empiece con (A), (B), etc.
-          const feedbackMatch = part.match(new RegExp(`^\\(${selectedLetter}\\)\\s+(Feedback|Comentarios):?\\s*(.*)`, 's'));
+          const feedbackMatch = part.match(
+            new RegExp(
+              `^\\(${selectedLetter}\\)\\s+(Feedback|Comentarios):?\\s*(.*)`,
+              "s"
+            )
+          );
           if (feedbackMatch) {
             return feedbackMatch[2].trim();
           }
@@ -4701,14 +5736,16 @@ function QuizRenderer({
       {/* Instrucciones - Minimalista */}
       <div className="px-4 py-3 border-l-2 border-white/20">
         <p className="text-white/60 text-xs mb-1">
-          Responde las {totalQuestions} pregunta{totalQuestions !== 1 ? 's' : ''} para completar este quiz.
+          Responde las {totalQuestions} pregunta
+          {totalQuestions !== 1 ? "s" : ""} para completar este quiz.
         </p>
         <div className="flex items-center gap-4 text-[10px] text-white/40">
-          {totalPoints !== undefined && (
-            <span>{totalPoints} puntos</span>
-          )}
+          {totalPoints !== undefined && <span>{totalPoints} puntos</span>}
           <span>Umbral: {passingThreshold}%</span>
-          <span>({Math.ceil(totalQuestions * passingThreshold / 100)} de {totalQuestions} para aprobar)</span>
+          <span>
+            ({Math.ceil((totalQuestions * passingThreshold) / 100)} de{" "}
+            {totalQuestions} para aprobar)
+          </span>
         </div>
       </div>
 
@@ -4716,18 +5753,21 @@ function QuizRenderer({
       <div className="space-y-4">
         {normalizedQuizData.map((question, index) => {
           const selectedAnswer = selectedAnswers[question.id];
-          const isCorrect = selectedAnswer !== undefined && isAnswerCorrect(question, selectedAnswer);
+          const isCorrect =
+            selectedAnswer !== undefined &&
+            isAnswerCorrect(question, selectedAnswer);
           const showExplanation = showResults && selectedAnswer !== undefined;
 
           return (
             <div
               key={question.id}
-              className={`rounded-lg border transition-colors ${showResults
-                ? isCorrect
-                  ? 'border-emerald-500/30 bg-emerald-500/5'
-                  : 'border-red-500/30 bg-red-500/5'
-                : 'border-white/10 bg-white/[0.02]'
-                }`}
+              className={`rounded-lg border transition-colors ${
+                showResults
+                  ? isCorrect
+                    ? "border-emerald-500/30 bg-emerald-500/5"
+                    : "border-red-500/30 bg-red-500/5"
+                  : "border-white/10 bg-white/[0.02]"
+              }`}
             >
               {/* Header de pregunta */}
               <div className="px-4 py-3 border-b border-white/5 flex items-start justify-between gap-3">
@@ -4741,7 +5781,7 @@ function QuizRenderer({
                 </div>
                 {question.points && (
                   <span className="text-[10px] text-white/30 px-2 py-0.5 bg-white/5 rounded flex-shrink-0">
-                    {question.points} pt{question.points > 1 ? 's' : ''}
+                    {question.points} pt{question.points > 1 ? "s" : ""}
                   </span>
                 )}
               </div>
@@ -4750,48 +5790,60 @@ function QuizRenderer({
               <div className="p-3 space-y-1.5">
                 {question.options.map((option, optIndex) => {
                   const optionLetter = String.fromCharCode(65 + optIndex);
-                  const isSelected = selectedAnswer === optIndex || selectedAnswer === option;
+                  const isSelected =
+                    selectedAnswer === optIndex || selectedAnswer === option;
 
                   let isCorrectOption = false;
-                  if (question.questionType === 'true_false') {
-                    if (typeof question.correctAnswer === 'number') {
+                  if (question.questionType === "true_false") {
+                    if (typeof question.correctAnswer === "number") {
                       isCorrectOption = optIndex === question.correctAnswer;
-                    } else if (typeof question.correctAnswer === 'string') {
-                      isCorrectOption = normalizeTrueFalse(option) === normalizeTrueFalse(question.correctAnswer);
+                    } else if (typeof question.correctAnswer === "string") {
+                      isCorrectOption =
+                        normalizeTrueFalse(option) ===
+                        normalizeTrueFalse(question.correctAnswer);
                     }
                   } else {
-                    if (typeof question.correctAnswer === 'number') {
+                    if (typeof question.correctAnswer === "number") {
                       isCorrectOption = optIndex === question.correctAnswer;
-                    } else if (typeof question.correctAnswer === 'string') {
-                      isCorrectOption = normalizeOption(option) === normalizeOption(question.correctAnswer);
+                    } else if (typeof question.correctAnswer === "string") {
+                      isCorrectOption =
+                        normalizeOption(option) ===
+                        normalizeOption(question.correctAnswer);
                     }
                   }
 
                   return (
                     <label
                       key={optIndex}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-all ${showResults
-                        ? isCorrectOption
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : isSelected && !isCorrectOption
-                            ? 'bg-red-500/10 text-red-400'
-                            : 'bg-transparent text-white/50'
-                        : isSelected
-                          ? 'bg-white/10 text-white'
-                          : 'bg-transparent text-white/60 hover:bg-white/5 hover:text-white/80'
-                        }`}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-all ${
+                        showResults
+                          ? isCorrectOption
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : isSelected && !isCorrectOption
+                              ? "bg-red-500/10 text-red-400"
+                              : "bg-transparent text-white/50"
+                          : isSelected
+                            ? "bg-white/10 text-white"
+                            : "bg-transparent text-white/60 hover:bg-white/5 hover:text-white/80"
+                      }`}
                     >
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${showResults
-                        ? isCorrectOption
-                          ? 'border-emerald-400 bg-emerald-400'
-                          : isSelected && !isCorrectOption
-                            ? 'border-red-400 bg-red-400'
-                            : 'border-white/20'
-                        : isSelected
-                          ? 'border-white bg-white'
-                          : 'border-white/20'
-                        }`}>
-                        {((showResults && (isCorrectOption || (isSelected && !isCorrectOption))) || (!showResults && isSelected)) && (
+                      <div
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                          showResults
+                            ? isCorrectOption
+                              ? "border-emerald-400 bg-emerald-400"
+                              : isSelected && !isCorrectOption
+                                ? "border-red-400 bg-red-400"
+                                : "border-white/20"
+                            : isSelected
+                              ? "border-white bg-white"
+                              : "border-white/20"
+                        }`}
+                      >
+                        {((showResults &&
+                          (isCorrectOption ||
+                            (isSelected && !isCorrectOption))) ||
+                          (!showResults && isSelected)) && (
                           <div className="w-1.5 h-1.5 rounded-full bg-black" />
                         )}
                       </div>
@@ -4800,11 +5852,15 @@ function QuizRenderer({
                         name={`question-${question.id}`}
                         value={optIndex}
                         checked={isSelected}
-                        onChange={() => handleAnswerSelect(question.id, optIndex)}
+                        onChange={() =>
+                          handleAnswerSelect(question.id, optIndex)
+                        }
                         disabled={showResults}
                         className="sr-only"
                       />
-                      <span className="text-xs font-medium opacity-50 mr-1">({optionLetter})</span>
+                      <span className="text-xs font-medium opacity-50 mr-1">
+                        ({optionLetter})
+                      </span>
                       <span className="text-sm flex-1">{option}</span>
                       {showResults && isCorrectOption && (
                         <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
@@ -4819,12 +5875,17 @@ function QuizRenderer({
 
               {/* Explicación */}
               {showExplanation && question.explanation && (
-                <div className={`mx-3 mb-3 px-3 py-2 rounded-md text-xs ${isCorrect
-                  ? 'bg-emerald-500/10 border border-emerald-500/20'
-                  : 'bg-red-500/10 border border-red-500/20'
-                  }`}>
-                  <span className={`font-medium ${isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {isCorrect ? '✓ Correcto' : '✗ Incorrecto'}
+                <div
+                  className={`mx-3 mb-3 px-3 py-2 rounded-md text-xs ${
+                    isCorrect
+                      ? "bg-emerald-500/10 border border-emerald-500/20"
+                      : "bg-red-500/10 border border-red-500/20"
+                  }`}
+                >
+                  <span
+                    className={`font-medium ${isCorrect ? "text-emerald-400" : "text-red-400"}`}
+                  >
+                    {isCorrect ? "✓ Correcto" : "✗ Incorrecto"}
                   </span>
                   <p className="text-white/60 mt-1 leading-relaxed">
                     {parseExplanation(question, selectedAnswer)}
@@ -4848,7 +5909,10 @@ function QuizRenderer({
         <div className="flex justify-end pt-3 border-t border-white/5">
           <button
             onClick={handleSubmit}
-            disabled={Object.keys(selectedAnswers).length < totalQuestions || isSubmitting}
+            disabled={
+              Object.keys(selectedAnswers).length < totalQuestions ||
+              isSubmitting
+            }
             className="px-4 py-2 rounded-md text-sm font-medium bg-[#0A2540] hover:bg-[#0d2f4d] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
             {isSubmitting ? (
@@ -4857,7 +5921,7 @@ function QuizRenderer({
                 Guardando...
               </>
             ) : (
-              'Enviar Respuestas'
+              "Enviar Respuestas"
             )}
           </button>
         </div>
@@ -4865,20 +5929,25 @@ function QuizRenderer({
 
       {/* Resultados */}
       {showResults && (
-        <div className={`rounded-lg border p-5 ${passed
-          ? 'border-emerald-500/30 bg-emerald-500/5'
-          : 'border-red-500/30 bg-red-500/5'
-          }`}>
+        <div
+          className={`rounded-lg border p-5 ${
+            passed
+              ? "border-emerald-500/30 bg-emerald-500/5"
+              : "border-red-500/30 bg-red-500/5"
+          }`}
+        >
           {/* Mensaje del servidor */}
           {serverMessage && (
             <div className="mb-4 px-3 py-2 rounded-md bg-white/5 border border-white/10">
               <p className="text-white/60 text-xs">{serverMessage}</p>
             </div>
           )}
-          
+
           <div className="text-center">
-            <p className={`text-lg font-semibold mb-1 ${passed ? 'text-emerald-400' : 'text-red-400'}`}>
-              {passed ? '✓ Aprobado' : '✗ No aprobado'}
+            <p
+              className={`text-lg font-semibold mb-1 ${passed ? "text-emerald-400" : "text-red-400"}`}
+            >
+              {passed ? "✓ Aprobado" : "✗ No aprobado"}
             </p>
             <p className="text-white text-sm mb-1">
               {score} de {totalQuestions} correctas
@@ -4892,7 +5961,7 @@ function QuizRenderer({
               {percentage}% | Requerido: {passingThreshold}%
             </p>
           </div>
-          
+
           {/* Botón reiniciar */}
           <div className="flex justify-center mt-4">
             <button
@@ -4922,7 +5991,7 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
 
   try {
     // Si es string, intentar parsearlo como JSON
-    if (typeof prompts === 'string') {
+    if (typeof prompts === "string") {
       try {
         const parsed = JSON.parse(prompts);
         if (Array.isArray(parsed)) {
@@ -4933,7 +6002,7 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
       } catch (e) {
         // Si no es JSON, puede ser un string simple o un array como string
         // Intentar detectar si parece un array
-        if (prompts.trim().startsWith('[') && prompts.trim().endsWith(']')) {
+        if (prompts.trim().startsWith("[") && prompts.trim().endsWith("]")) {
           try {
             const parsed = JSON.parse(prompts);
             if (Array.isArray(parsed)) {
@@ -4944,7 +6013,7 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
           }
         } else {
           // Es un string simple, dividir por líneas si tiene saltos
-          promptsList = prompts.split('\n').filter(p => p.trim().length > 0);
+          promptsList = prompts.split("\n").filter((p) => p.trim().length > 0);
           if (promptsList.length === 0) {
             promptsList = [prompts];
           }
@@ -4965,27 +6034,38 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
       <div className="space-y-2">
         {promptsList.map((prompt, index) => {
           // Limpiar el prompt (remover comillas si las tiene)
-          const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
+          const cleanPrompt = prompt.replace(/^["']|["']$/g, "").trim();
 
           return (
             <button
               key={index}
               onClick={() => {
                 // Aquí puedes agregar lógica para copiar el prompt o enviarlo a LIA
-                navigator.clipboard.writeText(cleanPrompt).then(() => {
-                  alert('Prompt copiado al portapapeles');
-                }).catch(() => {
-                  // Fallback: mostrar el prompt
-                  // console.log('Prompt:', cleanPrompt);
-                });
+                navigator.clipboard
+                  .writeText(cleanPrompt)
+                  .then(() => {
+                    alert("Prompt copiado al portapapeles");
+                  })
+                  .catch(() => {
+                    // Fallback: mostrar el prompt
+                    // console.log('Prompt:', cleanPrompt);
+                  });
               }}
               className="w-full text-left px-4 py-3 bg-white dark:bg-[#1E2329] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-lg transition-all hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/60 hover:shadow-lg hover:shadow-[#00D4B3]/20 group"
             >
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-[#00D4B3]/20 dark:bg-[#00D4B3]/30 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-[#00D4B3]/30 dark:group-hover:bg-[#00D4B3]/50 transition-colors">
-                  <span className="text-[#00D4B3] text-xs font-bold" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{index + 1}</span>
+                  <span
+                    className="text-[#00D4B3] text-xs font-bold"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                  >
+                    {index + 1}
+                  </span>
                 </div>
-                <p className="text-[#0A2540] dark:text-white text-sm leading-relaxed flex-1 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                <p
+                  className="text-[#0A2540] dark:text-white text-sm leading-relaxed flex-1 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                >
                   {cleanPrompt}
                 </p>
                 <Copy className="w-4 h-4 text-[#00D4B3] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
@@ -5003,30 +6083,45 @@ function ReadingContentRenderer({ content }: { content: any }) {
   let readingContent = content;
 
   // Si el contenido es un objeto con propiedades, intentar extraer el texto
-  if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
-    readingContent = content.text || content.content || content.body || content.description || content.title || '';
-    if (!readingContent || readingContent === '') {
+  if (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content)
+  ) {
+    readingContent =
+      content.text ||
+      content.content ||
+      content.body ||
+      content.description ||
+      content.title ||
+      "";
+    if (!readingContent || readingContent === "") {
       readingContent = JSON.stringify(content, null, 2);
     }
   }
 
   // Si es un string, intentar parsearlo si parece JSON
-  if (typeof readingContent === 'string') {
+  if (typeof readingContent === "string") {
     try {
       const parsed = JSON.parse(readingContent);
-      if (typeof parsed === 'object' && parsed !== null) {
-        readingContent = parsed.text || parsed.content || parsed.body || parsed.description || readingContent;
+      if (typeof parsed === "object" && parsed !== null) {
+        readingContent =
+          parsed.text ||
+          parsed.content ||
+          parsed.body ||
+          parsed.description ||
+          readingContent;
       }
     } catch (e) {}
   }
 
   // Asegurar que es string
-  if (typeof readingContent !== 'string') {
+  if (typeof readingContent !== "string") {
     readingContent = String(readingContent);
   }
 
   // Dividir por saltos de línea
-  const lines = readingContent.split('\n');
+  const lines = readingContent.split("\n");
 
   // Agrupar líneas en secciones para mejor renderizado
   const renderContent = () => {
@@ -5035,9 +6130,12 @@ function ReadingContentRenderer({ content }: { content: any }) {
 
     const flushParagraph = () => {
       if (currentParagraph.length > 0) {
-        const text = currentParagraph.join(' ');
+        const text = currentParagraph.join(" ");
         elements.push(
-          <p key={`p-${elements.length}`} className="text-white/80 text-sm leading-[1.8] mb-4">
+          <p
+            key={`p-${elements.length}`}
+            className="text-white/80 text-sm leading-[1.8] mb-4"
+          >
             {text}
           </p>
         );
@@ -5049,18 +6147,22 @@ function ReadingContentRenderer({ content }: { content: any }) {
       const trimmedLine = line.trim();
 
       // Línea vacía - flush del párrafo actual
-      if (trimmedLine === '') {
+      if (trimmedLine === "") {
         flushParagraph();
         return;
       }
 
       // Detectar títulos principales (Introducción:, Cuerpo:, etc.)
-      const mainSectionMatch = trimmedLine.match(/^(Introducción|Cuerpo|Cierre|Conclusión|Resumen):?\s*(.*)$/i);
+      const mainSectionMatch = trimmedLine.match(
+        /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen):?\s*(.*)$/i
+      );
       if (mainSectionMatch) {
         flushParagraph();
         elements.push(
           <div key={`main-${index}`} className="mt-8 mb-4 first:mt-0">
-            <h2 className="text-lg font-semibold text-white mb-1">{mainSectionMatch[1]}</h2>
+            <h2 className="text-lg font-semibold text-white mb-1">
+              {mainSectionMatch[1]}
+            </h2>
             {mainSectionMatch[2] && (
               <p className="text-white/60 text-sm">{mainSectionMatch[2]}</p>
             )}
@@ -5075,12 +6177,17 @@ function ReadingContentRenderer({ content }: { content: any }) {
       if (stepMatch) {
         flushParagraph();
         elements.push(
-          <div key={`step-${index}`} className="mt-6 mb-3 flex items-start gap-3">
+          <div
+            key={`step-${index}`}
+            className="mt-6 mb-3 flex items-start gap-3"
+          >
             <span className="px-2 py-0.5 bg-white/10 rounded text-[10px] font-medium text-white/60 uppercase tracking-wider flex-shrink-0">
               {stepMatch[1]}
             </span>
             {stepMatch[2] && (
-              <span className="text-white font-medium text-sm">{stepMatch[2]}</span>
+              <span className="text-white font-medium text-sm">
+                {stepMatch[2]}
+              </span>
             )}
           </div>
         );
@@ -5093,7 +6200,10 @@ function ReadingContentRenderer({ content }: { content: any }) {
         flushParagraph();
         const [, number, title] = numberedMatch;
         elements.push(
-          <div key={`num-${index}`} className="mt-5 mb-3 flex items-baseline gap-3">
+          <div
+            key={`num-${index}`}
+            className="mt-5 mb-3 flex items-baseline gap-3"
+          >
             <span className="text-white/30 text-xs font-medium">{number}.</span>
             <h3 className="text-white font-medium text-sm">{title}</h3>
           </div>
@@ -5102,11 +6212,16 @@ function ReadingContentRenderer({ content }: { content: any }) {
       }
 
       // Detectar referencias (Referencia:, etc.)
-      const refMatch = trimmedLine.match(/^\(?(Referencia|Ref|Ver|Nota):?\s*(.+)\)?$/i);
+      const refMatch = trimmedLine.match(
+        /^\(?(Referencia|Ref|Ver|Nota):?\s*(.+)\)?$/i
+      );
       if (refMatch) {
         flushParagraph();
         elements.push(
-          <div key={`ref-${index}`} className="mt-2 mb-3 pl-3 border-l-2 border-white/10">
+          <div
+            key={`ref-${index}`}
+            className="mt-2 mb-3 pl-3 border-l-2 border-white/10"
+          >
             <p className="text-white/40 text-xs italic">{trimmedLine}</p>
           </div>
         );
@@ -5114,10 +6229,17 @@ function ReadingContentRenderer({ content }: { content: any }) {
       }
 
       // Detectar títulos sin numeración (líneas cortas que terminan con dos puntos)
-      if (trimmedLine.endsWith(':') && trimmedLine.length < 80 && trimmedLine.length > 5) {
+      if (
+        trimmedLine.endsWith(":") &&
+        trimmedLine.length < 80 &&
+        trimmedLine.length > 5
+      ) {
         flushParagraph();
         elements.push(
-          <h4 key={`h4-${index}`} className="text-white/90 font-medium text-sm mt-5 mb-2">
+          <h4
+            key={`h4-${index}`}
+            className="text-white/90 font-medium text-sm mt-5 mb-2"
+          >
             {trimmedLine}
           </h4>
         );
@@ -5129,9 +6251,14 @@ function ReadingContentRenderer({ content }: { content: any }) {
       if (listMatch) {
         flushParagraph();
         elements.push(
-          <div key={`list-${index}`} className="flex items-start gap-2 mb-2 pl-2">
+          <div
+            key={`list-${index}`}
+            className="flex items-start gap-2 mb-2 pl-2"
+          >
             <span className="text-white/30 mt-1.5">•</span>
-            <span className="text-white/70 text-sm leading-relaxed">{listMatch[1]}</span>
+            <span className="text-white/70 text-sm leading-relaxed">
+              {listMatch[1]}
+            </span>
           </div>
         );
         return;
@@ -5150,9 +6277,7 @@ function ReadingContentRenderer({ content }: { content: any }) {
   return (
     <div className="py-2">
       {/* Contenido de lectura */}
-      <article className="max-w-none">
-        {renderContent()}
-      </article>
+      <article className="max-w-none">{renderContent()}</article>
     </div>
   );
 }
@@ -5162,18 +6287,20 @@ function ChecklistItem({
   content,
   checked: initialChecked,
   activityId,
-  lineIndex
+  lineIndex,
 }: {
   content: string;
   checked: boolean;
   activityId?: string;
   lineIndex: number;
 }) {
-  const storageKey = activityId ? `checklist-${activityId}-${lineIndex}` : `checklist-global-${lineIndex}`;
+  const storageKey = activityId
+    ? `checklist-${activityId}-${lineIndex}`
+    : `checklist-global-${lineIndex}`;
   const [checked, setChecked] = useState(() => {
-    if (typeof window !== 'undefined' && activityId) {
+    if (typeof window !== "undefined" && activityId) {
       const saved = localStorage.getItem(storageKey);
-      return saved !== null ? saved === 'true' : initialChecked;
+      return saved !== null ? saved === "true" : initialChecked;
     }
     return initialChecked;
   });
@@ -5181,7 +6308,7 @@ function ChecklistItem({
   const handleToggle = () => {
     const newChecked = !checked;
     setChecked(newChecked);
-    if (typeof window !== 'undefined' && activityId) {
+    if (typeof window !== "undefined" && activityId) {
       localStorage.setItem(storageKey, String(newChecked));
     }
   };
@@ -5192,9 +6319,10 @@ function ChecklistItem({
         onClick={handleToggle}
         className={`
           mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200
-          ${checked
-            ? 'bg-[#00D4B3] border-[#00D4B3] dark:bg-[#00D4B3] dark:border-[#00D4B3]'
-            : 'bg-white dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]'
+          ${
+            checked
+              ? "bg-[#00D4B3] border-[#00D4B3] dark:bg-[#00D4B3] dark:border-[#00D4B3]"
+              : "bg-white dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]"
           }
           focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:ring-offset-1
         `}
@@ -5202,7 +6330,7 @@ function ChecklistItem({
         role="checkbox"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             handleToggle();
           }
@@ -5225,9 +6353,10 @@ function ChecklistItem({
       <p
         className={`
           flex-1 text-base leading-relaxed cursor-pointer
-          ${checked
-            ? 'text-gray-600 dark:text-slate-400 line-through'
-            : 'text-gray-800 dark:text-slate-200'
+          ${
+            checked
+              ? "text-gray-600 dark:text-slate-400 line-through"
+              : "text-gray-800 dark:text-slate-200"
           }
         `}
         onClick={handleToggle}
@@ -5238,26 +6367,47 @@ function ChecklistItem({
   );
 }
 
-function FormattedContentRenderer({ content, activityId }: { content: any; activityId?: string }) {
+function FormattedContentRenderer({
+  content,
+  activityId,
+}: {
+  content: any;
+  activityId?: string;
+}) {
   let readingContent = content;
 
   // Si el contenido es un objeto con propiedades, intentar extraer el texto
-  if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
+  if (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content)
+  ) {
     // Buscar propiedades comunes que contengan el texto
-    readingContent = content.text || content.content || content.body || content.description || content.title || '';
+    readingContent =
+      content.text ||
+      content.content ||
+      content.body ||
+      content.description ||
+      content.title ||
+      "";
 
     // Si no encontramos contenido, intentar convertir todo el objeto a string
-    if (!readingContent || readingContent === '') {
+    if (!readingContent || readingContent === "") {
       readingContent = JSON.stringify(content, null, 2);
     }
   }
 
   // Si es un string, intentar parsearlo si parece JSON
-  if (typeof readingContent === 'string') {
+  if (typeof readingContent === "string") {
     try {
       const parsed = JSON.parse(readingContent);
-      if (typeof parsed === 'object' && parsed !== null) {
-        readingContent = parsed.text || parsed.content || parsed.body || parsed.description || readingContent;
+      if (typeof parsed === "object" && parsed !== null) {
+        readingContent =
+          parsed.text ||
+          parsed.content ||
+          parsed.body ||
+          parsed.description ||
+          readingContent;
       }
     } catch (e) {
       // No es JSON, usar directamente
@@ -5265,14 +6415,25 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
   }
 
   // Asegurar que es string
-  if (typeof readingContent !== 'string') {
+  if (typeof readingContent !== "string") {
     readingContent = String(readingContent);
   }
 
   // Mejorar el formato: detectar secciones, títulos, párrafos, listas, ejemplos, etc.
-  const lines = readingContent.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
+  const lines = readingContent
+    .split("\n")
+    .map((line: string) => line.trim())
+    .filter((line: string) => line.length > 0);
   const formattedContent: Array<{
-    type: 'main-title' | 'section-title' | 'subsection-title' | 'paragraph' | 'list' | 'example' | 'highlight' | 'checklist';
+    type:
+      | "main-title"
+      | "section-title"
+      | "subsection-title"
+      | "paragraph"
+      | "list"
+      | "example"
+      | "highlight"
+      | "checklist";
     content: string;
     level?: number;
     checked?: boolean;
@@ -5287,20 +6448,25 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
     const checklistMatch = trimmedLine.match(checklistPattern);
     if (checklistMatch) {
       const [, checkboxContent, checklistText] = checklistMatch;
-      const isChecked = checkboxContent.toLowerCase() === 'x';
+      const isChecked = checkboxContent.toLowerCase() === "x";
       formattedContent.push({
-        type: 'checklist',
+        type: "checklist",
         content: checklistText.trim(),
         checked: isChecked,
-        originalLine: trimmedLine
+        originalLine: trimmedLine,
       });
       return;
     }
 
     // Detectar títulos principales (Introducción, Cuerpo, Cierre, Conclusión, etc.)
-    const mainSections = /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen|Introducción:|Cuerpo:|Cierre:|Conclusión:|Resumen:)$/i;
+    const mainSections =
+      /^(Introducción|Cuerpo|Cierre|Conclusión|Resumen|Introducción:|Cuerpo:|Cierre:|Conclusión:|Resumen:)$/i;
     if (mainSections.test(trimmedLine)) {
-      formattedContent.push({ type: 'main-title', content: trimmedLine.replace(/[:]$/, ''), level: 1 });
+      formattedContent.push({
+        type: "main-title",
+        content: trimmedLine.replace(/[:]$/, ""),
+        level: 1,
+      });
       return;
     }
 
@@ -5308,53 +6474,78 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
     const numberedSubsection = /^(\d+)[\.\)]\s+([A-ZÁÉÍÓÚÑ][^.!?]*)$/;
     const numberedMatch = trimmedLine.match(numberedSubsection);
     if (numberedMatch && trimmedLine.length < 100) {
-      formattedContent.push({ type: 'subsection-title', content: trimmedLine, level: 2 });
+      formattedContent.push({
+        type: "subsection-title",
+        content: trimmedLine,
+        level: 2,
+      });
       return;
     }
 
     // Detectar títulos de sección (líneas cortas sin punto, con mayúsculas al inicio)
-    if (trimmedLine.length > 0 && trimmedLine.length < 80 &&
+    if (
+      trimmedLine.length > 0 &&
+      trimmedLine.length < 80 &&
       trimmedLine.match(/^[A-ZÁÉÍÓÚÑ][^.!?]*$/) &&
       !trimmedLine.match(/^\d+[\.\)]/) &&
-      !trimmedLine.includes(':') &&
+      !trimmedLine.includes(":") &&
       index < lines.length - 1 && // No es la última línea
-      lines[index + 1] && lines[index + 1].length > 50) { // La siguiente línea es un párrafo largo
-      formattedContent.push({ type: 'section-title', content: trimmedLine, level: 1 });
+      lines[index + 1] &&
+      lines[index + 1].length > 50
+    ) {
+      // La siguiente línea es un párrafo largo
+      formattedContent.push({
+        type: "section-title",
+        content: trimmedLine,
+        level: 1,
+      });
       return;
     }
 
     // Detectar ejemplos (líneas que contienen "Ejemplo:", "Ejemplos:", "Por ejemplo", etc.)
-    if (trimmedLine.match(/^Ejemplos?[:]?/i) || trimmedLine.match(/Por ejemplo/i)) {
-      formattedContent.push({ type: 'example', content: trimmedLine });
+    if (
+      trimmedLine.match(/^Ejemplos?[:]?/i) ||
+      trimmedLine.match(/Por ejemplo/i)
+    ) {
+      formattedContent.push({ type: "example", content: trimmedLine });
       return;
     }
 
     // Detectar texto destacado (líneas cortas con comillas o entre comillas)
     if (trimmedLine.match(/^["']|["']$/) && trimmedLine.length < 100) {
-      formattedContent.push({ type: 'highlight', content: trimmedLine });
+      formattedContent.push({ type: "highlight", content: trimmedLine });
       return;
     }
 
     // Detectar listas (líneas que empiezan con - o • o números seguidos de guión)
-    if (trimmedLine.match(/^[-•]\s/) || trimmedLine.match(/^\d+[\.\)]\s+[-•]/)) {
-      formattedContent.push({ type: 'list', content: trimmedLine });
+    if (
+      trimmedLine.match(/^[-•]\s/) ||
+      trimmedLine.match(/^\d+[\.\)]\s+[-•]/)
+    ) {
+      formattedContent.push({ type: "list", content: trimmedLine });
       return;
     }
 
     // Párrafos normales
-    formattedContent.push({ type: 'paragraph', content: trimmedLine });
+    formattedContent.push({ type: "paragraph", content: trimmedLine });
   });
 
   return (
     <div className="bg-white dark:bg-[#1E2329] rounded-lg p-8 md:p-10 border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-lg">
       <article className="prose dark:prose-invert max-w-none">
-        <div className="text-[#0A2540] dark:text-white leading-relaxed space-y-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+        <div
+          className="text-[#0A2540] dark:text-white leading-relaxed space-y-6"
+          style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+        >
           {formattedContent.map((item, index) => {
             // Título principal (Introducción, Cuerpo, Cierre)
-            if (item.type === 'main-title') {
+            if (item.type === "main-title") {
               return (
                 <div key={`item-${index}`} className="mt-10 mb-6 first:mt-0">
-                  <h1 className="text-[#0A2540] dark:text-white font-bold text-3xl mb-2 border-b-2 border-[#00D4B3]/40 pb-3" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                  <h1
+                    className="text-[#0A2540] dark:text-white font-bold text-3xl mb-2 border-b-2 border-[#00D4B3]/40 pb-3"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                  >
                     {item.content}
                   </h1>
                 </div>
@@ -5362,12 +6553,12 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
             }
 
             // Título de sección
-            if (item.type === 'section-title') {
+            if (item.type === "section-title") {
               return (
                 <h2
                   key={`item-${index}`}
                   className="text-[#0A2540] dark:text-white font-bold text-2xl mb-4 mt-8 border-b border-[#00D4B3]/20 pb-2"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
                 >
                   {item.content}
                 </h2>
@@ -5375,13 +6566,19 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
             }
 
             // Subtítulo numerado (1. Los Datos, 2. El Modelo)
-            if (item.type === 'subsection-title') {
+            if (item.type === "subsection-title") {
               const numberMatch = item.content.match(/^(\d+)[\.\)]\s+(.+)$/);
               if (numberMatch) {
                 const [, number, title] = numberMatch;
                 return (
                   <div key={`item-${index}`} className="mt-8 mb-4">
-                    <h3 className="text-[#00D4B3] font-semibold text-xl mb-3 flex items-center gap-3" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                    <h3
+                      className="text-[#00D4B3] font-semibold text-xl mb-3 flex items-center gap-3"
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontWeight: 600,
+                      }}
+                    >
                       <span className="w-10 h-10 rounded-full bg-[#00D4B3]/20 border-2 border-[#00D4B3]/40 flex items-center justify-center text-[#00D4B3] font-bold text-lg">
                         {number}
                       </span>
@@ -5394,7 +6591,7 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
                 <h3
                   key={`item-${index}`}
                   className="text-[#00D4B3] font-semibold text-xl mb-3 mt-6"
-                  style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 600 }}
                 >
                   {item.content}
                 </h3>
@@ -5402,29 +6599,40 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
             }
 
             // Ejemplos
-            if (item.type === 'example') {
+            if (item.type === "example") {
               return (
-                <div key={`item-${index}`} className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-l-4 border-[#00D4B3]/50 rounded-r-lg p-4 my-4">
-                  <p className="text-[#00D4B3] dark:text-[#00D4B3] font-semibold mb-2 text-sm uppercase tracking-wide" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
-                    {item.content.match(/^Ejemplos?[:]?/i) ? item.content : 'Ejemplo'}
+                <div
+                  key={`item-${index}`}
+                  className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border-l-4 border-[#00D4B3]/50 rounded-r-lg p-4 my-4"
+                >
+                  <p
+                    className="text-[#00D4B3] dark:text-[#00D4B3] font-semibold mb-2 text-sm uppercase tracking-wide"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 600 }}
+                  >
+                    {item.content.match(/^Ejemplos?[:]?/i)
+                      ? item.content
+                      : "Ejemplo"}
                   </p>
                 </div>
               );
             }
 
             // Texto destacado
-            if (item.type === 'highlight') {
+            if (item.type === "highlight") {
               return (
-                <div key={`item-${index}`} className="bg-yellow-500/10 border-l-4 border-yellow-500/50 rounded-r-lg p-4 my-4">
+                <div
+                  key={`item-${index}`}
+                  className="bg-yellow-500/10 border-l-4 border-yellow-500/50 rounded-r-lg p-4 my-4"
+                >
                   <p className="text-yellow-200 italic text-lg leading-relaxed">
-                    {item.content.replace(/^["']|["']$/g, '')}
+                    {item.content.replace(/^["']|["']$/g, "")}
                   </p>
                 </div>
               );
             }
 
             // Checklists
-            if (item.type === 'checklist') {
+            if (item.type === "checklist") {
               return (
                 <ChecklistItem
                   key={`checklist-${index}`}
@@ -5437,12 +6645,24 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
             }
 
             // Listas
-            if (item.type === 'list') {
-              const cleanedContent = item.content.replace(/^[-•]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
+            if (item.type === "list") {
+              const cleanedContent = item.content
+                .replace(/^[-•]\s*/, "")
+                .replace(/^\d+[\.\)]\s*/, "");
               return (
-                <div key={`item-${index}`} className="flex items-start gap-3 my-3 pl-2">
-                  <span className="text-[#00D4B3] mt-1.5 text-lg font-bold">•</span>
-                  <p className="text-[#0A2540] dark:text-white leading-relaxed flex-1 text-base" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{cleanedContent}</p>
+                <div
+                  key={`item-${index}`}
+                  className="flex items-start gap-3 my-3 pl-2"
+                >
+                  <span className="text-[#00D4B3] mt-1.5 text-lg font-bold">
+                    •
+                  </span>
+                  <p
+                    className="text-[#0A2540] dark:text-white leading-relaxed flex-1 text-base"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                  >
+                    {cleanedContent}
+                  </p>
                 </div>
               );
             }
@@ -5456,12 +6676,27 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
               // Párrafo con ejemplos entre comillas
               const parts = item.content.split(/(["'][^"']+["'])/g);
               return (
-                <p key={`item-${index}`} className="text-[#0A2540] dark:text-white leading-relaxed mb-6 text-base" style={{ lineHeight: '1.9', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                <p
+                  key={`item-${index}`}
+                  className="text-[#0A2540] dark:text-white leading-relaxed mb-6 text-base"
+                  style={{
+                    lineHeight: "1.9",
+                    fontFamily: "Inter, sans-serif",
+                    fontWeight: 400,
+                  }}
+                >
                   {parts.map((part, partIndex) => {
                     if (part.match(/^["']/)) {
                       return (
-                        <span key={partIndex} className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-1 rounded text-[#00D4B3] dark:text-[#00D4B3] font-medium" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                          {part.replace(/^["']|["']$/g, '')}
+                        <span
+                          key={partIndex}
+                          className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-1 rounded text-[#00D4B3] dark:text-[#00D4B3] font-medium"
+                          style={{
+                            fontFamily: "Inter, sans-serif",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {part.replace(/^["']|["']$/g, "")}
                         </span>
                       );
                     }
@@ -5475,7 +6710,11 @@ function FormattedContentRenderer({ content, activityId }: { content: any; activ
               <p
                 key={`item-${index}`}
                 className="text-[#0A2540] dark:text-white leading-relaxed mb-6 text-base"
-                style={{ lineHeight: '1.9', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+                style={{
+                  lineHeight: "1.9",
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 400,
+                }}
               >
                 {item.content}
               </p>
@@ -5497,48 +6736,77 @@ function ActivitiesContent({
   onNavigateNext,
   hasNextLesson,
   selectedLang,
-  colors
+  colors,
 }: {
   lesson: Lesson;
   slug: string;
   onPromptsChange?: (prompts: string[]) => void;
   onStartInteraction?: (content: string, title: string) => void;
   userRole?: string;
-  generateRoleBasedPrompts?: (basePrompts: string[], activityContent: string, activityTitle: string, userRole?: string) => Promise<string[]>;
+  generateRoleBasedPrompts?: (
+    basePrompts: string[],
+    activityContent: string,
+    activityTitle: string,
+    userRole?: string
+  ) => Promise<string[]>;
   onNavigateNext?: () => void | Promise<void>;
   hasNextLesson?: boolean;
   selectedLang: string;
-  colors: { accent: string; primary: string; bgPrimary: string; bgSecondary: string };
+  colors: {
+    accent: string;
+    primary: string;
+    bgPrimary: string;
+    bgSecondary: string;
+  };
 }) {
   // Hook de traducción
-  const { t } = useTranslation('learn');
+  const { t } = useTranslation("learn");
   // Hook de contexto LIA para notificar actividad activa
   const { setActivity, openLia } = useLiaCourse();
 
-  const [activities, setActivities] = useState<Array<{
-    activity_id: string;
-    activity_title: string;
-    activity_description?: string;
-    activity_type: 'reflection' | 'exercise' | 'quiz' | 'discussion' | 'ai_chat';
-    activity_content: string;
-    ai_prompts?: string;
-    activity_order_index: number;
-    is_required: boolean;
-  }>>([]);
-  const [materials, setMaterials] = useState<Array<{
-    material_id: string;
-    material_title: string;
-    material_description?: string;
-    material_type: 'pdf' | 'link' | 'document' | 'quiz' | 'exercise' | 'reading';
-    file_url?: string;
-    external_url?: string;
-    content_data?: any;
-    material_order_index: number;
-    is_downloadable: boolean;
-  }>>([]);
+  const [activities, setActivities] = useState<
+    Array<{
+      activity_id: string;
+      activity_title: string;
+      activity_description?: string;
+      activity_type:
+        | "reflection"
+        | "exercise"
+        | "quiz"
+        | "discussion"
+        | "ai_chat";
+      activity_content: string;
+      ai_prompts?: string;
+      activity_order_index: number;
+      is_required: boolean;
+    }>
+  >([]);
+  const [materials, setMaterials] = useState<
+    Array<{
+      material_id: string;
+      material_title: string;
+      material_description?: string;
+      material_type:
+        | "pdf"
+        | "link"
+        | "document"
+        | "quiz"
+        | "exercise"
+        | "reading";
+      file_url?: string;
+      external_url?: string;
+      content_data?: any;
+      material_order_index: number;
+      is_downloadable: boolean;
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
-  const [collapsedActivities, setCollapsedActivities] = useState<Set<string>>(new Set());
-  const [collapsedMaterials, setCollapsedMaterials] = useState<Set<string>>(new Set());
+  const [collapsedActivities, setCollapsedActivities] = useState<Set<string>>(
+    new Set()
+  );
+  const [collapsedMaterials, setCollapsedMaterials] = useState<Set<string>>(
+    new Set()
+  );
   const [activitiesInitialized, setActivitiesInitialized] = useState(false);
   const [materialsInitialized, setMaterialsInitialized] = useState(false);
 
@@ -5553,7 +6821,7 @@ function ActivitiesContent({
   // Inicializar todas las actividades como colapsadas cuando se cargan por primera vez
   useEffect(() => {
     if (activities.length > 0 && !activitiesInitialized) {
-      setCollapsedActivities(new Set(activities.map(a => a.activity_id)));
+      setCollapsedActivities(new Set(activities.map((a) => a.activity_id)));
       setActivitiesInitialized(true);
     }
   }, [activities, activitiesInitialized]);
@@ -5561,7 +6829,7 @@ function ActivitiesContent({
   // Inicializar todos los materiales como colapsados cuando se cargan por primera vez
   useEffect(() => {
     if (materials.length > 0 && !materialsInitialized) {
-      setCollapsedMaterials(new Set(materials.map(m => m.material_id)));
+      setCollapsedMaterials(new Set(materials.map((m) => m.material_id)));
       setMaterialsInitialized(true);
     }
   }, [materials, materialsInitialized]);
@@ -5582,7 +6850,9 @@ function ActivitiesContent({
   } | null>(null);
 
   // Feedback de la lección completa
-  const [lessonFeedback, setLessonFeedback] = useState<'like' | 'dislike' | null>(null);
+  const [lessonFeedback, setLessonFeedback] = useState<
+    "like" | "dislike" | null
+  >(null);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   useEffect(() => {
@@ -5596,22 +6866,31 @@ function ActivitiesContent({
         setLoading(true);
 
         // Cargar actividades, materiales y estado de quizzes en paralelo
-        const [activitiesResponse, materialsResponse, quizStatusResponse] = await Promise.all([
-          fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`),
-          fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`),
-          fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/quiz/status`)
-        ]);
+        const [activitiesResponse, materialsResponse, quizStatusResponse] =
+          await Promise.all([
+            fetch(
+              `/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`
+            ),
+            fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`),
+            fetch(
+              `/api/courses/${slug}/lessons/${lesson.lesson_id}/quiz/status`
+            ),
+          ]);
 
         // Procesar actividades con traducción
         if (activitiesResponse.ok) {
           let activitiesData = await activitiesResponse.json();
 
           // Aplicar traducciones si no es español
-          if (selectedLang !== 'es' && activitiesData && activitiesData.length > 0) {
+          if (
+            selectedLang !== "es" &&
+            activitiesData &&
+            activitiesData.length > 0
+          ) {
             activitiesData = await ContentTranslationService.translateArray(
-              'activity',
+              "activity",
               activitiesData.map((a: any) => ({ ...a, id: a.activity_id })),
-              ['activity_title', 'activity_description', 'activity_content'],
+              ["activity_title", "activity_description", "activity_content"],
               selectedLang as any
             );
           }
@@ -5675,7 +6954,7 @@ function ActivitiesContent({
     loadLessonFeedback();
   }, [lesson?.lesson_id, slug]);
 
-  const handleLessonFeedback = async (feedbackType: 'like' | 'dislike') => {
+  const handleLessonFeedback = async (feedbackType: "like" | "dislike") => {
     if (!lesson?.lesson_id || !slug || feedbackLoading) {
       return;
     }
@@ -5684,8 +6963,8 @@ function ActivitiesContent({
     try {
       const url = `/api/courses/${slug}/lessons/${lesson.lesson_id}/feedback`;
       const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ feedback_type: feedbackType }),
       });
 
@@ -5693,13 +6972,15 @@ function ActivitiesContent({
         const data = await response.json();
         setLessonFeedback(data.feedback_type ?? null);
       } else {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        console.error('Error al guardar feedback:', errorData);
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Error desconocido" }));
+        console.error("Error al guardar feedback:", errorData);
         // Mostrar error al usuario de forma no intrusiva
         // Podrías agregar un toast aquí si tienes un sistema de notificaciones
       }
     } catch (error) {
-      console.error('Error de red al guardar feedback:', error);
+      console.error("Error de red al guardar feedback:", error);
     } finally {
       setFeedbackLoading(false);
     }
@@ -5724,16 +7005,19 @@ function ActivitiesContent({
 
     const processPrompts = async () => {
       const allPrompts: string[] = [];
-      const activityPromptsMap: Map<string, { prompts: string[], content: string, title: string }> = new Map();
+      const activityPromptsMap: Map<
+        string,
+        { prompts: string[]; content: string; title: string }
+      > = new Map();
 
       // Primero, extraer todos los prompts base de las actividades
-      activities.forEach(activity => {
+      activities.forEach((activity) => {
         if (activity.ai_prompts) {
           try {
             let promptsList: string[] = [];
 
             // Si es string, intentar parsearlo como JSON
-            if (typeof activity.ai_prompts === 'string') {
+            if (typeof activity.ai_prompts === "string") {
               try {
                 const parsed = JSON.parse(activity.ai_prompts);
                 if (Array.isArray(parsed)) {
@@ -5752,8 +7036,8 @@ function ActivitiesContent({
 
             // Limpiar prompts (remover comillas si las tiene)
             const cleanPrompts: string[] = [];
-            promptsList.forEach(prompt => {
-              const cleanPrompt = prompt.replace(/^["']|["']$/g, '').trim();
+            promptsList.forEach((prompt) => {
+              const cleanPrompt = prompt.replace(/^["']|["']$/g, "").trim();
               if (cleanPrompt) {
                 cleanPrompts.push(cleanPrompt);
               }
@@ -5763,84 +7047,103 @@ function ActivitiesContent({
               // Guardar prompts base junto con información de la actividad
               activityPromptsMap.set(activity.activity_id, {
                 prompts: cleanPrompts,
-                content: activity.activity_content || '',
-                title: activity.activity_title || ''
+                content: activity.activity_content || "",
+                title: activity.activity_title || "",
               });
-
             }
           } catch (error) {
-            console.warn('[LIA PROMPTS] Error parsing prompts para actividad:', activity.activity_title, error);
+            console.warn(
+              "[LIA PROMPTS] Error parsing prompts para actividad:",
+              activity.activity_title,
+              error
+            );
           }
         }
       });
 
       // Si hay rol del usuario y función de generación, adaptar prompts
-      if (userRole && generateRoleBasedPromptsRef.current && activityPromptsMap.size > 0) {
-
+      if (
+        userRole &&
+        generateRoleBasedPromptsRef.current &&
+        activityPromptsMap.size > 0
+      ) {
         try {
           // Generar prompts adaptados para cada actividad EN PARALELO
-          const adaptationPromises = Array.from(activityPromptsMap.entries()).map(
-            async ([activityId, activityData]) => {
-              if (!isMounted) return []; // Salir si el componente se desmontó
+          const adaptationPromises = Array.from(
+            activityPromptsMap.entries()
+          ).map(async ([activityId, activityData]) => {
+            if (!isMounted) return []; // Salir si el componente se desmontó
 
-              try {
-                const adaptedPrompts = await generateRoleBasedPromptsRef.current(
-                  activityData.prompts,
-                  activityData.content,
-                  activityData.title,
-                  userRole
-                );
+            try {
+              const adaptedPrompts = await generateRoleBasedPromptsRef.current(
+                activityData.prompts,
+                activityData.content,
+                activityData.title,
+                userRole
+              );
 
-                return adaptedPrompts;
-              } catch (error) {
-                console.error('[LIA PROMPTS] ✗ Error personalizando:', activityData.title, error);
-                // Fallback: retornar prompts originales
-                return activityData.prompts;
-              }
+              return adaptedPrompts;
+            } catch (error) {
+              console.error(
+                "[LIA PROMPTS] ✗ Error personalizando:",
+                activityData.title,
+                error
+              );
+              // Fallback: retornar prompts originales
+              return activityData.prompts;
             }
-          );
+          });
 
           // Esperar a que todas las personalizaciones terminen (con timeout)
           const timeoutPromise = new Promise<string[][]>((resolve) => {
             setTimeout(() => {
-              console.warn('[LIA PROMPTS] Timeout en personalización, usando prompts originales');
-              resolve(Array.from(activityPromptsMap.values()).map(data => data.prompts));
+              console.warn(
+                "[LIA PROMPTS] Timeout en personalización, usando prompts originales"
+              );
+              resolve(
+                Array.from(activityPromptsMap.values()).map(
+                  (data) => data.prompts
+                )
+              );
             }, 10000); // 10 segundos de timeout
           });
 
           const results = await Promise.race([
             Promise.all(adaptationPromises),
-            timeoutPromise
+            timeoutPromise,
           ]);
 
           // Agregar todos los prompts adaptados
-          results.forEach(prompts => {
+          results.forEach((prompts) => {
             allPrompts.push(...prompts);
           });
-
         } catch (error) {
-          console.error('[LIA PROMPTS] Error generando prompts adaptados:', error);
+          console.error(
+            "[LIA PROMPTS] Error generando prompts adaptados:",
+            error
+          );
           // Fallback: usar prompts originales
-          activityPromptsMap.forEach(activityData => {
+          activityPromptsMap.forEach((activityData) => {
             allPrompts.push(...activityData.prompts);
           });
-
         }
       } else {
         // Sin rol o sin función de generación, usar prompts originales
-        console.log('[LIA PROMPTS] Usando prompts originales (sin personalización)');
-        activityPromptsMap.forEach(activityData => {
+        console.log(
+          "[LIA PROMPTS] Usando prompts originales (sin personalización)"
+        );
+        activityPromptsMap.forEach((activityData) => {
           allPrompts.push(...activityData.prompts);
         });
-
       }
 
       // Notificar cambios al componente padre solo si el componente sigue montado
       if (isMounted && onPromptsChangeRef.current) {
-
         onPromptsChangeRef.current(allPrompts);
       } else {
-        console.warn('[LIA PROMPTS] Componente desmontado o sin callback, no se notifican cambios');
+        console.warn(
+          "[LIA PROMPTS] Componente desmontado o sin callback, no se notifican cambios"
+        );
       }
     };
 
@@ -5860,14 +7163,29 @@ function ActivitiesContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Actividades</h2>
-          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
+          <h2
+            className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+          >
+            Actividades
+          </h2>
+          <p
+            className="text-[#6C757D] dark:text-white/80 text-sm"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+          >
+            {lesson.lesson_title}
+          </p>
         </div>
         <div className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
           <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-[#00D4B3] animate-pulse" />
           </div>
-          <p className="text-[#6C757D] dark:text-white/80" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{t('loading.activities')}</p>
+          <p
+            className="text-[#6C757D] dark:text-white/80"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+          >
+            {t("loading.activities")}
+          </p>
         </div>
       </div>
     );
@@ -5877,19 +7195,41 @@ function ActivitiesContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Actividades</h2>
-          <p className="text-[#6C757D] dark:text-white/80 text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{lesson.lesson_title}</p>
+          <h2
+            className="text-2xl font-bold text-[#0A2540] dark:text-white mb-2"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+          >
+            Actividades
+          </h2>
+          <p
+            className="text-[#6C757D] dark:text-white/80 text-sm"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+          >
+            {lesson.lesson_title}
+          </p>
         </div>
 
         <div className="bg-white dark:bg-[#1E2329] rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 text-center">
           <div className="w-16 h-16 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Activity className="w-8 h-8 text-[#00D4B3]" />
           </div>
-          <h3 className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Actividades no disponibles</h3>
-          <p className="text-[#6C757D] dark:text-white/80 mb-4" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-            Esta lección aún no tiene actividades disponibles. Las actividades se agregarán próximamente.
+          <h3
+            className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 600 }}
+          >
+            Actividades no disponibles
+          </h3>
+          <p
+            className="text-[#6C757D] dark:text-white/80 mb-4"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+          >
+            Esta lección aún no tiene actividades disponibles. Las actividades
+            se agregarán próximamente.
           </p>
-          <div className="text-sm text-[#6C757D] dark:text-white/60" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+          <div
+            className="text-sm text-[#6C757D] dark:text-white/60"
+            style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+          >
             <p>• Las actividades se agregan manualmente</p>
             <p>• Contacta al instructor si necesitas ayuda</p>
           </div>
@@ -5914,7 +7254,9 @@ function ActivitiesContent({
             <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center">
               <Activity className="w-3.5 h-3.5 text-white/50" />
             </div>
-            <span className="text-sm font-medium text-white/70">Actividades</span>
+            <span className="text-sm font-medium text-white/70">
+              Actividades
+            </span>
             <span className="text-xs text-white/30">{activities.length}</span>
           </div>
 
@@ -5922,65 +7264,78 @@ function ActivitiesContent({
           <div className="space-y-2">
             {activities.map((activity) => {
               const isCollapsed = collapsedActivities.has(activity.activity_id);
-              const isAiChat = activity.activity_type === 'ai_chat';
-              const isQuiz = activity.activity_type === 'quiz';
+              const isAiChat = activity.activity_type === "ai_chat";
+              const isQuiz = activity.activity_type === "quiz";
 
               return (
                 <div
                   key={activity.activity_id}
                   className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors overflow-hidden"
                 >
-                    {/* Header de la actividad */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const isCurrentlyCollapsed = collapsedActivities.has(activity.activity_id);
-                        if (isCurrentlyCollapsed) {
-                          setCollapsedActivities(prev => {
-                            const newSet = new Set(prev);
-                            newSet.delete(activity.activity_id);
-                            return newSet;
-                          });
-                        } else {
-                          setCollapsedActivities(prev => {
-                            const newSet = new Set(prev);
-                            newSet.add(activity.activity_id);
-                            return newSet;
-                          });
-                        }
-                      }}
-                      className="w-full px-4 py-3 flex items-center gap-3"
+                  {/* Header de la actividad */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const isCurrentlyCollapsed = collapsedActivities.has(
+                        activity.activity_id
+                      );
+                      if (isCurrentlyCollapsed) {
+                        setCollapsedActivities((prev) => {
+                          const newSet = new Set(prev);
+                          newSet.delete(activity.activity_id);
+                          return newSet;
+                        });
+                      } else {
+                        setCollapsedActivities((prev) => {
+                          const newSet = new Set(prev);
+                          newSet.add(activity.activity_id);
+                          return newSet;
+                        });
+                      }
+                    }}
+                    className="w-full px-4 py-3 flex items-center gap-3"
+                  >
+                    {/* Icono simple */}
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        isAiChat ? "bg-white/10" : "bg-white/5"
+                      }`}
                     >
-                      {/* Icono simple */}
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        isAiChat ? 'bg-white/10' : 'bg-white/5'
-                      }`}>
-                        {isAiChat ? (
-                          <MessageCircle className="w-4 h-4 text-white/60" />
-                        ) : isQuiz ? (
-                          <FileText className="w-4 h-4 text-white/60" />
-                        ) : (
-                          <Activity className="w-4 h-4 text-white/60" />
+                      {isAiChat ? (
+                        <MessageCircle className="w-4 h-4 text-white/60" />
+                      ) : isQuiz ? (
+                        <FileText className="w-4 h-4 text-white/60" />
+                      ) : (
+                        <Activity className="w-4 h-4 text-white/60" />
+                      )}
+                    </div>
+
+                    {/* Contenido */}
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-white truncate">
+                          {activity.activity_title}
+                        </span>
+                        {activity.is_required && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-amber-400/80 bg-amber-500/10 rounded">
+                            Requerida
+                          </span>
                         )}
-                      </div>
-                      
-                      {/* Contenido */}
-                      <div className="flex-1 text-left min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-white truncate">
-                            {activity.activity_title}
-                          </span>
-                          {activity.is_required && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-medium text-amber-400/80 bg-amber-500/10 rounded">
-                              Requerida
-                            </span>
-                          )}
-                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded capitalize">
-                            {activity.activity_type === 'ai_chat' ? 'Chat IA' : activity.activity_type}
-                          </span>
-                          {/* Status de quiz */}
-                          {isQuiz && activity.is_required && quizStatus?.quizzes && (() => {
-                            const quizInfo = quizStatus.quizzes.find((q: any) => q.id === activity.activity_id && q.type === 'activity');
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded capitalize">
+                          {activity.activity_type === "ai_chat"
+                            ? "Chat IA"
+                            : activity.activity_type}
+                        </span>
+                        {/* Status de quiz */}
+                        {isQuiz &&
+                          activity.is_required &&
+                          quizStatus?.quizzes &&
+                          (() => {
+                            const quizInfo = quizStatus.quizzes.find(
+                              (q: any) =>
+                                q.id === activity.activity_id &&
+                                q.type === "activity"
+                            );
                             if (quizInfo?.isPassed) {
                               return (
                                 <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-400/80 bg-emerald-500/10 rounded flex items-center gap-1">
@@ -5990,158 +7345,228 @@ function ActivitiesContent({
                             }
                             return null;
                           })()}
-                        </div>
                       </div>
-                      
-                      {/* Chevron */}
-                      <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${!isCollapsed ? 'rotate-180' : ''}`} />
-                    </button>
+                    </div>
 
-                    {/* Contenido colapsable */}
-                    {!isCollapsed && (
-                      <div className="px-4 pb-4 border-t border-white/5">
-                        {activity.activity_description && (
-                          <p className="text-white/40 text-xs mt-3 mb-3 leading-relaxed">{activity.activity_description}</p>
-                        )}
-                        
-                        {/* Contenido de la actividad */}
-                        <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
-                              {activity.activity_type === 'quiz' && (() => {
+                    {/* Chevron */}
+                    <ChevronDown
+                      className={`w-4 h-4 text-white/30 transition-transform ${!isCollapsed ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {/* Contenido colapsable */}
+                  {!isCollapsed && (
+                    <div className="px-4 pb-4 border-t border-white/5">
+                      {activity.activity_description && (
+                        <p className="text-white/40 text-xs mt-3 mb-3 leading-relaxed">
+                          {activity.activity_description}
+                        </p>
+                      )}
+
+                      {/* Contenido de la actividad */}
+                      <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
+                        {activity.activity_type === "quiz" &&
+                          (() => {
+                            try {
+                              // Intentar parsear el contenido como JSON si es un quiz
+                              let quizData = activity.activity_content;
+
+                              // Si es string, intentar parsearlo
+                              if (typeof quizData === "string") {
                                 try {
-                                  // Intentar parsear el contenido como JSON si es un quiz
-                                  let quizData = activity.activity_content;
-
-                                  // Si es string, intentar parsearlo
-                                  if (typeof quizData === 'string') {
-                                    try {
-                                      quizData = JSON.parse(quizData);
-                                    } catch (e) {
-                                      // console.warn('⚠️ Quiz content is not valid JSON:', e);
-                                      return (
-                                        <div className="prose dark:prose-invert max-w-none">
-                                          <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El contenido del quiz no es un JSON válido</p>
-                                          <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                            {activity.activity_content}
-                                          </div>
-                                        </div>
-                                      );
-                                    }
-                                  }
-
-                                  // Detectar si tiene estructura {questions: [...], totalPoints: N}
-                                  let questionsArray: any = quizData;
-                                  let totalPoints: number | undefined = undefined;
-
-                                  if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                                    const quizObj = quizData as { questions?: any[]; totalPoints?: number };
-                                    if (quizObj.questions && Array.isArray(quizObj.questions)) {
-                                      questionsArray = quizObj.questions;
-                                      totalPoints = quizObj.totalPoints;
-                                    }
-                                  }
-
-                                  // Verificar que es un array con preguntas
-                                  if (Array.isArray(questionsArray) && questionsArray.length > 0) {
-                                    // Verificar que cada elemento tiene la estructura de pregunta
-                                    const hasValidStructure = questionsArray.every((q: any) =>
-                                      q && typeof q === 'object' && (q.question || q.id)
-                                    );
-
-                                    if (hasValidStructure) {
-                                      return (
-                                        <QuizRenderer
-                                          quizData={questionsArray}
-                                          totalPoints={totalPoints}
-                                          lessonId={lesson.lesson_id}
-                                          slug={slug}
-                                          activityId={activity.activity_id}
-                                        />
-                                      );
-                                    }
-                                  }
-
-                                  // Si llegamos aquí, mostrar como texto normal con mensaje de debug
-                                  return (
-                                    <div className="prose prose-invert dark:prose-invert max-w-none">
-                                      <p className="text-yellow-600 dark:text-yellow-400 mb-2">⚠️ Error: El quiz no tiene la estructura esperada</p>
-                                      <details className="mb-4">
-                                        <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">Ver contenido crudo</summary>
-                                        <pre className="text-xs text-[#6C757D] dark:text-white/80 mt-2 p-2 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded overflow-auto border border-[#E9ECEF] dark:border-[#6C757D]/30" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
-                                          {typeof activity.activity_content === 'string'
-                                            ? activity.activity_content
-                                            : JSON.stringify(activity.activity_content, null, 2)}
-                                        </pre>
-                                      </details>
-                                    </div>
-                                  );
+                                  quizData = JSON.parse(quizData);
                                 } catch (e) {
-                                  // console.error('❌ Error processing quiz:', e);
+                                  // console.warn('⚠️ Quiz content is not valid JSON:', e);
                                   return (
-                                    <div className="prose prose-invert dark:prose-invert max-w-none">
-                                      <p className="text-red-600 dark:text-red-400 mb-2">❌ Error al procesar el quiz</p>
-                                      <div className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                                    <div className="prose dark:prose-invert max-w-none">
+                                      <p className="text-yellow-600 dark:text-yellow-400 mb-2">
+                                        ⚠️ Error: El contenido del quiz no es un
+                                        JSON válido
+                                      </p>
+                                      <div
+                                        className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap"
+                                        style={{
+                                          fontFamily: "Inter, sans-serif",
+                                          fontWeight: 400,
+                                        }}
+                                      >
                                         {activity.activity_content}
                                       </div>
                                     </div>
                                   );
                                 }
-                              })()}
-                              
-                              {/* Tarjeta AI Chat - Minimalista */}
-                              {activity.activity_type === 'ai_chat' ? (
-                                <div className="p-4 text-center">
-                                  <div className="w-10 h-10 mx-auto rounded-lg bg-white/5 flex items-center justify-center mb-3">
-                                    <MessageCircle className="w-5 h-5 text-white/50" />
-                                  </div>
-                                  <h4 className="text-sm font-medium text-white mb-1">
-                                    Actividad con LIA
-                                  </h4>
-                                  <p className="text-xs text-white/40 mb-4">
-                                    Inicia una conversación guiada para completar esta actividad
-                                  </p>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      let parsedPrompts: string[] = [];
-                                      if (activity.ai_prompts) {
-                                        try {
-                                          const raw = activity.ai_prompts;
-                                          parsedPrompts = typeof raw === 'string' && raw.trim().startsWith('[') ? JSON.parse(raw) : [String(raw)];
-                                        } catch (e) { parsedPrompts = [String(activity.ai_prompts)]; }
-                                      }
-                                      setActivity({
-                                        id: activity.activity_id,
-                                        title: activity.activity_title,
-                                        type: activity.activity_type,
-                                        description: activity.activity_description || '',
-                                        prompts: parsedPrompts
-                                      });
-                                      openLia();
-                                    }}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#0A2540] hover:bg-[#0d2f4d] text-white transition-colors"
-                                  >
-                                    <Sparkles className="w-4 h-4" />
-                                    Comenzar
-                                    <ChevronRight className="w-4 h-4 opacity-50" />
-                                  </button>
-                                </div>
-                              ) : (
-                                /* Contenido Standard para no-AI activities */
-                                <FormattedContentRenderer content={activity.activity_content} activityId={activity.activity_id} />
-                              )}
-                            </div>
+                              }
 
-                          {activity.activity_type !== 'ai_chat' && activity.ai_prompts && (
-                            <div className="mt-4 pt-4 border-t border-white/5">
-                              <div className="flex items-center gap-2 mb-3">
-                                <HelpCircle className="w-3.5 h-3.5 text-white/40" />
-                                <span className="text-white/50 text-xs font-medium">Prompts y Ejercicios</span>
-                              </div>
-                              <PromptsRenderer prompts={activity.ai_prompts} />
+                              // Detectar si tiene estructura {questions: [...], totalPoints: N}
+                              let questionsArray: any = quizData;
+                              let totalPoints: number | undefined = undefined;
+
+                              if (
+                                quizData &&
+                                typeof quizData === "object" &&
+                                !Array.isArray(quizData)
+                              ) {
+                                const quizObj = quizData as {
+                                  questions?: any[];
+                                  totalPoints?: number;
+                                };
+                                if (
+                                  quizObj.questions &&
+                                  Array.isArray(quizObj.questions)
+                                ) {
+                                  questionsArray = quizObj.questions;
+                                  totalPoints = quizObj.totalPoints;
+                                }
+                              }
+
+                              // Verificar que es un array con preguntas
+                              if (
+                                Array.isArray(questionsArray) &&
+                                questionsArray.length > 0
+                              ) {
+                                // Verificar que cada elemento tiene la estructura de pregunta
+                                const hasValidStructure = questionsArray.every(
+                                  (q: any) =>
+                                    q &&
+                                    typeof q === "object" &&
+                                    (q.question || q.id)
+                                );
+
+                                if (hasValidStructure) {
+                                  return (
+                                    <QuizRenderer
+                                      quizData={questionsArray}
+                                      totalPoints={totalPoints}
+                                      lessonId={lesson.lesson_id}
+                                      slug={slug}
+                                      activityId={activity.activity_id}
+                                    />
+                                  );
+                                }
+                              }
+
+                              // Si llegamos aquí, mostrar como texto normal con mensaje de debug
+                              return (
+                                <div className="prose prose-invert dark:prose-invert max-w-none">
+                                  <p className="text-yellow-600 dark:text-yellow-400 mb-2">
+                                    ⚠️ Error: El quiz no tiene la estructura
+                                    esperada
+                                  </p>
+                                  <details className="mb-4">
+                                    <summary className="text-gray-700 dark:text-slate-300 cursor-pointer">
+                                      Ver contenido crudo
+                                    </summary>
+                                    <pre
+                                      className="text-xs text-[#6C757D] dark:text-white/80 mt-2 p-2 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded overflow-auto border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                                      style={{
+                                        fontFamily: "Inter, sans-serif",
+                                        fontWeight: 400,
+                                      }}
+                                    >
+                                      {typeof activity.activity_content ===
+                                      "string"
+                                        ? activity.activity_content
+                                        : JSON.stringify(
+                                            activity.activity_content,
+                                            null,
+                                            2
+                                          )}
+                                    </pre>
+                                  </details>
+                                </div>
+                              );
+                            } catch (e) {
+                              // console.error('❌ Error processing quiz:', e);
+                              return (
+                                <div className="prose prose-invert dark:prose-invert max-w-none">
+                                  <p className="text-red-600 dark:text-red-400 mb-2">
+                                    ❌ Error al procesar el quiz
+                                  </p>
+                                  <div
+                                    className="text-[#0A2540] dark:text-white leading-relaxed whitespace-pre-wrap"
+                                    style={{
+                                      fontFamily: "Inter, sans-serif",
+                                      fontWeight: 400,
+                                    }}
+                                  >
+                                    {activity.activity_content}
+                                  </div>
+                                </div>
+                              );
+                            }
+                          })()}
+
+                        {/* Tarjeta AI Chat - Minimalista */}
+                        {activity.activity_type === "ai_chat" ? (
+                          <div className="p-4 text-center">
+                            <div className="w-10 h-10 mx-auto rounded-lg bg-white/5 flex items-center justify-center mb-3">
+                              <MessageCircle className="w-5 h-5 text-white/50" />
                             </div>
-                          )}
-                        </div>
-                    )}
+                            <h4 className="text-sm font-medium text-white mb-1">
+                              Actividad con LIA
+                            </h4>
+                            <p className="text-xs text-white/40 mb-4">
+                              Inicia una conversación guiada para completar esta
+                              actividad
+                            </p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                let parsedPrompts: string[] = [];
+                                if (activity.ai_prompts) {
+                                  try {
+                                    const raw = activity.ai_prompts;
+                                    parsedPrompts =
+                                      typeof raw === "string" &&
+                                      raw.trim().startsWith("[")
+                                        ? JSON.parse(raw)
+                                        : [String(raw)];
+                                  } catch (e) {
+                                    parsedPrompts = [
+                                      String(activity.ai_prompts),
+                                    ];
+                                  }
+                                }
+                                setActivity({
+                                  id: activity.activity_id,
+                                  title: activity.activity_title,
+                                  type: activity.activity_type,
+                                  description:
+                                    activity.activity_description || "",
+                                  prompts: parsedPrompts,
+                                });
+                                openLia();
+                              }}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#0A2540] hover:bg-[#0d2f4d] text-white transition-colors"
+                            >
+                              <Sparkles className="w-4 h-4" />
+                              Comenzar
+                              <ChevronRight className="w-4 h-4 opacity-50" />
+                            </button>
+                          </div>
+                        ) : (
+                          /* Contenido Standard para no-AI activities */
+                          <FormattedContentRenderer
+                            content={activity.activity_content}
+                            activityId={activity.activity_id}
+                          />
+                        )}
+                      </div>
+
+                      {activity.activity_type !== "ai_chat" &&
+                        activity.ai_prompts && (
+                          <div className="mt-4 pt-4 border-t border-white/5">
+                            <div className="flex items-center gap-2 mb-3">
+                              <HelpCircle className="w-3.5 h-3.5 text-white/40" />
+                              <span className="text-white/50 text-xs font-medium">
+                                Prompts y Ejercicios
+                              </span>
+                            </div>
+                            <PromptsRenderer prompts={activity.ai_prompts} />
+                          </div>
+                        )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -6157,7 +7582,9 @@ function ActivitiesContent({
             <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center">
               <BookOpen className="w-3.5 h-3.5 text-white/50" />
             </div>
-            <span className="text-sm font-medium text-white/70">Materiales</span>
+            <span className="text-sm font-medium text-white/70">
+              Materiales
+            </span>
             <span className="text-xs text-white/30">{materials.length}</span>
           </div>
 
@@ -6165,8 +7592,8 @@ function ActivitiesContent({
           <div className="space-y-2">
             {materials.map((material) => {
               const isCollapsed = collapsedMaterials.has(material.material_id);
-              const isQuiz = material.material_type === 'quiz';
-              const isReading = material.material_type === 'reading';
+              const isQuiz = material.material_type === "quiz";
+              const isReading = material.material_type === "reading";
 
               return (
                 <div
@@ -6177,7 +7604,7 @@ function ActivitiesContent({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setCollapsedMaterials(prev => {
+                      setCollapsedMaterials((prev) => {
                         const newSet = new Set(prev);
                         if (newSet.has(material.material_id)) {
                           newSet.delete(material.material_id);
@@ -6199,7 +7626,7 @@ function ActivitiesContent({
                         <ScrollText className="w-4 h-4 text-white/60" />
                       )}
                     </div>
-                    
+
                     {/* Contenido */}
                     <div className="flex-1 text-left min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -6207,7 +7634,9 @@ function ActivitiesContent({
                           {material.material_title}
                         </span>
                         <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded capitalize">
-                          {material.material_type === 'reading' ? 'Lectura' : material.material_type}
+                          {material.material_type === "reading"
+                            ? "Lectura"
+                            : material.material_type}
                         </span>
                         {material.is_downloadable && (
                           <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded">
@@ -6215,40 +7644,54 @@ function ActivitiesContent({
                           </span>
                         )}
                         {/* Status de quiz */}
-                        {isQuiz && quizStatus?.quizzes && (() => {
-                          const quizInfo = quizStatus.quizzes.find((q: any) => q.id === material.material_id && q.type === 'material');
-                          if (quizInfo?.isPassed) {
-                            return (
-                              <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-400/80 bg-emerald-500/10 rounded flex items-center gap-1">
-                                <Check className="w-2.5 h-2.5" /> Completado
-                              </span>
+                        {isQuiz &&
+                          quizStatus?.quizzes &&
+                          (() => {
+                            const quizInfo = quizStatus.quizzes.find(
+                              (q: any) =>
+                                q.id === material.material_id &&
+                                q.type === "material"
                             );
-                          }
-                          return null;
-                        })()}
+                            if (quizInfo?.isPassed) {
+                              return (
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-400/80 bg-emerald-500/10 rounded flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" /> Completado
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                       </div>
                     </div>
-                    
+
                     {/* Chevron */}
-                    <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${!isCollapsed ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-4 h-4 text-white/30 transition-transform ${!isCollapsed ? "rotate-180" : ""}`}
+                    />
                   </button>
 
                   {/* Contenido colapsable */}
                   {!isCollapsed && (
                     <div className="px-4 pb-4 border-t border-white/5">
-                      {material.material_description && material.material_type !== 'reading' && (
-                        <p className="text-white/40 text-xs mt-3 mb-3 leading-relaxed">{material.material_description}</p>
-                      )}
-                      
+                      {material.material_description &&
+                        material.material_type !== "reading" && (
+                          <p className="text-white/40 text-xs mt-3 mb-3 leading-relaxed">
+                            {material.material_description}
+                          </p>
+                        )}
+
                       {/* Contenido del material */}
                       <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
                         {/* Contenido según tipo */}
-                        {(material.content_data || (material.material_type === 'reading' && material.material_description)) && (
+                        {(material.content_data ||
+                          (material.material_type === "reading" &&
+                            material.material_description)) && (
                           <div className="w-full">
-                              {material.material_type === 'quiz' && (() => {
+                            {material.material_type === "quiz" &&
+                              (() => {
                                 try {
                                   let quizData = material.content_data;
-                                  if (typeof quizData === 'string') {
+                                  if (typeof quizData === "string") {
                                     try {
                                       quizData = JSON.parse(quizData);
                                     } catch (e) {
@@ -6257,16 +7700,30 @@ function ActivitiesContent({
                                   }
                                   let questionsArray = quizData;
                                   let totalPoints = undefined;
-                                  if (quizData && typeof quizData === 'object' && !Array.isArray(quizData)) {
-                                    if (quizData.questions && Array.isArray(quizData.questions)) {
+                                  if (
+                                    quizData &&
+                                    typeof quizData === "object" &&
+                                    !Array.isArray(quizData)
+                                  ) {
+                                    if (
+                                      quizData.questions &&
+                                      Array.isArray(quizData.questions)
+                                    ) {
                                       questionsArray = quizData.questions;
                                       totalPoints = quizData.totalPoints;
                                     }
                                   }
-                                  if (Array.isArray(questionsArray) && questionsArray.length > 0) {
-                                    const hasValidStructure = questionsArray.every((q: any) =>
-                                      q && typeof q === 'object' && (q.question || q.id)
-                                    );
+                                  if (
+                                    Array.isArray(questionsArray) &&
+                                    questionsArray.length > 0
+                                  ) {
+                                    const hasValidStructure =
+                                      questionsArray.every(
+                                        (q: any) =>
+                                          q &&
+                                          typeof q === "object" &&
+                                          (q.question || q.id)
+                                      );
                                     if (hasValidStructure) {
                                       return (
                                         <QuizRenderer
@@ -6282,47 +7739,55 @@ function ActivitiesContent({
                                 } catch (e) {}
                                 return null;
                               })()}
-                              {material.material_type === 'reading' && (
-                                <ReadingContentRenderer
-                                  content={material.content_data || material.material_description}
+                            {material.material_type === "reading" && (
+                              <ReadingContentRenderer
+                                content={
+                                  material.content_data ||
+                                  material.material_description
+                                }
+                              />
+                            )}
+                            {material.material_type !== "quiz" &&
+                              material.material_type !== "reading" &&
+                              material.content_data && (
+                                <FormattedContentRenderer
+                                  content={material.content_data}
+                                  activityId={material.material_id}
                                 />
                               )}
-                              {material.material_type !== 'quiz' && material.material_type !== 'reading' && material.content_data && (
-                                <FormattedContentRenderer content={material.content_data} activityId={material.material_id} />
-                              )}
-                            </div>
-                          )}
+                          </div>
+                        )}
 
-                          {/* Enlaces */}
-                          {(material.external_url || material.file_url) && (
-                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-                              {material.external_url && (
-                                <a
-                                  href={material.external_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors"
-                                >
-                                  <ExternalLink className="w-3 h-3" />
-                                  Abrir enlace
-                                </a>
-                              )}
-                              {material.file_url && (
-                                <a
-                                  href={material.file_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-white/70 transition-colors"
-                                >
-                                  <FileDown className="w-3.5 h-3.5" />
-                                  Ver archivo
-                                </a>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        {/* Enlaces */}
+                        {(material.external_url || material.file_url) && (
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+                            {material.external_url && (
+                              <a
+                                href={material.external_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                Abrir enlace
+                              </a>
+                            )}
+                            {material.file_url && (
+                              <a
+                                href={material.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-white/70 transition-colors"
+                              >
+                                <FileDown className="w-3.5 h-3.5" />
+                                Ver archivo
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -6335,7 +7800,7 @@ function ActivitiesContent({
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/5">
           <Info className="w-4 h-4 text-white/30 flex-shrink-0" />
           <p className="text-xs text-white/40 leading-relaxed">
-            {t('activities.completionRequirement')}
+            {t("activities.completionRequirement")}
           </p>
         </div>
       )}
@@ -6347,27 +7812,31 @@ function ActivitiesContent({
             <span className="text-xs text-white/40">¿Útil?</span>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => handleLessonFeedback('like')}
+                onClick={() => handleLessonFeedback("like")}
                 disabled={feedbackLoading}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  lessonFeedback === 'like'
-                    ? 'bg-emerald-500/10 text-emerald-400'
-                    : 'text-white/50 hover:bg-white/5 hover:text-white/70'
-                } ${feedbackLoading ? 'opacity-50' : ''}`}
+                  lessonFeedback === "like"
+                    ? "bg-emerald-500/10 text-emerald-400"
+                    : "text-white/50 hover:bg-white/5 hover:text-white/70"
+                } ${feedbackLoading ? "opacity-50" : ""}`}
               >
-                <ThumbsUp className={`w-3.5 h-3.5 ${lessonFeedback === 'like' ? 'fill-current' : ''}`} />
+                <ThumbsUp
+                  className={`w-3.5 h-3.5 ${lessonFeedback === "like" ? "fill-current" : ""}`}
+                />
                 Sí
               </button>
               <button
-                onClick={() => handleLessonFeedback('dislike')}
+                onClick={() => handleLessonFeedback("dislike")}
                 disabled={feedbackLoading}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  lessonFeedback === 'dislike'
-                    ? 'bg-red-500/10 text-red-400'
-                    : 'text-white/50 hover:bg-white/5 hover:text-white/70'
-                } ${feedbackLoading ? 'opacity-50' : ''}`}
+                  lessonFeedback === "dislike"
+                    ? "bg-red-500/10 text-red-400"
+                    : "text-white/50 hover:bg-white/5 hover:text-white/70"
+                } ${feedbackLoading ? "opacity-50" : ""}`}
               >
-                <ThumbsDown className={`w-3.5 h-3.5 ${lessonFeedback === 'dislike' ? 'fill-current' : ''}`} />
+                <ThumbsDown
+                  className={`w-3.5 h-3.5 ${lessonFeedback === "dislike" ? "fill-current" : ""}`}
+                />
                 No
               </button>
             </div>
@@ -6388,39 +7857,51 @@ function ActivitiesContent({
   );
 }
 
-function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: string }) {
-  const { t } = useTranslation('learn');
-  const [questions, setQuestions] = useState<Array<{
-    id: string;
-    title?: string;
-    content: string;
-    view_count: number;
-    response_count: number;
-    reaction_count: number;
-    is_pinned: boolean;
-    is_resolved: boolean;
-    created_at: string;
-    updated_at: string;
-    course_id?: string;
-    user: {
+function QuestionsContent({
+  slug,
+  courseTitle,
+}: {
+  slug: string;
+  courseTitle: string;
+}) {
+  const { t } = useTranslation("learn");
+  const [questions, setQuestions] = useState<
+    Array<{
       id: string;
-      username: string;
-      display_name?: string;
-      first_name?: string;
-      last_name?: string;
-      profile_picture_url?: string;
-    };
-  }>>([]);
+      title?: string;
+      content: string;
+      view_count: number;
+      response_count: number;
+      reaction_count: number;
+      is_pinned: boolean;
+      is_resolved: boolean;
+      created_at: string;
+      updated_at: string;
+      course_id?: string;
+      user: {
+        id: string;
+        username: string;
+        display_name?: string;
+        first_name?: string;
+        last_name?: string;
+        profile_picture_url?: string;
+      };
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeSearchQuery, setActiveSearchQuery] = useState(''); // Query activa para búsqueda
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearchQuery, setActiveSearchQuery] = useState(""); // Query activa para búsqueda
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [userReactions, setUserReactions] = useState<Record<string, string>>({}); // questionId -> reaction_type
-  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({}); // questionId -> count
+  const [userReactions, setUserReactions] = useState<Record<string, string>>(
+    {}
+  ); // questionId -> reaction_type
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>(
+    {}
+  ); // questionId -> count
   const [courseId, setCourseId] = useState<string | null>(null);
 
   // Función para ejecutar búsqueda
@@ -6432,15 +7913,15 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
   // Función para limpiar búsqueda
   const handleClearSearch = () => {
-    setSearchQuery('');
-    setActiveSearchQuery('');
+    setSearchQuery("");
+    setActiveSearchQuery("");
     setOffset(0);
     setHasMore(true);
   };
 
   // Manejar Enter en el input
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleSearch();
     }
@@ -6460,10 +7941,10 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
       // Construir URL con búsqueda y límite inicial para carga más rápida
       const params = new URLSearchParams();
-      if (activeSearchQuery) params.append('search', activeSearchQuery);
+      if (activeSearchQuery) params.append("search", activeSearchQuery);
       // Optimización: Limitar a 20 preguntas iniciales para carga más rápida
-      params.append('limit', '20');
-      params.append('offset', '0');
+      params.append("limit", "20");
+      params.append("offset", "0");
 
       const url = `/api/courses/${slug}/questions?${params.toString()}`;
       const response = await fetch(url);
@@ -6527,11 +8008,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     const questionsChannel = supabase
       .channel(`course-questions-${courseId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'course_questions',
+          event: "INSERT",
+          schema: "public",
+          table: "course_questions",
           filter: `course_id=eq.${courseId}`,
         },
         async (payload) => {
@@ -6539,7 +8020,9 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           if (!activeSearchQuery) {
             // Obtener datos completos de la nueva pregunta (con usuario)
             try {
-              const response = await fetch(`/api/courses/${slug}/questions/${payload.new.id}`);
+              const response = await fetch(
+                `/api/courses/${slug}/questions/${payload.new.id}`
+              );
               if (response.ok) {
                 const newQuestion = await response.json();
                 setQuestions((prev) => {
@@ -6559,11 +8042,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'course_questions',
+          event: "UPDATE",
+          schema: "public",
+          table: "course_questions",
           filter: `course_id=eq.${courseId}`,
         },
         async (payload) => {
@@ -6571,18 +8054,22 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           setQuestions((prev) =>
             prev.map((q) =>
               q.id === payload.new.id
-                ? { ...q, ...payload.new, updated_at: payload.new.updated_at || q.updated_at }
+                ? {
+                    ...q,
+                    ...payload.new,
+                    updated_at: payload.new.updated_at || q.updated_at,
+                  }
                 : q
             )
           );
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'course_questions',
+          event: "DELETE",
+          schema: "public",
+          table: "course_questions",
           filter: `course_id=eq.${courseId}`,
         },
         (payload) => {
@@ -6596,11 +8083,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     const responsesChannel = supabase
       .channel(`course-responses-${courseId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'course_question_responses',
+          event: "INSERT",
+          schema: "public",
+          table: "course_question_responses",
         },
         async (payload) => {
           // Incrementar contador de respuestas para la pregunta
@@ -6615,11 +8102,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'course_question_responses',
+          event: "DELETE",
+          schema: "public",
+          table: "course_question_responses",
         },
         (payload) => {
           // Decrementar contador de respuestas
@@ -6627,7 +8114,10 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           setQuestions((prev) =>
             prev.map((q) =>
               q.id === questionId
-                ? { ...q, response_count: Math.max(0, (q.response_count || 0) - 1) }
+                ? {
+                    ...q,
+                    response_count: Math.max(0, (q.response_count || 0) - 1),
+                  }
                 : q
             )
           );
@@ -6639,11 +8129,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     const reactionsChannel = supabase
       .channel(`course-reactions-${courseId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'course_question_reactions',
+          event: "INSERT",
+          schema: "public",
+          table: "course_question_reactions",
         },
         (payload) => {
           const questionId = payload.new.question_id;
@@ -6662,11 +8152,11 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'course_question_reactions',
+          event: "DELETE",
+          schema: "public",
+          table: "course_question_reactions",
         },
         (payload) => {
           const questionId = payload.old.question_id;
@@ -6678,7 +8168,10 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           setQuestions((prev) =>
             prev.map((q) =>
               q.id === questionId
-                ? { ...q, reaction_count: Math.max(0, (q.reaction_count || 0) - 1) }
+                ? {
+                    ...q,
+                    reaction_count: Math.max(0, (q.reaction_count || 0) - 1),
+                  }
                 : q
             )
           );
@@ -6703,9 +8196,9 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
       const nextOffset = offset + 20;
 
       const params = new URLSearchParams();
-      if (activeSearchQuery) params.append('search', activeSearchQuery);
-      params.append('limit', '20');
-      params.append('offset', nextOffset.toString());
+      if (activeSearchQuery) params.append("search", activeSearchQuery);
+      params.append("limit", "20");
+      params.append("offset", nextOffset.toString());
 
       const url = `/api/courses/${slug}/questions?${params.toString()}`;
       const response = await fetch(url);
@@ -6715,7 +8208,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
         if (data && data.length > 0) {
           // Agregar nuevas preguntas a las existentes
-          setQuestions(prev => [...prev, ...data]);
+          setQuestions((prev) => [...prev, ...data]);
           setOffset(nextOffset);
 
           // Verificar si hay más preguntas
@@ -6732,8 +8225,8 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
             }
           });
 
-          setUserReactions(prev => ({ ...prev, ...newReactionsMap }));
-          setReactionCounts(prev => ({ ...prev, ...newCountsMap }));
+          setUserReactions((prev) => ({ ...prev, ...newReactionsMap }));
+          setReactionCounts((prev) => ({ ...prev, ...newCountsMap }));
         } else {
           setHasMore(false);
         }
@@ -6749,10 +8242,14 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
   };
 
   const getUserDisplayName = (user: any) => {
-    return user?.display_name ||
-      (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+    return (
+      user?.display_name ||
+      (user?.first_name && user?.last_name
+        ? `${user.first_name} ${user.last_name}`
+        : null) ||
       user?.username ||
-      'Usuario';
+      "Usuario"
+    );
   };
 
   const getUserInitials = (user: any) => {
@@ -6762,7 +8259,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     if (user?.username) {
       return user.username.charAt(0).toUpperCase();
     }
-    return 'U';
+    return "U";
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -6770,10 +8267,13 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return 'hace un momento';
-    if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} min`;
-    if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} h`;
-    if (diffInSeconds < 2592000) return `hace ${Math.floor(diffInSeconds / 86400)} días`;
+    if (diffInSeconds < 60) return "hace un momento";
+    if (diffInSeconds < 3600)
+      return `hace ${Math.floor(diffInSeconds / 60)} min`;
+    if (diffInSeconds < 86400)
+      return `hace ${Math.floor(diffInSeconds / 3600)} h`;
+    if (diffInSeconds < 2592000)
+      return `hace ${Math.floor(diffInSeconds / 86400)} días`;
     return date.toLocaleDateString();
   };
 
@@ -6781,16 +8281,18 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     e.stopPropagation();
 
     const currentReaction = userReactions[questionId];
-    const isCurrentlyLiked = currentReaction === 'like';
+    const isCurrentlyLiked = currentReaction === "like";
     const currentCount = reactionCounts[questionId] ?? 0;
 
     // Actualización optimista - aplicar cambios inmediatamente
-    const newCount = isCurrentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
-    const newReactionState = isCurrentlyLiked ? null : 'like';
+    const newCount = isCurrentlyLiked
+      ? Math.max(0, currentCount - 1)
+      : currentCount + 1;
+    const newReactionState = isCurrentlyLiked ? null : "like";
 
     // Actualizar estado optimista
-    setReactionCounts(prev => ({ ...prev, [questionId]: newCount }));
-    setUserReactions(prev => {
+    setReactionCounts((prev) => ({ ...prev, [questionId]: newCount }));
+    setUserReactions((prev) => {
       if (newReactionState) {
         return { ...prev, [questionId]: newReactionState };
       } else {
@@ -6801,19 +8303,22 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     });
 
     try {
-      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/reactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reaction_type: 'like',
-          action: 'toggle'
-        })
-      });
+      const response = await fetch(
+        `/api/courses/${slug}/questions/${questionId}/reactions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reaction_type: "like",
+            action: "toggle",
+          }),
+        }
+      );
 
       if (!response.ok) {
         // Revertir en caso de error
-        setReactionCounts(prev => ({ ...prev, [questionId]: currentCount }));
-        setUserReactions(prev => {
+        setReactionCounts((prev) => ({ ...prev, [questionId]: currentCount }));
+        setUserReactions((prev) => {
           if (currentReaction) {
             return { ...prev, [questionId]: currentReaction };
           } else {
@@ -6828,13 +8333,18 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
         // Recargar reacciones del usuario para esta pregunta específica
         try {
-          const userResponse = await fetch('/api/auth/me', { credentials: 'include' });
+          const userResponse = await fetch("/api/auth/me", {
+            credentials: "include",
+          });
           if (userResponse.ok) {
             const userData = await userResponse.json();
-            const userId = userData?.success && userData?.user ? userData.user.id : (userData?.id || null);
+            const userId =
+              userData?.success && userData?.user
+                ? userData.user.id
+                : userData?.id || null;
 
             if (userId) {
-              const { createClient } = await import('@supabase/supabase-js');
+              const { createClient } = await import("@supabase/supabase-js");
               const supabase = createClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -6842,17 +8352,17 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
               // Verificar estado actual de la reacción después de la actualización
               const { data: currentReaction } = await supabase
-                .from('course_question_reactions')
-                .select('reaction_type')
-                .eq('user_id', userId)
-                .eq('question_id', questionId)
-                .eq('reaction_type', 'like')
+                .from("course_question_reactions")
+                .select("reaction_type")
+                .eq("user_id", userId)
+                .eq("question_id", questionId)
+                .eq("reaction_type", "like")
                 .maybeSingle();
 
               // Actualizar estado de reacción según el servidor (estado real)
-              setUserReactions(prev => {
+              setUserReactions((prev) => {
                 if (currentReaction) {
-                  return { ...prev, [questionId]: 'like' };
+                  return { ...prev, [questionId]: "like" };
                 } else {
                   const updated = { ...prev };
                   delete updated[questionId];
@@ -6861,18 +8371,30 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
               });
 
               // Obtener contador actualizado de la pregunta desde el servidor
-              const questionResponse = await fetch(`/api/courses/${slug}/questions`);
+              const questionResponse = await fetch(
+                `/api/courses/${slug}/questions`
+              );
               if (questionResponse.ok) {
                 const questionsData = await questionResponse.json();
-                const updatedQuestion = questionsData.find((q: any) => q.id === questionId);
+                const updatedQuestion = questionsData.find(
+                  (q: any) => q.id === questionId
+                );
                 if (updatedQuestion) {
                   // Reemplazar el contador con el valor real del servidor (sin sumar/restar)
-                  setReactionCounts(prev => ({ ...prev, [questionId]: updatedQuestion.reaction_count || 0 }));
-                  setQuestions(prev => prev.map(q =>
-                    q.id === questionId
-                      ? { ...q, reaction_count: updatedQuestion.reaction_count || 0 }
-                      : q
-                  ));
+                  setReactionCounts((prev) => ({
+                    ...prev,
+                    [questionId]: updatedQuestion.reaction_count || 0,
+                  }));
+                  setQuestions((prev) =>
+                    prev.map((q) =>
+                      q.id === questionId
+                        ? {
+                            ...q,
+                            reaction_count: updatedQuestion.reaction_count || 0,
+                          }
+                        : q
+                    )
+                  );
                 }
               }
             }
@@ -6884,8 +8406,8 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
     } catch (error) {
       // console.error('Error handling reaction:', error);
       // Revertir en caso de error
-      setReactionCounts(prev => ({ ...prev, [questionId]: currentCount }));
-      setUserReactions(prev => {
+      setReactionCounts((prev) => ({ ...prev, [questionId]: currentCount }));
+      setUserReactions((prev) => {
         if (currentReaction) {
           return { ...prev, [questionId]: currentReaction };
         } else {
@@ -6899,7 +8421,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
   if (loading) {
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="space-y-6 pb-24 md:pb-6"
@@ -6909,10 +8431,10 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           <div className="h-8 w-48 bg-white/5 rounded-lg animate-pulse" />
           <div className="h-10 w-36 bg-white/5 rounded-lg animate-pulse" />
         </div>
-        
+
         {/* Search skeleton */}
         <div className="h-12 bg-white/5 rounded-xl animate-pulse" />
-        
+
         {/* Content skeleton */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-12 flex flex-col items-center justify-center">
           <motion.div
@@ -6922,14 +8444,14 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           >
             <MessageCircle className="w-6 h-6 text-white" />
           </motion.div>
-          <p className="text-white/50 text-sm">{t('loading.questions')}</p>
+          <p className="text-white/50 text-sm">{t("loading.questions")}</p>
         </div>
       </motion.div>
     );
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-6 pb-24 md:pb-6"
@@ -6942,7 +8464,9 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           </div>
           <div>
             <h2 className="text-lg font-semibold text-white">Preguntas</h2>
-            <p className="text-xs text-white/40">{questions.length} conversaciones</p>
+            <p className="text-xs text-white/40">
+              {questions.length} conversaciones
+            </p>
           </div>
         </div>
         <motion.button
@@ -6981,12 +8505,12 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
       {/* Estado vacío moderno */}
       {questions.length === 0 ? (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl border border-white/10 bg-white/[0.02] p-12 flex flex-col items-center justify-center"
         >
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 200 }}
@@ -6994,11 +8518,13 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
           >
             <MessageCircle className="w-8 h-8 text-white" />
           </motion.div>
-          <h3 className="text-white text-lg font-medium mb-2">No hay preguntas</h3>
+          <h3 className="text-white text-lg font-medium mb-2">
+            No hay preguntas
+          </h3>
           <p className="text-white/40 text-sm text-center mb-6 max-w-sm">
-            {activeSearchQuery 
-              ? 'No se encontraron resultados para tu búsqueda' 
-              : 'Sé el primero en iniciar una conversación'}
+            {activeSearchQuery
+              ? "No se encontraron resultados para tu búsqueda"
+              : "Sé el primero en iniciar una conversación"}
           </p>
           {!activeSearchQuery && (
             <motion.button
@@ -7042,7 +8568,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                       </span>
                     )}
                   </div>
-                  
+
                   {/* Contenido */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -7050,8 +8576,10 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                         {getUserDisplayName(question.user)}
                       </span>
                       <span className="text-xs text-white/30">•</span>
-                      <span className="text-xs text-white/40">{formatTimeAgo(question.created_at)}</span>
-                      
+                      <span className="text-xs text-white/40">
+                        {formatTimeAgo(question.created_at)}
+                      </span>
+
                       {/* Badges */}
                       {question.is_pinned && (
                         <span className="px-1.5 py-0.5 text-[10px] font-medium text-amber-400 bg-amber-500/10 rounded">
@@ -7065,50 +8593,65 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                         </span>
                       )}
                     </div>
-                    
+
                     {/* Título y contenido */}
-                    <div 
+                    <div
                       className="cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
+                        setSelectedQuestion(
+                          selectedQuestion === question.id ? null : question.id
+                        );
                       }}
                     >
                       {question.title && (
-                        <h4 className="text-white font-medium text-sm mb-1">{question.title}</h4>
+                        <h4 className="text-white font-medium text-sm mb-1">
+                          {question.title}
+                        </h4>
                       )}
                       <p className="text-white/60 text-sm leading-relaxed">
-                        {selectedQuestion === question.id ? question.content : (
-                          question.content.length > 150 ? `${question.content.substring(0, 150)}...` : question.content
-                        )}
+                        {selectedQuestion === question.id
+                          ? question.content
+                          : question.content.length > 150
+                            ? `${question.content.substring(0, 150)}...`
+                            : question.content}
                       </p>
-                      {question.content.length > 150 && selectedQuestion !== question.id && (
-                        <button className="text-[#0A2540] text-xs mt-1 font-medium hover:underline">
-                          Ver más
-                        </button>
-                      )}
+                      {question.content.length > 150 &&
+                        selectedQuestion !== question.id && (
+                          <button className="text-[#0A2540] text-xs mt-1 font-medium hover:underline">
+                            Ver más
+                          </button>
+                        )}
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Footer con stats y acciones */}
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
                   <div className="flex items-center gap-4">
-                    <button 
+                    <button
                       onClick={(e) => handleReaction(question.id, e)}
                       className={`flex items-center gap-1.5 text-xs transition-colors ${
-                        userReactions[question.id] === 'like'
-                          ? 'text-red-400'
-                          : 'text-white/40 hover:text-red-400'
+                        userReactions[question.id] === "like"
+                          ? "text-red-400"
+                          : "text-white/40 hover:text-red-400"
                       }`}
                     >
-                      <Heart className={`w-3.5 h-3.5 ${userReactions[question.id] === 'like' ? 'fill-current' : ''}`} />
-                      <span>{reactionCounts[question.id] ?? (question.reaction_count ?? 0)}</span>
+                      <Heart
+                        className={`w-3.5 h-3.5 ${userReactions[question.id] === "like" ? "fill-current" : ""}`}
+                      />
+                      <span>
+                        {reactionCounts[question.id] ??
+                          question.reaction_count ??
+                          0}
+                      </span>
                     </button>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
+                        setSelectedQuestion(
+                          selectedQuestion === question.id ? null : question.id
+                        );
                       }}
                       className="flex items-center gap-1.5 text-xs text-white/40 hover:text-[#0A2540] transition-colors"
                     >
@@ -7120,12 +8663,14 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
                       <span>{question.view_count}</span>
                     </span>
                   </div>
-                  
+
                   <motion.button
                     whileHover={{ x: 3 }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedQuestion(selectedQuestion === question.id ? null : question.id);
+                      setSelectedQuestion(
+                        selectedQuestion === question.id ? null : question.id
+                      );
                     }}
                     className="text-xs text-white/40 hover:text-white flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
@@ -7157,7 +8702,7 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
 
           {/* Botón "Cargar más" */}
           {hasMore && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex justify-center pt-4"
@@ -7214,26 +8759,38 @@ function QuestionsContent({ slug, courseTitle }: { slug: string; courseTitle: st
   );
 }
 
-function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slug: string; onClose: () => void }) {
+function QuestionDetail({
+  questionId,
+  slug,
+  onClose,
+}: {
+  questionId: string;
+  slug: string;
+  onClose: () => void;
+}) {
   const [question, setQuestion] = useState<any>(null);
   const [responses, setResponses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false); // Cambiado a false para mostrar skeleton inmediatamente
   const [loadingResponses, setLoadingResponses] = useState(true); // Iniciar en true para mostrar skeleton inmediatamente
   const [loadingReactions, setLoadingReactions] = useState(false);
-  const [newResponse, setNewResponse] = useState('');
+  const [newResponse, setNewResponse] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState('');
+  const [replyContent, setReplyContent] = useState("");
   const [replyingToReply, setReplyingToReply] = useState<string | null>(null); // Para responder a comentarios anidados
-  const [replyToReplyContent, setReplyToReplyContent] = useState('');
+  const [replyToReplyContent, setReplyToReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [responseReactions, setResponseReactions] = useState<Record<string, string>>({}); // responseId -> reaction_type
-  const [responseReactionCounts, setResponseReactionCounts] = useState<Record<string, number>>({}); // responseId -> count
+  const [responseReactions, setResponseReactions] = useState<
+    Record<string, string>
+  >({}); // responseId -> reaction_type
+  const [responseReactionCounts, setResponseReactionCounts] = useState<
+    Record<string, number>
+  >({}); // responseId -> count
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Función para ajustar altura del textarea
   const adjustTextareaHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
       const scrollHeight = textareaRef.current.scrollHeight;
       const minHeight = 40; // Altura mínima en px (equivalente a ~1 línea)
       const maxHeight = 200; // Altura máxima en px (equivalente a ~8-9 líneas)
@@ -7264,7 +8821,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         // PARALELIZAR: Cargar pregunta y respuestas al mismo tiempo
         const [questionRes, responsesRes] = await Promise.all([
           fetch(`/api/courses/${slug}/questions/${questionId}`),
-          fetch(`/api/courses/${slug}/questions/${questionId}/responses`)
+          fetch(`/api/courses/${slug}/questions/${questionId}/responses`),
         ]);
 
         if (cancelled) return;
@@ -7371,18 +8928,20 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     const responsesChannel = supabase
       .channel(`question-responses-${questionId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'course_question_responses',
+          event: "INSERT",
+          schema: "public",
+          table: "course_question_responses",
           filter: `question_id=eq.${questionId}`,
         },
         async (payload) => {
           // Recargar todas las respuestas para obtener la estructura completa con usuario
           // Esto es más confiable que intentar construir la respuesta manualmente
           try {
-            const responsesRes = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`);
+            const responsesRes = await fetch(
+              `/api/courses/${slug}/questions/${questionId}/responses`
+            );
             if (responsesRes.ok) {
               const responsesData = await responsesRes.json();
               setResponses(responsesData || []);
@@ -7415,11 +8974,11 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'course_question_responses',
+          event: "UPDATE",
+          schema: "public",
+          table: "course_question_responses",
           filter: `question_id=eq.${questionId}`,
         },
         (payload) => {
@@ -7441,11 +9000,11 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'course_question_responses',
+          event: "DELETE",
+          schema: "public",
+          table: "course_question_responses",
           filter: `question_id=eq.${questionId}`,
         },
         (payload) => {
@@ -7472,11 +9031,11 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     const responseReactionsChannel = supabase
       .channel(`response-reactions-${questionId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'course_question_reactions',
+          event: "INSERT",
+          schema: "public",
+          table: "course_question_reactions",
           filter: `question_id=eq.${questionId}`,
         },
         (payload) => {
@@ -7492,11 +9051,11 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
         }
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'course_question_reactions',
+          event: "DELETE",
+          schema: "public",
+          table: "course_question_reactions",
           filter: `question_id=eq.${questionId}`,
         },
         (payload) => {
@@ -7524,7 +9083,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     if (user?.first_name && user?.last_name) {
       return `${user.first_name} ${user.last_name}`;
     }
-    return user?.display_name || user?.username || 'Usuario';
+    return user?.display_name || user?.username || "Usuario";
   };
 
   const getUserInitials = (user: any) => {
@@ -7534,7 +9093,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     if (user?.username) {
       return user.username.charAt(0).toUpperCase();
     }
-    return 'U';
+    return "U";
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -7542,26 +9101,34 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return 'hace un momento';
-    if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} min`;
-    if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} h`;
-    if (diffInSeconds < 2592000) return `hace ${Math.floor(diffInSeconds / 86400)} días`;
+    if (diffInSeconds < 60) return "hace un momento";
+    if (diffInSeconds < 3600)
+      return `hace ${Math.floor(diffInSeconds / 60)} min`;
+    if (diffInSeconds < 86400)
+      return `hace ${Math.floor(diffInSeconds / 3600)} h`;
+    if (diffInSeconds < 2592000)
+      return `hace ${Math.floor(diffInSeconds / 86400)} días`;
     return date.toLocaleDateString();
   };
 
-  const handleResponseReaction = async (responseId: string, e: React.MouseEvent) => {
+  const handleResponseReaction = async (
+    responseId: string,
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
 
     const currentReaction = responseReactions[responseId];
-    const isCurrentlyLiked = currentReaction === 'like';
+    const isCurrentlyLiked = currentReaction === "like";
     const currentCount = responseReactionCounts[responseId] ?? 0;
 
     // OPTIMIZACIÓN: Actualización optimista inmediata (sin bloquear UI)
-    const newCount = isCurrentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
-    const newReactionState = isCurrentlyLiked ? null : 'like';
+    const newCount = isCurrentlyLiked
+      ? Math.max(0, currentCount - 1)
+      : currentCount + 1;
+    const newReactionState = isCurrentlyLiked ? null : "like";
 
-    setResponseReactionCounts(prev => ({ ...prev, [responseId]: newCount }));
-    setResponseReactions(prev => {
+    setResponseReactionCounts((prev) => ({ ...prev, [responseId]: newCount }));
+    setResponseReactions((prev) => {
       if (newReactionState) {
         return { ...prev, [responseId]: newReactionState };
       } else {
@@ -7572,19 +9139,25 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     });
 
     try {
-      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses/${responseId}/reactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reaction_type: 'like',
-          action: 'toggle'
-        })
-      });
+      const response = await fetch(
+        `/api/courses/${slug}/questions/${questionId}/responses/${responseId}/reactions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reaction_type: "like",
+            action: "toggle",
+          }),
+        }
+      );
 
       if (!response.ok) {
         // Revertir en caso de error
-        setResponseReactionCounts(prev => ({ ...prev, [responseId]: currentCount }));
-        setResponseReactions(prev => {
+        setResponseReactionCounts((prev) => ({
+          ...prev,
+          [responseId]: currentCount,
+        }));
+        setResponseReactions((prev) => {
           if (currentReaction) {
             return { ...prev, [responseId]: currentReaction };
           } else {
@@ -7599,14 +9172,20 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
         // Sincronizar con el contador real del servidor
         if (data.new_count !== undefined) {
-          setResponseReactionCounts(prev => ({ ...prev, [responseId]: data.new_count }));
+          setResponseReactionCounts((prev) => ({
+            ...prev,
+            [responseId]: data.new_count,
+          }));
         }
 
         // Sincronizar estado de reacción del usuario
         if (data.user_reaction) {
-          setResponseReactions(prev => ({ ...prev, [responseId]: data.user_reaction }));
+          setResponseReactions((prev) => ({
+            ...prev,
+            [responseId]: data.user_reaction,
+          }));
         } else {
-          setResponseReactions(prev => {
+          setResponseReactions((prev) => {
             const updated = { ...prev };
             delete updated[responseId];
             return updated;
@@ -7616,8 +9195,11 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     } catch (error) {
       // console.error('Error handling response reaction:', error);
       // Revertir en caso de error
-      setResponseReactionCounts(prev => ({ ...prev, [responseId]: currentCount }));
-      setResponseReactions(prev => {
+      setResponseReactionCounts((prev) => ({
+        ...prev,
+        [responseId]: currentCount,
+      }));
+      setResponseReactions((prev) => {
         if (currentReaction) {
           return { ...prev, [responseId]: currentReaction };
         } else {
@@ -7635,16 +9217,19 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newResponse.trim() })
-      });
+      const response = await fetch(
+        `/api/courses/${slug}/questions/${questionId}/responses`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: newResponse.trim() }),
+        }
+      );
 
       if (response.ok) {
         const newResponseData = await response.json();
-        setResponses(prev => [...prev, { ...newResponseData, replies: [] }]);
-        setNewResponse('');
+        setResponses((prev) => [...prev, { ...newResponseData, replies: [] }]);
+        setNewResponse("");
       }
     } catch (error) {
       // console.error('Error submitting response:', error);
@@ -7658,23 +9243,28 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: replyContent.trim(),
-          parent_response_id: parentId
-        })
-      });
+      const response = await fetch(
+        `/api/courses/${slug}/questions/${questionId}/responses`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: replyContent.trim(),
+            parent_response_id: parentId,
+          }),
+        }
+      );
 
       if (response.ok) {
         const newReplyData = await response.json();
-        setResponses(prev => prev.map(r =>
-          r.id === parentId
-            ? { ...r, replies: [...(r.replies || []), newReplyData] }
-            : r
-        ));
-        setReplyContent('');
+        setResponses((prev) =>
+          prev.map((r) =>
+            r.id === parentId
+              ? { ...r, replies: [...(r.replies || []), newReplyData] }
+              : r
+          )
+        );
+        setReplyContent("");
         setReplyingTo(null);
       }
     } catch (error) {
@@ -7684,40 +9274,50 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
     }
   };
 
-  const handleSubmitReplyToReply = async (parentReplyId: string, parentResponseId: string) => {
+  const handleSubmitReplyToReply = async (
+    parentReplyId: string,
+    parentResponseId: string
+  ) => {
     if (!replyToReplyContent.trim()) return;
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/courses/${slug}/questions/${questionId}/responses`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: replyToReplyContent.trim(),
-          parent_response_id: parentReplyId
-        })
-      });
+      const response = await fetch(
+        `/api/courses/${slug}/questions/${questionId}/responses`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: replyToReplyContent.trim(),
+            parent_response_id: parentReplyId,
+          }),
+        }
+      );
 
       if (response.ok) {
         const newReplyData = await response.json();
         // Buscar la respuesta principal y actualizar sus replies
-        setResponses(prev => prev.map(response => {
-          if (response.id === parentResponseId) {
-            const updatedReplies = (response.replies || []).map((reply: any) => {
-              if (reply.id === parentReplyId) {
-                // Si el reply ya tiene replies, agregarlo, sino crear el array
-                return {
-                  ...reply,
-                  replies: [...(reply.replies || []), newReplyData]
-                };
-              }
-              return reply;
-            });
-            return { ...response, replies: updatedReplies };
-          }
-          return response;
-        }));
-        setReplyToReplyContent('');
+        setResponses((prev) =>
+          prev.map((response) => {
+            if (response.id === parentResponseId) {
+              const updatedReplies = (response.replies || []).map(
+                (reply: any) => {
+                  if (reply.id === parentReplyId) {
+                    // Si el reply ya tiene replies, agregarlo, sino crear el array
+                    return {
+                      ...reply,
+                      replies: [...(reply.replies || []), newReplyData],
+                    };
+                  }
+                  return reply;
+                }
+              );
+              return { ...response, replies: updatedReplies };
+            }
+            return response;
+          })
+        );
+        setReplyToReplyContent("");
         setReplyingToReply(null);
       }
     } catch (error) {
@@ -7745,7 +9345,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
+      animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
       className="p-6 border-t border-white/5 bg-black/20"
       onClick={(e) => e.stopPropagation()}
@@ -7803,7 +9403,9 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
           </div>
         ) : responses.length === 0 ? (
           <div className="text-center py-8 border border-dashed border-white/10 rounded-xl">
-            <p className="text-white/30 text-sm">Aún no hay respuestas. Sé el primero en responder.</p>
+            <p className="text-white/30 text-sm">
+              Aún no hay respuestas. Sé el primero en responder.
+            </p>
           </div>
         ) : (
           responses.map((response, index) => (
@@ -7841,7 +9443,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                     <span className="text-xs text-white/30">
                       {formatTimeAgo(response.created_at)}
                     </span>
-                    
+
                     {response.is_instructor_answer && (
                       <span className="ml-1 px-1.5 py-0.5 bg-[#00D4B3]/10 text-[#00D4B3] text-[10px] font-medium rounded">
                         Instructor
@@ -7859,17 +9461,26 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                     <button
                       onClick={(e) => handleResponseReaction(response.id, e)}
                       className={`flex items-center gap-1.5 text-xs transition-colors ${
-                        responseReactions[response.id] === 'like'
-                          ? 'text-red-400'
-                          : 'text-white/30 hover:text-red-400'
+                        responseReactions[response.id] === "like"
+                          ? "text-red-400"
+                          : "text-white/30 hover:text-red-400"
                       }`}
                     >
-                      <Heart className={`w-3.5 h-3.5 ${responseReactions[response.id] === 'like' ? 'fill-current' : ''}`} />
-                      <span>{responseReactionCounts[response.id] ?? (response.reaction_count || 0)}</span>
+                      <Heart
+                        className={`w-3.5 h-3.5 ${responseReactions[response.id] === "like" ? "fill-current" : ""}`}
+                      />
+                      <span>
+                        {responseReactionCounts[response.id] ??
+                          (response.reaction_count || 0)}
+                      </span>
                     </button>
-                    
+
                     <button
-                      onClick={() => setReplyingTo(replyingTo === response.id ? null : response.id)}
+                      onClick={() =>
+                        setReplyingTo(
+                          replyingTo === response.id ? null : response.id
+                        )
+                      }
                       className="text-xs text-white/30 hover:text-white transition-colors"
                     >
                       Responder
@@ -7881,7 +9492,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                     {replyingTo === response.id && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
+                        animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         className="mt-3 pl-4 border-l border-white/10"
                       >
@@ -7925,7 +9536,7 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                               </span>
                             )}
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
                               <span className="text-sm font-medium text-white/90">
@@ -7935,7 +9546,9 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
                                 {formatTimeAgo(reply.created_at)}
                               </span>
                             </div>
-                            <p className="text-white/70 text-sm whitespace-pre-wrap">{reply.content}</p>
+                            <p className="text-white/70 text-sm whitespace-pre-wrap">
+                              {reply.content}
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -7951,9 +9564,17 @@ function QuestionDetail({ questionId, slug, onClose }: { questionId: string; slu
   );
 }
 
-function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClose: () => void; onSuccess: (question?: any) => void }) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+function CreateQuestionForm({
+  slug,
+  onClose,
+  onSuccess,
+}: {
+  slug: string;
+  onClose: () => void;
+  onSuccess: (question?: any) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -7963,12 +9584,12 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
     try {
       setIsSubmitting(true);
       const response = await fetch(`/api/courses/${slug}/questions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim() || null,
-          content: content.trim()
-        })
+          content: content.trim(),
+        }),
       });
 
       if (response.ok) {
@@ -7976,28 +9597,31 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
         const newQuestion = await response.json();
         onSuccess(newQuestion);
         // Limpiar formulario
-        setTitle('');
-        setContent('');
+        setTitle("");
+        setContent("");
       } else {
         const errorData = await response.json();
         alert(`Error: ${errorData.error}`);
       }
     } catch (error) {
       // console.error('Error creating question:', error);
-      alert('Error al crear la pregunta');
+      alert("Error al crear la pregunta");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
       {/* Overlay */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
       />
 
       {/* Modal Content */}
@@ -8013,11 +9637,15 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
           <MessageCircle className="w-24 h-24 text-white" />
         </div>
 
-        <h3 className="text-white font-semibold text-xl mb-6 relative z-10 font-[Inter,sans-serif]">Nueva Pregunta</h3>
+        <h3 className="text-white font-semibold text-xl mb-6 relative z-10 font-[Inter,sans-serif]">
+          Nueva Pregunta
+        </h3>
 
         <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
           <div>
-            <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">Título (opcional)</label>
+            <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
+              Título (opcional)
+            </label>
             <input
               type="text"
               value={title}
@@ -8028,7 +9656,9 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
           </div>
 
           <div>
-            <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">Contenido <span className="text-red-400">*</span></label>
+            <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
+              Contenido <span className="text-red-400">*</span>
+            </label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -8071,4 +9701,3 @@ function CreateQuestionForm({ slug, onClose, onSuccess }: { slug: string; onClos
   );
 }
 // End of file
-

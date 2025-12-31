@@ -10,8 +10,10 @@ import { useOrganizationStylesContext } from '../../business-panel/contexts/Orga
 import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
 import { useLIAData } from '../hooks/useLIAData';
 import { parseLiaResponseToSchedules } from '../services/plan-parser.service';
-import { useNextStep } from 'nextstepjs';
+// import { useNextStep } from 'nextstepjs';
 import { useStudyPlannerTour } from '../hooks/useStudyPlannerTour';
+import Joyride from 'react-joyride';
+import { useStudyPlannerJoyride } from '../../tours/hooks/useStudyPlannerJoyride';
 
 // Componentes de iconos de Google y Microsoft
 const GoogleIcon = () => (
@@ -123,8 +125,16 @@ function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
 
 export function StudyPlannerLIA() {
   const router = useRouter();
-  const { currentTour } = useNextStep();
-  const { restartTour } = useStudyPlannerTour();
+  
+  // Joyride integration
+  const { joyrideProps, restartTour, isRunning } = useStudyPlannerJoyride();
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // const { currentTour } = useNextStep();
+  // const { restartTour } = useStudyPlannerTour();
   const { styles, loading: loadingStyles } = useOrganizationStylesContext();
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -855,7 +865,7 @@ export function StudyPlannerLIA() {
 
     const generateWelcomeMessage = async (externalController?: AbortController) => {
       // ✅ NUEVO: Si hay un tour activo, esperar
-      if (currentTour) {
+      if (isRunning) {
         console.log('⏳ [Welcome] Tour activo, esperando...');
         return;
       }
@@ -988,7 +998,7 @@ INSTRUCCIONES:
           if (assignedCourses.length > 0) {
             return setTimeout(() => {
               setShowApproachModal(true);
-            }, 4000); // Esperar 4 segundos para que el usuario lea el mensaje de LIA
+            }, 7000); // Esperar 7 segundos para que el usuario lea el mensaje de LIA
           }
         } else {
           console.error('Error obteniendo mensaje de bienvenida de LIA');
@@ -1000,7 +1010,7 @@ INSTRUCCIONES:
           if (assignedCourses.length > 0) {
             return setTimeout(() => {
               setShowApproachModal(true);
-            }, 4000); // Esperar 4 segundos
+            }, 7000); // Esperar 7 segundos
           }
         }
       } catch (error: any) {
@@ -1018,7 +1028,7 @@ INSTRUCCIONES:
         if (assignedCourses.length > 0) {
           return setTimeout(() => {
             setShowApproachModal(true);
-          }, 4000); // Esperar 4 segundos
+          }, 7000); // Esperar 7 segundos
         }
       } finally {
         setIsProcessing(false);
@@ -1036,7 +1046,17 @@ INSTRUCCIONES:
       controller.abort();
       if (welcomeTimeoutId) clearTimeout(welcomeTimeoutId);
     };
-  }, [showConversation, conversationHistory.length, showCourseSelector, userContext, assignedCourses, connectedCalendar, liaData.isReady, currentTour]);
+  }, [showConversation, conversationHistory.length, showCourseSelector, userContext, assignedCourses, connectedCalendar, liaData.isReady, isRunning]);
+
+  // Asegurar que el modal de approach aparezca cuando el tour termine
+  useEffect(() => {
+    if (!isRunning && assignedCourses.length > 0 && conversationHistory.length > 0 && !showApproachModal && !hasAskedApproach && !studyApproach) {
+      const timer = setTimeout(() => {
+        setShowApproachModal(true);
+      }, 7000); // 7s después del tour para dar tiempo a leer
+      return () => clearTimeout(timer);
+    }
+  }, [isRunning, assignedCourses.length, conversationHistory.length, showApproachModal, hasAskedApproach, studyApproach]);
 
   // NO mostrar automáticamente el modal - solo cuando el usuario lo solicite mediante el botón
 
@@ -10823,6 +10843,7 @@ Cuéntame:
           </div >
         )
       }
+      {isMounted && <Joyride {...joyrideProps} />}
     </>
   );
 }

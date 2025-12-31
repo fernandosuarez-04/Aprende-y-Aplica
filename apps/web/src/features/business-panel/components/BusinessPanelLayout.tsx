@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Joyride from 'react-joyride'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { BusinessPanelSidebar } from './BusinessPanelSidebar'
 import { BusinessPanelHeader } from './BusinessPanelHeader'
@@ -11,10 +12,7 @@ import { generateCSSVariables, getBackgroundStyle } from '../utils/styles'
 import { LiaSidePanel } from '@/core/components/LiaSidePanel'
 import { LiaFloatingButton } from '@/core/components/LiaSidePanel/LiaFloatingButton'
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
-import { NextStepProvider, NextStep } from 'nextstepjs'
-import { businessPanelTourSteps, BUSINESS_PANEL_TOUR_ID } from '@/features/tours/config/business-panel-tour-steps'
-import { useTourProgress } from '@/features/tours/hooks/useTourProgress'
-import { GlobalTourCard } from '@/features/tours/components/GlobalTourCard'
+import { useBusinessPanelJoyride } from '@/features/tours/hooks/useBusinessPanelJoyride'
 
 
 interface BusinessPanelLayoutProps {
@@ -25,7 +23,10 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const { styles, loading: stylesLoading } = useOrganizationStylesContext()
-  const { completeTour, skipTour } = useTourProgress(BUSINESS_PANEL_TOUR_ID)
+  // Use the new Joyride hook
+  const { joyrideProps } = useBusinessPanelJoyride()
+  // Track if component has mounted (for client-only rendering)
+  const [isMounted, setIsMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -63,7 +64,6 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
 
   // Debug: Log cuando los estilos se aplican
   useEffect(() => {
-
     if (styles?.panel) {
       console.log('✅ [BusinessPanelLayout] Estilos aplicados correctamente al layout:', {
         theme: styles.selectedTheme,
@@ -72,6 +72,11 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
       });
     }
   }, [styles])
+
+  // Set mounted state for client-only rendering of Joyride
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Efecto para redireccionar usuarios no autenticados o con rol incorrecto
   // SOLO después de que la carga inicial haya terminado completamente
@@ -160,64 +165,59 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   }
 
   return (
-    <NextStepProvider>
-      <NextStep
-        steps={businessPanelTourSteps}
-        showNextStep={false}
-        shadowRgb="0, 0, 0"
-        shadowOpacity="0.7"
-        cardComponent={GlobalTourCard}
-        onComplete={completeTour}
-        onSkip={skipTour}
+    <>
+      {/* Joyride Tour Component - Only render on client */}
+      {isMounted && <Joyride {...joyrideProps} />}
+      
+      <div
+        key={styles?.selectedTheme || 'default-theme'}
+        className="fixed inset-0 z-0 h-screen flex flex-col overflow-hidden transition-all duration-300 business-panel-layout"
+        style={{
+          ...backgroundStyle,
+          ...cssVariables
+        } as React.CSSProperties}
       >
-        <div
-          key={styles?.selectedTheme || 'default-theme'}
-          className="fixed inset-0 z-0 h-screen flex flex-col overflow-hidden transition-all duration-300 business-panel-layout"
-          style={{
-            ...backgroundStyle,
-            ...cssVariables
-          } as React.CSSProperties}
-        >
-      {/* Header Global - Full Width */}
-      <BusinessPanelHeader 
-        onMenuClick={handleMenuClick}
-        title="Panel de Gestión Business"
-        isCollapsed={sidebarCollapsed}
-        onToggleCollapse={handleToggleCollapse}
-      />
-
-      {/* Componentes de LIA */}
-      <LiaSidePanel />
-      <LiaFloatingButton />
-
-      {/* Content Area with Sidebar + Main */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar Global */}
-        <BusinessPanelSidebar 
-          isOpen={sidebarOpen} 
-          onClose={handleSidebarClose}
-          activeSection={activeSection}
-          onSectionChange={handleSectionChange}
+        {/* Header Global - Full Width */}
+        <BusinessPanelHeader 
+          onMenuClick={handleMenuClick}
+          title="Panel de Gestión Business"
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={handleToggleCollapse}
-          isPinned={sidebarPinned}
-          onTogglePin={handleTogglePin}
         />
 
-        {/* Main Content Area */}
-        <main 
-          id="main-scroll-container"
-          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 business-panel-content transition-all duration-300"
-          style={{ marginRight: isLiaPanelOpen ? '420px' : '0px' }}
-        >
-          <div className="w-full max-w-[1920px] mx-auto">
-            {children}
+        {/* Componentes de LIA */}
+        <LiaSidePanel />
+        <LiaFloatingButton />
+
+        {/* Content Area with Sidebar + Main */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Sidebar Global */}
+          <BusinessPanelSidebar 
+            isOpen={sidebarOpen} 
+            onClose={handleSidebarClose}
+            activeSection={activeSection}
+            onSectionChange={handleSectionChange}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={handleToggleCollapse}
+            isPinned={sidebarPinned}
+            onTogglePin={handleTogglePin}
+          />
+
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <main 
+              id="main-scroll-container"
+              className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 business-panel-content transition-all duration-300"
+              style={{ marginRight: isLiaPanelOpen ? '420px' : '0px' }}
+            >
+              <div className="w-full max-w-[1920px] mx-auto">
+                {children}
+              </div>
+            </main>
           </div>
-        </main>
-      </div>
         </div>
-      </NextStep>
-    </NextStepProvider>
+      </div>
+    </>
   )
 }
 

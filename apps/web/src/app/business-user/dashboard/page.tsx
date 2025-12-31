@@ -20,7 +20,9 @@ import { getBackgroundStyle, generateCSSVariables } from '@/features/business-pa
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 import { LIA_PANEL_WIDTH } from '@/core/components/LiaSidePanel'
 
-import { useDashboardTour } from '@/features/tours/hooks/useDashboardTour'
+// Removed old tour hook
+import { useBusinessUserJoyride } from '@/features/tours/hooks/useBusinessUserJoyride'
+import Joyride from 'react-joyride'
 
 // Lazy load components - Removed heavy 3D/Particles backgrounds for performance
 const ModernNavbar = lazy(() =>
@@ -82,8 +84,10 @@ export default function BusinessUserDashboardPage() {
   const backgroundStyle = getBackgroundStyle(userDashboardStyles)
   const cssVariables = generateCSSVariables(userDashboardStyles)
 
-  // Inicializar tour
-  useDashboardTour()
+  // Tour inicializado
+  const { joyrideProps, restartTour } = useBusinessUserJoyride()
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => setIsMounted(true), [])
 
   // Colores personalizados de la organización
   const orgColors = {
@@ -322,6 +326,7 @@ export default function BusinessUserDashboardPage() {
           onProfileClick={handleProfileClick}
           onLogout={handleLogout}
           styles={userDashboardStyles}
+          onRestartTour={restartTour}
         />
       </Suspense>
 
@@ -673,10 +678,8 @@ export default function BusinessUserDashboardPage() {
         </div>
       </main>
 
-      {/* Tour de bienvenida para Business User */}
-      <Suspense fallback={null}>
-        <BusinessUserOnboardingAgent />
-      </Suspense>
+      {/* Tour de bienvenida Joyride */}
+      {isMounted && <Joyride {...joyrideProps} />}
     </div>
   )
 }

@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
-import { useNextStep } from 'nextstepjs';
+import { useState, useCallback, useEffect } from 'react';
+import { CallBackProps, EVENTS, STATUS, ACTIONS } from 'react-joyride';
 import { useTourProgress } from './useTourProgress';
-import { COURSE_LEARN_TOUR_ID } from '../config/course-learn-tour-steps';
+import { COURSE_LEARN_TOUR_ID, courseLearnJoyrideSteps } from '../config/course-learn-joyride-steps';
+import { JoyrideTooltip } from '../components/JoyrideTooltip';
 
 interface UseCourseLearnTourOptions {
   enabled?: boolean;
-  // Callbacks for interactive actions
   onOpenLia?: () => void;
   onCloseLia?: () => void;
-  onOpenNotes?: () => void;
+  onOpenNotes?: (shouldScroll?: boolean) => void;
   onCloseNotes?: () => void;
   onSwitchTab?: (tab: 'video' | 'transcript' | 'summary' | 'activities' | 'questions') => void;
 }
@@ -24,100 +24,139 @@ export function useCourseLearnTour(options: UseCourseLearnTourOptions = {}) {
     onCloseNotes,
     onSwitchTab
   } = options;
-  
-  const { startNextStep, closeNextStep, currentStep } = useNextStep();
-  const { shouldShowTour, isLoading, startTour, completeTour, skipTour } = useTourProgress(COURSE_LEARN_TOUR_ID);
-  
-  const hasStartedRef = useRef(false);
 
-  // Effect to trigger interactive actions based on current step
+  const { 
+    hasSeenTour,
+    shouldShowTour,
+    isLoading, 
+    completeTour, 
+    skipTour 
+  } = useTourProgress(COURSE_LEARN_TOUR_ID);
+
+  const [run, setRun] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+
+  // Check if tour should run when data is loaded
   useEffect(() => {
-    if (currentStep === undefined || currentStep === null) return;
-
-    // Execute actions based on tour step
-    switch (currentStep) {
-      case 3: // Transcription tab
-        onSwitchTab?.('transcript');
-        break;
-      case 4: // Summary tab
-        onSwitchTab?.('summary');
-        break;
-      case 5: // Activities tab
-        onSwitchTab?.('activities');
-        break;
-      case 6: // Questions tab  
-        onSwitchTab?.('questions');
-        break;
-      case 7: // Notes button - open notes modal
-        onOpenNotes?.();
-        break;
-      case 8: // LIA button - prepare to show LIA
-        onCloseNotes?.();
-        break;
-      case 9: // LIA panel - open LIA
-        onOpenLia?.();
-        break;
-      case 10: // Wrap up - close everything
-        onSwitchTab?.('video');
-        break;
+    if (!enabled) return;
+    
+    if (!isLoading && !hasSeenTour && shouldShowTour) {
+      // Delay to ensure UI is ready (video player, tabs, etc.)
+      const timer = setTimeout(() => {
+        setRun(true);
+      }, 2000);
+      return () => clearTimeout(timer);
     }
-  }, [currentStep, onOpenLia, onCloseLia, onOpenNotes, onCloseNotes, onSwitchTab]);
+  }, [enabled, isLoading, hasSeenTour, shouldShowTour]);
 
-  // Auto-start tour when conditions are met
-  useEffect(() => {
-    if (!enabled || isLoading || !shouldShowTour || hasStartedRef.current) {
-      return;
+
+  const handleJoyrideCallback = useCallback(async (data: CallBackProps) => {
+    const { action, index, status, type, step } = data;
+
+    // Handle controlled navigation
+    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+        if (action === ACTIONS.NEXT) {
+            setStepIndex(index + 1);
+        } else if (action === ACTIONS.PREV) {
+            setStepIndex(index - 1);
+        }
+    }
+    
+    // UI Interactions logic BEFORE showing each step
+    if (type === EVENTS.STEP_BEFORE) {
+        // Tab Switching via callback
+        if (step.data?.tabId) {
+            const tabMap: Record<string, 'video' | 'transcript' | 'summary' | 'activities' | 'questions'> = {
+              'tour-tab-video': 'video',
+              'tour-tab-transcript': 'transcript',
+              'tour-tab-summary': 'summary',
+              'tour-tab-activities': 'activities',
+              'tour-tab-questions': 'questions',
+            };
+            const tabName = tabMap[step.data.tabId];
+            if (tabName && onSwitchTab) {
+                onSwitchTab(tabName);
+            }
+        }
+
+        // LIA Panel Interaction
+        if (step.data?.liaAction === 'open' && onOpenLia) {
+            onOpenLia();
+        }
+
+        // Notes Section
+        if (step.data?.notesAction === 'open' && onOpenNotes) {
+            onOpenNotes(true);
+        }
     }
 
-    // Wait for the page to render
-    const timer = setTimeout(() => {
-      hasStartedRef.current = true;
-      
-      // Record start in DB
-      startTour().catch(err => console.error('[useCourseLearnTour] DB start failed', err));
+    if (status === STATUS.FINISHED) {
+      setRun(false);
+      setStepIndex(0);
+      await completeTour();
+      // Cleanup
+      onCloseLia?.();
+      onCloseNotes?.();
+      onSwitchTab?.('video');
+    }
 
-      // Start the UI tour
-      try {
-        startNextStep(COURSE_LEARN_TOUR_ID);
-      } catch (error) {
-        console.error('[useCourseLearnTour] Error starting tour:', error);
-      }
-    }, 2000); // Slightly longer delay to ensure video player loads
+    if (status === STATUS.SKIPPED) {
+      setRun(false);
+      setStepIndex(0);
+      await skipTour();
+      // Cleanup
+      onCloseLia?.();
+      onCloseNotes?.();
+      onSwitchTab?.('video');
+    }
+  }, [completeTour, skipTour, onOpenLia, onCloseLia, onOpenNotes, onCloseNotes, onSwitchTab]);
 
-    return () => clearTimeout(timer);
-  }, [enabled, isLoading, shouldShowTour, startTour, startNextStep]);
-
-  // Handler for tour completion
-  const handleComplete = useCallback(async () => {
-    await completeTour();
-    onCloseLia?.();
-    onCloseNotes?.();
-    onSwitchTab?.('video');
-  }, [completeTour, onCloseLia, onCloseNotes, onSwitchTab]);
-
-  // Handler for skipping tour
-  const handleSkip = useCallback(async () => {
-    await skipTour();
-    onCloseLia?.();
-    onCloseNotes?.();
-    onSwitchTab?.('video');
-  }, [skipTour, onCloseLia, onCloseNotes, onSwitchTab]);
-
-  // Reset tour (for testing)
-  const resetTour = useCallback(() => {
-    hasStartedRef.current = false;
+  const restartTour = useCallback(() => {
+    setRun(false);
+    setStepIndex(0);
+    // Force restart with timeout
+    setTimeout(() => {
+        setRun(true);
+    }, 100);
   }, []);
 
+  const joyrideProps = {
+    run,
+    steps: courseLearnJoyrideSteps,
+    stepIndex,
+    continuous: true,
+    scrollToFirstStep: true,
+    showProgress: true,
+    showSkipButton: true,
+    spotlightClicks: true,
+    spotlightPadding: 8,
+    disableOverlayClose: true,
+    tooltipComponent: JoyrideTooltip,
+    callback: handleJoyrideCallback,
+    floaterProps: {
+      disableAnimation: true,
+    },
+    styles: {
+      options: {
+        zIndex: 10000,
+        primaryColor: '#00D4B3',
+        overlayColor: 'rgba(0, 0, 0, 0.7)',
+      },
+      spotlight: {
+        backgroundColor: 'transparent',
+      },
+    },
+  };
+
   return {
-    shouldShowTour,
+    shouldShowTour: run,
     isLoading,
-    currentStep,
-    handleComplete,
-    handleSkip,
-    resetTour,
-    startTour: () => {
-      hasStartedRef.current = true;
-      startNextStep(COURSE_LEARN_TOUR_ID);
-    }
+    currentStep: stepIndex,
+    handleComplete: completeTour,
+    handleSkip: skipTour,
+    resetTour: restartTour,
+    startTour: restartTour,
+    joyrideProps,
+    restartTour
   };
 }

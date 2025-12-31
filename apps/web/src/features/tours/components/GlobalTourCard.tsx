@@ -31,18 +31,14 @@ export const GlobalTourCard: React.FC<CardComponentProps> = ({
 
   const isLastStep = currentStep === totalSteps - 1;
 
-  // Detectar si es el paso del botón de LIA para aplicar el fix de posición específico
-  // Usamos el selector para identificarlo de forma única
-  const isLiaButtonStep = step.selector === '#tour-lia-course-button';
-
+  // Remove manual offsets to rely on library adaptive positioning
   return (
     <div
-      className="relative flex flex-col rounded-2xl shadow-2xl overflow-hidden max-w-sm w-[380px] max-h-[85vh] border-0"
+      className="relative flex flex-col rounded-2xl shadow-2xl overflow-hidden w-[90vw] sm:w-[380px] max-w-sm max-h-[85vh] border-0 mx-2 sm:mx-0"
       style={{
         backgroundColor: theme.background,
         color: theme.text,
         boxShadow: `0 20px 50px -10px rgba(0,0,0,0.5), 0 0 0 1px ${theme.border}`,
-        marginBottom: isLiaButtonStep ? 280 : 0, // Solo aplicar el offset grande para el botón de LIA
       }}
     >
       {/* Background decoration */}
@@ -145,9 +141,7 @@ export const GlobalTourCard: React.FC<CardComponentProps> = ({
       {/* Arrow element for pointing */}
       {arrow && (
          <div className="absolute top-0 left-0 w-full h-full pointer-events-none font-sans">
-             {/* The arrow is usually rendered outside by nextstepjs, we pass it here if we wrap it, but effectively cardComponent ignores it in internal render 
-                 Actually nextstepjs passes arrow as a ReactNode that positions itself absolute relative to the popover.
-             */}
+             {arrow}
          </div>
       )}
     </div>
