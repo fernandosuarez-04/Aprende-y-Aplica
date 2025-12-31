@@ -4,7 +4,7 @@
   "description": "Frontend de Aprende y Aplica - Chat-Bot-LIA",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
