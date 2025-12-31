@@ -814,8 +814,10 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       {view === 'month' ? (
         /* Vista de Mes */
         <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329]">
-          {/* Headers de días de la semana */}
-          <div className="grid grid-cols-7 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+          <div className="flex-1 flex flex-col overflow-x-auto">
+            <div className="flex-1 flex flex-col min-w-[800px]">
+              {/* Headers de días de la semana */}
+              <div className="grid grid-cols-7 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             {weekDayNames.map((day, index) => (
               <div
                 key={index}
@@ -908,11 +910,15 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
             })}
           </div>
         </div>
+      </div>
+    </div>
       ) : view === 'week' ? (
         /* Vista de Semana - Estilo Google Calendar */
         <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329]">
-          {/* Headers de días de la semana */}
-          <div className="flex border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+          <div className="flex-1 flex flex-col overflow-x-auto">
+            <div className="flex-1 flex flex-col min-w-[800px]">
+              {/* Headers de días de la semana */}
+              <div className="flex border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             {/* Celda vacía para la columna de horas - Ancho fijo estrecho */}
             <div className="w-16 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 flex-shrink-0"></div>
             
@@ -1058,6 +1064,8 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
             </div>
           </div>
         </div>
+      </div>
+    </div>
       ) : (
         /* Vista de Día - Estilo Google Calendar */
         <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329]">

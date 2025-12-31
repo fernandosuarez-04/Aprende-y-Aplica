@@ -8937,7 +8937,7 @@ Cuéntame:
             )}
 
             {/* Contenedor principal */}
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-3 pointer-events-none overflow-hidden">
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-3 pointer-events-none overflow-hidden h-[100dvh]">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 30 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -8948,7 +8948,7 @@ Cuéntame:
                   damping: 30,
                   duration: 0.6
                 }}
-                className="relative max-w-4xl w-full pointer-events-auto max-h-[95vh] flex flex-col items-center justify-center"
+                className="relative max-w-4xl w-full pointer-events-auto max-h-[95dvh] flex flex-col items-center justify-center"
               >
                 {/* Esfera animada con avatar de LIA */}
                 <div className="relative flex flex-col items-center flex-shrink-0">
@@ -9419,26 +9419,28 @@ Cuéntame:
       {/* Interfaz de conversación con LIA */}
       {
         showConversation && (
-          <div className="h-screen bg-white dark:bg-[#0F1419] flex flex-col overflow-hidden" suppressHydrationWarning>
+          <div className="h-[100dvh] bg-white dark:bg-[#0F1419] flex flex-col overflow-hidden supports-[height:100dvh]:h-[100dvh]" suppressHydrationWarning>
             {/* Header */}
-            <div id="lia-planner-header" className="flex-shrink-0 z-10 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
-              <div className="max-w-4xl mx-auto flex items-center gap-4">
-                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#0A2540]/20 dark:border-[#00D4B3]/30">
-                  <Image
-                    src="/lia-avatar.png"
-                    alt="LIA"
-                    fill
-                    sizes="48px"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <h1 className="text-lg font-bold text-[#0A2540] dark:text-white">LIA - Planificador de Estudios</h1>
-                  <p className="text-sm text-[#6C757D] dark:text-gray-400">Tu asistente para crear planes personalizados</p>
+            <div id="lia-planner-header" className="flex-shrink-0 z-10 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 py-3 sm:px-4 sm:py-4">
+              <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-[#0A2540]/20 dark:border-[#00D4B3]/30 flex-shrink-0">
+                    <Image
+                      src="/lia-avatar.png"
+                      alt="LIA"
+                      fill
+                      sizes="48px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-base sm:text-lg font-bold text-[#0A2540] dark:text-white truncate">LIA - Planificador</h1>
+                    <p className="text-xs sm:text-sm text-[#6C757D] dark:text-gray-400 truncate">Tu asistente personal</p>
+                  </div>
                 </div>
 
-                {/* Botones de acción como iconos que se expanden con texto */}
-                <div className="flex items-center gap-2">
+                {/* Botones de acción - Scroll horizontal en móvil */}
+                <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 no-scrollbar mask-gradient-right">
                   {/* Botón Calendario conectado / Conectar calendario */}
                   {connectedCalendar ? (
                     <motion.button
@@ -9446,23 +9448,23 @@ Cuéntame:
                       layout
                       onClick={() => setShowCalendarModal(true)}
                       disabled={isProcessing}
-                      onMouseEnter={() => setHoveredButton('calendar-connected')}
-                      onMouseLeave={() => setHoveredButton(null)}
+                      onMouseEnter={() => !isMobile && setHoveredButton('calendar-connected')}
+                      onMouseLeave={() => !isMobile && setHoveredButton(null)}
                       whileTap={{ scale: 0.95 }}
-                      className={`rounded-lg transition-colors disabled:opacity-50 bg-white/10 hover:bg-white/20 border border-white/20 flex items-center ${isProcessing ? 'cursor-not-allowed' : ''
+                      className={`rounded-lg transition-colors p-2 sm:p-2.5 flex-shrink-0 flex items-center justify-center disabled:opacity-50 bg-white/10 hover:bg-white/20 border border-white/20 ${isProcessing ? 'cursor-not-allowed' : ''
                         }`}
                     >
-                      <div className="p-2.5 flex-shrink-0 flex items-center justify-center">
+                      <div className="flex items-center justify-center">
                         {connectedCalendar === 'google' ? <GoogleIcon /> : <MicrosoftIcon />}
                       </div>
                       <AnimatePresence>
-                        {hoveredButton === 'calendar-connected' && (
+                        {(hoveredButton === 'calendar-connected' && !isMobile) && (
                           <motion.span
-                            initial={{ width: 0, opacity: 0 }}
-                            animate={{ width: 180, opacity: 1 }}
-                            exit={{ width: 0, opacity: 0 }}
+                            initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+                            animate={{ width: 'auto', opacity: 1, marginLeft: 8 }}
+                            exit={{ width: 0, opacity: 0, marginLeft: 0 }}
                             transition={{ duration: 0.2, ease: 'easeInOut' }}
-                            className="pr-3 whitespace-nowrap text-sm font-medium text-white overflow-hidden inline-block"
+                            className="whitespace-nowrap text-sm font-medium text-white overflow-hidden inline-block"
                           >
                             {connectedCalendar === 'google' ? 'Google' : 'Microsoft'} conectado
                           </motion.span>
@@ -9475,25 +9477,23 @@ Cuéntame:
                       layout
                       onClick={() => setShowCalendarModal(true)}
                       disabled={isProcessing || showCalendarModal}
-                      onMouseEnter={() => setHoveredButton('calendar')}
-                      onMouseLeave={() => setHoveredButton(null)}
+                      onMouseEnter={() => !isMobile && setHoveredButton('calendar')}
+                      onMouseLeave={() => !isMobile && setHoveredButton(null)}
                       whileTap={{ scale: 0.95 }}
-                      className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${isProcessing || showCalendarModal
+                      className={`rounded-lg transition-colors p-2 sm:p-2.5 flex-shrink-0 flex items-center disabled:opacity-50 ${isProcessing || showCalendarModal
                         ? 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
                         : 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 hover:bg-[#0A2540]/20 dark:hover:bg-[#0A2540]/30 text-[#0A2540] dark:text-[#00D4B3] border border-[#0A2540]/20 dark:border-[#00D4B3]/30'
                         }`}
                     >
-                      <div className="p-2.5 flex-shrink-0">
-                        <Calendar size={20} />
-                      </div>
+                      <Calendar size={20} />
                       <AnimatePresence>
-                        {hoveredButton === 'calendar' && (
+                        {(hoveredButton === 'calendar' && !isMobile) && (
                           <motion.span
-                            initial={{ width: 0, opacity: 0 }}
-                            animate={{ width: 160, opacity: 1 }}
-                            exit={{ width: 0, opacity: 0 }}
+                            initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+                            animate={{ width: 'auto', opacity: 1, marginLeft: 8 }}
+                            exit={{ width: 0, opacity: 0, marginLeft: 0 }}
                             transition={{ duration: 0.2, ease: 'easeInOut' }}
-                            className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+                            className="whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
                           >
                             Conectar calendario
                           </motion.span>
@@ -9507,25 +9507,23 @@ Cuéntame:
                     layout
                     onClick={restartTour}
                     disabled={isProcessing}
-                    onMouseEnter={() => setHoveredButton('tour')}
-                    onMouseLeave={() => setHoveredButton(null)}
+                    onMouseEnter={() => !isMobile && setHoveredButton('tour')}
+                    onMouseLeave={() => !isMobile && setHoveredButton(null)}
                     whileTap={{ scale: 0.95 }}
-                    className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${isProcessing
+                    className={`rounded-lg transition-colors p-2 sm:p-2.5 flex-shrink-0 flex items-center disabled:opacity-50 ${isProcessing
                       ? 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
                       : 'bg-[#E9ECEF] dark:bg-[#0A2540]/10 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/20 text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
                       }`}
                   >
-                    <div className="p-2.5 flex-shrink-0">
-                      <Zap size={20} />
-                    </div>
+                    <Zap size={20} />
                     <AnimatePresence>
-                      {hoveredButton === 'tour' && (
+                      {(hoveredButton === 'tour' && !isMobile) && (
                         <motion.span
-                          initial={{ width: 0, opacity: 0 }}
-                          animate={{ width: 100, opacity: 1 }}
-                          exit={{ width: 0, opacity: 0 }}
+                          initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+                          animate={{ width: 'auto', opacity: 1, marginLeft: 8 }}
+                          exit={{ width: 0, opacity: 0, marginLeft: 0 }}
                           transition={{ duration: 0.2, ease: 'easeInOut' }}
-                          className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+                          className="whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
                         >
                           Ver Tour
                         </motion.span>
@@ -9538,25 +9536,23 @@ Cuéntame:
                     layout
                     onClick={() => handleSendMessage('¿Cómo funciona?')}
                     disabled={isProcessing}
-                    onMouseEnter={() => setHoveredButton('help')}
-                    onMouseLeave={() => setHoveredButton(null)}
+                    onMouseEnter={() => !isMobile && setHoveredButton('help')}
+                    onMouseLeave={() => !isMobile && setHoveredButton(null)}
                     whileTap={{ scale: 0.95 }}
-                    className={`rounded-lg transition-colors disabled:opacity-50 flex items-center ${isProcessing
+                    className={`rounded-lg transition-colors p-2 sm:p-2.5 flex-shrink-0 flex items-center disabled:opacity-50 ${isProcessing
                       ? 'bg-[#6C757D] text-gray-400 cursor-not-allowed'
                       : 'bg-[#E9ECEF] dark:bg-[#0A2540]/10 hover:bg-[#E9ECEF]/80 dark:hover:bg-[#0A2540]/20 text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
                       }`}
                   >
-                    <div className="p-2.5 flex-shrink-0">
-                      <HelpCircle size={20} />
-                    </div>
+                    <HelpCircle size={20} />
                     <AnimatePresence>
-                      {hoveredButton === 'help' && (
+                      {(hoveredButton === 'help' && !isMobile) && (
                         <motion.span
-                          initial={{ width: 0, opacity: 0 }}
-                          animate={{ width: 140, opacity: 1 }}
-                          exit={{ width: 0, opacity: 0 }}
+                          initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+                          animate={{ width: 'auto', opacity: 1, marginLeft: 8 }}
+                          exit={{ width: 0, opacity: 0, marginLeft: 0 }}
                           transition={{ duration: 0.2, ease: 'easeInOut' }}
-                          className="pr-3 whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
+                          className="whitespace-nowrap text-sm font-medium overflow-hidden inline-block"
                         >
                           ¿Cómo funciona?
                         </motion.span>
@@ -9570,7 +9566,7 @@ Cuéntame:
                     onClick={toggleAudio}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`p-2.5 rounded-lg transition-colors ${isAudioEnabled
+                    className={`p-2 sm:p-2.5 rounded-lg transition-colors flex-shrink-0 ${isAudioEnabled
                       ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
                       : 'bg-[#E9ECEF] dark:bg-[#6C757D] text-[#6C757D] dark:text-gray-400 hover:bg-[#6C757D]/20 dark:hover:bg-[#6C757D]/80'
                       }`}
@@ -9582,8 +9578,19 @@ Cuéntame:
             </div>
 
             {/* Área de mensajes */}
-            <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
-              <div className="max-w-4xl mx-auto space-y-3">
+            <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-6 min-h-0 bg-[#F8F9FA] dark:bg-[#0F1419]/50">
+              <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
+                {conversationHistory.length === 0 && (
+                   <div className="flex flex-col items-center justify-center py-10 opacity-60">
+                     <div className="w-16 h-16 bg-[#0A2540]/10 dark:bg-white/10 rounded-full flex items-center justify-center mb-4">
+                       <Image src="/lia-avatar.png" alt="LIA" width={40} height={40} className="rounded-full opacity-80" />
+                     </div>
+                     <p className="text-[#6C757D] dark:text-gray-400 text-sm font-medium text-center max-w-xs">
+                       Soy LIA, tu asistente de planificación.<br/>¿En qué puedo ayudarte hoy?
+                     </p>
+                   </div>
+                )}
+                
                 {conversationHistory.map((msg, idx) => (
                   <motion.div
                     key={idx}
@@ -9594,9 +9601,9 @@ Cuéntame:
                       ease: [0.16, 1, 0.3, 1],
                       delay: idx * 0.05
                     }}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group`}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group max-w-full`}
                   >
-                    <div className={`flex items-end gap-2.5 max-w-[78%] sm:max-w-[75%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                    <div className={`flex items-end gap-2 sm:gap-2.5 max-w-[85%] sm:max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                       {msg.role === 'assistant' && (
                         <motion.div
                           initial={{ scale: 0, rotate: -180 }}
@@ -9607,7 +9614,7 @@ Cuéntame:
                             stiffness: 200,
                             damping: 15
                           }}
-                          className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20"
+                          className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20 hidden sm:block"
                         >
                           <Image
                             src="/lia-avatar.png"
@@ -9618,6 +9625,20 @@ Cuéntame:
                           />
                         </motion.div>
                       )}
+                      
+                      {/* Avatar pequeño para móvil */}
+                      {msg.role === 'assistant' && (
+                        <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 sm:hidden self-start mt-1">
+                          <Image
+                            src="/lia-avatar.png"
+                            alt="LIA"
+                            fill
+                            sizes="24px"
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+
                       <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -9629,74 +9650,24 @@ Cuéntame:
                         }}
                         className={`relative ${msg.role === 'user'
                           ? 'bg-[#10B981] text-white'
-                          : 'bg-[#0A2540]/10 dark:bg-[#1E2329] text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
-                          } px-4 py-2.5 sm:px-5 sm:py-3 rounded-[20px] sm:rounded-[22px] shadow-sm ${msg.role === 'user'
+                          : 'bg-[#FFFFFF] dark:bg-[#1E2329] text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
+                          } px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-[18px] sm:rounded-[22px] shadow-sm ${msg.role === 'user'
                             ? 'shadow-[#10B981]/25 rounded-br-[6px]'
-                            : 'shadow-[#0A2540]/10 dark:shadow-[#00D4B3]/10 rounded-bl-[6px]'
-                          } overflow-hidden`}
+                            : 'shadow-sm rounded-bl-[6px]'
+                          } overflow-hidden max-w-full`}
                       >
-                        {/* Cola de burbuja estilo WhatsApp/Messenger mejorada */}
-                        {msg.role === 'user' ? (
-                          <svg
-                            className="absolute -right-[8px] bottom-0 h-[20px] w-[8px] text-[#10B981]"
-                            viewBox="0 0 8 20"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M0 0C0 11.046 0 15.046 0 20C4.046 20 8.046 20 8 20C8 15.046 8 11.046 8 0C4.046 0 0 0 0 0Z"
-                              fill="currentColor"
-                              className="drop-shadow-lg"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-[#0A2540]/10 dark:text-[#1E2329]"
-                            viewBox="0 0 8 20"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M8 0C8 11.046 8 15.046 8 20C3.954 20 0 20 0 20C0 15.046 0 11.046 0 0C3.954 0 8 0 8 0Z"
-                              fill="currentColor"
-                              className="drop-shadow-lg"
-                            />
-                          </svg>
-                        )}
-
-                        {/* Efecto de brillo sutil al hover */}
-                        <motion.div
-                          className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${msg.role === 'user'
-                            ? 'bg-gradient-to-r from-transparent via-white/15 to-transparent'
-                            : 'bg-gradient-to-r from-transparent via-white/8 to-transparent'
-                            }`}
-                          animate={{
-                            x: ['-100%', '200%']
-                          }}
-                          transition={{
-                            duration: 2.5,
-                            repeat: Infinity,
-                            repeatDelay: 4,
-                            ease: 'linear'
-                          }}
-                        />
+                       
 
                         {/* Contenido del mensaje */}
-                        <div className="relative z-10">
+                        <div className="relative z-10 break-words">
                           {msg.role === 'assistant' ? (
-                            <div className="font-body text-[15px] sm:text-[16px] leading-[1.75] text-[#0A2540] dark:text-white tracking-wide">
+                            <div className="font-body text-[14px] sm:text-[16px] leading-[1.6] sm:leading-[1.75] text-[#0A2540] dark:text-white tracking-wide">
                               {formatLIAMessage(msg.content)}
                             </div>
                           ) : (
-                            <p className="font-body text-[15px] sm:text-[16px] leading-[1.75] font-medium whitespace-pre-wrap text-white tracking-wide">{msg.content}</p>
+                            <p className="font-body text-[14px] sm:text-[16px] leading-[1.6] sm:leading-[1.75] font-medium whitespace-pre-wrap text-white tracking-wide">{msg.content}</p>
                           )}
                         </div>
-
-                        {/* Efecto de profundidad sutil */}
-                        <div className={`absolute inset-0 rounded-[22px] pointer-events-none ${msg.role === 'user'
-                          ? 'bg-gradient-to-br from-white/10 via-white/5 to-transparent'
-                          : 'bg-gradient-to-br from-white/5 via-white/2 to-transparent'
-                          }`} />
                       </motion.div>
                     </div>
                   </motion.div>
@@ -9710,81 +9681,40 @@ Cuéntame:
                     transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                     className="flex justify-start group"
                   >
-                    <div className="flex items-end gap-2.5">
+                    <div className="flex items-end gap-2 sm:gap-2.5">
+                      <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 shadow-lg flex-shrink-0">
+                         <Image src="/lia-avatar.png" alt="LIA" fill sizes="40px" className="object-cover" />
+                      </div>
                       <motion.div
-                        className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20"
-                        animate={{
-                          scale: [1, 1.05, 1],
-                          boxShadow: [
-                            '0 0 0px rgba(10, 37, 64, 0.2)',
-                            '0 0 20px rgba(10, 37, 64, 0.4)',
-                            '0 0 0px rgba(10, 37, 64, 0.2)'
-                          ]
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        <Image
-                          src="/lia-avatar.png"
-                          alt="LIA"
-                          fill
-                          sizes="40px"
-                          className="object-cover"
-                        />
-                      </motion.div>
-                      <motion.div
-                        className="relative bg-[#0A2540]/10 dark:bg-[#1E2329] px-4 py-3 sm:px-5 sm:py-3.5 rounded-[20px] sm:rounded-[22px] shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-bl-[6px] overflow-hidden"
+                        className="relative bg-[#FFFFFF] dark:bg-[#1E2329] px-4 py-3 sm:px-5 sm:py-3.5 rounded-[20px] shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-bl-[6px] overflow-hidden"
                         initial={{ scale: 0.9 }}
                         animate={{ scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                       >
-                        {/* Cola de burbuja */}
-                        <svg
-                          className="absolute -left-[8px] bottom-0 h-[20px] w-[8px] text-[#0A2540]/10 dark:text-[#1E2329]"
-                          viewBox="0 0 8 20"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M8 0C8 11.046 8 15.046 8 20C3.954 20 0 20 0 20C0 15.046 0 11.046 0 0C3.954 0 8 0 8 0Z"
-                            fill="currentColor"
-                            className="drop-shadow-lg"
-                          />
-                        </svg>
-
-                        {/* Efecto de brillo */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
-
                         {/* Puntos animados mejorados */}
                         <div className="relative z-10 flex gap-1.5 items-center">
                           <motion.div
-                            animate={{
-                              scale: [1, 1.3, 1],
-                              y: [0, -4, 0]
-                            }}
+                            animate={{ scale: [1, 1.3, 1], y: [0, -4, 0] }}
                             transition={{ duration: 0.6, repeat: Infinity, delay: 0, ease: 'easeInOut' }}
-                            className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
+                            className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-[#00D4B3] rounded-full shadow-lg"
                           />
                           <motion.div
-                            animate={{
-                              scale: [1, 1.3, 1],
-                              y: [0, -4, 0]
-                            }}
+                            animate={{ scale: [1, 1.3, 1], y: [0, -4, 0] }}
                             transition={{ duration: 0.6, repeat: Infinity, delay: 0.2, ease: 'easeInOut' }}
-                            className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
+                            className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-[#00D4B3] rounded-full shadow-lg"
                           />
                           <motion.div
-                            animate={{
-                              scale: [1, 1.3, 1],
-                              y: [0, -4, 0]
-                            }}
+                            animate={{ scale: [1, 1.3, 1], y: [0, -4, 0] }}
                             transition={{ duration: 0.6, repeat: Infinity, delay: 0.4, ease: 'easeInOut' }}
-                            className="w-2.5 h-2.5 bg-[#00D4B3] rounded-full shadow-lg shadow-[#00D4B3]/50"
+                            className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-[#00D4B3] rounded-full shadow-lg"
                           />
                         </div>
                       </motion.div>
                     </div>
                   </motion.div>
                 )}
+                
+                {/* Spacer invisible para asegurar que el último mensaje no quede tapado por el input */}
+                <div className="h-2 sm:h-4"></div>
 
                 {/* Indicador de escucha */}
                 {isListening && (
@@ -10749,9 +10679,9 @@ Cuéntame:
             </AnimatePresence>
 
             {/* Área de input */}
-            <div className="flex-shrink-0 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-t border-[#E9ECEF] dark:border-[#6C757D]/30 px-4 py-4">
-              <div className="max-w-4xl mx-auto">
-                <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-t border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 py-3 sm:px-4 sm:py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div className="max-w-4xl mx-auto w-full">
+                <div className="flex items-center gap-2 sm:gap-3 w-full">
                   {/* Input de texto */}
                   <input
                     id="lia-chat-input"
@@ -10765,9 +10695,10 @@ Cuéntame:
                         setUserMessage('');
                       }
                     }}
-                    placeholder="Escribe tu mensaje o usa el micrófono..."
+                    placeholder={isMobile ? "Escribe un mensaje..." : "Escribe tu mensaje o usa el micrófono..."}
                     disabled={isProcessing || isListening}
-                    className="flex-1 px-4 py-3 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 disabled:opacity-50 shadow-sm"
+                    style={{ fontSize: '16px' }} // Prevent iOS zoom
+                    className="flex-1 min-w-0 px-4 py-3 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 disabled:opacity-50 shadow-sm transition-all"
                   />
 
                   {/* Botón dinámico fusionado: micrófono cuando está vacío, enviar cuando hay texto */}
@@ -10786,7 +10717,7 @@ Cuéntame:
                     disabled={isProcessing || (isListening && !!userMessage.trim())}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm ${userMessage.trim()
+                    className={`w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm ${userMessage.trim()
                       ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
                       : isListening
                         ? 'bg-[#10B981] text-white hover:bg-[#10B981]/90'
