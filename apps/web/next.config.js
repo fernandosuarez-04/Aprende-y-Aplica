@@ -1,13 +1,13 @@
-import type { NextConfig } from 'next';
-import path from 'path';
+/** @type {import('next').NextConfig} */
+const path = require('path');
 
 // Bundle Analyzer (opcional - deshabilitado)
-let withBundleAnalyzer = (config: NextConfig) => config;
+const withBundleAnalyzer = (config) => config;
 
 // PWA Configuration - DESHABILITADO
-let withPWA = (config: NextConfig) => config;
+const withPWA = (config) => config;
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   // Deshabilitar checks durante builds de producción
   typescript: {
     ignoreBuildErrors: true,
@@ -21,20 +21,6 @@ const nextConfig: NextConfig = {
     externalDir: true,
     // Optimizar importaciones de paquetes como lucide-react
     optimizePackageImports: ['lucide-react'],
-  },
-
-  // Configuración de Turbopack (Next.js 15+ default)
-  turbopack: {
-    resolveAlias: {
-      '@': path.resolve(__dirname, 'src'),
-      '@/features': path.resolve(__dirname, 'src/features'),
-      '@/core': path.resolve(__dirname, 'src/core'),
-      '@/app': path.resolve(__dirname, 'src/app'),
-      '@/components': path.resolve(__dirname, 'src/shared/components'),
-      '@/lib': path.resolve(__dirname, 'src/lib'),
-      '@/utils': path.resolve(__dirname, 'src/shared/utils'),
-      '@/hooks': path.resolve(__dirname, 'src/shared/hooks'),
-    },
   },
 
   // Configuración para resolver advertencia de múltiples lockfiles
@@ -66,6 +52,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '*.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'r2cdn.perplexity.ai',
       },
     ],
     formats: ['image/avif', 'image/webp'],
@@ -163,7 +153,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
-    // Configuración de Webpack para resolver alias en el monorepo
+  // Configuración de Webpack para resolver alias en el monorepo
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -175,54 +165,44 @@ const nextConfig: NextConfig = {
       '@/lib': path.resolve(__dirname, 'src/lib'),
       '@/utils': path.resolve(__dirname, 'src/shared/utils'),
       '@/hooks': path.resolve(__dirname, 'src/shared/hooks'),
+      '@/context': path.resolve(__dirname, 'src/shared/context'),
     };
 
     // Resolver problema de casing en Windows
-    // Normalizar el casing de las rutas para evitar problemas en Windows
     const nodeModulesPath = path.resolve(__dirname, 'node_modules');
     config.resolve.modules = [
       ...(config.resolve.modules || []),
       nodeModulesPath,
     ];
 
-    // Configuración para evitar problemas de casing en Windows
-    // Esto normaliza las rutas de módulos para que usen el mismo casing
     if (process.platform === 'win32') {
-      // Normalizar todas las rutas a minúsculas para evitar conflictos de casing
-      const normalizePath = (p: string) => {
+      const normalizePath = (p) => {
         if (p && typeof p === 'string' && p.match(/^[A-Z]:/)) {
           return p.charAt(0).toLowerCase() + p.slice(1);
         }
         return p;
       };
 
-      // Normalizar el path de node_modules
       const normalizedNodeModules = normalizePath(nodeModulesPath);
       
       config.resolve = {
         ...config.resolve,
-        // Deshabilitar symlinks para evitar problemas de casing
         symlinks: false,
-        // Normalizar rutas de módulos
         cacheWithContext: false,
-        // Asegurar que los módulos se resuelvan con el mismo casing
         modules: [
-          ...(config.resolve.modules || []).map((m: any) => 
+          ...(config.resolve.modules || []).map((m) => 
             typeof m === 'string' ? normalizePath(m) : m
           ),
           normalizedNodeModules,
         ],
       };
 
-      // Interceptar la resolución de módulos para normalizar el casing
       config.resolveLoader = {
         ...config.resolveLoader,
         symlinks: false,
       };
     }
 
-    // Excluir dependencias pesadas del bundle del servidor
-    // Estas librerías solo se necesitan en el cliente
     if (isServer) {
       config.externals = config.externals || [];
       config.externals.push({
@@ -233,7 +213,6 @@ const nextConfig: NextConfig = {
       });
     }
 
-    // Configuración para librerías que solo funcionan en el cliente
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -245,10 +224,7 @@ const nextConfig: NextConfig = {
       };
     }
 
-    // Excluir rrweb y rrweb-player del bundle del servidor
-    // Estas librerías solo funcionan en el navegador y causan errores en el servidor
     if (isServer) {
-      // Mantener los alias existentes y agregar exclusiones para rrweb
       config.resolve.alias = {
         ...config.resolve.alias,
         'rrweb': false,
@@ -256,12 +232,11 @@ const nextConfig: NextConfig = {
         '@rrweb/types': false,
       };
       
-      // También excluir en externals para evitar que se incluya en el bundle
       config.externals = config.externals || [];
       if (typeof config.externals === 'function') {
         const originalExternals = config.externals;
         config.externals = [
-          (context: string, request: string, callback: Function) => {
+          (context, request, callback) => {
             if (request === 'rrweb' || request === 'rrweb-player' || request === '@rrweb/types') {
               return callback(null, 'commonjs ' + request);
             }
@@ -273,18 +248,13 @@ const nextConfig: NextConfig = {
       }
     }
 
-    // Configuración para evitar que webpack analice módulos server-only durante el build del cliente
-    // Esto permite que los imports dinámicos funcionen correctamente
     if (!isServer) {
       const webpack = require('webpack');
-      // Ignorar módulos server-only durante el análisis estático del cliente
       config.plugins = config.plugins || [];
       config.plugins.push(
         new webpack.IgnorePlugin({
-          checkResource(resource: string, context: string) {
-            // Ignorar imports de server.ts desde servicios que usan imports dinámicos
+          checkResource(resource, context) {
             if (resource.includes('lib/supabase/server')) {
-              // Ignorar si viene de servicios que usan imports dinámicos
               if (context.includes('features/notifications/services/auto-notifications.service') ||
                   context.includes('features/notifications/services/notification.service') ||
                   context.includes('features/auth/services/questionnaire-validation.service')) {
@@ -301,5 +271,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Aplicar PWA wrapper primero, luego Bundle Analyzer
-export default withBundleAnalyzer(withPWA(nextConfig));
+module.exports = withBundleAnalyzer(withPWA(nextConfig));
