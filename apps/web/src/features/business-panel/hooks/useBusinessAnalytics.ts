@@ -46,6 +46,29 @@ export interface CourseMetrics {
   count: number
 }
 
+export interface TeamStats {
+  average_progress: number
+  courses_completed: number
+  total_enrollments: number
+  total_time_hours: number
+  lia_conversations: number
+}
+
+export interface TeamAnalytics {
+  team_id: string
+  name: string
+  description: string | null
+  image_url: string | null
+  member_count: number
+  stats: TeamStats
+}
+
+export interface TeamsData {
+  total_teams: number
+  teams: TeamAnalytics[]
+  ranking: TeamAnalytics[]
+}
+
 export interface AnalyticsData {
   general_metrics: GeneralMetrics
   user_analytics: UserAnalytics[]
@@ -65,6 +88,9 @@ export interface AnalyticsData {
     distribution: CourseMetrics[]
     top_by_time: any[]
   }
+  teams?: TeamsData
+  study_planner?: any
+  engagement_metrics?: any
 }
 
 export function useBusinessAnalytics() {
@@ -114,7 +140,14 @@ export function useBusinessAnalytics() {
           course_metrics: result.course_metrics || {
             distribution: [],
             top_by_time: []
-          }
+          },
+          teams: result.teams || {
+            total_teams: 0,
+            teams: [],
+            ranking: []
+          },
+          study_planner: result.study_planner,
+          engagement_metrics: result.engagement_metrics
         })
       } else {
         throw new Error(result.error || 'Error al obtener datos de analytics')

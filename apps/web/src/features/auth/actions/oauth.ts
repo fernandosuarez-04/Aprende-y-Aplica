@@ -164,6 +164,19 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     );
     logger.info('OAuth: Cuenta OAuth guardada');
 
+    // PASO 5.5: Actualizar last_login_at en la tabla users
+    const supabaseForLogin = await createClient();
+    const { error: updateLoginError } = await supabaseForLogin
+      .from('users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', userId);
+    
+    if (updateLoginError) {
+      logger.warn('No se pudo actualizar last_login_at:', updateLoginError);
+    } else {
+      logger.info('OAuth: last_login_at actualizado');
+    }
+
     // PASO 6: Crear sesión usando el sistema existente
     logger.info('OAuth: Creando sesión');
     // Reutilizar cookieStore obtenido anteriormente para validar CSRF
@@ -382,6 +395,13 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
 
     // Guardar/actualizar cuenta OAuth
     await OAuthService.upsertOAuthAccount(userId, 'microsoft', (profile as any).id, tokens as any);
+
+    // Actualizar last_login_at en la tabla users
+    const supabaseForLogin = await createClient();
+    await supabaseForLogin
+      .from('users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', userId);
 
     // Crear sesión
     const headersList = await headers();

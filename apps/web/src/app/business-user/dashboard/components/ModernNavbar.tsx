@@ -11,6 +11,7 @@ import {
   X,
   Sparkles,
   User,
+  Users,
   Settings,
   LayoutDashboard,
   CalendarDays,
@@ -260,6 +261,33 @@ export function ModernNavbar({
                 </div>
               </motion.button>
             )}
+
+            {/* Mi Equipo */}
+            <motion.button
+              onClick={() => {
+                router.push('/business-user/teams')
+                setMobileMenuOpen(false)
+              }}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors"
+              whileTap={{ scale: 0.98 }}
+              style={{
+                backgroundColor: `${colors.primary}10`,
+                border: `1px solid ${colors.border}`
+              }}
+            >
+              <div
+                className="p-2 rounded-xl text-white flex-shrink-0"
+                style={{
+                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`
+                }}
+              >
+                <Users className="h-4 w-4" />
+              </div>
+              <div className="text-left flex-1 min-w-0">
+                <span className="text-white font-medium block text-sm">{t('header.myTeam', 'Mi Equipo')}</span>
+                <span className="text-xs text-white/50">{t('header.viewTeammates', 'Ver compañeros')}</span>
+              </div>
+            </motion.button>
 
              {/* Editar Perfil */}
             <motion.button
@@ -596,6 +624,20 @@ export function ModernNavbar({
                               <span className="block">{hasStudyPlan ? t('header.myPlanner') : t('header.createStudyPlan')}</span>
                             </motion.button>
                           )}
+
+                          {/* Mi Equipo */}
+                          <motion.button
+                            onClick={() => {
+                              router.push('/business-user/teams')
+                              setUserDropdownOpen(false)
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                            style={{ color: colors.text }}
+                            whileHover={{ x: 2 }}
+                          >
+                            <Users className="h-4 w-4 opacity-70" />
+                            <span>{t('header.myTeam', 'Mi Equipo')}</span>
+                          </motion.button>
 
                           <motion.button
                             onClick={() => {

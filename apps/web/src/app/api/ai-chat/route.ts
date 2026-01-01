@@ -1845,6 +1845,46 @@ export async function POST(request: NextRequest) {
             clientIp = realIp.trim();
           }
 
+          // ✅ ENRIQUECIMIENTO DE DATOS: Intentar completar IDs faltantes para analíticas
+          if (courseContext && context === 'course') {
+            try {
+              const supabase = await createClient();
+
+              // 1. Buscar Module ID si falta
+              if (!courseContext.moduleId && courseContext.moduleTitle && courseContext.courseId) {
+                const { data: moduleData } = await supabase
+                  .from('course_modules')
+                  .select('module_id')
+                  .eq('course_id', courseContext.courseId)
+                  .ilike('title', courseContext.moduleTitle)
+                  .limit(1)
+                  .single();
+                
+                if (moduleData) {
+                  courseContext.moduleId = moduleData.module_id;
+                }
+              }
+
+              // 2. Buscar Lesson ID si falta (requiere module_id)
+              if (!courseContext.lessonId && courseContext.lessonTitle && courseContext.moduleId) {
+                const { data: lessonData } = await supabase
+                  .from('course_lessons')
+                  .select('lesson_id')
+                  .eq('module_id', courseContext.moduleId)
+                  .ilike('title', courseContext.lessonTitle)
+                  .limit(1)
+                  .single();
+
+                if (lessonData) {
+                  courseContext.lessonId = lessonData.lesson_id;
+                }
+              }
+            } catch (lookupError) {
+              // No bloquear el chat si falla la búsqueda de IDs, solo loguear warning
+              logger.warn('[Analytics Enrichment] Falló la búsqueda de IDs detallados:', lookupError);
+            }
+          }
+
           const newConversationId = await liaLogger.startConversation({
             contextType: context as ContextType,
             courseContext: courseContext,
@@ -2484,6 +2524,50 @@ async function callGemini(
     // Obtener metadatos de uso si están disponibles
     const usage = response.usageMetadata;
     const promptTokens = usage?.promptTokenCount || 0;
+    const completionTokens = usage?.candidatesTokenCount || 0;
+    const totalTokens = usage?.totalTokenCount || 0;
+    
+    // Calcular costo estimado usando el monitor de uso
+    const estimatedCost = calculateCost(promptTokens, completionTokens, modelName);
+    const promptCost = calculateCost(promptTokens, 0, modelName);
+    const completionCost = calculateCost(0, completionTokens, modelName);
+    
+    // Registrar uso en memoria
+    if (userId) {
+      logOpenAIUsage({
+        userId,
+        timestamp: new Date(),
+        model: modelName,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        estimatedCost
+      });
+    }
+
+    logger.info('🦄 [GEMINI] Respuesta recibida', {
+      model: modelName,
+      tokens: { prompt: promptTokens, completion: completionTokens, total: totalTokens },
+      cost: `$${estimatedCost.toFixed(6)}`
+    });
+
+    return {
+      response: text,
+      metadata: {
+        tokensUsed: totalTokens,
+        promptTokens: promptTokens,
+        completionTokens: completionTokens,
+        costUsd: estimatedCost,
+        promptCostUsd: promptCost,
+        completionCostUsd: completionCost,
+        modelUsed: modelName
+      }
+    };
+  } catch (error) {
+    logger.error('❌ Error llamando a Gemini:', error);
+    throw error;
+  }
+}
     const candidatesTokens = usage?.candidatesTokenCount || 0;
     const totalTokens = usage?.totalTokenCount || 0;
 

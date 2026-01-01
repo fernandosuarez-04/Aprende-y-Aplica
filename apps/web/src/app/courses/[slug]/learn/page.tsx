@@ -4152,7 +4152,7 @@ export default function CourseLearnPage() {
 
                 {/* Contenido del tab activo */}
                 <div
-                  className="flex-1 overflow-y-auto md:pb-0"
+                  className="flex-1 min-h-0 overflow-y-auto md:pb-0"
                   style={{
                     paddingBottom: isMobile
                       ? mobileContentPaddingBottom
@@ -4166,7 +4166,7 @@ export default function CourseLearnPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.3 }}
-                      className="min-h-full p-3 md:p-6 flex flex-col gap-4"
+                      className="h-auto p-3 md:p-6 flex flex-col gap-4"
                     >
                       {activeTab === "video" && (
                         <VideoContent
@@ -5761,7 +5761,7 @@ function QuizRenderer({
           return (
             <div
               key={question.id}
-              className={`rounded-lg border transition-colors ${
+              className={`relative rounded-lg border transition-colors ${
                 showResults
                   ? isCorrect
                     ? "border-emerald-500/30 bg-emerald-500/5"
@@ -5856,7 +5856,7 @@ function QuizRenderer({
                           handleAnswerSelect(question.id, optIndex)
                         }
                         disabled={showResults}
-                        className="sr-only"
+                        className="hidden"
                       />
                       <span className="text-xs font-medium opacity-50 mr-1">
                         ({optionLetter})
@@ -7270,7 +7270,7 @@ function ActivitiesContent({
               return (
                 <div
                   key={activity.activity_id}
-                  className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors overflow-hidden"
+                  className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
                 >
                   {/* Header de la actividad */}
                   <button
@@ -7598,7 +7598,7 @@ function ActivitiesContent({
               return (
                 <div
                   key={material.material_id}
-                  className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors overflow-hidden"
+                  className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
                 >
                   {/* Header del material */}
                   <button

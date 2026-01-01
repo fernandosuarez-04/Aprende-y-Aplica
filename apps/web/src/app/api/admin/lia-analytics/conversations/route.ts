@@ -40,21 +40,10 @@ export async function GET(request: NextRequest) {
     
     const offset = (page - 1) * limit;
     
-    // Construir query base
+    // Construir query base usando la VISTA en lugar de tablas crudas
     let query = supabase
-      .from('lia_conversations')
-      .select(`
-        conversation_id,
-        user_id,
-        context_type,
-        started_at,
-        ended_at,
-        total_messages,
-        total_lia_messages,
-        device_type,
-        browser,
-        conversation_completed
-      `, { count: 'exact' });
+      .from('lia_conversation_analytics')
+      .select('*', { count: 'exact' });
     
     // Aplicar filtros
     if (contextType) {
@@ -65,16 +54,11 @@ export async function GET(request: NextRequest) {
       query = query.eq('user_id', userId);
     }
     
-    // ✅ Solo aplicar filtros de fecha si se proporcionan
-    // NOTA: El frontend siempre envía fechas, pero si no hay datos en ese rango,
-    // podríamos querer mostrar datos sin filtrar
     if (startDate) {
-
       query = query.gte('started_at', startDate);
     }
     
     if (endDate) {
-
       query = query.lte('started_at', endDate);
     }
     
@@ -85,119 +69,46 @@ export async function GET(request: NextRequest) {
     
     const { data: conversations, count, error } = await query;
     
-    // ✅ Log para debugging
-
     if (error) {
       console.error('Error fetching conversations:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      console.error('Error details:', error.details);
-      console.error('Error hint:', error.hint);
       return NextResponse.json(
         { success: false, error: 'Error al obtener conversaciones', details: error.message },
         { status: 500 }
       );
     }
     
-    // Obtener información de usuarios (usando tabla 'users')
-    const userIds = [...new Set(conversations?.map(c => c.user_id) || [])];
-    let usersMap = new Map();
-    
-    if (userIds.length > 0) {
-      const { data: users } = await supabase
-        .from('users')
-        .select('id, username, first_name, last_name, display_name, email, profile_picture_url')
-        .in('id', userIds);
-      
-      usersMap = new Map(users?.map(u => [u.id, u]) || []);
-    }
-    
-    // Helper para obtener nombre de usuario
-    const getUserName = (u: any) => {
-      if (u.display_name) return u.display_name;
-      const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim();
-      if (fullName) return fullName;
-      return u.username || 'Usuario';
-    };
-    
-    // Obtener métricas de cada conversación
-    const conversationIds = conversations?.map(c => c.conversation_id) || [];
-    
-    let messagesMetrics: any[] = [];
-    if (conversationIds.length > 0) {
-      const { data } = await supabase
-        .from('lia_messages')
-        .select('conversation_id, tokens_used, cost_usd, response_time_ms')
-        .in('conversation_id', conversationIds);
-      messagesMetrics = data || [];
-    }
-    
-    // Agrupar métricas por conversación
-    const metricsMap = new Map<string, { tokens: number; cost: number; avgResponseTime: number; messageCount: number; totalResponseTime: number }>();
-    
-    messagesMetrics?.forEach(m => {
-      const existing = metricsMap.get(m.conversation_id) || { 
-        tokens: 0, 
-        cost: 0, 
-        avgResponseTime: 0, 
-        messageCount: 0,
-        totalResponseTime: 0
-      };
-      
-      const totalResponseTime = existing.totalResponseTime + (m.response_time_ms || 0);
-      const messageCount = existing.messageCount + 1;
-      
-      metricsMap.set(m.conversation_id, {
-        tokens: existing.tokens + (Number(m.tokens_used) || 0),
-        cost: existing.cost + (Number(m.cost_usd) || 0),
-        avgResponseTime: m.response_time_ms ? Math.round(totalResponseTime / messageCount) : existing.avgResponseTime,
-        messageCount,
-        totalResponseTime
-      });
-    });
-    
-    // Enriquecer datos de conversaciones
+    // Mapear los datos de la vista al formato esperado por el frontend
     const enrichedConversations = conversations?.map(conv => {
-      const user = usersMap.get(conv.user_id);
-      const metrics = metricsMap.get(conv.conversation_id) || { 
-        tokens: 0, 
-        cost: 0, 
-        avgResponseTime: 0, 
-        messageCount: 0 
-      };
-      
-      // Calcular duración
-      let durationSeconds = null;
-      if (conv.started_at && conv.ended_at) {
-        durationSeconds = Math.round(
-          (new Date(conv.ended_at).getTime() - new Date(conv.started_at).getTime()) / 1000
-        );
-      }
+      // La duración en la vista se llama duration_seconds
+      // Costo se llama total_cost_usd
+      // Tokens se llama total_tokens
       
       return {
         id: conv.conversation_id,
-        user: user ? {
-          id: user.id,
-          name: getUserName(user),
-          email: user.email,
-          avatar: user.profile_picture_url
+        user: conv.user_id ? {
+          id: conv.user_id,
+          name: conv.user_name || 'Usuario',
+          email: conv.user_email,
+          avatar: conv.user_avatar
         } : null,
         contextType: conv.context_type || 'general',
+        courseTitle: conv.course_title,
+        lessonTitle: conv.lesson_title,
         startedAt: conv.started_at,
         endedAt: conv.ended_at,
         totalMessages: conv.total_messages || 0,
         liaMessages: conv.total_lia_messages || 0,
-        tokens: metrics.tokens,
-        cost: Number(metrics.cost.toFixed(6)),
-        avgResponseTimeMs: metrics.avgResponseTime,
-        durationSeconds,
+        tokens: conv.total_tokens || 0,
+        cost: Number((conv.total_cost_usd || 0).toFixed(6)),
+        avgResponseTimeMs: Math.round(conv.avg_response_time_ms || 0),
+        durationSeconds: conv.duration_seconds,
         isCompleted: conv.conversation_completed,
-        deviceType: conv.device_type,
-        browser: conv.browser
+        deviceType: null, // La vista no tiene device_type por defecto, si es necesario agregarlo
+        browser: null
       };
     }) || [];
     
-    // Calcular estadísticas de la página
+    // Calcular estadísticas de la página actual
     const pageStats = {
       totalTokens: enrichedConversations.reduce((sum, c) => sum + c.tokens, 0),
       totalCost: enrichedConversations.reduce((sum, c) => sum + c.cost, 0),

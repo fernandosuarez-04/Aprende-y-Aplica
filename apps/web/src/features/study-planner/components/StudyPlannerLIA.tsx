@@ -864,9 +864,9 @@ export function StudyPlannerLIA() {
     });
 
     const generateWelcomeMessage = async (externalController?: AbortController) => {
-      // ✅ NUEVO: Si hay un tour activo, esperar
+      // ✅ NUEVO: Si hay un tour activo, esperar (Requisito de flujo: Tour -> Planificador)
       if (isRunning) {
-        console.log('⏳ [Welcome] Tour activo, esperando...');
+        console.log('⏳ [Welcome] Tour activo, esperando a que termine...');
         return;
       }
 
@@ -949,9 +949,51 @@ INSTRUCCIONES:
         // Obtener contexto de lecciones pendientes
         const lessonsContext = liaData.getLessonsForPrompt();
 
+        // ✅ FIX 207 + FIX 289: Inyectar calendario Y Festivos
+        let calendarContext = '';
+        try {
+            const busyList: string[] = [];
+
+            // 1. Agregar días festivos de México (Prioridad Alta)
+            const todayForHolidays = new Date();
+            const futureDateForHolidays = new Date();
+            futureDateForHolidays.setMonth(todayForHolidays.getMonth() + 6); // Proyectar 6 meses
+            
+            const holidays = HolidayService.getHolidaysInRange(todayForHolidays, futureDateForHolidays, 'MX');
+            
+            if (holidays.length > 0) {
+                holidays.forEach(h => {
+                     // Formato: "Lunes, 1 de enero de 2024"
+                     const dateStr = h.date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                     busyList.push(`⛔ ${dateStr}: DÍA FESTIVO (${h.name.toUpperCase()}) - PROHIBIDO PROGRAMAR LECCIONES`);
+                });
+            }
+
+            // 2. Agregar agenda del usuario
+            if (savedCalendarData && Object.keys(savedCalendarData).length > 0) {
+               Object.entries(savedCalendarData).forEach(([dateKey, dayData]: [string, any]) => {
+                   if (dayData?.busySlots?.length > 0) {
+                       dayData.busySlots.forEach((slot: any) => {
+                           const start = new Date(slot.start);
+                           const end = new Date(slot.end);
+                           const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+                           busyList.push(`- ${dateKey}: ${timeStr} (Usuario Ocupado)`);
+                       });
+                   }
+               });
+            }
+            
+            if (busyList.length > 0) {
+                   calendarContext = `\n\n⛔ RESTRICCIONES DE TIEMPO (CALENDARIO Y FESTIVOS):\n${busyList.join('\n')}`;
+            }
+
+        } catch (e) {
+            console.warn('Error formateando calendario para prompt:', e);
+        }
+
         const liaSystemPrompt = generateStudyPlannerPrompt({
           userName: userContext.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
-          studyPlannerContextString: `CURSOS ASIGNADOS:\n${contextInfo.courses.map((c: any) => `- ${c.title}${c.dueDate ? ` (Fecha límite: ${c.dueDate})` : ''}`).join('\n')}\n\nLECCIONES PENDIENTES:\n${lessonsContext}${welcomeDueDateContext}`,
+          studyPlannerContextString: `CURSOS ASIGNADOS:\n${contextInfo.courses.map((c: any) => `- ${c.title}${c.dueDate ? ` (Fecha límite: ${c.dueDate})` : ''}`).join('\n')}\n\nLECCIONES PENDIENTES:\n${lessonsContext}${welcomeDueDateContext}${calendarContext}`,
           currentDate: currentDate
         });
 
@@ -3660,6 +3702,15 @@ INSTRUCCIONES:
         date.setDate(date.getDate() + i);
         date.setHours(0, 0, 0, 0);
 
+        // ✅ FIX ROOT CAUSE: Saltar festivos desde la generación de análisis
+        // Si el día es festivo, NO crear entrada en daySlots, por lo tanto no existirán slots
+        const isoDate = date.toISOString();
+        const isJan1Root = isoDate.includes('-01-01T') || (date.getMonth() === 0 && date.getDate() === 1);
+        if (HolidayService.isHoliday(date, 'MX') || isJan1Root) {
+             console.log(`⛔ [Analysis] Día festivo saltado en origen: ${date.toLocaleDateString()} (ISO: ${isoDate})`);
+             continue;
+        }
+
         // Si hay fecha objetivo, no analizar días después de ella
         if (targetDateObjForEvents && date > targetDateObjForEvents) {
           break;
@@ -4333,6 +4384,17 @@ INSTRUCCIONES:
       // Filtrar slots excluyendo días festivos (México por defecto)
       const slotsWithoutHolidays = uniqueDateSlots.filter(slot => {
         const isHolidayDate = HolidayService.isHoliday(slot.date, userCountry);
+
+        // ✅ FILTRO NUCLEAR 2.0: ISO STRING CHECK
+        // Detectar 1 de Enero (01-01) y 25 de Diciembre (12-25) en string ISO
+        // Esto captura festivos independientemente de la zona horaria UTC/Local
+        const iso = slot.date.toISOString();
+        const isNuclearHoliday = iso.includes('-01-01T') || iso.includes('-12-25T') || iso.includes('-05-01T') || iso.includes('-09-16T') || iso.includes('-11-20T');
+        
+        if (isNuclearHoliday) {
+             console.log(`☢️ [NUCLEAR FILTER] Slot eliminado por fecha prohibida en ISO: ${iso}`);
+             return false;
+        }
 
         // ✅ DEBUG: Verificar específicamente fechas problemáticas (Navidad y Año Nuevo)
         const dayOfMonth = slot.date.getDate();
@@ -5230,9 +5292,31 @@ INSTRUCCIONES:
           const cycleDuration = sessionDuration + breakDuration;
 
           // Ordenar slots por fecha para distribuir a lo largo del mes
-          const sortedSlots = [...finalSlots].sort((a, b) => {
-            return a.date.getTime() - b.date.getTime();
-          });
+          // ✅ FIX 289 + 324: Filtrar días festivos GLOBALMENTE de todos los slots candidatos
+          // Esto asegura que ni la lógica principal ni los fallbacks B2B usen festivos
+          const sortedSlots = [...finalSlots]
+            .filter(slot => {
+                 // Protección robusta contra tipos de fecha
+                 const d = new Date(slot.date);
+                 if (isNaN(d.getTime())) return false; // Fecha inválida
+                 // Validación de festivos mediante servicio 
+                 const isHoliday = HolidayService.isHoliday(d, 'MX');
+                 
+                 // Validación redundante manual EXTREMA para 1 de Enero
+                 // Verificar múltiples formas para evitar errores de zona horaria
+                 const isJan1 = d.getMonth() === 0 && d.getDate() === 1; // Local Enero 1
+                 const isoStr = d.toISOString();
+                 const isJan1ISO = isoStr.includes('-01-01T'); // UTC Enero 1
+                 
+                 if (isHoliday || isJan1 || isJan1ISO) {
+                     console.log(`⛔ [Global Filter] Festivo eliminado: ${d.toLocaleDateString()} (ISO: ${isoStr})`);
+                     return false;
+                 }
+                 return true;
+            })
+            .sort((a, b) => {
+               return new Date(a.date).getTime() - new Date(b.date).getTime();
+            });
 
           // ✅ CRÍTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
           // Para usuarios B2B (sin skipB2BRedirect), usar TODOS los slots hasta la fecha límite más lejana
@@ -5291,6 +5375,21 @@ INSTRUCCIONES:
                 return isBeforeDeadline || isDeadlineDay;
               })
               : sortedSlots;
+          }
+
+          // ✅ FIX 289: Filtrar días festivos de los slots disponibles ANTES de distribuir (REGLA INMUTABLE)
+          // Esto evita que el algoritmo matemático asigne lecciones a días festivos oficiales
+          const originalSlotsCount = slotsUntilTarget.length;
+          slotsUntilTarget = slotsUntilTarget.filter(slot => {
+            const isHoliday = HolidayService.isHoliday(slot.date, 'MX');
+            if (isHoliday) {
+                console.log(`⛔ [Distribución] Slot filtrado por festivo: ${slot.date.toLocaleDateString('es-ES')}`);
+            }
+            return !isHoliday;
+          });
+          
+          if (originalSlotsCount > slotsUntilTarget.length) {
+             console.log(`ℹ️ Se filtraron ${originalSlotsCount - slotsUntilTarget.length} slots por ser días festivos.`);
           }
 
           if (slotsUntilTarget.length > 0) {
@@ -7899,6 +7998,13 @@ Cuéntame:
           return;
         }
 
+        // ✅ PROMPT GUARD: Última línea de defensa
+        // Eliminar festivos del texto que recibe LIA para que no pueda mostrarlos visualmente
+        if (item.dateStr.includes('-01-01') || item.dateStr.includes('-12-25') || item.dateStr.includes('-05-01') || item.dateStr.includes('-09-16') || item.dateStr.includes('-11-20')) {
+             console.warn(`🔥 [Prompt Guard] Eliminando slot festivo del texto para LIA: ${item.dateStr}`);
+             return;
+        }
+
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
         const lessonCount = item.lessons?.filter(l => l?.lessonTitle?.trim()).length || 0;
 
@@ -8337,6 +8443,20 @@ Cuéntame:
         liaResponse = '¡Perfecto! Vamos a continuar. ¿Qué más necesitas para tu plan de estudios?';
       }
 
+      // ✅ SANITIZE: Limpiar respuesta de LIA para eliminar menciones de festivos
+      // Eliminar bloques que mencionen "Jueves 1" (1 de Enero) u otros festivos
+      // Patrón: Líneas que empiecen con "*" o "📅" seguido de "Jueves 1" o similar
+      liaResponse = liaResponse.replace(/^\*?\s*📅?\s*\*?\*?Jueves\s+1\s*:?.*$/gim, ''); // Jueves 1
+      liaResponse = liaResponse.replace(/^\*?\s*\*?\*?Jueves\s+1\s*:?.*$/gim, '');
+      liaResponse = liaResponse.replace(/\*\s*08:00.*Jueves\s+1.*\n/gi, '');
+      liaResponse = liaResponse.replace(/1\s+de\s+enero\s*[-–—]\s*\d+\s+de\s+enero/gi, (match) => {
+           // Reemplazar "1 de enero - 6 de enero" por "2 de enero - 6 de enero"
+           return match.replace(/1\s+de\s+enero/i, '2 de enero');
+      });
+      liaResponse = liaResponse.replace(/Fechas:\s*1\s+de\s+enero/gi, 'Fechas: 2 de enero');
+      // Limpiar líneas vacías extras causadas por las eliminaciones
+      liaResponse = liaResponse.replace(/\n{3,}/g, '\n\n');
+
       setConversationHistory(prev => [...prev, { role: 'assistant', content: liaResponse }]);
 
       // ✅ NUEVO: Parsear respuesta de LIA para extraer horarios y actualizar savedLessonDistribution
@@ -8346,7 +8466,26 @@ Cuéntame:
       console.log(`   Longitud de respuesta de LIA: ${liaResponse.length} caracteres`);
       console.log(`   Primeros 500 caracteres de respuesta:`, liaResponse.substring(0, 500));
 
-      const extractedSchedules = parseLiaResponseToSchedules(liaResponse);
+      const extractedSchedulesRaw = parseLiaResponseToSchedules(liaResponse);
+
+      // ✅ FILTRO ANTI-FESTIVOS EN PARSED SCHEDULES
+      // Eliminar cualquier horario que haya sido parseado con fecha de festivo
+      const extractedSchedules = extractedSchedulesRaw.filter(schedule => {
+           if (!schedule.dateStr) return true;
+           const dStr = schedule.dateStr;
+           // Festivos mexicanos principales (formato YYYY-MM-DD)
+           if (dStr.includes('-01-01') || dStr.includes('-12-25') ||
+               dStr.includes('-05-01') || dStr.includes('-09-16') ||
+               dStr.includes('-11-20')) {
+                console.warn(`🚫 [Parsed Schedule Filter] Eliminando horario festivo parseado: ${dStr} (${schedule.dayName})`);
+                return false;
+           }
+           return true;
+      });
+
+      if (extractedSchedulesRaw.length !== extractedSchedules.length) {
+          console.log(`📉 Se filtraron ${extractedSchedulesRaw.length - extractedSchedules.length} horarios de festivos de la respuesta de LIA`);
+      }
 
       if (extractedSchedules && extractedSchedules.length > 0) {
         console.log(`📋 Parseando respuesta de LIA: ${extractedSchedules.length} horarios extraídos`);

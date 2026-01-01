@@ -26,7 +26,9 @@
     "organizeLearning": "Organize your learning",
     "updateInfo": "Update your information",
     "exitAccount": "Exit your account",
-    "language": "Language / Idioma"
+    "language": "Language / Idioma",
+    "myTeam": "My Team",
+    "viewTeammates": "View teammates"
   },
   "dashboard": {
     "title": "Business Panel",

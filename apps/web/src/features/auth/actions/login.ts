@@ -325,6 +325,20 @@ export async function loginAction(formData: FormData) {
       // No fallar el login si falla la limpieza
     }
 
+    // 7.5. Actualizar last_login_at en la tabla users
+    try {
+      const { error: updateLoginError } = await supabase
+        .from('users')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', user.id)
+      
+      if (updateLoginError) {
+        console.warn('⚠️ No se pudo actualizar last_login_at:', updateLoginError)
+      }
+    } catch (loginUpdateError) {
+      // No fallar el login si falla la actualización del timestamp
+    }
+
     // 8. REDIRECCIÓN BASADA EN CARGO_ROL (Enfoque B2B)
     // - Administrador → /admin/dashboard
     // - Instructor → /instructor/dashboard (Panel de Instructor)

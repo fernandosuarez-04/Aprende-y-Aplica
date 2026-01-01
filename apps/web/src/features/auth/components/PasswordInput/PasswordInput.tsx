@@ -12,7 +12,7 @@ interface PasswordInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   focusedField?: string | null;
 }
 
-export function PasswordInput({
+export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(({
   id,
   placeholder = '••••••••',
   error,
@@ -21,7 +21,7 @@ export function PasswordInput({
   onFocus,
   onBlur,
   ...props
-}: PasswordInputProps) {
+}, ref) => {
   const [showPassword, setShowPassword] = useState(false);
   const [localFocused, setLocalFocused] = useState(false);
   const isFocused = _focusedField === id || localFocused;
@@ -65,6 +65,7 @@ export function PasswordInput({
             }`}
           />
           <input
+            ref={ref}
             id={id}
             type={showPassword ? 'text' : 'password'}
             placeholder={placeholder}
@@ -99,4 +100,7 @@ export function PasswordInput({
       )}
     </div>
   );
-}
+});
+
+PasswordInput.displayName = 'PasswordInput'; // Importante para devtools
+

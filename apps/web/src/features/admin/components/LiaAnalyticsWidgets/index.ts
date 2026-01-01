@@ -13,4 +13,5 @@ export { ActivityPerformanceWidget } from './ActivityPerformanceWidget';
 export { ActivityHeatmapWidget } from './ActivityHeatmapWidget';
 export { TopQuestionsWidget } from './TopQuestionsWidget';
 export { LiaStatsCards } from './LiaStatsCards';
+export { CourseAnalyticsWidget } from './CourseAnalyticsWidget';
 

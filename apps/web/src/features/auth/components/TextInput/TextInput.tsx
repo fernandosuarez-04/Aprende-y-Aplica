@@ -14,7 +14,7 @@ interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement
   focusedField?: string | null;
 }
 
-export function TextInput({
+export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(({
   id,
   label,
   placeholder,
@@ -25,7 +25,7 @@ export function TextInput({
   onFocus,
   onBlur,
   ...props
-}: TextInputProps) {
+}, ref) => {
   const [localFocused, setLocalFocused] = React.useState(false);
   const isFocused = _focusedField === id || localFocused;
   
@@ -78,6 +78,7 @@ export function TextInput({
             />
           )}
           <input
+            ref={ref}
             id={id}
             placeholder={placeholder}
             className={`flex-1 w-full bg-transparent outline-none placeholder:opacity-50 transition-colors text-sm font-normal font-sans text-[#0A2540] dark:text-white placeholder:text-[#6C757D] dark:placeholder:text-white/50 ${className}`}
@@ -98,4 +99,7 @@ export function TextInput({
       )}
     </div>
   );
-}
+});
+
+TextInput.displayName = 'TextInput'; // Importante para devtools
+

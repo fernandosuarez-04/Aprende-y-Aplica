@@ -20,6 +20,8 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import type { Database } from '../../../../../lib/supabase/types';
 import { logger } from '../../../../../lib/utils/logger';
 import { CalendarIntegrationService } from '../../../../../features/study-planner/services/calendar-integration.service';
+import { LiaLogger } from '../../../../../lib/analytics/lia-logger';
+import { calculateCost, logOpenAIUsage } from '../../../../../lib/openai/usage-monitor';
 
 /**
  * Crea un cliente de Supabase con Service Role Key para bypass de RLS
@@ -2523,10 +2525,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
     
     if (!user) {
       return NextResponse.json(
-        { success: false, response: '', error: 'No autenticado' },
+        { error: 'Usuario no autenticado' },
         { status: 401 }
       );
     }
+    
+    // Inicializar LiaLogger para analytics
+    const liaLogger = new LiaLogger(user.id);
+    let conversationId: string | undefined = undefined; // Será asignado más adelante
 
     const body: ChatRequest = await request.json();
     const { message, conversationHistory, activePlanId, trigger = 'user_message' } = body;
@@ -2539,6 +2545,25 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
         { success: false, response: '', error: 'Mensaje requerido' },
         { status: 400 }
       );
+    }
+    
+    // Iniciar conversación en logger
+    try {
+      const existingId = conversationHistory && conversationHistory.length > 0 ? undefined : undefined; // TODO: Manejar ID existente del frontend si se envía
+      
+      conversationId = await liaLogger.startConversation({
+        contextType: 'study-planner' as any, // Forzamos el tipo aunque no esté en enum para que el logger lo maneje
+        deviceType: request.headers.get('sec-ch-ua-platform') || undefined,
+        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0].trim()
+      });
+      
+      // Si hay mensaje del usuario, registrarlo
+      if (message) {
+        await liaLogger.logMessage('user', message);
+      }
+    } catch (logError) {
+      logger.warn('[StudyPlanner] Falló inicio de conversación logger:', logError);
+      // Continuamos sin bloquear
     }
 
     // 3. Inicializar Google Gemini
@@ -2651,14 +2676,60 @@ ${isProactiveInit
         : message!;
 
       const result = await chatSession.sendMessage(userMessage);
-      const responseText = result.response.text();
-
-      // 8. Procesar respuesta
-
-      const { action, actions, cleanResponse } = extractAction(responseText);
+    // 7. Enviar respuesta
+    const responseText = result.response.text();
+    const usage = result.response.usageMetadata;
+    
+    // Registrar respuesta en logger
+    if (conversationId) {
+      liaLogger.setConversationId(conversationId);
       
-      let executedAction: ActionResult | undefined;
+      // Calcular costos si hay metadata
+      let usageMetadata = undefined;
+      if (usage) {
+         const promptTokens = usage.promptTokenCount || 0;
+         const completionTokens = usage.candidatesTokenCount || 0;
+         const totalTokens = usage.totalTokenCount || 0;
+         
+         const estimatedCost = calculateCost(promptTokens, completionTokens, modelName);
+         
+         // Registrar usage globalmente también
+         if (user) {
+           logOpenAIUsage({
+             userId: user.id,
+             timestamp: new Date(),
+             model: modelName,
+             promptTokens,
+             completionTokens,
+             totalTokens,
+             estimatedCost
+           });
+         }
+
+         usageMetadata = {
+           tokensUsed: totalTokens,
+           costUsd: estimatedCost,
+           modelUsed: modelName
+         };
+      }
       
+      try {
+        await liaLogger.logMessage(
+          'assistant', 
+          responseText, 
+          false,
+          usageMetadata
+        );
+      } catch (logError) {
+        logger.warn('[StudyPlanner] Falló log de respuesta:', logError);
+      }
+    }
+
+    // 8. Procesar respuesta
+    const { action, actions, cleanResponse } = extractAction(responseText);
+    
+    let executedAction: ActionResult | undefined;
+    
       // Ejecutar acciones que no requieren confirmación (pending)
       if (actions.length > 0 && activePlanId) {
         const pendingActions = actions.filter(a => a.status === 'pending');

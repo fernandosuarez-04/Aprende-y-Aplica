@@ -16,7 +16,9 @@ import {
   TopUsersWidget,
   ConversationsTableWidget,
   ActivityHeatmapWidget,
+  ActivityHeatmapWidget,
   TopQuestionsWidget,
+  CourseAnalyticsWidget,
 } from './LiaAnalyticsWidgets';
 
 interface AnalyticsData {
@@ -288,6 +290,11 @@ export function LiaAnalyticsPage() {
         />
       </div>
 
+      {/* Course Analytics Row */}
+      <div className="mb-8">
+        <CourseAnalyticsWidget period={period} isLoading={isLoading} />
+      </div>
+
       {/* Secondary Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <TokenUsageWidget
@@ -322,9 +329,8 @@ export function LiaAnalyticsPage() {
               Información sobre costos
             </h4>
             <p className="text-sm text-indigo-700 dark:text-indigo-400 mt-1">
-              Los costos se calculan basados en las tarifas de OpenAI para el modelo{' '}
-              <span className="font-mono bg-indigo-100 dark:bg-indigo-800 px-1 rounded">gpt-4o-mini</span>:
-              $0.15/1M tokens de entrada y $0.60/1M tokens de salida.
+              Los costos se calculan en tiempo real basados en las tarifas oficiales del modelo utilizado
+              (OpenAI GPT-4o-mini o Google Gemini Flash) por cada millón de tokens.
               La proyección mensual se basa en el promedio diario del período seleccionado.
             </p>
           </div>

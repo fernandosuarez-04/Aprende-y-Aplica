@@ -26,7 +26,9 @@
     "organizeLearning": "Organiza tu aprendizaje",
     "updateInfo": "Actualiza tu información",
     "exitAccount": "Salir de tu cuenta",
-    "language": "Idioma / Language"
+    "language": "Idioma / Language",
+    "myTeam": "Mi Equipo",
+    "viewTeammates": "Ver compañeros"
   },
   "dashboard": {
     "title": "Panel Empresarial",

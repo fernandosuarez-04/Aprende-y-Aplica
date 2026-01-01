@@ -49,18 +49,38 @@ const MODEL_PRICING = {
   'gpt-3.5-turbo': {
     input: 0.0005,    // $0.50 / 1M tokens
     output: 0.0015    // $1.50 / 1M tokens
+  },
+  // ===== Modelos Gemini (Google) =====
+  'gemini-2.0-flash-exp': {
+    input: 0.0001,    // Estimado ~ $0.10 / 1M (Beta free usually)
+    output: 0.0004
+  },
+  'gemini-1.5-flash': {
+    input: 0.000075,  // $0.075 / 1M tokens
+    output: 0.0003    // $0.30 / 1M tokens
+  },
+  'gemini-1.5-pro': {
+    input: 0.00125,   // $1.25 / 1M tokens
+    output: 0.005     // $5.00 / 1M tokens
   }
 };
 
 /**
- * ✅ Calcula el costo estimado de una llamada a OpenAI
+ * ✅ Calcula el costo estimado de una llamada a OpenAI o Gemini
  */
 export function calculateCost(
   promptTokens: number,
   completionTokens: number,
   model: string = 'gpt-4o-mini'
 ): number {
-  const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-4o-mini'];
+  // Normalizar nombre del modelo (manejar versiones específicas)
+  let pricingKey = model;
+  
+  if (model.includes('gpt-4o')) pricingKey = 'gpt-4o';
+  if (model.includes('gpt-4o-mini')) pricingKey = 'gpt-4o-mini';
+  if (model.includes('gemini-2.0-flash')) pricingKey = 'gemini-2.0-flash-exp';
+  
+  const pricing = MODEL_PRICING[pricingKey as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-4o-mini'];
   
   const inputCost = (promptTokens / 1000) * pricing.input;
   const outputCost = (completionTokens / 1000) * pricing.output;

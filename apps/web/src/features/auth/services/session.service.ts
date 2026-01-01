@@ -243,52 +243,96 @@ export class SessionService {
 
       // Obtener el user_id de la sesión actual para revocar todos sus refresh tokens
       const sessionToken = cookieStore.get(this.SESSION_COOKIE_NAME)?.value;
+      const refreshToken = cookieStore.get('refresh_token')?.value;
       let userId: string | null = null;
 
+      // Intentar obtener userId desde sesión legacy
       if (sessionToken) {
-        const supabase = await createClient();
+        try {
+          const supabase = await createClient();
 
-        // Obtener user_id de la sesión legacy
-        const { data: session } = await supabase
-          .from('user_session')
-          .select('user_id')
-          .eq('jwt_id', sessionToken)
-          .single();
+          // Obtener user_id de la sesión legacy
+          const { data: session } = await supabase
+            .from('user_session')
+            .select('user_id')
+            .eq('jwt_id', sessionToken)
+            .single();
 
-        if (session) {
-          userId = (session as any).user_id;
+          if (session) {
+            userId = (session as any).user_id;
+          }
+
+          // Marcar sesión legacy como revocada
+          await (supabase
+            .from('user_session') as any)
+            .update({ revoked: true })
+            .eq('jwt_id', sessionToken);
+
+          logger.debug('Sesión legacy revocada');
+        } catch (dbError) {
+          logger.warn('Error al revocar sesión legacy:', dbError);
         }
+      }
 
-        // Marcar sesión legacy como revocada
-        await (supabase
-          .from('user_session') as any)
-          .update({ revoked: true })
-          .eq('jwt_id', sessionToken);
-
-        logger.debug('Sesión legacy revocada');
+      // Si no tenemos userId, intentar obtenerlo desde refresh token
+      if (!userId && refreshToken) {
+        try {
+          const tokenHash = await RefreshTokenService.hashTokenForLookup(refreshToken);
+          const supabase = await createClient();
+          
+          const { data: token } = await supabase
+            .from('refresh_tokens')
+            .select('user_id')
+            .eq('token_hash', tokenHash)
+            .single();
+          
+          if (token) {
+            userId = token.user_id;
+          }
+        } catch (hashError) {
+          logger.warn('Error al obtener userId desde refresh token:', hashError);
+        }
       }
 
       // Revocar todos los refresh tokens del usuario
       if (userId) {
-        await RefreshTokenService.revokeAllUserTokens(userId, 'user_logout');
-        logger.auth('✅ Todos los refresh tokens del usuario revocados');
+        try {
+          await RefreshTokenService.revokeAllUserTokens(userId, 'user_logout');
+          logger.auth('✅ Todos los refresh tokens del usuario revocados');
+        } catch (revokeError) {
+          logger.warn('Error al revocar refresh tokens:', revokeError);
+        }
       }
 
-      // Eliminar cookies (tanto legacy como refresh tokens)
-      cookieStore.set(this.SESSION_COOKIE_NAME, '', {
+      // Configuración común para eliminar cookies
+      const deleteCookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'lax' as const,
         maxAge: 0,
+        expires: new Date(0),
         path: '/',
-      });
-      cookieStore.delete(this.SESSION_COOKIE_NAME);
+      };
 
-      // Eliminar cookies de refresh token system
-      cookieStore.delete('access_token');
-      cookieStore.delete('refresh_token');
+      // Eliminar cookie de sesión legacy
+      cookieStore.set(this.SESSION_COOKIE_NAME, '', deleteCookieOptions);
+      
+      // Eliminar access_token con las mismas opciones de seguridad
+      cookieStore.set('access_token', '', deleteCookieOptions);
+      
+      // Eliminar refresh_token con las mismas opciones de seguridad
+      cookieStore.set('refresh_token', '', deleteCookieOptions);
 
-      logger.auth('✅ Sesión destruida completamente');
+      // También intentar delete() como respaldo
+      try {
+        cookieStore.delete(this.SESSION_COOKIE_NAME);
+        cookieStore.delete('access_token');
+        cookieStore.delete('refresh_token');
+      } catch (deleteError) {
+        // delete() puede fallar en algunos contextos, ignorar
+      }
+
+      logger.auth('✅ Sesión destruida y cookies eliminadas completamente');
     } catch (error) {
       logger.error('❌ Error destroying session:', error);
       throw error;

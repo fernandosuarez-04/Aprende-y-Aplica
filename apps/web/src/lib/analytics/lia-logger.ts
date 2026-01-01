@@ -101,12 +101,10 @@ export class LiaLogger {
       .insert({
         user_id: this.userId,
         context_type: metadata.contextType,
-        // Estos campos se dejarán null por ahora ya que CourseLessonContext no los incluye
-        // Se pueden agregar más adelante cuando se integre el tracking de actividades
-        course_id: null,
-        module_id: null,
-        lesson_id: null,
-        activity_id: null,
+        course_id: metadata.courseContext?.courseId || null,
+        module_id: metadata.courseContext?.moduleId || null,
+        lesson_id: metadata.courseContext?.lessonId || null,
+        activity_id: null, // Se vinculará cuando se incie una actividad específica
         device_type: metadata.deviceType || null,
         browser: metadata.browser || null,
         ip_address: metadata.ipAddress || null,
