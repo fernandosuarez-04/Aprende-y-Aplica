@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   ArrowPathIcon,
   ArrowDownTrayIcon,
   CalendarIcon,
   CpuChipIcon,
   LightBulbIcon,
-} from '@heroicons/react/24/outline';
+} from "@heroicons/react/24/outline";
 import {
   LiaStatsCards,
   CostOverviewWidget,
@@ -16,10 +16,9 @@ import {
   TopUsersWidget,
   ConversationsTableWidget,
   ActivityHeatmapWidget,
-  ActivityHeatmapWidget,
   TopQuestionsWidget,
   CourseAnalyticsWidget,
-} from './LiaAnalyticsWidgets';
+} from "./LiaAnalyticsWidgets";
 
 interface AnalyticsData {
   period: {
@@ -73,35 +72,38 @@ interface AnalyticsData {
   }>;
 }
 
-type PeriodType = 'day' | 'week' | 'month' | 'year';
+type PeriodType = "day" | "week" | "month" | "year";
 
 const PERIOD_OPTIONS: { value: PeriodType; label: string }[] = [
-  { value: 'day', label: 'Hoy' },
-  { value: 'week', label: 'Última semana' },
-  { value: 'month', label: 'Último mes' },
-  { value: 'year', label: 'Último año' },
+  { value: "day", label: "Hoy" },
+  { value: "week", label: "Última semana" },
+  { value: "month", label: "Último mes" },
+  { value: "year", label: "Último año" },
 ];
 
 export function LiaAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [period, setPeriod] = useState<PeriodType>('month');
+  const [period, setPeriod] = useState<PeriodType>("month");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [chartType, setChartType] = useState<'area' | 'bar'>('area');
-  const [provider, setProvider] = useState<'openai' | 'gemini'>('openai');
+  const [chartType, setChartType] = useState<"area" | "bar">("area");
+  const [provider, setProvider] = useState<"openai" | "gemini">("openai");
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Agregar timestamp para evitar cache y forzar datos frescos
       const timestamp = Date.now();
-      const response = await fetch(`/api/admin/lia-analytics?period=${period}&provider=${provider}&_t=${timestamp}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
+      const response = await fetch(
+        `/api/admin/lia-analytics?period=${period}&provider=${provider}&_t=${timestamp}`,
+        {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
         }
-      });
+      );
       const result = await response.json();
 
       if (result.success) {
@@ -109,7 +111,7 @@ export function LiaAnalyticsPage() {
         setLastUpdated(new Date());
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      console.error("Error fetching analytics:", error);
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +125,7 @@ export function LiaAnalyticsPage() {
     if (!data) return;
 
     // Crear CSV con los datos de costos por período
-    const headers = ['Fecha', 'Costo (USD)', 'Tokens', 'Mensajes'];
+    const headers = ["Fecha", "Costo (USD)", "Tokens", "Mensajes"];
     const rows = data.costsByPeriod.map((item) => [
       item.date,
       item.cost.toFixed(6),
@@ -132,16 +134,19 @@ export function LiaAnalyticsPage() {
     ]);
 
     const csvContent = [
-      headers.join(','),
-      ...rows.map((row) => row.join(',')),
-    ].join('\n');
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `lia-analytics-${period}-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `lia-analytics-${period}-${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -164,7 +169,7 @@ export function LiaAnalyticsPage() {
             </p>
             {lastUpdated && (
               <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                Última actualización: {lastUpdated.toLocaleTimeString('es-ES')}
+                Última actualización: {lastUpdated.toLocaleTimeString("es-ES")}
               </p>
             )}
           </div>
@@ -173,7 +178,7 @@ export function LiaAnalyticsPage() {
             {/* Selector de Proveedor */}
             <div className="relative">
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 flex items-center justify-center pointer-events-none">
-                {provider === 'openai' ? (
+                {provider === "openai" ? (
                   <span className="text-lg">🤖</span> // Icono temporal para OpenAI
                 ) : (
                   <span className="text-lg">✨</span> // Icono temporal para Gemini
@@ -181,7 +186,9 @@ export function LiaAnalyticsPage() {
               </div>
               <select
                 value={provider}
-                onChange={(e) => setProvider(e.target.value as 'openai' | 'gemini')}
+                onChange={(e) =>
+                  setProvider(e.target.value as "openai" | "gemini")
+                }
                 className="pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none cursor-pointer min-w-[140px]"
               >
                 <option value="openai">OpenAI</option>
@@ -208,20 +215,22 @@ export function LiaAnalyticsPage() {
             {/* Tipo de gráfico */}
             <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
               <button
-                onClick={() => setChartType('area')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${chartType === 'area'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
+                onClick={() => setChartType("area")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  chartType === "area"
+                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
                 Área
               </button>
               <button
-                onClick={() => setChartType('bar')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${chartType === 'bar'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
+                onClick={() => setChartType("bar")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  chartType === "bar"
+                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
                 Barras
               </button>
@@ -233,7 +242,9 @@ export function LiaAnalyticsPage() {
               disabled={isLoading}
               className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl transition-colors"
             >
-              <ArrowPathIcon className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+              <ArrowPathIcon
+                className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`}
+              />
               <span className="hidden sm:inline">Actualizar</span>
             </button>
 
@@ -252,26 +263,32 @@ export function LiaAnalyticsPage() {
       {/* Stats Cards */}
       <div className="mb-8">
         <LiaStatsCards
-          summary={data?.summary || {
-            totalConversations: 0,
-            totalMessages: 0,
-            totalTokens: 0,
-            totalCostUsd: 0,
-            avgResponseTimeMs: 0,
-            completedActivities: 0,
-          }}
-          today={data?.today || {
-            cost: 0,
-            tokens: 0,
-            messages: 0,
-            costChange: 0,
-            activeUsers: 0,
-            usersChange: 0,
-          }}
-          efficiency={data?.efficiency || {
-            avgMessagesPerConversation: 0,
-            avgCostPerMessage: 0,
-          }}
+          summary={
+            data?.summary || {
+              totalConversations: 0,
+              totalMessages: 0,
+              totalTokens: 0,
+              totalCostUsd: 0,
+              avgResponseTimeMs: 0,
+              completedActivities: 0,
+            }
+          }
+          today={
+            data?.today || {
+              cost: 0,
+              tokens: 0,
+              messages: 0,
+              costChange: 0,
+              activeUsers: 0,
+              usersChange: 0,
+            }
+          }
+          efficiency={
+            data?.efficiency || {
+              avgMessagesPerConversation: 0,
+              avgCostPerMessage: 0,
+            }
+          }
           projectedMonthlyCost={data?.projections.monthlyEstimate || 0}
           isLoading={isLoading}
         />
@@ -329,9 +346,10 @@ export function LiaAnalyticsPage() {
               Información sobre costos
             </h4>
             <p className="text-sm text-indigo-700 dark:text-indigo-400 mt-1">
-              Los costos se calculan en tiempo real basados en las tarifas oficiales del modelo utilizado
-              (OpenAI GPT-4o-mini o Google Gemini Flash) por cada millón de tokens.
-              La proyección mensual se basa en el promedio diario del período seleccionado.
+              Los costos se calculan en tiempo real basados en las tarifas
+              oficiales del modelo utilizado (OpenAI GPT-4o-mini o Google Gemini
+              Flash) por cada millón de tokens. La proyección mensual se basa en
+              el promedio diario del período seleccionado.
             </p>
           </div>
         </div>
@@ -339,4 +357,3 @@ export function LiaAnalyticsPage() {
     </div>
   );
 }
-
