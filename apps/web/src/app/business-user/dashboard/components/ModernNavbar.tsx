@@ -19,7 +19,10 @@ import {
   Globe,
   Check,
   ChevronRight,
-  Zap
+  Zap,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect, useMemo } from 'react'
@@ -28,6 +31,7 @@ import { StyleConfig } from '@/features/business-panel/hooks/useOrganizationStyl
 import { hexToRgb } from '@/features/business-panel/utils/styles'
 import { useLanguage } from '@/core/providers/I18nProvider'
 import { useTranslation } from 'react-i18next'
+import { useThemeStore, Theme } from '@/core/stores/themeStore'
 
 interface ModernNavbarProps {
   organization: {
@@ -72,11 +76,17 @@ export function ModernNavbar({
   const router = useRouter()
   const { language, setLanguage } = useLanguage()
   const { t } = useTranslation('business')
+  const { theme, setTheme, resolvedTheme, initializeTheme } = useThemeStore()
 
   // Detectar cuando el componente está montado (para portals)
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Inicializar el tema
+  useEffect(() => {
+    initializeTheme()
+  }, [initializeTheme])
 
   // Verificar si el usuario tiene un plan de estudio
   useEffect(() => {
@@ -113,7 +123,14 @@ export function ModernNavbar({
     const textColor = styles?.text_color || '#FFFFFF'
     const cardBg = styles?.card_background || '#1E2329'
     const sidebarBg = styles?.sidebar_background || '#0F1419'
+    const borderColorFromStyle = styles?.border_color || '#334155'
     const sidebarOpacity = styles?.sidebar_opacity !== undefined ? styles.sidebar_opacity : 0.95
+
+    // Detectar si estamos en modo claro
+    const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
+                        cardBg.toLowerCase() === '#f8fafc' ||
+                        sidebarBg.toLowerCase() === '#ffffff' ||
+                        sidebarBg.toLowerCase() === '#f8fafc'
 
     let navBgColor: string
     if (sidebarBg.startsWith('#')) {
@@ -129,10 +146,11 @@ export function ModernNavbar({
       text: textColor,
       cardBg,
       navBg: navBgColor,
-      border: 'rgba(255, 255, 255, 0.08)',
+      border: isLightMode ? borderColorFromStyle : 'rgba(255, 255, 255, 0.08)',
       borderActive: `${accentColor}40`,
       gradientStart: primaryColor,
-      gradientEnd: accentColor
+      gradientEnd: accentColor,
+      isLightMode
     }
   }, [styles])
 
@@ -367,6 +385,43 @@ export function ModernNavbar({
               </div>
             </div>
 
+            {/* Theme Selector */}
+            <div className="px-3 py-2">
+              <div className="flex items-center gap-2 mb-2 px-1">
+                 {resolvedTheme === 'dark' ? (
+                   <Moon className="w-3.5 h-3.5 opacity-70" style={{ color: colors.text }} />
+                 ) : (
+                   <Sun className="w-3.5 h-3.5 opacity-70" style={{ color: colors.text }} />
+                 )}
+                 <span className="text-xs font-medium opacity-70" style={{ color: colors.text }}>Tema</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                 {([
+                   { value: 'light' as Theme, label: 'Claro', icon: Sun },
+                   { value: 'dark' as Theme, label: 'Oscuro', icon: Moon },
+                   { value: 'system' as Theme, label: 'Auto', icon: Monitor },
+                 ]).map((option) => {
+                   const ThemeIcon = option.icon
+                   return (
+                     <motion.button
+                       key={option.value}
+                       onClick={() => setTheme(option.value)}
+                       className="relative overflow-hidden rounded-xl py-2 text-sm font-medium transition-colors border flex items-center justify-center gap-1.5"
+                       style={{
+                         backgroundColor: theme === option.value ? `${colors.accent}15` : 'transparent',
+                         borderColor: theme === option.value ? `${colors.accent}30` : colors.border,
+                         color: theme === option.value ? colors.accent : `${colors.text}60`
+                       }}
+                       whileTap={{ scale: 0.95 }}
+                     >
+                       <ThemeIcon className="w-3 h-3" />
+                       {option.label}
+                     </motion.button>
+                   )
+                 })}
+              </div>
+            </div>
+
             {/* Cerrar Sesión */}
             <motion.button
               onClick={() => {
@@ -466,7 +521,7 @@ export function ModernNavbar({
                     className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
                     style={{
                       backgroundColor: colors.accent,
-                      borderColor: colors.navBg.includes('rgba') ? '#0F1419' : colors.navBg
+                      borderColor: colors.isLightMode ? colors.cardBg : (colors.navBg.includes('rgba') ? colors.cardBg : colors.navBg)
                     }}
                   />
                 </div>
@@ -577,10 +632,16 @@ export function ModernNavbar({
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold truncate text-white">
+                              <p 
+                                className="text-sm font-semibold truncate"
+                                style={{ color: colors.text }}
+                              >
                                 {getDisplayName()}
                               </p>
-                              <p className="text-xs truncate opacity-70 text-white">
+                              <p 
+                                className="text-xs truncate"
+                                style={{ color: colors.isLightMode ? '#64748B' : 'rgba(255, 255, 255, 0.7)' }}
+                              >
                                 {user?.email || ''}
                               </p>
                             </div>
@@ -595,9 +656,9 @@ export function ModernNavbar({
                                 router.push('/business-panel/dashboard')
                                 setUserDropdownOpen(false)
                               }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                               style={{ color: colors.text }}
-                              whileHover={{ x: 2 }}
+                              whileHover={{ x: 2, backgroundColor: colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' }}
                             >
                               <LayoutDashboard className="h-4 w-4 opacity-70" />
                               <div className="flex-1 text-left">
@@ -612,9 +673,9 @@ export function ModernNavbar({
                                 router.push(hasStudyPlan ? '/study-planner/dashboard' : '/study-planner/create')
                                 setUserDropdownOpen(false)
                               }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                               style={{ color: colors.text }}
-                              whileHover={{ x: 2 }}
+                              whileHover={{ x: 2, backgroundColor: colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' }}
                             >
                               {hasStudyPlan ? (
                                 <CalendarDays className="h-4 w-4 opacity-70" />
@@ -631,9 +692,9 @@ export function ModernNavbar({
                               router.push('/business-user/teams')
                               setUserDropdownOpen(false)
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                             style={{ color: colors.text }}
-                            whileHover={{ x: 2 }}
+                            whileHover={{ x: 2, backgroundColor: colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' }}
                           >
                             <Users className="h-4 w-4 opacity-70" />
                             <span>{t('header.myTeam', 'Mi Equipo')}</span>
@@ -644,9 +705,9 @@ export function ModernNavbar({
                               onProfileClick()
                               setUserDropdownOpen(false)
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                             style={{ color: colors.text }}
-                            whileHover={{ x: 2 }}
+                            whileHover={{ x: 2, backgroundColor: colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' }}
                           >
                             <User className="h-4 w-4 opacity-70" />
                             <span>{t('header.editProfile')}</span>
@@ -659,9 +720,9 @@ export function ModernNavbar({
                                 onRestartTour()
                                 setUserDropdownOpen(false)
                               }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                               style={{ color: colors.text }}
-                              whileHover={{ x: 2 }}
+                              whileHover={{ x: 2, backgroundColor: colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' }}
                             >
                               <Zap className="h-4 w-4 opacity-70" />
                               <span>Ver Tour</span>
@@ -676,9 +737,9 @@ export function ModernNavbar({
                                 e.stopPropagation()
                                 setActiveSubmenu(activeSubmenu === 'language' ? null : 'language')
                               }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                               style={{ color: colors.text }}
-                              whileHover={{ x: 2 }}
+                              whileHover={{ x: 2, backgroundColor: colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' }}
                             >
                               <Globe className="h-4 w-4 opacity-70" />
                               <span className="flex-1 text-left">{t('header.language')}</span>
@@ -698,7 +759,8 @@ export function ModernNavbar({
                                   initial={{ height: 0, opacity: 0 }}
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden bg-black/20"
+                                  className="overflow-hidden"
+                                  style={{ backgroundColor: colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(0, 0, 0, 0.2)' }}
                                 >
                                   {(['es', 'en', 'pt'] as const).map((lang) => (
                                     <button
@@ -707,8 +769,12 @@ export function ModernNavbar({
                                         setLanguage(lang)
                                         setActiveSubmenu(null)
                                       }}
-                                      className="w-full flex items-center gap-3 px-10 py-2 text-xs transition-colors hover:bg-white/5"
-                                      style={{ color: language === lang ? colors.accent : colors.text }}
+                                      className="w-full flex items-center gap-3 px-10 py-2 text-xs transition-colors"
+                                      style={{ 
+                                        color: language === lang ? colors.accent : colors.text,
+                                      }}
+                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)'}
+                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
                                       <span>{lang === 'es' ? '🇪🇸' : lang === 'en' ? '🇺🇸' : '🇧🇷'}</span>
                                       <span className="capitalize">{lang === 'es' ? 'Español' : lang === 'en' ? 'English' : 'Português'}</span>
@@ -720,7 +786,72 @@ export function ModernNavbar({
                             </AnimatePresence>
                           </div>
 
-                          <div className="my-1 border-t" style={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
+                          {/* Theme Submenu */}
+                          <div className="relative">
+                            <motion.button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setActiveSubmenu(activeSubmenu === 'theme' ? null : 'theme')
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                              style={{ color: colors.text }}
+                              whileHover={{ x: 2, backgroundColor: colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' }}
+                            >
+                              {resolvedTheme === 'dark' ? (
+                                <Moon className="h-4 w-4 opacity-70" />
+                              ) : (
+                                <Sun className="h-4 w-4 opacity-70" />
+                              )}
+                              <span className="flex-1 text-left">Tema</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs opacity-70">
+                                  {theme === 'light' ? 'Claro' : theme === 'dark' ? 'Oscuro' : 'Auto'}
+                                </span>
+                                <ChevronRight 
+                                  className={`h-3.5 w-3.5 opacity-70 transition-transform ${activeSubmenu === 'theme' ? 'rotate-90' : ''}`}
+                                />
+                              </div>
+                            </motion.button>
+
+                            <AnimatePresence>
+                              {activeSubmenu === 'theme' && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                  style={{ backgroundColor: colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(0, 0, 0, 0.2)' }}
+                                >
+                                  {([
+                                    { value: 'light' as Theme, label: 'Claro', icon: Sun },
+                                    { value: 'dark' as Theme, label: 'Oscuro', icon: Moon },
+                                    { value: 'system' as Theme, label: 'Sistema', icon: Monitor },
+                                  ]).map((option) => {
+                                    const ThemeIcon = option.icon
+                                    return (
+                                      <button
+                                        key={option.value}
+                                        onClick={() => {
+                                          setTheme(option.value)
+                                          setActiveSubmenu(null)
+                                        }}
+                                        className="w-full flex items-center gap-3 px-10 py-2 text-xs transition-colors"
+                                        style={{ color: theme === option.value ? colors.accent : colors.text }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                      >
+                                        <ThemeIcon className="h-3.5 w-3.5" />
+                                        <span>{option.label}</span>
+                                        {theme === option.value && <Check className="h-3 w-3 ml-auto" />}
+                                      </button>
+                                    )
+                                  })}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+
+                          <div className="my-1 border-t" style={{ borderColor: colors.border }} />
                           
                           <motion.button
                             onClick={() => {

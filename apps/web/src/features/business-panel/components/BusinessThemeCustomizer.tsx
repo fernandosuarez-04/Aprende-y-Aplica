@@ -327,6 +327,9 @@ export function BusinessThemeCustomizer() {
   // Obtener icono para cada tema
   const getThemeIcon = (themeId: string) => {
     const icons: Record<string, string> = {
+      'sofia': 'T', // Tema SOFIA unificado
+      'sofia-predeterminado': 'T', // Compatibilidad legacy
+      'sofia-claro': 'T', // Compatibilidad legacy
       'corporativo-azul': 'A',
       'ejecutivo-oscuro': 'D',
       'premium-dorado': 'B',
@@ -346,6 +349,22 @@ export function BusinessThemeCustomizer() {
       return 'linear-gradient(135deg, #fbbf24, #f59e0b)'
     }
     return theme.panel.background_value
+  }
+
+  // Verificar si un tema está seleccionado (con compatibilidad legacy)
+  const isThemeSelected = (themeId: string): boolean => {
+    const selectedTheme = styles?.selectedTheme;
+    if (!selectedTheme) return false;
+    
+    // Comparación directa
+    if (selectedTheme === themeId) return true;
+    
+    // Compatibilidad con temas legacy
+    if (themeId === 'sofia' && (selectedTheme === 'sofia-predeterminado' || selectedTheme === 'sofia-claro')) {
+      return true;
+    }
+    
+    return false;
   }
 
   return (
@@ -424,10 +443,10 @@ export function BusinessThemeCustomizer() {
               whileTap={{ scale: 0.98 }}
               className="group relative p-3 rounded-xl text-left transition-all duration-300"
               style={{
-                background: styles?.selectedTheme === theme.id
+                background: isThemeSelected(theme.id)
                   ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.15))'
                   : 'rgba(255, 255, 255, 0.03)',
-                border: styles?.selectedTheme === theme.id
+                border: isThemeSelected(theme.id)
                   ? '2px solid rgba(139, 92, 246, 0.5)'
                   : '1px solid rgba(255, 255, 255, 0.08)'
               }}
@@ -439,7 +458,7 @@ export function BusinessThemeCustomizer() {
               >
                 <motion.span
                   className="relative z-10"
-                  animate={styles?.selectedTheme === theme.id ? { scale: [1, 1.1, 1] } : {}}
+                  animate={isThemeSelected(theme.id) ? { scale: [1, 1.1, 1] } : {}}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
                   {getThemeIcon(theme.id)}
@@ -451,7 +470,7 @@ export function BusinessThemeCustomizer() {
               <p className="text-[10px] text-white/50 line-clamp-2 leading-tight">{theme.description}</p>
 
               {/* Selected Indicator */}
-              {styles?.selectedTheme === theme.id && (
+              {isThemeSelected(theme.id) && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -465,6 +484,13 @@ export function BusinessThemeCustomizer() {
               {theme.id === 'branding-personalizado' && (
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white">
                   AUTO
+                </div>
+              )}
+
+              {/* Dual Mode Theme Badge */}
+              {theme.supportsDualMode && theme.id !== 'branding-personalizado' && (
+                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-indigo-500 to-purple-500 text-white flex items-center gap-0.5">
+                  <span>☀️</span><span>/</span><span>🌙</span>
                 </div>
               )}
             </motion.button>

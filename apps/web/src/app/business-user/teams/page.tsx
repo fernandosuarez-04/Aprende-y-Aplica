@@ -42,19 +42,50 @@ interface TeamSummary {
 export default function MyTeamsPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { styles } = useOrganizationStyles()
+  const { effectiveStyles } = useOrganizationStyles()
   const { isOpen: isPanelOpen } = useLiaPanel()
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [teams, setTeams] = useState<TeamSummary[]>([])
 
-  // Colores personalizados
-  const orgColors = useMemo(() => ({
-    primary: styles?.primary_button_color || '#0A2540',
-    accent: styles?.accent_color || '#00D4B3',
-    cardBg: styles?.card_background || '#1E2329'
-  }), [styles])
+  // Colores personalizados con detección de modo
+  const orgColors = useMemo(() => {
+    const userDashboardStyles = effectiveStyles?.userDashboard
+    const cardBg = userDashboardStyles?.card_background || '#1E2329'
+    const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
+                        cardBg.toLowerCase() === '#f8fafc' ||
+                        cardBg.toLowerCase().includes('255, 255, 255')
+    
+    // Obtener valores base
+    let sidebarBg = userDashboardStyles?.sidebar_background || (isLightMode ? '#F1F5F9' : '#0F1419')
+    let textColor = userDashboardStyles?.text_color || (isLightMode ? '#0F172A' : '#FFFFFF')
+    let borderColor = userDashboardStyles?.border_color || (isLightMode ? '#E2E8F0' : '#334155')
+
+    // LÓGICA DE DETECCIÓN Y CORRECCIÓN DE INCONSISTENCIAS
+    // Si las tarjetas son blancas (modo claro)...
+    if (isLightMode) {
+        // FORZAR fondo claro y texto oscuro para garantizar legibilidad
+        // Ignoramos el sidebar_background de la BD si estamos en modo claro para evitar fondos oscuros heredados
+        sidebarBg = '#F1F5F9'
+        
+        if (textColor.toLowerCase() === '#ffffff' || textColor.toLowerCase() === '#fff') {
+            textColor = '#0F172A'
+        }
+    }
+
+    return {
+      primary: userDashboardStyles?.primary_button_color || '#0A2540',
+      accent: userDashboardStyles?.accent_color || '#00D4B3',
+      cardBg: cardBg,
+      sidebarBg,
+      text: textColor,
+      border: borderColor,
+      isLightMode,
+      textSecondary: isLightMode ? '#64748B' : '#9CA3AF',
+      textMuted: isLightMode ? '#94A3B8' : '#6B7280',
+    }
+  }, [effectiveStyles])
 
   const fetchTeams = useCallback(async () => {
     try {
@@ -99,7 +130,7 @@ export default function MyTeamsPage() {
     return (
       <main
         className="min-h-screen flex items-center justify-center"
-        style={{ background: '#0F1419' }}
+        style={{ background: orgColors.sidebarBg }}
       >
         <div className="flex flex-col items-center gap-6">
           <div
@@ -111,7 +142,7 @@ export default function MyTeamsPage() {
           >
             <Users className="w-8 h-8" style={{ color: orgColors.accent }} />
           </div>
-          <p className="text-white text-lg">Cargando tus equipos...</p>
+          <p className="text-lg" style={{ color: orgColors.text }}>Cargando tus equipos...</p>
         </div>
       </main>
     )
@@ -122,28 +153,29 @@ export default function MyTeamsPage() {
     return (
       <main
         className="min-h-screen flex items-center justify-center p-6"
-        style={{ background: '#0F1419' }}
+        style={{ background: orgColors.sidebarBg }}
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center gap-6 max-w-md text-center p-8 rounded-2xl border border-red-500/20 backdrop-blur-xl"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.8)' }}
+          style={{ backgroundColor: orgColors.cardBg }}
         >
           <div className="p-4 rounded-full bg-red-500/10">
             <AlertCircle className="w-12 h-12 text-red-400" />
           </div>
           <div>
             <p className="text-red-400 text-xl font-semibold">Error al cargar equipos</p>
-            <p className="text-gray-400 text-sm mt-2">{error}</p>
+            <p className="text-sm mt-2" style={{ color: orgColors.textSecondary }}>{error}</p>
           </div>
           <motion.button
             onClick={fetchTeams}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-6 py-3 text-white rounded-xl font-medium"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium"
             style={{
               background: `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.accent})`,
+              color: '#FFFFFF'
             }}
           >
             <RefreshCw className="w-4 h-4" />
@@ -158,7 +190,7 @@ export default function MyTeamsPage() {
     <main
       className="min-h-screen transition-all duration-300"
       style={{
-        background: '#0F1419',
+        background: orgColors.sidebarBg,
         paddingRight: isPanelOpen ? `${LIA_PANEL_WIDTH}px` : '0'
       }}
     >
@@ -166,8 +198,9 @@ export default function MyTeamsPage() {
         {/* Back button */}
         <motion.button
           onClick={() => router.push('/business-user/dashboard')}
-          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
-          whileHover={{ x: -4 }}
+          className="flex items-center gap-2 transition-colors mb-8"
+          style={{ color: orgColors.textSecondary }}
+          whileHover={{ x: -4, color: orgColors.text }}
         >
           <ChevronLeft className="w-5 h-5" />
           <span>Volver al dashboard</span>
@@ -190,8 +223,8 @@ export default function MyTeamsPage() {
               <Users className="w-7 h-7" style={{ color: orgColors.accent }} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">Mis Equipos</h1>
-              <p className="text-gray-400 text-sm mt-1">
+              <h1 className="text-3xl font-bold" style={{ color: orgColors.text }}>Mis Equipos</h1>
+              <p className="text-sm mt-1" style={{ color: orgColors.textSecondary }}>
                 {teams.length === 0 
                   ? 'No perteneces a ningún equipo aún'
                   : `Perteneces a ${teams.length} equipo${teams.length > 1 ? 's' : ''}`
@@ -206,8 +239,11 @@ export default function MyTeamsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative overflow-hidden rounded-2xl border border-white/5 backdrop-blur-xl p-12 text-center"
-            style={{ backgroundColor: 'rgba(30, 41, 59, 0.5)' }}
+            className="relative overflow-hidden rounded-2xl backdrop-blur-xl p-12 text-center"
+            style={{ 
+              backgroundColor: orgColors.cardBg,
+              border: `1px solid ${orgColors.border}`
+            }}
           >
             <div
               className="absolute inset-0 pointer-events-none"
@@ -226,8 +262,8 @@ export default function MyTeamsPage() {
               >
                 <Users className="w-10 h-10" style={{ color: orgColors.primary }} />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">No perteneces a ningún equipo</h3>
-              <p className="text-gray-400 max-w-md mx-auto">
+              <h3 className="text-xl font-bold mb-2" style={{ color: orgColors.text }}>No perteneces a ningún equipo</h3>
+              <p className="max-w-md mx-auto" style={{ color: orgColors.textSecondary }}>
                 Tu administrador puede asignarte a un equipo de trabajo. Los equipos te permiten colaborar con otros compañeros y compartir objetivos de aprendizaje.
               </p>
             </div>
@@ -246,12 +282,12 @@ export default function MyTeamsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => router.push(`/business-user/teams/${team.slug}`)}
-                  className="group relative overflow-hidden rounded-2xl border cursor-pointer transition-all duration-300 hover:border-white/20 hover:shadow-xl"
+                  className="group relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300 hover:shadow-xl"
                   style={{
-                    backgroundColor: 'rgba(30, 41, 59, 0.5)',
-                    borderColor: 'rgba(255, 255, 255, 0.05)'
+                    backgroundColor: orgColors.cardBg,
+                    border: `1px solid ${orgColors.border}`
                   }}
-                  whileHover={{ y: -4 }}
+                  whileHover={{ y: -4, borderColor: `${orgColors.accent}50` }}
                 >
                   {/* Team Image or Gradient */}
                   <div
@@ -287,18 +323,21 @@ export default function MyTeamsPage() {
 
                   {/* Team Info */}
                   <div className="p-5">
-                    <h3 className="text-lg font-bold text-white mb-1 group-hover:text-cyan-400 transition-colors">
+                    <h3 
+                      className="text-lg font-bold mb-1 transition-colors"
+                      style={{ color: orgColors.text }}
+                    >
                       {team.name}
                     </h3>
                     
                     {team.description && (
-                      <p className="text-gray-400 text-sm line-clamp-2 mb-4">
+                      <p className="text-sm line-clamp-2 mb-4" style={{ color: orgColors.textSecondary }}>
                         {team.description}
                       </p>
                     )}
 
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <div className="flex items-center gap-2 text-sm" style={{ color: orgColors.textSecondary }}>
                         <Users className="w-4 h-4" />
                         <span>{team.member_count} miembros</span>
                       </div>
@@ -314,7 +353,7 @@ export default function MyTeamsPage() {
 
                     {/* Leader info */}
                     {team.leader && (
-                      <div className="mt-4 pt-4 border-t border-white/5">
+                      <div className="mt-4 pt-4 border-t" style={{ borderColor: orgColors.border }}>
                         <div className="flex items-center gap-2">
                           <div
                             className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden"
@@ -334,8 +373,8 @@ export default function MyTeamsPage() {
                               <Crown className="w-3 h-3 text-white" />
                             )}
                           </div>
-                          <span className="text-xs text-gray-500">
-                            Liderado por <span className="text-gray-400">{team.leader.name}</span>
+                          <span className="text-xs" style={{ color: orgColors.textMuted }}>
+                            Liderado por <span style={{ color: orgColors.textSecondary }}>{team.leader.name}</span>
                           </span>
                         </div>
                       </div>

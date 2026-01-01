@@ -166,9 +166,10 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
     textPrimary: customColors?.textPrimary || (isLightTheme ? '#1E293B' : '#e5e7eb'),
     textSecondary: customColors?.textSecondary || (isLightTheme ? '#64748B' : '#6b7280'),
     // Si es custom theme, forzar input oscuro
-    inputBg: isCustomTheme ? 'rgba(0,0,0,0.3)' : (isLightTheme ? '#F1F5F9' : 'rgba(255,255,255,0.05)'),
+    inputBg: isCustomTheme ? (isLightTheme ? '#F1F5F9' : 'rgba(0,0,0,0.3)') : (isLightTheme ? '#F1F5F9' : 'rgba(255,255,255,0.05)'),
     inputBorder: customColors?.borderColor ? 'transparent' : (isLightTheme ? '#CBD5E1' : '#374151'),
     accentColor: customColors?.accentColor || '#00D4B3',
+    primaryAction: customColors?.accentColor || '#0A2540',
   };
 
   const initialMessage = user?.first_name
@@ -186,7 +187,30 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
   
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [forceDarkText, setForceDarkText] = useState(false);
+
+  useEffect(() => {
+    const checkContrast = () => {
+      if (panelRef.current) {
+        const bg = window.getComputedStyle(panelRef.current).backgroundColor;
+        const rgb = bg.match(/\d+/g);
+        if (rgb && rgb.length >= 3) {
+          const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+          if (brightness > 200) { // Umbral alto para asegurar que es fondo claro
+            setForceDarkText(true);
+          }
+        }
+      }
+    };
+    
+    // Verificar inmediatamente y despues de renderizado
+    checkContrast();
+    const timer = setTimeout(checkContrast, 500);
+    return () => clearTimeout(timer);
+  }, [themeColors.panelBg, isLightTheme]);
 
   const handleLinkClick = useCallback((url: string) => {
     if (url.startsWith('/')) {
@@ -258,16 +282,16 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
     
     // Construir contexto del curso
     const courseContext = {
-      courseId: courseSlug || 'unknown', // Ajustar según disponibilidad
-      lessonId: lessonId || 'unknown',
-      lessonTitle: lessonTitle || 'unknown',
-      transcriptContent,
-      summaryContent,
-      lessonContent
+      lessonId,
+      lessonTitle,
+      courseSlug,
+      transcript: transcriptContent,
+      summary: summaryContent,
+      content: lessonContent
     };
 
     await sendMessage(message, courseContext);
-  }, [inputValue, isLoading, sendMessage, lessonId, lessonTitle, courseSlug]);
+  }, [inputValue, isLoading, sendMessage, lessonId, lessonTitle, courseSlug, transcriptContent, summaryContent, lessonContent]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -289,6 +313,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
     <AnimatePresence>
       {isOpen && (
         <motion.aside
+          ref={panelRef}
           initial={animationInitial}
           animate={animationAnimate}
           exit={animationExit}
@@ -345,8 +370,8 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {messages.map((message) => (
               <div key={message.id} style={{ display: 'flex', justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: '16px', backgroundColor: message.role === 'user' ? themeColors.messageBubbleUser : themeColors.messageBubbleAssistant, color: message.role === 'user' ? 'white' : themeColors.textPrimary }}>
-                  <p style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
+                <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: '16px', backgroundColor: message.role === 'user' ? themeColors.messageBubbleUser : themeColors.messageBubbleAssistant }}>
+                  <p className={message.role === 'user' ? 'lia-msg-user-text' : 'lia-msg-assistant-text'} style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
                     {message.role === 'assistant' ? parseMarkdownContent(message.content, handleLinkClick) : message.content}
                   </p>
                 </div>
@@ -376,9 +401,9 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
                  placeholder="Pregunta sobre la lección..."
                  style={{ flex: 1, backgroundColor: 'transparent', border: 'none', outline: 'none', color: themeColors.textPrimary, fontSize: '14px' }}
                  id="lia-course-chat-input"
-                 className="lia-input-reset"
+                 className="lia-input-reset lia-chat-input"
                />
-               <button onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading} style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: inputValue.trim() && !isLoading ? themeColors.accentColor : '#CBD5E1', border: 'none', cursor: inputValue.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <button onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading} style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: inputValue.trim() && !isLoading ? themeColors.primaryAction : '#CBD5E1', border: 'none', cursor: inputValue.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                  <Send style={{ width: '16px', height: '16px', color: 'white' }} />
                </button>
             </div>
@@ -399,6 +424,38 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
               border-top: 0 !important;
               border-top-width: 0 !important;
             }
+
+            /* Clases forzadas para texto de mensajes */
+            .lia-msg-user-text {
+              color: white !important;
+            }
+            .lia-msg-assistant-text {
+              color: ${themeColors.textPrimary} !important;
+            }
+            
+            /* Input forzado */
+            .lia-chat-input {
+              color: ${themeColors.textPrimary} !important;
+              caret-color: ${themeColors.textPrimary} !important;
+            }
+            .lia-chat-input::placeholder {
+              color: ${themeColors.textSecondary} !important;
+              opacity: 0.7;
+            }
+
+            /* OVERRIDE DE EMERGENCIA SI SE DETECTA FONDO CLARO */
+            ${forceDarkText ? `
+              .lia-msg-assistant-text, 
+              .lia-chat-input, 
+              .lia-chat-input::placeholder {
+                 color: #0F172A !important;
+                 caret-color: #0F172A !important;
+                 -webkit-text-fill-color: #0F172A !important;
+              }
+              textarea.lia-chat-input {
+                 color: #0F172A !important;
+              }
+            ` : ''}
           `}</style>
         </motion.aside>
       )}

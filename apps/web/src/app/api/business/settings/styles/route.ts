@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireBusiness } from '@/lib/auth/requireBusiness';
-import { PRESET_THEMES, getThemeById, generateBrandingTheme } from '@/features/business-panel/config/preset-themes';
+import { PRESET_THEMES, getThemeById, generateBrandingTheme, getThemeStylesForMode } from '@/features/business-panel/config/preset-themes';
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,13 +61,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Obtener si el tema soporta modo dual
+    let supportsDualMode = false;
+    if (organization.selected_theme) {
+      const theme = getThemeById(organization.selected_theme);
+      if (theme) {
+        supportsDualMode = theme.supportsDualMode || false;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       styles: {
         panel: panelStyles || null,
         userDashboard: userDashboardStyles || null,
         login: loginStyles || null,
-        selectedTheme: organization.selected_theme || null
+        selectedTheme: organization.selected_theme || null,
+        supportsDualMode
       }
     });
   } catch (error: any) {
@@ -163,13 +173,23 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Obtener si el tema soporta modo dual
+    let supportsDualMode = false;
+    if (updatedOrg.selected_theme) {
+      const theme = getThemeById(updatedOrg.selected_theme);
+      if (theme) {
+        supportsDualMode = theme.supportsDualMode || false;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       styles: {
         panel: updatedOrg.panel_styles || null,
         userDashboard: updatedOrg.user_dashboard_styles || null,
         login: updatedOrg.login_styles || null,
-        selectedTheme: updatedOrg.selected_theme || null
+        selectedTheme: updatedOrg.selected_theme || null,
+        supportsDualMode
       }
     });
   } catch (error: any) {
@@ -267,7 +287,8 @@ export async function POST(request: NextRequest) {
         panel: updatedOrg.panel_styles || null,
         userDashboard: updatedOrg.user_dashboard_styles || null,
         login: updatedOrg.login_styles || null,
-        selectedTheme: updatedOrg.selected_theme || null
+        selectedTheme: updatedOrg.selected_theme || null,
+        supportsDualMode: theme.supportsDualMode || false
       }
     });
   } catch (error: any) {

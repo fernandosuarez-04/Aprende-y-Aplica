@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { hexToRgb } from '@/features/business-panel/utils/styles'
 
 interface ModernStatsCardProps {
   label: string
@@ -31,6 +32,19 @@ export function ModernStatsCard({
 }: ModernStatsCardProps) {
   const primaryColor = styles?.primary_button_color || '#0A2540'
   const accentColor = styles?.accent_color || '#00D4B3'
+  const cardBackground = styles?.card_background || '#1E2329'
+  const textColor = styles?.text_color || '#FFFFFF'
+  const borderColor = styles?.border_color || '#334155'
+  const cardOpacity = styles?.card_opacity ?? 0.95
+
+  // Determinar si estamos en modo claro basándonos en el color de fondo
+  const isLightMode = cardBackground.toLowerCase() === '#ffffff' || 
+                      cardBackground.toLowerCase() === '#f8fafc' ||
+                      cardBackground.startsWith('rgb(255') ||
+                      cardBackground.startsWith('rgba(255')
+
+  // Calcular RGB para opacidad
+  const cardBgRgb = hexToRgb(cardBackground)
 
   return (
     <div
@@ -38,12 +52,13 @@ export function ModernStatsCard({
       onClick={onClick}
       className={`
         relative overflow-hidden rounded-2xl p-5
-        border border-white/10 backdrop-blur-xl
+        backdrop-blur-xl
         transition-all duration-300 scroll-mt-24
-        ${isClickable ? 'cursor-pointer hover:scale-[1.02] hover:border-white/20' : ''}
+        ${isClickable ? 'cursor-pointer hover:scale-[1.02]' : ''}
       `}
       style={{
-        backgroundColor: 'rgba(30, 41, 59, 0.5)',
+        backgroundColor: `rgba(${cardBgRgb}, ${cardOpacity})`,
+        border: `1px solid ${isLightMode ? borderColor : 'rgba(255, 255, 255, 0.1)'}`,
         animationDelay: `${index * 100}ms`
       }}
     >
@@ -69,10 +84,18 @@ export function ModernStatsCard({
           </div>
         </div>
         
-        <p className="text-3xl font-bold text-white mb-1">
+        <p 
+          className="text-3xl font-bold mb-1"
+          style={{ color: textColor }}
+        >
           {value}
         </p>
-        <p className="text-sm text-gray-400">{label}</p>
+        <p 
+          className="text-sm"
+          style={{ color: isLightMode ? '#64748B' : '#9CA3AF' }}
+        >
+          {label}
+        </p>
       </div>
 
       {/* Border gradient */}

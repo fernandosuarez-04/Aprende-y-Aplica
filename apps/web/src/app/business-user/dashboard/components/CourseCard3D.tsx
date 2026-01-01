@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { Award, Play, BookOpen, CheckCircle2 } from 'lucide-react'
+import { hexToRgb } from '@/features/business-panel/utils/styles'
 
 interface AssignedCourse {
   id: string
@@ -39,6 +40,19 @@ export function CourseCard3D({
 }: CourseCard3DProps) {
   const primaryColor = styles?.primary_button_color || '#0A2540'
   const accentColor = styles?.accent_color || '#00D4B3'
+  const cardBackground = styles?.card_background || '#1E2329'
+  const textColor = styles?.text_color || '#FFFFFF'
+  const borderColor = styles?.border_color || '#334155'
+  const cardOpacity = styles?.card_opacity ?? 0.95
+
+  // Determinar si estamos en modo claro basándonos en el color de fondo
+  const isLightMode = cardBackground.toLowerCase() === '#ffffff' || 
+                      cardBackground.toLowerCase() === '#f8fafc' ||
+                      cardBackground.startsWith('rgb(255') ||
+                      cardBackground.startsWith('rgba(255')
+
+  // Calcular RGB para opacidad
+  const cardBgRgb = hexToRgb(cardBackground)
 
   const getStatusColor = () => {
     switch (course.status) {
@@ -64,9 +78,10 @@ export function CourseCard3D({
 
   return (
     <div
-      className="group relative overflow-hidden rounded-2xl border border-white/10 backdrop-blur-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-white/20 hover:shadow-xl"
+      className="group relative overflow-hidden rounded-2xl backdrop-blur-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
       style={{
-        backgroundColor: 'rgba(30, 41, 59, 0.6)',
+        backgroundColor: `rgba(${cardBgRgb}, ${cardOpacity})`,
+        border: `1px solid ${isLightMode ? borderColor : 'rgba(255, 255, 255, 0.1)'}`,
         animationDelay: `${index * 100}ms`
       }}
       onClick={onClick}
@@ -82,7 +97,14 @@ export function CourseCard3D({
         />
         
         {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: isLightMode 
+              ? 'linear-gradient(to top, rgba(255,255,255,0.9), transparent, transparent)'
+              : 'linear-gradient(to top, rgba(15,23,42,0.9), transparent, transparent)'
+          }}
+        />
 
         {/* Status badge */}
         <div 
@@ -108,20 +130,40 @@ export function CourseCard3D({
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-white mb-1 line-clamp-2 group-hover:text-cyan-300 transition-colors">
+        <h3 
+          className="text-lg font-semibold mb-1 line-clamp-2 transition-colors"
+          style={{ 
+            color: textColor,
+          }}
+        >
           {course.title}
         </h3>
-        <p className="text-sm text-gray-400 mb-4">{course.instructor}</p>
+        <p 
+          className="text-sm mb-4"
+          style={{ color: isLightMode ? '#64748B' : '#9CA3AF' }}
+        >
+          {course.instructor}
+        </p>
 
         {/* Progress bar */}
         <div className="relative">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-400">Progreso</span>
+            <span 
+              className="text-xs"
+              style={{ color: isLightMode ? '#64748B' : '#9CA3AF' }}
+            >
+              Progreso
+            </span>
             <span className="text-xs font-medium" style={{ color: accentColor }}>
               {course.progress}%
             </span>
           </div>
-          <div className="h-2 rounded-full bg-gray-700/50 overflow-hidden">
+          <div 
+            className="h-2 rounded-full overflow-hidden"
+            style={{ 
+              backgroundColor: isLightMode ? '#E2E8F0' : 'rgba(55, 65, 81, 0.5)' 
+            }}
+          >
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
@@ -134,7 +176,10 @@ export function CourseCard3D({
 
         {/* Due date */}
         {course.due_date && (
-          <p className="text-xs text-gray-500 mt-3">
+          <p 
+            className="text-xs mt-3"
+            style={{ color: isLightMode ? '#94A3B8' : '#6B7280' }}
+          >
             Fecha límite: {new Date(course.due_date).toLocaleDateString('es-MX', {
               day: 'numeric',
               month: 'short',

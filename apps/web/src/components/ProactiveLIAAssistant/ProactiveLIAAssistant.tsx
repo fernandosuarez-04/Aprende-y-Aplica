@@ -60,12 +60,43 @@ export function ProactiveLIAAssistant({
 }: ProactiveLIAAssistantProps) {
   const [isVisible, setIsVisible] = useState(false);
 
-  // Colores con fallback a colores SOFIA por defecto (Modo Oscuro)
+  const [isDetectedLightMode, setIsDetectedLightMode] = useState(false);
+
+  useEffect(() => {
+    // Detectar modo claro basado en color-scheme o background del body si no se pasan colores explícitos
+    if (!colors) {
+      const checkTheme = () => {
+        if (typeof window === 'undefined') return;
+        
+        const rootStyle = window.getComputedStyle(document.documentElement);
+        const colorScheme = rootStyle.colorScheme;
+        const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+        
+        // Detección simple de modo claro
+        const isLight = colorScheme === 'light' || 
+                        bodyBg === 'rgb(255, 255, 255)' || 
+                        bodyBg === '#ffffff' ||
+                        bodyBg === 'rgb(248, 250, 252)' || // slate-50
+                        bodyBg === 'rgb(241, 245, 249)';   // slate-100
+        
+        if (isLight) setIsDetectedLightMode(true);
+      };
+      
+      checkTheme();
+      // Pequeño timeout para asegurar que los estilos inyectados se han aplicado
+      setTimeout(checkTheme, 500);
+    }
+  }, [colors]);
+
+  // Colores con fallback inteligente
+  const isLight = isDetectedLightMode;
+  
   const themeColors = {
-    primary: colors?.primary || '#00D4B3',
+    primary: colors?.primary || '#0A2540',
     accent: colors?.accent || '#00D4B3',
-    cardBg: colors?.cardBg || '#1E2329', // Fondo Dark por defecto
-    text: colors?.textColor || '#FFFFFF', // Texto White por defecto
+    cardBg: colors?.cardBg || (isLight ? '#FFFFFF' : '#1E2329'),
+    text: colors?.textColor || (isLight ? '#0F172A' : '#FFFFFF'),
+    border: colors?.primary ? `${colors.primary}20` : (isLight ? '#E2E8F0' : '#0A254020')
   };
 
   useEffect(() => {
@@ -154,7 +185,7 @@ export function ProactiveLIAAssistant({
             className="rounded-xl shadow-lg border overflow-hidden"
             style={{
               backgroundColor: themeColors.cardBg,
-              borderColor: `${themeColors.primary}20`
+              borderColor: themeColors.border
             }}
           >
             {/* Header minimalista */}
@@ -179,10 +210,10 @@ export function ProactiveLIAAssistant({
                     <Sparkles className="w-4 h-4 text-white" />
                   </motion.div>
                   <div>
-                    <h3 className="font-semibold text-white text-base leading-tight">
+                    <h3 id="lia-proactive-title" className="font-semibold text-base leading-tight">
                       LIA está aquí para ayudar
                     </h3>
-                    <p className="text-white/90 text-xs font-normal">
+                    <p id="lia-proactive-subtitle" className="text-xs font-normal">
                       Asistencia inteligente
                     </p>
                   </div>
@@ -196,6 +227,12 @@ export function ProactiveLIAAssistant({
                 </button>
               </div>
             </div>
+
+            {/* Estilos locales para forzar overrides sobre reglas globales agresivas */}
+            <style jsx global>{`
+              #lia-proactive-title { color: #FFFFFF !important; }
+              #lia-proactive-subtitle { color: rgba(255, 255, 255, 0.9) !important; }
+            `}</style>
 
             {/* Body - diseño limpio */}
             <div className="p-4 space-y-3">
@@ -230,7 +267,7 @@ export function ProactiveLIAAssistant({
                   className="px-4 py-2.5 font-medium rounded-lg border transition-all duration-200"
                   style={{
                     color: themeColors.primary,
-                    borderColor: `${themeColors.primary}20`,
+                    borderColor: themeColors.border,
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = `${themeColors.primary}05`;
@@ -250,7 +287,7 @@ export function ProactiveLIAAssistant({
                 className="px-4 py-2.5 border-t"
                 style={{
                   backgroundColor: themeColors.cardBg,
-                  borderColor: `${themeColors.primary}20`
+                  borderColor: themeColors.border
                 }}
               >
                 <div className="flex items-center justify-between text-xs">

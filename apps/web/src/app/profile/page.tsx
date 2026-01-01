@@ -50,6 +50,9 @@ const DEFAULT_COLORS = {
   bgTertiary: '#0A0D12',
   grayLight: '#E9ECEF',
   grayMedium: '#6C757D',
+  text: '#FFFFFF',
+  textSecondary: 'rgba(255, 255, 255, 0.5)',
+  border: 'rgba(255, 255, 255, 0.06)'
 }
 
 type ColorPalette = typeof DEFAULT_COLORS
@@ -129,7 +132,7 @@ function PremiumInput({ label, value, onChange, icon, type = 'text', placeholder
           style={{
             borderColor: focused
               ? `${colors.accent}80` // 0.5 alpha
-              : 'rgba(255, 255, 255, 0.06)'
+              : colors.border
           }}
         />
 
@@ -140,7 +143,7 @@ function PremiumInput({ label, value, onChange, icon, type = 'text', placeholder
             <motion.div
               className="pl-5 flex-shrink-0"
               animate={{
-                color: focused ? colors.accent : 'rgba(255,255,255,0.3)',
+                color: focused ? colors.accent : colors.textSecondary,
                 scale: focused ? 1.1 : 1
               }}
               transition={{ duration: 0.2 }}
@@ -159,7 +162,7 @@ function PremiumInput({ label, value, onChange, icon, type = 'text', placeholder
                 top: (focused || hasValue) ? '8px' : '50%',
                 y: (focused || hasValue) ? 0 : '-50%',
                 fontSize: (focused || hasValue) ? '11px' : '14px',
-                color: focused ? colors.accent : 'rgba(255,255,255,0.4)',
+                color: focused ? colors.accent : colors.textSecondary,
                 letterSpacing: (focused || hasValue) ? '0.5px' : '0',
               }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
@@ -176,10 +179,11 @@ function PremiumInput({ label, value, onChange, icon, type = 'text', placeholder
               onBlur={() => setFocused(false)}
               placeholder={focused ? placeholder : ''}
               className={`
-                w-full bg-transparent text-white text-base font-medium
+                w-full bg-transparent text-base font-medium
                 focus:outline-none placeholder-white/20
                 ${(focused || hasValue) ? 'pt-4' : 'pt-0'}
               `}
+              style={{ color: colors.text }}
             />
           </div>
         </div>
@@ -234,14 +238,14 @@ function PremiumTextarea({ label, value, onChange, maxLength = 500, rows = 4, co
         />
         <div
           className="absolute inset-0 rounded-2xl border-2 transition-colors duration-300"
-          style={{ borderColor: focused ? `${colors.accent}80` : 'rgba(255, 255, 255, 0.06)' }}
+          style={{ borderColor: focused ? `${colors.accent}80` : colors.border }}
         />
 
         <div className="relative p-5">
           {/* Label */}
           <motion.label
             className="block mb-3 font-medium text-xs tracking-wide"
-            animate={{ color: focused ? colors.accent : 'rgba(255,255,255,0.4)' }}
+            animate={{ color: focused ? colors.accent : colors.textSecondary }}
           >
             {label}
           </motion.label>
@@ -254,13 +258,17 @@ function PremiumTextarea({ label, value, onChange, maxLength = 500, rows = 4, co
             onBlur={() => setFocused(false)}
             rows={rows}
             maxLength={maxLength}
-            className="w-full bg-transparent text-white text-base font-medium resize-none focus:outline-none placeholder-white/20 leading-relaxed"
+            className="w-full bg-transparent text-base font-medium resize-none focus:outline-none placeholder-white/20 leading-relaxed"
             placeholder="Cuéntanos sobre ti, tus intereses y objetivos..."
+            style={{ color: colors.text }}
           />
 
           {/* Character counter */}
           <div className="flex justify-end mt-2">
-            <span className={`text-xs font-medium transition-colors ${isNearLimit ? 'text-amber-400' : 'text-white/20'}`}>
+            <span 
+              className={`text-xs font-medium transition-colors`}
+              style={{ color: isNearLimit ? '#F59E0B' : colors.textSecondary }}
+            >
               {charCount}/{maxLength}
             </span>
           </div>
@@ -321,14 +329,14 @@ function PremiumPassword({ label, value, onChange, show, onToggle, error, colors
               ? `${colors.error}80`
               : focused
                 ? `${colors.accent}80`
-                : 'rgba(255, 255, 255, 0.06)'
+                : colors.border
           }}
         />
 
         <div className="relative flex items-center">
           <motion.div
             className="pl-5"
-            animate={{ color: focused ? colors.accent : 'rgba(255,255,255,0.3)' }}
+            animate={{ color: focused ? colors.accent : colors.textSecondary }}
           >
             <Lock className="w-4 h-4" />
           </motion.div>
@@ -340,7 +348,7 @@ function PremiumPassword({ label, value, onChange, show, onToggle, error, colors
                 top: (focused || hasValue) ? '8px' : '50%',
                 y: (focused || hasValue) ? 0 : '-50%',
                 fontSize: (focused || hasValue) ? '11px' : '14px',
-                color: focused ? colors.accent : 'rgba(255,255,255,0.4)',
+                color: focused ? colors.accent : colors.textSecondary,
               }}
             >
               {label}
@@ -353,14 +361,16 @@ function PremiumPassword({ label, value, onChange, show, onToggle, error, colors
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               placeholder={focused ? '••••••••' : ''}
-              className={`w-full bg-transparent text-white text-base font-medium focus:outline-none ${(focused || hasValue) ? 'pt-4' : ''}`}
+              className={`w-full bg-transparent text-base font-medium focus:outline-none ${(focused || hasValue) ? 'pt-4' : ''}`}
+              style={{ color: colors.text }}
             />
           </div>
 
           <button
             type="button"
             onClick={onToggle}
-            className="pr-5 text-white/30 hover:text-white/60 transition-colors"
+            className="pr-5 hover:opacity-80 transition-opacity"
+            style={{ color: colors.textSecondary }}
           >
             {show ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
@@ -389,38 +399,50 @@ function PremiumPassword({ label, value, onChange, show, onToggle, error, colors
 export default function ProfilePage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { styles: orgStyles } = useOrganizationStyles()
+  const { effectiveStyles } = useOrganizationStyles()
 
   // Calcular colores dinámicos
   const colors = useMemo(() => {
-    if (!orgStyles?.userDashboard) return DEFAULT_COLORS
+    const userDashboardStyles = effectiveStyles?.userDashboard
+    const cardBg = userDashboardStyles?.card_background || DEFAULT_COLORS.bgSecondary
+    
+    // Detectar modo claro
+    const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
+                        cardBg.toLowerCase() === '#f8fafc' ||
+                        cardBg.toLowerCase().includes('255, 255, 255')
 
-    const dashboardStyles = orgStyles.userDashboard
-    const panelStyles = orgStyles.panel
+    // Valores base
+    let bgPrimary = userDashboardStyles?.sidebar_background || (isLightMode ? '#F1F5F9' : '#0F1419')
+    let bgSecondary = cardBg
+    let text = userDashboardStyles?.text_color || (isLightMode ? '#0F172A' : '#FFFFFF')
+    let border = userDashboardStyles?.border_color || (isLightMode ? '#E2E8F0' : 'rgba(255, 255, 255, 0.06)')
 
-    // Determinar fondo
-    let bgPrimary = dashboardStyles.background_value || DEFAULT_COLORS.bgPrimary
-    // Si es imagen o gradiente complejo, usamos fallback sólido oscuro para legibilidad si necesario,
-    // o permitimos que se use si es un CSS válido para background-color.
-    // Para simplificar y asegurar contraste, si no es hex, usamos default.
-    // Si es imagen o gradiente, lo permitimos tal cual.
-    // Solo si está vacío ponemos el default.
-    if (!bgPrimary) {
-      bgPrimary = DEFAULT_COLORS.bgPrimary
+    // FORZAR MODO CLARO SI ES NECESARIO
+    if (isLightMode) {
+       // Si el fondo es oscuro por defecto, forzar claro
+       if (bgPrimary.toLowerCase() === '#0f1419' || bgPrimary.toLowerCase() === '#000000') {
+           bgPrimary = '#F1F5F9'
+       }
+       // Si el texto es blanco por defecto, forzar oscuro
+       if (text.toLowerCase() === '#ffffff' || text.toLowerCase() === '#fff') {
+           text = '#0F172A'
+       }
     }
 
-    const primaryButtonColor = dashboardStyles.primary_button_color || DEFAULT_COLORS.primary
-    const accentColor = dashboardStyles.accent_color || DEFAULT_COLORS.accent
-    const sidebarBg = panelStyles?.sidebar_background || DEFAULT_COLORS.bgSecondary
+    const primaryButtonColor = userDashboardStyles?.primary_button_color || DEFAULT_COLORS.primary
+    const accentColor = userDashboardStyles?.accent_color || DEFAULT_COLORS.accent
 
     return {
       ...DEFAULT_COLORS,
       primary: primaryButtonColor,
       accent: accentColor,
-      bgPrimary: bgPrimary,
-      bgSecondary: (sidebarBg && sidebarBg.startsWith('#')) ? sidebarBg : DEFAULT_COLORS.bgSecondary,
+      bgPrimary,
+      bgSecondary,
+      text,
+      textSecondary: isLightMode ? '#64748B' : 'rgba(255, 255, 255, 0.5)',
+      border
     }
-  }, [orgStyles])
+  }, [effectiveStyles])
 
   const {
     profile,
@@ -533,7 +555,7 @@ export default function ProfilePage() {
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             />
           </div>
-          <p className="text-white/50">Cargando perfil...</p>
+          <p style={{ color: colors.textSecondary }}>Cargando perfil...</p>
         </motion.div>
       </div>
     )
@@ -542,21 +564,22 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: colors.bgPrimary }}>
-        <p className="text-white/50">Error al cargar el perfil</p>
-        <p className="text-white/30 text-sm max-w-md text-center">
+        <p style={{ color: colors.textSecondary }}>Error al cargar el perfil</p>
+        <p className="text-sm max-w-md text-center" style={{ color: colors.textSecondary }}>
           Esto puede deberse a que tu sesión ha expirado. Intenta iniciar sesión nuevamente.
         </p>
         <div className="flex gap-3 mt-4">
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 rounded-lg bg-white/10 text-white/70 hover:bg-white/20 transition-colors"
+            className="px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: colors.text }}
           >
             Reintentar
           </button>
           <button
             onClick={() => router.push('/login')}
-            className="px-4 py-2 rounded-lg text-black font-medium transition-colors"
-            style={{ backgroundColor: colors.accent }}
+            className="px-4 py-2 rounded-lg font-medium transition-colors"
+            style={{ backgroundColor: colors.primary, color: '#FFFFFF' }}
           >
             Iniciar sesión
           </button>
@@ -571,17 +594,16 @@ export default function ProfilePage() {
       <div
         className="fixed top-0 left-0 right-0 z-50 h-16 backdrop-blur-xl border-b"
         style={{
-          background: colors.bgPrimary.startsWith('#') || colors.bgPrimary.startsWith('rgb')
-            ? colors.bgPrimary
-            : 'rgba(15, 20, 25, 0.9)', // Fallback oscuro si es imagen/gradiente
-          borderColor: 'rgba(255,255,255,0.05)'
+          background: colors.bgPrimary,
+          borderColor: colors.border
         }}
       >
         <div className="h-full px-6 flex items-center justify-between">
           <motion.button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
-            whileHover={{ x: -3 }}
+            className="flex items-center gap-2 transition-colors"
+            style={{ color: colors.textSecondary }}
+            whileHover={{ x: -3, color: colors.text }}
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="font-medium">Volver</span>
@@ -590,10 +612,10 @@ export default function ProfilePage() {
           <motion.button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 rounded-full font-medium text-sm transition-all duration-300"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-300"
             style={{
-              backgroundColor: saving ? 'rgba(255,255,255,0.1)' : showSaveSuccess ? colors.success : colors.accent,
-              color: saving ? 'rgba(255,255,255,0.5)' : 'white', // Texto blanco siempre para contraste
+              backgroundColor: saving ? 'rgba(255,255,255,0.1)' : showSaveSuccess ? colors.success : colors.primary,
+              color: saving ? colors.textSecondary : '#FFFFFF', // Texto siempre blanco en botones de acción principales si tienen fondo fuerte
             }}
             whileHover={!saving ? { scale: 1.02 } : undefined}
             whileTap={!saving ? { scale: 0.98 } : undefined}
@@ -654,12 +676,12 @@ export default function ProfilePage() {
               {/* User Info */}
               <div className="flex-1">
                 <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
-                  <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">{profile.display_name}</h1>
-                  <p className="text-lg text-white/50 flex items-center gap-2">
+                  <h1 className="text-3xl lg:text-4xl font-bold mb-2" style={{ color: colors.text }}>{profile.display_name}</h1>
+                  <p className="text-lg flex items-center gap-2" style={{ color: colors.textSecondary }}>
                     <Briefcase className="w-4 h-4" />
                     {profile.type_rol || 'Sin rol definido'}
                   </p>
-                  <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-white/40">
+                  <div className="flex flex-wrap items-center gap-4 mt-4 text-sm" style={{ color: colors.textSecondary }}>
                     <span className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5" />
                       Miembro desde {formatDate(profile.created_at)}
@@ -681,12 +703,12 @@ export default function ProfilePage() {
                   <motion.div
                     key={i}
                     className="rounded-2xl p-4 lg:p-5 text-center min-w-[100px]"
-                    style={{ backgroundColor: `${stat.color}15` }}
+                    style={{ backgroundColor: colors.bgSecondary }}
                     whileHover={{ scale: 1.05, y: -3 }}
                   >
                     <div className="mb-2 flex justify-center" style={{ color: stat.color }}>{stat.icon}</div>
-                    <div className="text-2xl font-bold text-white">{stat.value}</div>
-                    <div className="text-xs text-white/40">{stat.label}</div>
+                    <div className="text-2xl font-bold" style={{ color: colors.text }}>{stat.value}</div>
+                    <div className="text-xs" style={{ color: colors.textSecondary }}>{stat.label}</div>
                   </motion.div>
                 ))}
               </motion.div>
@@ -697,7 +719,7 @@ export default function ProfilePage() {
         {/* TAB NAVIGATION */}
         <div
           className="sticky top-16 z-40 backdrop-blur-xl border-b"
-          style={{ backgroundColor: `${colors.bgPrimary}f0`, borderColor: 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: colors.bgPrimary, borderColor: colors.border }}
         >
           <div className="px-6 lg:px-12">
             <div className="flex gap-1 overflow-x-auto hide-scrollbar py-3">
@@ -707,8 +729,8 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab(tab.id)}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200"
                   style={{
-                    backgroundColor: activeTab === tab.id ? 'white' : 'transparent',
-                    color: activeTab === tab.id ? colors.primary : 'rgba(255,255,255,0.5)',
+                    backgroundColor: activeTab === tab.id ? colors.bgSecondary : 'transparent',
+                    color: activeTab === tab.id ? colors.accent : colors.textSecondary,
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -775,7 +797,7 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <p className="font-semibold" style={{ color: colors.success }}>¡Contraseña actualizada!</p>
-                        <p className="text-sm text-white/50">{passwordChangeSuccess}</p>
+                        <p className="text-sm" style={{ color: colors.textSecondary }}>{passwordChangeSuccess}</p>
                       </div>
                     </motion.div>
                   )}
@@ -798,7 +820,7 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <p className="font-semibold" style={{ color: colors.error }}>Error</p>
-                        <p className="text-sm text-white/50">{passwordChangeError}</p>
+                        <p className="text-sm" style={{ color: colors.textSecondary }}>{passwordChangeError}</p>
                       </div>
                     </motion.div>
                   )}
@@ -825,8 +847,8 @@ export default function ProfilePage() {
                     <Shield className="w-6 h-6" style={{ color: colors.accent }} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">Cambiar Contraseña</h3>
-                    <p className="text-white/40 text-sm">Actualiza tu contraseña de acceso</p>
+                    <h3 className="text-lg font-bold" style={{ color: colors.text }}>Cambiar Contraseña</h3>
+                    <p className="text-sm" style={{ color: colors.textSecondary }}>Asegúrate de usar una contraseña segura</p>
                   </div>
                 </div>
 

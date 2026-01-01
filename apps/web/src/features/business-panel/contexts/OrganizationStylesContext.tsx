@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { PRESET_THEMES, DEFAULT_THEME } from '../config/preset-themes';
+import { PRESET_THEMES, DEFAULT_THEME, getThemeStylesForMode } from '../config/preset-themes';
+import { useThemeStore } from '@/core/stores/themeStore';
 
 export interface StyleConfig {
   background_type: 'image' | 'color' | 'gradient';
@@ -24,10 +25,14 @@ export interface OrganizationStyles {
   userDashboard: StyleConfig | null;
   login: StyleConfig | null;
   selectedTheme: string | null;
+  // Indica si el tema actual soporta modo dual (claro/oscuro)
+  supportsDualMode?: boolean;
 }
 
 interface OrganizationStylesContextType {
   styles: OrganizationStyles | null;
+  // Estilos efectivos según el modo actual del usuario (light/dark)
+  effectiveStyles: OrganizationStyles | null;
   loading: boolean;
   error: string | null;
   updateStyles: (panel?: StyleConfig, userDashboard?: StyleConfig, login?: StyleConfig) => Promise<boolean>;
@@ -39,9 +44,31 @@ const OrganizationStylesContext = createContext<OrganizationStylesContextType | 
 
 export function OrganizationStylesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const [styles, setStyles] = useState<OrganizationStyles | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Calcular estilos efectivos basados en el modo de tema actual
+  const effectiveStyles = useMemo<OrganizationStyles | null>(() => {
+    if (!styles) return null;
+    
+    // Si el tema soporta modo dual, obtener los estilos para el modo actual
+    if (styles.supportsDualMode && styles.selectedTheme) {
+      const modeStyles = getThemeStylesForMode(styles.selectedTheme, resolvedTheme);
+      if (modeStyles) {
+        return {
+          ...styles,
+          panel: modeStyles.panel,
+          userDashboard: modeStyles.userDashboard,
+          login: modeStyles.login,
+        };
+      }
+    }
+    
+    // Si no soporta modo dual, retornar los estilos tal cual
+    return styles;
+  }, [styles, resolvedTheme]);
 
   const fetchStyles = async () => {
     console.log('🔍 [OrganizationStylesContext] fetchStyles iniciado, user:', {
@@ -62,7 +89,8 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
           panel: defaultTheme.panel,
           userDashboard: defaultTheme.userDashboard,
           login: defaultTheme.login,
-          selectedTheme: DEFAULT_THEME
+          selectedTheme: DEFAULT_THEME,
+          supportsDualMode: defaultTheme.supportsDualMode
         });
       }
       setLoading(false);
@@ -78,7 +106,8 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
           panel: defaultTheme.panel,
           userDashboard: defaultTheme.userDashboard,
           login: defaultTheme.login,
-          selectedTheme: DEFAULT_THEME
+          selectedTheme: DEFAULT_THEME,
+          supportsDualMode: defaultTheme.supportsDualMode
         });
       }
       setLoading(false);
@@ -115,7 +144,8 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
             panel: defaultTheme.panel,
             userDashboard: defaultTheme.userDashboard,
             login: defaultTheme.login,
-            selectedTheme: DEFAULT_THEME
+            selectedTheme: DEFAULT_THEME,
+            supportsDualMode: defaultTheme.supportsDualMode
           };
           setStyles(defaultStyles);
           return;
@@ -155,7 +185,8 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
                 panel: defaultTheme.panel,
                 userDashboard: defaultTheme.userDashboard,
                 login: defaultTheme.login,
-                selectedTheme: DEFAULT_THEME
+                selectedTheme: DEFAULT_THEME,
+                supportsDualMode: defaultTheme.supportsDualMode
               });
             } else {
               setStyles(null);
@@ -169,7 +200,8 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
               panel: defaultTheme.panel,
               userDashboard: defaultTheme.userDashboard,
               login: defaultTheme.login,
-              selectedTheme: DEFAULT_THEME
+              selectedTheme: DEFAULT_THEME,
+              supportsDualMode: defaultTheme.supportsDualMode
             });
           } else {
             setStyles(null);
@@ -183,7 +215,8 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
             panel: defaultTheme.panel,
             userDashboard: defaultTheme.userDashboard,
             login: defaultTheme.login,
-            selectedTheme: DEFAULT_THEME
+            selectedTheme: DEFAULT_THEME,
+            supportsDualMode: defaultTheme.supportsDualMode
           });
         } else {
           setStyles(null);
@@ -298,7 +331,7 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
   };
 
   return (
-    <OrganizationStylesContext.Provider value={{ styles, loading, error, updateStyles, applyTheme, refetch }}>
+    <OrganizationStylesContext.Provider value={{ styles, effectiveStyles, loading, error, updateStyles, applyTheme, refetch }}>
       {children}
     </OrganizationStylesContext.Provider>
   );

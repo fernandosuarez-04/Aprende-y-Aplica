@@ -199,9 +199,8 @@ export default function CourseLearnPage() {
     [liaChat, isLiaOpen, openLia]
   );
 
-  // Obtener usuario y su rol
   const { user } = useAuth();
-  const { styles: orgStyles } = useOrganizationStyles();
+  const { effectiveStyles } = useOrganizationStyles();
 
   // Calcular colores dinámicos
   const colors = useMemo(() => {
@@ -209,34 +208,53 @@ export default function CourseLearnPage() {
     const DEFAULT_BG_PRIMARY = "#0F1419";
     const DEFAULT_BG_SECONDARY = "#1E2329"; // Para paneles laterales
 
-    if (!orgStyles?.userDashboard) {
+    const dashboardStyles = effectiveStyles?.userDashboard;
+    
+    // Si no hay estilos, usar defaults oscuros
+    if (!dashboardStyles) {
       return {
         accent: DEFAULT_ACCENT,
         primary: "#0A2540",
         bgPrimary: DEFAULT_BG_PRIMARY,
         bgSecondary: DEFAULT_BG_SECONDARY,
+        text: "#FFFFFF",
+        isLightMode: false
       };
     }
 
-    const { accent_color, primary_button_color, background_value } =
-      orgStyles.userDashboard;
-    const panelStyles = orgStyles.panel;
+    const { accent_color, primary_button_color, background_value, card_background } = dashboardStyles;
+    const panelStyles = effectiveStyles.panel;
+
+    // Detectar modo claro
+    const cardBgCheck = card_background || DEFAULT_BG_SECONDARY;
+    const isLightMode = cardBgCheck.toLowerCase() === '#ffffff' || 
+                        cardBgCheck.toLowerCase() === '#f8fafc' ||
+                        cardBgCheck.toLowerCase().includes('255, 255, 255');
 
     // Determinar fondo principal (body)
-    let bgPrimary = background_value || DEFAULT_BG_PRIMARY;
+    let bgPrimary = background_value || (isLightMode ? '#F1F5F9' : DEFAULT_BG_PRIMARY);
 
     // Determinar fondo secundario (paneles, tarjetas que eran blancas)
-    const sidebarBg = panelStyles?.sidebar_background || DEFAULT_BG_SECONDARY;
-    const bgSecondary =
-      sidebarBg && sidebarBg.startsWith("#") ? sidebarBg : DEFAULT_BG_SECONDARY;
+    // En modo claro, el sidebar suele ser blanco
+    const sidebarBg = panelStyles?.sidebar_background || (isLightMode ? '#FFFFFF' : DEFAULT_BG_SECONDARY);
+    const bgSecondary = sidebarBg && sidebarBg.startsWith("#") ? sidebarBg : (isLightMode ? '#FFFFFF' : DEFAULT_BG_SECONDARY);
+    
+    // Forzar corrección si modo claro pero colores oscuros detectados
+    if (isLightMode) {
+       if (bgPrimary.toLowerCase() === '#0f1419' || bgPrimary.toLowerCase() === '#000000') {
+           bgPrimary = '#F1F5F9';
+       }
+    }
 
     return {
       accent: accent_color || DEFAULT_ACCENT,
       primary: primary_button_color || "#0A2540",
       bgPrimary,
       bgSecondary,
+      text: isLightMode ? '#0F172A' : '#FFFFFF',
+      isLightMode
     };
-  }, [orgStyles]);
+  }, [effectiveStyles]);
 
   // Hook de traducción con verificación de inicialización
   const { t, i18n, ready } = useTranslation("learn");
@@ -265,7 +283,7 @@ export default function CourseLearnPage() {
       document.head.appendChild(styleTag);
     }
 
-    const { accent, bgPrimary, bgSecondary } = colors;
+    const { accent, bgPrimary, bgSecondary, isLightMode, text } = colors;
 
     // Helper para convertir hex a rgb string
     const hexToRgbVals = (hex: string) => {
@@ -280,7 +298,7 @@ export default function CourseLearnPage() {
       :root {
         --course-accent: ${accent};
         --course-accent-rgb: ${accentRgb};
-        color-scheme: dark;
+        color-scheme: ${isLightMode ? 'light' : 'dark'};
       }
       
       /* SCROLLBARS PERSONALIZADOS */
@@ -293,218 +311,243 @@ export default function CourseLearnPage() {
         background: transparent !important;
       }
       ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.15) !important;
+        background: ${isLightMode ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)'} !important;
         border-radius: 10px;
         border: 2px solid transparent;
         background-clip: content-box;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.3) !important;
+        background: ${isLightMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)'} !important;
       }
       ::-webkit-scrollbar-corner {
         background: transparent !important;
       }
 
-      /* FORZAR TEMA OSCURO PERSONALIZADO */
+      /* TEMA BASE - APLICADO SIEMPRE */
       body, .min-h-screen, html { 
         background: ${bgPrimary} !important; 
-        color: white !important;
-      }
-      
-      /* Reemplazar fondos blancos por el color secundario oscuro */
-      .bg-white, .bg-gray-50, .bg-slate-50, .bg-zinc-50 { 
-        background-color: ${bgSecondary} !important; 
-        border-color: rgba(255,255,255,0.08) !important;
+        color: ${text} !important;
       }
 
-      /* --- CORRECCIÓN AGRESIVA DE TEXTOS --- */
-      
-      /* 1. Resetear colores oscuros hardcodeados */
-      .text-\\[\\#0A2540\\], .text-\\[\\#1E2329\\] { 
-        color: white !important; 
-      }
-      
-      /* 2. Resetear colores secundarios hardcodeados */
-      .text-\\[\\#6C757D\\] {
-        color: rgba(255,255,255,0.6) !important;
-      }
+      /* ----------------------------------------------------------------------- */
+      /* MODIFICACIONES ESPECÍFICAS PARA MODO OSCURO (RESETS AGRESIVOS) */
+      /* Solo se aplican si NO estamos en modo claro */
+      /* ----------------------------------------------------------------------- */
+      ${!isLightMode ? `
+        /* Reemplazar fondos blancos por el color secundario oscuro */
+        .bg-white, .bg-gray-50, .bg-slate-50, .bg-zinc-50 { 
+          background-color: ${bgSecondary} !important; 
+          border-color: rgba(255,255,255,0.08) !important;
+        }
 
-      /* 3. Resetear todas las escalas de grises oscuras de Tailwind */
-      [class*="text-gray-9"], [class*="text-gray-8"], [class*="text-gray-7"], [class*="text-gray-6"],
-      [class*="text-slate-9"], [class*="text-slate-8"], [class*="text-slate-7"], [class*="text-slate-6"],
-      [class*="text-zinc-9"], [class*="text-zinc-8"], [class*="text-zinc-7"], [class*="text-zinc-6"] {
-         color: rgba(255,255,255,0.9) !important;
-      }
-      
-      /* 4. Resetear escalas medias/claras para legibilidad */
-      [class*="text-gray-5"], [class*="text-gray-4"],
-      [class*="text-slate-5"], [class*="text-slate-4"],
-      [class*="text-zinc-5"], [class*="text-zinc-4"] {
-         color: rgba(255,255,255,0.6) !important;
-      }
-      
-      /* 5. Asegurar headers */
-      h1, h2, h3, h4, h5, h6 { color: white !important; }
-      
-      /* 6. Inputs y Textareas */
-      textarea, input[type="text"], input[type="email"], select {
-        background-color: rgba(0,0,0,0.2) !important;
-        color: white !important;
-        border-color: rgba(255,255,255,0.1) !important;
-      }
-      ::placeholder { color: rgba(255,255,255,0.4) !important; }
+        /* --- CORRECCIÓN AGRESIVA DE TEXTOS --- */
+        
+        /* 1. Resetear colores oscuros hardcodeados */
+        .text-\\[\\#0A2540\\], .text-\\[\\#1E2329\\] { 
+          color: white !important; 
+        }
+        
+        /* 2. Resetear colores secundarios hardcodeados */
+        .text-\\[\\#6C757D\\] {
+          color: rgba(255,255,255,0.6) !important;
+        }
 
-      /* Bordes claros a sutiles */
-      .border-gray-200, .border-slate-200, .border-[#E9ECEF] { border-color: rgba(255,255,255,0.1) !important; }
-      
-      /* --- CORRECCIÓN DE BADGES Y BOTONES --- */
-      
-      /* Botones azules/oscuros genéricos: Forzar color primario de la empresa si es diferente */
-      .bg-\\[\\#0A2540\\], .bg-slate-900, .bg-blue-600 {
-        background-color: ${colors.primary} !important;
-        color: white !important;
-      }
-      
-      /* Badges de estado (Transformar fondos claros a transparentes oscuros) */
-      
-      /* Rojo (Pendiente) */
-      .bg-red-100 { background-color: rgba(239, 68, 68, 0.15) !important; color: #fca5a5 !important; border: 1px solid rgba(239,68,68,0.2) !important; }
-      .text-red-800, .text-red-700, .text-red-600 { color: #fca5a5 !important; }
-      .bg-red-500 { background-color: rgba(239, 68, 68, 0.8) !important; color: white !important; }
-      
-      /* Verde (Completado/Quiz) -> Usar Accent */
-      .bg-green-100, .bg-emerald-100 { background-color: rgba(${accentRgb}, 0.15) !important; color: ${accent} !important; border: 1px solid rgba(${accentRgb}, 0.2) !important; }
-      .text-green-800, .text-emerald-800, .text-emerald-700 { color: ${accent} !important; }
-      
-      /* Azul (Reading/Info) */
-      .bg-blue-100 { background-color: rgba(96, 165, 250, 0.15) !important; color: #93c5fd !important; border: 1px solid rgba(96,165,250,0.2) !important; }
-      .text-blue-800, .text-blue-700 { color: #93c5fd !important; }
-      
-      /* Indigo/Violeta */
-      .bg-indigo-100 { background-color: rgba(129, 140, 248, 0.15) !important; color: #a5b4fc !important; }
-      .text-indigo-800 { color: #a5b4fc !important; }
-      
-      /* Botones deshabilitados o grises (como Guardar Nota deshabilitado) */
-      .bg-gray-100, .bg-slate-100, .bg-gray-200, .bg-slate-200, .bg-gray-300, .bg-slate-300 { 
-        background-color: rgba(255,255,255,0.1) !important; 
-        color: rgba(255,255,255,0.8) !important;
-        border: 1px solid rgba(255,255,255,0.05) !important;
-      }
-      
-      /* BOTONES DE ACCIÓN PRINCIPALES (Interactuar con Lia, Avanzar Video) */
-      /* Suelen usar bg-white o bg-slate-200 en el diseño original claro */
-      /* Forzamos que los botones grandes dentro del contenido usen el color Accent o Primary */
-      
-      /* Botón "Interactuar con Lia" y "Avanzar al Siguiente Video" (si usan clases genéricas de botón gris) */
-      button.bg-white.text-gray-900, 
-      button.bg-slate-200, 
-      a.bg-white.text-gray-900 {
-        background-color: ${accent} !important;
-        color: white !important;
-        border: none !important;
-        font-weight: 600 !important;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.2) !important;
-      }
-      
-      /* Botones de Modales (Cancelar/Guardar) */
-      /* Cancelar (suelen ser blancos/bordes) */
-      .bg-white.border-gray-300, .bg-white.border {
-        background-color: transparent !important;
-        border-color: rgba(255,255,255,0.2) !important;
-        color: white !important;
-      }
-      .bg-white.border-gray-300:hover {
-        background-color: rgba(255,255,255,0.05) !important;
-      }
-      
-      /* dropdowns flotantes (Modales, Menús de opciones como el de 3 puntos) */
-      /* Atacar divs absolutos blancos que actuan como dropdowns */
-      div.absolute.bg-white.shadow-lg, 
-      div.absolute.bg-white.shadow-xl,
-      div.absolute.z-50.bg-white,
-      [role="menu"].bg-white,
-      [role="dialog"].bg-white {
-        background-color: #1E2329 !important; /* Forzar oscuro (bgSecondary default) */
-        color: white !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-      }
-      
-      /* Elementos dentro del dropdown */
-      div.absolute.bg-white button, 
-      [role="menu"] button {
-         color: white !important;
-      }
-      div.absolute.bg-white button:hover,
-      [role="menu"] button:hover {
-         background-color: rgba(255,255,255,0.1) !important;
-      }
+        /* 3. Resetear todas las escalas de grises oscuras de Tailwind */
+        [class*="text-gray-9"], [class*="text-gray-8"], [class*="text-gray-7"], [class*="text-gray-6"],
+        [class*="text-slate-9"], [class*="text-slate-8"], [class*="text-slate-7"], [class*="text-slate-6"],
+        [class*="text-zinc-9"], [class*="text-zinc-8"], [class*="text-zinc-7"], [class*="text-zinc-6"] {
+           color: rgba(255,255,255,0.9) !important;
+        }
+        
+        /* 4. Resetear escalas medias/claras para legibilidad */
+        [class*="text-gray-5"], [class*="text-gray-4"],
+        [class*="text-slate-5"], [class*="text-slate-4"],
+        [class*="text-zinc-5"], [class*="text-zinc-4"] {
+           color: rgba(255,255,255,0.6) !important;
+        }
+        
+        /* 5. Asegurar headers */
+        h1, h2, h3, h4, h5, h6 { color: white !important; }
+        
+        /* 6. Inputs y Textareas */
+        textarea, input[type="text"], input[type="email"], select {
+          background-color: rgba(0,0,0,0.2) !important;
+          color: white !important;
+          border-color: rgba(255,255,255,0.1) !important;
+        }
+        ::placeholder { color: rgba(255,255,255,0.4) !important; }
 
-      /* Botón de Micrófono en Chat (si se ve blanco por error) */
-      /* Es probable que tenga una clase específica o estilo inline que necesitemos pisar si es blanco solido */
-      button[title="Grabar audio"], button[title="Enviar mensaje"] {
-        /* Si tiene estilo inline bg-primary-30, aseguramos que el primary sea el correcto via variable CSS si es posible, o forzamos un color sensato */
-        /* No podemos override inline styles con CSS normal a menos que usemos !important y un atributo selector */
-      }
-      /* Forzar que CUALQUIER botón blanco pequeño sea accent o transparente */
-      button.bg-white.w-11.h-11, button.bg-white.rounded-full.shadow-sm {
-         background-color: rgba(255,255,255,0.1) !important;
-         color: white !important;
-         border: 1px solid rgba(255,255,255,0.1) !important;
-      }
+        /* Bordes claros a sutiles */
+        .border-gray-200, .border-slate-200, .border-[#E9ECEF] { border-color: rgba(255,255,255,0.1) !important; }
+        
+        /* --- CORRECCIÓN DE BADGES Y BOTONES --- */
+        
+        /* Botones azules/oscuros genéricos: Forzar color primario de la empresa si es diferente */
+        .bg-\\[\\#0A2540\\], .bg-slate-900, .bg-blue-600 {
+          background-color: ${colors.primary} !important;
+          color: white !important;
+        }
+        
+        /* Badges de estado (Transformar fondos claros a transparentes oscuros) */
+        
+        /* Rojo (Pendiente) */
+        .bg-red-100 { background-color: rgba(239, 68, 68, 0.15) !important; color: #fca5a5 !important; border: 1px solid rgba(239,68,68,0.2) !important; }
+        .text-red-800, .text-red-700, .text-red-600 { color: #fca5a5 !important; }
+        .bg-red-500 { background-color: rgba(239, 68, 68, 0.8) !important; color: white !important; }
+        
+        /* Verde (Completado/Quiz) -> Usar Accent */
+        .bg-green-100, .bg-emerald-100 { background-color: rgba(${accentRgb}, 0.15) !important; color: ${accent} !important; border: 1px solid rgba(${accentRgb}, 0.2) !important; }
+        .text-green-800, .text-emerald-800, .text-emerald-700 { color: ${accent} !important; }
+        
+        /* Azul (Reading/Info) */
+        .bg-blue-100 { background-color: rgba(96, 165, 250, 0.15) !important; color: #93c5fd !important; border: 1px solid rgba(96,165,250,0.2) !important; }
+        .text-blue-800, .text-blue-700 { color: #93c5fd !important; }
+        
+        /* Indigo/Violeta */
+        .bg-indigo-100 { background-color: rgba(129, 140, 248, 0.15) !important; color: #a5b4fc !important; }
+        .text-indigo-800 { color: #a5b4fc !important; }
+        
+        /* Botones deshabilitados o grises */
+        .bg-gray-100, .bg-slate-100, .bg-gray-200, .bg-slate-200, .bg-gray-300, .bg-slate-300 { 
+          background-color: rgba(255,255,255,0.1) !important; 
+          color: rgba(255,255,255,0.8) !important;
+          border: 1px solid rgba(255,255,255,0.05) !important;
+        }
+        
+        /* BOTONES DE ACCIÓN PRINCIPALES */
+        /* Botón "Interactuar con Lia" y "Avanzar al Siguiente Video" (si usan clases genéricas de botón gris) */
+        button.bg-white.text-gray-900, 
+        button.bg-slate-200, 
+        a.bg-white.text-gray-900 {
+          background-color: ${accent} !important;
+          color: white !important;
+          border: none !important;
+          font-weight: 600 !important;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.2) !important;
+        }
+        
+        /* Botones de Modales (Cancelar/Guardar) */
+        /* Cancelar (suelen ser blancos/bordes) */
+        .bg-white.border-gray-300, .bg-white.border {
+          background-color: transparent !important;
+          border-color: rgba(255,255,255,0.2) !important;
+          color: white !important;
+        }
+        .bg-white.border-gray-300:hover {
+          background-color: rgba(255,255,255,0.05) !important;
+        }
+        
+        /* dropdowns flotantes */
+        div.absolute.bg-white.shadow-lg, 
+        div.absolute.bg-white.shadow-xl,
+        div.absolute.z-50.bg-white,
+        [role="menu"].bg-white,
+        [role="dialog"].bg-white {
+          background-color: #1E2329 !important; /* Forzar oscuro (bgSecondary default) */
+          color: white !important;
+          border: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        
+        /* Elementos dentro del dropdown */
+        div.absolute.bg-white button, 
+        [role="menu"] button {
+           color: white !important;
+        }
+        div.absolute.bg-white button:hover,
+        [role="menu"] button:hover {
+           background-color: rgba(255,255,255,0.1) !important;
+        }
 
-      /* Iconos y Contenedores de Iconos (Círculos de actividades) */
-      .bg-blue-50, .bg-indigo-50, .bg-purple-50 {
-        background-color: rgba(${accentRgb}, 0.1) !important;
-        color: ${accent} !important;
-      }
-      .text-blue-500, .text-indigo-500, .text-purple-500 {
-        color: ${accent} !important;
-      }
-      
-      /* Textos específicos en modales o tarjetas */
-      .text-gray-500, .text-slate-500 {
-         color: rgba(255,255,255,0.6) !important;
-      }
+        /* Botón de Micrófono en Chat */
+        /* Forzar que CUALQUIER botón blanco pequeño sea accent o transparente */
+        button.bg-white.w-11.h-11, button.bg-white.rounded-full.shadow-sm {
+           background-color: rgba(255,255,255,0.1) !important;
+           color: white !important;
+           border: 1px solid rgba(255,255,255,0.1) !important;
+        }
 
-      button:disabled {
-        opacity: 0.5 !important;
-        cursor: not-allowed !important;
-        background-color: rgba(255,255,255,0.1) !important;
-        color: rgba(255,255,255,0.4) !important;
-      }
-      
-      /* Sobrescribir verdes y colores específicos del template por defecto (#00D4B3, emerald, green) */
-      .text-\\[\\#00D4B3\\], .text-emerald-500, .text-green-500, .text-green-400 { color: ${accent} !important; }
-      .bg-\\[\\#00D4B3\\], .bg-emerald-500, .bg-green-500, .bg-green-400 { background-color: ${accent} !important; }
-      .border-\\[\\#00D4B3\\], .border-emerald-500, .border-green-500, .border-green-400, .border-green-600 { border-color: ${accent} !important; }
-      
-      /* Fondos con opacidad */
-      .bg-emerald-50, .bg-green-50, .bg-green-100 { background-color: rgba(${accentRgb}, 0.1) !important; }
-      .bg-emerald-50\\/50, .bg-green-50\\/50 { background-color: rgba(${accentRgb}, 0.05) !important; }
-      .bg-\\[\\#10B981\\]\\/10, .bg-\\[\\#00D4B3\\]\\/10 { background-color: rgba(${accentRgb}, 0.1) !important; }
-      
-      /* Bordes sutiles y dividers */
-      .border-emerald-100, .border-green-100, .border-green-200, .border-\\[\\#10B981\\]\\/30 { border-color: rgba(${accentRgb}, 0.3) !important; }
-      
-      /* Iconos Específicos */
-      .text-green-600, .dark .text-green-400 { color: ${accent} !important; } 
-      
-      /* Hovers */
-      .hover\\:bg-green-100:hover { background-color: rgba(${accentRgb}, 0.15) !important; }
-      
-      /* Gradientes */
-      .from-\\[\\#00D4B3\\], .from-green-400, .from-emerald-400 { --tw-gradient-from: ${accent} !important; }
-      .to-\\[\\#00D4B3\\], .to-green-400, .to-emerald-400 { --tw-gradient-to: ${accent} !important; }
-      
-      /* Sombras */
-      .shadow-\\[\\#00D4B3\\]\\/25 { --tw-shadow-color: rgba(${accentRgb}, 0.25) !important; }
-      
-      /* Inputs y Textareas en modo oscuro forzado */
-      textarea, input[type="text"] {
-        background-color: rgba(255,255,255,0.05) !important;
-        color: white !important;
-        border-color: rgba(255,255,255,0.1) !important;
-      }
+        /* Iconos y Contenedores de Iconos (Círculos de actividades) */
+        .bg-blue-50, .bg-indigo-50, .bg-purple-50 {
+          background-color: rgba(${accentRgb}, 0.1) !important;
+          color: ${accent} !important;
+        }
+        .text-blue-500, .text-indigo-500, .text-purple-500 {
+          color: ${accent} !important;
+        }
+        
+        /* Textos específicos en modales o tarjetas */
+        .text-gray-500, .text-slate-500 {
+           color: rgba(255,255,255,0.6) !important;
+        }
+
+        button:disabled {
+          opacity: 0.5 !important;
+          cursor: not-allowed !important;
+          background-color: rgba(255,255,255,0.1) !important;
+          color: rgba(255,255,255,0.4) !important;
+        }
+        
+        /* Sobrescribir verdes y colores específicos del template por defecto (#00D4B3, emerald, green) */
+        .text-\\[\\#00D4B3\\], .text-emerald-500, .text-green-500, .text-green-400 { color: ${accent} !important; }
+        .bg-\\[\\#00D4B3\\], .bg-emerald-500, .bg-green-500, .bg-green-400 { background-color: ${accent} !important; }
+        .border-\\[\\#00D4B3\\], .border-emerald-500, .border-green-500, .border-green-400, .border-green-600 { border-color: ${accent} !important; }
+        
+        /* Fondos con opacidad */
+        .bg-emerald-50, .bg-green-50, .bg-green-100 { background-color: rgba(${accentRgb}, 0.1) !important; }
+        .bg-emerald-50\\/50, .bg-green-50\\/50 { background-color: rgba(${accentRgb}, 0.05) !important; }
+        .bg-\\[\\#10B981\\]\\/10, .bg-\\[\\#00D4B3\\]\\/10 { background-color: rgba(${accentRgb}, 0.1) !important; }
+        
+        /* Bordes sutiles y dividers */
+        .border-emerald-100, .border-green-100, .border-green-200, .border-\\[\\#10B981\\]\\/30 { border-color: rgba(${accentRgb}, 0.3) !important; }
+        
+        /* Iconos Específicos */
+        .text-green-600, .dark .text-green-400 { color: ${accent} !important; } 
+        
+        /* Hovers */
+        .hover\\:bg-green-100:hover { background-color: rgba(${accentRgb}, 0.15) !important; }
+        
+        /* Gradientes */
+        .from-\\[\\#00D4B3\\], .from-green-400, .from-emerald-400 { --tw-gradient-from: ${accent} !important; }
+        .to-\\[\\#00D4B3\\], .to-green-400, .to-emerald-400 { --tw-gradient-to: ${accent} !important; }
+        
+        /* Sombras */
+        .shadow-\\[\\#00D4B3\\]\\/25 { --tw-shadow-color: rgba(${accentRgb}, 0.25) !important; }
+        
+        /* Inputs y Textareas en modo oscuro forzado */
+        textarea, input[type="text"] {
+          background-color: rgba(255,255,255,0.05) !important;
+          color: white !important;
+          border-color: rgba(255,255,255,0.1) !important;
+        }
+      ` : `
+        /* ----------------------------------------------------------------------- */
+        /* REGLAS ESPECÍFICAS PARA MODO CLARO */
+        /* ----------------------------------------------------------------------- */
+        
+        /* Asegurar que el fondo del sidebar sea correcto en modo claro */
+        .bg-\\[\\#0F1419\\], .bg-gray-900, .bg-slate-900 {
+           background-color: ${bgSecondary} !important; /* Sidebar debe ser blanco/gris claro */
+        }
+        
+        /* Asegurar que los textos sean legibles sobre fondo claro */
+        h1, h2, h3, h4, h5, h6 { 
+          color: ${text} !important; 
+        }
+        
+        /* Forzar color de texto principal */
+        body { color: ${text} !important; }
+        
+        /* Sobrescribir elementos que eran blancos en oscuro pero deben ser gris claro en claro para contraste ? No, usar default */
+        
+        /* Ajustar botones primarios al azul de la marca */
+        .bg-\\[\\#0A2540\\] {
+          background-color: ${colors.primary} !important;
+          color: white !important;
+        }
+        
+        /* Asegurar que los componentes "darks" de LIA/Chat se vean bien */
+        /* Si el chat LIA fue diseñado solo para oscuro, quizás necesitemos ajustes aquí */
+      `}
     `;
 
     return () => {
@@ -3055,14 +3098,14 @@ export default function CourseLearnPage() {
                       ? "fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none"
                       : "relative h-full"
                   }
-                  bg-[#0F1419] flex flex-col overflow-hidden border-r border-white/5
+                  bg-white dark:bg-[#0F1419] flex flex-col overflow-hidden border-r border-gray-200 dark:border-white/5
                   ${isMobile ? "my-0 ml-0" : "h-full"}
                 `}
                 >
                   {/* Header con línea separadora alineada con panel central */}
-                  <div className="bg-[#0F1419] border-b border-white/5 flex items-center justify-between p-4 shrink-0 h-[60px]">
+                  <div className="bg-white dark:bg-[#0F1419] border-b border-gray-200 dark:border-white/5 flex items-center justify-between p-4 shrink-0 h-[60px]">
                     <h2
-                      className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2"
+                      className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2"
                       style={{ fontFamily: "Inter, sans-serif" }}
                     >
                       <BookOpen className="w-4 h-4 text-[#00D4B3]" />
@@ -3087,7 +3130,7 @@ export default function CourseLearnPage() {
                       {/* Header de Contenido con botón de colapsar */}
                       <div className="flex items-center justify-between mb-4">
                         <h3
-                          className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-2"
+                          className="text-xs font-bold text-gray-500 dark:text-white/40 uppercase tracking-widest flex items-center gap-2"
                           style={{ fontFamily: "Inter, sans-serif" }}
                         >
                           <Layers className="w-3 h-3 text-[#00D4B3]" />
@@ -3195,10 +3238,10 @@ export default function CourseLearnPage() {
                                           <span className="text-[10px] font-bold text-[#00D4B3] uppercase tracking-widest">
                                             Módulo {moduleIndex + 1}
                                           </span>
-                                          <div className="h-[1px] flex-1 bg-white/10" />
+                                          <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/10" />
                                         </div>
                                         <h3
-                                          className="font-semibold text-white/90 text-sm leading-tight pr-4"
+                                          className="font-semibold text-gray-900 dark:text-white/90 text-sm leading-tight pr-4"
                                           style={{
                                             fontFamily: "Inter, sans-serif",
                                           }}
@@ -3307,7 +3350,7 @@ export default function CourseLearnPage() {
                                                           className={`flex-1 flex items-center gap-3 py-2 px-3 transition-all duration-200 group relative overflow-hidden rounded-r-lg ${
                                                             isActive
                                                               ? "bg-[#00D4B3]/10 border-l-2 border-[#00D4B3]"
-                                                              : "border-l-2 border-transparent hover:bg-white/5"
+                                                              : "border-l-2 border-transparent hover:bg-gray-50 dark:hover:bg-white/5"
                                                           }`}
                                                         >
                                                           <div
@@ -3316,7 +3359,7 @@ export default function CourseLearnPage() {
                                                                 ? "text-[#00D4B3]"
                                                                 : isActive
                                                                   ? "text-[#00D4B3]"
-                                                                  : "text-white/20 group-hover:text-white/40"
+                                                                  : "text-gray-400 dark:text-white/20 group-hover:text-gray-600 dark:group-hover:text-white/40"
                                                             }`}
                                                           >
                                                             {isCompleted ? (
@@ -3330,7 +3373,7 @@ export default function CourseLearnPage() {
 
                                                           <div className="flex-1 text-left min-w-0 z-10">
                                                             <p
-                                                              className={`text-sm leading-snug line-clamp-2 ${isActive ? "text-white font-medium" : "text-white/60 group-hover:text-white/90 font-normal"}`}
+                                                              className={`text-sm leading-snug line-clamp-2 ${isActive ? "text-[#0A2540] dark:text-white font-medium" : "text-gray-600 dark:text-white/60 group-hover:text-gray-900 dark:group-hover:text-white/90 font-normal"}`}
                                                               style={{
                                                                 fontFamily:
                                                                   "Inter, sans-serif",
@@ -3475,7 +3518,7 @@ export default function CourseLearnPage() {
                                                                             key={
                                                                               activity.activity_id
                                                                             }
-                                                                            className="group relative hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
+                                                                            className="group relative hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
                                                                           >
                                                                             <div className="flex items-start gap-4">
                                                                               {/* Icono mejorado estilo imagen referencia */}
@@ -3491,7 +3534,7 @@ export default function CourseLearnPage() {
 
                                                                               {/* Contenido principal */}
                                                                               <div className="flex-1 min-w-0 pt-0.5">
-                                                                                <p className="text-sm font-medium text-white mb-2 leading-tight">
+                                                                                <p className="text-sm font-medium text-gray-900 dark:text-white mb-2 leading-tight">
                                                                                   {
                                                                                     activity.activity_title
                                                                                   }
@@ -3500,7 +3543,7 @@ export default function CourseLearnPage() {
                                                                                 {/* Badges estilo Pill */}
                                                                                 <div className="flex flex-wrap items-center gap-2">
                                                                                   {/* Badge de tipo */}
-                                                                                  <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-[#0F1419] border border-white/10 text-[#00D4B3]">
+                                                                                  <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-gray-50 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 text-[#00D4B3]">
                                                                                     {
                                                                                       activity.activity_type
                                                                                     }
@@ -3614,7 +3657,7 @@ export default function CourseLearnPage() {
                                                                             key={
                                                                               material.material_id
                                                                             }
-                                                                            className="group relative hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
+                                                                            className="group relative hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
                                                                           >
                                                                             <div className="flex items-start gap-4">
                                                                               {/* Icono mejorado estilo imagen referencia */}
@@ -3632,7 +3675,7 @@ export default function CourseLearnPage() {
 
                                                                               {/* Contenido principal */}
                                                                               <div className="flex-1 min-w-0 pt-0.5">
-                                                                                <p className="text-sm font-medium text-white mb-2 leading-tight">
+                                                                                <p className="text-sm font-medium text-gray-900 dark:text-white mb-2 leading-tight">
                                                                                   {
                                                                                     material.material_title
                                                                                   }
@@ -3649,7 +3692,7 @@ export default function CourseLearnPage() {
 
                                                                                   {/* Badge de tipo */}
                                                                                   <span
-                                                                                    className={`px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-[#0F1419] border border-white/10 ${isReading ? "text-[#10B981]" : "text-[#00D4B3]"}`}
+                                                                                    className={`px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-gray-50 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 ${isReading ? "text-[#10B981]" : "text-[#00D4B3]"}`}
                                                                                   >
                                                                                     {
                                                                                       material.material_type
@@ -5008,18 +5051,18 @@ function TranscriptContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 font-[Inter]">
             Transcripción del Video
           </h2>
         </div>
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center">
-          <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
-            <ScrollText className="w-8 h-8 text-white/20" />
+        <div className="rounded-2xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] p-12 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-gray-200 dark:border-white/5">
+            <ScrollText className="w-8 h-8 text-gray-400 dark:text-white/20" />
           </div>
-          <h3 className="text-white font-semibold text-lg mb-2">
+          <h3 className="text-gray-900 dark:text-white font-semibold text-lg mb-2">
             Selecciona una lección
           </h3>
-          <p className="text-white/40 max-w-md mx-auto">
+          <p className="text-gray-500 dark:text-white/40 max-w-md mx-auto">
             Selecciona una lección del panel izquierdo para ver su transcripción
           </p>
         </div>
@@ -5031,19 +5074,19 @@ function TranscriptContent({
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 font-[Inter]">
             Transcripción del Video
           </h2>
-          <div className="h-4 w-1/3 bg-white/10 rounded animate-pulse" />
+          <div className="h-4 w-1/3 bg-gray-200 dark:bg-white/10 rounded animate-pulse" />
         </div>
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 flex flex-col items-center justify-center">
+        <div className="rounded-2xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] p-12 flex flex-col items-center justify-center">
           <div className="relative w-16 h-16 mb-6">
             <div className="absolute inset-0 rounded-full border-2 border-[#00D4B3]/20 animate-ping" />
             <div className="relative w-full h-full bg-[#00D4B3]/10 rounded-full flex items-center justify-center">
               <ScrollText className="w-8 h-8 text-[#00D4B3] animate-pulse" />
             </div>
           </div>
-          <p className="text-white/60 font-medium">{t("loading.transcript")}</p>
+          <p className="text-gray-500 dark:text-white/60 font-medium">{t("loading.transcript")}</p>
         </div>
       </div>
     );
@@ -5051,29 +5094,29 @@ function TranscriptContent({
 
   return (
     <div className="space-y-6 pb-24 md:pb-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/5 pb-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 dark:border-white/5 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
             <ScrollText className="w-5 h-5 text-[#00D4B3]" />
             Transcripción Interactiva
           </h2>
-          <p className="text-white/40 text-sm">{lesson.lesson_title}</p>
+          <p className="text-gray-500 dark:text-white/40 text-sm">{lesson.lesson_title}</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#0A2540]/30 border border-gray-200 dark:border-white/5 backdrop-blur-sm">
             <div className="w-1.5 h-1.5 rounded-full bg-[#00D4B3]" />
-            <span className="text-sm font-medium text-white">
+            <span className="text-sm font-medium text-gray-700 dark:text-white">
               {transcriptContent?.length || 0}
             </span>
-            <span className="text-xs text-white/40">caracteres</span>
+            <span className="text-xs text-gray-500 dark:text-white/40">caracteres</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#0A2540]/30 border border-gray-200 dark:border-white/5 backdrop-blur-sm">
             <Clock className="w-3.5 h-3.5 text-[#00D4B3]" />
-            <span className="text-sm font-medium text-white">
+            <span className="text-sm font-medium text-gray-700 dark:text-white">
               {estimatedReadingTime}
             </span>
-            <span className="text-xs text-white/40">min</span>
+            <span className="text-xs text-gray-500 dark:text-white/40">min</span>
           </div>
         </div>
       </div>
@@ -5085,27 +5128,27 @@ function TranscriptContent({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="relative rounded-2xl border border-white/10 bg-[#0F1419]/40 overflow-hidden shadow-2xl backdrop-blur-sm group"
+            className="relative rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0F1419]/40 overflow-hidden shadow-sm dark:shadow-2xl backdrop-blur-sm group"
           >
             {/* Decoración de gradiente superior */}
             <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4B3]/50 to-transparent opacity-50" />
 
-            {/* Glow de fondo sutil */}
-            <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#00D4B3]/5 rounded-full blur-3xl pointer-events-none" />
+            {/* Glow de fondo sutil solo en dark mode */}
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#00D4B3]/5 rounded-full blur-3xl pointer-events-none hidden dark:block" />
 
             {/* Contenido Renderizado */}
-            <div className="relative p-8 prose prose-invert max-w-none">
+            <div className="relative p-8 prose prose-slate dark:prose-invert max-w-none">
               <ReactMarkdown
                 components={{
                   h1: ({ node, ...props }) => (
                     <h1
-                      className="text-2xl font-bold text-white mb-6 mt-8 flex items-center gap-2 not-prose"
+                      className="text-2xl font-bold text-gray-900 dark:text-white mb-6 mt-8 flex items-center gap-2 not-prose"
                       {...props}
                     />
                   ),
                   h2: ({ node, ...props }) => (
                     <h2
-                      className="text-xl font-bold text-white mb-4 mt-8 pb-2 border-b border-white/5 not-prose"
+                      className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-8 pb-2 border-b border-gray-200 dark:border-white/5 not-prose"
                       {...props}
                     />
                   ),
@@ -5116,11 +5159,11 @@ function TranscriptContent({
                     />
                   ),
                   strong: ({ node, ...props }) => (
-                    <strong className="font-bold text-white/90" {...props} />
+                    <strong className="font-bold text-gray-900 dark:text-white" {...props} />
                   ),
                   p: ({ node, ...props }) => (
                     <p
-                      className="mb-4 text-white/80 leading-relaxed font-light tracking-wide text-base"
+                      className="mb-4 text-gray-700 dark:text-white/80 leading-relaxed font-light tracking-wide text-base"
                       {...props}
                     />
                   ),
@@ -5132,7 +5175,7 @@ function TranscriptContent({
                   ),
                   ol: ({ node, ...props }) => (
                     <ol
-                      className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-white/80"
+                      className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-gray-700 dark:text-white/80"
                       {...props}
                     />
                   ),
@@ -5141,7 +5184,7 @@ function TranscriptContent({
                   ),
                   blockquote: ({ node, ...props }) => (
                     <blockquote
-                      className="border-l-4 border-[#00D4B3] pl-4 italic text-white/60 my-6 bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
+                      className="border-l-4 border-[#00D4B3] pl-4 italic text-gray-600 dark:text-white/60 my-6 bg-gray-50 dark:bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
                       {...props}
                     />
                   ),
@@ -5152,15 +5195,15 @@ function TranscriptContent({
             </div>
 
             {/* Footer con acciones */}
-            <div className="relative px-8 py-4 bg-white/[0.02] border-t border-white/5 flex flex-wrap gap-4 justify-between items-center">
-              <div className="text-xs text-white/20 font-medium tracking-widest uppercase hidden md:block">
+            <div className="relative px-8 py-4 bg-gray-50 dark:bg-white/[0.02] border-t border-gray-200 dark:border-white/5 flex flex-wrap gap-4 justify-between items-center">
+              <div className="text-xs text-gray-500 dark:text-white/20 font-medium tracking-widest uppercase hidden md:block">
                 Generado automáticamente
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCopyToClipboard}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-white/60 hover:text-[#00D4B3] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-all"
                 >
                   {isCopied ? (
                     <Check className="w-3.5 h-3.5 text-[#00D4B3]" />
@@ -5172,7 +5215,7 @@ function TranscriptContent({
 
                 <button
                   onClick={handleDownloadTranscript}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-white/60 hover:text-[#00D4B3] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-all"
                 >
                   <FileDown className="w-3.5 h-3.5" />
                   Descargar
@@ -5196,18 +5239,18 @@ function TranscriptContent({
             key="empty-transcript"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center"
+            className="rounded-2xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] p-12 text-center"
           >
-            <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
-              <ScrollText className="w-8 h-8 text-white/20" />
+            <div className="w-16 h-16 bg-gray-100 dark:bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-gray-200 dark:border-white/5">
+              <ScrollText className="w-8 h-8 text-gray-400 dark:text-white/20" />
             </div>
-            <h3 className="text-white font-semibold text-lg mb-2">
+            <h3 className="text-gray-900 dark:text-white font-semibold text-lg mb-2">
               Transcripción no disponible
             </h3>
-            <p className="text-white/40 max-w-md mx-auto mb-6">
+            <p className="text-gray-500 dark:text-white/40 max-w-md mx-auto mb-6">
               Esta lección aún no cuenta con una transcripción disponible.
             </p>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-white/40">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 text-xs text-gray-500 dark:text-white/40">
               <Info className="w-4 h-4" />
               <span>El contenido se actualizará pronto</span>
             </div>
@@ -5267,19 +5310,19 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 font-[Inter]">
             Resumen del Video
           </h2>
-          <div className="h-4 w-1/3 bg-white/10 rounded animate-pulse" />
+          <div className="h-4 w-1/3 bg-gray-200 dark:bg-white/10 rounded animate-pulse" />
         </div>
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 flex flex-col items-center justify-center">
+        <div className="rounded-2xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] p-12 flex flex-col items-center justify-center">
           <div className="relative w-16 h-16 mb-6">
             <div className="absolute inset-0 rounded-full border-2 border-[#00D4B3]/20 animate-ping" />
             <div className="relative w-full h-full bg-[#00D4B3]/10 rounded-full flex items-center justify-center">
               <Sparkles className="w-8 h-8 text-[#00D4B3] animate-pulse" />
             </div>
           </div>
-          <p className="text-white/60 font-medium">{t("loading.summary")}</p>
+          <p className="text-gray-500 dark:text-white/60 font-medium">{t("loading.summary")}</p>
         </div>
       </div>
     );
@@ -5289,23 +5332,23 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
     return (
       <div className="space-y-6 pb-24 md:pb-6">
         <div>
-          <h2 className="text-xl font-bold text-white mb-2 font-[Inter]">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 font-[Inter]">
             Resumen del Video
           </h2>
-          <p className="text-white/40 text-sm">{lesson.lesson_title}</p>
+          <p className="text-gray-500 dark:text-white/40 text-sm">{lesson.lesson_title}</p>
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-12 text-center">
-          <div className="w-16 h-16 bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/5">
-            <FileText className="w-8 h-8 text-white/20" />
+        <div className="rounded-2xl border border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] p-12 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-[#0A2540]/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-gray-200 dark:border-white/5">
+            <FileText className="w-8 h-8 text-gray-400 dark:text-white/20" />
           </div>
-          <h3 className="text-white font-semibold text-lg mb-2">
+          <h3 className="text-gray-900 dark:text-white font-semibold text-lg mb-2">
             Resumen no disponible
           </h3>
-          <p className="text-white/40 max-w-md mx-auto mb-6">
+          <p className="text-gray-500 dark:text-white/40 max-w-md mx-auto mb-6">
             Esta lección aún no cuenta con un resumen generado automáticamente.
           </p>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-xs text-white/40">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 text-xs text-gray-500 dark:text-white/40">
             <Info className="w-4 h-4" />
             <span>El contenido se actualizará pronto</span>
           </div>
@@ -5317,29 +5360,29 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
   return (
     <div className="space-y-6 pb-24 md:pb-6">
       {/* Header simplificado */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/5 pb-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 dark:border-white/5 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#00D4B3]" />
             Resumen Inteligente
           </h2>
-          <p className="text-white/40 text-sm">{lesson.lesson_title}</p>
+          <p className="text-gray-500 dark:text-white/40 text-sm">{lesson.lesson_title}</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#0A2540]/30 border border-gray-200 dark:border-white/5 backdrop-blur-sm">
             <div className="w-1.5 h-1.5 rounded-full bg-[#00D4B3]" />
-            <span className="text-sm font-medium text-white">
+            <span className="text-sm font-medium text-gray-700 dark:text-white">
               {summaryContent?.split(/\s+/).length || 0}
             </span>
-            <span className="text-xs text-white/40">palabras</span>
+            <span className="text-xs text-gray-500 dark:text-white/40">palabras</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0A2540]/30 border border-white/5 backdrop-blur-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#0A2540]/30 border border-gray-200 dark:border-white/5 backdrop-blur-sm">
             <Clock className="w-3.5 h-3.5 text-[#00D4B3]" />
-            <span className="text-sm font-medium text-white">
+            <span className="text-sm font-medium text-gray-700 dark:text-white">
               {estimatedReadingTime}
             </span>
-            <span className="text-xs text-white/40">min</span>
+            <span className="text-xs text-gray-500 dark:text-white/40">min</span>
           </div>
         </div>
       </div>
@@ -5349,28 +5392,27 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="relative rounded-2xl border border-white/10 bg-[#0F1419]/40 overflow-hidden shadow-2xl backdrop-blur-sm group"
+        className="relative rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0F1419]/40 overflow-hidden shadow-sm dark:shadow-2xl backdrop-blur-sm group"
       >
         {/* Decoración de gradiente superior */}
         <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-[#00D4B3]/50 to-transparent opacity-50" />
 
-        {/* Glow de fondo sutil */}
-        <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#00D4B3]/5 rounded-full blur-3xl pointer-events-none" />
+        {/* Glow de fondo sutil solo en dark mode */}
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#00D4B3]/5 rounded-full blur-3xl pointer-events-none hidden dark:block" />
 
         {/* Contenido */}
-        {/* Contenido */}
-        <div className="relative p-8 prose prose-invert max-w-none">
+        <div className="relative p-8 prose prose-slate dark:prose-invert max-w-none">
           <ReactMarkdown
             components={{
               h1: ({ node, ...props }) => (
                 <h1
-                  className="text-2xl font-bold text-white mb-6 mt-8 flex items-center gap-2 not-prose"
+                  className="text-2xl font-bold text-gray-900 dark:text-white mb-6 mt-8 flex items-center gap-2 not-prose"
                   {...props}
                 />
               ),
               h2: ({ node, ...props }) => (
                 <h2
-                  className="text-xl font-bold text-white mb-4 mt-8 pb-2 border-b border-white/5 not-prose"
+                  className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-8 pb-2 border-b border-gray-200 dark:border-white/5 not-prose"
                   {...props}
                 />
               ),
@@ -5381,11 +5423,11 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
                 />
               ),
               strong: ({ node, ...props }) => (
-                <strong className="font-bold text-white" {...props} />
+                <strong className="font-bold text-gray-900 dark:text-white" {...props} />
               ),
               p: ({ node, ...props }) => (
                 <p
-                  className="mb-4 text-white/80 leading-relaxed font-light tracking-wide text-base"
+                  className="mb-4 text-gray-700 dark:text-white/80 leading-relaxed font-light tracking-wide text-base"
                   {...props}
                 />
               ),
@@ -5397,7 +5439,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
               ),
               ol: ({ node, ...props }) => (
                 <ol
-                  className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-white/80"
+                  className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-gray-700 dark:text-white/80"
                   {...props}
                 />
               ),
@@ -5406,13 +5448,13 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
               ),
               blockquote: ({ node, ...props }) => (
                 <blockquote
-                  className="border-l-4 border-[#00D4B3] pl-4 italic text-white/60 my-6 bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
+                  className="border-l-4 border-[#00D4B3] pl-4 italic text-gray-600 dark:text-white/60 my-6 bg-gray-50 dark:bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
                   {...props}
                 />
               ),
               code: ({ node, ...props }) => (
                 <code
-                  className="bg-black/30 px-1.5 py-0.5 rounded text-sm font-mono text-[#00D4B3]"
+                  className="bg-gray-100 dark:bg-black/30 px-1.5 py-0.5 rounded text-sm font-mono text-teal-600 dark:text-[#00D4B3]"
                   {...props}
                 />
               ),
@@ -5423,8 +5465,8 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
         </div>
 
         {/* Footer simple */}
-        <div className="relative px-8 py-4 bg-white/[0.02] border-t border-white/5 flex justify-between items-center">
-          <span className="text-xs text-white/20 font-medium tracking-widest uppercase">
+        <div className="relative px-8 py-4 bg-gray-50 dark:bg-white/[0.02] border-t border-gray-200 dark:border-white/5 flex justify-between items-center">
+          <span className="text-xs text-gray-500 dark:text-white/20 font-medium tracking-widest uppercase">
             Generado por IA • Revisado por Expertos
           </span>
           <button
@@ -5432,7 +5474,7 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
               navigator.clipboard.writeText(summaryContent || "");
               // Podríamos añadir un toast aquí
             }}
-            className="p-2 text-white/20 hover:text-[#00D4B3] transition-colors rounded-lg hover:bg-[#00D4B3]/10"
+            className="p-2 text-gray-400 dark:text-white/20 hover:text-[#00D4B3] transition-colors rounded-lg hover:bg-[#00D4B3]/10"
             title="Copiar resumen"
           >
             <Copy className="w-4 h-4" />
@@ -6134,7 +6176,7 @@ function ReadingContentRenderer({ content }: { content: any }) {
         elements.push(
           <p
             key={`p-${elements.length}`}
-            className="text-white/80 text-sm leading-[1.8] mb-4"
+            className="text-gray-700 dark:text-white/80 text-sm leading-[1.8] mb-4"
           >
             {text}
           </p>
@@ -6160,13 +6202,13 @@ function ReadingContentRenderer({ content }: { content: any }) {
         flushParagraph();
         elements.push(
           <div key={`main-${index}`} className="mt-8 mb-4 first:mt-0">
-            <h2 className="text-lg font-semibold text-white mb-1">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
               {mainSectionMatch[1]}
             </h2>
             {mainSectionMatch[2] && (
-              <p className="text-white/60 text-sm">{mainSectionMatch[2]}</p>
+              <p className="text-gray-500 dark:text-white/60 text-sm">{mainSectionMatch[2]}</p>
             )}
-            <div className="w-12 h-0.5 bg-white/10 mt-3" />
+            <div className="w-12 h-0.5 bg-gray-200 dark:bg-white/10 mt-3" />
           </div>
         );
         return;
@@ -6181,11 +6223,11 @@ function ReadingContentRenderer({ content }: { content: any }) {
             key={`step-${index}`}
             className="mt-6 mb-3 flex items-start gap-3"
           >
-            <span className="px-2 py-0.5 bg-white/10 rounded text-[10px] font-medium text-white/60 uppercase tracking-wider flex-shrink-0">
+            <span className="px-2 py-0.5 bg-gray-100 dark:bg-white/10 rounded text-[10px] font-medium text-gray-500 dark:text-white/60 uppercase tracking-wider flex-shrink-0">
               {stepMatch[1]}
             </span>
             {stepMatch[2] && (
-              <span className="text-white font-medium text-sm">
+              <span className="text-gray-900 dark:text-white font-medium text-sm">
                 {stepMatch[2]}
               </span>
             )}
@@ -6204,8 +6246,8 @@ function ReadingContentRenderer({ content }: { content: any }) {
             key={`num-${index}`}
             className="mt-5 mb-3 flex items-baseline gap-3"
           >
-            <span className="text-white/30 text-xs font-medium">{number}.</span>
-            <h3 className="text-white font-medium text-sm">{title}</h3>
+            <span className="text-gray-400 dark:text-white/30 text-xs font-medium">{number}.</span>
+            <h3 className="text-gray-900 dark:text-white font-medium text-sm">{title}</h3>
           </div>
         );
         return;
@@ -6220,9 +6262,9 @@ function ReadingContentRenderer({ content }: { content: any }) {
         elements.push(
           <div
             key={`ref-${index}`}
-            className="mt-2 mb-3 pl-3 border-l-2 border-white/10"
+            className="mt-2 mb-3 pl-3 border-l-2 border-gray-200 dark:border-white/10"
           >
-            <p className="text-white/40 text-xs italic">{trimmedLine}</p>
+            <p className="text-gray-400 dark:text-white/40 text-xs italic">{trimmedLine}</p>
           </div>
         );
         return;
@@ -6238,7 +6280,7 @@ function ReadingContentRenderer({ content }: { content: any }) {
         elements.push(
           <h4
             key={`h4-${index}`}
-            className="text-white/90 font-medium text-sm mt-5 mb-2"
+            className="text-gray-800 dark:text-white/90 font-medium text-sm mt-5 mb-2"
           >
             {trimmedLine}
           </h4>
@@ -6255,8 +6297,8 @@ function ReadingContentRenderer({ content }: { content: any }) {
             key={`list-${index}`}
             className="flex items-start gap-2 mb-2 pl-2"
           >
-            <span className="text-white/30 mt-1.5">•</span>
-            <span className="text-white/70 text-sm leading-relaxed">
+            <span className="text-gray-300 dark:text-white/30 mt-1.5">•</span>
+            <span className="text-gray-600 dark:text-white/70 text-sm leading-relaxed">
               {listMatch[1]}
             </span>
           </div>
@@ -7241,9 +7283,9 @@ function ActivitiesContent({
   return (
     <div className="space-y-6 pb-24 md:pb-6">
       {/* Header Simple */}
-      <div className="pb-4 border-b border-white/5">
-        <h2 className="text-xl font-semibold text-white">Actividades</h2>
-        <p className="text-sm text-white/40 mt-1">{lesson.lesson_title}</p>
+      <div className="pb-4 border-b border-gray-200 dark:border-white/5">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Actividades</h2>
+        <p className="text-sm text-gray-500 dark:text-white/40 mt-1">{lesson.lesson_title}</p>
       </div>
 
       {/* Sección Actividades */}
@@ -7251,13 +7293,13 @@ function ActivitiesContent({
         <div>
           {/* Header de sección - Simple */}
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center">
-              <Activity className="w-3.5 h-3.5 text-white/50" />
+            <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-white/5 flex items-center justify-center">
+              <Activity className="w-3.5 h-3.5 text-gray-500 dark:text-white/50" />
             </div>
-            <span className="text-sm font-medium text-white/70">
+            <span className="text-sm font-medium text-gray-700 dark:text-white/70">
               Actividades
             </span>
-            <span className="text-xs text-white/30">{activities.length}</span>
+            <span className="text-xs text-gray-500 dark:text-white/30">{activities.length}</span>
           </div>
 
           {/* Lista de Actividades */}
@@ -7270,7 +7312,7 @@ function ActivitiesContent({
               return (
                 <div
                   key={activity.activity_id}
-                  className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                  className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/[0.02] hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors shadow-sm dark:shadow-none"
                 >
                   {/* Header de la actividad */}
                   <button
@@ -7298,30 +7340,30 @@ function ActivitiesContent({
                     {/* Icono simple */}
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        isAiChat ? "bg-white/10" : "bg-white/5"
+                        isAiChat ? "bg-indigo-50 dark:bg-white/10" : "bg-gray-100 dark:bg-white/5"
                       }`}
                     >
                       {isAiChat ? (
-                        <MessageCircle className="w-4 h-4 text-white/60" />
+                        <MessageCircle className="w-4 h-4 text-indigo-500 dark:text-white/60" />
                       ) : isQuiz ? (
-                        <FileText className="w-4 h-4 text-white/60" />
+                        <FileText className="w-4 h-4 text-gray-500 dark:text-white/60" />
                       ) : (
-                        <Activity className="w-4 h-4 text-white/60" />
+                        <Activity className="w-4 h-4 text-gray-500 dark:text-white/60" />
                       )}
                     </div>
 
                     {/* Contenido */}
                     <div className="flex-1 text-left min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-white truncate">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           {activity.activity_title}
                         </span>
                         {activity.is_required && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-amber-400/80 bg-amber-500/10 rounded">
+                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400/80 bg-amber-100 dark:bg-amber-500/10 rounded">
                             Requerida
                           </span>
                         )}
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded capitalize">
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:text-white/40 bg-gray-100 dark:bg-white/5 rounded capitalize">
                           {activity.activity_type === "ai_chat"
                             ? "Chat IA"
                             : activity.activity_type}
@@ -7338,7 +7380,7 @@ function ActivitiesContent({
                             );
                             if (quizInfo?.isPassed) {
                               return (
-                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-400/80 bg-emerald-500/10 rounded flex items-center gap-1">
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400/80 bg-emerald-100 dark:bg-emerald-500/10 rounded flex items-center gap-1">
                                   <Check className="w-2.5 h-2.5" /> Completado
                                 </span>
                               );
@@ -7350,21 +7392,21 @@ function ActivitiesContent({
 
                     {/* Chevron */}
                     <ChevronDown
-                      className={`w-4 h-4 text-white/30 transition-transform ${!isCollapsed ? "rotate-180" : ""}`}
+                      className={`w-4 h-4 text-gray-400 dark:text-white/30 transition-transform ${!isCollapsed ? "rotate-180" : ""}`}
                     />
                   </button>
 
                   {/* Contenido colapsable */}
                   {!isCollapsed && (
-                    <div className="px-4 pb-4 border-t border-white/5">
+                    <div className="px-4 pb-4 border-t border-gray-100 dark:border-white/5">
                       {activity.activity_description && (
-                        <p className="text-white/40 text-xs mt-3 mb-3 leading-relaxed">
+                        <p className="text-gray-500 dark:text-white/40 text-xs mt-3 mb-3 leading-relaxed">
                           {activity.activity_description}
                         </p>
                       )}
 
                       {/* Contenido de la actividad */}
-                      <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
+                      <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 p-3">
                         {activity.activity_type === "quiz" &&
                           (() => {
                             try {
@@ -7447,7 +7489,7 @@ function ActivitiesContent({
 
                               // Si llegamos aquí, mostrar como texto normal con mensaje de debug
                               return (
-                                <div className="prose prose-invert dark:prose-invert max-w-none">
+                                <div className="prose prose-slate dark:prose-invert max-w-none">
                                   <p className="text-yellow-600 dark:text-yellow-400 mb-2">
                                     ⚠️ Error: El quiz no tiene la estructura
                                     esperada
@@ -7457,7 +7499,7 @@ function ActivitiesContent({
                                       Ver contenido crudo
                                     </summary>
                                     <pre
-                                      className="text-xs text-[#6C757D] dark:text-white/80 mt-2 p-2 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded overflow-auto border border-[#E9ECEF] dark:border-[#6C757D]/30"
+                                      className="text-xs text-gray-500 dark:text-white/80 mt-2 p-2 bg-gray-100 dark:bg-[#0F1419] rounded overflow-auto border border-gray-200 dark:border-[#6C757D]/30"
                                       style={{
                                         fontFamily: "Inter, sans-serif",
                                         fontWeight: 400,
@@ -7478,7 +7520,7 @@ function ActivitiesContent({
                             } catch (e) {
                               // console.error('❌ Error processing quiz:', e);
                               return (
-                                <div className="prose prose-invert dark:prose-invert max-w-none">
+                                <div className="prose prose-slate dark:prose-invert max-w-none">
                                   <p className="text-red-600 dark:text-red-400 mb-2">
                                     ❌ Error al procesar el quiz
                                   </p>
@@ -7499,13 +7541,13 @@ function ActivitiesContent({
                         {/* Tarjeta AI Chat - Minimalista */}
                         {activity.activity_type === "ai_chat" ? (
                           <div className="p-4 text-center">
-                            <div className="w-10 h-10 mx-auto rounded-lg bg-white/5 flex items-center justify-center mb-3">
-                              <MessageCircle className="w-5 h-5 text-white/50" />
+                            <div className="w-10 h-10 mx-auto rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-3">
+                              <MessageCircle className="w-5 h-5 text-gray-500 dark:text-white/50" />
                             </div>
-                            <h4 className="text-sm font-medium text-white mb-1">
+                            <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
                               Actividad con LIA
                             </h4>
-                            <p className="text-xs text-white/40 mb-4">
+                            <p className="text-xs text-gray-500 dark:text-white/40 mb-4">
                               Inicia una conversación guiada para completar esta
                               actividad
                             </p>
@@ -7555,10 +7597,10 @@ function ActivitiesContent({
 
                       {activity.activity_type !== "ai_chat" &&
                         activity.ai_prompts && (
-                          <div className="mt-4 pt-4 border-t border-white/5">
+                          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/5">
                             <div className="flex items-center gap-2 mb-3">
-                              <HelpCircle className="w-3.5 h-3.5 text-white/40" />
-                              <span className="text-white/50 text-xs font-medium">
+                              <HelpCircle className="w-3.5 h-3.5 text-gray-400 dark:text-white/40" />
+                              <span className="text-gray-500 dark:text-white/50 text-xs font-medium">
                                 Prompts y Ejercicios
                               </span>
                             </div>
@@ -7579,13 +7621,13 @@ function ActivitiesContent({
         <div>
           {/* Header de sección */}
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center">
-              <BookOpen className="w-3.5 h-3.5 text-white/50" />
+            <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-white/5 flex items-center justify-center">
+              <BookOpen className="w-3.5 h-3.5 text-gray-500 dark:text-white/50" />
             </div>
-            <span className="text-sm font-medium text-white/70">
+            <span className="text-sm font-medium text-gray-700 dark:text-white/70">
               Materiales
             </span>
-            <span className="text-xs text-white/30">{materials.length}</span>
+            <span className="text-xs text-gray-500 dark:text-white/30">{materials.length}</span>
           </div>
 
           {/* Lista de Materiales */}
@@ -7598,7 +7640,7 @@ function ActivitiesContent({
               return (
                 <div
                   key={material.material_id}
-                  className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                  className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/[0.02] hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors shadow-sm dark:shadow-none"
                 >
                   {/* Header del material */}
                   <button
@@ -7617,29 +7659,29 @@ function ActivitiesContent({
                     className="w-full px-4 py-3 flex items-center gap-3"
                   >
                     {/* Icono simple */}
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center flex-shrink-0">
                       {isQuiz ? (
-                        <FileText className="w-4 h-4 text-white/60" />
+                        <FileText className="w-4 h-4 text-gray-500 dark:text-white/60" />
                       ) : isReading ? (
-                        <BookOpen className="w-4 h-4 text-white/60" />
+                        <BookOpen className="w-4 h-4 text-gray-500 dark:text-white/60" />
                       ) : (
-                        <ScrollText className="w-4 h-4 text-white/60" />
+                        <ScrollText className="w-4 h-4 text-gray-500 dark:text-white/60" />
                       )}
                     </div>
 
                     {/* Contenido */}
                     <div className="flex-1 text-left min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-white truncate">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           {material.material_title}
                         </span>
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded capitalize">
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:text-white/40 bg-gray-100 dark:bg-white/5 rounded capitalize">
                           {material.material_type === "reading"
                             ? "Lectura"
                             : material.material_type}
                         </span>
                         {material.is_downloadable && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-white/40 bg-white/5 rounded">
+                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-white/40 bg-blue-100 dark:bg-white/5 rounded">
                             Descargable
                           </span>
                         )}
@@ -7654,7 +7696,7 @@ function ActivitiesContent({
                             );
                             if (quizInfo?.isPassed) {
                               return (
-                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-400/80 bg-emerald-500/10 rounded flex items-center gap-1">
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400/80 bg-emerald-100 dark:bg-emerald-500/10 rounded flex items-center gap-1">
                                   <Check className="w-2.5 h-2.5" /> Completado
                                 </span>
                               );
@@ -7666,22 +7708,22 @@ function ActivitiesContent({
 
                     {/* Chevron */}
                     <ChevronDown
-                      className={`w-4 h-4 text-white/30 transition-transform ${!isCollapsed ? "rotate-180" : ""}`}
+                      className={`w-4 h-4 text-gray-400 dark:text-white/30 transition-transform ${!isCollapsed ? "rotate-180" : ""}`}
                     />
                   </button>
 
                   {/* Contenido colapsable */}
                   {!isCollapsed && (
-                    <div className="px-4 pb-4 border-t border-white/5">
+                    <div className="px-4 pb-4 border-t border-gray-200 dark:border-white/5">
                       {material.material_description &&
                         material.material_type !== "reading" && (
-                          <p className="text-white/40 text-xs mt-3 mb-3 leading-relaxed">
+                          <p className="text-gray-500 dark:text-white/40 text-xs mt-3 mb-3 leading-relaxed">
                             {material.material_description}
                           </p>
                         )}
 
                       {/* Contenido del material */}
-                      <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
+                      <div className="rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 p-3">
                         {/* Contenido según tipo */}
                         {(material.content_data ||
                           (material.material_type === "reading" &&
@@ -7760,13 +7802,13 @@ function ActivitiesContent({
 
                         {/* Enlaces */}
                         {(material.external_url || material.file_url) && (
-                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-white/5">
                             {material.external_url && (
                               <a
                                 href={material.external_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 transition-colors"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white/80 transition-colors"
                               >
                                 <ExternalLink className="w-3 h-3" />
                                 Abrir enlace
@@ -7777,7 +7819,7 @@ function ActivitiesContent({
                                 href={material.file_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-white/70 transition-colors"
+                                className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-xs font-medium text-gray-600 dark:text-white/70 transition-colors"
                               >
                                 <FileDown className="w-3.5 h-3.5" />
                                 Ver archivo
@@ -7797,9 +7839,9 @@ function ActivitiesContent({
 
       {/* Leyenda informativa - Simple */}
       {(hasActivities || hasMaterials) && (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/5">
-          <Info className="w-4 h-4 text-white/30 flex-shrink-0" />
-          <p className="text-xs text-white/40 leading-relaxed">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5">
+          <Info className="w-4 h-4 text-gray-400 dark:text-white/30 flex-shrink-0" />
+          <p className="text-xs text-gray-500 dark:text-white/40 leading-relaxed">
             {t("activities.completionRequirement")}
           </p>
         </div>
@@ -7807,17 +7849,17 @@ function ActivitiesContent({
 
       {/* Footer - Simple */}
       {lesson && (
-        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between pt-4 border-t border-white/5">
+        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between pt-4 border-t border-gray-200 dark:border-white/5">
           <div className="flex items-center gap-3">
-            <span className="text-xs text-white/40">¿Útil?</span>
+            <span className="text-xs text-gray-500 dark:text-white/40">¿Útil?</span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => handleLessonFeedback("like")}
                 disabled={feedbackLoading}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   lessonFeedback === "like"
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : "text-white/50 hover:bg-white/5 hover:text-white/70"
+                    ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white/70"
                 } ${feedbackLoading ? "opacity-50" : ""}`}
               >
                 <ThumbsUp
@@ -7830,8 +7872,8 @@ function ActivitiesContent({
                 disabled={feedbackLoading}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   lessonFeedback === "dislike"
-                    ? "bg-red-500/10 text-red-400"
-                    : "text-white/50 hover:bg-white/5 hover:text-white/70"
+                    ? "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400"
+                    : "text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white/70"
                 } ${feedbackLoading ? "opacity-50" : ""}`}
               >
                 <ThumbsDown

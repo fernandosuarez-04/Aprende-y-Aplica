@@ -88,7 +88,7 @@ export default function TeamDetailPage() {
   const slug = params.slug as string
   
   const { user } = useAuth()
-  const { styles } = useOrganizationStyles()
+  const { effectiveStyles } = useOrganizationStyles()
   const { isOpen: isPanelOpen } = useLiaPanel()
   
   const [mounted, setMounted] = useState(false)
@@ -127,11 +127,46 @@ export default function TeamDetailPage() {
     return baseTabs
   }, [isLeader])
 
-  const orgColors = useMemo(() => ({
-    primary: styles?.primary_button_color || '#0A2540',
-    accent: styles?.accent_color || '#00D4B3',
-    cardBg: styles?.card_background || '#1E2329'
-  }), [styles])
+  const orgColors = useMemo(() => {
+    const userDashboardStyles = effectiveStyles?.userDashboard
+    // Detectar modo claro basado en el fondo de las tarjetas
+    const cardBg = userDashboardStyles?.card_background || '#1E2329'
+    const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
+                        cardBg.toLowerCase() === '#f8fafc' ||
+                        cardBg.toLowerCase().includes('255, 255, 255')
+    
+    // Obtener valores base
+    let sidebarBg = userDashboardStyles?.sidebar_background || (isLightMode ? '#F1F5F9' : '#0F1419')
+    let textColor = userDashboardStyles?.text_color || (isLightMode ? '#0F172A' : '#FFFFFF')
+    let borderColor = userDashboardStyles?.border_color || (isLightMode ? '#E2E8F0' : '#334155')
+
+    // LÓGICA DE DETECCIÓN Y CORRECCIÓN DE INCONSISTENCIAS
+    // Si las tarjetas son blancas (modo claro)...
+    if (isLightMode) {
+        // FORZAR fondo claro y texto oscuro para garantizar legibilidad
+        // Ignoramos el sidebar_background de la BD si estamos en modo claro para evitar fondos oscuros heredados
+        sidebarBg = '#F1F5F9' 
+        
+        if (textColor.toLowerCase() === '#ffffff' || textColor.toLowerCase() === '#fff') {
+            textColor = '#0F172A'
+        }
+    }
+
+    return {
+      primary: userDashboardStyles?.primary_button_color || '#0A2540',
+      accent: userDashboardStyles?.accent_color || '#00D4B3',
+      cardBg: cardBg,
+      sidebarBg,
+      text: textColor,
+      border: borderColor,
+      isLightMode,
+      textSecondary: isLightMode ? '#64748B' : '#9CA3AF',
+      textMuted: isLightMode ? '#94A3B8' : '#6B7280',
+      heroBg: isLightMode 
+        ? 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 50%, #F8FAFC 100%)'
+        : 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)',
+    }
+  }, [effectiveStyles])
 
   const fetchTeamData = useCallback(async () => {
     if (!slug) return
@@ -201,7 +236,7 @@ export default function TeamDetailPage() {
     return (
       <main
         className="min-h-screen flex items-center justify-center"
-        style={{ background: '#0F1419' }}
+        style={{ background: orgColors.sidebarBg }}
       >
         <div className="flex flex-col items-center gap-6">
           <div
@@ -213,7 +248,7 @@ export default function TeamDetailPage() {
           >
             <Users className="w-8 h-8" style={{ color: orgColors.accent }} />
           </div>
-          <p className="text-white text-lg">Cargando información del equipo...</p>
+          <p className="text-lg" style={{ color: orgColors.text }}>Cargando información del equipo...</p>
         </div>
       </main>
     )
@@ -224,13 +259,13 @@ export default function TeamDetailPage() {
     return (
       <main
         className="min-h-screen flex items-center justify-center p-6"
-        style={{ background: '#0F1419' }}
+        style={{ background: orgColors.sidebarBg }}
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center gap-6 max-w-md text-center p-8 rounded-2xl border border-red-500/20 backdrop-blur-xl"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.8)' }}
+          style={{ backgroundColor: orgColors.cardBg }}
         >
           <div className="p-4 rounded-full bg-red-500/10">
             <AlertCircle className="w-12 h-12 text-red-400" />
@@ -252,9 +287,10 @@ export default function TeamDetailPage() {
               onClick={fetchTeamData}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-6 py-3 text-white rounded-xl font-medium"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium"
               style={{
                 background: `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.accent})`,
+                color: '#FFFFFF'
               }}
             >
               <RefreshCw className="w-4 h-4" />
@@ -287,13 +323,14 @@ export default function TeamDetailPage() {
               El equipo que buscas no existe o no tienes acceso a él.
             </p>
           </div>
-          <motion.button
+            <motion.button
             onClick={() => router.push('/business-user/teams')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-6 py-3 text-white rounded-xl font-medium"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium"
             style={{
               background: `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.accent})`,
+              color: '#FFFFFF'
             }}
           >
             Ver mis equipos
@@ -316,8 +353,9 @@ export default function TeamDetailPage() {
           {/* Back button */}
           <motion.button
             onClick={() => router.push('/business-user/teams')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
-            whileHover={{ x: -4 }}
+            className="flex items-center gap-2 transition-colors mb-8"
+            style={{ color: orgColors.textSecondary }}
+            whileHover={{ x: -4, color: orgColors.text }}
           >
             <ChevronLeft className="w-5 h-5" />
             <span>Volver a mis equipos</span>
@@ -329,7 +367,7 @@ export default function TeamDetailPage() {
             animate={{ opacity: 1, y: 0 }}
             className="relative overflow-hidden rounded-3xl p-8 mb-8"
             style={{
-              background: 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)'
+              background: orgColors.heroBg
             }}
           >
             <div
@@ -360,7 +398,7 @@ export default function TeamDetailPage() {
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2 flex-wrap">
-                  <h1 className="text-3xl font-bold text-white">{team.name}</h1>
+                  <h1 className="text-3xl font-bold" style={{ color: orgColors.text }}>{team.name}</h1>
                   {membership && (
                     <span
                       className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1"
@@ -378,9 +416,9 @@ export default function TeamDetailPage() {
                   )}
                 </div>
                 {team.description && (
-                  <p className="text-gray-400 mb-4 max-w-2xl">{team.description}</p>
+                  <p className="mb-4 max-w-2xl" style={{ color: orgColors.textSecondary }}>{team.description}</p>
                 )}
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
+                <div className="flex flex-wrap items-center gap-4 text-sm" style={{ color: orgColors.textSecondary }}>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     <span>{team.member_count} miembros</span>
@@ -431,11 +469,11 @@ export default function TeamDetailPage() {
                   style={{
                     background: isActive 
                       ? `linear-gradient(135deg, ${orgColors.accent}25, ${orgColors.accent}10)` 
-                      : 'rgba(255,255,255,0.05)',
+                      : orgColors.isLightMode ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
                     borderWidth: 1,
                     borderStyle: 'solid',
-                    borderColor: isActive ? `${orgColors.accent}40` : 'rgba(255,255,255,0.05)',
-                    color: isActive ? orgColors.accent : 'rgba(255,255,255,0.7)'
+                    borderColor: isActive ? `${orgColors.accent}40` : orgColors.isLightMode ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
+                    color: isActive ? orgColors.accent : orgColors.textSecondary
                   }}
                 >
                   <Icon className="w-4 h-4" />
@@ -468,8 +506,8 @@ export default function TeamDetailPage() {
                       <Users className="w-5 h-5" style={{ color: orgColors.accent }} />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-white">Miembros del Equipo</h2>
-                      <p className="text-sm text-gray-400">{members.length} compañeros</p>
+                      <h2 className="text-xl font-bold" style={{ color: orgColors.text }}>Miembros del Equipo</h2>
+                      <p className="text-sm" style={{ color: orgColors.textSecondary }}>{members.length} compañeros</p>
                     </div>
                   </div>
 
@@ -499,14 +537,14 @@ export default function TeamDetailPage() {
                               ? 'rgba(251, 191, 36, 0.08)' 
                               : member.isCurrentUser 
                                 ? `${orgColors.accent}08` 
-                                : 'rgba(30, 41, 59, 0.5)',
+                                : orgColors.cardBg,
                             borderColor: isMemberLeader 
                               ? 'rgba(251, 191, 36, 0.4)' 
                               : isCoLeader
                                 ? 'rgba(168, 85, 247, 0.3)'
                                 : member.isCurrentUser 
                                   ? `${orgColors.accent}30` 
-                                  : 'rgba(255, 255, 255, 0.05)',
+                                  : orgColors.border,
                             boxShadow: isMemberLeader ? '0 4px 20px rgba(251, 191, 36, 0.15)' : undefined
                           }}
                         >
@@ -585,7 +623,10 @@ export default function TeamDetailPage() {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <p className={`text-white font-medium truncate ${isMemberLeader ? 'text-lg' : ''}`}>
+                              <p 
+                                className={`font-medium truncate ${isMemberLeader ? 'text-lg' : ''}`}
+                                style={{ color: orgColors.text }}
+                              >
                                 {member.name}
                               </p>
                               <div className="flex items-center gap-1.5">
@@ -598,7 +639,7 @@ export default function TeamDetailPage() {
                                 <span 
                                   className={`${isMemberLeader ? 'text-sm font-medium' : 'text-xs'}`} 
                                   style={{ 
-                                    color: isMemberLeader ? '#FCD34D' : isCoLeader ? '#A855F7' : 'rgb(156 163 175)' 
+                                    color: isMemberLeader ? '#FCD34D' : isCoLeader ? '#A855F7' : orgColors.textSecondary 
                                   }}
                                 >
                                   {roleBadge.label}
@@ -632,8 +673,8 @@ export default function TeamDetailPage() {
                       <GraduationCap className="w-5 h-5" style={{ color: orgColors.primary }} />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-white">Cursos del Equipo</h2>
-                      <p className="text-sm text-gray-400">{courses.length} asignados</p>
+                      <h2 className="text-xl font-bold" style={{ color: orgColors.text }}>Cursos del Equipo</h2>
+                      <p className="text-sm" style={{ color: orgColors.textSecondary }}>{courses.length} asignados</p>
                     </div>
                   </div>
 
@@ -641,12 +682,12 @@ export default function TeamDetailPage() {
                     <div
                       className="p-6 rounded-2xl border text-center"
                       style={{
-                        backgroundColor: 'rgba(30, 41, 59, 0.5)',
-                        borderColor: 'rgba(255, 255, 255, 0.05)'
+                        backgroundColor: orgColors.cardBg,
+                        borderColor: orgColors.border
                       }}
                     >
-                      <BookOpen className="w-8 h-8 text-gray-500 mx-auto mb-3" />
-                      <p className="text-gray-400 text-sm">No hay cursos asignados al equipo</p>
+                      <BookOpen className="w-8 h-8 mx-auto mb-3" style={{ color: orgColors.textMuted }} />
+                      <p className="text-sm" style={{ color: orgColors.textSecondary }}>No hay cursos asignados al equipo</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -657,10 +698,10 @@ export default function TeamDetailPage() {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.05 }}
                           onClick={() => course.slug && router.push(`/courses/${course.slug}/learn`)}
-                          className="group p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:border-white/20 hover:bg-white/5"
+                          className="group p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-md"
                           style={{
-                            backgroundColor: 'rgba(30, 41, 59, 0.5)',
-                            borderColor: 'rgba(255, 255, 255, 0.05)'
+                            backgroundColor: orgColors.cardBg,
+                            borderColor: orgColors.border
                           }}
                         >
                           <div className="flex items-center gap-3">
@@ -684,13 +725,16 @@ export default function TeamDetailPage() {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <p className="text-white font-medium text-sm truncate group-hover:text-cyan-400 transition-colors">
+                              <p 
+                                className="font-medium text-sm truncate transition-colors"
+                                style={{ color: orgColors.text }}
+                              >
                                 {course.title}
                               </p>
                               {course.due_date && (
                                 <div className="flex items-center gap-1 mt-1">
-                                  <Clock className="w-3 h-3 text-gray-500" />
-                                  <span className="text-xs text-gray-500">
+                                    <Clock className="w-3 h-3" style={{ color: orgColors.textMuted }} />
+                                    <span className="text-xs" style={{ color: orgColors.textMuted }}>
                                     Fecha límite: {formatDate(course.due_date)}
                                   </span>
                                 </div>
@@ -799,7 +843,7 @@ export default function TeamDetailPage() {
 function MemberFeedbackView({ teamId, userId, orgColors }: { 
   teamId: string
   userId: string
-  orgColors: { primary: string; accent: string; cardBg: string }
+  orgColors: any
 }) {
   const [feedback, setFeedback] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -846,10 +890,10 @@ function MemberFeedbackView({ teamId, userId, orgColors }: {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+      <h2 className="text-xl font-bold mb-6 flex items-center gap-2" style={{ color: orgColors.text }}>
         <Heart className="w-5 h-5" style={{ color: orgColors.accent }} />
         Tu Feedback Recibido
-        <span className="text-sm font-normal text-gray-400">({feedback.length})</span>
+        <span className="text-sm font-normal" style={{ color: orgColors.textSecondary }}>({feedback.length})</span>
       </h2>
       
       {feedback.map((fb, index) => (
@@ -859,7 +903,7 @@ function MemberFeedbackView({ teamId, userId, orgColors }: {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.05 }}
           className="p-5 rounded-2xl border"
-          style={{ backgroundColor: 'rgba(30, 41, 59, 0.5)', borderColor: 'rgba(255, 255, 255, 0.05)' }}
+          style={{ backgroundColor: orgColors.cardBg, borderColor: orgColors.border }}
         >
           <div className="flex items-start gap-4">
             <div
@@ -870,7 +914,7 @@ function MemberFeedbackView({ teamId, userId, orgColors }: {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-white font-medium">
+                <span className="font-medium" style={{ color: orgColors.text }}>
                   {fb.is_anonymous ? 'Anónimo' : fb.from_user?.name || 'Líder'}
                 </span>
                 {fb.rating && (
@@ -884,8 +928,8 @@ function MemberFeedbackView({ teamId, userId, orgColors }: {
                   </div>
                 )}
               </div>
-              <p className="text-gray-300 text-sm">{fb.content}</p>
-              <p className="text-gray-500 text-xs mt-2">
+              <p className="text-sm" style={{ color: orgColors.textSecondary }}>{fb.content}</p>
+              <p className="text-xs mt-2" style={{ color: orgColors.textMuted }}>
                 {new Date(fb.created_at).toLocaleDateString('es-MX', {
                   day: 'numeric',
                   month: 'short',
@@ -905,7 +949,7 @@ function TeamStatsView({ teamId, members, courses, orgColors }: {
   teamId: string
   members: TeamMember[]
   courses: TeamCourse[]
-  orgColors: { primary: string; accent: string; cardBg: string }
+  orgColors: any
 }) {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -942,7 +986,7 @@ function TeamStatsView({ teamId, members, courses, orgColors }: {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-xl font-bold text-white flex items-center gap-2">
+      <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: orgColors.text }}>
         <BarChart3 className="w-5 h-5" style={{ color: orgColors.accent }} />
         Estadísticas del Equipo
       </h2>
@@ -952,13 +996,13 @@ function TeamStatsView({ teamId, members, courses, orgColors }: {
         {statCards.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <motion.div
+              <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className="p-5 rounded-2xl border"
-              style={{ backgroundColor: 'rgba(30, 41, 59, 0.5)', borderColor: 'rgba(255, 255, 255, 0.05)' }}
+              style={{ backgroundColor: orgColors.cardBg, borderColor: orgColors.border }}
             >
               <div className="flex items-center gap-3 mb-3">
                 <div
@@ -968,8 +1012,8 @@ function TeamStatsView({ teamId, members, courses, orgColors }: {
                   <Icon className="w-5 h-5" style={{ color: stat.color }} />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-              <p className="text-sm text-gray-400">{stat.label}</p>
+              <p className="text-2xl font-bold" style={{ color: orgColors.text }}>{stat.value}</p>
+              <p className="text-sm" style={{ color: orgColors.textSecondary }}>{stat.label}</p>
             </motion.div>
           )
         })}
@@ -978,12 +1022,12 @@ function TeamStatsView({ teamId, members, courses, orgColors }: {
       {/* Member Progress Table */}
       <div
         className="rounded-2xl border overflow-hidden"
-        style={{ backgroundColor: 'rgba(30, 41, 59, 0.5)', borderColor: 'rgba(255, 255, 255, 0.05)' }}
+        style={{ backgroundColor: orgColors.cardBg, borderColor: orgColors.border }}
       >
-        <div className="p-5 border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}>
-          <h3 className="text-lg font-bold text-white">Progreso de Miembros</h3>
+        <div className="p-5 border-b" style={{ borderColor: orgColors.border }}>
+          <h3 className="text-lg font-bold" style={{ color: orgColors.text }}>Progreso de Miembros</h3>
         </div>
-        <div className="divide-y" style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}>
+        <div className="divide-y" style={{ borderColor: orgColors.border }}>
           {members.map((member, index) => {
             const progress = Math.floor(Math.random() * 40) + 60 // Simulated - would come from API
             
@@ -1017,8 +1061,8 @@ function TeamStatsView({ teamId, members, courses, orgColors }: {
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium text-sm truncate">{member.name}</p>
-                  <p className="text-xs text-gray-500">{member.role === 'leader' ? 'Líder' : member.role === 'co-leader' ? 'Co-líder' : 'Miembro'}</p>
+                  <p className="font-medium text-sm truncate" style={{ color: orgColors.text }}>{member.name}</p>
+                  <p className="text-xs" style={{ color: orgColors.textSecondary }}>{member.role === 'leader' ? 'Líder' : member.role === 'co-leader' ? 'Co-líder' : 'Miembro'}</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -1031,7 +1075,7 @@ function TeamStatsView({ teamId, members, courses, orgColors }: {
                       }}
                     />
                   </div>
-                  <span className="text-sm font-medium text-white w-12 text-right">{progress}%</span>
+                  <span className="text-sm font-medium w-12 text-right" style={{ color: orgColors.text }}>{progress}%</span>
                 </div>
               </motion.div>
             )

@@ -17,7 +17,8 @@ import {
   Type,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  ChevronDown
 } from 'lucide-react';
 
 interface NotesModalProps {
@@ -498,119 +499,116 @@ export const NotesModal: React.FC<NotesModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-2 md:p-4"
+          className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4"
           onClick={onClose}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-[#0F1419] rounded-2xl shadow-2xl border border-white/10 w-full max-w-3xl max-h-[calc(100vh-2rem)] md:max-h-[85vh] md:h-[75vh] flex flex-col overflow-hidden"
+            className="bg-white dark:bg-carbon rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-3xl max-h-[calc(100vh-2rem)] md:max-h-[85vh] md:h-[75vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
           >
             {/* Header minimalista */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0 bg-[#0F1419]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-white/5 shrink-0 bg-white dark:bg-carbon">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#00D4B3]/10 flex items-center justify-center border border-[#00D4B3]/20">
-                  <Type className="w-4 h-4 text-[#00D4B3]" />
+                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                  <Type className="w-4 h-4 text-accent" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white tracking-tight">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
                     {isEditing ? 'Editar Nota' : 'Nueva Nota'}
                   </h2>
-                  <p className="text-xs text-white/40 uppercase tracking-wider font-medium">Studio &gt; Notas</p>
+                  <p className="text-xs text-gray-500 dark:text-white/40 uppercase tracking-wider font-medium">Studio &gt; Notas</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-gray-500 hover:text-gray-900 dark:text-white/40 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Barra de herramientas minimalista */}
-            <div className="px-4 py-3 border-b border-white/5 bg-[#0F1419] shrink-0 overflow-x-auto scrollbar-hide">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-carbon shrink-0 overflow-x-auto scrollbar-hide">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex gap-1 bg-white/5 p-1 rounded-lg border border-white/5">
+                <div className="flex gap-1 bg-white dark:bg-white/5 p-1 rounded-lg border border-gray-200 dark:border-white/5">
                   <button
                     onClick={undo}
                     disabled={!canUndo}
-                    className="p-1.5 hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                     title="Deshacer (Ctrl+Z)"
                   >
-                    <Undo className="w-4 h-4 text-white/70" />
+                    <Undo className="w-4 h-4 text-gray-600 dark:text-white/70" />
                   </button>
                   <button
                     onClick={redo}
                     disabled={!canRedo}
-                    className="p-1.5 hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                     title="Rehacer (Ctrl+Y)"
                   >
-                    <Redo className="w-4 h-4 text-white/70" />
+                    <Redo className="w-4 h-4 text-gray-600 dark:text-white/70" />
                   </button>
                 </div>
 
-                <div className="w-px h-6 bg-white/10 mx-1"></div>
+                <div className="w-px h-6 bg-gray-300 dark:bg-white/10 mx-1"></div>
 
-                <div className="flex gap-1 bg-white/5 p-1 rounded-lg border border-white/5">
-                  <select 
-                    onChange={(e) => applyHeading(e.target.value)}
-                    className="px-3 py-1.5 bg-transparent rounded-md text-white text-xs font-medium focus:outline-none focus:bg-white/10 appearance-none cursor-pointer hover:bg-white/5 transition-colors border-none"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff80' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 0.5rem center',
-                      paddingRight: '2rem'
-                    }}
-                  >
-                    <option value="Normal" className="bg-[#0F1419]">Normal</option>
-                    <option value="H1" className="bg-[#0F1419]">H1</option>
-                    <option value="H2" className="bg-[#0F1419]">H2</option>
-                    <option value="H3" className="bg-[#0F1419]">H3</option>
-                  </select>
+                <div className="flex gap-1 bg-white dark:bg-white/5 p-1 rounded-lg border border-gray-200 dark:border-white/5">
+                  <div className="relative flex items-center">
+                    <select 
+                      onChange={(e) => applyHeading(e.target.value)}
+                      className="pl-3 pr-8 py-1.5 bg-transparent rounded-md text-gray-900 dark:text-white text-xs font-medium focus:outline-none focus:bg-gray-100 dark:focus:bg-white/10 appearance-none cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 transition-colors border-none"
+                    >
+                      <option value="Normal" className="bg-white dark:bg-carbon">Normal</option>
+                      <option value="H1" className="bg-white dark:bg-carbon">H1</option>
+                      <option value="H2" className="bg-white dark:bg-carbon">H2</option>
+                      <option value="H3" className="bg-white dark:bg-carbon">H3</option>
+                    </select>
+                    <ChevronDown className="absolute right-2 w-3 h-3 text-gray-500 pointer-events-none" />
+                  </div>
                   
-                  <div className="w-px h-4 bg-white/10 mx-1 self-center"></div>
+                  <div className="w-px h-4 bg-gray-300 dark:bg-white/10 mx-1 self-center"></div>
 
-                  <button onClick={() => execCommand('bold')} className="p-1.5 hover:bg-white/10 rounded-md transition-colors" title="Negrita"><Bold className="w-4 h-4 text-white/70" /></button>
-                  <button onClick={() => execCommand('italic')} className="p-1.5 hover:bg-white/10 rounded-md transition-colors" title="Cursiva"><Italic className="w-4 h-4 text-white/70" /></button>
-                  <button onClick={() => execCommand('underline')} className="p-1.5 hover:bg-white/10 rounded-md transition-colors" title="Subrayado"><Underline className="w-4 h-4 text-white/70" /></button>
-                  <button onClick={() => execCommand('createLink')} className="p-1.5 hover:bg-white/10 rounded-md transition-colors" title="Enlace"><Link className="w-4 h-4 text-white/70" /></button>
+                  <button onClick={() => execCommand('bold')} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors" title="Negrita"><Bold className="w-4 h-4 text-gray-600 dark:text-white/70" /></button>
+                  <button onClick={() => execCommand('italic')} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors" title="Cursiva"><Italic className="w-4 h-4 text-gray-600 dark:text-white/70" /></button>
+                  <button onClick={() => execCommand('underline')} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors" title="Subrayado"><Underline className="w-4 h-4 text-gray-600 dark:text-white/70" /></button>
+                  <button onClick={() => execCommand('createLink')} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors" title="Enlace"><Link className="w-4 h-4 text-gray-600 dark:text-white/70" /></button>
                 </div>
 
-                <div className="w-px h-6 bg-white/10 mx-1"></div>
+                <div className="w-px h-6 bg-gray-300 dark:bg-white/10 mx-1"></div>
 
-                <div className="flex gap-1 bg-white/5 p-1 rounded-lg border border-white/5">
-                  <button onClick={() => applyList('ul')} className="p-1.5 hover:bg-white/10 rounded-md transition-colors" title="Lista"><List className="w-4 h-4 text-white/70" /></button>
-                  <button onClick={() => applyList('ol')} className="p-1.5 hover:bg-white/10 rounded-md transition-colors" title="Lista Num"><ListOrdered className="w-4 h-4 text-white/70" /></button>
-                  <div className="w-px h-4 bg-white/10 mx-1 self-center"></div>
-                  <button onClick={() => execCommand('justifyLeft')} className="p-1.5 hover:bg-white/10 rounded-md transition-colors"><AlignLeft className="w-4 h-4 text-white/70" /></button>
-                  <button onClick={() => execCommand('justifyCenter')} className="p-1.5 hover:bg-white/10 rounded-md transition-colors"><AlignCenter className="w-4 h-4 text-white/70" /></button>
-                  <button onClick={() => execCommand('justifyRight')} className="p-1.5 hover:bg-white/10 rounded-md transition-colors"><AlignRight className="w-4 h-4 text-white/70" /></button>
+                <div className="flex gap-1 bg-white dark:bg-white/5 p-1 rounded-lg border border-gray-200 dark:border-white/5">
+                  <button onClick={() => applyList('ul')} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors" title="Lista"><List className="w-4 h-4 text-gray-600 dark:text-white/70" /></button>
+                  <button onClick={() => applyList('ol')} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors" title="Lista Num"><ListOrdered className="w-4 h-4 text-gray-600 dark:text-white/70" /></button>
+                  <div className="w-px h-4 bg-gray-300 dark:bg-white/10 mx-1 self-center"></div>
+                  <button onClick={() => execCommand('justifyLeft')} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors"><AlignLeft className="w-4 h-4 text-gray-600 dark:text-white/70" /></button>
+                  <button onClick={() => execCommand('justifyCenter')} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors"><AlignCenter className="w-4 h-4 text-gray-600 dark:text-white/70" /></button>
+                  <button onClick={() => execCommand('justifyRight')} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors"><AlignRight className="w-4 h-4 text-gray-600 dark:text-white/70" /></button>
                 </div>
               </div>
             </div>
 
             {/* Área de contenido */}
-            <div className="flex-1 p-6 flex flex-col overflow-hidden min-h-0 bg-[#0F1419]">
+            <div className="flex-1 p-6 flex flex-col overflow-hidden min-h-0 bg-white dark:bg-carbon">
               <div className="mb-4 shrink-0">
                 <input
                   type="text"
                   placeholder="Título de la nota..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full !bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg font-medium placeholder-white/30 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20 transition-all"
+                  className="w-full bg-gray-50 dark:!bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white text-lg font-medium placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20 transition-all"
                 />
               </div>
 
               {/* Editor de contenido */}
-              <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-xl p-4 min-h-0 overflow-hidden flex flex-col">
+              <div className="flex-1 bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-xl p-4 min-h-0 overflow-hidden flex flex-col">
                 <div
                   ref={editorRef}
                   contentEditable
                   onInput={updateContent}
-                  className="notes-editor w-full flex-1 text-white/90 placeholder-white/20 focus:outline-none resize-none overflow-y-auto"
+                  className="notes-editor w-full flex-1 text-gray-900 dark:text-white/90 placeholder-gray-400 dark:placeholder-white/20 focus:outline-none resize-none overflow-y-auto"
                   style={{ 
                     minHeight: '150px',
                     lineHeight: '1.7'
@@ -630,11 +628,11 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                     onKeyPress={(e) => {
                        if (e.key === 'Enter') { e.preventDefault(); addTag(); }
                     }}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/30 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20"
+                    className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-xs placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20"
                   />
                   <button
                     onClick={addTag}
-                    className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-medium transition-colors border border-white/10"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-white rounded-lg text-xs font-medium transition-colors border border-gray-200 dark:border-white/10"
                   >
                     Agregar
                   </button>
@@ -644,12 +642,12 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                     {tags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#00D4B3]/10 text-[#00D4B3] text-xs font-medium rounded-full border border-[#00D4B3]/20"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-accent text-xs font-medium rounded-full border border-gray-200 dark:border-gray-700"
                       >
                         {tag}
                         <button
                           onClick={() => removeTag(tag)}
-                          className="hover:text-white transition-colors"
+                          className="hover:text-gray-900 dark:hover:text-white transition-colors"
                         >
                           ×
                         </button>
@@ -661,21 +659,21 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-white/5 bg-[#0F1419] shrink-0">
-              <div className="hidden md:block text-[10px] text-white/30 uppercase tracking-wider font-medium">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-200 dark:border-white/5 bg-white dark:bg-carbon shrink-0">
+              <div className="hidden md:block text-[10px] text-gray-400 dark:text-white/30 uppercase tracking-wider font-medium">
                 Ctrl+S guardar • Ctrl+Z deshacer
               </div>
               <div className="flex gap-3 w-full md:w-auto justify-end">
                 <button
                   onClick={onClose}
-                  className="px-5 py-2.5 bg-transparent hover:bg-white/5 text-white/60 hover:text-white rounded-xl text-sm font-medium transition-colors border border-transparent hover:border-white/10"
+                  className="px-5 py-2.5 bg-transparent hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 hover:text-gray-900 dark:text-white/60 dark:hover:text-white rounded-xl text-sm font-medium transition-colors border border-transparent hover:border-gray-200 dark:hover:border-white/10"
                 >
                   Cancelar
                 </button>
                 
                 <button
                   onClick={handleExportPDF}
-                  className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-medium transition-colors border border-white/10"
+                  className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-white rounded-xl text-sm font-medium transition-colors border border-gray-200 dark:border-white/10"
                 >
                   <FileDown className="w-4 h-4" />
                   <span>PDF</span>
@@ -684,7 +682,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                 <button
                   onClick={handleSave}
                   disabled={isSaving || !title.trim() || !content.trim()}
-                  className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#00D4B3] hover:bg-[#00b89a] disabled:opacity-50 disabled:cursor-not-allowed text-[#0F1419] rounded-xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(0,212,179,0.2)] hover:shadow-[0_0_25px_rgba(0,212,179,0.4)]"
+                  className="flex items-center justify-center gap-2 px-6 py-2.5 bg-accent hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 rounded-xl text-sm font-bold transition-all shadow-md"
                 >
                   <Save className="w-4 h-4" />
                   <span>{isSaving ? 'Guardando...' : 'Guardar Nota'}</span>

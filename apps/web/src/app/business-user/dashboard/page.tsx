@@ -71,15 +71,15 @@ export default function BusinessUserDashboardPage() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const { t } = useTranslation('business')
-  const { styles } = useOrganizationStyles()
+  const { effectiveStyles } = useOrganizationStyles()
   const { isOpen: isPanelOpen } = useLiaPanel()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
 
-  // Aplicar estilos personalizados
-  const userDashboardStyles = styles?.userDashboard
+  // Aplicar estilos personalizados (usando effectiveStyles que respeta modo claro/oscuro)
+  const userDashboardStyles = effectiveStyles?.userDashboard
   const backgroundStyle = getBackgroundStyle(userDashboardStyles)
   const cssVariables = generateCSSVariables(userDashboardStyles)
 
@@ -88,11 +88,32 @@ export default function BusinessUserDashboardPage() {
   const [isMounted, setIsMounted] = useState(false)
   useEffect(() => setIsMounted(true), [])
 
-  // Colores personalizados de la organización
-  const orgColors = {
-    primary: userDashboardStyles?.primary_button_color || '#0A2540',
-    accent: userDashboardStyles?.accent_color || '#00D4B3'
-  }
+  // Colores personalizados de la organización con detección de modo
+  const orgColors = useMemo(() => {
+    const cardBg = userDashboardStyles?.card_background || '#1E2329'
+    const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
+                        cardBg.toLowerCase() === '#f8fafc'
+    
+    return {
+      primary: userDashboardStyles?.primary_button_color || '#0A2540',
+      accent: userDashboardStyles?.accent_color || '#00D4B3',
+      text: userDashboardStyles?.text_color || '#FFFFFF',
+      cardBg: userDashboardStyles?.card_background || '#1E2329',
+      sidebarBg: userDashboardStyles?.sidebar_background || '#0F1419',
+      border: userDashboardStyles?.border_color || '#334155',
+      isLightMode,
+      // Colores secundarios que se adaptan al modo
+      textSecondary: isLightMode ? '#64748B' : '#9CA3AF',
+      textMuted: isLightMode ? '#94A3B8' : '#6B7280',
+      heroBg: isLightMode 
+        ? 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 50%, #F8FAFC 100%)'
+        : 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)',
+      heroOverlay: isLightMode
+        ? 'linear-gradient(to right, rgba(248, 250, 252, 0.95) 0%, rgba(248, 250, 252, 0.7) 50%, transparent 100%)'
+        : 'linear-gradient(to right, rgba(10, 22, 40, 0.9) 0%, rgba(10, 22, 40, 0.5) 50%, transparent 100%)',
+      gridPattern: isLightMode ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
+    }
+  }, [userDashboardStyles])
 
   const [stats, setStats] = useState<DashboardStats>({
     total_assigned: 0,
@@ -236,7 +257,7 @@ export default function BusinessUserDashboardPage() {
       <main
         className="min-h-screen flex items-center justify-center"
         style={{
-          background: '#0F1419'
+          background: orgColors.sidebarBg
         }}
       >
         <div className="flex flex-col items-center gap-8">
@@ -255,8 +276,8 @@ export default function BusinessUserDashboardPage() {
             </div>
           </div>
           <div className="text-center">
-            <p className="text-white text-lg font-semibold">{t('common.loading', 'Cargando...')}</p>
-            <p className="text-gray-400 text-sm mt-2">{t('common.preparingExperience', 'Preparando tu experiencia...')}</p>
+            <p className="text-lg font-semibold" style={{ color: orgColors.text }}>{t('common.loading', 'Cargando...')}</p>
+            <p className="text-sm mt-2" style={{ color: orgColors.textSecondary }}>{t('common.preparingExperience', 'Preparando tu experiencia...')}</p>
           </div>
         </div>
       </main>
@@ -268,29 +289,30 @@ export default function BusinessUserDashboardPage() {
     return (
       <main
         className="min-h-screen flex items-center justify-center p-6"
-        style={{ background: '#0F1419' }}
+        style={{ background: orgColors.sidebarBg }}
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center gap-6 max-w-md text-center p-8 rounded-2xl border border-red-500/20 backdrop-blur-xl"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.8)' }}
+          style={{ backgroundColor: orgColors.cardBg }}
         >
           <div className="p-4 rounded-full bg-red-500/10">
             <AlertCircle className="w-12 h-12 text-red-400" />
           </div>
           <div>
             <p className="text-red-400 text-xl font-semibold">Error al cargar datos</p>
-            <p className="text-gray-400 text-sm mt-2">{error}</p>
+            <p className="text-sm mt-2" style={{ color: orgColors.textSecondary }}>{error}</p>
           </div>
           <motion.button
             onClick={fetchDashboardData}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-6 py-3 text-white rounded-xl font-medium"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium"
             style={{
               background: `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.accent})`,
-              boxShadow: `0 4px 20px ${orgColors.primary}50`
+              boxShadow: `0 4px 20px ${orgColors.primary}50`,
+              color: '#FFFFFF'
             }}
           >
             <RefreshCw className="w-4 h-4" />
@@ -310,12 +332,18 @@ export default function BusinessUserDashboardPage() {
       style={{
         ...cssVariables,
         // Usar solo 'background' para evitar conflicto con 'backgroundColor'
-        background: backgroundStyle?.background || backgroundStyle?.backgroundColor || '#0F1419'
+        background: backgroundStyle?.background || backgroundStyle?.backgroundColor || orgColors.sidebarBg
       } as React.CSSProperties}
     >
       {/* Modern Navbar - Siempre ocupa el ancho completo, NO se desplaza */}
       <Suspense fallback={
-        <nav className="sticky top-0 z-50 w-full border-b border-white/5 bg-slate-950/80 backdrop-blur-xl h-16" />
+        <nav 
+          className="sticky top-0 z-50 w-full backdrop-blur-xl h-16" 
+          style={{ 
+            backgroundColor: orgColors.sidebarBg,
+            borderBottom: `1px solid ${orgColors.border}`
+          }}
+        />
       }>
         <ModernNavbar
           organization={organization}
@@ -358,11 +386,11 @@ export default function BusinessUserDashboardPage() {
             >
               {/* Background with layered gradients - no image dependency */}
               <div className="absolute inset-0 z-0 overflow-hidden">
-                {/* Base dark background */}
+                {/* Base background */}
                 <div 
                   className="absolute inset-0"
                   style={{
-                    background: 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)'
+                    background: orgColors.heroBg
                   }}
                 />
                 
@@ -371,8 +399,8 @@ export default function BusinessUserDashboardPage() {
                   className="absolute inset-0 opacity-[0.03]"
                   style={{
                     backgroundImage: `
-                      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+                      linear-gradient(${orgColors.gridPattern} 1px, transparent 1px),
+                      linear-gradient(90deg, ${orgColors.gridPattern} 1px, transparent 1px)
                     `,
                     backgroundSize: '50px 50px'
                   }}
@@ -387,14 +415,14 @@ export default function BusinessUserDashboardPage() {
                 {/* Secondary glow */}
                 <div 
                   className="absolute right-1/4 bottom-0 w-64 h-64 rounded-full blur-[100px]"
-                  style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)' }}
+                  style={{ backgroundColor: `${orgColors.primary}15` }}
                 />
                 
                 {/* Left side overlay for text readability */}
                 <div
                   className="absolute inset-0"
                   style={{
-                    background: 'linear-gradient(to right, rgba(10, 22, 40, 0.9) 0%, rgba(10, 22, 40, 0.5) 50%, transparent 100%)'
+                    background: orgColors.heroOverlay
                   }}
                 />
               </div>
@@ -410,9 +438,12 @@ export default function BusinessUserDashboardPage() {
               />
               <div
                 className="absolute top-1/2 right-16 w-1 h-1 rounded-full z-10 opacity-40"
-                style={{ backgroundColor: 'rgb(14, 165, 233)' }}
+                style={{ backgroundColor: orgColors.primary }}
               />
-              <div className="absolute bottom-12 right-32 w-3 h-3 rounded-full bg-emerald-400/40" />
+              <div 
+                className="absolute bottom-12 right-32 w-3 h-3 rounded-full"
+                style={{ backgroundColor: `${orgColors.accent}40` }}
+              />
 
               {/* Content */}
               <div className="relative z-10">
@@ -433,7 +464,8 @@ export default function BusinessUserDashboardPage() {
 
                 {/* Greeting */}
                 <motion.h1
-                  className="text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3"
+                  className="text-3xl lg:text-4xl xl:text-5xl font-bold mb-3"
+                  style={{ color: orgColors.text }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
@@ -451,7 +483,8 @@ export default function BusinessUserDashboardPage() {
 
                 {/* Subtitle */}
                 <motion.p
-                  className="text-lg text-gray-300 max-w-xl mb-6"
+                  className="text-lg max-w-xl mb-6"
+                  style={{ color: orgColors.textSecondary }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
@@ -466,7 +499,10 @@ export default function BusinessUserDashboardPage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
                 >
-                  <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <div 
+                    className="flex items-center gap-2 text-sm"
+                    style={{ color: orgColors.textSecondary }}
+                  >
                     <Clock className="w-4 h-4" />
                     {currentTime.toLocaleDateString('es-MX', {
                       weekday: 'long',
@@ -522,8 +558,8 @@ export default function BusinessUserDashboardPage() {
                     <TrendingUp className="w-5 h-5" style={{ color: orgColors.accent }} />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">{t('dashboard.generalStats', 'Tu Progreso')}</h2>
-                    <p className="text-sm text-gray-400">{t('dashboard.keyMetrics', 'Métricas de tu aprendizaje')}</p>
+                    <h2 className="text-xl font-bold" style={{ color: orgColors.text }}>{t('dashboard.generalStats', 'Tu Progreso')}</h2>
+                    <p className="text-sm" style={{ color: orgColors.textSecondary }}>{t('dashboard.keyMetrics', 'Métricas de tu aprendizaje')}</p>
                   </div>
                 </div>
               </motion.div>
@@ -534,7 +570,11 @@ export default function BusinessUserDashboardPage() {
                     {myStats.map((stat) => (
                       <div
                         key={stat.label}
-                        className="rounded-2xl border border-white/5 bg-slate-900/50 p-5 animate-pulse h-32"
+                        className="rounded-2xl p-5 animate-pulse h-32"
+                        style={{ 
+                          backgroundColor: orgColors.cardBg,
+                          border: `1px solid ${orgColors.border}` 
+                        }}
                       />
                     ))}
                   </>
@@ -582,8 +622,8 @@ export default function BusinessUserDashboardPage() {
                   <GraduationCap className="w-5 h-5" style={{ color: orgColors.primary }} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">{t('sidebar.courses')}</h2>
-                  <p className="text-sm text-gray-400">{t('dashboard.quickActions.assignCourses.desc', 'Continúa donde lo dejaste')}</p>
+                  <h2 className="text-xl font-bold" style={{ color: orgColors.text }}>{t('sidebar.courses')}</h2>
+                  <p className="text-sm" style={{ color: orgColors.textSecondary }}>{t('dashboard.quickActions.assignCourses.desc', 'Continúa donde lo dejaste')}</p>
                 </div>
               </div>
             </motion.div>
@@ -592,8 +632,11 @@ export default function BusinessUserDashboardPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative overflow-hidden rounded-2xl border border-white/5 backdrop-blur-xl p-12 text-center"
-                style={{ backgroundColor: 'rgba(30, 41, 59, 0.5)' }}
+                className="relative overflow-hidden rounded-2xl backdrop-blur-xl p-12 text-center"
+                style={{ 
+                  backgroundColor: orgColors.cardBg,
+                  border: `1px solid ${orgColors.border}`
+                }}
               >
                 {/* Decorative gradient */}
                 <div
@@ -618,8 +661,8 @@ export default function BusinessUserDashboardPage() {
                   >
                     <BookOpen className="w-10 h-10" style={{ color: orgColors.primary }} />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">No tienes cursos asignados aún</h3>
-                  <p className="text-gray-400 max-w-md mx-auto">
+                  <h3 className="text-xl font-bold mb-2" style={{ color: orgColors.text }}>No tienes cursos asignados aún</h3>
+                  <p className="max-w-md mx-auto" style={{ color: orgColors.textSecondary }}>
                     Tu organización te asignará cursos próximamente. Mientras tanto, explora lo que tenemos preparado para ti.
                   </p>
 
@@ -651,7 +694,11 @@ export default function BusinessUserDashboardPage() {
                     {assignedCourses.map((_, index) => (
                       <div
                         key={index}
-                        className="rounded-2xl border border-white/5 bg-slate-900/50 animate-pulse h-80"
+                        className="rounded-2xl animate-pulse h-80"
+                        style={{ 
+                          backgroundColor: orgColors.cardBg,
+                          border: `1px solid ${orgColors.border}`
+                        }}
                       />
                     ))}
                   </>

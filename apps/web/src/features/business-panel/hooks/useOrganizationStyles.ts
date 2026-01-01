@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useThemeStore } from '@/core/stores/themeStore';
+import { getThemeStylesForMode } from '../config/preset-themes';
 
 export interface OrganizationStyles {
   panel: StyleConfig | null;
   userDashboard: StyleConfig | null;
   login: StyleConfig | null;
   selectedTheme: string | null;
+  supportsDualMode?: boolean;
 }
 
 export interface StyleConfig {
@@ -25,9 +28,31 @@ export interface StyleConfig {
 
 export function useOrganizationStyles() {
   const { user } = useAuth();
+  const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const [styles, setStyles] = useState<OrganizationStyles | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Calcular estilos efectivos según el modo del tema
+  const effectiveStyles = useMemo<OrganizationStyles | null>(() => {
+    if (!styles) return null;
+    
+    // Si el tema soporta modo dual, obtener los estilos para el modo actual
+    if (styles.supportsDualMode && styles.selectedTheme) {
+      const modeStyles = getThemeStylesForMode(styles.selectedTheme, resolvedTheme);
+      if (modeStyles) {
+        return {
+          ...styles,
+          panel: modeStyles.panel,
+          userDashboard: modeStyles.userDashboard,
+          login: modeStyles.login,
+        };
+      }
+    }
+    
+    // Si no soporta modo dual, retornar los estilos tal cual
+    return styles;
+  }, [styles, resolvedTheme]);
 
   useEffect(() => {
     if (!user) {
@@ -126,6 +151,7 @@ export function useOrganizationStyles() {
 
   return {
     styles,
+    effectiveStyles, // Estilos calculados según el modo claro/oscuro
     loading,
     error,
     updateStyles,
