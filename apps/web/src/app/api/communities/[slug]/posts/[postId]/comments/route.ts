@@ -48,18 +48,7 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // Verificar si el usuario necesita completar el cuestionario
-    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
-    const { QuestionnaireValidationService } = await import('../../../../../../../features/auth/services/questionnaire-validation.service');
-    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
-    
-    if (requiresQuestionnaire) {
-      return NextResponse.json({ 
-        error: 'Debes completar el cuestionario de Mis Estadísticas antes de acceder a comunidades',
-        requiresQuestionnaire: true,
-        redirectUrl: '/statistics'
-      }, { status: 403 });
-    }
+
 
     const { postId } = await params;
     const { searchParams } = new URL(request.url);
@@ -178,18 +167,7 @@ export async function POST(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // Verificar si el usuario necesita completar el cuestionario
-    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
-    const { QuestionnaireValidationService } = await import('../../../../../../../features/auth/services/questionnaire-validation.service');
-    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
-    
-    if (requiresQuestionnaire) {
-      return NextResponse.json({ 
-        error: 'Debes completar el cuestionario de Mis Estadísticas antes de comentar en comunidades',
-        requiresQuestionnaire: true,
-        redirectUrl: '/statistics'
-      }, { status: 403 });
-    }
+
 
     const { postId, slug } = await params;
     const { content, parent_comment_id } = await request.json();

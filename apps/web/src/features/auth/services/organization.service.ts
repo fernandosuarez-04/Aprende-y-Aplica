@@ -39,7 +39,7 @@ export async function getOrganizationBySlug(slug: string): Promise<Organization 
     const { data, error } = await supabase
       .from('organizations')
       .select('*')
-      .eq('slug', slug)
+      .ilike('slug', slug.trim())
       .single();
 
     if (error || !data) {

@@ -22,12 +22,23 @@ interface OrganizationAuthLayoutProps {
   error?: string | null;
 }
 
+import { useThemeStore } from '../../../../core/stores/themeStore';
+
 export function OrganizationAuthLayout({
   organization,
   children,
   isLoading = false,
   error = null,
 }: OrganizationAuthLayoutProps) {
+  const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted ? resolvedTheme === 'dark' : true; // Default to dark mostly for this page style, or handle loading
+
   const faviconUrl = organization.brand_favicon_url || organization.logo_url || '/icono.png';
   const primaryColor = organization.brand_color_primary || '#3b82f6';
   const secondaryColor = organization.brand_color_secondary || '#10b981';
@@ -64,11 +75,16 @@ export function OrganizationAuthLayout({
   const finalPrimaryColor = loginStyles?.primary_button_color || primaryColor;
   const finalSecondaryColor = loginStyles?.secondary_button_color || secondaryColor;
   
-  // Calcular estilos de la tarjeta
-  const cardBackground = loginStyles?.card_background || '#1a1a2e';
+  // Calcular estilos de la tarjeta - Adaptativos
+  const defaultCardBg = isDark ? '#1a1a2e' : 'rgba(255, 255, 255, 0.9)';
+  const defaultText = isDark ? '#ffffff' : '#0f172a';
+  const defaultBorder = isDark ? 'rgba(71, 85, 105, 0.3)' : 'rgba(226, 232, 240, 0.8)';
+  const defaultPageBg = isDark ? '#0f172a' : '#f0f4f8';
+
+  const cardBackground = loginStyles?.card_background || defaultCardBg;
   const cardOpacity = loginStyles?.card_opacity !== undefined ? loginStyles.card_opacity : 0.95;
-  const borderColor = loginStyles?.border_color || 'rgba(71, 85, 105, 0.3)';
-  const textColor = loginStyles?.text_color || '#ffffff';
+  const borderColor = loginStyles?.border_color || defaultBorder;
+  const textColor = loginStyles?.text_color || defaultText;
 
   let cardBackgroundColor: string;
   if (cardBackground.startsWith('#')) {
@@ -90,12 +106,18 @@ export function OrganizationAuthLayout({
     cardBackgroundColor = cardBackground;
   }
 
+  // Si hay imagen de fondo definida en loginStyles, backgroundStyle la tendrá.
+  // Si no, usamos el color de fondo por defecto adaptativo.
+  const pageBackground = !loginStyles?.background_image ? { backgroundColor: defaultPageBg } : {};
+
   return (
     <div 
-      className="min-h-screen flex items-center justify-center relative overflow-y-auto transition-all duration-500 bg-[#0f172a]"
+      className="min-h-screen flex items-center justify-center relative overflow-y-auto transition-all duration-500"
       style={{
+        ...pageBackground,
         ...backgroundStyle,
-        ...cssVariables
+        ...cssVariables,
+        color: textColor // Asegurar que el texto herede el color correcto globalmente
       } as React.CSSProperties}
     >
       {/* Animated Gradient Orbs */}

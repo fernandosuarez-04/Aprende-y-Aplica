@@ -30,21 +30,7 @@ export async function GET(
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
 
-    // Verificar si el usuario necesita completar el cuestionario
-    // Solo requerir cuestionario para comunidades privadas (invitation_only o request)
-    // Las comunidades públicas (access_type === 'open') pueden ser vistas sin cuestionario
-    if (community.access_type === 'invitation_only' || community.access_type === 'request') {
-      const { QuestionnaireValidationService } = await import('../../../../../features/auth/services/questionnaire-validation.service');
-      const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
-      
-      if (requiresQuestionnaire) {
-        return NextResponse.json({ 
-          error: 'Debes completar el cuestionario de Mis Estadísticas antes de acceder a comunidades privadas',
-          requiresQuestionnaire: true,
-          redirectUrl: '/statistics'
-        }, { status: 403 });
-      }
-    }
+
 
     // Intentar obtener miembros reales de la base de datos
     let members = [];

@@ -347,7 +347,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
                 <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '14px', height: '14px', backgroundColor: '#22c55e', borderRadius: '50%', border: `2px solid ${themeColors.panelBg}` }} />
               </div>
               <div>
-                <h2 style={{ color: themeColors.textPrimary, fontSize: '16px', fontWeight: 600, margin: 0, lineHeight: 1.2 }}>LIA</h2>
+                <h2 className="lia-header-title" style={{ color: themeColors.textPrimary, fontSize: '16px', fontWeight: 600, margin: 0, lineHeight: 1.2 }}>LIA</h2>
               </div>
             </div>
             
@@ -408,6 +408,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
                </button>
             </div>
           </div>
+          {/* CSS con máxima especificidad para garantizar visibilidad */}
           <style>{`
             @keyframes liaPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
             
@@ -417,6 +418,15 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
               border: none !important;
               box-shadow: none !important;
               outline: none !important;
+              color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
+              caret-color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
+              -webkit-text-fill-color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
+            }
+            
+            #lia-course-chat-input::placeholder {
+              color: ${isLightTheme ? '#64748B' : themeColors.textSecondary} !important;
+              opacity: 1 !important;
+              -webkit-text-fill-color: ${isLightTheme ? '#64748B' : themeColors.textSecondary} !important;
             }
 
             /* Eliminar borde blanco superior del panel */
@@ -424,35 +434,49 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
               border-top: 0 !important;
               border-top-width: 0 !important;
             }
+            
+            /* Header de LIA */
+            .lia-header-title {
+              color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
+            }
 
             /* Clases forzadas para texto de mensajes */
             .lia-msg-user-text {
               color: white !important;
+              -webkit-text-fill-color: white !important;
             }
             .lia-msg-assistant-text {
-              color: ${themeColors.textPrimary} !important;
+              color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
+              -webkit-text-fill-color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
             }
             
             /* Input forzado */
             .lia-chat-input {
-              color: ${themeColors.textPrimary} !important;
-              caret-color: ${themeColors.textPrimary} !important;
+              color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
+              caret-color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
+              -webkit-text-fill-color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
             }
             .lia-chat-input::placeholder {
-              color: ${themeColors.textSecondary} !important;
-              opacity: 0.7;
+              color: ${isLightTheme ? '#64748B' : themeColors.textSecondary} !important;
+              opacity: 1 !important;
+              -webkit-text-fill-color: ${isLightTheme ? '#64748B' : themeColors.textSecondary} !important;
             }
 
             /* OVERRIDE DE EMERGENCIA SI SE DETECTA FONDO CLARO */
             ${forceDarkText ? `
               .lia-msg-assistant-text, 
               .lia-chat-input, 
-              .lia-chat-input::placeholder {
+              #lia-course-chat-input {
                  color: #0F172A !important;
                  caret-color: #0F172A !important;
                  -webkit-text-fill-color: #0F172A !important;
               }
-              textarea.lia-chat-input {
+              .lia-chat-input::placeholder,
+              #lia-course-chat-input::placeholder {
+                 color: #64748B !important;
+                 -webkit-text-fill-color: #64748B !important;
+              }
+              .lia-header-title {
                  color: #0F172A !important;
               }
             ` : ''}

@@ -11,53 +11,6 @@ const logger = {
   warn: (...args: any[]) => isDevelopment && console.warn(...args),
 };
 
-async function isQuestionnaireCompleted(
-  supabase: ReturnType<typeof createServerClient<Database>>,
-  userId: string
-): Promise<boolean> {
-  try {
-    // Verificar si tiene perfil
-    const { data: profile, error: profileError } = await supabase
-      .from('user_perfil')
-      .select('id')
-      .eq('user_id', userId)
-      .single()
-
-    if (profileError || !profile) {
-      return false
-    }
-
-    // Verificar si tiene al menos una respuesta
-    const { data: responses, error: responsesError } = await supabase
-      .from('respuestas')
-      .select('id')
-      .eq('user_perfil_id', profile.id)
-      .limit(1)
-
-    if (responsesError) {
-      logger.error('Error verificando respuestas (middleware):', responsesError)
-      return false
-    }
-
-    return (responses?.length || 0) > 0
-  } catch (error) {
-    logger.error('Error en isQuestionnaireCompleted (middleware):', error)
-    return false
-  }
-}
-
-async function requiresQuestionnaire(
-  supabase: ReturnType<typeof createServerClient<Database>>,
-  userId: string
-): Promise<boolean> {
-  try {
-    const isCompleted = await isQuestionnaireCompleted(supabase, userId)
-    return !isCompleted
-  } catch (error) {
-    logger.error('Error en requiresQuestionnaire (middleware):', error)
-    return false
-  }
-}
 
 export async function middleware(request: NextRequest) {
   logger.log('🔍 Middleware ejecutándose para:', request.nextUrl.pathname)
@@ -150,7 +103,6 @@ export async function middleware(request: NextRequest) {
     '/api',
     '/statistics',
     '/welcome',
-    '/questionnaire',
     '/_next',
     '/favicon.ico'
   ]
@@ -283,23 +235,7 @@ export async function middleware(request: NextRequest) {
     const sessionData = { user_id: userId };
 
 
-    // Verificar si usuario OAuth necesita cuestionario (OBLIGATORIO - NO SE PUEDE ESQUIVAR)
-    // Esta validación se ejecuta ANTES de las validaciones de rol para asegurar que ningún usuario OAuth
-    // pueda acceder sin completar el cuestionario, incluso si es administrador o instructor
-    try {
-      const needsQuestionnaire = await requiresQuestionnaire(supabase, sessionData.user_id)
 
-      if (needsQuestionnaire) {
-        logger.log('📋 Usuario OAuth sin cuestionario detectado, redirigiendo a /statistics')
-        // Redirigir a /statistics sin importar la ruta que intentó acceder
-        return NextResponse.redirect(new URL('/statistics', request.url))
-      }
-    } catch (questionnaireError) {
-      // Fail-secure: Si hay error verificando cuestionario, denegar acceso por seguridad
-      // NO permitir acceso si no podemos verificar el estado del cuestionario
-      logger.error('❌ Error verificando cuestionario - DENEGANDO ACCESO por seguridad:', questionnaireError)
-      return NextResponse.redirect(new URL('/statistics', request.url))
-    }
   } catch (error) {
     logger.error('❌ Error validando sesión:', error)
     return NextResponse.redirect(new URL('/auth', request.url))

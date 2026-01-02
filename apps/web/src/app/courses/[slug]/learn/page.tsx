@@ -3521,9 +3521,8 @@ export default function CourseLearnPage() {
                                                                             className="group relative hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
                                                                           >
                                                                             <div className="flex items-start gap-4">
-                                                                              {/* Icono mejorado estilo imagen referencia */}
                                                                               <div
-                                                                                className={`w-10 h-10 rounded-2xl bg-[#0F1419] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-white/20 transition-colors shadow-sm`}
+                                                                                className={`w-10 h-10 rounded-2xl bg-gray-100 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-gray-300 dark:group-hover:border-white/20 transition-colors shadow-sm`}
                                                                               >
                                                                                 {isQuiz ? (
                                                                                   <FileText className="w-5 h-5 text-[#00D4B3]" />
@@ -3551,7 +3550,7 @@ export default function CourseLearnPage() {
 
                                                                                   {/* Badge Requerida */}
                                                                                   {isRequired && (
-                                                                                    <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-500/10 border border-red-500/30 text-red-400">
+                                                                                    <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400">
                                                                                       {t(
                                                                                         "activities.required"
                                                                                       )}
@@ -3662,7 +3661,7 @@ export default function CourseLearnPage() {
                                                                             <div className="flex items-start gap-4">
                                                                               {/* Icono mejorado estilo imagen referencia */}
                                                                               <div
-                                                                                className={`w-10 h-10 rounded-2xl bg-[#0F1419] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-white/20 transition-colors shadow-sm`}
+                                                                                className={`w-10 h-10 rounded-2xl bg-gray-100 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-gray-300 dark:group-hover:border-white/20 transition-colors shadow-sm`}
                                                                               >
                                                                                 {isQuiz ? (
                                                                                   <FileText className="w-5 h-5 text-[#00D4B3]" />
@@ -3685,7 +3684,7 @@ export default function CourseLearnPage() {
                                                                                 <div className="flex flex-wrap items-center gap-2">
                                                                                   {/* Badge Requerida primero si aplica */}
                                                                                   {isRequired && (
-                                                                                    <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-500/10 border border-red-500/30 text-red-400">
+                                                                                    <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400">
                                                                                       Requerida
                                                                                     </span>
                                                                                   )}

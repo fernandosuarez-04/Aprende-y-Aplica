@@ -92,13 +92,7 @@ export class QuestionnaireValidationService {
    * NOTA: Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
    */
   static async requiresQuestionnaire(userId: string): Promise<boolean> {
-    try {
-      const isCompleted = await this.isQuestionnaireCompleted(userId);
-      return !isCompleted;
-    } catch (error) {
-      logger.error('Error en requiresQuestionnaire:', error);
-      return false;
-    }
+    return false;
   }
 
   /**

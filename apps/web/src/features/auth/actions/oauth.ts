@@ -13,7 +13,6 @@ import { RefreshTokenService } from '../../../lib/auth/refreshToken.service';
 import { SECURE_COOKIE_OPTIONS, getCustomCookieOptions } from '../../../lib/auth/cookie-config';
 import { AuthService } from '../services/auth.service';
 import { OAuthCallbackParams } from '../types/oauth.types';
-import { QuestionnaireValidationService } from '../services/questionnaire-validation.service';
 import { MicrosoftOAuthService } from '../services/microsoft-oauth.service';
 import { createClient } from '../../../lib/supabase/server';
 
@@ -268,55 +267,41 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     // PASO 9: Verificar si necesita cuestionario y redirigir apropiadamente
     logger.info('OAuth: Proceso completado', { isNewUser });
 
-    // Verificar si el usuario necesita completar el cuestionario
-    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(userId);
+    // Verificar rol para redirección específica (B2B)
+    const supabase = await createClient();
+    const { data: user } = await supabase
+      .from('users')
+      .select('cargo_rol')
+      .eq('id', userId)
+      .single();
+    
+    const normalizedRole = user?.cargo_rol?.toLowerCase().trim();
+    let destination = '/dashboard';
 
-    if (isNewUser) {
-      // Usuario nuevo de Google OAuth siempre necesita cuestionario
-      logger.info('Redirigiendo usuario nuevo OAuth a pantalla de bienvenida');
-      redirect('/welcome?oauth=google');
-    } else if (requiresQuestionnaire) {
-      // Usuario existente sin cuestionario completado
-      logger.info('Redirigiendo usuario existente OAuth sin cuestionario a bienvenida');
-      redirect('/welcome?oauth=google');
-    } else {
-      // Usuario existente con cuestionario completado
-      // Verificar rol para redirección específica (B2B)
-      const supabase = await createClient();
-      const { data: user } = await supabase
-        .from('users')
-        .select('cargo_rol')
-        .eq('id', userId)
+    if (normalizedRole === 'administrador') {
+      destination = '/admin/dashboard';
+    } else if (normalizedRole === 'instructor') {
+      destination = '/instructor/dashboard';
+    } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
+        // Verificar organización activa
+        const { data: userOrg } = await supabase
+        .from('organization_users')
+        .select('organization_id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
         .single();
       
-      const normalizedRole = user?.cargo_rol?.toLowerCase().trim();
-      let destination = '/dashboard';
-
-      if (normalizedRole === 'administrador') {
-        destination = '/admin/dashboard';
-      } else if (normalizedRole === 'instructor') {
-        destination = '/instructor/dashboard';
-      } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
-         // Verificar organización activa
-         const { data: userOrg } = await supabase
-          .from('organization_users')
-          .select('organization_id')
-          .eq('user_id', userId)
-          .eq('status', 'active')
-          .single();
-        
-        if (userOrg) {
-          if (normalizedRole === 'business') {
-            destination = '/business-panel/dashboard';
-          } else {
-            destination = '/business-user/dashboard';
-          }
+      if (userOrg) {
+        if (normalizedRole === 'business') {
+          destination = '/business-panel/dashboard';
+        } else {
+          destination = '/business-user/dashboard';
         }
       }
-
-      logger.info(`Redirigiendo a ${destination} (Rol: ${normalizedRole})`);
-      redirect(destination);
     }
+
+    logger.info(`Redirigiendo a ${destination} (Rol: ${normalizedRole})`);
+    redirect(destination);
   } catch (error) {
     // Verificar si es una redirección de Next.js (no es un error real)
     if (error && typeof error === 'object' && 'digest' in error) {
@@ -434,43 +419,38 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
       expires: legacySession.expiresAt,
     });
 
-    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(userId);
-    if (isNewUser) redirect('/welcome?oauth=microsoft');
-    else if (requiresQuestionnaire) redirect('/welcome?oauth=microsoft');
-    else {
-      // Verificar rol para redirección específica (B2B)
-      const supabase = await createClient();
-      const { data: user } = await supabase
-        .from('users')
-        .select('cargo_rol')
-        .eq('id', userId)
+    // Verificar rol para redirección específica (B2B)
+    const supabase = await createClient();
+    const { data: user } = await supabase
+      .from('users')
+      .select('cargo_rol')
+      .eq('id', userId)
+      .single();
+    
+    const normalizedRole = user?.cargo_rol?.toLowerCase().trim();
+    let destination = '/dashboard';
+
+    if (normalizedRole === 'administrador') {
+      destination = '/admin/dashboard';
+    } else if (normalizedRole === 'instructor') {
+      destination = '/instructor/dashboard';
+    } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
+        const { data: userOrg } = await supabase
+        .from('organization_users')
+        .select('organization_id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
         .single();
       
-      const normalizedRole = user?.cargo_rol?.toLowerCase().trim();
-      let destination = '/dashboard';
-
-      if (normalizedRole === 'administrador') {
-        destination = '/admin/dashboard';
-      } else if (normalizedRole === 'instructor') {
-        destination = '/instructor/dashboard';
-      } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
-         const { data: userOrg } = await supabase
-          .from('organization_users')
-          .select('organization_id')
-          .eq('user_id', userId)
-          .eq('status', 'active')
-          .single();
-        
-        if (userOrg) {
-          if (normalizedRole === 'business') {
-            destination = '/business-panel/dashboard';
-          } else {
-            destination = '/business-user/dashboard';
-          }
+      if (userOrg) {
+        if (normalizedRole === 'business') {
+          destination = '/business-panel/dashboard';
+        } else {
+          destination = '/business-user/dashboard';
         }
       }
-      redirect(destination);
     }
+    redirect(destination);
   } catch (error) {
     return { error: 'Error procesando autenticación con Microsoft' };
   }

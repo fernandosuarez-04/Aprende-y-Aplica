@@ -15,6 +15,7 @@ import { loginAction } from '../../actions/login';
 import { getSavedCredentials, saveCredentials, clearSavedCredentials } from '../../../../lib/auth/remember-me';
 import { hexToRgb } from '../../../business-panel/utils/styles';
 import type { StyleConfig } from '../../../business-panel/hooks/useOrganizationStyles';
+import { useThemeStore } from '../../../../core/stores/themeStore';
 
 interface OrganizationLoginFormProps {
   organizationId: string;
@@ -37,7 +38,16 @@ export function OrganizationLoginForm({
   googleLoginEnabled,
   microsoftLoginEnabled,
 }: OrganizationLoginFormProps) {
+  const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
+  const [mounted, setMounted] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted ? resolvedTheme === 'dark' : true; 
+
   const [error, setError] = useState<string | null>(null);
   const [redirectInfo, setRedirectInfo] = useState<{ to: string; message: string; countdown: number } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -85,19 +95,23 @@ export function OrganizationLoginForm({
     },
   });
 
-  // Calcular estilos dinámicos
+  // Calcular estilos dinámicos - Adaptativos
+  const defaultCardBg = isDark ? '#1a1a2e' : 'rgba(255, 255, 255, 0.9)';
+  const defaultText = isDark ? '#ffffff' : '#0f172a';
+  const defaultBorder = isDark ? 'rgba(71, 85, 105, 0.5)' : 'rgba(226, 232, 240, 0.8)';
+  
   const primaryColor = loginStyles?.primary_button_color || '#3b82f6';
   const secondaryColor = loginStyles?.secondary_button_color || '#10b981';
-  const textColor = loginStyles?.text_color || '#ffffff';
-  const borderColor = loginStyles?.border_color || 'rgba(71, 85, 105, 0.5)';
-  const cardBg = loginStyles?.card_background || '#1a1a2e';
+  const textColor = loginStyles?.text_color || defaultText;
+  const borderColor = loginStyles?.border_color || defaultBorder;
+  const cardBg = loginStyles?.card_background || defaultCardBg;
 
   const inputBgColor = cardBg.startsWith('#')
-    ? `rgba(${hexToRgb(cardBg)}, 0.5)`
+    ? `rgba(${hexToRgb(cardBg)}, ${isDark ? 0.5 : 0.05})`
     : cardBg.startsWith('rgba')
       ? cardBg.replace(/rgba?\(([^)]+)\)/, (match, p1) => {
         const parts = p1.split(',');
-        return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, 0.5)`;
+        return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${isDark ? 0.5 : 0.05})`;
       })
       : cardBg;
 

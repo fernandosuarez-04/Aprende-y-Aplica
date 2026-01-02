@@ -31,7 +31,6 @@ export function ModernStatsCard({
   id
 }: ModernStatsCardProps) {
   const primaryColor = styles?.primary_button_color || '#0A2540'
-  const accentColor = styles?.accent_color || '#00D4B3'
   const cardBackground = styles?.card_background || '#1E2329'
   const textColor = styles?.text_color || '#FFFFFF'
   const borderColor = styles?.border_color || '#334155'
@@ -66,7 +65,7 @@ export function ModernStatsCard({
       <div 
         className="absolute inset-0 opacity-10"
         style={{
-          background: `linear-gradient(135deg, ${primaryColor}30, ${accentColor}20)`
+          background: `linear-gradient(135deg, ${primaryColor}30, ${primaryColor}20)`
         }}
       />
       
@@ -76,11 +75,11 @@ export function ModernStatsCard({
           <div
             className="p-2.5 rounded-xl"
             style={{
-              background: `linear-gradient(135deg, ${accentColor}25, ${accentColor}10)`,
-              border: `1px solid ${accentColor}30`
+              background: `linear-gradient(135deg, ${primaryColor}25, ${primaryColor}10)`,
+              border: `1px solid ${primaryColor}30`
             }}
           >
-            <Icon className="w-5 h-5" style={{ color: accentColor }} />
+            <Icon className="w-5 h-5" style={{ color: primaryColor }} />
           </div>
         </div>
         
@@ -102,7 +101,7 @@ export function ModernStatsCard({
       <div
         className="absolute inset-0 rounded-2xl pointer-events-none"
         style={{
-          background: `linear-gradient(135deg, ${primaryColor}30, transparent, ${accentColor}15)`,
+          background: `linear-gradient(135deg, ${primaryColor}30, transparent, ${primaryColor}15)`,
           padding: '1px',
           mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
           maskComposite: 'exclude',

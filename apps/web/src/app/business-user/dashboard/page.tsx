@@ -18,6 +18,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
 import { getBackgroundStyle, generateCSSVariables } from '@/features/business-panel/utils/styles'
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 import { LIA_PANEL_WIDTH } from '@/core/components/LiaSidePanel'
 
 // Removed old tour hook
@@ -89,18 +90,22 @@ export default function BusinessUserDashboardPage() {
   useEffect(() => setIsMounted(true), [])
 
   // Colores personalizados de la organización con detección de modo
+  const { resolvedTheme } = useThemeStore()
+  const isSystemLightMode = resolvedTheme === 'light'
+  
   const orgColors = useMemo(() => {
-    const cardBg = userDashboardStyles?.card_background || '#1E2329'
+    const cardBg = userDashboardStyles?.card_background || (isSystemLightMode ? '#FFFFFF' : '#1E2329')
     const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
-                        cardBg.toLowerCase() === '#f8fafc'
+                        cardBg.toLowerCase() === '#f8fafc' ||
+                        isSystemLightMode
     
     return {
       primary: userDashboardStyles?.primary_button_color || '#0A2540',
       accent: userDashboardStyles?.accent_color || '#00D4B3',
-      text: userDashboardStyles?.text_color || '#FFFFFF',
-      cardBg: userDashboardStyles?.card_background || '#1E2329',
-      sidebarBg: userDashboardStyles?.sidebar_background || '#0F1419',
-      border: userDashboardStyles?.border_color || '#334155',
+      text: userDashboardStyles?.text_color || (isLightMode ? '#1E293B' : '#FFFFFF'),
+      cardBg: userDashboardStyles?.card_background || (isLightMode ? '#FFFFFF' : '#1E2329'),
+      sidebarBg: userDashboardStyles?.sidebar_background || (isLightMode ? '#FFFFFF' : '#0F1419'),
+      border: userDashboardStyles?.border_color || (isLightMode ? '#E2E8F0' : '#334155'),
       isLightMode,
       // Colores secundarios que se adaptan al modo
       textSecondary: isLightMode ? '#64748B' : '#9CA3AF',
@@ -113,7 +118,7 @@ export default function BusinessUserDashboardPage() {
         : 'linear-gradient(to right, rgba(10, 22, 40, 0.9) 0%, rgba(10, 22, 40, 0.5) 50%, transparent 100%)',
       gridPattern: isLightMode ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
     }
-  }, [userDashboardStyles])
+  }, [userDashboardStyles, isSystemLightMode])
 
   const [stats, setStats] = useState<DashboardStats>({
     total_assigned: 0,
@@ -434,7 +439,7 @@ export default function BusinessUserDashboardPage() {
               />
               <div
                 className="absolute bottom-8 right-24 w-1.5 h-1.5 rounded-full z-10 opacity-60"
-                style={{ backgroundColor: orgColors.accent }}
+                style={{ backgroundColor: orgColors.primary }}
               />
               <div
                 className="absolute top-1/2 right-16 w-1 h-1 rounded-full z-10 opacity-40"
@@ -442,7 +447,7 @@ export default function BusinessUserDashboardPage() {
               />
               <div 
                 className="absolute bottom-12 right-32 w-3 h-3 rounded-full"
-                style={{ backgroundColor: `${orgColors.accent}40` }}
+                style={{ backgroundColor: `${orgColors.primary}40` }}
               />
 
               {/* Content */}
@@ -454,12 +459,12 @@ export default function BusinessUserDashboardPage() {
                   transition={{ delay: 0.2 }}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 border"
                   style={{
-                    backgroundColor: `${orgColors.accent}15`,
-                    borderColor: `${orgColors.accent}50`
+                    backgroundColor: `${orgColors.primary}15`,
+                    borderColor: `${orgColors.primary}50`
                   }}
                 >
-                  <Sparkles className="w-4 h-4" style={{ color: orgColors.accent }} />
-                  <span className="text-sm font-medium" style={{ color: orgColors.accent }}>{t('header.learningPanel')}</span>
+                  <Sparkles className="w-4 h-4" style={{ color: orgColors.primary }} />
+                  <span className="text-sm font-medium" style={{ color: orgColors.primary }}>{t('header.learningPanel')}</span>
                 </motion.div>
 
                 {/* Greeting */}
@@ -474,7 +479,7 @@ export default function BusinessUserDashboardPage() {
                   <span
                     className="bg-clip-text text-transparent"
                     style={{
-                      backgroundImage: `linear-gradient(135deg, ${orgColors.accent}, ${orgColors.primary})`,
+                      backgroundImage: `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.primary}CC)`,
                     }}
                   >
                     {user?.first_name || 'Usuario'}
@@ -513,10 +518,9 @@ export default function BusinessUserDashboardPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: orgColors.accent }}
+                      className="w-2 h-2 rounded-full bg-success"
                     />
-                    <span className="text-sm font-medium" style={{ color: orgColors.accent }}>{t('dashboard.systemActive')}</span>
+                    <span className="text-sm font-medium text-success">{t('dashboard.systemActive')}</span>
                   </div>
                 </motion.div>
               </div>
@@ -525,7 +529,7 @@ export default function BusinessUserDashboardPage() {
               <div
                 className="absolute inset-0 rounded-3xl pointer-events-none"
                 style={{
-                  background: `linear-gradient(135deg, ${orgColors.primary}50, transparent, ${orgColors.accent}30)`,
+                  background: `linear-gradient(135deg, ${orgColors.primary}50, transparent, ${orgColors.primary}30)`,
                   padding: '1px',
                   mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                   maskComposite: 'exclude',
@@ -551,11 +555,11 @@ export default function BusinessUserDashboardPage() {
                   <div
                     className="p-2 rounded-xl border"
                     style={{
-                      background: `linear-gradient(135deg, ${orgColors.accent}25, ${orgColors.accent}08)`,
-                      borderColor: `${orgColors.accent}30`
+                      background: `linear-gradient(135deg, ${orgColors.primary}25, ${orgColors.primary}08)`,
+                      borderColor: `${orgColors.primary}30`
                     }}
                   >
-                    <TrendingUp className="w-5 h-5" style={{ color: orgColors.accent }} />
+                    <TrendingUp className="w-5 h-5" style={{ color: orgColors.primary }} />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold" style={{ color: orgColors.text }}>{t('dashboard.generalStats', 'Tu Progreso')}</h2>
@@ -668,7 +672,7 @@ export default function BusinessUserDashboardPage() {
 
                   {/* Decorative elements - static */}
                   <div className="absolute top-6 right-6">
-                    <Sparkles className="w-5 h-5" style={{ color: `${orgColors.accent}50` }} />
+                    <Sparkles className="w-5 h-5" style={{ color: `${orgColors.primary}50` }} />
                   </div>
                   <div className="absolute bottom-8 left-8">
                     <GraduationCap className="w-6 h-6" style={{ color: `${orgColors.primary}50` }} />

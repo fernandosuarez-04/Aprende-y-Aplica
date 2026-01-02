@@ -35,10 +35,10 @@ export function useOrganizationStyles() {
 
   // Calcular estilos efectivos según el modo del tema
   const effectiveStyles = useMemo<OrganizationStyles | null>(() => {
-    if (!styles) return null;
-    
-    // Si el tema soporta modo dual, obtener los estilos para el modo actual
-    if (styles.supportsDualMode && styles.selectedTheme) {
+    // Si el tema soporta modo dual, SIEMPRE obtener los estilos del preset según el modo actual
+    // Esto es importante porque los estilos guardados en la BD pueden estar desactualizados
+    // y no reflejar correctamente el modo claro/oscuro
+    if (styles?.supportsDualMode && styles?.selectedTheme) {
       const modeStyles = getThemeStylesForMode(styles.selectedTheme, resolvedTheme);
       if (modeStyles) {
         return {
@@ -48,6 +48,21 @@ export function useOrganizationStyles() {
           login: modeStyles.login,
         };
       }
+    }
+    
+    // Si styles es null pero tenemos tema por defecto, usar SOFIA con el modo actual
+    if (!styles) {
+      const defaultModeStyles = getThemeStylesForMode('sofia', resolvedTheme);
+      if (defaultModeStyles) {
+        return {
+          panel: defaultModeStyles.panel,
+          userDashboard: defaultModeStyles.userDashboard,
+          login: defaultModeStyles.login,
+          selectedTheme: 'sofia',
+          supportsDualMode: true,
+        };
+      }
+      return null;
     }
     
     // Si no soporta modo dual, retornar los estilos tal cual

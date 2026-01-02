@@ -36,22 +36,7 @@ export async function GET(
       return NextResponse.json({ error: 'Comunidad no encontrada' }, { status: 404 });
     }
 
-    // Si hay usuario autenticado, verificar si necesita completar el cuestionario
-    // Solo requerir cuestionario para comunidades privadas o para acciones que requieren membresía
-    // Las comunidades públicas (access_type === 'open') pueden ser vistas sin cuestionario
-    if (user && (community.access_type === 'invitation_only' || community.access_type === 'request')) {
-      const { QuestionnaireValidationService } = await import('../../../../../features/auth/services/questionnaire-validation.service');
-      const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
-      
-      if (requiresQuestionnaire) {
-        logger.log('🔒 User needs to complete questionnaire before accessing private community posts');
-        return NextResponse.json({ 
-          error: 'Debes completar el cuestionario de Mis Estadísticas antes de acceder a comunidades privadas',
-          requiresQuestionnaire: true,
-          redirectUrl: '/statistics'
-        }, { status: 403 });
-      }
-    }
+
 
     // Verificar acceso según el tipo de comunidad
     if (community.access_type === 'invitation_only') {
@@ -210,18 +195,7 @@ export async function POST(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // Verificar si el usuario necesita completar el cuestionario
-    // Esta validación es obligatoria para TODOS los usuarios que quieran acceder a comunidades
-    const { QuestionnaireValidationService } = await import('../../../../../features/auth/services/questionnaire-validation.service');
-    const requiresQuestionnaire = await QuestionnaireValidationService.requiresQuestionnaire(user.id);
-    
-    if (requiresQuestionnaire) {
-      return NextResponse.json({ 
-        error: 'Debes completar el cuestionario de Mis Estadísticas antes de crear posts en comunidades',
-        requiresQuestionnaire: true,
-        redirectUrl: '/statistics'
-      }, { status: 403 });
-    }
+
 
     let requestBody: any;
     try {

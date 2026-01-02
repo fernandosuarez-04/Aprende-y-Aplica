@@ -19,6 +19,7 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 import { LIA_PANEL_WIDTH } from '@/core/components/LiaSidePanel'
 
 interface TeamSummary {
@@ -50,16 +51,20 @@ export default function MyTeamsPage() {
   const [teams, setTeams] = useState<TeamSummary[]>([])
 
   // Colores personalizados con detección de modo
+  const { resolvedTheme } = useThemeStore()
+  const isSystemLightMode = resolvedTheme === 'light'
+  
   const orgColors = useMemo(() => {
     const userDashboardStyles = effectiveStyles?.userDashboard
-    const cardBg = userDashboardStyles?.card_background || '#1E2329'
+    const cardBg = userDashboardStyles?.card_background || (isSystemLightMode ? '#FFFFFF' : '#1E2329')
     const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
                         cardBg.toLowerCase() === '#f8fafc' ||
-                        cardBg.toLowerCase().includes('255, 255, 255')
+                        cardBg.toLowerCase().includes('255, 255, 255') ||
+                        isSystemLightMode
     
     // Obtener valores base
-    let sidebarBg = userDashboardStyles?.sidebar_background || (isLightMode ? '#F1F5F9' : '#0F1419')
-    let textColor = userDashboardStyles?.text_color || (isLightMode ? '#0F172A' : '#FFFFFF')
+    let sidebarBg = userDashboardStyles?.sidebar_background || (isLightMode ? '#FFFFFF' : '#0F1419')
+    let textColor = userDashboardStyles?.text_color || (isLightMode ? '#1E293B' : '#FFFFFF')
     let borderColor = userDashboardStyles?.border_color || (isLightMode ? '#E2E8F0' : '#334155')
 
     // LÓGICA DE DETECCIÓN Y CORRECCIÓN DE INCONSISTENCIAS
@@ -67,17 +72,17 @@ export default function MyTeamsPage() {
     if (isLightMode) {
         // FORZAR fondo claro y texto oscuro para garantizar legibilidad
         // Ignoramos el sidebar_background de la BD si estamos en modo claro para evitar fondos oscuros heredados
-        sidebarBg = '#F1F5F9'
+        sidebarBg = '#FFFFFF'
         
         if (textColor.toLowerCase() === '#ffffff' || textColor.toLowerCase() === '#fff') {
-            textColor = '#0F172A'
+            textColor = '#1E293B'
         }
     }
 
     return {
       primary: userDashboardStyles?.primary_button_color || '#0A2540',
       accent: userDashboardStyles?.accent_color || '#00D4B3',
-      cardBg: cardBg,
+      cardBg: isLightMode ? '#FFFFFF' : cardBg,
       sidebarBg,
       text: textColor,
       border: borderColor,
@@ -85,7 +90,7 @@ export default function MyTeamsPage() {
       textSecondary: isLightMode ? '#64748B' : '#9CA3AF',
       textMuted: isLightMode ? '#94A3B8' : '#6B7280',
     }
-  }, [effectiveStyles])
+  }, [effectiveStyles, isSystemLightMode])
 
   const fetchTeams = useCallback(async () => {
     try {

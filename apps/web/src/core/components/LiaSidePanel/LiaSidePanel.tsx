@@ -51,7 +51,7 @@ function parseMarkdownContent(text: string, onLinkClick: (url: string) => void):
               onLinkClick(linkUrl);
             }}
             style={{
-              color: '#00D4B3',
+              color: '#0A2540',
               textDecoration: 'underline',
               cursor: 'pointer',
               fontWeight: 500,
@@ -156,7 +156,7 @@ function LiaSidePanelContent() {
     textSecondary: isLightTheme ? '#64748B' : '#6b7280',
     inputBg: isLightTheme ? '#F1F5F9' : 'rgba(255, 255, 255, 0.05)',
     inputBorder: isLightTheme ? '#CBD5E1' : (effectiveStyles?.border_color || '#374151'),
-    accentColor: effectiveStyles?.accent_color || '#00D4B3',
+    accentColor: effectiveStyles?.primary_button_color || '#0A2540', // Usando color primario según SOFIA
   };
   
   const { messages, isLoading, sendMessage, clearHistory } = useLiaGeneralChat();

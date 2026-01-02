@@ -30,6 +30,7 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 import { LIA_PANEL_WIDTH } from '@/core/components/LiaSidePanel'
 import { TeamChatTab } from '@/features/business-panel/components/TeamChatTab'
 import { TeamFeedbackTab } from '@/features/business-panel/components/TeamFeedbackTab'
@@ -127,17 +128,21 @@ export default function TeamDetailPage() {
     return baseTabs
   }, [isLeader])
 
+  const { resolvedTheme } = useThemeStore()
+  const isSystemLightMode = resolvedTheme === 'light'
+
   const orgColors = useMemo(() => {
     const userDashboardStyles = effectiveStyles?.userDashboard
     // Detectar modo claro basado en el fondo de las tarjetas
-    const cardBg = userDashboardStyles?.card_background || '#1E2329'
+    const cardBg = userDashboardStyles?.card_background || (isSystemLightMode ? '#FFFFFF' : '#1E2329')
     const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
                         cardBg.toLowerCase() === '#f8fafc' ||
-                        cardBg.toLowerCase().includes('255, 255, 255')
+                        cardBg.toLowerCase().includes('255, 255, 255') ||
+                        isSystemLightMode
     
     // Obtener valores base
-    let sidebarBg = userDashboardStyles?.sidebar_background || (isLightMode ? '#F1F5F9' : '#0F1419')
-    let textColor = userDashboardStyles?.text_color || (isLightMode ? '#0F172A' : '#FFFFFF')
+    let sidebarBg = userDashboardStyles?.sidebar_background || (isLightMode ? '#FFFFFF' : '#0F1419')
+    let textColor = userDashboardStyles?.text_color || (isLightMode ? '#1E293B' : '#FFFFFF')
     let borderColor = userDashboardStyles?.border_color || (isLightMode ? '#E2E8F0' : '#334155')
 
     // LÓGICA DE DETECCIÓN Y CORRECCIÓN DE INCONSISTENCIAS
@@ -145,17 +150,17 @@ export default function TeamDetailPage() {
     if (isLightMode) {
         // FORZAR fondo claro y texto oscuro para garantizar legibilidad
         // Ignoramos el sidebar_background de la BD si estamos en modo claro para evitar fondos oscuros heredados
-        sidebarBg = '#F1F5F9' 
+        sidebarBg = '#FFFFFF' 
         
         if (textColor.toLowerCase() === '#ffffff' || textColor.toLowerCase() === '#fff') {
-            textColor = '#0F172A'
+            textColor = '#1E293B'
         }
     }
 
     return {
       primary: userDashboardStyles?.primary_button_color || '#0A2540',
       accent: userDashboardStyles?.accent_color || '#00D4B3',
-      cardBg: cardBg,
+      cardBg: isLightMode ? '#FFFFFF' : cardBg,
       sidebarBg,
       text: textColor,
       border: borderColor,
@@ -166,7 +171,7 @@ export default function TeamDetailPage() {
         ? 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 50%, #F8FAFC 100%)'
         : 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)',
     }
-  }, [effectiveStyles])
+  }, [effectiveStyles, isSystemLightMode])
 
   const fetchTeamData = useCallback(async () => {
     if (!slug) return
@@ -234,21 +239,12 @@ export default function TeamDetailPage() {
   // Loading state
   if (loading) {
     return (
-      <main
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: orgColors.sidebarBg }}
-      >
+      <main className="min-h-screen flex items-center justify-center bg-white dark:bg-[#0F1419]">
         <div className="flex flex-col items-center gap-6">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center animate-pulse"
-            style={{
-              background: `linear-gradient(135deg, ${orgColors.primary}15, ${orgColors.accent}15)`,
-              border: `2px solid ${orgColors.accent}50`
-            }}
-          >
-            <Users className="w-8 h-8" style={{ color: orgColors.accent }} />
+          <div className="w-16 h-16 rounded-full flex items-center justify-center animate-pulse bg-[#00D4B3]/10 border-2 border-[#00D4B3]/50">
+            <Users className="w-8 h-8 text-[#00D4B3]" />
           </div>
-          <p className="text-lg" style={{ color: orgColors.text }}>Cargando información del equipo...</p>
+          <p className="text-lg text-gray-900 dark:text-white">Cargando información del equipo...</p>
         </div>
       </main>
     )
@@ -257,29 +253,25 @@ export default function TeamDetailPage() {
   // Error state
   if (error) {
     return (
-      <main
-        className="min-h-screen flex items-center justify-center p-6"
-        style={{ background: orgColors.sidebarBg }}
-      >
+      <main className="min-h-screen flex items-center justify-center p-6 bg-white dark:bg-[#0F1419]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-6 max-w-md text-center p-8 rounded-2xl border border-red-500/20 backdrop-blur-xl"
-          style={{ backgroundColor: orgColors.cardBg }}
+          className="flex flex-col items-center gap-6 max-w-md text-center p-8 rounded-2xl border border-red-500/20 backdrop-blur-xl bg-gray-50 dark:bg-[#1E2329]"
         >
           <div className="p-4 rounded-full bg-red-500/10">
             <AlertCircle className="w-12 h-12 text-red-400" />
           </div>
           <div>
             <p className="text-red-400 text-xl font-semibold">Error al cargar equipo</p>
-            <p className="text-gray-400 text-sm mt-2">{error}</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">{error}</p>
           </div>
           <div className="flex gap-3">
             <motion.button
               onClick={() => router.push('/business-user/teams')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 text-white rounded-xl font-medium border border-white/20 bg-white/5"
+              className="px-6 py-3 rounded-xl font-medium border border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white"
             >
               Volver a equipos
             </motion.button>
@@ -287,11 +279,7 @@ export default function TeamDetailPage() {
               onClick={fetchTeamData}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium"
-              style={{
-                background: `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.accent})`,
-                color: '#FFFFFF'
-              }}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-[#0A2540] to-[#00D4B3] text-white"
             >
               <RefreshCw className="w-4 h-4" />
               Reintentar
@@ -304,34 +292,26 @@ export default function TeamDetailPage() {
 
   if (!team) {
     return (
-      <main
-        className="min-h-screen flex items-center justify-center p-6"
-        style={{ background: '#0F1419' }}
-      >
+      <main className="min-h-screen flex items-center justify-center p-6 bg-white dark:bg-[#0F1419]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-6 max-w-md text-center p-8 rounded-2xl border border-white/10 backdrop-blur-xl"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.8)' }}
+          className="flex flex-col items-center gap-6 max-w-md text-center p-8 rounded-2xl border border-gray-200 dark:border-white/10 backdrop-blur-xl bg-gray-50 dark:bg-[#0F172A]/80"
         >
-          <div className="p-4 rounded-full" style={{ backgroundColor: `${orgColors.primary}20` }}>
-            <Users className="w-12 h-12" style={{ color: orgColors.primary }} />
+          <div className="p-4 rounded-full bg-[#0A2540]/10 dark:bg-[#0A2540]/20">
+            <Users className="w-12 h-12 text-[#0A2540] dark:text-[#00D4B3]" />
           </div>
           <div>
-            <p className="text-white text-xl font-semibold">Equipo no encontrado</p>
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="text-gray-900 dark:text-white text-xl font-semibold">Equipo no encontrado</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
               El equipo que buscas no existe o no tienes acceso a él.
             </p>
           </div>
-            <motion.button
+          <motion.button
             onClick={() => router.push('/business-user/teams')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium"
-            style={{
-              background: `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.accent})`,
-              color: '#FFFFFF'
-            }}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-[#0A2540] to-[#00D4B3] text-white"
           >
             Ver mis equipos
           </motion.button>
@@ -343,19 +323,15 @@ export default function TeamDetailPage() {
   return (
     <OrganizationStylesProvider>
       <main
-        className="min-h-screen transition-all duration-300"
-        style={{
-          background: '#0F1419',
-          paddingRight: isPanelOpen ? `${LIA_PANEL_WIDTH}px` : '0'
-        }}
+        className="min-h-screen transition-all duration-300 bg-white dark:bg-[#0F1419]"
+        style={{ paddingRight: isPanelOpen ? `${LIA_PANEL_WIDTH}px` : '0' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-8">
           {/* Back button */}
           <motion.button
             onClick={() => router.push('/business-user/teams')}
-            className="flex items-center gap-2 transition-colors mb-8"
-            style={{ color: orgColors.textSecondary }}
-            whileHover={{ x: -4, color: orgColors.text }}
+            className="flex items-center gap-2 transition-colors mb-8 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            whileHover={{ x: -4 }}
           >
             <ChevronLeft className="w-5 h-5" />
             <span>Volver a mis equipos</span>
@@ -365,23 +341,13 @@ export default function TeamDetailPage() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-3xl p-8 mb-8"
-            style={{
-              background: orgColors.heroBg
-            }}
+            className="relative overflow-hidden rounded-3xl p-8 mb-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0a1628] dark:via-[#0f1e30] dark:to-[#0d1a2a]"
           >
-            <div
-              className="absolute -right-20 top-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[120px]"
-              style={{ backgroundColor: `${orgColors.accent}20` }}
-            />
+            <div className="absolute -right-20 top-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[120px] bg-[#00D4B3]/20" />
 
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
               <div
-                className="w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden"
-                style={{
-                  background: team.image_url ? undefined : `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.accent})`,
-                  boxShadow: `0 8px 32px ${orgColors.primary}40`
-                }}
+                className="w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-lg"
               >
                 {team.image_url ? (
                   <Image
@@ -398,17 +364,14 @@ export default function TeamDetailPage() {
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2 flex-wrap">
-                  <h1 className="text-3xl font-bold" style={{ color: orgColors.text }}>{team.name}</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{team.name}</h1>
                   {membership && (
                     <span
-                      className="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1"
-                      style={{
-                        background: isLeader 
-                          ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1))'
-                          : `linear-gradient(135deg, ${orgColors.accent}20, ${orgColors.accent}10)`,
-                        color: isLeader ? '#FCD34D' : orgColors.accent,
-                        border: `1px solid ${isLeader ? 'rgba(251, 191, 36, 0.3)' : `${orgColors.accent}30`}`
-                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 border ${
+                        isLeader 
+                          ? 'bg-gradient-to-r from-amber-500/20 to-amber-500/10 text-amber-500 dark:text-amber-300 border-amber-500/30'
+                          : 'bg-[#00D4B3]/10 text-[#00D4B3] border-[#00D4B3]/30'
+                      }`}
                     >
                       {isLeader && <Crown className="w-3 h-3" />}
                       {getRoleBadge(membership.role).label}
@@ -416,9 +379,9 @@ export default function TeamDetailPage() {
                   )}
                 </div>
                 {team.description && (
-                  <p className="mb-4 max-w-2xl" style={{ color: orgColors.textSecondary }}>{team.description}</p>
+                  <p className="mb-4 max-w-2xl text-gray-500 dark:text-gray-400">{team.description}</p>
                 )}
-                <div className="flex flex-wrap items-center gap-4 text-sm" style={{ color: orgColors.textSecondary }}>
+                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     <span>{team.member_count} miembros</span>
@@ -438,14 +401,11 @@ export default function TeamDetailPage() {
 
               {/* Role permissions indicator for leaders */}
               {isLeader && (
-                <div
-                  className="hidden md:flex flex-col gap-1 p-3 rounded-xl"
-                  style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)' }}
-                >
-                  <span className="text-xs font-medium text-amber-400 flex items-center gap-1">
+                <div className="hidden md:flex flex-col gap-1 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <span className="text-xs font-medium text-amber-500 dark:text-amber-400 flex items-center gap-1">
                     <Crown className="w-3 h-3" /> Permisos de líder
                   </span>
-                  <span className="text-[10px] text-amber-400/70">
+                  <span className="text-[10px] text-amber-500/70 dark:text-amber-400/70">
                     Gestiona feedback y objetivos
                   </span>
                 </div>
@@ -465,16 +425,11 @@ export default function TeamDetailPage() {
                   onClick={() => setActiveTab(tab.id)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl font-medium text-sm transition-all whitespace-nowrap"
-                  style={{
-                    background: isActive 
-                      ? `linear-gradient(135deg, ${orgColors.accent}25, ${orgColors.accent}10)` 
-                      : orgColors.isLightMode ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
-                    borderWidth: 1,
-                    borderStyle: 'solid',
-                    borderColor: isActive ? `${orgColors.accent}40` : orgColors.isLightMode ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
-                    color: isActive ? orgColors.accent : orgColors.textSecondary
-                  }}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium text-sm transition-all whitespace-nowrap border ${
+                    isActive 
+                      ? 'bg-primary border-primary text-white' 
+                      : 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'
+                  }`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
@@ -496,18 +451,12 @@ export default function TeamDetailPage() {
                 {/* Members Section */}
                 <div className="lg:col-span-2">
                   <div className="flex items-center gap-3 mb-6">
-                    <div
-                      className="p-2 rounded-xl border"
-                      style={{
-                        background: `linear-gradient(135deg, ${orgColors.accent}25, ${orgColors.accent}08)`,
-                        borderColor: `${orgColors.accent}30`
-                      }}
-                    >
-                      <Users className="w-5 h-5" style={{ color: orgColors.accent }} />
+                    <div className="p-2 rounded-xl border bg-[#00D4B3]/15 border-[#00D4B3]/30">
+                      <Users className="w-5 h-5 text-[#00D4B3]" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold" style={{ color: orgColors.text }}>Miembros del Equipo</h2>
-                      <p className="text-sm" style={{ color: orgColors.textSecondary }}>{members.length} compañeros</p>
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Miembros del Equipo</h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{members.length} compañeros</p>
                     </div>
                   </div>
 
@@ -531,22 +480,15 @@ export default function TeamDetailPage() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          className={`relative p-4 rounded-2xl border transition-all duration-300 hover:border-white/20 ${isMemberLeader ? 'sm:col-span-2' : ''}`}
-                          style={{
-                            backgroundColor: isMemberLeader 
-                              ? 'rgba(251, 191, 36, 0.08)' 
-                              : member.isCurrentUser 
-                                ? `${orgColors.accent}08` 
-                                : orgColors.cardBg,
-                            borderColor: isMemberLeader 
-                              ? 'rgba(251, 191, 36, 0.4)' 
+                          className={`relative p-4 rounded-2xl border transition-all duration-300 ${
+                            isMemberLeader 
+                              ? 'sm:col-span-2 bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/30 shadow-lg shadow-amber-500/10' 
                               : isCoLeader
-                                ? 'rgba(168, 85, 247, 0.3)'
+                                ? 'bg-purple-500/5 dark:bg-purple-500/10 border-purple-500/20'
                                 : member.isCurrentUser 
-                                  ? `${orgColors.accent}30` 
-                                  : orgColors.border,
-                            boxShadow: isMemberLeader ? '0 4px 20px rgba(251, 191, 36, 0.15)' : undefined
-                          }}
+                                  ? 'bg-primary/5 dark:bg-primary/10 border-primary/30' 
+                                  : 'bg-white dark:bg-[#1E2329] border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-white/20'
+                          }`}
                         >
                           {/* Leader Crown Badge */}
                           {isMemberLeader && (
@@ -579,11 +521,11 @@ export default function TeamDetailPage() {
                           {/* "You" Badge */}
                           {member.isCurrentUser && (
                             <span
-                              className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium"
-                              style={{
-                                background: hasLeadership ? 'rgba(255,255,255,0.2)' : `${orgColors.accent}20`,
-                                color: hasLeadership ? 'white' : orgColors.accent
-                              }}
+                              className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                hasLeadership 
+                                  ? 'bg-white/20 text-white' 
+                                  : 'bg-primary/20 text-primary'
+                              }`}
                             >
                               Tú
                             </span>
