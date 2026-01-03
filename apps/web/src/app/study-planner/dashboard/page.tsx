@@ -962,34 +962,11 @@ export default function StudyPlannerDashboardPage() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{
-              position: 'fixed',
-              top: 0,
-              right: 0,
-              width: '100%',
-              maxWidth: '420px',
-              height: '100vh',
-              backgroundColor: '#0a0f14',
-              borderLeft: '1px solid #1e2a35',
-              borderTopLeftRadius: '30px',
-              borderBottomLeftRadius: '30px',
-              overflow: 'hidden',
-              zIndex: 40,
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '-4px 0 32px rgba(0, 0, 0, 0.4)',
-            }}
+            className="fixed top-0 right-0 w-full max-w-[420px] h-screen bg-white dark:bg-[#0a0f14] border-l border-gray-200 dark:border-[#1e2a35] rounded-tl-[30px] rounded-bl-[30px] overflow-hidden z-40 flex flex-col shadow-[-4px_0_32px_rgba(0,0,0,0.1)] dark:shadow-[-4px_0_32px_rgba(0,0,0,0.4)]"
           >
             {/* Header del panel */}
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '20px 24px',
-                borderBottom: '1px solid #1e2a35',
-                backgroundColor: '#0a0f14',
-              }}
+              className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-[#1e2a35] bg-white dark:bg-[#0a0f14]"
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 {/* Avatar de LIA con indicador online */}
@@ -1020,85 +997,46 @@ export default function StudyPlannerDashboardPage() {
                 </div>
                 
                 <div>
-                  <h2 style={{ color: '#FFFFFF', fontSize: '16px', fontWeight: 600, margin: 0, lineHeight: 1.2 }}>
+                  <h2 className="text-gray-900 dark:text-white text-base font-semibold m-0 leading-[1.2]">
                     LIA
                   </h2>
-                  <p style={{ color: '#00D4B3', fontSize: '12px', fontWeight: 500, margin: 0 }}>
+                  <p className="text-[#00D4B3] text-xs font-medium m-0">
                     Asistente de tu plan
                   </p>
                 </div>
               </div>
               
               {/* Botones de acción (Limpiar + Cerrar) */}
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="flex gap-2">
                 <button
                   onClick={() => {/* TODO: clearMessages */}}
                   title="Limpiar conversación"
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: messages.length > 0 ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background-color 0.2s',
-                    opacity: messages.length > 0 ? 1 : 0.5,
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#450a0a'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  className={`
+                    w-8 h-8 rounded-lg bg-transparent border-none flex items-center justify-center transition-colors
+                    hover:bg-red-50 dark:hover:bg-[#450a0a]
+                    ${messages.length > 0 ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-50'}
+                  `}
                 >
-                  <Trash2 style={{ width: '18px', height: '18px', color: '#f87171' }} />
+                  <Trash2 className="w-[18px] h-[18px] text-red-500 dark:text-[#f87171]" />
                 </button>
 
                 <button
                   onClick={() => setIsLiaCollapsed(true)}
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background-color 0.2s',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e2a35'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  className="w-8 h-8 rounded-lg bg-transparent border-none flex items-center justify-center transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1e2a35]"
                 >
-                  <X style={{ width: '18px', height: '18px', color: '#6b7280' }} />
+                  <X className="w-[18px] h-[18px] text-gray-500 dark:text-[#6b7280]" />
                 </button>
               </div>
             </div>
 
             {/* Messages Area */}
             <div
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '16px 20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-              }}
+              className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3"
             >
               {messages.length === 0 ? (
                 // Empty State / Loading Screen Style
                 <div
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textAlign: 'center',
-                    opacity: 0.8,
-                    padding: '0 20px'
-                  }}
+                  className="flex-1 flex flex-col items-center justify-center text-center opacity-80 px-5"
                 >
                   <motion.div
                     initial={{ scale: 0.9, opacity: 0 }}
@@ -1142,21 +1080,10 @@ export default function StudyPlannerDashboardPage() {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2, duration: 0.5 }}
                   >
-                    <h3 style={{ 
-                      color: '#FFFFFF', 
-                      fontSize: '18px', 
-                      fontWeight: 600, 
-                      marginBottom: '8px' 
-                    }}>
+                    <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">
                       LIA
                     </h3>
-                    <p style={{ 
-                      color: '#6b7280', 
-                      fontSize: '14px', 
-                      lineHeight: 1.5,
-                      maxWidth: '280px',
-                      margin: '0 auto'
-                    }}>
+                    <p className="text-gray-500 dark:text-[#6b7280] text-sm leading-relaxed max-w-[280px] mx-auto">
                       Puedo ayudarte a reprogramar sesiones, ajustar tu plan o resolver conflictos de horario.
                     </p>
                   </motion.div>
@@ -1167,62 +1094,53 @@ export default function StudyPlannerDashboardPage() {
                   {messages.map((msg) => (
                     <div
                       key={msg.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                      }}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       {msg.role !== 'user' && (
-                        <div style={{ marginRight: '8px', flexShrink: 0 }}>
+                        <div className="mr-2 flex-shrink-0">
                           <Image
                             src="/lia-avatar.png"
                             alt="LIA"
                             width={32}
                             height={32}
-                            style={{ borderRadius: '50%', objectFit: 'cover' }}
+                            className="rounded-full object-cover"
                           />
                         </div>
                       )}
                       <div
-                        style={{
-                          maxWidth: '85%',
-                          padding: '12px 16px',
-                          borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                          backgroundColor: msg.role === 'user' ? '#0A2540' : '#1e2a35',
-                          color: '#FFFFFF',
-                        }}
+                        className={`
+                          max-w-[85%] px-4 py-3 
+                          ${msg.role === 'user' 
+                            ? 'bg-[#0A2540] dark:bg-[#0A2540] text-white rounded-[16px_16px_4px_16px]' 
+                            : 'bg-gray-100 dark:bg-[#1e2a35] text-gray-900 dark:text-white rounded-[16px_16px_16px_4px]'}
+                        `}
                       >
-                        <div style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
+                        <div className="text-sm leading-relaxed m-0 whitespace-pre-wrap">
                           <ReactMarkdown
                             components={{
-                              p: ({ children }) => <p style={{ margin: '0 0 8px 0' }}>{children}</p>,
-                              strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
-                              ul: ({ children }) => <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>{children}</ul>,
-                              li: ({ children }) => <li style={{ marginBottom: '4px' }}>{children}</li>,
+                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                              strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                              ul: ({ children }) => <ul className="my-2 pl-5 list-disc">{children}</ul>,
+                              li: ({ children }) => <li className="mb-1">{children}</li>,
                             }}
                           >
                             {msg.content}
                           </ReactMarkdown>
                         </div>
                         {msg.actionStatus === 'success' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px', fontSize: '12px', color: '#22c55e' }}>
-                            <CheckCircle style={{ width: '12px', height: '12px' }} />
+                          <div className="flex items-center gap-1 mt-2 text-xs text-green-500">
+                            <CheckCircle className="w-3 h-3" />
                             <span>Acción completada</span>
                           </div>
                         )}
                         {msg.actionStatus === 'error' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px', fontSize: '12px', color: '#ef4444' }}>
-                            <XCircle style={{ width: '12px', height: '12px' }} />
+                          <div className="flex items-center gap-1 mt-2 text-xs text-red-500">
+                            <XCircle className="w-3 h-3" />
                             <span>Error en la acción</span>
                           </div>
                         )}
                         <p
-                          style={{
-                            fontSize: '10px',
-                            marginTop: '6px',
-                            marginBottom: 0,
-                            color: msg.role === 'user' ? 'rgba(255,255,255,0.7)' : '#6b7280',
-                          }}
+                          className={`text-[10px] mt-1.5 mb-0 ${msg.role === 'user' ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}
                         >
                           {msg.timestamp.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                         </p>
@@ -1235,28 +1153,22 @@ export default function StudyPlannerDashboardPage() {
               
               {/* Loading indicator */}
               {isSending && (
-                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <div style={{ marginRight: '8px', flexShrink: 0 }}>
+                <div className="flex justify-start">
+                  <div className="mr-2 flex-shrink-0">
                     <Image
                       src="/lia-avatar.png"
                       alt="LIA"
                       width={32}
                       height={32}
-                      style={{ borderRadius: '50%', objectFit: 'cover' }}
+                      className="rounded-full object-cover"
                     />
                   </div>
                   <div
-                    style={{
-                      padding: '12px 16px',
-                      borderRadius: '16px 16px 16px 4px',
-                      backgroundColor: '#1e2a35',
-                      display: 'flex',
-                      gap: '6px',
-                    }}
+                    className="px-4 py-3 rounded-[16px_16px_16px_4px] bg-gray-100 dark:bg-[#1e2a35] flex gap-1.5 items-center"
                   >
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00D4B3', animation: 'liaPulse 1s infinite' }} />
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00D4B3', animation: 'liaPulse 1s infinite 0.2s' }} />
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00D4B3', animation: 'liaPulse 1s infinite 0.4s' }} />
+                    <div className="w-2 h-2 rounded-full bg-[#00D4B3] animate-[liaPulse_1s_infinite]" />
+                    <div className="w-2 h-2 rounded-full bg-[#00D4B3] animate-[liaPulse_1s_infinite_0.2s]" />
+                    <div className="w-2 h-2 rounded-full bg-[#00D4B3] animate-[liaPulse_1s_infinite_0.4s]" />
                   </div>
                 </div>
               )}
@@ -1264,28 +1176,20 @@ export default function StudyPlannerDashboardPage() {
 
             {/* Error message */}
             {error && (
-              <div style={{ padding: '8px 20px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderTop: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <p style={{ fontSize: '14px', color: '#f87171', margin: 0 }}>{error}</p>
-                  <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-                    <XCircle style={{ width: '16px', height: '16px', color: '#f87171' }} />
+              <div className="px-5 py-2 bg-red-50 dark:bg-red-900/10 border-t border-red-100 dark:border-red-900/20">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-red-500 dark:text-[#f87171] m-0">{error}</p>
+                  <button onClick={clearError} className="bg-transparent border-none cursor-pointer p-1">
+                    <XCircle className="w-4 h-4 text-red-500 dark:text-[#f87171]" />
                   </button>
                 </div>
               </div>
             )}
 
             {/* Input Area */}
-            <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #1e2a35' }}>
+            <div className="p-3 pb-4 border-t border-gray-200 dark:border-[#1e2a35] bg-white dark:bg-[#0a0f14]">
               <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '24px',
-                  padding: '10px 16px',
-                  border: '1px solid #374151',
-                }}
+                className="flex items-center gap-3 bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] rounded-3xl px-4 py-2.5 border border-gray-200 dark:border-[#374151]"
               >
                 <input
                   id="dashboard-chat-input"
@@ -1298,36 +1202,23 @@ export default function StudyPlannerDashboardPage() {
                     }
                   }}
                   placeholder="Escribe un mensaje a LIA..."
-                  style={{
-                    flex: 1,
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: '#FFFFFF',
-                    fontSize: '14px',
-                  }}
+                  className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white text-sm placeholder:text-gray-400"
                 />
                 
                 <button
                   onClick={handleSendMessage}
                   disabled={!message.trim() || isSending}
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    backgroundColor: message.trim() && !isSending ? '#00D4B3' : '#374151',
-                    border: 'none',
-                    cursor: message.trim() && !isSending ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background-color 0.2s',
-                  }}
+                  className={`
+                    w-9 h-9 rounded-full flex items-center justify-center transition-colors
+                    ${message.trim() && !isSending 
+                      ? 'bg-[#00D4B3] hover:bg-[#00c0a3] cursor-pointer' 
+                      : 'bg-gray-200 dark:bg-[#374151] cursor-not-allowed'}
+                  `}
                 >
                   {isSending ? (
-                    <Loader2 style={{ width: '16px', height: '16px', color: 'white', animation: 'spin 1s linear infinite' }} />
+                    <Loader2 className="w-4 h-4 text-white animate-spin" />
                   ) : (
-                    <Send style={{ width: '16px', height: '16px', color: 'white' }} />
+                    <Send className="w-4 h-4 text-white" />
                   )}
                 </button>
               </div>

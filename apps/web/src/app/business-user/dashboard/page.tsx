@@ -3,6 +3,7 @@
 import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import {
   BookOpen,
   Clock,
@@ -390,22 +391,32 @@ export default function BusinessUserDashboardPage() {
               className="relative overflow-hidden rounded-3xl p-8 group"
             >
               {/* Background with layered gradients - no image dependency */}
-              <div className="absolute inset-0 z-0 overflow-hidden">
-                {/* Base background */}
-                <div 
-                  className="absolute inset-0"
-                  style={{
-                    background: orgColors.heroBg
-                  }}
+              <div className="absolute inset-0 z-0 overflow-hidden" 
+                   style={{ 
+                     backgroundColor: orgColors.primary !== '#FFFFFF' ? orgColors.primary : '#0A2540' 
+                   }}
+              >
+                {/* Background Image */}
+                <Image
+                  src="/images/teams-header.png"
+                  alt="Learning Panel Background"
+                  fill
+                  className="object-cover opacity-50"
+                  priority
                 />
                 
+                {/* Gradient Overlay for Depth & Text Contrast */}
+                <div 
+                    className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/20 to-transparent pointer-events-none z-0"
+                />
+
                 {/* Subtle grid pattern */}
                 <div 
-                  className="absolute inset-0 opacity-[0.03]"
+                  className="absolute inset-0 opacity-[0.1]"
                   style={{
                     backgroundImage: `
-                      linear-gradient(${orgColors.gridPattern} 1px, transparent 1px),
-                      linear-gradient(90deg, ${orgColors.gridPattern} 1px, transparent 1px)
+                      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
                     `,
                     backgroundSize: '50px 50px'
                   }}
@@ -421,14 +432,6 @@ export default function BusinessUserDashboardPage() {
                 <div 
                   className="absolute right-1/4 bottom-0 w-64 h-64 rounded-full blur-[100px]"
                   style={{ backgroundColor: `${orgColors.primary}15` }}
-                />
-                
-                {/* Left side overlay for text readability */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: orgColors.heroOverlay
-                  }}
                 />
               </div>
 
@@ -452,35 +455,19 @@ export default function BusinessUserDashboardPage() {
 
               {/* Content */}
               <div className="relative z-10">
-                {/* Badge */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 border"
-                  style={{
-                    backgroundColor: `${orgColors.primary}15`,
-                    borderColor: `${orgColors.primary}50`
-                  }}
-                >
-                  <Sparkles className="w-4 h-4" style={{ color: orgColors.primary }} />
-                  <span className="text-sm font-medium" style={{ color: orgColors.primary }}>{t('header.learningPanel')}</span>
-                </motion.div>
+
 
                 {/* Greeting */}
                 <motion.h1
                   className="text-3xl lg:text-4xl xl:text-5xl font-bold mb-3"
-                  style={{ color: orgColors.text }}
+                  style={{ color: '#FFFFFF' }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                 >
                   {getGreeting()},{' '}
                   <span
-                    className="bg-clip-text text-transparent"
-                    style={{
-                      backgroundImage: `linear-gradient(135deg, ${orgColors.primary}, ${orgColors.primary}CC)`,
-                    }}
+                    className="text-white"
                   >
                     {user?.first_name || 'Usuario'}
                   </span>
@@ -489,7 +476,7 @@ export default function BusinessUserDashboardPage() {
                 {/* Subtitle */}
                 <motion.p
                   className="text-lg max-w-xl mb-6"
-                  style={{ color: orgColors.textSecondary }}
+                  style={{ color: 'rgba(255,255,255,0.8)' }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
@@ -506,7 +493,7 @@ export default function BusinessUserDashboardPage() {
                 >
                   <div 
                     className="flex items-center gap-2 text-sm"
-                    style={{ color: orgColors.textSecondary }}
+                    style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     <Clock className="w-4 h-4" />
                     {currentTime.toLocaleDateString('es-MX', {
@@ -518,9 +505,10 @@ export default function BusinessUserDashboardPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-2 h-2 rounded-full bg-success"
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: orgColors.accent }}
                     />
-                    <span className="text-sm font-medium text-success">{t('dashboard.systemActive')}</span>
+                    <span className="text-sm font-medium" style={{ color: orgColors.accent }}>{t('dashboard.systemActive')}</span>
                   </div>
                 </motion.div>
               </div>

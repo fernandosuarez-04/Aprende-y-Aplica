@@ -8588,13 +8588,13 @@ function QuestionsContent({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               whileHover={{ scale: 1.005 }}
-              className="group rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 transition-all duration-300 overflow-hidden"
+              className="group rounded-xl border border-gray-100 bg-white hover:bg-gray-50 hover:border-gray-200 transition-all duration-300 overflow-hidden shadow-sm"
             >
               {/* Header compacto */}
               <div className="p-4">
                 <div className="flex items-start gap-3">
                   {/* Avatar pequeño */}
-                  <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gradient-to-br from-[#0A2540] to-[#0A2540]/80 flex items-center justify-center flex-shrink-0">
+                  <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gradient-to-br from-[#0A2540] to-[#0A2540]/80 flex items-center justify-center flex-shrink-0 text-white">
                     {question.user?.profile_picture_url ? (
                       <Image
                         src={question.user.profile_picture_url}
@@ -8604,7 +8604,7 @@ function QuestionsContent({
                         className="object-cover"
                       />
                     ) : (
-                      <span className="text-white font-medium text-xs">
+                      <span className="font-medium text-xs">
                         {getUserInitials(question.user)}
                       </span>
                     )}
@@ -8613,22 +8613,22 @@ function QuestionsContent({
                   {/* Contenido */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-white truncate">
+                      <span className="text-sm font-medium text-gray-900 truncate">
                         {getUserDisplayName(question.user)}
                       </span>
-                      <span className="text-xs text-white/30">•</span>
-                      <span className="text-xs text-white/40">
+                      <span className="text-xs text-gray-500">•</span>
+                      <span className="text-xs text-gray-500">
                         {formatTimeAgo(question.created_at)}
                       </span>
 
                       {/* Badges */}
                       {question.is_pinned && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-amber-400 bg-amber-500/10 rounded">
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-amber-600 bg-amber-50 rounded">
                           Fijada
                         </span>
                       )}
                       {question.is_resolved && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 rounded flex items-center gap-0.5">
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 bg-emerald-50 rounded flex items-center gap-0.5">
                           <CheckCircle className="w-2.5 h-2.5" />
                           Resuelta
                         </span>
@@ -8646,11 +8646,11 @@ function QuestionsContent({
                       }}
                     >
                       {question.title && (
-                        <h4 className="text-white font-medium text-sm mb-1">
+                        <h4 className="text-gray-900 font-medium text-sm mb-1">
                           {question.title}
                         </h4>
                       )}
-                      <p className="text-white/60 text-sm leading-relaxed">
+                      <p className="text-gray-600 text-sm leading-relaxed">
                         {selectedQuestion === question.id
                           ? question.content
                           : question.content.length > 150
@@ -8668,14 +8668,14 @@ function QuestionsContent({
                 </div>
 
                 {/* Footer con stats y acciones */}
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                   <div className="flex items-center gap-4">
                     <button
                       onClick={(e) => handleReaction(question.id, e)}
                       className={`flex items-center gap-1.5 text-xs transition-colors ${
                         userReactions[question.id] === "like"
-                          ? "text-red-400"
-                          : "text-white/40 hover:text-red-400"
+                          ? "text-red-500"
+                          : "text-gray-400 hover:text-red-500"
                       }`}
                     >
                       <Heart
@@ -8694,12 +8694,12 @@ function QuestionsContent({
                           selectedQuestion === question.id ? null : question.id
                         );
                       }}
-                      className="flex items-center gap-1.5 text-xs text-white/40 hover:text-[#0A2540] transition-colors"
+                      className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#0A2540] transition-colors"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                       <span>{question.response_count}</span>
                     </button>
-                    <span className="flex items-center gap-1.5 text-xs text-white/30">
+                    <span className="flex items-center gap-1.5 text-xs text-gray-400">
                       <Eye className="w-3.5 h-3.5" />
                       <span>{question.view_count}</span>
                     </span>
@@ -8713,7 +8713,7 @@ function QuestionsContent({
                         selectedQuestion === question.id ? null : question.id
                       );
                     }}
-                    className="text-xs text-white/40 hover:text-white flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-xs text-gray-400 hover:text-gray-900 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     Ver conversación
                     <ChevronRight className="w-3 h-3" />
@@ -9388,7 +9388,7 @@ function QuestionDetail({
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
-      className="p-6 border-t border-white/5 bg-black/20"
+      className="p-6 border-t border-gray-100 bg-gray-50"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Formulario de nueva respuesta - Diseño ultra-minimalista */}
@@ -9402,22 +9402,22 @@ function QuestionDetail({
             value={newResponse}
             onChange={(e) => setNewResponse(e.target.value)}
             placeholder="Escribe tu respuesta..."
-            className="w-full bg-transparent border-0 border-b border-white/10 px-0 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-0 resize-none transition-colors min-h-[40px]"
+            className="w-full bg-transparent border-0 border-b border-gray-200 px-0 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-0 resize-none transition-colors min-h-[40px]"
             maxLength={1000}
           />
           <div className="flex justify-between items-center mt-2">
-            <span className="text-[10px] text-white/20">
+            <span className="text-[10px] text-gray-400">
               {newResponse.length}/1000
             </span>
             <motion.button
               onClick={handleSubmitResponse}
               disabled={!newResponse.trim() || isSubmitting}
-              className="flex items-center gap-2 px-4 py-1.5 text-xs bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-1.5 text-xs bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               {isSubmitting ? (
-                <div className="w-3 h-3 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
+                <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Send className="w-3 h-3" />
               )}
@@ -9433,18 +9433,18 @@ function QuestionDetail({
           <div className="space-y-6 animate-pulse">
             {[1, 2].map((i) => (
               <div key={i} className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-white/5"></div>
+                <div className="w-8 h-8 rounded-full bg-gray-200"></div>
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 bg-white/5 rounded w-32"></div>
-                  <div className="h-3 bg-white/5 rounded w-full"></div>
-                  <div className="h-3 bg-white/5 rounded w-2/3"></div>
+                  <div className="h-3 bg-gray-200 rounded w-32"></div>
+                  <div className="h-3 bg-gray-200 rounded w-full"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                 </div>
               </div>
             ))}
           </div>
         ) : responses.length === 0 ? (
-          <div className="text-center py-8 border border-dashed border-white/10 rounded-xl">
-            <p className="text-white/30 text-sm">
+          <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl">
+            <p className="text-gray-400 text-sm">
               Aún no hay respuestas. Sé el primero en responder.
             </p>
           </div>
@@ -9459,7 +9459,7 @@ function QuestionDetail({
             >
               <div className="flex gap-4">
                 {/* Avatar */}
-                <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white/5 flex items-center justify-center flex-shrink-0">
+                <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0 text-white">
                   {response.user?.profile_picture_url ? (
                     <Image
                       src={response.user.profile_picture_url}
@@ -9468,7 +9468,7 @@ function QuestionDetail({
                       className="object-cover"
                     />
                   ) : (
-                    <span className="text-white/60 text-xs font-medium">
+                    <span className="text-gray-500 text-xs font-medium">
                       {getUserInitials(response.user)}
                     </span>
                   )}
@@ -9477,11 +9477,11 @@ function QuestionDetail({
                 <div className="flex-1 min-w-0">
                   {/* Header de respuesta */}
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-sm font-medium text-gray-900">
                       {getUserDisplayName(response.user)}
                     </span>
-                    <span className="text-xs text-white/30">•</span>
-                    <span className="text-xs text-white/30">
+                    <span className="text-xs text-gray-400">•</span>
+                    <span className="text-xs text-gray-400">
                       {formatTimeAgo(response.created_at)}
                     </span>
 
@@ -9493,7 +9493,7 @@ function QuestionDetail({
                   </div>
 
                   {/* Contenido */}
-                  <div className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap mb-2">
+                  <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap mb-2">
                     {response.content}
                   </div>
 
@@ -9503,8 +9503,8 @@ function QuestionDetail({
                       onClick={(e) => handleResponseReaction(response.id, e)}
                       className={`flex items-center gap-1.5 text-xs transition-colors ${
                         responseReactions[response.id] === "like"
-                          ? "text-red-400"
-                          : "text-white/30 hover:text-red-400"
+                          ? "text-red-500"
+                          : "text-gray-400 hover:text-red-500"
                       }`}
                     >
                       <Heart
@@ -9522,7 +9522,7 @@ function QuestionDetail({
                           replyingTo === response.id ? null : response.id
                         )
                       }
-                      className="text-xs text-white/30 hover:text-white transition-colors"
+                      className="text-xs text-gray-400 hover:text-gray-900 transition-colors"
                     >
                       Responder
                     </button>
@@ -9535,20 +9535,20 @@ function QuestionDetail({
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="mt-3 pl-4 border-l border-white/10"
+                        className="mt-3 pl-4 border-l border-gray-200"
                       >
                         <div className="flex gap-3">
                           <textarea
                             value={replyContent}
                             onChange={(e) => setReplyContent(e.target.value)}
                             placeholder="Escribe una respuesta..."
-                            className="flex-1 bg-transparent border-0 border-b border-white/10 px-0 py-1 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-0 resize-none min-h-[32px]"
+                            className="flex-1 bg-transparent border-0 border-b border-gray-200 px-0 py-1 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-0 resize-none min-h-[32px]"
                             rows={1}
                           />
                           <button
                             onClick={() => handleSubmitReply(response.id)}
                             disabled={!replyContent.trim() || isSubmitting}
-                            className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded transition-colors disabled:opacity-30"
+                            className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors disabled:opacity-50"
                           >
                             <Send className="w-3.5 h-3.5" />
                           </button>
@@ -9559,11 +9559,11 @@ function QuestionDetail({
 
                   {/* Respuestas anidadas */}
                   {response.replies && response.replies.length > 0 && (
-                    <div className="mt-4 space-y-4 pl-4 border-l border-white/5">
+                    <div className="mt-4 space-y-4 pl-4 border-l border-gray-100">
                       {response.replies.map((reply: any) => (
                         <div key={reply.id} className="flex gap-3">
                           {/* Avatar pequeño */}
-                          <div className="relative w-6 h-6 rounded bg-white/5 flex items-center justify-center flex-shrink-0">
+                          <div className="relative w-6 h-6 rounded bg-gray-100 flex items-center justify-center flex-shrink-0 text-white">
                             {reply.user?.profile_picture_url ? (
                               <Image
                                 src={reply.user.profile_picture_url}
@@ -9572,7 +9572,7 @@ function QuestionDetail({
                                 className="object-cover rounded"
                               />
                             ) : (
-                              <span className="text-white/60 text-[10px] font-medium">
+                              <span className="text-gray-500 text-[10px] font-medium">
                                 {getUserInitials(reply.user)}
                               </span>
                             )}
@@ -9580,14 +9580,14 @@ function QuestionDetail({
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-sm font-medium text-white/90">
+                              <span className="text-sm font-medium text-gray-900">
                                 {getUserDisplayName(reply.user)}
                               </span>
-                              <span className="text-[10px] text-white/30">
+                              <span className="text-[10px] text-gray-400">
                                 {formatTimeAgo(reply.created_at)}
                               </span>
                             </div>
-                            <p className="text-white/70 text-sm whitespace-pre-wrap">
+                            <p className="text-gray-600 text-sm whitespace-pre-wrap">
                               {reply.content}
                             </p>
                           </div>
@@ -9662,7 +9662,7 @@ function CreateQuestionForm({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
 
       {/* Modal Content */}
@@ -9670,21 +9670,21 @@ function CreateQuestionForm({
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="relative bg-[#0F1419] rounded-2xl border border-white/10 w-full max-w-2xl p-8 shadow-2xl overflow-hidden"
+        className="relative bg-white rounded-2xl border border-gray-200 w-full max-w-2xl p-8 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Decorative elements */}
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <MessageCircle className="w-24 h-24 text-white" />
+        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+          <MessageCircle className="w-24 h-24 text-gray-900" />
         </div>
 
-        <h3 className="text-white font-semibold text-xl mb-6 relative z-10 font-[Inter,sans-serif]">
+        <h3 className="text-gray-900 font-semibold text-xl mb-6 relative z-10 font-[Inter,sans-serif]">
           Nueva Pregunta
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
           <div>
-            <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
+            <label className="block text-gray-500 text-xs font-medium uppercase tracking-wider mb-2">
               Título (opcional)
             </label>
             <input
@@ -9692,13 +9692,13 @@ function CreateQuestionForm({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Escribe un título breve..."
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20 transition-all font-medium"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20 transition-all font-medium"
             />
           </div>
 
           <div>
-            <label className="block text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
-              Contenido <span className="text-red-400">*</span>
+            <label className="block text-gray-500 text-xs font-medium uppercase tracking-wider mb-2">
+              Contenido <span className="text-red-500">*</span>
             </label>
             <textarea
               value={content}
@@ -9706,7 +9706,7 @@ function CreateQuestionForm({
               placeholder="Describe tu duda o comentario en detalle..."
               required
               rows={6}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20 transition-all resize-none leading-relaxed"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#00D4B3]/50 focus:ring-1 focus:ring-[#00D4B3]/20 transition-all resize-none leading-relaxed"
             />
           </div>
 
@@ -9714,14 +9714,14 @@ function CreateQuestionForm({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all text-sm font-medium"
+              className="px-5 py-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all text-sm font-medium"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !content.trim()}
-              className="px-6 py-2.5 bg-[#00D4B3] hover:bg-[#00b89a] text-[#0A2540] rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-[#00D4B3]/20 text-sm font-semibold flex items-center gap-2"
+              className="px-6 py-2.5 bg-[#00D4B3] hover:bg-[#00b89a] text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-[#00D4B3]/20 text-sm font-semibold flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>

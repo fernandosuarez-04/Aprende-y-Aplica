@@ -17,14 +17,7 @@ export default function BusinessPanelReportsPage() {
       animate={{ opacity: 1, y: 0 }}
       className="w-full"
     >
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-heading font-semibold mb-2" style={{ color: textColor }}>
-          {t('reports.title')}
-        </h1>
-        <p className="text-sm font-body opacity-70" style={{ color: textColor }}>
-          {t('reports.subtitle')}
-        </p>
-      </div>
+
       
       <BusinessReports />
     </motion.div>

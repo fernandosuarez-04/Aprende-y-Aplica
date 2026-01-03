@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-react'
 import { Button } from '@aprende-y-aplica/ui'
+import Image from 'next/image'
 import { useBusinessReports } from '../hooks/useBusinessReports'
 import { ReportType } from '@/app/api/business/reports/data/route'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
@@ -174,28 +175,59 @@ export function BusinessReports() {
   return (
     <div className="w-full space-y-6" style={{ color: textColor }}>
       {/* Header Premium */}
+      {/* Header Premium - Redesigned */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl p-8"
+        className="relative overflow-hidden rounded-3xl p-8 shadow-xl"
         style={{ 
-          background: `linear-gradient(135deg, ${primaryColor}20 0%, ${secondaryColor}10 100%)`,
-          border: `1px solid ${cardBorder}`
+          backgroundColor: '#0A2540',
         }}
       >
-        <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10"
-          style={{ background: `radial-gradient(circle, ${primaryColor} 0%, transparent 70%)` }}
+        {/* Background Image Layer */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/images/teams-header.png"
+            alt="Reports Header"
+            fill
+            className="object-cover"
+            style={{ opacity: 0.5 }}
+            priority
+          />
+        </div>
+        
+        {/* Blue Gradient Overlay - Crucial for the 'Blue' look while keeping image visible */}
+        <div 
+            className="absolute inset-0 bg-gradient-to-r from-[#0A2540]/90 via-[#0A2540]/50 to-transparent z-0 pointer-events-none"
         />
+
+        {/* Decorative Particles/Grid - Subtle */}
+        <div 
+          className="absolute inset-0 opacity-10 z-0 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(white 1px, transparent 1px)',
+            backgroundSize: '30px 30px'
+          }}
+        />
+
+        {/* Content Layer */}
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl" style={{ backgroundColor: `${primaryColor}20` }}>
-              <BarChart3 className="w-6 h-6" style={{ color: primaryColor }} />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-inner">
+              <BarChart3 className="w-5 h-5 text-white" />
             </div>
-            <span className="text-sm font-medium uppercase tracking-wider opacity-70">Centro de Reportes</span>
+            <span className="text-sm font-bold tracking-widest uppercase text-blue-100/90 drop-shadow-sm">
+              Centro de Reportes
+            </span>
           </div>
-          <h1 className="text-3xl font-bold mb-2">Reportes y Análisis</h1>
-          <p className="text-sm opacity-70 max-w-xl">
-            Genera reportes detallados de usuarios, actividad y certificados. Exporta los datos en formato Excel.
+          
+          <h1 className="text-3xl md:text-4xl font-bold mb-3 text-white tracking-tight drop-shadow-md">
+            Reportes y Análisis
+          </h1>
+          
+          <p className="text-base text-blue-50 max-w-2xl leading-relaxed drop-shadow-sm">
+            Genera reportes detallados de usuarios, actividad y certificados. 
+            Exporta los datos en formato Excel para un análisis más profundo.
           </p>
         </div>
       </motion.div>

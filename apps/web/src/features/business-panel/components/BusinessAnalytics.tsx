@@ -35,9 +35,9 @@ export function BusinessAnalytics() {
   const [activeTab, setActiveTab] = useState<'overview' | 'engagement' | 'users' | 'teams'>('overview')
   const [selectedUser, setSelectedUser] = useState<any>(null)
 
-  const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
-  const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-  const textColor = panelStyles?.text_color || '#f8fafc'
+  const cardBg = panelStyles?.card_background
+  const cardBorder = panelStyles?.border_color
+  const textColor = panelStyles?.text_color
   const accentColor = panelStyles?.accent_color || '#00D4B3'
   const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
 
@@ -84,7 +84,7 @@ export function BusinessAnalytics() {
 
 
   return (
-    <div className="w-full space-y-8" style={{ color: textColor }}>
+    <div className="w-full space-y-8 text-gray-900 dark:text-slate-50" style={{ ...(textColor ? { color: textColor } : {}) }}>
       {/* Hero Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -238,17 +238,16 @@ export function BusinessAnalytics() {
              animate={{ opacity: 1, x: 0 }}
              exit={{ opacity: 0, x: -20 }}
              transition={{ duration: 0.3 }}
-             className="rounded-3xl border overflow-hidden backdrop-blur-sm"
-             style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+             className="rounded-3xl border overflow-hidden backdrop-blur-sm bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
             >
-                <div className="p-6 border-b" style={{ borderColor: cardBorder }}>
-                    <h3 className="text-xl font-bold">Detalle de Usuarios</h3>
+                <div className="p-6 border-b border-gray-200 dark:border-slate-700/30">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Detalle de Usuarios</h3>
                     <p className="text-sm opacity-60">Rendimiento individual por empleado</p>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="text-sm uppercase tracking-wider opacity-60 bg-white/5">
+                            <tr className="text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
                                 <th className="p-4 font-medium">Usuario</th>
                                 <th className="p-4 font-medium">Rol</th>
                                 <th className="p-4 font-medium">Progreso General</th>
@@ -258,10 +257,10 @@ export function BusinessAnalytics() {
                                 <th className="p-4 w-10"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y" style={{ borderColor: `rgba(255,255,255,0.05)` }}>
+                        <tbody className="divide-y divide-gray-200 dark:divide-white/5">
                             {data.user_analytics && data.user_analytics.length > 0 ? (
                                 data.user_analytics.map((user: any) => (
-                                    <tr key={user.user_id} className="hover:bg-white/5 transition-colors">
+                                    <tr key={user.user_id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
@@ -285,7 +284,7 @@ export function BusinessAnalytics() {
                                         </td>
                                         <td className="p-4">
                                             <div className="flex items-center gap-2">
-                                                <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden max-w-[100px]">
+                                                <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden max-w-[100px]">
                                                     <div 
                                                         className="h-full rounded-full transition-all duration-500"
                                                         style={{ 
@@ -298,7 +297,7 @@ export function BusinessAnalytics() {
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="inline-flex items-center gap-1 text-sm bg-white/5 px-2 py-1 rounded-lg">
+                                            <div className="inline-flex items-center gap-1 text-sm bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-lg">
                                                 <span className="text-green-400 font-bold">{user.courses_completed}</span>
                                                 <span className="opacity-40">/</span>
                                                 <span>{user.courses_assigned}</span>
@@ -357,7 +356,7 @@ export function BusinessAnalytics() {
             >
                 {/* Teams KPIs */}
                 <div className="grid grid-cols-4 gap-4">
-                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
+                    <div className="p-5 rounded-2xl border bg-white dark:bg-[#1E293B]/80 border-gray-200 dark:border-slate-700/30" style={{ ...(cardBg ? { backgroundColor: cardBg } : {}), ...(cardBorder ? { borderColor: cardBorder } : {}) }}>
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 rounded-lg" style={{ backgroundColor: `${accentColor}20` }}>
                                 <UsersRound className="w-5 h-5" style={{ color: accentColor }} />
@@ -403,7 +402,7 @@ export function BusinessAnalytics() {
                 </div>
 
                 {/* Progress Chart (Bar visualization) */}
-                <div className="p-6 rounded-2xl border" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
+                <div className="p-6 rounded-2xl border bg-white dark:bg-[#1E293B]/80 border-gray-200 dark:border-slate-700/30" style={{ ...(cardBg ? { backgroundColor: cardBg } : {}), ...(cardBorder ? { borderColor: cardBorder } : {}) }}>
                     <h3 className="font-semibold mb-6 flex items-center gap-2">
                         <BarChart3 className="w-5 h-5" style={{ color: accentColor }} />
                         Comparativa de Progreso por Equipo
@@ -460,7 +459,7 @@ export function BusinessAnalytics() {
                 {/* Team Cards Grid */}
                 <div className="grid grid-cols-2 gap-4">
                     {data?.teams?.teams?.map((team: any) => (
-                        <div key={team.team_id} className="p-5 rounded-2xl border" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
+                        <div key={team.team_id} className="p-5 rounded-2xl border bg-white dark:bg-[#1E293B]/80 border-gray-200 dark:border-slate-700/30" style={{ ...(cardBg ? { backgroundColor: cardBg } : {}), ...(cardBorder ? { borderColor: cardBorder } : {}) }}>
                             <div className="flex items-start gap-4">
                                 <div className="w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                                     {team.image_url ? (
@@ -528,7 +527,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
     const [subTab, setSubTab] = useState<'activity' | 'planner' | 'courses'>('activity');
 
     const getHeatmapColor = (level: number) => {
-        if (!level) return 'bg-white/5';
+        if (!level) return 'bg-gray-200 dark:bg-white/5';
         if (level === 1) return 'bg-emerald-500/20';
         if (level === 2) return 'bg-emerald-500/40';
         if (level === 3) return 'bg-emerald-500/60';
@@ -544,8 +543,12 @@ function UserDetailModal({ user, onClose, theme }: any) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative flex flex-col w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl border shadow-2xl"
-                style={{ backgroundColor: theme.cardBg, borderColor: theme.cardBorder, color: theme.textColor }}
+                className="relative flex flex-col w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl border shadow-2xl bg-white dark:bg-[#0f172a] border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-50"
+                style={{ 
+                    ...(theme.cardBg ? { backgroundColor: theme.cardBg } : {}),
+                    ...(theme.cardBorder ? { borderColor: theme.cardBorder } : {}),
+                    ...(theme.textColor ? { color: theme.textColor } : {})
+                }}
             >
                 {/* Header */}
                 <div className="relative shrink-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 p-6 pb-4">
@@ -575,22 +578,22 @@ function UserDetailModal({ user, onClose, theme }: any) {
                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                             <Zap className="w-4 h-4 text-amber-400" />
                             <div>
-                                <p className="text-[10px] opacity-60">Racha</p>
-                                <p className="font-bold text-sm leading-none">{user.stats?.current_streak || 0} días</p>
+                                <p className="text-[10px] opacity-60 text-white">Racha</p>
+                                <p className="font-bold text-sm leading-none text-white">{user.stats?.current_streak || 0} días</p>
                             </div>
                          </div>
                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                             <Target className="w-4 h-4 text-emerald-400" />
                             <div>
-                                <p className="text-[10px] opacity-60">Adherencia</p>
-                                <p className="font-bold text-sm leading-none">{user.stats?.planner?.adherence || 0}%</p>
+                                <p className="text-[10px] opacity-60 text-white">Adherencia</p>
+                                <p className="font-bold text-sm leading-none text-white">{user.stats?.planner?.adherence || 0}%</p>
                             </div>
                          </div>
                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
                             <Clock className="w-4 h-4 text-blue-400" />
                             <div>
-                                <p className="text-[10px] opacity-60">Tiempo Total</p>
-                                <p className="font-bold text-sm leading-none">{Math.round((user.total_time_minutes || 0) / 60)}h</p>
+                                <p className="text-[10px] opacity-60 text-white">Tiempo Total</p>
+                                <p className="font-bold text-sm leading-none text-white">{Math.round((user.total_time_minutes || 0) / 60)}h</p>
                             </div>
                          </div>
                     </div>
@@ -605,7 +608,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                             <button
                                 key={tab}
                                 onClick={() => setSubTab(tab as any)}
-                                className={`pb-4 text-sm font-medium transition-all relative ${subTab === tab ? 'text-white opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                                className={`pb-4 text-sm font-medium transition-all relative ${subTab === tab ? 'text-blue-500 opacity-100 dark:text-white' : 'opacity-40 hover:opacity-70'}`}
                             >
                                 <span className="capitalize">{tab === 'activity' ? 'Actividad y Hábitos' : tab === 'planner' ? 'Planificador de Estudio' : 'Progreso de Cursos'}</span>
                                 {subTab === tab && (
@@ -625,7 +628,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                                 className="space-y-6"
                             >
                                 {/* Heatmap Section */}
-                                <div className="p-6 rounded-2xl border bg-white/5" style={{ borderColor: theme.cardBorder }}>
+                                <div className="p-6 rounded-2xl border bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10" style={{ ...(theme.cardBorder ? { borderColor: theme.cardBorder } : {}) }}>
                                     <div className="flex items-center justify-between mb-6">
                                         <h3 className="flex items-center gap-2 text-lg font-semibold">
                                             <Calendar className="w-5 h-5 text-blue-400" />
@@ -683,7 +686,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
 
                                     <div className="flex items-center justify-end gap-2 mt-4 text-xs opacity-40">
                                         <span>Menos</span>
-                                        <div className="w-3 h-3 rounded-sm bg-white/5" />
+                                        <div className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-white/5" />
                                         <div className="w-3 h-3 rounded-sm bg-emerald-500/20" />
                                         <div className="w-3 h-3 rounded-sm bg-emerald-500/60" />
                                         <div className="w-3 h-3 rounded-sm bg-emerald-500" />
@@ -692,7 +695,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                                 </div>
 
                                 {/* Preferred Time Section */}
-                                <div className="p-6 rounded-2xl border bg-white/5" style={{ borderColor: theme.cardBorder }}>
+                                <div className="p-6 rounded-2xl border bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10" style={{ ...(theme.cardBorder ? { borderColor: theme.cardBorder } : {}) }}>
                                     <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold">
                                         <Clock className="w-5 h-5 text-purple-400" />
                                         Horarios de Estudio Preferidos
@@ -724,7 +727,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                                 exit={{ opacity: 0, y: -10 }}
                                 className="grid grid-cols-2 gap-4"
                             >
-                                <div className="p-6 rounded-2xl border bg-white/5 flex flex-col items-center justify-center text-center" style={{ borderColor: theme.cardBorder }}>
+                                <div className="p-6 rounded-2xl border bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 flex flex-col items-center justify-center text-center" style={{ ...(theme.cardBorder ? { borderColor: theme.cardBorder } : {}) }}>
                                     <div className="w-32 h-32 rounded-full border-8 border-white/5 flex items-center justify-center relative mb-4">
                                         <svg className="absolute inset-0 w-full h-full -rotate-90">
                                             <circle 
@@ -742,7 +745,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                                     <p className="font-medium">Tasa de Adherencia</p>
                                     <p className="text-xs opacity-50">Sesiones completadas vs planificadas</p>
                                 </div>
-                                <div className="p-6 rounded-2xl border bg-white/5" style={{ borderColor: theme.cardBorder }}>
+                                <div className="p-6 rounded-2xl border bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10" style={{ ...(theme.cardBorder ? { borderColor: theme.cardBorder } : {}) }}>
                                      <h3 className="font-semibold mb-4">Resumen de Sesiones</h3>
                                      <div className="space-y-3">
                                         <div className="flex justify-between items-center">
@@ -797,7 +800,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                                 </div>
 
                                 {/* Courses Breakdown */}
-                                <div className="p-5 rounded-2xl border bg-white/5" style={{ borderColor: theme.cardBorder }}>
+                                <div className="p-5 rounded-2xl border bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10" style={{ ...(theme.cardBorder ? { borderColor: theme.cardBorder } : {}) }}>
                                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                                         <BookOpen className="w-5 h-5 text-blue-400" />
                                         Desglose por Curso
@@ -839,7 +842,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                                 </div>
 
                                 {/* LIA Interaction Stats */}
-                                <div className="p-5 rounded-2xl border bg-white/5" style={{ borderColor: theme.cardBorder }}>
+                                <div className="p-5 rounded-2xl border bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10" style={{ ...(theme.cardBorder ? { borderColor: theme.cardBorder } : {}) }}>
                                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                                         <Zap className="w-5 h-5 text-purple-400" />
                                         Interacciones con LIA
@@ -896,24 +899,22 @@ function TabButton({ isActive, onClick, label, icon: Icon, accentColor, textColo
         <button
             onClick={onClick}
             className={`
-                relative px-6 py-3 rounded-xl flex items-center gap-2 transition-all duration-300
-                ${isActive ? 'font-semibold shadow-lg' : 'opacity-60 hover:opacity-100 hover:bg-white/5'}
+                relative px-6 py-3 rounded-xl flex items-center gap-2 transition-all duration-300 overflow-hidden
+                ${isActive 
+                    ? 'font-semibold shadow-lg bg-[#0A2540] !text-white' 
+                    : 'text-gray-500 dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'}
             `}
-            style={{ 
-                color: isActive ? '#fff' : textColor,
-                backgroundColor: isActive ? accentColor : 'transparent'
-            }}
         >
-            <Icon className="w-4 h-4" />
-            <span>{label}</span>
             {isActive && (
                 <motion.div
                     layoutId="activeTabIndicator"
-                    className="absolute inset-0 rounded-xl bg-white/20"
+                    className="absolute inset-0 bg-white/10"
                     initial={false}
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
             )}
+            <Icon className="w-4 h-4 relative z-10" />
+            <span className="relative z-10">{label}</span>
         </button>
     )
 }
@@ -941,8 +942,7 @@ function KPICard({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ y: -4 }}
-      className="relative p-5 rounded-2xl border overflow-hidden"
-      style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+      className="relative p-5 rounded-2xl border overflow-hidden bg-white dark:bg-[#1E293B]/80 border-gray-200 dark:border-slate-700/30"
     >
       <div 
         className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 blur-2xl"
@@ -985,8 +985,7 @@ function SmallMetricCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2 }}
-      className="flex items-center gap-4 p-4 rounded-2xl border"
-      style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+      className="flex items-center gap-4 p-4 rounded-2xl border bg-white dark:bg-[#1E293B]/80 border-gray-200 dark:border-slate-700/30"
     >
       <div className="p-2 rounded-xl" style={{ backgroundColor: `${color}15` }}>
         <Icon className="w-4 h-4" style={{ color }} />

@@ -156,12 +156,6 @@ export function StudyPlannerLIA() {
       if (panelStyles.sidebar_background) root.style.setProperty('--color-bg-dark', panelStyles.sidebar_background);
       if (panelStyles.card_background) root.style.setProperty('--color-bg-card', panelStyles.card_background);
       if (panelStyles.text_color) root.style.setProperty('--color-text-primary', panelStyles.text_color);
-
-      // Forzar modo oscuro si el tema lo requiere (generalmente los temas personalizados son sobre base oscura)
-      // O si el usuario B2B suele usar tema oscuro por defecto
-      if (!root.classList.contains('dark')) {
-        root.classList.add('dark');
-      }
     }
   }, [styles]);
 
@@ -461,9 +455,9 @@ export function StudyPlannerLIA() {
     const addSeparator = () => {
       elements.push(
         <div key={`separator-${elements.length}`} className="my-6 flex items-center justify-center">
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-500/40 to-transparent"></div>
-          <div className="mx-4 w-2 h-2 rounded-full bg-slate-500/40"></div>
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-500/40 to-transparent"></div>
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-slate-500/40 to-transparent"></div>
+          <div className="mx-4 w-2 h-2 rounded-full bg-gray-300 dark:bg-slate-500/40"></div>
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-slate-500/40 to-transparent"></div>
         </div>
       );
     };
@@ -473,7 +467,7 @@ export function StudyPlannerLIA() {
         const paraText = currentParagraph.join('\n').trim();
         if (paraText) {
           elements.push(
-            <p key={`p-${elements.length}`} className="mb-4 font-body text-[15px] leading-[1.75] text-slate-50 tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] whitespace-pre-line">
+            <p key={`p-${elements.length}`} className="mb-4 font-body text-[15px] leading-[1.75] text-gray-800 dark:text-slate-50 tracking-wide dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.3)] whitespace-pre-line">
               {formatInlineStyles(paraText)}
             </p>
           );
@@ -485,7 +479,7 @@ export function StudyPlannerLIA() {
     const flushList = () => {
       if (listItems.length > 0) {
         elements.push(
-          <ul key={`ul-${elements.length}`} className="space-y-3 my-5 ml-1 pl-4 border-l-2 border-purple-500/20">
+          <ul key={`ul-${elements.length}`} className="space-y-3 my-5 ml-1 pl-4 border-l-2 border-purple-500/30 dark:border-purple-500/20">
             {listItems}
           </ul>
         );
@@ -505,7 +499,7 @@ export function StudyPlannerLIA() {
       while ((match = boldRegex.exec(text)) !== null) {
         if (match.index > lastIndex) {
           parts.push(
-            <span key={`text-${key++}`} className="font-body text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+            <span key={`text-${key++}`} className="font-body text-gray-800 dark:text-slate-50 dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
               {text.substring(lastIndex, match.index)}
             </span>
           );
@@ -513,7 +507,7 @@ export function StudyPlannerLIA() {
         parts.push(
           <strong
             key={`bold-${key++}`}
-            className="font-body font-semibold text-white tracking-tight [text-shadow:0_2px_6px_rgba(0,0,0,0.6),0_0_10px_rgba(168,85,247,0.3)] relative"
+            className="font-body font-semibold text-gray-900 dark:text-white tracking-tight dark:[text-shadow:0_2px_6px_rgba(0,0,0,0.6),0_0_10px_rgba(168,85,247,0.3)] relative"
           >
             {match[1]}
           </strong>
@@ -522,13 +516,13 @@ export function StudyPlannerLIA() {
       }
       if (lastIndex < text.length) {
         parts.push(
-          <span key={`text-${key++}`} className="font-body text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+          <span key={`text-${key++}`} className="font-body text-gray-800 dark:text-slate-50 dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
             {text.substring(lastIndex)}
           </span>
         );
       }
 
-      return parts.length > 0 ? <>{parts}</> : <span className="font-body text-slate-50 [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{text}</span>;
+      return parts.length > 0 ? <>{parts}</> : <span className="font-body text-gray-800 dark:text-slate-50 dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{text}</span>;
     };
 
     lines.forEach((line, index) => {
@@ -551,14 +545,14 @@ export function StudyPlannerLIA() {
           addSeparator();
         }
         const title = trimmed.replace(/^[🎯📈📚💡🗓️⏰📋✅❌⚠️]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
-        let titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/40 tracking-tight';
+        let titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/30 dark:border-purple-500/40 tracking-tight';
         if (trimmed.includes('METAS SEMANALES')) {
-          titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#0A2540] bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-[#0A2540]/40 tracking-tight'; /* Azul Profundo */
+          titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#0A2540] dark:from-[#0A2540] dark:via-[#0A2540] dark:to-[#0A2540] bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-[#0A2540]/40 tracking-tight'; /* Azul Profundo */
         } else if (trimmed.includes('HE REVISADO TU PERFIL')) {
-          titleClass = 'font-heading font-bold text-[20px] sm:text-[22px] bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/40 tracking-tight';
+          titleClass = 'font-heading font-bold text-[20px] sm:text-[22px] bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/30 dark:border-purple-500/40 tracking-tight';
         }
         elements.push(
-          <h2 key={`h2-${index}`} className={`${titleClass} [text-shadow:0_2px_8px_rgba(0,0,0,0.4)]`}>
+          <h2 key={`h2-${index}`} className={`${titleClass} dark:[text-shadow:0_2px_8px_rgba(0,0,0,0.4)]`}>
             {title}
           </h2>
         );
@@ -570,14 +564,14 @@ export function StudyPlannerLIA() {
         flushList();
         flushParagraph();
         const subtitle = trimmed.replace(/^[🎯📈📚💡🗓️⏰📋✅❌⚠️]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
-        let subtitleClass = 'font-body font-semibold text-[17px] text-purple-200 mt-8 mb-5 tracking-wide';
+        let subtitleClass = 'font-body font-semibold text-[17px] text-purple-600 dark:text-purple-200 mt-8 mb-5 tracking-wide';
         if (trimmed.includes('Esta semana aprenderás')) {
-          subtitleClass = 'font-body font-semibold text-[17px] text-blue-200 mt-8 mb-5 tracking-wide';
+          subtitleClass = 'font-body font-semibold text-[17px] text-blue-600 dark:text-blue-200 mt-8 mb-5 tracking-wide';
         } else if (trimmed.includes('ESTIMACIÓN BASADA')) {
-          subtitleClass = 'font-body font-semibold text-[15px] text-blue-300 mt-7 mb-4 tracking-wide';
+          subtitleClass = 'font-body font-semibold text-[15px] text-blue-500 dark:text-blue-300 mt-7 mb-4 tracking-wide';
         }
         elements.push(
-          <h3 key={`h3-${index}`} className={`${subtitleClass} [text-shadow:0_1px_4px_rgba(0,0,0,0.4)]`}>
+          <h3 key={`h3-${index}`} className={`${subtitleClass} dark:[text-shadow:0_1px_4px_rgba(0,0,0,0.4)]`}>
             {subtitle}
           </h3>
         );
@@ -591,8 +585,8 @@ export function StudyPlannerLIA() {
         const noteText = trimmed.replace(/^Nota:\s*/i, '').trim();
         elements.push(
           <div key={`note-${index}`} className="mt-5 mb-4 p-4 bg-yellow-500/10 border-l-4 border-yellow-500/60 rounded-r-xl backdrop-blur-sm shadow-lg shadow-yellow-500/5">
-            <p className="font-body font-semibold text-[14px] text-yellow-300 mb-2 tracking-wide [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">Nota:</p>
-            <p className="font-body text-[14px] text-yellow-200/90 leading-[1.7] tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{formatInlineStyles(noteText)}</p>
+            <p className="font-body font-semibold text-[14px] text-yellow-700 dark:text-yellow-300 mb-2 tracking-wide dark:[text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">Nota:</p>
+            <p className="font-body text-[14px] text-yellow-800/90 dark:text-yellow-200/90 leading-[1.7] tracking-wide dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">{formatInlineStyles(noteText)}</p>
           </div>
         );
         return;
@@ -607,8 +601,8 @@ export function StudyPlannerLIA() {
         const itemText = trimmed.replace(/^[•\-]\s+/, '').trim();
         if (itemText) {
           listItems.push(
-            <li key={`li-${index}`} className="flex items-start gap-3.5 font-body text-[15px] text-slate-50 leading-[1.75] tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
-              <span className="text-purple-300 font-bold mt-0.5 flex-shrink-0 text-lg [text-shadow:0_1px_3px_rgba(168,85,247,0.5)]">•</span>
+            <li key={`li-${index}`} className="flex items-start gap-3.5 font-body text-[15px] text-gray-800 dark:text-slate-50 leading-[1.75] tracking-wide dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
+              <span className="text-purple-600 dark:text-purple-300 font-bold mt-0.5 flex-shrink-0 text-lg dark:[text-shadow:0_1px_3px_rgba(168,85,247,0.5)]">•</span>
               <span className="flex-1">{formatInlineStyles(itemText)}</span>
             </li>
           );
@@ -9040,18 +9034,18 @@ Cuéntame:
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
               >
-                <div className="bg-[#0f172a] border border-purple-500/30 p-6 md:p-8 rounded-2xl shadow-2xl max-w-md w-full relative overflow-hidden">
+                <div className="bg-white dark:bg-[#0f172a] border border-gray-200 dark:border-purple-500/30 p-6 md:p-8 rounded-2xl shadow-2xl max-w-md w-full relative overflow-hidden">
                    {/* Glow effect */}
                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-                   <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/20 blur-[50px] rounded-full pointing-events-none" />
+                   <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 blur-[50px] rounded-full pointing-events-none" />
                    
-                   <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-3">
+                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-3">
                      <span className="text-2xl animate-pulse">💾</span> 
                      <span>Recuperar conversación</span>
                    </h3>
                    
-                   <p className="text-slate-300 mb-6 text-[15px] leading-relaxed">
-                     Hemos detectado una sesión anterior guardada el <span className="text-purple-300 font-semibold">{savedSessionDate}</span>.
+                   <p className="text-gray-600 dark:text-slate-300 mb-6 text-[15px] leading-relaxed">
+                     Hemos detectado una sesión anterior guardada el <span className="text-purple-600 dark:text-purple-300 font-semibold">{savedSessionDate}</span>.
                      <br/><br/>
                      ¿Te gustaría restaurar el contexto y continuar donde lo dejaste, o prefieres empezar un nuevo plan desde cero?
                    </p>
@@ -9059,7 +9053,7 @@ Cuéntame:
                    <div className="flex gap-3 justify-end items-center">
                      <button
                        onClick={handleDiscardSession}
-                       className="px-4 py-2.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                       className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 rounded-lg transition-all"
                      >
                        Empezar de nuevo
                      </button>
