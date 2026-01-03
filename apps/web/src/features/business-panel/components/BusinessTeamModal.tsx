@@ -19,6 +19,7 @@ import { useOrganizationStylesContext } from '../contexts/OrganizationStylesCont
 import { TeamsService, CreateWorkTeamRequest, UpdateWorkTeamRequest } from '../services/teams.service'
 import { useBusinessUsers } from '../hooks/useBusinessUsers'
 import { useTranslation } from 'react-i18next'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface BusinessTeamModalProps {
   isOpen: boolean
@@ -35,9 +36,16 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Theme Colors
-  const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
-  const accentColor = panelStyles?.accent_color || '#10B981'
-  const cardBackground = panelStyles?.card_background || '#1a1f2e'
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+
+  const primaryColor = panelStyles?.primary_button_color || '#0A2540'
+  const accentColor = panelStyles?.accent_color || '#00D4B3'
+  const cardBackground = isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF'
+  const textColor = isDark ? (panelStyles?.text_color || '#FFFFFF') : '#0F172A'
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+  const mutedText = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'
 
   const [formData, setFormData] = useState({
     name: '',
@@ -229,16 +237,19 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className="rounded-2xl shadow-2xl overflow-hidden border border-white/10"
-            style={{ backgroundColor: cardBackground }}
+            className="rounded-2xl shadow-2xl overflow-hidden border"
+            style={{ backgroundColor: cardBackground, borderColor }}
           >
             {/* Two Column Layout */}
             <div className="flex flex-col lg:flex-row min-h-[400px] lg:min-h-[550px] max-h-[85vh]">
 
               {/* Left Side - Preview Card */}
               <div
-                className="lg:w-80 w-full p-6 lg:p-8 flex flex-col border-b lg:border-b-0 lg:border-r border-white/5 lg:sticky lg:top-0 lg:self-start shrink-0"
-                style={{ background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)` }}
+                className="lg:w-80 w-full p-6 lg:p-8 flex flex-col border-b lg:border-b-0 lg:border-r lg:sticky lg:top-0 lg:self-start shrink-0"
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)`,
+                  borderColor
+                }}
               >
                 <div className="flex-1 flex flex-col items-center justify-center">
                   {/* Team Avatar */}
@@ -269,7 +280,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                     >
-                      <Upload className="w-5 h-5 text-white" />
+                      <Upload className="w-5 h-5" style={{ color: '#FFFFFF' }} />
                     </motion.div>
                     <input
                       ref={fileInputRef}
@@ -281,10 +292,10 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                   </motion.div>
 
                   {/* Team Name Preview */}
-                  <h3 className="text-xl font-bold text-white text-center mb-2 min-h-[28px]">
+                  <h3 className="text-xl font-bold text-center mb-2 min-h-[28px]" style={{ color: textColor }}>
                     {formData.name || t('teams.modal.fields.name')}
                   </h3>
-                  <p className="text-sm text-white/40 text-center mb-8 min-h-[40px] line-clamp-2">
+                  <p className="text-sm text-center mb-8 min-h-[40px] line-clamp-2" style={{ color: mutedText }}>
                     {formData.description || t('teams.modal.placeholders.description')}
                   </p>
 
@@ -382,20 +393,20 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
               {/* Right Side - Form */}
               <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 lg:p-6 border-b border-white/5 shrink-0">
+                <div className="flex items-center justify-between p-4 lg:p-6 border-b shrink-0" style={{ borderColor }}>
                   <div>
-                    <h2 className="text-lg lg:text-xl font-bold text-white">
+                    <h2 className="text-lg lg:text-xl font-bold" style={{ color: textColor }}>
                       {teamId ? t('teams.modal.titleEdit') : t('teams.modal.titleCreate')}
                     </h2>
-                    <p className="text-sm text-white/40 mt-0.5">
+                    <p className="text-sm mt-0.5" style={{ color: mutedText }}>
                       {teamId ? t('teams.modal.subtitleEdit', 'Actualiza la información del equipo') : t('teams.modal.subtitle')}
                     </p>
                   </div>
                   <button
                     onClick={onClose}
-                    className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                    className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                   >
-                    <X className="w-5 h-5 text-white/60" />
+                    <X className="w-5 h-5" style={{ color: mutedText }} />
                   </button>
                 </div>
 
@@ -411,7 +422,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
 
                     {/* Name */}
                     <div>
-                      <label className="block text-sm font-medium text-white/70 mb-2">
+                      <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
                         {t('teams.modal.fields.name')} <span className="text-red-400">*</span>
                       </label>
                       <input
@@ -419,21 +430,31 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                         value={formData.name}
                         onChange={(e) => handleChange('name', e.target.value)}
                         required
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors"
+                        className="w-full px-4 py-3 border rounded-xl focus:outline-none transition-colors"
+                        style={{
+                          backgroundColor: inputBg,
+                          borderColor,
+                          color: textColor
+                        }}
                         placeholder={t('teams.modal.placeholders.name')}
                       />
                     </div>
 
                     {/* Description */}
                     <div>
-                      <label className="block text-sm font-medium text-white/70 mb-2">
+                      <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
                         {t('teams.modal.fields.description')}
                       </label>
                       <textarea
                         value={formData.description}
                         onChange={(e) => handleChange('description', e.target.value)}
                         rows={2}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors resize-none"
+                        className="w-full px-4 py-3 border rounded-xl focus:outline-none transition-colors resize-none"
+                        style={{
+                          backgroundColor: inputBg,
+                          borderColor,
+                          color: textColor
+                        }}
                         placeholder={t('teams.modal.placeholders.description')}
                       />
                     </div>
@@ -458,7 +479,12 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                           type="text"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors"
+                          className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none transition-colors"
+                          style={{
+                            backgroundColor: inputBg,
+                            borderColor,
+                            color: textColor
+                          }}
                           placeholder={t('teams.modal.placeholders.searchMembers')}
                         />
                       </div>
@@ -484,10 +510,11 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                                 <button
                                   type="button"
                                   onClick={() => handleToggleMember(user.id)}
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${isSelected
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'bg-white/5 text-white/40 hover:bg-white/10'
-                                    }`}
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all`}
+                                  style={{
+                                    backgroundColor: isSelected ? primaryColor : inputBg,
+                                    color: isSelected ? '#FFFFFF' : mutedText
+                                  }}
                                 >
                                   {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                                 </button>
@@ -506,8 +533,8 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-white truncate">{getUserName(user)}</p>
-                                  <p className="text-xs text-white/40 truncate">{user.email}</p>
+                                  <p className="text-sm font-medium truncate" style={{ color: textColor }}>{getUserName(user)}</p>
+                                  <p className="text-sm truncate" style={{ color: mutedText }}>{user.email}</p>
                                 </div>
 
                                 {/* Leader Toggle */}
@@ -548,6 +575,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                       className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       style={{
                         backgroundColor: primaryColor,
+                        color: '#FFFFFF',
                         boxShadow: `0 4px 20px ${primaryColor}40`
                       }}
                     >
@@ -557,10 +585,12 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                           {t('teams.buttons.saving')}
                         </>
                       ) : (
-                        <>
-                          {teamId ? t('teams.buttons.save') : t('teams.buttons.create')}
-                          <ChevronRight className="w-4 h-4" />
-                        </>
+                        <div className="flex items-center gap-2">
+                          <span style={{ color: '#FFFFFF', fontWeight: 600 }}>
+                            {teamId ? t('teams.buttons.save') : t('teams.buttons.create')}
+                          </span>
+                          <ChevronRight className="w-4 h-4" style={{ color: '#FFFFFF' }} />
+                        </div>
                       )}
                     </button>
                   </div>

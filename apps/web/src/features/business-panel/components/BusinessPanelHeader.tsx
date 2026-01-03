@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ChevronDown, LogOut, Building2, User, LayoutDashboard, Globe, ChevronRight, Check } from 'lucide-react'
+import { Menu, X, ChevronDown, LogOut, Building2, User, LayoutDashboard, Globe, ChevronRight, Check, Sun, Moon } from 'lucide-react'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -12,6 +12,7 @@ import { useOrganizationStylesContext } from '../contexts/OrganizationStylesCont
 import { hexToRgb } from '../utils/styles'
 import { useLanguage } from '../../../core/providers/I18nProvider'
 import { useTranslation } from 'react-i18next'
+import { useThemeStore } from '../../../core/stores/themeStore'
 
 interface BusinessPanelHeaderProps {
   onMenuClick: () => void
@@ -26,7 +27,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
     return null
   }
 
-  const { styles } = useOrganizationStylesContext()
+  const { styles, effectiveStyles } = useOrganizationStylesContext()
   const { data: businessData } = useBusinessSettings()
   const { user, logout } = useAuth()
   const { userProfile } = useUserProfile()
@@ -35,6 +36,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null)
   const { language, setLanguage } = useLanguage()
   const { t } = useTranslation(['business', 'common'])
+  const { theme, resolvedTheme, setTheme } = useThemeStore()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const languageOptions = [
@@ -47,7 +49,10 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
 
   // Calcular estilos del navbar
   const navbarStyle = useMemo(() => {
-    if (!styles?.panel) {
+    // Usar estilos efectivos (light/dark) o fallback a estilos base
+    const panelStyles = effectiveStyles?.panel || styles?.panel
+
+    if (!panelStyles) {
       return {
         backgroundColor: 'rgba(15, 23, 42, 0.85)',
         borderColor: 'rgba(71, 85, 105, 0.3)',
@@ -55,7 +60,6 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
       }
     }
 
-    const panelStyles = styles.panel
     const sidebarBg = panelStyles?.sidebar_background || '#0f172a'
     const sidebarOpacity = panelStyles?.sidebar_opacity !== undefined ? panelStyles.sidebar_opacity : 0.85
     const borderColor = panelStyles?.border_color || 'rgba(71, 85, 105, 0.3)'
@@ -86,7 +90,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
       borderColor,
       color: textColor
     }
-  }, [styles?.panel])
+  }, [styles, effectiveStyles])
 
   const getDisplayName = () => {
     return userProfile?.display_name ||
@@ -328,6 +332,22 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                       >
                         <User className="h-4 w-4 opacity-70" />
                         <span>{t('business:header.editProfile')}</span>
+                      </motion.button>
+
+                      <motion.button
+                        onClick={() => {
+                          setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                        style={{ color: navbarStyle.color || 'rgba(255, 255, 255, 0.8)' }}
+                        whileHover={{ x: 2 }}
+                      >
+                        {resolvedTheme === 'dark' ? (
+                          <Sun className="h-4 w-4 opacity-70" />
+                        ) : (
+                          <Moon className="h-4 w-4 opacity-70" />
+                        )}
+                        <span>{resolvedTheme === 'dark' ? t('common:menu.theme.light') : t('common:menu.theme.dark')}</span>
                       </motion.button>
 
                       <div className="relative">

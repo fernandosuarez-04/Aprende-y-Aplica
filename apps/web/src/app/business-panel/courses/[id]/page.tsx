@@ -36,6 +36,7 @@ import { BusinessAssignCourseModal } from '@/features/business-panel/components/
 import { CourseAnalyticsTab } from '@/features/business-panel/components/CourseAnalyticsTab'
 import { AlertCircle, Loader2, CheckCircle2 } from 'lucide-react'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface CourseDetail {
   id: string
@@ -119,10 +120,14 @@ export default function BusinessCourseDetailPage() {
   const panelStyles = styles?.panel
 
   // Theme Colors
-  const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+
+  const primaryColor = panelStyles?.primary_button_color || (isDark ? '#8B5CF6' : '#6366F1')
   const accentColor = panelStyles?.accent_color || '#10B981'
-  const cardBackground = panelStyles?.card_background || '#1E2329'
-  const textColor = panelStyles?.text_color || '#FFFFFF'
+  const cardBackground = isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF'
+  const textColor = isDark ? (panelStyles?.text_color || '#FFFFFF') : '#0F172A'
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
 
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -288,8 +293,8 @@ export default function BusinessCourseDetailPage() {
           Volver
         </button>
         <div
-          className="rounded-3xl p-16 border text-center"
-          style={{ backgroundColor: cardBackground, borderColor: 'rgba(255,255,255,0.1)' }}
+          className="rounded-3xl p-16 border text-center shadow-sm"
+          style={{ backgroundColor: cardBackground, borderColor: borderColor }}
         >
           <div className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
             <BookOpen className="w-10 h-10" style={{ color: primaryColor }} />
@@ -314,7 +319,12 @@ export default function BusinessCourseDetailPage() {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         onClick={() => router.back()}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all mb-8"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all mb-8 shadow-sm"
+        style={{ 
+          borderColor: borderColor, 
+          backgroundColor: cardBackground,
+          color: textColor 
+        }}
       >
         <ArrowLeft className="w-4 h-4" />
         <span className="font-medium">Volver a Cursos</span>
@@ -328,8 +338,8 @@ export default function BusinessCourseDetailPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative rounded-3xl overflow-hidden border border-white/10"
-            style={{ backgroundColor: cardBackground }}
+            className="relative rounded-3xl overflow-hidden border shadow-sm"
+            style={{ backgroundColor: cardBackground, borderColor: borderColor }}
           >
             {/* Thumbnail with Overlay */}
             <div className="relative h-72 lg:h-80">
@@ -422,8 +432,8 @@ export default function BusinessCourseDetailPage() {
                     </div>
                   ) : (
                     <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                      style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
+                      className="w-12 h-12 rounded-full flex items-center justify-center !text-white font-bold"
+                      style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
                     >
                       {course.instructor.name[0].toUpperCase()}
                     </div>
@@ -442,10 +452,10 @@ export default function BusinessCourseDetailPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="rounded-2xl border border-white/10 overflow-hidden"
-            style={{ backgroundColor: cardBackground }}
+            className="rounded-2xl border overflow-hidden shadow-sm"
+            style={{ backgroundColor: cardBackground, borderColor: borderColor }}
           >
-            <div className="flex overflow-x-auto border-b border-white/10" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex overflow-x-auto border-b" style={{ scrollbarWidth: 'none', borderColor: borderColor }}>
               {[
                 { id: 'info', label: 'Información', icon: BookOpen },
                 { id: 'content', label: 'Contenido', icon: FileText },
@@ -499,8 +509,8 @@ export default function BusinessCourseDetailPage() {
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className="flex items-start gap-3 p-4 rounded-xl border border-white/5"
-                                style={{ backgroundColor: `${primaryColor}08` }}
+                                className="flex items-start gap-3 p-4 rounded-xl border"
+                                style={{ backgroundColor: `${primaryColor}08`, borderColor: borderColor }}
                               >
                                 <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: accentColor }} />
                                 <span style={{ color: `${textColor}90` }}>{objective}</span>
@@ -523,8 +533,8 @@ export default function BusinessCourseDetailPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="p-4 rounded-xl border border-white/10"
-                            style={{ backgroundColor: `${primaryColor}05` }}
+                            className="p-4 rounded-xl border"
+                            style={{ backgroundColor: `${primaryColor}05`, borderColor: borderColor }}
                           >
                             <div className="flex items-center gap-2 mb-2">
                               <stat.icon className="w-5 h-5" style={{ color: primaryColor }} />
@@ -578,12 +588,13 @@ export default function BusinessCourseDetailPage() {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: moduleIndex * 0.05 }}
-                                className="rounded-xl border border-white/10 overflow-hidden"
-                                style={{ backgroundColor: isExpanded ? `${primaryColor}08` : 'transparent' }}
+                                className="rounded-xl border overflow-hidden"
+                                style={{ backgroundColor: isExpanded ? `${primaryColor}08` : 'transparent', borderColor: borderColor }}
                               >
                                 <button
                                   onClick={() => toggleModule(module.module_id)}
-                                  className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+                                  className="w-full px-5 py-4 flex items-center justify-between hover:opacity-80 transition-colors"
+                  				  style={{ backgroundColor: isExpanded ? 'transparent' : 'transparent' }}
                                 >
                                   <div className="flex items-center gap-4">
                                     <div
@@ -661,13 +672,13 @@ export default function BusinessCourseDetailPage() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className="p-5 rounded-xl border border-white/10"
-                            style={{ backgroundColor: `${primaryColor}05` }}
+                            className="p-5 rounded-xl border"
+                            style={{ backgroundColor: `${primaryColor}05`, borderColor: borderColor }}
                           >
                             <div className="flex items-start gap-4">
                               <div
-                                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-                                style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
+                                className="w-12 h-12 rounded-full flex items-center justify-center !text-white font-bold flex-shrink-0"
+                                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
                               >
                                 {review.user.name[0].toUpperCase()}
                               </div>
@@ -708,12 +719,12 @@ export default function BusinessCourseDetailPage() {
                               <Image src={course.instructor.profile_picture_url} alt={course.instructor.name} fill className="object-cover" />
                             </div>
                           ) : (
-                            <div
-                              className="w-24 h-24 rounded-2xl flex items-center justify-center text-white text-3xl font-bold flex-shrink-0"
-                              style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
-                            >
-                              {course.instructor.name[0].toUpperCase()}
-                            </div>
+                              <div
+                                className="w-24 h-24 rounded-2xl flex items-center justify-center !text-white text-3xl font-bold flex-shrink-0"
+                                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
+                              >
+                                {course.instructor.name[0].toUpperCase()}
+                              </div>
                           )}
                           <div>
                             <h3 className="text-2xl font-bold mb-1" style={{ color: textColor }}>{course.instructor.name}</h3>
@@ -793,11 +804,11 @@ export default function BusinessCourseDetailPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="rounded-2xl p-6 border border-white/10 sticky top-6"
-            style={{ backgroundColor: cardBackground }}
+            className="rounded-2xl p-6 border sticky top-6 shadow-sm"
+            style={{ backgroundColor: cardBackground, borderColor: borderColor }}
           >
             {/* Price Section */}
-            <div className="mb-6 pb-6 border-b border-white/10">
+            <div className="mb-6 pb-6 border-b" style={{ borderColor: borderColor }}>
               {course.subscription_status?.is_organization_purchased ? (
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${accentColor}20` }}>
@@ -848,26 +859,27 @@ export default function BusinessCourseDetailPage() {
               whileTap={{ scale: 0.98 }}
               onClick={course.subscription_status?.is_organization_purchased ? () => setIsAssignModalOpen(true) : handlePurchase}
               disabled={isPurchasing || course.subscription_status?.has_subscription === false}
-              className="w-full py-4 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              className="w-full py-4 rounded-xl font-semibold !text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               style={{
-                background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                backgroundColor: primaryColor,
+                color: '#FFFFFF',
                 boxShadow: `0 8px 30px ${primaryColor}40`
               }}
             >
               {isPurchasing ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Procesando...
+                  <Loader2 className="w-5 h-5 animate-spin !text-white" color="#FFFFFF" />
+                  <span className="!text-white" style={{ color: '#FFFFFF' }}>Procesando...</span>
                 </>
               ) : course.subscription_status?.is_organization_purchased ? (
                 <>
-                  <Users className="w-5 h-5" />
-                  Asignar a Usuarios
+                  <Users className="w-5 h-5 !text-white" color="#FFFFFF" />
+                  <span className="!text-white" style={{ color: '#FFFFFF' }}>Asignar a Usuarios</span>
                 </>
               ) : (
                 <>
-                  <Zap className="w-5 h-5" />
-                  Adquirir Curso
+                  <Zap className="w-5 h-5 !text-white" color="#FFFFFF" />
+                  <span className="!text-white" style={{ color: '#FFFFFF' }}>Adquirir Curso</span>
                 </>
               )}
             </motion.button>

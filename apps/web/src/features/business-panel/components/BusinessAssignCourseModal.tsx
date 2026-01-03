@@ -24,6 +24,7 @@ import { useBusinessUsers } from '../hooks/useBusinessUsers'
 import { useTeams } from '../hooks/useTeams'
 import Image from 'next/image'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 import { PremiumDatePicker } from './PremiumDatePicker'
 import { LiaDeadlineSuggestionModal } from './LiaDeadlineSuggestionModal'
 import { useTranslation } from 'react-i18next'
@@ -75,10 +76,14 @@ export function BusinessAssignCourseModal({
   const [suggestionReason, setSuggestionReason] = useState<string | null>(null)
 
   // Theme colors
-  const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+
+  const primaryColor = panelStyles?.primary_button_color || (isDark ? '#8B5CF6' : '#6366F1')
   const accentColor = panelStyles?.accent_color || '#10B981'
-  const cardBackground = panelStyles?.card_background || '#1E2329'
-  const textColor = panelStyles?.text_color || '#FFFFFF'
+  const cardBackground = isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF'
+  const textColor = isDark ? (panelStyles?.text_color || '#FFFFFF') : '#0F172A'
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
 
   // Refresh data when modal opens
   useEffect(() => {
@@ -404,15 +409,15 @@ export function BusinessAssignCourseModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative rounded-2xl shadow-2xl overflow-hidden border border-white/10 w-full max-w-4xl max-h-[85vh] z-10"
-          style={{ backgroundColor: cardBackground }}
+          className="relative rounded-2xl shadow-2xl overflow-hidden border w-full max-w-4xl max-h-[85vh] z-10"
+          style={{ backgroundColor: cardBackground, borderColor: borderColor }}
         >
           <div className="flex flex-row h-full max-h-[85vh]">
 
             {/* Left Panel - Preview (Solo en desktop) */}
             <div
-              className="w-80 flex-shrink-0 flex-col p-8 border-r border-white/5 hidden xl:flex"
-              style={{ background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)` }}
+              className="w-80 flex-shrink-0 flex-col p-8 border-r hidden xl:flex"
+              style={{ backgroundColor: isDark ? `${primaryColor}15` : '#F8FAFC', borderColor: borderColor }}
             >
               {/* Course Icon */}
               <motion.div
@@ -422,13 +427,14 @@ export function BusinessAssignCourseModal({
                 className="relative mb-6"
               >
                 <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto"
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto !text-white"
                   style={{
-                    background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                    backgroundColor: primaryColor,
+                    color: '#FFFFFF',
                     boxShadow: `0 8px 30px ${primaryColor}40`
                   }}
                 >
-                  <BookOpen className="w-10 h-10 text-white" />
+                  <BookOpen className="w-10 h-10 !text-white" color="#FFFFFF" />
                 </div>
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
@@ -507,8 +513,8 @@ export function BusinessAssignCourseModal({
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: index * 0.05 }}
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-white/20"
-                            style={{ backgroundColor: primaryColor }}
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold !text-white border-2 border-white/20"
+                            style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
                             title={displayName}
                           >
                             {displayName[0].toUpperCase()}
@@ -706,7 +712,7 @@ export function BusinessAssignCourseModal({
                                 }`}
                               style={{
                                 backgroundColor: isSelected ? `${primaryColor}15` : 'transparent',
-                                borderColor: isSelected ? primaryColor : 'rgba(255,255,255,0.1)'
+                                borderColor: isSelected ? primaryColor : borderColor
                               }}
                             >
                               <div
@@ -716,7 +722,7 @@ export function BusinessAssignCourseModal({
                                   borderColor: isSelected ? primaryColor : isAlreadyAssigned ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.3)'
                                 }}
                               >
-                                {isSelected && <Check className="w-4 h-4 text-white" />}
+                                {isSelected && <Check className="w-4 h-4 !text-white" color="#FFFFFF" />}
                                 {isAlreadyAssigned && <XCircle className="w-4 h-4" style={{ color: `${textColor}40` }} />}
                               </div>
 
@@ -726,8 +732,8 @@ export function BusinessAssignCourseModal({
                                 </div>
                               ) : (
                                 <div
-                                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
-                                  style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
+                                  className="w-10 h-10 rounded-xl flex items-center justify-center !text-white font-bold flex-shrink-0"
+                                  style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
                                 >
                                   {displayName[0].toUpperCase()}
                                 </div>
@@ -821,7 +827,7 @@ export function BusinessAssignCourseModal({
                                 }`}
                               style={{
                                 backgroundColor: isSelected ? `${primaryColor}15` : 'transparent',
-                                borderColor: isSelected ? primaryColor : 'rgba(255,255,255,0.1)'
+                                borderColor: isSelected ? primaryColor : borderColor
                               }}
                             >
                               <div
@@ -831,7 +837,7 @@ export function BusinessAssignCourseModal({
                                   borderColor: isSelected ? primaryColor : isAlreadyAssigned ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.3)'
                                 }}
                               >
-                                {isSelected && <Check className="w-4 h-4 text-white" />}
+                                {isSelected && <Check className="w-4 h-4 !text-white" color="#FFFFFF" />}
                                 {isAlreadyAssigned && <XCircle className="w-4 h-4" style={{ color: `${textColor}40` }} />}
                               </div>
 
@@ -842,9 +848,9 @@ export function BusinessAssignCourseModal({
                               ) : (
                                 <div
                                   className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                                  style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
+                                  style={{ backgroundColor: primaryColor }}
                                 >
-                                  <UsersRound className="w-6 h-6 text-white" />
+                                  <UsersRound className="w-6 h-6 !text-white" color="#FFFFFF" />
                                 </div>
                               )}
 
@@ -993,7 +999,8 @@ export function BusinessAssignCourseModal({
                     disabled={isAssigning || currentSelectedCount === 0}
                     className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base"
                     style={{
-                      background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                      backgroundColor: primaryColor,
+                      color: '#FFFFFF',
                       boxShadow: currentSelectedCount > 0 ? `0 8px 25px ${primaryColor}40` : 'none'
                     }}
                   >
@@ -1005,8 +1012,8 @@ export function BusinessAssignCourseModal({
                       </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span>Asignar ({currentSelectedCount})</span>
+                        <Send className="w-4 h-4 sm:w-5 sm:h-5 !text-white" color="#FFFFFF" />
+                        <span className="!text-white" style={{ color: '#FFFFFF' }}>Asignar ({currentSelectedCount})</span>
                       </>
                     )}
                   </motion.button>

@@ -32,6 +32,7 @@ import { useBusinessUsers } from '@/features/business-panel/hooks/useBusinessUse
 import { BusinessUser } from '@/features/business-panel/services/businessUsers.service'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { useTranslation } from 'react-i18next'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 const AddUserModal = dynamic(() => import('@/features/business-panel/components/BusinessAddUserModal').then(mod => ({ default: mod.BusinessAddUserModal })), { ssr: false })
 const EditUserModal = dynamic(() => import('@/features/business-panel/components/BusinessEditUserModal').then(mod => ({ default: mod.BusinessEditUserModal })), { ssr: false })
@@ -48,10 +49,12 @@ interface StatCardProps {
   icon: React.ReactNode
   gradient: string
   delay: number
+  delay: number
   trend?: number
+  isDark?: boolean
 }
 
-function StatCard({ title, value, icon, gradient, delay, trend = 0 }: StatCardProps) {
+function StatCard({ title, value, icon, gradient, delay, trend = 0, isDark }: StatCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30, scale: 0.9 }}
@@ -128,8 +131,8 @@ function StatCard({ title, value, icon, gradient, delay, trend = 0 }: StatCardPr
         <motion.h3
           className="text-3xl font-black tracking-tight mb-1"
           style={{
-            color: 'var(--org-text-color, #FFFFFF)',
-            textShadow: '0 0 20px rgba(0,212,179,0.2)'
+            color: isDark ? 'var(--org-text-color, #FFFFFF)' : '#0F172A',
+            textShadow: isDark ? '0 0 20px rgba(0,212,179,0.2)' : 'none'
           }}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -140,7 +143,7 @@ function StatCard({ title, value, icon, gradient, delay, trend = 0 }: StatCardPr
 
         <motion.p
           className="text-sm font-semibold tracking-wide uppercase"
-          style={{ color: 'var(--org-border-color, #9CA3AF)', letterSpacing: '0.05em' }}
+          style={{ color: isDark ? 'var(--org-border-color, #9CA3AF)' : '#64748B', letterSpacing: '0.05em' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
           transition={{ delay: delay * 0.1 + 0.3 }}
@@ -308,10 +311,10 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
                 </button>
                 <button
                   onClick={onEdit}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                  className="p-2 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
                   title="Editar"
                 >
-                  <Edit className="w-4 h-4 text-white/60" />
+                  <Edit className="w-4 h-4" style={{ color: 'var(--org-text-color, #FFFFFF)', opacity: 0.7 }} />
                 </button>
                 <button
                   onClick={onDelete}
@@ -490,8 +493,9 @@ export default function BusinessPanelUsersPage() {
 
 
   // Theme Colors
-  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
-  const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
+  // Theme Colors
+  const primaryColor = panelStyles?.primary_button_color || '#0A2540'
+  const secondaryColor = panelStyles?.secondary_button_color || '#1E2329' // Usando fondo secundario oscuro como secundario default
   const accentColor = panelStyles?.accent_color || '#00D4B3'
 
   const filteredUsers = users.filter(user => {
@@ -503,6 +507,10 @@ export default function BusinessPanelUsersPage() {
     const matchesStatus = filterStatus === 'all' || user.org_status === filterStatus
     return matchesSearch && matchesRole && matchesStatus
   })
+
+  // Theme Logic
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
 
   const handleSaveNewUser = async (userData: any) => { await createUser(userData); refetch() }
 
@@ -535,7 +543,8 @@ export default function BusinessPanelUsersPage() {
         <div
           className="absolute inset-0 z-0"
           style={{
-            background: `linear-gradient(135deg, ${primaryColor}40, ${secondaryColor}30, transparent)`
+            background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+            opacity: isDark ? 0.3 : 1
           }}
         />
 
@@ -577,23 +586,25 @@ export default function BusinessPanelUsersPage() {
                 </span>
               </div>
 
-              <motion.h1
-                className="text-3xl lg:text-4xl font-bold mb-2"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                {t('users.title')}
-              </motion.h1>
+                <motion.h1
+                  className="text-3xl lg:text-4xl font-bold mb-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  style={{ color: '#FFFFFF' }}
+                >
+                  {t('users.title')}
+                </motion.h1>
 
-              <motion.p
-                className="opacity-70 text-lg max-w-xl"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                {t('users.subtitle')}
-              </motion.p>
+                <motion.p
+                  className="text-lg max-w-xl"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  style={{ color: 'rgba(255,255,255,0.8)' }}
+                >
+                  {t('users.subtitle')}
+                </motion.p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -612,7 +623,9 @@ export default function BusinessPanelUsersPage() {
                     a.click()
                   }
                 }}
+
                 className="px-4 py-2.5 rounded-xl font-medium text-sm border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-2"
+                style={{ color: '#FFFFFF', borderColor: 'rgba(255,255,255,0.3)' }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -626,6 +639,7 @@ export default function BusinessPanelUsersPage() {
                 transition={{ delay: 0.45 }}
                 onClick={() => setIsImportModalOpen(true)}
                 className="px-4 py-2.5 rounded-xl font-medium text-sm border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-2"
+                style={{ color: '#FFFFFF', borderColor: 'rgba(255,255,255,0.3)' }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -638,16 +652,19 @@ export default function BusinessPanelUsersPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5 }}
                 onClick={() => setIsAddModalOpen(true)}
-                className="px-6 py-2.5 rounded-xl font-bold text-sm text-white transition-all flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl font-bold text-sm !text-white transition-all flex items-center gap-2"
                 style={{
-                  background: `linear-gradient(135deg, ${accentColor}, ${secondaryColor})`,
-                  boxShadow: `0 8px 30px ${accentColor}40`
+                  backgroundColor: primaryColor,
+                  color: '#FFFFFF',
+                  boxShadow: `0 8px 30px ${primaryColor}40`
                 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Plus className="w-5 h-5" />
-                {t('users.buttons.add')}
+                <Plus className="w-5 h-5 !text-white" color="#FFFFFF" strokeWidth={3} />
+                <span className="!text-white font-bold" style={{ color: '#FFFFFF' }}>
+                  {t('users.buttons.add')}
+                </span>
               </motion.button>
             </div>
           </div>
@@ -677,6 +694,7 @@ export default function BusinessPanelUsersPage() {
           gradient="linear-gradient(135deg, #3B82F6, #1D4ED8)"
           delay={0}
           trend={12}
+          isDark={isDark}
         />
         <StatCard
           title={t('users.stats.active')}
@@ -685,6 +703,7 @@ export default function BusinessPanelUsersPage() {
           gradient="linear-gradient(135deg, #10B981, #059669)"
           delay={1}
           trend={8}
+          isDark={isDark}
         />
         <StatCard
           title={t('users.stats.invited')}
@@ -692,6 +711,7 @@ export default function BusinessPanelUsersPage() {
           icon={<Mail className="w-6 h-6" style={{ color: '#F59E0B' }} />}
           gradient="linear-gradient(135deg, #F59E0B, #D97706)"
           delay={2}
+          isDark={isDark}
         />
         <StatCard
           title={t('users.stats.admins')}
@@ -700,6 +720,7 @@ export default function BusinessPanelUsersPage() {
           gradient="linear-gradient(135deg, #A855F7, #7C3AED)"
           delay={3}
           trend={5}
+          isDark={isDark}
         />
       </div>
 
@@ -783,11 +804,13 @@ export default function BusinessPanelUsersPage() {
                       setFilterRole(option.value)
                       setIsRoleDropdownOpen(false)
                     }}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors ${filterRole === option.value
-                      ? 'text-white'
-                      : 'text-white/70 hover:text-white hover:bg-white/5'
-                      }`}
-                    style={filterRole === option.value ? { backgroundColor: `${primaryColor}30` } : {}}
+                    className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-current/5"
+                    style={{
+                      backgroundColor: filterRole === option.value ? `${primaryColor}20` : 'transparent',
+                      color: filterRole === option.value 
+                        ? (isDark ? '#FFFFFF' : primaryColor)
+                        : (isDark ? 'rgba(255,255,255,0.7)' : '#374151')
+                    }}
                   >
                     {option.label}
                   </button>
@@ -808,7 +831,7 @@ export default function BusinessPanelUsersPage() {
             className="w-full px-4 py-3.5 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300"
             style={{
               backgroundColor: 'var(--org-card-background, #1E2329)',
-              borderColor: filterStatus !== 'all' ? accentColor : 'rgba(255,255,255,0.1)',
+              borderColor: filterStatus !== 'all' ? accentColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
               color: 'var(--org-text-color, #FFFFFF)'
             }}
           >
@@ -853,11 +876,13 @@ export default function BusinessPanelUsersPage() {
                       setFilterStatus(option.value)
                       setIsStatusDropdownOpen(false)
                     }}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors ${filterStatus === option.value
-                      ? 'text-white'
-                      : 'text-white/70 hover:text-white hover:bg-white/5'
-                      }`}
-                    style={filterStatus === option.value ? { backgroundColor: `${accentColor}30` } : {}}
+                    className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-current/5"
+                    style={{
+                      backgroundColor: filterStatus === option.value ? `${accentColor}20` : 'transparent',
+                      color: filterStatus === option.value 
+                        ? (isDark ? '#FFFFFF' : accentColor)
+                        : (isDark ? 'rgba(255,255,255,0.7)' : '#374151')
+                    }}
                   >
                     {option.label}
                   </button>

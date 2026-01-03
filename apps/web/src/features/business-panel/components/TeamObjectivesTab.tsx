@@ -22,6 +22,7 @@ import { Button } from '@aprende-y-aplica/ui'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { TeamsService, WorkTeamObjective } from '../services/teams.service'
 import { TeamObjectiveModal } from './TeamObjectiveModal'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface TeamObjectivesTabProps {
   teamId: string
@@ -29,11 +30,14 @@ interface TeamObjectivesTabProps {
 
 export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
   const { styles } = useOrganizationStylesContext()
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const panelStyles = styles?.panel
 
-  const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
-  const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-  const textColor = panelStyles?.text_color || '#f8fafc'
+  const cardBg = isDark ? (panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)') : '#FFFFFF'
+  const cardBorder = isDark ? (panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)') : 'rgba(0, 0, 0, 0.1)'
+  const textColor = isDark ? (panelStyles?.text_color || '#f8fafc') : '#0F172A'
+  const statBg = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
   const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
   const accentColor = panelStyles?.accent_color || '#00D4B3'
@@ -180,11 +184,12 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all"
           style={{
             background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
-            boxShadow: `0 8px 25px ${accentColor}40`
+            boxShadow: `0 8px 25px ${accentColor}40`,
+            color: '#FFFFFF'
           }}
         >
           <Plus className="w-4 h-4" />
-          Crear Objetivo
+          <span style={{ color: '#FFFFFF' }}>Crear Objetivo</span>
         </motion.button>
       </motion.div>
 
@@ -219,9 +224,10 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.05 }}
               className="p-4 rounded-xl border backdrop-blur-sm"
+              className="p-4 rounded-xl border backdrop-blur-sm"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                borderColor: 'rgba(255,255,255,0.08)'
+                backgroundColor: statBg,
+                borderColor: cardBorder
               }}
             >
               <div className="flex items-center gap-3">
@@ -249,8 +255,8 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
           transition={{ delay: 0.2 }}
           className="p-5 rounded-2xl border backdrop-blur-xl"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.03)',
-            borderColor: 'rgba(255,255,255,0.08)'
+            backgroundColor: statBg,
+            borderColor: cardBorder
           }}
         >
           <div className="flex items-center gap-3 mb-5">
@@ -389,8 +395,8 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
           transition={{ delay: 0.1 }}
           className="relative overflow-hidden p-10 rounded-2xl border text-center"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.02)',
-            borderColor: 'rgba(255,255,255,0.08)'
+            backgroundColor: 'rgba(255,255,255,0.02)', // Dejar transparente o sutil
+            borderColor: cardBorder
           }}
         >
           {/* Background decoration */}
@@ -467,8 +473,8 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
                   whileHover={{ y: -2 }}
                   className="group p-5 rounded-2xl border backdrop-blur-sm transition-all"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.02)',
-                    borderColor: 'rgba(255,255,255,0.08)',
+                    backgroundColor: statBg,
+                    borderColor: cardBorder,
                   }}
                 >
                   <div className="flex items-start justify-between gap-4 mb-4">

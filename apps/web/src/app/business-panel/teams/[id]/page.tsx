@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { TeamsService, WorkTeam, WorkTeamMember } from '@/features/business-panel/services/teams.service'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 import { TeamCoursesTab } from '@/features/business-panel/components/TeamCoursesTab'
 import { TeamObjectivesTab } from '@/features/business-panel/components/TeamObjectivesTab'
@@ -58,12 +59,17 @@ export default function BusinessTeamDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
+
+
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+
   // Colores personalizados de la organización
-  const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
-  const accentColor = panelStyles?.accent_color || '#10B981'
-  const cardBackground = panelStyles?.card_background || '#1E2329'
-  const textColor = panelStyles?.text_color || '#FFFFFF'
-  const borderColor = panelStyles?.border_color || 'rgba(255,255,255,0.1)'
+  const primaryColor = panelStyles?.primary_button_color || '#0A2540'
+  const accentColor = panelStyles?.accent_color || '#00D4B3'
+  const cardBackground = isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF'
+  const textColor = isDark ? (panelStyles?.text_color || '#FFFFFF') : '#0F172A'
+  const borderColor = isDark ? (panelStyles?.border_color || 'rgba(255,255,255,0.1)') : 'rgba(0,0,0,0.1)'
 
   const fetchTeamData = async () => {
     try {
@@ -219,6 +225,7 @@ export default function BusinessTeamDetailPage() {
         className="relative overflow-hidden rounded-2xl border"
         style={{
           background: `linear-gradient(135deg, ${primaryColor}15 0%, ${accentColor}10 50%, ${cardBackground} 100%)`,
+          backgroundColor: cardBackground,
           borderColor: borderColor
         }}
       >
@@ -262,7 +269,7 @@ export default function BusinessTeamDetailPage() {
                 onClick={() => setIsEditModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
                 style={{
-                  background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                  backgroundColor: primaryColor,
                   color: '#FFFFFF',
                   boxShadow: `0 4px 20px ${primaryColor}40`
                 }}
@@ -314,10 +321,10 @@ export default function BusinessTeamDetailPage() {
               )}
               {/* Status Badge */}
               <div
-                className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${team.status === 'active'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-yellow-500 text-black'
-                  }`}
+                className="absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 text-white"
+                style={{
+                  backgroundColor: team.status === 'active' ? primaryColor : '#F59E0B'
+                }}
               >
                 {team.status === 'active' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                 {team.status === 'active' ? 'Activo' : 'Inactivo'}
@@ -432,8 +439,8 @@ export default function BusinessTeamDetailPage() {
                     layoutId="activeTabBg"
                     className="absolute inset-0 rounded-lg"
                     style={{
-                      background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
-                      boxShadow: `0 4px 15px ${primaryColor}40`
+                      background: isActive ? primaryColor : 'transparent',
+                      // boxShadow: isActive ? `0 4px 15px ${primaryColor}40` : 'none'
                     }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   />
@@ -466,8 +473,8 @@ export default function BusinessTeamDetailPage() {
                     label: 'Miembros Activos',
                     value: team.active_member_count || 0,
                     icon: UserCheck,
-                    color: accentColor,
-                    gradient: `linear-gradient(135deg, ${accentColor}20, ${accentColor}05)`
+                    color: primaryColor,
+                    gradient: `linear-gradient(135deg, ${primaryColor}20, ${primaryColor}05)`
                   },
                   {
                     label: 'Total Miembros',
@@ -480,15 +487,15 @@ export default function BusinessTeamDetailPage() {
                     label: 'Cursos Asignados',
                     value: teamCourses.length,
                     icon: BookOpen,
-                    color: '#F59E0B',
-                    gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05))'
+                    color: primaryColor,
+                    gradient: `linear-gradient(135deg, ${primaryColor}20, ${primaryColor}05)`
                   },
                   {
                     label: 'Completados',
                     value: teamCourses.filter(c => c.status === 'completed').length,
                     icon: CheckCircle,
-                    color: '#10B981',
-                    gradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05))'
+                    color: primaryColor,
+                    gradient: `linear-gradient(135deg, ${primaryColor}20, ${primaryColor}05)`
                   }
                 ].map((stat, index) => (
                   <motion.div
@@ -500,6 +507,7 @@ export default function BusinessTeamDetailPage() {
                     className="p-5 rounded-2xl border relative overflow-hidden"
                     style={{
                       background: stat.gradient,
+                      backgroundColor: cardBackground,
                       borderColor: `${stat.color}30`
                     }}
                   >
@@ -622,9 +630,11 @@ export default function BusinessTeamDetailPage() {
 
                               {/* Online Status Dot */}
                               <div
-                                className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 flex items-center justify-center ${member.status === 'active' ? 'bg-emerald-500' : 'bg-gray-500'
-                                  }`}
-                                style={{ borderColor: cardBackground }}
+                                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                style={{
+                                  borderColor: cardBackground,
+                                  backgroundColor: member.status === 'active' ? primaryColor : '#6B7280'
+                                }}
                               >
                                 {member.status === 'active' && (
                                   <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
@@ -686,11 +696,13 @@ export default function BusinessTeamDetailPage() {
                           {/* Footer */}
                           <div className="mt-4 pt-4 border-t flex items-center justify-between" style={{ borderColor: `${textColor}10` }}>
                             <span
-                              className={`text-sm font-medium flex items-center gap-1.5 ${member.status === 'active' ? 'text-emerald-400' : 'text-gray-400'
-                                }`}
+                              className="text-sm font-medium flex items-center gap-1.5"
+                              style={{ color: member.status === 'active' ? primaryColor : '#6B7280' }}
                             >
-                              <span className={`w-2 h-2 rounded-full ${member.status === 'active' ? 'bg-emerald-400' : 'bg-gray-400'
-                                }`} />
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: member.status === 'active' ? primaryColor : '#6B7280' }}
+                              />
                               {member.status === 'active' ? 'Activo' : 'Inactivo'}
                             </span>
                             <motion.div
@@ -724,8 +736,8 @@ export default function BusinessTeamDetailPage() {
                         whileHover={{ rotate: -10, scale: 1.1 }}
                         className="w-12 h-12 rounded-2xl flex items-center justify-center"
                         style={{
-                          background: `linear-gradient(135deg, ${accentColor}, ${primaryColor})`,
-                          boxShadow: `0 8px 25px ${accentColor}40`
+                          backgroundColor: primaryColor,
+                          boxShadow: `0 8px 25px ${primaryColor}40`
                         }}
                       >
                         <BookOpen className="w-6 h-6 text-white" />
@@ -745,7 +757,7 @@ export default function BusinessTeamDetailPage() {
                       onClick={() => setActiveTab('cursos')}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold"
                       style={{
-                        background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                        backgroundColor: primaryColor,
                         color: 'white',
                         boxShadow: `0 4px 15px ${primaryColor}40`
                       }}
@@ -761,15 +773,15 @@ export default function BusinessTeamDetailPage() {
                       const statusConfig = {
                         completed: {
                           label: 'Completado',
-                          color: '#10B981',
-                          bgColor: 'rgba(16, 185, 129, 0.15)',
+                          color: primaryColor,
+                          bgColor: `${primaryColor}20`,
                           icon: CheckCircle,
                           progress: 100
                         },
                         in_progress: {
                           label: 'En Progreso',
-                          color: '#3B82F6',
-                          bgColor: 'rgba(59, 130, 246, 0.15)',
+                          color: primaryColor,
+                          bgColor: `${primaryColor}20`,
                           icon: Clock,
                           progress: 45
                         },

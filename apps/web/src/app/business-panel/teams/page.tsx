@@ -25,6 +25,8 @@ import { useRouter } from 'next/navigation'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { BusinessTeamModal } from '@/features/business-panel/components/BusinessTeamModal'
 import { useTranslation } from 'react-i18next'
+import { useThemeStore } from '@/core/stores/themeStore'
+import { PremiumSelect } from '@/features/business-panel/components/PremiumSelect'
 
 // ============================================
 // COMPONENTE: StatCard Premium para Teams
@@ -36,9 +38,11 @@ interface TeamStatCardProps {
   gradient: string
   delay: number
   trend?: number
+  cardBg: string
+  textColor: string
 }
 
-function TeamStatCard({ title, value, icon, gradient, delay, trend = 0 }: TeamStatCardProps) {
+function TeamStatCard({ title, value, icon, gradient, delay, trend = 0, cardBg, textColor }: TeamStatCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30, scale: 0.9 }}
@@ -56,7 +60,8 @@ function TeamStatCard({ title, value, icon, gradient, delay, trend = 0 }: TeamSt
         transition: { duration: 0.3, type: "spring", stiffness: 300 }
       }}
       className="relative group overflow-hidden rounded-2xl cursor-pointer"
-      style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+      className="relative group overflow-hidden rounded-2xl cursor-pointer"
+      style={{ backgroundColor: cardBg }}
     >
       {/* Animated Border Glow */}
       <motion.div
@@ -115,7 +120,7 @@ function TeamStatCard({ title, value, icon, gradient, delay, trend = 0 }: TeamSt
         <motion.h3
           className="text-3xl font-black tracking-tight mb-1"
           style={{
-            color: 'var(--org-text-color, #FFFFFF)',
+            color: textColor,
             textShadow: '0 0 20px rgba(0,212,179,0.2)'
           }}
           initial={{ opacity: 0, x: -10 }}
@@ -127,7 +132,7 @@ function TeamStatCard({ title, value, icon, gradient, delay, trend = 0 }: TeamSt
 
         <motion.p
           className="text-sm font-semibold tracking-wide uppercase"
-          style={{ color: 'var(--org-border-color, #9CA3AF)', letterSpacing: '0.05em' }}
+          style={{ color: textColor, opacity: 0.6, letterSpacing: '0.05em' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
           transition={{ delay: delay * 0.1 + 0.3 }}
@@ -162,10 +167,11 @@ interface TeamCardProps {
   primaryColor: string
   cardBg: string
   cardBorder: string
+  textColor: string
   onClick: () => void
 }
 
-function TeamCard({ team, index, primaryColor, cardBg, cardBorder, onClick }: TeamCardProps) {
+function TeamCard({ team, index, primaryColor, cardBg, cardBorder, textColor, onClick }: TeamCardProps) {
   const { t } = useTranslation('business')
   const [imageError, setImageError] = useState(false)
   const imageUrl = team.image_url || team.metadata?.image_url || null
@@ -242,7 +248,7 @@ function TeamCard({ team, index, primaryColor, cardBg, cardBorder, onClick }: Te
             </motion.div>
 
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-lg mb-0.5 truncate" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>
+              <h3 className="font-bold text-lg mb-0.5 truncate" style={{ color: textColor }}>
                 {team.name}
               </h3>
               {team.team_leader && (
@@ -424,10 +430,13 @@ export default function BusinessPanelTeamsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const router = useRouter()
 
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+
   // Theme Colors
-  const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
-  const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-  const textColor = panelStyles?.text_color || '#f8fafc'
+  const cardBg = isDark ? (panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)') : '#FFFFFF'
+  const cardBorder = isDark ? (panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)') : 'rgba(0,0,0,0.1)'
+  const textColor = isDark ? (panelStyles?.text_color || '#f8fafc') : '#0F172A'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
   const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
   const accentColor = panelStyles?.accent_color || '#00D4B3'
@@ -547,13 +556,14 @@ export default function BusinessPanelTeamsPage() {
                 >
                   <Sparkles className="w-6 h-6" style={{ color: accentColor }} />
                 </motion.div>
-                <span className="text-sm font-semibold tracking-wider uppercase" style={{ color: accentColor }}>
+                <span className="text-sm font-semibold tracking-wider uppercase" style={{ color: '#FFFFFF' }}>
                   {t('teams.badge')}
                 </span>
               </div>
 
               <motion.h1
                 className="text-3xl lg:text-4xl font-bold mb-2"
+                style={{ color: '#FFFFFF' }}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
@@ -562,7 +572,8 @@ export default function BusinessPanelTeamsPage() {
               </motion.h1>
 
               <motion.p
-                className="text-white/70 text-lg max-w-xl"
+                className="text-lg max-w-xl"
+                style={{ color: 'rgba(255, 255, 255, 0.8)' }}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
@@ -582,14 +593,17 @@ export default function BusinessPanelTeamsPage() {
                 onClick={() => setIsCreateModalOpen(true)}
                 variant="gradient"
                 size="lg"
-                className="font-semibold shadow-2xl"
+                className="font-semibold shadow-2xl !text-white"
                 style={{
-                  background: `linear-gradient(135deg, ${accentColor} 0%, ${secondaryColor} 100%)`,
-                  boxShadow: `0 8px 30px ${accentColor}40`
+                  backgroundColor: primaryColor,
+                  color: '#FFFFFF',
+                  boxShadow: `0 8px 30px ${primaryColor}40`
                 }}
               >
-                <Plus className="w-5 h-5 mr-2" />
-                {t('teams.buttons.create')}
+                <div className="flex items-center" style={{ color: '#FFFFFF' }}>
+                  <Plus className="w-5 h-5 mr-2" style={{ color: '#FFFFFF' }} />
+                  <span style={{ color: '#FFFFFF' }}>{t('teams.buttons.create')}</span>
+                </div>
               </Button>
             </motion.div>
           </div>
@@ -605,6 +619,8 @@ export default function BusinessPanelTeamsPage() {
           gradient="linear-gradient(135deg, #818cf8, #6366f1)"
           delay={0}
           trend={12}
+          cardBg={cardBg}
+          textColor={textColor}
         />
         <TeamStatCard
           title={t('teams.stats.active')}
@@ -613,6 +629,8 @@ export default function BusinessPanelTeamsPage() {
           gradient="linear-gradient(135deg, #34d399, #10b981)"
           delay={1}
           trend={8}
+          cardBg={cardBg}
+          textColor={textColor}
         />
         <TeamStatCard
           title={t('teams.stats.totalMembers')}
@@ -621,6 +639,8 @@ export default function BusinessPanelTeamsPage() {
           gradient="linear-gradient(135deg, #38bdf8, #0ea5e9)"
           delay={2}
           trend={15}
+          cardBg={cardBg}
+          textColor={textColor}
         />
         <TeamStatCard
           title={t('teams.stats.activeMembers')}
@@ -629,6 +649,8 @@ export default function BusinessPanelTeamsPage() {
           gradient="linear-gradient(135deg, #fbbf24, #f59e0b)"
           delay={3}
           trend={5}
+          cardBg={cardBg}
+          textColor={textColor}
         />
       </div>
 
@@ -665,24 +687,19 @@ export default function BusinessPanelTeamsPage() {
         </div>
 
         {/* Filter Select */}
-        <div className="relative">
-          <select
+        <div className="relative z-20">
+          <PremiumSelect
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="appearance-none px-6 py-3.5 pr-12 rounded-xl border backdrop-blur-sm cursor-pointer focus:outline-none focus:ring-2 transition-all duration-300"
-            style={{
-              backgroundColor: cardBg,
-              borderColor: cardBorder,
-              color: textColor,
-              minWidth: '160px'
-            }}
-          >
-            <option value="all">{t('teams.filters.all')}</option>
-            <option value="active">{t('teams.filters.active')}</option>
-            <option value="inactive">{t('teams.filters.inactive')}</option>
-            <option value="archived">{t('teams.filters.archived')}</option>
-          </select>
-          <ChevronRight className="absolute right-4 top-1/2 transform -translate-y-1/2 rotate-90 w-5 h-5 opacity-40 pointer-events-none" />
+            onChange={setFilterStatus}
+            options={[
+              { value: 'all', label: t('teams.filters.all') },
+              { value: 'active', label: t('teams.filters.active') },
+              { value: 'inactive', label: t('teams.filters.inactive') },
+              { value: 'archived', label: t('teams.filters.archived') }
+            ]}
+            placeholder={t('teams.filters.all')}
+            className="w-48"
+          />
         </div>
       </motion.div>
 
@@ -713,6 +730,7 @@ export default function BusinessPanelTeamsPage() {
                 primaryColor={primaryColor}
                 cardBg={cardBg}
                 cardBorder={cardBorder}
+                textColor={textColor}
                 onClick={() => router.push(`/business-panel/teams/${team.team_id}`)}
               />
             ))}

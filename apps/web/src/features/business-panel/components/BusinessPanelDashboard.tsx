@@ -38,9 +38,10 @@ interface StatCardProps {
   delay: number
   href?: string
   id?: string
+  theme?: any
 }
 
-function StatCard({ title, value, change, backgroundImage, gradient, gradientStyle, delay, href, id }: StatCardProps) {
+function StatCard({ title, value, change, backgroundImage, gradient, gradientStyle, delay, href, id, theme }: StatCardProps) {
   const isPositive = change >= 0
 
   const CardContent = (
@@ -53,14 +54,13 @@ function StatCard({ title, value, change, backgroundImage, gradient, gradientSty
         ease: 'easeOut'
       }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="relative group overflow-hidden rounded-3xl cursor-pointer h-40"
+      className="relative group overflow-hidden rounded-3xl cursor-pointer h-40 shadow-sm hover:shadow-md transition-shadow duration-300"
       id={id}
       style={{
-        backgroundColor: 'var(--org-card-background, #1E2329)'
+        backgroundColor: 'var(--org-card-background, #1E2329)',
+        border: `1px solid ${theme?.borderColor || '#6C757D'}33`
       }}
     >
-      {/* Border */}
-      <div className="absolute inset-0 rounded-3xl border border-white/10 group-hover:border-white/20 transition-colors duration-300" />
 
       {/* Background Image with Overlay */}
       {backgroundImage && (
@@ -82,8 +82,11 @@ function StatCard({ title, value, change, backgroundImage, gradient, gradientSty
         <div className="flex items-start justify-between">
           {/* Visual Indicator */}
           <div
-            className="p-2.5 rounded-xl backdrop-blur-md border border-white/10"
-            style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+            className="p-2.5 rounded-xl backdrop-blur-md"
+            style={{ 
+              backgroundColor: `${theme?.text || '#FFFFFF'}0D`,
+              border: `1px solid ${theme?.borderColor || '#FFFFFF'}1A`
+            }}
           >
             <div
               className="w-8 h-1.5 rounded-full"
@@ -119,9 +122,10 @@ function StatCard({ title, value, change, backgroundImage, gradient, gradientSty
           </h3>
 
           <p
-            className="text-sm font-semibold tracking-wide uppercase opacity-80"
+            className="text-sm font-semibold tracking-wide uppercase"
             style={{
-              color: 'var(--org-border-color, #9CA3AF)',
+              color: 'var(--org-text-color, #FFFFFF)',
+              opacity: 0.7,
               letterSpacing: '0.05em'
             }}
           >
@@ -132,7 +136,7 @@ function StatCard({ title, value, change, backgroundImage, gradient, gradientSty
         {/* Progress Bar at Bottom */}
         <div
           className="absolute bottom-0 left-0 right-0 h-1 overflow-hidden"
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: `${theme?.text || '#FFFFFF'}0D` }}
         >
           <div
             className="h-full rounded-r-full w-[60%]"
@@ -194,8 +198,8 @@ function QuickAction({ title, description, icon: Icon, href, color, delay }: Qui
               {title}
             </h4>
             <p
-              className="text-xs mt-0.5 opacity-80"
-              style={{ color: 'var(--org-border-color, #6C757D)' }}
+              className="text-xs mt-0.5"
+              style={{ color: 'var(--org-text-color, #FFFFFF)', opacity: 0.7 }}
             >
               {description}
             </p>
@@ -255,16 +259,16 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
             {title}
           </h4>
           <div
-            className="flex items-center gap-1 text-xs whitespace-nowrap opacity-70"
-            style={{ color: 'var(--org-border-color, #6C757D)' }}
+            className="flex items-center gap-1 text-xs whitespace-nowrap"
+            style={{ color: 'var(--org-text-color, #FFFFFF)', opacity: 0.6 }}
           >
             <ClockIcon className="h-3.5 w-3.5" />
             {timestamp}
           </div>
         </div>
         <p
-          className="text-xs mt-1 line-clamp-1 opacity-80"
-          style={{ color: 'var(--org-border-color, #6C757D)' }}
+          className="text-xs mt-1 line-clamp-1"
+          style={{ color: 'var(--org-text-color, #FFFFFF)', opacity: 0.7 }}
         >
           {description}
         </p>
@@ -292,23 +296,26 @@ export function BusinessPanelDashboard() {
   const { t } = useTranslation('business')
 
   // Obtener estilos de la organización (incluyendo el estado de carga)
-  const { styles, loading: stylesLoading } = useOrganizationStylesContext()
+  // Obtener estilos de la organización (incluyendo el estado de carga y estilos efectivos según modo)
+  const { styles, effectiveStyles, loading: stylesLoading } = useOrganizationStylesContext()
 
   // Debug: Ver qué estilos se están cargando
   useEffect(() => {
     console.log('🎨 [BusinessPanelDashboard] Estilos cargados:', {
       hasStyles: !!styles,
+      hasEffectiveStyles: !!effectiveStyles,
       stylesLoading,
-      panel: styles?.panel,
+      panel: effectiveStyles?.panel || styles?.panel,
       selectedTheme: styles?.selectedTheme,
-      allStyles: styles
     });
-  }, [styles, stylesLoading]);
+  }, [styles, effectiveStyles, stylesLoading]);
 
-  // Colores dinámicos basados en los estilos de la organización
+  // Colores dinámicos basados en los estilos de la organización (usando effectiveStyles para soporte Dark/Light)
   const themeColors = useMemo(() => {
-    const panelStyles = styles?.panel
-    console.log('🎨 [BusinessPanelDashboard] Panel styles:', panelStyles);
+    // Usar effectiveStyles si existe (ya procesado por el contexto para light/dark mode)
+    // Fallback a styles?.panel si effectiveStyles no está disponible
+    const panelStyles = effectiveStyles?.panel || styles?.panel
+    console.log('🎨 [BusinessPanelDashboard] Panel styles (effective):', panelStyles);
     return {
       // Colores principales
       background: panelStyles?.background_value || '#0A2540',
@@ -321,7 +328,7 @@ export function BusinessPanelDashboard() {
       sidebarBg: panelStyles?.sidebar_background || '#161B22',
       borderColor: panelStyles?.border_color || '#6C757D',
     }
-  }, [styles])
+  }, [styles, effectiveStyles])
 
   // Mostrar skeleton mientras se cargan los estilos
   if (stylesLoading) {
@@ -347,19 +354,19 @@ export function BusinessPanelDashboard() {
 
             {/* Activity Skeleton */}
             <div className="space-y-2 mb-6">
-              <div className="h-6 w-40 bg-gray-800 rounded" />
-              <div className="h-4 w-32 bg-gray-800 rounded" />
+              <div className="h-6 w-40 bg-gray-200 dark:bg-gray-800 rounded" />
+              <div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded" />
             </div>
-            <div className="h-64 bg-gray-800 rounded-2xl" />
+            <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
           </div>
 
           {/* Sidebar Skeleton */}
           <div className="xl:col-span-1 space-y-4">
-            <div className="h-6 w-32 bg-gray-800 rounded mb-4" />
+            <div className="h-6 w-32 bg-gray-200 dark:bg-gray-800 rounded mb-4" />
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-800 rounded-xl" />
+              <div key={i} className="h-16 bg-gray-200 dark:bg-gray-800 rounded-xl" />
             ))}
-            <div className="h-40 bg-gray-800 rounded-2xl mt-6" />
+            <div className="h-40 bg-gray-200 dark:bg-gray-800 rounded-2xl mt-6" />
           </div>
         </div>
       </div>
@@ -597,7 +604,7 @@ export function BusinessPanelDashboard() {
             </div>
             <span
               className="text-sm font-medium tracking-wide uppercase"
-              style={{ color: themeColors.accent }}
+              style={{ color: '#FFFFFF' }}
             >
               {t('dashboard.title')}
             </span>
@@ -605,7 +612,7 @@ export function BusinessPanelDashboard() {
 
           <motion.h1
             className="text-3xl lg:text-4xl font-bold mb-2"
-            style={{ color: themeColors.text }}
+            style={{ color: '#FFFFFF' }}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
@@ -614,7 +621,8 @@ export function BusinessPanelDashboard() {
           </motion.h1>
 
           <motion.p
-            className="text-white/70 text-lg max-w-xl"
+            className="text-lg max-w-xl"
+            style={{ color: '#FFFFFF', opacity: 0.7 }}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
@@ -631,12 +639,14 @@ export function BusinessPanelDashboard() {
           >
             <div className="flex items-center gap-2 text-white/60 text-sm">
               <ClockIcon className="h-4 w-4" />
-              {currentTime.toLocaleDateString('es-MX', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              <span style={{ color: '#FFFFFF' }} className="opacity-90">
+                  {currentTime.toLocaleDateString('es-MX', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: themeColors.secondary }} />
@@ -659,14 +669,14 @@ export function BusinessPanelDashboard() {
             >
               <div>
                 <h2 className="text-xl font-bold" style={{ color: themeColors.text }}>{t('dashboard.generalStats')}</h2>
-                <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>{t('dashboard.keyMetrics')}</p>
+                <p className="text-sm mt-1" style={{ color: themeColors.text, opacity: 0.7 }}>{t('dashboard.keyMetrics')}</p>
               </div>
             </motion.div>
 
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-36 bg-[#1E2329] rounded-2xl animate-pulse" />
+                  <div key={i} className="h-36 rounded-2xl animate-pulse" style={{ backgroundColor: themeColors.cardBg }} />
                 ))}
               </div>
             ) : (
@@ -682,6 +692,7 @@ export function BusinessPanelDashboard() {
                     gradientStyle={stat.gradientStyle}
                     delay={index}
                     href={stat.href}
+                    theme={themeColors}
                   />
                 ))}
               </div>
@@ -698,7 +709,7 @@ export function BusinessPanelDashboard() {
             >
               <div>
                 <h2 id="tour-activity-title" className="text-xl font-bold" style={{ color: themeColors.text }}>{t('dashboard.recentActivity.title')}</h2>
-                <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>{t('dashboard.recentActivity.subtitle')}</p>
+                <p className="text-sm mt-1" style={{ color: themeColors.text, opacity: 0.7 }}>{t('dashboard.recentActivity.subtitle')}</p>
               </div>
             </motion.div>
 
@@ -717,31 +728,32 @@ export function BusinessPanelDashboard() {
                 <div className="p-6 space-y-4">
                   {[...Array(5)].map((_, i) => (
                     <div key={i} className="flex gap-4 animate-pulse">
-                      <div className="w-2 h-2 mt-2 rounded-full bg-[#6C757D]/30" />
+                      <div className="w-2 h-2 mt-2 rounded-full" style={{ backgroundColor: `${themeColors.borderColor}4D` }} />
                       <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-[#6C757D]/20 rounded w-3/4" />
-                        <div className="h-3 bg-[#6C757D]/20 rounded w-1/2" />
+                        <div className="h-4 rounded w-3/4" style={{ backgroundColor: `${themeColors.borderColor}33` }} />
+                        <div className="h-3 rounded w-1/2" style={{ backgroundColor: `${themeColors.borderColor}33` }} />
                       </div>
                     </div>
                   ))}
                 </div>
               ) : activities.length === 0 ? (
                 <div className="p-12 text-center">
-                  <ClockIcon className="h-12 w-12 text-[#6C757D]/50 mx-auto mb-4" />
-                  <p className="text-[#6C757D]">{t('dashboard.recentActivity.empty')}</p>
+                  <ClockIcon className="h-12 w-12 mx-auto mb-4" style={{ color: themeColors.text, opacity: 0.3 }} />
+                  <p style={{ color: themeColors.text, opacity: 0.6 }}>{t('dashboard.recentActivity.empty')}</p>
                 </div>
               ) : (
-                <div className="divide-y divide-[#6C757D]/10">
+                <div className="flex flex-col">
                   {activities.map((activity, index) => (
-                    <ActivityItem
-                      key={index}
-                      title={activity.title || 'Actividad'}
-                      description={activity.description || 'Sin descripción'}
-                      user={activity.user || 'Usuario'}
-                      timestamp={activity.timestamp ? formatTimestamp(activity.timestamp) : 'Hace un momento'}
-                      type={activity.type || 'system'}
-                      delay={index}
-                    />
+                    <div key={index} style={{ borderBottom: index < activities.length - 1 ? `1px solid ${themeColors.borderColor}1A` : 'none' }}>
+                      <ActivityItem
+                        title={activity.title || 'Actividad'}
+                        description={activity.description || 'Sin descripción'}
+                        user={activity.user || 'Usuario'}
+                        timestamp={activity.timestamp ? formatTimestamp(activity.timestamp) : 'Hace un momento'}
+                        type={activity.type || 'system'}
+                        delay={index}
+                      />
+                    </div>
                   ))}
                 </div>
               )}
@@ -760,7 +772,7 @@ export function BusinessPanelDashboard() {
             <div id="tour-quick-actions-list">
               <div className="mb-6">
                 <h2 className="text-lg font-bold" style={{ color: themeColors.text }}>{t('dashboard.quickActions.title')}</h2>
-                <p className="text-sm mt-1" style={{ color: themeColors.borderColor }}>{t('dashboard.quickActions.subtitle')}</p>
+                <p className="text-sm mt-1" style={{ color: themeColors.text, opacity: 0.7 }}>{t('dashboard.quickActions.subtitle')}</p>
               </div>
 
               <div className="space-y-3">
@@ -806,19 +818,19 @@ export function BusinessPanelDashboard() {
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: themeColors.borderColor }}>{t('dashboard.systemHealth.users')}</span>
+                  <span style={{ color: themeColors.text, opacity: 0.7 }}>{t('dashboard.systemHealth.users')}</span>
                   <span className="font-medium" style={{ color: themeColors.secondary }}>
                     {typeof stats?.activeUsers === 'object' ? stats.activeUsers.value : (stats?.activeUsers || 0)} {t('dashboard.systemHealth.active')}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: themeColors.borderColor }}>{t('dashboard.systemHealth.courses')}</span>
+                  <span style={{ color: themeColors.text, opacity: 0.7 }}>{t('dashboard.systemHealth.courses')}</span>
                   <span className="font-medium" style={{ color: themeColors.secondary }}>
                     {typeof stats?.assignedCourses === 'object' ? stats.assignedCourses.value : (stats?.assignedCourses || 0)} asignados
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: themeColors.borderColor }}>Sistema</span>
+                  <span style={{ color: themeColors.text, opacity: 0.7 }}>Sistema</span>
                   <span className="font-medium" style={{ color: themeColors.secondary }}>Operativo</span>
                 </div>
               </div>

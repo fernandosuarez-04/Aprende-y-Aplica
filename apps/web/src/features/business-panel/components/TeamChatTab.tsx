@@ -53,6 +53,9 @@ interface TeamChatTabProps {
 
 export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps) {
   const { styles } = useOrganizationStylesContext()
+  const panelStyles = styles?.panel
+  const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
+  const accentColor = panelStyles?.accent_color || '#10B981'
   const { user } = useAuth()
 
   const [messages, setMessages] = useState<WorkTeamMessage[]>([])
@@ -364,11 +367,16 @@ export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps
                           whileHover={{ scale: 1.01 }}
                           className={`group relative px-4 py-3 rounded-2xl ${
                             isOwnMessage
-                              ? 'rounded-br-md bg-primary text-white shadow-lg shadow-primary/30'
+                              ? 'rounded-br-md shadow-lg'
                               : 'rounded-bl-md bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white'
                           }`}
+                          style={isOwnMessage ? {
+                            backgroundColor: primaryColor,
+                            color: '#FFFFFF',
+                            boxShadow: `0 4px 15px ${primaryColor}40`
+                          } : {}}
                         >
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap" style={isOwnMessage ? { color: '#FFFFFF' } : {}}>
                             {message.content}
                           </p>
 
@@ -614,9 +622,13 @@ export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps
               whileTap={{ scale: 0.95 }}
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-50 ${
                 (newMessage.trim() || selectedFile)
-                  ? 'bg-primary shadow-lg shadow-primary/40'
+                  ? 'shadow-lg'
                   : 'bg-gray-200 dark:bg-white/10'
               }`}
+              style={(newMessage.trim() || selectedFile) ? {
+                backgroundColor: primaryColor,
+                boxShadow: `0 4px 15px ${primaryColor}40`
+              } : {}}
             >
               {isSending ? (
                 <motion.div

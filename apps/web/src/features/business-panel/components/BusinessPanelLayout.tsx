@@ -22,7 +22,8 @@ interface BusinessPanelLayoutProps {
 function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const { styles, loading: stylesLoading } = useOrganizationStylesContext()
+  // Usar effectiveStyles para soportar modo claro/oscuro
+  const { styles, effectiveStyles, loading: stylesLoading } = useOrganizationStylesContext()
   // Use the new Joyride hook
   const { joyrideProps } = useBusinessPanelJoyride()
   // Track if component has mounted (for client-only rendering)
@@ -58,20 +59,22 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   }
 
   // Memorizar estilos personalizados ANTES de cualquier return (Regla de Hooks)
-  const panelStyles = useMemo(() => styles?.panel, [styles])
+  // Usar estilos efectivos si existen (Light/Dark mode) o fallback a estilos base
+  const panelStyles = useMemo(() => effectiveStyles?.panel || styles?.panel, [styles, effectiveStyles])
   const backgroundStyle = useMemo(() => getBackgroundStyle(panelStyles), [panelStyles])
   const cssVariables = useMemo(() => generateCSSVariables(panelStyles), [panelStyles])
 
   // Debug: Log cuando los estilos se aplican
   useEffect(() => {
-    if (styles?.panel) {
+    if (panelStyles) {
       console.log('✅ [BusinessPanelLayout] Estilos aplicados correctamente al layout:', {
-        theme: styles.selectedTheme,
-        backgroundValue: styles.panel.background_value?.substring(0, 50),
-        primaryColor: styles.panel.primary_button_color
+        theme: styles?.selectedTheme,
+        mode: effectiveStyles ? 'effective' : 'base',
+        backgroundValue: panelStyles.background_value?.substring(0, 50),
+        primaryColor: panelStyles.primary_button_color
       });
     }
-  }, [styles])
+  }, [styles, effectiveStyles, panelStyles])
 
   // Set mounted state for client-only rendering of Joyride
   useEffect(() => {

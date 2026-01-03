@@ -51,7 +51,7 @@ export function BusinessPanelSidebar({
   onTogglePin
 }: BusinessPanelSidebarProps) {
   const pathname = usePathname()
-  const { styles } = useOrganizationStylesContext()
+  const { styles, effectiveStyles } = useOrganizationStylesContext()
   const { data: businessData } = useBusinessSettings()
   const { logout } = useAuth()
   const [imageError, setImageError] = useState(false)
@@ -75,7 +75,8 @@ export function BusinessPanelSidebar({
   const [isClicking, setIsClicking] = useState(false)
 
   const organization = businessData?.organization
-  const panelStyles = styles?.panel
+  // Usar estilos efectivos (light/dark) o fallback a estilos base
+  const panelStyles = effectiveStyles?.panel || styles?.panel
   const sidebarBackground = panelStyles?.sidebar_background || '#0a0a0a'
 
   /* State for mobile detection */
@@ -264,15 +265,15 @@ export function BusinessPanelSidebar({
                       group relative flex items-center px-3 py-3 rounded-xl
                       transition-all duration-300 ease-out
                       ${isActive
-                        ? 'text-white shadow-lg'
-                        : 'text-white/60 hover:text-white hover:bg-white/5'
+                        ? 'shadow-lg'
+                        : 'hover:bg-white/5'
                       }
                       ${(isCollapsed && !shouldExpand && !isMobile) ? 'justify-center' : 'justify-start gap-3'}
                     `}
                     style={{
-                      background: isActive
-                        ? `linear-gradient(90deg, ${primaryColor}, ${accentColor})`
-                        : undefined,
+                      backgroundColor: isActive ? primaryColor : undefined,
+                      color: isActive ? '#FFFFFF' : (panelStyles?.text_color || '#FFFFFF'),
+                      opacity: isActive ? 1 : 0.7,
                       boxShadow: isActive ? `0 4px 20px -5px ${primaryColor}60` : undefined
                     }}
                     title={(isCollapsed && !shouldExpand && !isMobile) ? item.name : undefined}
@@ -312,7 +313,8 @@ export function BusinessPanelSidebar({
              <div className={`flex ${(!isCollapsed || shouldExpand) ? 'justify-end' : 'justify-center'} mb-4`}>
                 <button
                   onClick={onToggleCollapse}
-                  className="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all hover:scale-105 active:scale-95"
+                  className="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-all hover:scale-105 active:scale-95"
+                  style={{ color: panelStyles?.text_color || '#FFFFFF', opacity: 0.7 }}
                   title={isCollapsed ? t('sidebar.pinMenu') : t('sidebar.collapseMenu')}
                 >
                   {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}

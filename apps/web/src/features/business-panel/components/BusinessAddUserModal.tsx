@@ -30,8 +30,8 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Theme Colors
-  const primaryColor = panelStyles?.primary_button_color || '#0EA5E9'
-  const accentColor = panelStyles?.accent_color || '#10B981'
+  const primaryColor = panelStyles?.primary_button_color || '#0A2540'
+  const accentColor = panelStyles?.accent_color || '#00D4B3'
 
   const [formData, setFormData] = useState({
     username: '',
@@ -270,7 +270,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                       {isUploadingImage ? (
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
-                        <Camera className="w-5 h-5 text-white" />
+                        <Camera className="w-5 h-5 !text-white" color="#FFFFFF" strokeWidth={2} />
                       )}
                     </motion.button>
 
@@ -511,21 +511,24 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       disabled={isLoading || isUploadingImage}
-                      className="px-5 py-2.5 rounded-xl text-sm font-medium text-white flex items-center gap-2 disabled:opacity-50"
+                      className="px-5 py-2.5 rounded-xl text-sm font-medium !text-white flex items-center gap-2 disabled:opacity-50"
                       style={{
-                        background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                        backgroundColor: primaryColor,
+                        color: '#FFFFFF',
                         boxShadow: `0 4px 15px ${primaryColor}40`
                       }}
                     >
                       {isLoading || isUploadingImage ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          {isUploadingImage ? t('users.buttons.uploading') : t('users.buttons.creating')}
+                          <span className="!text-white" style={{ color: '#FFFFFF' }}>
+                            {isUploadingImage ? t('users.buttons.uploading') : t('users.buttons.creating')}
+                          </span>
                         </>
                       ) : (
                         <>
-                          <UserPlus className="w-4 h-4" />
-                          {t('users.buttons.create')}
+                          <UserPlus className="w-4 h-4 !text-white" color="#FFFFFF" strokeWidth={2} />
+                          <span className="!text-white" style={{ color: '#FFFFFF' }}>{t('users.buttons.create')}</span>
                         </>
                       )}
                     </motion.button>

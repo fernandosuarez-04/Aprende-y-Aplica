@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Check } from 'lucide-react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface Option {
   value: string
@@ -41,9 +42,16 @@ export function PremiumSelect({
   const panelStyles = styles?.panel
 
   // Colores dinámicos
-  const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
-  const cardBackground = panelStyles?.card_background || '#1E2329'
-  const textColor = panelStyles?.text_color || '#FFFFFF'
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+
+  // Colores dinámicos
+  // Colores dinámicos corregidos para respetar modo claro
+  const primaryColor = panelStyles?.primary_button_color || (isDark ? '#8B5CF6' : '#6366F1')
+  const cardBackground = isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF'
+  const textColor = isDark ? (panelStyles?.text_color || '#FFFFFF') : '#0F172A'
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+  const hoverBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
 
   // Usar onValueChange si está disponible, sino onChange
   const handleValueChange = onValueChange || onChange || (() => { })
@@ -95,7 +103,7 @@ export function PremiumSelect({
         className="w-full px-4 py-3.5 rounded-xl border-2 flex items-center justify-between gap-3 transition-all duration-300 group"
         style={{
           backgroundColor: cardBackground,
-          borderColor: hasActiveSelection ? primaryColor : 'rgba(255,255,255,0.1)',
+          borderColor: hasActiveSelection ? primaryColor : borderColor,
           color: textColor,
           boxShadow: hasActiveSelection ? `0 0 0 1px ${primaryColor}30` : 'none'
         }}
@@ -148,7 +156,7 @@ export function PremiumSelect({
             className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden backdrop-blur-xl"
             style={{
               backgroundColor: cardBackground,
-              borderColor: 'rgba(255,255,255,0.15)',
+              borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
               zIndex: 9999
             }}
@@ -190,7 +198,7 @@ export function PremiumSelect({
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'
+                          e.currentTarget.style.backgroundColor = hoverBg
                           e.currentTarget.style.color = textColor
                         }
                       }}

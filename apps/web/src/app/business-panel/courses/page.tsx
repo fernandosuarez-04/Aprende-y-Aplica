@@ -27,6 +27,7 @@ import { StarRating } from '@/features/courses/components/StarRating'
 import { PremiumSelect } from '@/features/business-panel/components/PremiumSelect'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { useTranslation } from 'react-i18next'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 // ============================================
 // COMPONENTE: StatCard Premium para Cursos
@@ -37,17 +38,21 @@ interface CourseStatCardProps {
   icon: React.ElementType
   color: string
   delay: number
+  isDark?: boolean
 }
 
-function CourseStatCard({ title, value, icon: Icon, color, delay }: CourseStatCardProps) {
+function CourseStatCard({ title, value, icon: Icon, color, delay, isDark }: CourseStatCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: delay * 0.1, duration: 0.4 }}
       whileHover={{ y: -4, scale: 1.02 }}
-      className="relative group overflow-hidden rounded-2xl p-5 border border-white/10"
-      style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+      className="relative group overflow-hidden rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
+      style={{ 
+        backgroundColor: 'var(--org-card-background, #1E2329)',
+        border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)'
+      }}
     >
       {/* Glow effect on hover */}
       <motion.div
@@ -64,10 +69,10 @@ function CourseStatCard({ title, value, icon: Icon, color, delay }: CourseStatCa
           <Icon className="w-6 h-6" style={{ color }} />
         </div>
         <div>
-          <h4 className="text-2xl font-bold" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>
+          <h4 className="text-2xl font-bold" style={{ color: isDark ? 'var(--org-text-color, #FFFFFF)' : '#0F172A' }}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </h4>
-          <p className="text-sm" style={{ color: 'var(--org-border-color, #9CA3AF)' }}>
+          <p className="text-sm" style={{ color: isDark ? 'var(--org-border-color, #9CA3AF)' : '#64748B' }}>
             {title}
           </p>
         </div>
@@ -92,10 +97,12 @@ interface CourseCardProps {
   course: any
   index: number
   primaryColor: string
+  textColor: string
+  cardBg: string
   onClick: () => void
 }
 
-function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
+function CourseCard({ course, index, primaryColor, textColor, cardBg, onClick }: CourseCardProps) {
   const { t } = useTranslation('business')
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return 'N/A'
@@ -130,8 +137,8 @@ function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
       transition={{ delay: index * 0.05, duration: 0.4 }}
       whileHover={{ y: -6, scale: 1.02 }}
       onClick={onClick}
-      className="group cursor-pointer overflow-hidden rounded-2xl border border-white/10 transition-all duration-300"
-      style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+      className="group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-md"
+      style={{ backgroundColor: cardBg, borderColor: 'rgba(0,0,0,0.05)' }}
     >
       {/* Thumbnail with Overlay */}
       <div className="relative h-44 overflow-hidden">
@@ -202,7 +209,7 @@ function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
         {/* Title */}
         <h3
           className="text-base font-bold mb-2 line-clamp-2 group-hover:text-primary transition-colors"
-          style={{ color: 'var(--org-text-color, #FFFFFF)' }}
+          style={{ color: textColor }}
         >
           {course.title}
         </h3>
@@ -210,7 +217,7 @@ function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
         {/* Description */}
         <p
           className="text-sm mb-4 line-clamp-2"
-          style={{ color: 'var(--org-border-color, #9CA3AF)' }}
+          style={{ color: textColor, opacity: 0.7 }}
         >
           {course.description || t('courses.card.noDescription')}
         </p>
@@ -224,10 +231,10 @@ function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
             {course.instructor.name[0].toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>
+            <p className="text-sm font-medium" style={{ color: textColor }}>
               {course.instructor.name}
             </p>
-            <p className="text-xs" style={{ color: 'var(--org-border-color, #9CA3AF)' }}>
+            <p className="text-xs" style={{ color: textColor, opacity: 0.6 }}>
               {t('courses.card.instructor')}
             </p>
           </div>
@@ -236,11 +243,11 @@ function CourseCard({ course, index, primaryColor, onClick }: CourseCardProps) {
         {/* Stats */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5" style={{ color: 'var(--org-border-color, #9CA3AF)' }}>
+            <div className="flex items-center gap-1.5" style={{ color: textColor, opacity: 0.6 }}>
               <Clock className="w-4 h-4" />
               <span className="text-xs font-medium">{formatDuration(course.duration)}</span>
             </div>
-            <div className="flex items-center gap-1.5" style={{ color: 'var(--org-border-color, #9CA3AF)' }}>
+            <div className="flex items-center gap-1.5" style={{ color: textColor, opacity: 0.6 }}>
               <Users className="w-4 h-4" />
               <span className="text-xs font-medium">{course.student_count || 0}</span>
             </div>
@@ -276,11 +283,17 @@ export default function BusinessPanelCoursesPage() {
   const router = useRouter()
 
   // Theme Colors
-  const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+
+  // Theme Colors con fallbacks correctos
+  const primaryColor = panelStyles?.primary_button_color || (isDark ? '#8B5CF6' : '#6366F1')
   const accentColor = panelStyles?.accent_color || '#10B981'
   const secondaryColor = panelStyles?.secondary_button_color || '#3B82F6'
-  const textColor = panelStyles?.text_color || '#FFFFFF'
-  const cardBg = panelStyles?.card_background || '#1E2329'
+  // En modo claro, forzamos colores legibles ignorando posibles configuraciones oscuras de la organización
+  const textColor = isDark ? (panelStyles?.text_color || '#FFFFFF') : '#0F172A'
+  const cardBg = isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF'
+  const borderColor = isDark ? (panelStyles?.border_color || 'rgba(255,255,255,0.1)') : 'rgba(0,0,0,0.1)'
 
   // Obtener categorías y niveles únicos
   const categories = useMemo(() => {
@@ -379,10 +392,12 @@ export default function BusinessPanelCoursesPage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-3xl p-8 mb-8"
+        className="relative overflow-hidden rounded-3xl p-8 mb-8 shadow-lg"
         style={{
-          background: `linear-gradient(135deg, ${primaryColor}20, ${accentColor}10)`,
-          border: '1px solid rgba(255,255,255,0.1)'
+          background: isDark 
+            ? `linear-gradient(135deg, ${primaryColor}20, ${accentColor}10)`
+            : `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+          border: isDark ? '1px solid rgba(255,255,255,0.1)' : 'none'
         }}
       >
         {/* Decorative Elements */}
@@ -405,11 +420,11 @@ export default function BusinessPanelCoursesPage() {
               animate={{ rotate: [0, 360] }}
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
             >
-              <Sparkles className="w-5 h-5" style={{ color: accentColor }} />
+              <Sparkles className="w-5 h-5" style={{ color: isDark ? accentColor : '#FFFFFF' }} />
             </motion.div>
             <span
               className="text-sm font-semibold uppercase tracking-wider"
-              style={{ color: accentColor }}
+              style={{ color: isDark ? accentColor : '#FFFFFF', opacity: 0.9 }}
             >
               {t('courses.badge')}
             </span>
@@ -417,13 +432,13 @@ export default function BusinessPanelCoursesPage() {
 
           <h1
             className="text-3xl lg:text-4xl font-bold mb-3"
-            style={{ color: textColor }}
+            style={{ color: isDark ? textColor : '#FFFFFF' }}
           >
             {t('courses.title')}
           </h1>
           <p
             className="text-base lg:text-lg max-w-2xl"
-            style={{ color: `${textColor}99` }}
+            style={{ color: isDark ? `${textColor}99` : '#FFFFFF', opacity: 0.8 }}
           >
             {t('courses.subtitle')}
           </p>
@@ -433,7 +448,7 @@ export default function BusinessPanelCoursesPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {courseStats.map((stat, index) => (
-          <CourseStatCard key={stat.title} {...stat} delay={index} />
+          <CourseStatCard key={stat.title} {...stat} delay={index} isDark={isDark} />
         ))}
       </div>
 
@@ -463,8 +478,11 @@ export default function BusinessPanelCoursesPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-2xl p-5 border border-white/10 mb-8"
-        style={{ backgroundColor: cardBg }}
+        className="rounded-2xl p-5 mb-8 shadow-sm"
+        style={{ 
+          backgroundColor: cardBg,
+          border: `1px solid ${borderColor}`
+        }}
       >
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
@@ -478,10 +496,12 @@ export default function BusinessPanelCoursesPage() {
               placeholder={t('courses.filters.search')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-white/10 bg-white/5 focus:outline-none focus:ring-2 transition-all duration-200"
+              className={`w-full pl-12 pr-4 py-3.5 rounded-xl border focus:outline-none focus:ring-2 transition-all duration-200 ${
+                isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'
+              }`}
               style={{
                 color: textColor,
-                borderColor: 'rgba(255,255,255,0.1)'
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
               }}
             />
           </div>
@@ -560,6 +580,8 @@ export default function BusinessPanelCoursesPage() {
                 course={course}
                 index={index}
                 primaryColor={primaryColor}
+                textColor={textColor}
+                cardBg={cardBg}
                 onClick={() => router.push(`/business-panel/courses/${course.id}`)}
               />
             ))}

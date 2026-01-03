@@ -16,7 +16,9 @@ import {
   Loader2
 } from 'lucide-react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 import { formatDuration } from '@/lib/course-deadline-calculator'
+import { PremiumDatePicker } from './PremiumDatePicker'
 import { useTranslation } from 'react-i18next'
 
 interface ApproachSuggestion {
@@ -77,20 +79,25 @@ export function LiaDeadlineSuggestionModal({
   const [error, setError] = useState<string | null>(null)
 
   // Theme colors
-  const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
-  const accentColor = panelStyles?.accent_color || '#10B981'
-  const cardBackground = panelStyles?.card_background || '#1E2329'
-  const textColor = panelStyles?.text_color || '#FFFFFF'
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
 
-  // Reset state when modal opens
+  const primaryColor = panelStyles?.primary_button_color || (isDark ? '#8B5CF6' : '#6366F1')
+  const accentColor = panelStyles?.accent_color || '#10B981'
+  const cardBackground = isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF'
+  const textColor = isDark ? (panelStyles?.text_color || '#FFFFFF') : '#0F172A'
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+
+  // Reset state and fetch suggestions when modal opens
   useEffect(() => {
     if (isOpen) {
-      setStep('approach')
+      setStep('suggestions')
       setSelectedApproach(null)
-      setSuggestions([])
+      // setSuggestions([]) // Keep empty initially or fetch immediately
       setSelectedSuggestion(null)
       setStartDate(new Date().toISOString().split('T')[0])
       setError(null)
+      fetchSuggestions()
     }
   }, [isOpen])
 
@@ -144,9 +151,6 @@ export function LiaDeadlineSuggestionModal({
   const handleBack = () => {
     if (step === 'confirm') {
       setStep('suggestions')
-    } else if (step === 'suggestions') {
-      setStep('approach')
-      setSelectedApproach(null)
     }
   }
 
@@ -170,11 +174,11 @@ export function LiaDeadlineSuggestionModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative z-10 w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl border border-white/10"
-          style={{ backgroundColor: cardBackground }}
+          className="relative z-10 w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl border"
+          style={{ backgroundColor: cardBackground, borderColor: borderColor }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: borderColor }}>
             <div className="flex items-center gap-3">
               <motion.div
                 animate={{ rotate: [0, 360] }}
@@ -314,8 +318,8 @@ export function LiaDeadlineSuggestionModal({
                           whileHover={{ scale: 1.02, y: -2 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => handleSuggestionSelect(suggestion)}
-                          className="p-6 rounded-xl border border-white/10 hover:border-white/20 transition-all text-left"
-                          style={{ backgroundColor: `${cardBackground}80` }}
+                          className="p-6 rounded-xl border hover:border-opacity-50 transition-all text-left"
+                          style={{ backgroundColor: `${cardBackground}80`, borderColor: borderColor }}
                         >
                           <div className="flex items-start gap-4">
                             <div
@@ -393,8 +397,8 @@ export function LiaDeadlineSuggestionModal({
 
                 {/* Summary Card */}
                 <div
-                  className="p-6 rounded-xl border border-white/10"
-                  style={{ backgroundColor: `${cardBackground}80` }}
+                  className="p-6 rounded-xl border"
+                  style={{ backgroundColor: `${cardBackground}80`, borderColor: borderColor }}
                 >
                   <div className="flex items-center gap-4 mb-6">
                     <div
@@ -465,12 +469,11 @@ export function LiaDeadlineSuggestionModal({
                     <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
                       {t('liaSuggestion.details.startDate')}
                     </label>
-                    <input
-                      type="date"
+                    <PremiumDatePicker
                       value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-white/20 transition-colors"
-                      style={{ backgroundColor: cardBackground, color: textColor }}
+                      onChange={setStartDate}
+                      minDate={new Date()}
+                      placeholder={t('liaSuggestion.details.startDate')}
                     />
                     <p className="text-xs mt-2" style={{ color: `${textColor}50` }}>
                       {t('liaSuggestion.details.defaultDate')}
@@ -480,8 +483,8 @@ export function LiaDeadlineSuggestionModal({
 
                 {/* Info Box */}
                 <div
-                  className="p-4 rounded-xl border border-white/10 flex items-start gap-3"
-                  style={{ backgroundColor: `${accentColor}10` }}
+                  className="p-4 rounded-xl border flex items-start gap-3"
+                  style={{ backgroundColor: `${accentColor}10`, borderColor: borderColor }}
                 >
                   <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: accentColor }} />
                   <div>
@@ -498,8 +501,8 @@ export function LiaDeadlineSuggestionModal({
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-white/10 flex items-center justify-between">
-            {step !== 'approach' && (
+          <div className="p-6 border-t flex items-center justify-between" style={{ borderColor: borderColor }}>
+            {step === 'confirm' && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -517,8 +520,8 @@ export function LiaDeadlineSuggestionModal({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleConfirm}
-                className="ml-auto px-8 py-3 rounded-xl font-medium text-white flex items-center gap-2"
-                style={{ backgroundColor: primaryColor }}
+                className="ml-auto px-8 py-3 rounded-xl font-medium !text-white flex items-center gap-2"
+                style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
               >
                 {t('liaSuggestion.buttons.confirm')}
                 <CheckCircle className="w-4 h-4" />

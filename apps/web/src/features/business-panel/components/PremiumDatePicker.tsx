@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface PremiumDatePickerProps {
     value: string
@@ -46,10 +47,15 @@ export function PremiumDatePicker({
     const containerRef = useRef<HTMLDivElement>(null)
 
     // Theme colors
-    const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
+    // Theme colors
+    const { resolvedTheme } = useThemeStore()
+    const isDark = resolvedTheme === 'dark'
+
+    const primaryColor = panelStyles?.primary_button_color || (isDark ? '#8B5CF6' : '#6366F1')
     const accentColor = panelStyles?.accent_color || '#10B981'
-    const cardBackground = panelStyles?.card_background || '#1E2329'
-    const textColor = panelStyles?.text_color || '#FFFFFF'
+    const cardBackground = isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF'
+    const textColor = isDark ? (panelStyles?.text_color || '#FFFFFF') : '#0F172A'
+    const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
 
     // Close on outside click
     useEffect(() => {
@@ -195,7 +201,7 @@ export function PremiumDatePicker({
                     }`}
                 style={{
                     backgroundColor: `${cardBackground}80`,
-                    borderColor: isOpen ? primaryColor : 'rgba(255,255,255,0.1)',
+                    borderColor: isOpen ? primaryColor : borderColor,
                     boxShadow: isOpen ? `0 0 0 3px ${primaryColor}20` : 'none'
                 }}
             >
@@ -229,7 +235,7 @@ export function PremiumDatePicker({
                         className="absolute z-50 top-full mt-2 left-0 p-4 rounded-2xl border shadow-2xl min-w-[320px]"
                         style={{
                             backgroundColor: cardBackground,
-                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderColor: borderColor,
                             boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px ${primaryColor}20`
                         }}
                     >
@@ -340,7 +346,7 @@ export function PremiumDatePicker({
                         </motion.div>
 
                         {/* Footer */}
-                        <div className="flex items-center justify-between mt-4 pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t" style={{ borderColor: borderColor }}>
                             <motion.button
                                 type="button"
                                 onClick={() => onChange('')}

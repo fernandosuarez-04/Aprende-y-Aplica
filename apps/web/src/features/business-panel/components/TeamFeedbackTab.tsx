@@ -21,6 +21,7 @@ import { useOrganizationStylesContext } from '../contexts/OrganizationStylesCont
 import { TeamsService, WorkTeamFeedback } from '../services/teams.service'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { TeamFeedbackModal } from './TeamFeedbackModal'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface TeamFeedbackTabProps {
   teamId: string
@@ -35,11 +36,12 @@ const FILTER_OPTIONS = [
 
 export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
   const { styles } = useOrganizationStylesContext()
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const panelStyles = styles?.panel
-  const { user } = useAuth()
 
-  const cardBg = panelStyles?.card_background || '#1E2329'
-  const textColor = panelStyles?.text_color || '#f8fafc'
+  const cardBg = isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF'
+  const textColor = isDark ? (panelStyles?.text_color || '#f8fafc') : '#0F172A'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
   const accentColor = panelStyles?.accent_color || '#10B981'
   const secondaryColor = panelStyles?.secondary_button_color || '#8b5cf6'
@@ -265,11 +267,12 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
             className="px-5 py-3 rounded-xl text-sm font-semibold text-white flex items-center gap-2"
             style={{
               background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-              boxShadow: `0 4px 20px ${primaryColor}40`
+              boxShadow: `0 4px 20px ${primaryColor}40`,
+              color: '#FFFFFF'
             }}
           >
             <Plus className="w-4 h-4" />
-            Dar Feedback
+            <span style={{ color: '#FFFFFF' }}>Dar Feedback</span>
           </motion.button>
         </div>
       </div>
@@ -322,11 +325,12 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
             className="px-6 py-3 rounded-xl text-sm font-semibold text-white inline-flex items-center gap-2"
             style={{
               background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-              boxShadow: `0 4px 20px ${primaryColor}40`
+              boxShadow: `0 4px 20px ${primaryColor}40`,
+              color: '#FFFFFF'
             }}
           >
             <Send className="w-4 h-4" />
-            Enviar Primer Feedback
+            <span style={{ color: '#FFFFFF' }}>Enviar Primer Feedback</span>
           </motion.button>
         </motion.div>
       ) : (
@@ -345,7 +349,7 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
                 className="group rounded-2xl overflow-hidden transition-all duration-300"
                 style={{
                   backgroundColor: cardBg,
-                  border: '1px solid rgba(255,255,255,0.06)'
+                  border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)'
                 }}
               >
                 <div className="p-5">
@@ -417,7 +421,7 @@ export function TeamFeedbackTab({ teamId, teamMembers }: TeamFeedbackTabProps) {
                       <div
                         className="p-4 rounded-xl mb-3"
                         style={{
-                          backgroundColor: 'rgba(255,255,255,0.03)',
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
                           borderLeft: `3px solid ${typeConfig.color}40`
                         }}
                       >
