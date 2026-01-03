@@ -21,9 +21,8 @@ import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 import { useThemeStore } from '@/core/stores/themeStore'
 import { LIA_PANEL_WIDTH } from '@/core/components/LiaSidePanel'
 
-// Removed old tour hook
-import { useBusinessUserJoyride } from '@/features/tours/hooks/useBusinessUserJoyride'
-import Joyride from 'react-joyride'
+// Tour hook for NextStep
+import { useDashboardTour } from '@/features/tours/hooks/useDashboardTour'
 
 import { useTranslation } from 'react-i18next'
 
@@ -84,10 +83,8 @@ export default function BusinessUserDashboardPage() {
   const backgroundStyle = getBackgroundStyle(userDashboardStyles)
   const cssVariables = generateCSSVariables(userDashboardStyles)
 
-  // Tour inicializado
-  const { joyrideProps, restartTour } = useBusinessUserJoyride()
-  const [isMounted, setIsMounted] = useState(false)
-  useEffect(() => setIsMounted(true), [])
+  // Tour inicializado con NextStep
+  const { isLoading: tourLoading, shouldShowTour, handleTourComplete, handleTourSkip, handleStepChange, restartTour } = useDashboardTour()
 
   // Colores personalizados de la organización con detección de modo
   const { resolvedTheme } = useThemeStore()
@@ -728,8 +725,7 @@ export default function BusinessUserDashboardPage() {
         </div>
       </main>
 
-      {/* Tour de bienvenida Joyride */}
-      {isMounted && <Joyride {...joyrideProps} />}
+      {/* Tour de bienvenida - NextStep está manejado por BusinessUserTourWrapper */}
     </div>
   )
 }

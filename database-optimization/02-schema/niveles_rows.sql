@@ -1,0 +1,1 @@
+INSERT INTO "public"."niveles" ("id", "slug", "nombre") VALUES ('1', 'direccion-general', 'Dirección General'), ('2', 'direccion-area', 'Dirección de Área'), ('3', 'gerencia', 'Gerencia'), ('4', 'miembro', 'Miembro/Colaborador'), ('5', 'ejecutivo', 'Ejecutivo'), ('6', 'ceo', 'CEO');

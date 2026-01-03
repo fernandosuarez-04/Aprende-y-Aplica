@@ -75,6 +75,113 @@ export async function POST(
     }
 
     const enrollmentId = enrollment.enrollment_id;
+
+    // ✅ NUEVA VALIDACIÓN: Verificar que la lección no esté bloqueada
+    // Obtener módulos del curso
+    const { data: modules, error: modulesError } = await supabase
+      .from('course_modules')
+      .select('module_id, module_order_index')
+      .eq('course_id', courseId)
+      .eq('is_published', true)
+      .order('module_order_index', { ascending: true });
+
+    if (modulesError || !modules || modules.length === 0) {
+      return NextResponse.json(
+        { error: 'El curso no tiene módulos' },
+        { status: 404 }
+      );
+    }
+
+    // Obtener todas las lecciones ordenadas
+    const lessonsPromises = modules.map(async (module) => {
+      const { data: lessons } = await supabase
+        .from('course_lessons')
+        .select('lesson_id, lesson_order_index, module_id, title')
+        .eq('module_id', module.module_id)
+        .eq('is_published', true)
+        .order('lesson_order_index', { ascending: true });
+
+      return (lessons || []).map((lesson: any) => ({
+        ...lesson,
+        module_order_index: module.module_order_index,
+      }));
+    });
+
+    const lessonsArrays = await Promise.all(lessonsPromises);
+    const allLessons = lessonsArrays.flat();
+
+    // Ordenar lecciones con validación de nulos
+    allLessons.sort((a, b) => {
+      const aModuleIndex = a.module_order_index ?? 999999;
+      const bModuleIndex = b.module_order_index ?? 999999;
+      const aLessonIndex = a.lesson_order_index ?? 999999;
+      const bLessonIndex = b.lesson_order_index ?? 999999;
+
+      if (aModuleIndex !== bModuleIndex) {
+        return aModuleIndex - bModuleIndex;
+      }
+      return aLessonIndex - bLessonIndex;
+    });
+
+    // Encontrar la lección actual
+    const currentLessonIndex = allLessons.findIndex(
+      (l: any) => l.lesson_id === lessonId
+    );
+
+    if (currentLessonIndex === -1) {
+      return NextResponse.json(
+        { error: 'Lección no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    // ✅ VALIDAR: Si no es la primera lección, verificar que todas las anteriores estén completadas
+    if (currentLessonIndex > 0) {
+      const previousLessons = allLessons.slice(0, currentLessonIndex);
+      const previousLessonIds = previousLessons.map(l => l.lesson_id);
+
+      // Obtener progreso de todas las lecciones anteriores
+      const { data: previousProgress, error: progressError } = await supabase
+        .from('user_lesson_progress')
+        .select('lesson_id, is_completed')
+        .eq('enrollment_id', enrollmentId)
+        .in('lesson_id', previousLessonIds);
+
+      if (progressError) {
+        console.error('Error verificando progreso:', progressError);
+        // En caso de error, bloquear acceso por seguridad
+        return NextResponse.json(
+          { 
+            error: 'Error verificando acceso a la lección',
+            code: 'ACCESS_CHECK_FAILED'
+          },
+          { status: 500 }
+        );
+      }
+
+      // Crear mapa de progreso
+      const progressMap = new Map(
+        (previousProgress || []).map((p: any) => [p.lesson_id, p.is_completed])
+      );
+
+      // Verificar que todas las lecciones anteriores estén completadas
+      for (const lesson of previousLessons) {
+        const isCompleted = progressMap.get(lesson.lesson_id) || false;
+        if (!isCompleted) {
+          return NextResponse.json(
+            {
+              error: `Debes completar la lección "${lesson.title}" antes de acceder a esta`,
+              code: 'LESSON_LOCKED',
+              previousLessonId: lesson.lesson_id,
+              previousLessonTitle: lesson.title
+            },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
+    // Si pasa la validación, continuar con el tracking normal
     const now = new Date().toISOString();
 
     // Verificar si existe progreso de la lección

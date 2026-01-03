@@ -31,7 +31,7 @@ export const courselearnTourSteps: Step[] = [
             para <strong className="text-white">dominar el contenido</strong> del curso de manera efectiva.
           </p>
         ),
-        selector: 'body',
+        selector: '#tour-center-target',
         side: 'center',
         showControls: true,
         showSkip: true,
@@ -186,7 +186,7 @@ export const courselearnTourSteps: Step[] = [
           </div>
         ),
         selector: '#tour-lia-course-button',
-        side: 'left',
+        side: 'top-right', // Posicionar el modal arriba y a la derecha del botón, con la flecha apuntando desde la esquina inferior derecha del modal
         showControls: true,
         showSkip: true,
         pointerPadding: 10,
@@ -213,11 +213,11 @@ export const courselearnTourSteps: Step[] = [
           </div>
         ),
         selector: '#tour-lia-panel',
-        side: 'left',
+        side: 'left', // Mantener 'left' para que el modal aparezca a la izquierda del panel
         showControls: true,
         showSkip: true,
-        pointerPadding: 10,
-        pointerRadius: 15,
+        pointerPadding: 5, // Padding pequeño para que el spotlight sea visible pero preciso
+        pointerRadius: 8, // Radio pequeño para un spotlight más preciso
       },
       // 11. Wrap Up
       {
@@ -239,7 +239,7 @@ export const courselearnTourSteps: Step[] = [
             </p>
           </div>
         ),
-        selector: 'body',
+        selector: '#tour-center-target',
         side: 'center',
         showControls: true,
         showSkip: false,

@@ -113,13 +113,51 @@ export async function POST(
     const lessonsArrays = await Promise.all(lessonsPromises);
     const allLessons = lessonsArrays.flat();
 
-    // Ordenar lecciones: primero por module_order_index, luego por lesson_order_index
+    // ✅ MEJORADO: Ordenar lecciones con validación de nulos y manejo de errores
     allLessons.sort((a, b) => {
-      if (a.module_order_index !== b.module_order_index) {
-        return a.module_order_index - b.module_order_index;
+      // Manejar valores nulos (asignar valor alto para que aparezcan al final)
+      const aModuleIndex = a.module_order_index ?? 999999;
+      const bModuleIndex = b.module_order_index ?? 999999;
+      const aLessonIndex = a.lesson_order_index ?? 999999;
+      const bLessonIndex = b.lesson_order_index ?? 999999;
+
+      // Primero ordenar por módulo
+      if (aModuleIndex !== bModuleIndex) {
+        return aModuleIndex - bModuleIndex;
       }
-      return a.lesson_order_index - b.lesson_order_index;
+      
+      // Si mismo módulo, ordenar por lección
+      if (aLessonIndex !== bLessonIndex) {
+        return aLessonIndex - bLessonIndex;
+      }
+      
+      // Si mismo índice (duplicado), ordenar por ID para mantener orden determinístico
+      return a.lesson_id.localeCompare(b.lesson_id);
     });
+
+    // ✅ VALIDACIÓN: Verificar que no haya duplicados problemáticos
+    const seenIndices = new Map<string, string[]>();
+    for (const lesson of allLessons) {
+      const moduleIndex = lesson.module_order_index ?? 'null';
+      const lessonIndex = lesson.lesson_order_index ?? 'null';
+      const key = `${moduleIndex}-${lessonIndex}`;
+      
+      if (!seenIndices.has(key)) {
+        seenIndices.set(key, []);
+      }
+      
+      seenIndices.get(key)!.push(lesson.lesson_id);
+    }
+
+    // Loggear advertencias si hay duplicados (pero no fallar)
+    for (const [key, lessonIds] of seenIndices.entries()) {
+      if (lessonIds.length > 1) {
+        logger.warn(`Lecciones con mismo índice detectadas: ${key}`, {
+          lessonIds,
+          courseId
+        });
+      }
+    }
 
     // Verificar que hay lecciones
     if (allLessons.length === 0) {
@@ -141,27 +179,58 @@ export async function POST(
       );
     }
 
-    // Si no es la primera lección, verificar que la anterior esté completada
-    // Optimización: Si la lección actual es la primera, no necesitamos verificar
+    // ✅ MEJORADO: Verificar que TODAS las lecciones anteriores estén completadas
+    // Si no es la primera lección, verificar que todas las anteriores estén completadas
     if (currentLessonIndex > 0) {
-      const previousLesson = allLessons[currentLessonIndex - 1];
-      
-      // Optimización: Obtener progreso de la lección anterior en una sola consulta
-      const { data: previousProgress } = await supabase
-        .from('user_lesson_progress')
-        .select('is_completed, lesson_status')
-        .eq('enrollment_id', enrollmentId)
-        .eq('lesson_id', previousLesson.lesson_id)
-        .single();
+      const previousLessons = allLessons.slice(0, currentLessonIndex);
+      const previousLessonIds = previousLessons.map(l => l.lesson_id);
 
-      if (!previousProgress || !previousProgress.is_completed) {
+      // Obtener progreso de todas las lecciones anteriores en una sola consulta
+      const { data: previousProgress, error: progressError } = await supabase
+        .from('user_lesson_progress')
+        .select('lesson_id, is_completed, lesson_status')
+        .eq('enrollment_id', enrollmentId)
+        .in('lesson_id', previousLessonIds);
+
+      if (progressError) {
+        logger.error('Error verificando progreso de lecciones anteriores:', progressError);
         return NextResponse.json(
           { 
-            error: 'Debes completar la lección anterior antes de completar esta',
-            code: 'PREVIOUS_LESSON_NOT_COMPLETED'
+            error: 'Error verificando progreso',
+            code: 'PROGRESS_CHECK_FAILED'
           },
-          { status: 400 }
+          { status: 500 }
         );
+      }
+
+      // Crear mapa de progreso para acceso rápido
+      const progressMap = new Map(
+        (previousProgress || []).map((p: any) => [p.lesson_id, p])
+      );
+
+      // Verificar que todas las lecciones anteriores estén completadas
+      for (const lesson of previousLessons) {
+        const progress = progressMap.get(lesson.lesson_id);
+        const isCompleted = progress?.is_completed || false;
+
+        if (!isCompleted) {
+          // Obtener título de la lección para el mensaje de error
+          const { data: lessonData } = await supabase
+            .from('course_lessons')
+            .select('title')
+            .eq('lesson_id', lesson.lesson_id)
+            .single();
+
+          return NextResponse.json(
+            { 
+              error: `Debes completar la lección "${lessonData?.title || 'anterior'}" antes de completar esta`,
+              code: 'PREVIOUS_LESSON_NOT_COMPLETED',
+              missingLessonId: lesson.lesson_id,
+              missingLessonTitle: lessonData?.title || null
+            },
+            { status: 400 }
+          );
+        }
       }
     }
 

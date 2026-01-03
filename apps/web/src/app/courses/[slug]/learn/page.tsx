@@ -90,9 +90,8 @@ import {
   LessonTrackingProvider,
   useLessonTrackingOptional,
 } from "./LessonTrackingContext";
-// 🎯 Import para el tour del curso
-import { useCourseLearnTour } from "../../../../features/tours/hooks/useCourseLearnTour";
-import Joyride from 'react-joyride';
+// 🎯 Import para el tour del curso con NextStep (tarjetas/modals)
+import { CourseLearnTourWrapper } from "../../../../features/tours/components/CourseLearnTourWrapper";
 
 // Lazy load componentes pesados (solo se cargan cuando se usan)
 // VideoPlayer se define fuera para que pueda ser usado en componentes hijos
@@ -175,7 +174,7 @@ export default function CourseLearnPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const { isOpen: isLiaOpen, openLia, liaChat } = useLiaCourse();
+  const { isOpen: isLiaOpen, openLia, closeLia, liaChat } = useLiaCourse();
   // Hook para enviar mensajes a LIA (usando instancia compartida del Sidebar)
   const sendLiaMessage = useCallback(
     async (
@@ -602,31 +601,7 @@ export default function CourseLearnPage() {
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   // const [isRightPanelOpen, setIsRightPanelOpen] = useState(false); // Removed LIA
 
-  // 🎯 Tour del curso - con acciones interactivas
-  const { joyrideProps } = useCourseLearnTour({
-    enabled: true,
-    onOpenLia: openLia,
-    onSwitchTab: (tab) => setActiveTab(tab),
-    onOpenNotes: (shouldScroll = true) => {
-      setIsLeftPanelOpen(true);
-      setIsNotesCollapsed(false);
-      // Dar tiempo para que se expanda antes de que el tour busque el elemento
-      if (shouldScroll) {
-        setTimeout(() => {
-          const element = document.getElementById("tour-notes-section");
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 100);
-      }
-    },
-  });
-
-  // Estado para renderizar Joyride solo en cliente
-  const [isJoyrideMounted, setIsJoyrideMounted] = useState(false);
-  useEffect(() => {
-    setIsJoyrideMounted(true);
-  }, []);
+  // 🎯 Tour del curso - manejado por CourseLearnTourWrapper con NextStep
 
   // const [isLiaExpanded, setIsLiaExpanded] = useState(false);
   const [currentActivityPrompts, setCurrentActivityPrompts] = useState<
@@ -684,6 +659,10 @@ export default function CourseLearnPage() {
     >
   >({});
   // const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  
+  // ✅ NUEVO: Ref para mantener el AbortController actual (para manejo de race conditions)
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
   const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen;
   const mobileContentPaddingBottom = isMobileBottomNavVisible
     ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`
@@ -946,54 +925,76 @@ export default function CourseLearnPage() {
         (item) => item.lesson.lesson_id === lesson.lesson_id
       );
 
-      // 🚀 OPTIMISTIC UPDATE: Cambiar INMEDIATAMENTE (antes de validar)
+      // ✅ MEJORADO: Cancelar cualquier validación pendiente antes de continuar
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Crear nuevo AbortController para esta navegación
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      // Si está avanzando, validar antes de cambiar
       if (selectedIndex > currentIndex) {
         // Guardar lección previa para poder revertir si falla
         const previousLesson = currentLesson;
 
-        // CAMBIO INSTANTÁNEO (UI no se bloquea)
-        setCurrentLesson(lesson);
-        setActiveTab("video");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        trackUserAction("lesson_opened", {
-          lessonId: lesson.lesson_id,
-          lessonTitle: lesson.lesson_title,
-        });
+        // ✅ MEJORADO: Validar ANTES de cambiar (no optimistic update)
+        try {
+          const canComplete = await markLessonAsCompleted(
+            previousLesson.lesson_id,
+            abortController.signal
+          );
 
-        // VALIDAR en segundo plano (async, no bloquea UI)
-        // Usar AbortController para poder cancelar si el usuario cambia de lección rápidamente
-        const abortController = new AbortController();
+          // Si la validación fue cancelada (usuario cambió de lección), no hacer nada
+          if (abortController.signal.aborted) {
+            return;
+          }
 
-        markLessonAsCompleted(previousLesson.lesson_id, abortController.signal)
-          .then((canComplete) => {
-            // Si falla la validación, REVERTIR cambio
-            if (!canComplete) {
-              console.warn(
-                "❌ Validación falló, revirtiendo a lección anterior"
-              );
-              setCurrentLesson(previousLesson);
-              setActiveTab("video");
-              window.scrollTo({ top: 0, behavior: "smooth" });
+          // Si falla la validación, NO cambiar de lección
+          if (!canComplete) {
+            console.warn(
+              "❌ Validación falló, no se cambia de lección"
+            );
+            
+            trackUserAction("attempted_locked_lesson", {
+              targetLessonId: lesson.lesson_id,
+              targetLessonTitle: lesson.lesson_title,
+              reason: "previous_lesson_not_completed",
+            });
+            
+            // Mostrar mensaje al usuario
+            setValidationModal({
+              isOpen: true,
+              title: "Lección Bloqueada",
+              message: "Debes completar la lección anterior antes de continuar.",
+              type: "locked",
+              lessonId: previousLesson.lesson_id,
+            });
+            
+            return;
+          }
 
-              trackUserAction("attempted_locked_lesson", {
-                targetLessonId: lesson.lesson_id,
-                targetLessonTitle: lesson.lesson_title,
-                reason: "previous_lesson_not_completed",
-              });
-            }
-          })
-          .catch((error) => {
-            // Ignorar errores de cancelación
-            if (
-              error?.name !== "AbortError" &&
-              process.env.NODE_ENV === "development"
-            ) {
-              console.warn("Error en validación de lección (ignorado):", error);
-            }
+          // Si pasa la validación, cambiar de lección
+          setCurrentLesson(lesson);
+          setActiveTab("video");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          trackUserAction("lesson_opened", {
+            lessonId: lesson.lesson_id,
+            lessonTitle: lesson.lesson_title,
           });
+        } catch (error: any) {
+          // Si es error de cancelación, ignorar
+          if (error?.name !== "AbortError" && !abortController.signal.aborted) {
+            console.error("Error en validación de lección:", error);
+          }
+        } finally {
+          // Limpiar referencia si es el controller actual
+          if (abortControllerRef.current === abortController) {
+            abortControllerRef.current = null;
+          }
+        }
 
-        // Limpiar el abort controller cuando se cambie de lección
-        // Esto se manejará en un useEffect que limpie cuando currentLesson cambie
         return;
       }
 
@@ -1008,6 +1009,16 @@ export default function CourseLearnPage() {
     },
     [currentLesson, lessonsActivities, trackUserAction]
   );
+
+  // ✅ NUEVO: Limpiar AbortController cuando cambia la lección
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [currentLesson?.lesson_id]);
 
   // Limpiar prompts cuando se cambia de tab
   useEffect(() => {
@@ -2366,6 +2377,26 @@ export default function CourseLearnPage() {
     }
   };
 
+  // ✅ NUEVA FUNCIÓN: Revertir estado local de manera consistente
+  const revertLocalState = (lessonId: string) => {
+    setModules((prevModules) => {
+      return prevModules.map((module) => ({
+        ...module,
+        lessons: module.lessons.map((lesson) =>
+          lesson.lesson_id === lessonId
+            ? { ...lesson, is_completed: false }
+            : lesson
+        ),
+      }));
+    });
+
+    if (currentLesson?.lesson_id === lessonId) {
+      setCurrentLesson((prev) =>
+        prev ? { ...prev, is_completed: false } : null
+      );
+    }
+  };
+
   // ⚡ OPTIMIZADO: Marcar lección como completada con validaciones en paralelo
   const markLessonAsCompleted = async (
     lessonId: string,
@@ -2432,23 +2463,8 @@ export default function CourseLearnPage() {
 
       // Verificar si falló validación de quizzes
       if (!quizStatus.canComplete) {
-        // REVERTIR estado local
-        setModules((prevModules) => {
-          return prevModules.map((module) => ({
-            ...module,
-            lessons: module.lessons.map((lesson) =>
-              lesson.lesson_id === lessonId
-                ? { ...lesson, is_completed: false }
-                : lesson
-            ),
-          }));
-        });
-
-        if (currentLesson?.lesson_id === lessonId) {
-          setCurrentLesson((prev) =>
-            prev ? { ...prev, is_completed: false } : null
-          );
-        }
+        // REVERTIR estado local usando función helper
+        revertLocalState(lessonId);
 
         // Mostrar modal de validación
         setValidationModal({
@@ -2470,103 +2486,49 @@ export default function CourseLearnPage() {
       // Verificar si guardado en BD falló
       const response = saveResponse;
 
-      // Si la respuesta no es OK, puede ser un error o una cancelación
-      if (!response.ok) {
-        // Si es un error 404/401, puede ser normal (no inscrito, etc.)
-        // Si es otro error, loguear pero permitir continuar
-        if (
-          response.status !== 404 &&
-          response.status !== 401 &&
-          process.env.NODE_ENV === "development"
-        ) {
-          console.warn(
-            "Error guardando progreso de lección:",
-            response.status,
-            response.statusText
-          );
-        }
-        // Retornar true porque el estado local ya se actualizó
-        return true;
-      }
-
       // Intentar parsear la respuesta primero (puede ser éxito o error)
       let responseData: any;
       try {
         responseData = await response.json();
       } catch (jsonError) {
-        // Si no es JSON válido, manejar como éxito (el estado local ya se actualizó)
-        // No loguear en producción para evitar ruido
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            "Respuesta no es JSON válido - Status:",
-            response.status
-          );
+        // Si no es JSON válido, manejar según el status
+        if (response.status >= 500) {
+          // Error del servidor: revertir
+          revertLocalState(lessonId);
+          if (process.env.NODE_ENV === "development") {
+            console.error("Error del servidor al guardar progreso:", response.status);
+          }
+          return false;
         }
-        // Retornar true porque el estado local se actualizó
+        // Para otros casos (red, etc.), permitir continuar
         return true;
       }
 
+      // ✅ MEJORADO: Manejo de errores más estricto y específico
       if (!response.ok) {
-        // Si el error es que la lección anterior no está completada, revertir el estado local
-        if (responseData?.code === "PREVIOUS_LESSON_NOT_COMPLETED") {
-          // Revertir el estado local
-          setModules((prevModules) => {
-            const updatedModules = prevModules.map((module) => ({
-              ...module,
-              lessons: module.lessons.map((lesson) =>
-                lesson.lesson_id === lessonId
-                  ? { ...lesson, is_completed: false }
-                  : lesson
-              ),
-            }));
+        // ✅ Manejar errores específicos
+        switch (responseData?.code) {
+          case 'PREVIOUS_LESSON_NOT_COMPLETED':
+            // Revertir estado local
+            revertLocalState(lessonId);
+            
+            // Mostrar modal con información de la lección faltante
+            setValidationModal({
+              isOpen: true,
+              title: "Lección Bloqueada",
+              message: responseData.error || "Debes completar la lección anterior antes de continuar.",
+              type: "locked",
+              lessonId: responseData.missingLessonId || null,
+              previousLessonTitle: responseData.missingLessonTitle || null,
+            });
+            
+            return false;
 
-            const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
-            const completedLessons = allLessons.filter(
-              (l: Lesson) => l.is_completed
-            );
-            const totalProgress =
-              allLessons.length > 0
-                ? Math.round(
-                    (completedLessons.length / allLessons.length) * 100
-                  )
-                : 0;
-
-            setCourseProgress(totalProgress);
-            return updatedModules;
-          });
-
-          if (currentLesson?.lesson_id === lessonId) {
-            setCurrentLesson((prev) =>
-              prev ? { ...prev, is_completed: false } : null
-            );
-          }
-
-          // console.error('Error del servidor:', responseData?.error || responseData);
-          return false;
-        }
-
-        // Si el error es que falta realizar actividad (quiz obligatorio)
-        if (responseData?.code === "REQUIRED_QUIZ_NOT_PASSED") {
-          // Revertir el estado local (solo el estado de la lección, NO el progreso)
-          setModules((prevModules) => {
-            return prevModules.map((module) => ({
-              ...module,
-              lessons: module.lessons.map((lesson) =>
-                lesson.lesson_id === lessonId
-                  ? { ...lesson, is_completed: false }
-                  : lesson
-              ),
-            }));
-          });
-
-          if (currentLesson?.lesson_id === lessonId) {
-            setCurrentLesson((prev) =>
-              prev ? { ...prev, is_completed: false } : null
-            );
-          }
-
-          // Mostrar modal de validación según el tipo de error
-          if (responseData?.code === "REQUIRED_QUIZ_NOT_PASSED") {
+          case 'REQUIRED_QUIZ_NOT_PASSED':
+            // Revertir estado local
+            revertLocalState(lessonId);
+            
+            // Mostrar modal de validación
             setValidationModal({
               isOpen: true,
               title: "Hace falta realizar actividad",
@@ -2578,32 +2540,48 @@ export default function CourseLearnPage() {
                 ? `Completados: ${responseData.details.passed} de ${responseData.details.totalRequired}`
                 : undefined,
               type: "activity",
-              lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
+              lessonId: lessonId,
             });
-          } else {
+            
+            return false;
+
+          case 'LESSON_LOCKED':
+          case 'ACCESS_CHECK_FAILED':
+            // Revertir estado local
+            revertLocalState(lessonId);
+            
+            // Mostrar modal
             setValidationModal({
               isOpen: true,
-              title: "No se puede completar",
-              message:
-                responseData?.details?.message ||
-                responseData?.error ||
-                "No se puede completar la lección en este momento.",
-              type: "activity",
-              lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
+              title: "Acceso Denegado",
+              message: responseData.error || "No tienes acceso a esta lección.",
+              type: "locked",
+              lessonId: responseData.previousLessonId || null,
             });
-          }
-          return false;
-        }
+            
+            return false;
 
-        // Para otros errores, solo loguear si hay un mensaje de error claro
-        if (responseData?.error) {
-          // console.warn('Advertencia al guardar progreso en BD:', responseData.error);
-        } else if (response.status >= 500) {
-          // Solo loguear errores del servidor (500+), no errores del cliente
-          // console.warn('Error del servidor al guardar progreso - Status:', response.status);
+          default:
+            // Para errores desconocidos, revertir por seguridad
+            if (response.status >= 400 && response.status < 500) {
+              // Error del cliente: revertir
+              revertLocalState(lessonId);
+              if (process.env.NODE_ENV === "development") {
+                console.warn("Error del cliente:", responseData?.error || response.status);
+              }
+              return false;
+            } else if (response.status >= 500) {
+              // Error del servidor: revertir
+              revertLocalState(lessonId);
+              if (process.env.NODE_ENV === "development") {
+                console.error("Error del servidor:", response.status);
+              }
+              return false;
+            }
+            
+            // Para otros casos (red, timeout), permitir continuar
+            return true;
         }
-        // Retornar true porque el estado local se actualizó y los datos pueden haberse guardado
-        return true;
       }
 
       // Si la respuesta es exitosa, procesar el resultado
@@ -2738,15 +2716,36 @@ export default function CourseLearnPage() {
   }
 
   return (
-    <WorkshopLearningProvider
-      workshopId={course?.id || course?.course_id || slug}
-      activityId={currentLesson?.lesson_id || "no-lesson"}
-      enabled={!!course && !!currentLesson}
-      checkInterval={15000}
-      assistantPosition="bottom-right"
-      assistantCompact={false}
-      onDifficultyDetected={(analysis) => {}}
-      onHelpAccepted={async (analysis) => {
+    <CourseLearnTourWrapper
+      onOpenLia={openLia}
+      onCloseLia={closeLia}
+      onSwitchTab={(tab) => setActiveTab(tab)}
+    >
+      {/* Elemento específico para pasos centrados del tour - centrado absoluto de la pantalla completa */}
+      <div 
+        id="tour-center-target" 
+        style={{ 
+          position: 'fixed', 
+          top: '50%', 
+          left: '50%', 
+          transform: 'translate(-50%, -50%)', 
+          width: '100px', 
+          height: '100px',
+          zIndex: 0, 
+          pointerEvents: 'none', 
+          opacity: 0,
+          backgroundColor: 'transparent'
+        }} 
+      />
+      <WorkshopLearningProvider
+        workshopId={course?.id || course?.course_id || slug}
+        activityId={currentLesson?.lesson_id || "no-lesson"}
+        enabled={!!course && !!currentLesson}
+        checkInterval={15000}
+        assistantPosition="bottom-right"
+        assistantCompact={false}
+        onDifficultyDetected={(analysis) => {}}
+        onHelpAccepted={async (analysis) => {
         // Abrir el panel de LIA (panel derecho)
         openLia();
 
@@ -3101,6 +3100,7 @@ export default function CourseLearnPage() {
                   bg-white dark:bg-[#0F1419] flex flex-col overflow-hidden border-r border-gray-200 dark:border-white/5
                   ${isMobile ? "my-0 ml-0" : "h-full"}
                 `}
+                  style={!isMobile ? { position: 'relative' } : undefined}
                 >
                   {/* Header con línea separadora alineada con panel central */}
                   <div className="bg-white dark:bg-[#0F1419] border-b border-gray-200 dark:border-white/5 flex items-center justify-between p-4 shrink-0 h-[60px]">
@@ -4147,6 +4147,7 @@ export default function CourseLearnPage() {
                     scrollPaddingRight: "0.5rem",
                     scrollSnapType: "x mandatory",
                     WebkitOverflowScrolling: "touch",
+                    position: "relative",
                   }}
                 >
                   <div className="flex gap-1 md:gap-2 items-center min-w-max">
@@ -4173,8 +4174,8 @@ export default function CourseLearnPage() {
                           style={{
                             fontFamily: "Inter, sans-serif",
                             fontWeight: isActive ? 600 : 500,
+                            scrollSnapAlign: "start",
                           }}
-                          style={{ scrollSnapAlign: "start" }}
                         >
                           <Icon className="w-4 h-4 shrink-0" />
                           <span
@@ -4646,11 +4647,9 @@ export default function CourseLearnPage() {
         />
 
         {/* Tour de voz contextual para la página de aprendizaje */}
-        
-        {/* Joyride Tour */}
-        {isJoyrideMounted && <Joyride {...joyrideProps} />}
       </div>
     </WorkshopLearningProvider>
+    </CourseLearnTourWrapper>
   );
 }
 

@@ -1591,3 +1591,154 @@ select::-webkit-scrollbar-thumb:hover {
 .notes-editor ol ol ol {
   list-style-type: lower-roman;
 }
+
+/* =====================================================
+   NEXTSTEPJS TOUR STYLES
+   Estilos para asegurar que el spotlight funcione correctamente
+   con elementos que tienen z-index alto en la página de cursos
+   ===================================================== */
+
+/* 
+ * NextStepJS usa SVG para crear el overlay con un "agujero" para el spotlight.
+ * El SVG tiene position: fixed y cubre toda la pantalla.
+ * El elemento objetivo debe tener un z-index mayor que el SVG overlay.
+ */
+
+/* Overlay SVG del tour - z-index muy alto para cubrir todo */
+svg[style*="position: fixed"][style*="inset: 0px"],
+div[style*="position: fixed"][style*="inset: 0"][style*="pointer-events"] {
+  z-index: 99990 !important;
+}
+
+/* Contenedor del tour card - debe estar por encima del overlay y del panel de LIA */
+/* NextStepJS renderiza el modal en un contenedor con position: fixed */
+/* Usar selectores más específicos para asegurar que el modal esté por encima */
+div[style*="position: fixed"][style*="z-index"] > div[class*="flex"][class*="flex-col"][class*="rounded"],
+div[style*="position: fixed"]:has(div[class*="flex"][class*="flex-col"][class*="rounded"]),
+div[style*="position: fixed"]:has(div[class*="rounded-2xl"]) {
+  z-index: 100001 !important;
+}
+
+/* Asegurar que cualquier elemento del tour card tenga z-index muy alto */
+div[class*="flex"][class*="flex-col"][class*="rounded"][class*="shadow"],
+div[class*="rounded-2xl"][class*="shadow-2xl"] {
+  z-index: 100001 !important;
+}
+
+/* Forzar z-index alto en el contenedor padre del modal cuando el tour está activo */
+body:has(svg[style*="position: fixed"]) div[style*="position: fixed"]:has(div[class*="rounded-2xl"]) {
+  z-index: 100001 !important;
+}
+
+/* Elementos del tour cuando están siendo destacados por NextStepJS */
+/* NextStepJS agrega estilos inline al elemento objetivo, incluyendo position y z-index */
+/* NOTA: No aplicamos position: relative a #tour-lia-panel ni #tour-lia-course-button 
+   porque usan position: fixed y deben mantener su posicionamiento */
+#tour-course-sidebar[style*="z-index"],
+#tour-tab-video[style*="z-index"],
+#tour-tab-transcript[style*="z-index"],
+#tour-tab-summary[style*="z-index"],
+#tour-tab-activities[style*="z-index"],
+#tour-tab-questions[style*="z-index"] {
+  z-index: 99995 !important;
+  position: relative !important;
+}
+
+/* Para LIA, solo ajustamos z-index cuando está siendo destacado, pero NO cambiamos position */
+#tour-lia-course-button[style*="z-index"],
+#tour-lia-panel[style*="z-index"] {
+  z-index: 99995 !important;
+  /* NO aplicamos position: relative aquí - mantienen su position: fixed */
+}
+
+/* Asegurar que el panel de LIA tenga z-index alto cuando el tour está activo y lo está destacando */
+/* Sobrescribir el z-index inline del panel cuando está siendo destacado */
+body:has(svg[style*="position: fixed"]) #tour-lia-panel[style*="z-index"],
+#tour-lia-panel[style*="z-index"] {
+  z-index: 99995 !important;
+}
+
+/* Asegurar que los elementos del tour tengan position relative para que z-index funcione */
+/* EXCEPTO los elementos de LIA que usan position: fixed */
+#tour-course-sidebar,
+#tour-tab-video,
+#tour-tab-transcript,
+#tour-tab-summary,
+#tour-tab-activities,
+#tour-tab-questions {
+  position: relative;
+}
+
+/* Cuando hay un overlay SVG activo (tour activo), aplicar estilos especiales */
+/* Solo aplicamos z-index bajo a elementos que no usan position: fixed */
+body:has(svg[style*="position: fixed"]) #tour-course-sidebar,
+body:has(svg[style*="position: fixed"]) [id^="tour-tab-"] {
+  /* Mantener z-index bajo por defecto cuando el tour está activo */
+  z-index: 10 !important;
+}
+
+/* Para LIA, solo ajustamos z-index pero NO tocamos position */
+/* El panel y botón de LIA mantienen su position: fixed */
+/* IMPORTANTE: El panel debe tener z-index ALTO cuando está siendo destacado, pero el modal debe estar por encima */
+body:has(svg[style*="position: fixed"]) #tour-lia-course-button:not([style*="z-index"]),
+body:has(svg[style*="position: fixed"]) #tour-lia-panel:not([style*="z-index"]) {
+  /* Reducir z-index cuando el tour está activo pero NO está siendo destacado */
+  /* Esto permite que el modal del tour aparezca por encima */
+  z-index: 40 !important;
+}
+
+/* Cuando el panel de LIA está siendo destacado específicamente, aumentar su z-index */
+/* pero asegurarse de que el modal del tour esté por encima */
+#tour-lia-panel[style*="z-index"] {
+  z-index: 99995 !important;
+}
+
+/* El botón de LIA cuando está siendo destacado */
+#tour-lia-course-button[style*="z-index"] {
+  z-index: 99995 !important;
+}
+
+/* El elemento actual del spotlight recibe z-index alto de NextStepJS via style inline */
+/* Usamos el selector de atributo style para detectar cuando tiene z-index alto */
+body:has(svg[style*="position: fixed"]) [style*="z-index: 9999"] {
+  z-index: 99995 !important;
+}
+
+/* Asegurar que el spotlight SVG del tour se mantenga dentro de los límites de la página */
+/* Esto previene que el spotlight se muestre fuera de la página cuando el elemento está en position: fixed */
+svg[style*="position: fixed"][style*="inset: 0px"] {
+  overflow: hidden !important;
+  clip-path: inset(0) !important;
+}
+
+/* Asegurar que el panel de LIA sea visible cuando está siendo destacado */
+/* Forzar que el panel tenga las dimensiones correctas y esté dentro del viewport */
+#tour-lia-panel[style*="z-index"] {
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  right: 0 !important;
+  top: 58px !important; /* NAVBAR_HEIGHT */
+  /* Asegurar que el panel tenga position: fixed para que NextStepJS pueda calcular correctamente */
+  position: fixed !important;
+}
+
+/* Mejorar la detección del panel para el spotlight */
+/* Asegurar que el panel tenga dimensiones visibles cuando está siendo destacado */
+#tour-lia-panel {
+  /* Mantener position: fixed para que NextStepJS pueda calcular correctamente la posición */
+  position: fixed !important;
+  /* Asegurar que tenga dimensiones para que el spotlight funcione */
+  min-width: 1px !important;
+  min-height: 1px !important;
+}
+
+/* FORZAR que el modal del tour esté SIEMPRE por encima del panel de LIA */
+/* Usar selector universal para cualquier modal del tour */
+body:has(svg[style*="position: fixed"]) div[style*="position: fixed"]:not(svg):not(#tour-lia-panel):not(#tour-lia-course-button) {
+  z-index: 100002 !important;
+}
+
+/* Específicamente para el contenedor del modal cuando está visible y el panel de LIA está abierto */
+body:has(#tour-lia-panel) div[style*="position: fixed"]:has(div[class*="rounded-2xl"]):not(svg):not(#tour-lia-panel):not(#tour-lia-course-button) {
+  z-index: 100002 !important;
+}
