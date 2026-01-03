@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Paperclip, Sparkles, MessageSquare, Lightbulb, HelpCircle, Trash2 } from 'lucide-react';
+import { X, Send, Paperclip, Sparkles, MessageSquare, Lightbulb, HelpCircle, Trash2, Copy, Save, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useThemeStore } from '../../../core/stores/themeStore';
@@ -191,6 +191,8 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [forceDarkText, setForceDarkText] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [savingMessageId, setSavingMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     const checkContrast = () => {
@@ -300,6 +302,79 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
     }
   };
 
+  // Función para copiar mensaje al portapapeles
+  const handleCopyMessage = useCallback(async (messageId: string, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (error) {
+      console.error('Error al copiar al portapapeles:', error);
+      alert('Error al copiar al portapapeles');
+    }
+  }, []);
+
+  // Función para guardar mensaje como nota
+  const handleSaveMessageAsNote = useCallback(async (messageId: string, content: string) => {
+    if (!lessonId || !courseSlug || !content.trim()) {
+      alert('No se puede guardar la nota. Falta información necesaria.');
+      return;
+    }
+
+    setSavingMessageId(messageId);
+
+    try {
+      // Preparar payload según el formato que espera la API REST
+      const notePayload = {
+        note_title: `Respuesta de LIA: ${lessonTitle || 'Lección'}`,
+        note_content: content,
+        note_tags: ['lia', 'chat', 'respuesta'],
+        source_type: 'manual',
+      };
+
+      const response = await fetch(
+        `/api/courses/${courseSlug}/lessons/${lessonId}/notes`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(notePayload),
+        }
+      );
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          const responseText = await response.text();
+          if (responseText) {
+            errorData = JSON.parse(responseText);
+          } else {
+            errorData = { error: 'Respuesta vacía del servidor' };
+          }
+        } catch (parseError) {
+          errorData = { error: 'Error al procesar respuesta del servidor' };
+        }
+
+        alert(
+          `Error al guardar la nota:\n\n${errorData.error || 'Error desconocido'}\n\nDetalles: ${errorData.message || 'Sin detalles adicionales'}`
+        );
+        return;
+      }
+
+      const newNote = await response.json();
+      alert('✅ Respuesta de LIA guardada exitosamente en notas');
+    } catch (error) {
+      console.error('Error al guardar nota:', error);
+      alert(
+        `❌ Error al guardar la nota:\n\n${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
+    } finally {
+      setSavingMessageId(null);
+    }
+  }, [lessonId, courseSlug, lessonTitle]);
+
   // Calcular dimensiones responsive
   const panelWidth = isMobile ? '100%' : `${PANEL_WIDTH}px`;
   const panelHeight = isMobile 
@@ -366,14 +441,88 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
             </div>
           </div>
 
-          {/* Messages */}
+            {/* Messages */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {messages.map((message) => (
-              <div key={message.id} style={{ display: 'flex', justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: '16px', backgroundColor: message.role === 'user' ? themeColors.messageBubbleUser : themeColors.messageBubbleAssistant }}>
+              <div key={message.id} className="lia-message-wrapper" style={{ display: 'flex', justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start', flexDirection: 'column', alignItems: message.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: '16px', backgroundColor: message.role === 'user' ? themeColors.messageBubbleUser : themeColors.messageBubbleAssistant, position: 'relative' }}>
                   <p className={message.role === 'user' ? 'lia-msg-user-text' : 'lia-msg-assistant-text'} style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
                     {message.role === 'assistant' ? parseMarkdownContent(message.content, handleLinkClick) : message.content}
                   </p>
+                  {/* Botones de acción solo para mensajes del assistant */}
+                  {message.role === 'assistant' && (
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px', justifyContent: 'flex-end' }} className="lia-message-actions">
+                      <button
+                        onClick={() => handleCopyMessage(message.id, message.content)}
+                        title="Copiar mensaje"
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '6px',
+                          background: 'transparent',
+                          border: `1px solid ${themeColors.textSecondary}`,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0,
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = isLightTheme ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)';
+                          e.currentTarget.style.borderColor = themeColors.accentColor;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.borderColor = themeColors.textSecondary;
+                        }}
+                      >
+                        {copiedMessageId === message.id ? (
+                          <Check style={{ width: '14px', height: '14px', color: themeColors.accentColor }} />
+                        ) : (
+                          <Copy style={{ width: '14px', height: '14px', color: themeColors.textSecondary }} />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleSaveMessageAsNote(message.id, message.content)}
+                        disabled={savingMessageId === message.id}
+                        title="Guardar como nota"
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '6px',
+                          background: 'transparent',
+                          border: `1px solid ${themeColors.textSecondary}`,
+                          cursor: savingMessageId === message.id ? 'wait' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0,
+                          opacity: savingMessageId === message.id ? 0.5 : 1,
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (savingMessageId !== message.id) {
+                            e.currentTarget.style.background = isLightTheme ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)';
+                            e.currentTarget.style.borderColor = themeColors.accentColor;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.borderColor = themeColors.textSecondary;
+                        }}
+                      >
+                        <Save 
+                          style={{ 
+                            width: '14px', 
+                            height: '14px', 
+                            color: savingMessageId === message.id ? themeColors.accentColor : themeColors.textSecondary,
+                            animation: savingMessageId === message.id ? 'liaPulse 1s infinite' : 'none'
+                          }} 
+                        />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -411,6 +560,15 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
           {/* CSS con máxima especificidad para garantizar visibilidad */}
           <style>{`
             @keyframes liaPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
+            
+            /* Botones de acción en mensajes - aparecen al hover */
+            .lia-message-actions {
+              opacity: 0;
+              transition: opacity 0.2s ease-in-out;
+            }
+            .lia-message-wrapper:hover .lia-message-actions {
+              opacity: 0.9;
+            }
             
             /* Corrección DEFINITIVA para el input de LIA usando ID para máxima especificidad */
             #lia-course-chat-input {
