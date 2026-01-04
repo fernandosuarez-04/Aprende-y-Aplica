@@ -34,50 +34,15 @@ export async function loginAction(formData: FormData) {
     const organizationId = formData.get('organizationId')?.toString()
     const organizationSlug = formData.get('organizationSlug')?.toString()
 
-    // 3. Buscar usuario y validar contraseña (como en tu sistema anterior)
-    // Buscar usuario por username o email (case-insensitive match exacto)
-
-    // Intentar buscar por username primero
-    console.log('🔍 [loginAction] Buscando usuario con:', {
-      input: parsed.emailOrUsername,
-      isEmail: parsed.emailOrUsername.includes('@')
-    });
-
-    let { data: userByUsername, error: usernameError } = await supabase
+    // 3. Buscar usuario y validar contraseña
+    // OPTIMIZADO: Una sola consulta con OR en lugar de dos secuenciales
+    const { data: user, error } = await supabase
       .from('users')
       .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
-      .ilike('username', parsed.emailOrUsername)
+      .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
       .maybeSingle()
-
-    console.log('🔍 [loginAction] Resultado búsqueda por username:', {
-      found: !!userByUsername,
-      username: userByUsername?.username,
-      error: usernameError?.message
-    });
-
-    // Si no se encuentra por username, buscar por email
-    let { data: userByEmail, error: emailError } = await supabase
-      .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
-      .ilike('email', parsed.emailOrUsername)
-      .maybeSingle()
-
-    console.log('🔍 [loginAction] Resultado búsqueda por email:', {
-      found: !!userByEmail,
-      email: userByEmail?.email,
-      error: emailError?.message
-    });
-
-    // Determinar qué usuario usar (prioridad: username > email)
-    const user = userByUsername || userByEmail
-    const error = userByUsername ? usernameError : emailError
 
     if (error || !user) {
-      console.log('❌ [loginAction] Usuario NO encontrado:', {
-        usernameError: usernameError?.message,
-        emailError: emailError?.message,
-        inputProvided: parsed.emailOrUsername
-      });
       return { error: 'Credenciales inválidas' }
     }
 

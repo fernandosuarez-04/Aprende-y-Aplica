@@ -55,16 +55,26 @@ export async function GET(request: NextRequest) {
       filters
     )
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        notifications,
-        total,
-        limit,
-        offset,
-        hasMore: offset + limit < total
+    // OPTIMIZADO: Agregar cache corto para notificaciones (reduce polling excesivo)
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        data: {
+          notifications,
+          total,
+          limit,
+          offset,
+          hasMore: offset + limit < total
+        }
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'private, max-age=10, stale-while-revalidate=20' // Cache 10 seg
+        }
       }
-    })
+    )
   } catch (error) {
     // En lugar de romper el panel con un 500, devolvemos una lista vacía
     logger.error('Error en GET /api/notifications:', error)

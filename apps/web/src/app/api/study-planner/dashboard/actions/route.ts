@@ -405,7 +405,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ActionRes
 
       case 'reschedule_sessions': {
         const { sessionIds, newSchedule } = data;
-        
+
         if (!sessionIds || !Array.isArray(sessionIds) || !newSchedule) {
           return NextResponse.json(
             { success: false, error: 'sessionIds y newSchedule son requeridos' },
@@ -413,32 +413,43 @@ export async function POST(request: NextRequest): Promise<NextResponse<ActionRes
           );
         }
 
-        // Actualizar múltiples sesiones
-        let successCount = 0;
-        let errorCount = 0;
+        // OPTIMIZADO: Actualizar múltiples sesiones en PARALELO en lugar de secuencial
+        // Antes: N queries secuenciales (lento)
+        // Ahora: N queries en paralelo con Promise.allSettled (rápido)
+        const now = new Date().toISOString();
 
-        for (const item of newSchedule) {
+        const updatePromises = newSchedule.map((item: { sessionId: string; newStartTime: string; newEndTime: string }) => {
           const { sessionId, newStartTime, newEndTime } = item;
-          
-          const { error } = await supabase
+          return supabase
             .from('study_sessions')
             .update({
               start_time: newStartTime,
               end_time: newEndTime,
               was_rescheduled: true,
-              rescheduled_from: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
+              rescheduled_from: now,
+              updated_at: now,
             })
             .eq('id', sessionId)
             .eq('user_id', user.id);
+        });
 
-          if (error) {
-            errorCount++;
-            logger.error('Error reprogramando sesión:', error);
-          } else {
+        const results = await Promise.allSettled(updatePromises);
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled' && !result.value.error) {
             successCount++;
+          } else {
+            errorCount++;
+            if (result.status === 'rejected') {
+              logger.error('Error reprogramando sesión:', result.reason);
+            } else if (result.value.error) {
+              logger.error('Error reprogramando sesión:', result.value.error);
+            }
           }
-        }
+        });
 
         return NextResponse.json({
           success: errorCount === 0,

@@ -10,8 +10,13 @@ export async function GET(
   try {
     const supabase = await createClient();
     const { slug } = await params;
-    
-    logger.log('🔍 Fetching posts for community slug:', slug);
+    const { searchParams } = new URL(request.url);
+
+    // Paginación con límite y cursor
+    const limit = Math.min(parseInt(searchParams.get('limit') || '30'), 50); // Max 50
+    const cursor = searchParams.get('cursor'); // ID del último post visto
+
+    logger.log('🔍 Fetching posts for community slug:', slug, { limit, cursor });
     
     // Obtener el usuario actual usando el sistema de sesiones personalizado
     const { SessionService } = await import('../../../../../features/auth/services/session.service');
@@ -91,8 +96,8 @@ export async function GET(
       }
     }
 
-    // Obtener posts de la comunidad
-    const { data: posts, error: postsError } = await supabase
+    // Obtener posts de la comunidad con paginación cursor-based
+    let postsQuery = supabase
       .from('community_posts')
       .select(`
         *,
@@ -106,7 +111,23 @@ export async function GET(
       `)
       .eq('community_id', community.id)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(limit + 1); // +1 para saber si hay más páginas
+
+    // Si hay cursor, filtrar posts anteriores al cursor
+    if (cursor) {
+      // Obtener el created_at del post cursor
+      const { data: cursorPost } = await supabase
+        .from('community_posts')
+        .select('created_at')
+        .eq('id', cursor)
+        .single();
+
+      if (cursorPost) {
+        postsQuery = postsQuery.lt('created_at', cursorPost.created_at);
+      }
+    }
+
+    const { data: posts, error: postsError } = await postsQuery;
 
     if (postsError) {
       logger.error('❌ Error fetching posts:', postsError);
@@ -159,13 +180,22 @@ export async function GET(
       };
     }) || [];
 
+    // Determinar si hay más páginas
+    const hasMore = enrichedPosts.length > limit;
+    const postsToReturn = hasMore ? enrichedPosts.slice(0, limit) : enrichedPosts;
+    const nextCursor = hasMore && postsToReturn.length > 0
+      ? postsToReturn[postsToReturn.length - 1].id
+      : null;
+
     // Importar utilidades de cache
     const { withCache, dynamicCache } = await import('../../../../../core/utils/cache-headers');
-    
+
     return withCache(
       NextResponse.json({
-        posts: enrichedPosts,
-        total: enrichedPosts.length
+        posts: postsToReturn,
+        total: postsToReturn.length,
+        hasMore,
+        nextCursor
       }),
       dynamicCache // Cache 30 seg - posts cambian frecuentemente
     );

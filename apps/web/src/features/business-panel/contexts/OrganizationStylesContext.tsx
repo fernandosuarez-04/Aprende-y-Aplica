@@ -1,9 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { PRESET_THEMES, DEFAULT_THEME, getThemeStylesForMode } from '../config/preset-themes';
 import { useThemeStore } from '@/core/stores/themeStore';
+
+// Solo loguear en desarrollo
+const isDev = process.env.NODE_ENV === 'development';
+const log = isDev ? console.log : () => {};
 
 export interface StyleConfig {
   background_type: 'image' | 'color' | 'gradient';
@@ -49,40 +53,56 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Cache para evitar recálculos innecesarios
+  const effectiveStylesCache = useRef<{
+    styles: OrganizationStyles | null;
+    theme: string;
+    result: OrganizationStyles | null;
+  }>({ styles: null, theme: '', result: null });
+
   // Calcular estilos efectivos basados en el modo de tema actual
+  // OPTIMIZADO: Usa cache para evitar crear nuevos objetos innecesariamente
   const effectiveStyles = useMemo<OrganizationStyles | null>(() => {
     if (!styles) return null;
-    
+
+    // Verificar si podemos usar el cache
+    const cache = effectiveStylesCache.current;
+    if (cache.styles === styles && cache.theme === resolvedTheme && cache.result) {
+      return cache.result;
+    }
+
+    let result: OrganizationStyles;
+
     // Si el tema soporta modo dual, obtener los estilos para el modo actual
     if (styles.supportsDualMode && styles.selectedTheme) {
       const modeStyles = getThemeStylesForMode(styles.selectedTheme, resolvedTheme);
       if (modeStyles) {
-        return {
+        result = {
           ...styles,
           panel: modeStyles.panel,
           userDashboard: modeStyles.userDashboard,
           login: modeStyles.login,
         };
+      } else {
+        result = styles;
       }
+    } else {
+      // Si no soporta modo dual, retornar los estilos tal cual
+      result = styles;
     }
-    
-    // Si no soporta modo dual, retornar los estilos tal cual
-    return styles;
+
+    // Actualizar cache
+    effectiveStylesCache.current = { styles, theme: resolvedTheme, result };
+    return result;
   }, [styles, resolvedTheme]);
 
-  const fetchStyles = async () => {
-    console.log('🔍 [OrganizationStylesContext] fetchStyles iniciado, user:', {
-      userId: user?.id,
-      organizationId: user?.organization_id,
-      role: user?.cargo_rol
-    });
-
+  // Memoizar fetchStyles para evitar recreaciones
+  const fetchStyles = useCallback(async () => {
     // Si es Administrador sin organización, usar tema por defecto sin llamar a la API
     const normalizedRole = user?.cargo_rol?.toLowerCase().trim() || '';
     const isAdmin = normalizedRole === 'administrador';
-    
+
     if (isAdmin && !user?.organization_id) {
-      console.log('👑 [OrganizationStylesContext] Usuario Administrador sin organización, aplicando tema por defecto');
       const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
       if (defaultTheme) {
         setStyles({
@@ -98,7 +118,6 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
     }
 
     if (!user?.organization_id) {
-      console.log('⚠️ [OrganizationStylesContext] No hay organization_id, aplicando tema por defecto');
       // Aplicar tema por defecto cuando no hay organization_id
       const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
       if (defaultTheme) {
@@ -118,26 +137,18 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
       setLoading(true);
       setError(null);
 
-      console.log('📡 [OrganizationStylesContext] Fetching styles from API...');
       const response = await fetch('/api/business/settings/styles', {
         credentials: 'include',
       });
 
       const data = await response.json();
-      console.log('📥 [OrganizationStylesContext] Response:', data);
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error al obtener estilos');
       }
 
-      console.log('✅ [OrganizationStylesContext] Estilos obtenidos:', {
-        panel: data.styles?.panel,
-        selectedTheme: data.styles?.selectedTheme
-      });
-
       // Si los estilos están vacíos, usar tema por defecto
       if (!data.styles?.panel && !data.styles?.selectedTheme) {
-        console.log('🎨 [OrganizationStylesContext] Sin estilos configurados, aplicando tema por defecto:', DEFAULT_THEME);
         const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
         if (defaultTheme) {
           const defaultStyles: OrganizationStyles = {
@@ -162,11 +173,10 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
             JSON.stringify(data.styles)
           );
         } catch (e) {
-          console.error('Error guardando tema en localStorage:', e);
+          // Silenciar error de localStorage
         }
       }
     } catch (err: any) {
-      console.error('❌ [OrganizationStylesContext] Error fetching styles:', err);
       setError(err.message || 'Error al obtener estilos');
 
       // Intentar cargar desde localStorage como fallback
@@ -174,11 +184,9 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
         try {
           const cached = localStorage.getItem(`business-theme-${user.organization_id}`);
           if (cached) {
-            console.log('📦 [OrganizationStylesContext] Usando estilos desde localStorage');
             setStyles(JSON.parse(cached));
           } else {
             // No hay cache, usar tema por defecto
-            console.log('🎨 [OrganizationStylesContext] Sin cache, aplicando tema por defecto');
             const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
             if (defaultTheme) {
               setStyles({
@@ -225,12 +233,11 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.organization_id, user?.cargo_rol]);
 
   useEffect(() => {
-    console.log('🔄 [OrganizationStylesContext] useEffect triggered, organization_id:', user?.organization_id);
     fetchStyles();
-  }, [user?.organization_id]);
+  }, [fetchStyles]);
 
   const updateStyles = async (
     panel?: StyleConfig,

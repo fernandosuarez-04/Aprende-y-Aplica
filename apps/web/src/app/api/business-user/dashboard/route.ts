@@ -67,7 +67,7 @@ export async function GET() {
         .eq('user_id', userId)
         .eq('status', 'active'),
 
-      // PASO 2: Obtener asignaciones directas al usuario
+      // PASO 2: Obtener asignaciones directas al usuario (límite 100)
       supabase
         .from('organization_course_assignments')
         .select(`
@@ -88,13 +88,15 @@ export async function GET() {
         `)
         .eq('user_id', userId)
         .in('status', ['assigned', 'in_progress', 'completed'])
-        .order('assigned_at', { ascending: false }),
+        .order('assigned_at', { ascending: false })
+        .limit(100),
 
-      // PASO 3: Obtener certificados (en paralelo)
+      // PASO 3: Obtener certificados (en paralelo, límite 100)
       supabase
         .from('user_course_certificates')
         .select('certificate_id, course_id')
         .eq('user_id', userId)
+        .limit(100)
     ])
 
     if (teamMembershipsError) {
@@ -147,6 +149,7 @@ export async function GET() {
           .in('team_id', userTeamIds)
           .in('status', ['assigned', 'in_progress', 'completed'])
           .order('assigned_at', { ascending: false })
+          .limit(100)
       : Promise.resolve({ data: [], error: null })
 
     const { data: teamAssignments, error: teamAssignmentsError } = await teamAssignmentsPromise
@@ -212,13 +215,14 @@ export async function GET() {
       { data: enrollments, error: enrollmentsError },
       { data: instructors }
     ] = await Promise.all([
-      // Enrollments
+      // Enrollments (límite 100)
       courseIds.length > 0
         ? supabase
             .from('user_course_enrollments')
             .select('enrollment_id, course_id, overall_progress_percentage, enrollment_status, completed_at')
             .eq('user_id', userId)
             .in('course_id', courseIds)
+            .limit(100)
         : Promise.resolve({ data: [], error: null }),
 
       // Instructores

@@ -3,6 +3,7 @@ import { logger } from '@/lib/utils/logger';
 import { createClient } from '../../../../lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { CreateNewsSchema } from '@/lib/schemas/content.schema'
+import { withCacheHeaders, cacheHeaders } from '@/lib/utils/cache-headers'
 import { z } from 'zod'
 
 export async function GET(request: NextRequest) {
@@ -10,12 +11,15 @@ export async function GET(request: NextRequest) {
     // ✅ SEGURIDAD: Verificar autenticación y autorización de admin
     const auth = await requireAdmin()
     if (auth instanceof NextResponse) return auth
-    
+
     const supabase = await createClient()
 
-    logger.log('🔄 Obteniendo todas las noticias para admin...')
+    // OPTIMIZADO: Paginación con límite para escala
+    const { searchParams } = new URL(request.url)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100) // Max 100
+    const offset = parseInt(searchParams.get('offset') || '0')
 
-    const { data: news, error } = await supabase
+    const { data: news, error, count } = await supabase
       .from('news')
       .select(`
         id,
@@ -35,8 +39,9 @@ export async function GET(request: NextRequest) {
         metrics,
         links,
         cta
-      `)
+      `, { count: 'exact' })
       .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
     if (error) {
       logger.error('❌ Error fetching news:', error)
@@ -46,8 +51,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    logger.log('✅ Noticias obtenidas exitosamente:', news?.length || 0)
-    return NextResponse.json({ news: news || [] })
+    // OPTIMIZADO: Agregar cache para lista de noticias
+    return withCacheHeaders(
+      NextResponse.json({
+        news: news || [],
+        total: count || 0,
+        limit,
+        offset,
+        hasMore: (offset + limit) < (count || 0)
+      }),
+      cacheHeaders.dynamic // Cache 30 seg
+    )
   } catch (error) {
     logger.error('💥 Unexpected error:', error)
     return NextResponse.json(
