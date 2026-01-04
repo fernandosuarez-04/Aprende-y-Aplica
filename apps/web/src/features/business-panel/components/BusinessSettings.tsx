@@ -131,99 +131,70 @@ export function BusinessSettings() {
 
   return (
     <div className="min-h-screen p-6 lg:p-8 space-y-8">
-      {/* Hero Header */}
+      {/* Hero Header - Redesigned */}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
-        className="relative overflow-hidden rounded-3xl p-8 group"
+        className="relative overflow-hidden rounded-3xl p-8 shadow-xl"
         style={{
-          background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6) 0%, var(--org-secondary-button-color, #8b5cf6) 100%)',
+          backgroundColor: '#0A2540',
         }}
       >
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <motion.div
-            animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-20"
-            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%)' }}
-          />
-          <motion.div
-            animate={{ rotate: -360, scale: [1, 1.3, 1] }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full opacity-15"
-            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%)' }}
+        {/* Background Image Layer */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/images/teams-header.png"
+            alt="Settings Header"
+            fill
+            className="object-cover"
+            style={{ opacity: 0.5 }}
+            priority
           />
         </div>
+        
+        {/* Blue Gradient Overlay - Crucial for the 'Blue' look while keeping image visible */}
+        <div 
+            className="absolute inset-0 bg-gradient-to-r from-[#0A2540]/90 via-[#0A2540]/50 to-transparent z-0 pointer-events-none"
+        />
 
-        {/* Floating Particles */}
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={i}
-            animate={{
-              y: [0, -20, 0],
-              opacity: [0.3, 0.8, 0.3],
-              scale: [1, 1.2, 1]
-            }}
-            transition={{
-              duration: 3 + i,
-              repeat: Infinity,
-              delay: i * 0.5
-            }}
-            className="absolute rounded-full bg-white/20"
-            style={{
-              width: 8 + i * 4,
-              height: 8 + i * 4,
-              top: `${20 + i * 15}%`,
-              right: `${10 + i * 8}%`
-            }}
-          />
-        ))}
+        {/* Decorative Particles/Grid - Subtle */}
+        <div 
+          className="absolute inset-0 opacity-10 z-0 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(white 1px, transparent 1px)',
+            backgroundSize: '30px 30px'
+          }}
+        />
 
+        {/* Content Layer */}
         <div className="relative z-10">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex items-center gap-3 mb-3"
-          >
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-inner">
+              <SettingsIcon className="w-5 h-5" style={{ color: '#FFFFFF' }} />
+            </div>
+            <span 
+              className="text-sm font-bold tracking-widest uppercase drop-shadow-sm"
+              style={{ color: 'rgba(219, 234, 254, 0.9)' }}
             >
-              <SettingsIcon className="h-7 w-7 text-white/90" />
-            </motion.div>
-            <span className="text-white/80 text-sm font-medium tracking-wider uppercase">
               Panel de Control
             </span>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-4xl lg:text-5xl font-bold text-white mb-3"
-            style={{
-              textShadow: '0 4px 20px rgba(0,0,0,0.3)'
-            }}
+          </div>
+          
+          <h1 
+            className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 tracking-tight drop-shadow-md"
+            style={{ color: '#FFFFFF' }}
           >
             Configuración
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-white/80 text-lg max-w-xl"
+          </h1>
+          
+          <p 
+            className="text-base max-w-2xl leading-relaxed drop-shadow-sm"
+            style={{ color: '#EFF6FF' }}
           >
             Gestiona las configuraciones de tu organización
-          </motion.p>
+          </p>
         </div>
-
-        {/* Decorative Corner Elements */}
-        <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-white/20 rounded-tr-2xl" />
-        <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-white/20 rounded-bl-2xl" />
       </motion.div>
 
       {/* Premium Tabs */}
@@ -231,14 +202,10 @@ export function BusinessSettings() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="rounded-2xl border overflow-hidden backdrop-blur-xl"
-        style={{
-          backgroundColor: 'rgba(var(--org-card-background-rgb, 30, 41, 59), 0.8)',
-          borderColor: 'rgba(255, 255, 255, 0.1)'
-        }}
+        className="rounded-2xl border overflow-hidden backdrop-blur-xl bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
       >
         {/* Tab Navigation */}
-        <div className="flex border-b overflow-x-auto" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+        <div className="flex border-b overflow-x-auto border-gray-200 dark:border-slate-700/30">
           {tabs.map((tab, index) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -249,11 +216,10 @@ export function BusinessSettings() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * index }}
-                whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
-                className={`relative px-6 py-5 font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-3 group`}
-                style={{
-                  color: isActive ? tab.color : 'rgba(255, 255, 255, 0.6)'
-                }}
+                className={`relative px-6 py-5 font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-3 group hover:bg-gray-50 dark:hover:bg-white/5
+                  ${isActive ? '' : 'text-gray-500 dark:text-gray-400'}
+                `}
+                style={isActive ? { color: tab.color } : {}}
               >
                 {/* Active Indicator */}
                 {isActive && (
@@ -501,11 +467,7 @@ function OrganizationTab({
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="relative rounded-2xl p-6 border backdrop-blur-xl space-y-5 overflow-hidden group"
-          style={{
-            backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
-            borderColor: 'rgba(255, 255, 255, 0.1)'
-          }}
+          className="relative rounded-2xl p-6 border backdrop-blur-xl space-y-5 overflow-hidden group bg-gray-50 dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
         >
           {/* Decorative gradient background */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
@@ -517,20 +479,20 @@ function OrganizationTab({
             <motion.div
               whileHover={{ rotate: 15, scale: 1.1 }}
               className="p-3 rounded-xl"
-              style={{ background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))' }}
+              style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
             >
               <Building2 className="w-5 h-5 text-white" />
             </motion.div>
             <div>
-              <h3 className="text-lg font-bold text-white">Información Básica</h3>
-              <p className="text-sm text-white/50">Datos principales de tu empresa</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Información Básica</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Datos principales de tu empresa</p>
             </div>
           </div>
 
           {/* Form Fields with premium styling */}
           <div className="space-y-4">
             <div className="group/input">
-              <label htmlFor="name" className="block text-sm font-medium mb-2 text-white/80">
+              <label htmlFor="name" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                 Nombre de la Empresa *
               </label>
               <div className="relative">
@@ -541,18 +503,14 @@ function OrganizationTab({
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10"
-                  style={{
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    color: '#ffffff'
-                  }}
+                  className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   placeholder="Nombre de tu empresa"
                 />
               </div>
             </div>
 
             <div className="group/input">
-              <label htmlFor="description" className="block text-sm font-medium mb-2 text-white/80">
+              <label htmlFor="description" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                 Descripción
               </label>
               <div className="relative">
@@ -563,21 +521,17 @@ function OrganizationTab({
                   onChange={handleChange}
                   rows={4}
                   maxLength={500}
-                  className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10 resize-none"
-                  style={{
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    color: '#ffffff'
-                  }}
+                  className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 resize-none border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   placeholder="Describe tu empresa..."
                 />
-                <div className="absolute bottom-3 right-3 text-xs px-2 py-1 rounded-full bg-white/10 text-white/50">
+                <div className="absolute bottom-3 right-3 text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400">
                   {formData.description.length}/500
                 </div>
               </div>
             </div>
 
             <div className="group/input">
-              <label htmlFor="contact_email" className="block text-sm font-medium mb-2 text-white/80">
+              <label htmlFor="contact_email" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
                   Email de Contacto
@@ -589,17 +543,13 @@ function OrganizationTab({
                 name="contact_email"
                 value={formData.contact_email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10"
-                style={{
-                  borderColor: 'rgba(255, 255, 255, 0.1)',
-                  color: '#ffffff'
-                }}
+                className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="contacto@empresa.com"
               />
             </div>
 
             <div className="group/input">
-              <label htmlFor="website_url" className="block text-sm font-medium mb-2 text-white/80">
+              <label htmlFor="website_url" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4" />
                   Sitio Web
@@ -611,17 +561,13 @@ function OrganizationTab({
                 name="website_url"
                 value={formData.website_url}
                 onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10"
-                style={{
-                  borderColor: 'rgba(255, 255, 255, 0.1)',
-                  color: '#ffffff'
-                }}
+                className="w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="https://www.empresa.com"
               />
             </div>
 
             <div className="group/input">
-              <label htmlFor="max_users" className="block text-sm font-medium mb-2 text-white/80">
+              <label htmlFor="max_users" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   Límite de usuarios
@@ -635,14 +581,10 @@ function OrganizationTab({
                   value={formData.max_users}
                   onChange={handleChange}
                   min="1"
-                  className="flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white/5 hover:bg-white/10"
-                  style={{
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    color: '#ffffff'
-                  }}
+                  className="flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-300 focus:outline-none focus:border-blue-500/50 focus:shadow-lg focus:shadow-blue-500/10 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   placeholder="10"
                 />
-                <span className="text-sm text-white/60 px-3 py-2 rounded-lg bg-white/5">usuarios</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5">usuarios</span>
               </div>
             </div>
           </div>
@@ -654,11 +596,7 @@ function OrganizationTab({
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="relative rounded-2xl p-6 border backdrop-blur-xl space-y-5 overflow-hidden group"
-            style={{
-              backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
-              borderColor: 'rgba(255, 255, 255, 0.1)'
-            }}
+            className="relative rounded-2xl p-6 border backdrop-blur-xl space-y-5 overflow-hidden group bg-gray-50 dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
           >
             {/* Decorative gradient background */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
@@ -670,13 +608,13 @@ function OrganizationTab({
               <motion.div
                 whileHover={{ rotate: 15, scale: 1.1 }}
                 className="p-3 rounded-xl"
-                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
               >
                 <Mail className="w-5 h-5 text-white" />
               </motion.div>
               <div>
-                <h3 className="text-lg font-bold text-white">Información de Contacto</h3>
-                <p className="text-sm text-white/50">Datos de contacto de tu organización</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Información de Contacto</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Datos de contacto de tu organización</p>
               </div>
             </div>
 
@@ -693,7 +631,7 @@ function OrganizationTab({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * index }}
                 >
-                  <label className="block text-sm font-medium mb-2 text-white/80">
+                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                     {item.label}
                   </label>
                   <div className="flex gap-2">
@@ -701,11 +639,7 @@ function OrganizationTab({
                       type="text"
                       value={item.value}
                       readOnly
-                      className="flex-1 px-4 py-3 rounded-xl border-2 bg-white/5 cursor-default"
-                      style={{
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                        color: 'rgba(255, 255, 255, 0.8)'
-                      }}
+                      className="flex-1 px-4 py-3 rounded-xl border-2 bg-white dark:bg-white/5 cursor-default border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300"
                     />
                     <motion.button
                       type="button"
@@ -716,9 +650,9 @@ function OrganizationTab({
                       style={{
                         background: copiedFields[item.field]
                           ? 'linear-gradient(135deg, #10b981, #059669)'
-                          : 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))',
+                          : 'linear-gradient(135deg, #0A2540, #1e3a5f)',
                         color: '#ffffff',
-                        boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
+                        boxShadow: '0 4px 15px rgba(10, 37, 64, 0.3)'
                       }}
                     >
                       {copiedFields[item.field] ? (
@@ -974,11 +908,7 @@ function LoginPersonalizadoSection({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="relative rounded-2xl p-6 border backdrop-blur-xl overflow-hidden group"
-      style={{
-        backgroundColor: 'rgba(var(--org-card-background-rgb, 15, 23, 42), 0.6)',
-        borderColor: 'rgba(255, 255, 255, 0.1)'
-      }}
+      className="relative rounded-2xl p-6 border backdrop-blur-xl overflow-hidden group bg-gray-50 dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
     >
       {/* Decorative gradient background */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
@@ -990,13 +920,13 @@ function LoginPersonalizadoSection({
         <motion.div
           whileHover={{ rotate: 15, scale: 1.1 }}
           className="p-3 rounded-xl"
-          style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}
+          style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
         >
           <LinkIcon className="w-5 h-5 text-white" />
         </motion.div>
         <div>
-          <h3 className="text-lg font-bold text-white">Link Personalizado de Login</h3>
-          <p className="text-sm text-white/50">Comparte estos links con tus empleados</p>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Link Personalizado de Login</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Comparte estos links con tus empleados</p>
         </div>
       </div>
 
@@ -1012,7 +942,7 @@ function LoginPersonalizadoSection({
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 * index }}
           >
-            <label className="block text-sm font-medium mb-2 text-white/80">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               {item.label}
             </label>
             <div className="flex items-center gap-2">
@@ -1020,11 +950,7 @@ function LoginPersonalizadoSection({
                 type="text"
                 value={item.url}
                 readOnly
-                className="flex-1 px-4 py-3 rounded-xl text-sm bg-white/5 border-2 cursor-default"
-                style={{
-                  borderColor: 'rgba(255, 255, 255, 0.1)',
-                  color: 'rgba(255, 255, 255, 0.8)'
-                }}
+                className="flex-1 px-4 py-3 rounded-xl text-sm bg-white dark:bg-white/5 border-2 cursor-default border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300"
               />
               <motion.button
                 type="button"
@@ -1035,9 +961,9 @@ function LoginPersonalizadoSection({
                 style={{
                   background: item.copied
                     ? 'linear-gradient(135deg, #10b981, #059669)'
-                    : 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))',
+                    : 'linear-gradient(135deg, #0A2540, #1e3a5f)',
                   color: '#ffffff',
-                  boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
+                  boxShadow: '0 4px 15px rgba(10, 37, 64, 0.3)'
                 }}
                 title={`Copiar ${item.label.toLowerCase()}`}
               >
@@ -1069,24 +995,20 @@ function LoginPersonalizadoSection({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="mb-6 p-5 rounded-2xl border backdrop-blur-md"
-        style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.03)',
-          borderColor: 'rgba(255, 255, 255, 0.1)'
-        }}
+        className="mb-6 p-5 rounded-2xl border backdrop-blur-md bg-white dark:bg-white/[0.02] border-gray-200 dark:border-white/10"
       >
-        <h4 className="text-base font-semibold mb-5 text-white flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-purple-400" />
+        <h4 className="text-base font-semibold mb-5 text-gray-900 dark:text-white flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-blue-500" />
           Inicio de Sesión Social (SSO)
         </h4>
         <div className="space-y-4">
           {/* Google Switch */}
           <motion.div
-            className="flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:bg-white/5"
+            className="flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:bg-gray-50 dark:hover:bg-white/5"
             whileHover={{ x: 2 }}
           >
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-2 shadow-lg">
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-2 shadow-lg border border-gray-100 dark:border-transparent">
                 <svg viewBox="0 0 24 24" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -1095,8 +1017,8 @@ function LoginPersonalizadoSection({
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Google</p>
-                <p className="text-xs text-white/50">Permitir iniciar sesión con Google</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Google</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Permitir iniciar sesión con Google</p>
               </div>
             </div>
             <motion.button
@@ -1107,8 +1029,8 @@ function LoginPersonalizadoSection({
               className="relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-300 focus:outline-none shadow-inner"
               style={{
                 background: organization.google_login_enabled
-                  ? 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))'
-                  : 'rgba(255, 255, 255, 0.1)'
+                  ? 'linear-gradient(135deg, #0A2540, #1e3a5f)'
+                  : 'rgba(156, 163, 175, 0.3)'
               }}
             >
               <motion.span
@@ -1119,15 +1041,15 @@ function LoginPersonalizadoSection({
             </motion.button>
           </motion.div>
 
-          <div className="h-px bg-white/10" />
+          <div className="h-px bg-gray-200 dark:bg-white/10" />
 
           {/* Microsoft Switch */}
           <motion.div
-            className="flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:bg-white/5"
+            className="flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:bg-gray-50 dark:hover:bg-white/5"
             whileHover={{ x: 2 }}
           >
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-2 shadow-lg">
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-2 shadow-lg border border-gray-100 dark:border-transparent">
                 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 23 23">
                   <path fill="#f35022" d="M1 1h10v10H1z" />
                   <path fill="#80bb03" d="M12 1h10v10H12z" />
@@ -1136,8 +1058,8 @@ function LoginPersonalizadoSection({
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Microsoft</p>
-                <p className="text-xs text-white/50">Permitir iniciar sesión con Microsoft</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Microsoft</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Permitir iniciar sesión con Microsoft</p>
               </div>
             </div>
             <motion.button
@@ -1148,8 +1070,8 @@ function LoginPersonalizadoSection({
               className="relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-300 focus:outline-none shadow-inner"
               style={{
                 background: organization.microsoft_login_enabled
-                  ? 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #8b5cf6))'
-                  : 'rgba(255, 255, 255, 0.1)'
+                  ? 'linear-gradient(135deg, #0A2540, #1e3a5f)'
+                  : 'rgba(156, 163, 175, 0.3)'
               }}
             >
               <motion.span

@@ -53,7 +53,16 @@
       "Bash(if exist \"apps\\web\\.next\" rmdir /s /q \"apps\\web\\.next\")",
       "Bash(powershell -ExecutionPolicy Bypass -File scripts/remove-console-logs.ps1)",
       "Bash(ls:*)",
-      "Bash(del \"C:\\\\Users\\\\Gael\\\\Desktop\\\\Ecos de Liderazgo\\\\Aprende y Aplica\\\\Aprende-y-Aplica\\\\apps\\\\web\\\\src\\\\middleware.ts\")"
+      "Bash(del \"C:\\\\Users\\\\Gael\\\\Desktop\\\\Ecos de Liderazgo\\\\Aprende y Aplica\\\\Aprende-y-Aplica\\\\apps\\\\web\\\\src\\\\middleware.ts\")",
+      "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\hooks\\\\useDashboardTour.ts\")",
+      "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\hooks\\\\useBusinessPanelTour.ts\")",
+      "Bash(del \"apps\\\\web\\\\src\\\\features\\\\study-planner\\\\hooks\\\\useStudyPlannerTour.ts\")",
+      "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\config\\\\study-planner-tour-steps.tsx\")",
+      "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\config\\\\study-planner-dashboard-tour-steps.tsx\")",
+      "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\config\\\\dashboard-tour-steps.tsx\")",
+      "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\config\\\\dashboard-tour-steps.ts\")",
+      "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\config\\\\course-learn-tour-steps.tsx\")",
+      "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\config\\\\business-panel-tour-steps.tsx\")"
     ],
     "deny": [],
     "ask": []

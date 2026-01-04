@@ -10,8 +10,6 @@ import { useOrganizationStylesContext } from '../../business-panel/contexts/Orga
 import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
 import { useLIAData } from '../hooks/useLIAData';
 import { parseLiaResponseToSchedules } from '../services/plan-parser.service';
-// import { useNextStep } from 'nextstepjs';
-import { useStudyPlannerTour } from '../hooks/useStudyPlannerTour';
 import Joyride from 'react-joyride';
 import { useStudyPlannerJoyride } from '../../tours/hooks/useStudyPlannerJoyride';
 

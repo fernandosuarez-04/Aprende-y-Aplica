@@ -117,20 +117,19 @@ export function ModernNavbar({
   }, [userDropdownOpen, mobileMenuOpen, hasStudyPlan])
 
   // Colores SOFIA por defecto con soporte para colores personalizados
+  // Colores SOFIA por defecto con soporte para colores personalizados
   const colors = useMemo(() => {
+    const isLight = resolvedTheme === 'light'
+
     const primaryColor = styles?.primary_button_color || '#0A2540'
     const accentColor = styles?.accent_color || '#00D4B3'
-    const textColor = styles?.text_color || '#FFFFFF'
-    const cardBg = styles?.card_background || '#1E2329'
-    const sidebarBg = styles?.sidebar_background || '#0F1419'
-    const borderColorFromStyle = styles?.border_color || '#334155'
+    
+    // Adaptar colores según el tema
+    const textColor = isLight ? '#0F172A' : (styles?.text_color || '#FFFFFF')
+    const cardBg = isLight ? '#FFFFFF' : (styles?.card_background || '#1E2329')
+    const sidebarBg = isLight ? '#FFFFFF' : (styles?.sidebar_background || '#0F1419')
+    
     const sidebarOpacity = styles?.sidebar_opacity !== undefined ? styles.sidebar_opacity : 0.95
-
-    // Detectar si estamos en modo claro
-    const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
-                        cardBg.toLowerCase() === '#f8fafc' ||
-                        sidebarBg.toLowerCase() === '#ffffff' ||
-                        sidebarBg.toLowerCase() === '#f8fafc'
 
     let navBgColor: string
     if (sidebarBg.startsWith('#')) {
@@ -146,13 +145,13 @@ export function ModernNavbar({
       text: textColor,
       cardBg,
       navBg: navBgColor,
-      border: isLightMode ? borderColorFromStyle : 'rgba(255, 255, 255, 0.08)',
+      border: isLight ? '#E2E8F0' : 'rgba(255, 255, 255, 0.08)',
       borderActive: `${accentColor}40`,
       gradientStart: primaryColor,
       gradientEnd: accentColor,
-      isLightMode
+      isLightMode: isLight
     }
-  }, [styles])
+  }, [styles, resolvedTheme])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

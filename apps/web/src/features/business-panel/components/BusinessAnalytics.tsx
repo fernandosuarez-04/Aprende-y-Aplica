@@ -23,6 +23,7 @@ import {
 import { useBusinessAnalytics } from '../hooks/useBusinessAnalytics'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { EngagementAnalytics } from './EngagementAnalytics'
+import Image from 'next/image'
 
 // ============================================
 // COMPONENTE PRINCIPAL - SOLO KPIs
@@ -85,29 +86,68 @@ export function BusinessAnalytics() {
 
   return (
     <div className="w-full space-y-8 text-gray-900 dark:text-slate-50" style={{ ...(textColor ? { color: textColor } : {}) }}>
-      {/* Hero Header */}
+      {/* Hero Header - Redesigned */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl p-8"
+        className="relative overflow-hidden rounded-3xl p-8 shadow-xl"
         style={{ 
-          background: `linear-gradient(135deg, ${accentColor}15 0%, ${secondaryColor}10 50%, transparent 100%)`,
-          border: `1px solid ${cardBorder}`
+          backgroundColor: '#0A2540',
+          color: '#FFFFFF',
         }}
       >
-        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10"
-          style={{ background: `radial-gradient(circle, ${accentColor} 0%, transparent 70%)` }}
+        {/* Background Image Layer */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/images/teams-header.png"
+            alt="Analytics Header"
+            fill
+            className="object-cover"
+            style={{ opacity: 0.5 }}
+            priority
+          />
+        </div>
+        
+        {/* Blue Gradient Overlay - Crucial for the 'Blue' look while keeping image visible */}
+        <div 
+            className="absolute inset-0 bg-gradient-to-r from-[#0A2540]/90 via-[#0A2540]/50 to-transparent z-0 pointer-events-none"
         />
+
+        {/* Decorative Particles/Grid - Subtle */}
+        <div 
+          className="absolute inset-0 opacity-10 z-0 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(white 1px, transparent 1px)',
+            backgroundSize: '30px 30px'
+          }}
+        />
+
+        {/* Content Layer */}
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${accentColor}20` }}>
-              <BarChart3 className="w-6 h-6" style={{ color: accentColor }} />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-inner">
+              <BarChart3 className="w-5 h-5" style={{ color: '#FFFFFF' }} />
             </div>
-            <span className="text-sm font-medium uppercase tracking-wider opacity-70">Centro de Analytics</span>
+            <span 
+              className="text-sm font-bold tracking-widest uppercase drop-shadow-sm"
+              style={{ color: 'rgba(219, 234, 254, 0.9)' }}
+            >
+              Centro de Analytics
+            </span>
           </div>
-          <h1 className="text-3xl font-bold mb-2">Analytics y Rendimiento</h1>
-          <p className="text-sm opacity-70 max-w-2xl">
-            Resumen de métricas clave del equipo de trabajo.
+          
+          <h1 
+            className="text-3xl md:text-4xl font-bold mb-3 tracking-tight drop-shadow-md"
+            style={{ color: '#FFFFFF' }}
+          >
+            Analytics y Rendimiento
+          </h1>
+          
+          <p 
+            className="text-base max-w-2xl leading-relaxed drop-shadow-sm"
+            style={{ color: '#EFF6FF' }}
+          >
+            Resumen de métricas clave del equipo de trabajo. Monitorea el progreso y rendimiento.
           </p>
         </div>
       </motion.div>
@@ -356,53 +396,53 @@ export function BusinessAnalytics() {
             >
                 {/* Teams KPIs */}
                 <div className="grid grid-cols-4 gap-4">
-                    <div className="p-5 rounded-2xl border bg-white dark:bg-[#1E293B]/80 border-gray-200 dark:border-slate-700/30" style={{ ...(cardBg ? { backgroundColor: cardBg } : {}), ...(cardBorder ? { borderColor: cardBorder } : {}) }}>
+                    <div className="p-5 rounded-2xl border bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 rounded-lg" style={{ backgroundColor: `${accentColor}20` }}>
                                 <UsersRound className="w-5 h-5" style={{ color: accentColor }} />
                             </div>
-                            <span className="text-sm opacity-60">Total Equipos</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Total Equipos</span>
                         </div>
-                        <p className="text-3xl font-bold">{data?.teams?.total_teams || 0}</p>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white">{data?.teams?.total_teams || 0}</p>
                     </div>
-                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
+                    <div className="p-5 rounded-2xl border bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 rounded-lg bg-emerald-500/20">
                                 <Trophy className="w-5 h-5 text-emerald-400" />
                             </div>
-                            <span className="text-sm opacity-60">Mejor Progreso</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Mejor Progreso</span>
                         </div>
-                        <p className="text-3xl font-bold">
+                        <p className="text-3xl font-bold text-emerald-500">
                             {data?.teams?.ranking?.[0]?.stats?.average_progress || 0}%
                         </p>
-                        <p className="text-xs opacity-50 truncate">{data?.teams?.ranking?.[0]?.name || '-'}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{data?.teams?.ranking?.[0]?.name || '-'}</p>
                     </div>
-                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
+                    <div className="p-5 rounded-2xl border bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 rounded-lg bg-blue-500/20">
                                 <Users className="w-5 h-5 text-blue-400" />
                             </div>
-                            <span className="text-sm opacity-60">Total Miembros</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Total Miembros</span>
                         </div>
-                        <p className="text-3xl font-bold">
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white">
                             {data?.teams?.teams?.reduce((sum: number, t: any) => sum + (t.member_count || 0), 0) || 0}
                         </p>
                     </div>
-                    <div className="p-5 rounded-2xl border" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
+                    <div className="p-5 rounded-2xl border bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 rounded-lg bg-purple-500/20">
                                 <Zap className="w-5 h-5 text-purple-400" />
                             </div>
-                            <span className="text-sm opacity-60">Total LIA Chats</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Total LIA Chats</span>
                         </div>
-                        <p className="text-3xl font-bold">
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white">
                             {data?.teams?.teams?.reduce((sum: number, t: any) => sum + (t.stats?.lia_conversations || 0), 0) || 0}
                         </p>
                     </div>
                 </div>
 
                 {/* Progress Chart (Bar visualization) */}
-                <div className="p-6 rounded-2xl border bg-white dark:bg-[#1E293B]/80 border-gray-200 dark:border-slate-700/30" style={{ ...(cardBg ? { backgroundColor: cardBg } : {}), ...(cardBorder ? { borderColor: cardBorder } : {}) }}>
+                <div className="p-6 rounded-2xl border bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30">
                     <h3 className="font-semibold mb-6 flex items-center gap-2">
                         <BarChart3 className="w-5 h-5" style={{ color: accentColor }} />
                         Comparativa de Progreso por Equipo
@@ -429,7 +469,7 @@ export function BusinessAnalytics() {
                                                 <span className="font-medium text-sm">{team.name}</span>
                                                 <span className="text-sm opacity-60">{team.member_count} miembros</span>
                                             </div>
-                                            <div className="relative h-6 bg-white/10 rounded-full overflow-hidden">
+                                            <div className="relative h-6 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                                                 <motion.div 
                                                     className="h-full rounded-full"
                                                     initial={{ width: 0 }}
@@ -459,7 +499,7 @@ export function BusinessAnalytics() {
                 {/* Team Cards Grid */}
                 <div className="grid grid-cols-2 gap-4">
                     {data?.teams?.teams?.map((team: any) => (
-                        <div key={team.team_id} className="p-5 rounded-2xl border bg-white dark:bg-[#1E293B]/80 border-gray-200 dark:border-slate-700/30" style={{ ...(cardBg ? { backgroundColor: cardBg } : {}), ...(cardBorder ? { borderColor: cardBorder } : {}) }}>
+                        <div key={team.team_id} className="p-5 rounded-2xl border bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30">
                             <div className="flex items-start gap-4">
                                 <div className="w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                                     {team.image_url ? (

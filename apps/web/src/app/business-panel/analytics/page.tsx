@@ -18,14 +18,7 @@ export default function BusinessPanelAnalyticsPage() {
       animate={{ opacity: 1, y: 0 }}
       className="w-full"
     >
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-heading font-semibold mb-3" style={{ color: textColor }}>
-          {t('analytics.title')}
-        </h1>
-        <p className="font-body" style={{ color: panelStyles?.text_color ? `${textColor}CC` : carbon300 }}>
-          {t('analytics.subtitle')}
-        </p>
-      </div>
+
       
       <BusinessAnalytics />
     </motion.div>

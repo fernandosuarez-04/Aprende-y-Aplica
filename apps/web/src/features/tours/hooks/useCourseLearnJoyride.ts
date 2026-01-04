@@ -31,6 +31,22 @@ export const useCourseLearnJoyride = () => {
   const handleJoyrideCallback = useCallback(async (data: CallBackProps) => {
     const { action, index, status, type, step } = data;
 
+    // Handle close button click
+    if (action === ACTIONS.CLOSE) {
+      setRun(false);
+      setStepIndex(0);
+      await skipTour();
+      return;
+    }
+
+    // Handle skip button click
+    if (action === ACTIONS.SKIP) {
+      setRun(false);
+      setStepIndex(0);
+      await skipTour();
+      return;
+    }
+
     // Handle controlled navigation
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
         if (action === ACTIONS.NEXT) {
@@ -39,7 +55,7 @@ export const useCourseLearnJoyride = () => {
             setStepIndex(index - 1);
         }
     }
-    
+
     // UI Interactions logic (Tab switching y Panel opening)
     // Usamos STEP_BEFORE para preparar la UI antes de mostrar el paso
     if (type === EVENTS.STEP_BEFORE) {
@@ -69,9 +85,9 @@ export const useCourseLearnJoyride = () => {
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
       setStepIndex(0);
-      await completeTour(); 
+      await completeTour();
     }
-  }, [completeTour]);
+  }, [completeTour, skipTour]);
 
   const restartTour = useCallback(() => {
     setRun(false);

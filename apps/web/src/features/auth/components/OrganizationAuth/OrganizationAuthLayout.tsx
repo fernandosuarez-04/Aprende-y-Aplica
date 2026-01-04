@@ -289,7 +289,7 @@ export function OrganizationAuthLayout({
                       className="text-3xl lg:text-4xl font-bold mb-3 tracking-tight"
                       style={{
                         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-                        color: finalPrimaryColor,
+                        color: '#FFFFFF',
                       }}
                     >
                       {organization.name}

@@ -164,7 +164,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
     <AnimatePresence>
       {/* Portal style - Covers entire viewport */}
       <div
-        className="fixed inset-0 flex items-center justify-center"
+        className="fixed inset-0 flex items-center justify-center p-4"
         style={{ zIndex: 99999 }}
       >
         {/* Backdrop - Transparent, just for closing */}
@@ -182,24 +182,24 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-4xl mx-4 max-h-[90vh]"
+          className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <div
             className="rounded-2xl shadow-2xl overflow-hidden border border-white/10"
             style={{ backgroundColor: 'var(--org-card-background, #1a1f2e)' }}
           >
-            {/* Two Column Layout */}
-            <div className="flex flex-col lg:flex-row min-h-[400px] lg:min-h-[500px] max-h-[85vh]">
+            {/* Two Column Layout - Scrollable */}
+            <div className="flex flex-col lg:flex-row max-h-[85vh] overflow-y-auto lg:overflow-hidden">
 
-              {/* Left Side - Preview & Info (Sticky) */}
+              {/* Left Side - Preview & Info */}
               <div
-                className="lg:w-80 w-full p-6 lg:p-8 flex flex-col border-b lg:border-b-0 lg:border-r border-white/5 lg:sticky lg:top-0 lg:self-start shrink-0"
+                className="lg:w-80 w-full p-4 lg:p-8 flex flex-col border-b lg:border-b-0 lg:border-r border-white/5 shrink-0"
                 style={{
                   background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)`
                 }}
               >
-                <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="flex-1 flex flex-col items-center justify-center py-2 lg:py-0">
                   {/* Icon */}
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -285,7 +285,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
               </div>
 
               {/* Right Side - Form */}
-              <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+              <div className="flex-1 flex flex-col min-w-0 max-h-[85vh] lg:max-h-full overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 lg:p-6 border-b border-white/5 shrink-0">
                   <div>

@@ -725,6 +725,34 @@ npm run lint             # Ejecutar ESLint
 
 ## 📝 Historial de Cambios
 
+### Enero 2026 (v2.2.0)
+
+#### 🎨 Rediseño de Headers del Business Panel
+
+- ✅ **Reports Header**: Nuevo diseño premium con imagen de fondo (`teams-header.png`), fondo azul oscuro (`#0A2540`), gradiente superpuesto y textos en blanco
+- ✅ **Analytics Header**: Mismo estilo visual que Reports, con imagen de fondo y tema oscuro consistente
+- ✅ **Settings Header**: Rediseño completo con imagen de fondo, eliminando animaciones complejas por un diseño más limpio
+- ✅ **Business User Dashboard Hero**: Actualizado con imagen de fondo y esquema de colores oscuros premium
+- ✅ Eliminación de títulos/subtítulos redundantes sobre los headers en páginas de Reports, Analytics y Settings
+
+#### 🌓 Mejoras de Modo Claro/Oscuro
+
+- ✅ **BusinessSettings.tsx**: Tarjetas, formularios y tabs ahora soportan correctamente modo claro y oscuro
+- ✅ **BusinessAnalytics.tsx**: KPIs de equipos, gráficos de progreso y tarjetas de equipos con soporte dual de temas
+- ✅ Gradientes y colores de botones actualizados a `#0A2540` → `#1e3a5f` para consistencia de marca
+- ✅ Inputs y labels con clases `dark:` para adaptarse automáticamente al tema
+
+#### 🔐 Mejoras de Autenticación Organizacional
+
+- ✅ **OrganizationAuthLayout.tsx**: Color del nombre de organización cambiado de azul a blanco (`#FFFFFF`) para mejor legibilidad en fondos oscuros
+- ✅ Switches de SSO (Google/Microsoft) actualizados con nuevos gradientes y soporte para modo claro
+
+#### 🛠️ Mejoras Técnicas
+
+- ✅ Importación de `next/image` en componentes que usan `teams-header.png`
+- ✅ Estilos inline con colores hexadecimales explícitos para evitar problemas de herencia de temas
+- ✅ Grid patterns sutiles (`radial-gradient`) añadidos a los headers premium
+
 ### Diciembre 2025 (v2.1.0)
 
 #### 🆕 Planificador de Estudios con IA
@@ -774,6 +802,6 @@ npm run lint             # Ejecutar ESLint
 
 ---
 
-**Última actualización**: Diciembre 2025  
-**Versión**: 2.1.0 (B2B)  
+**Última actualización**: Enero 2026  
+**Versión**: 2.2.0 (B2B)  
 **Mantenedores**: Equipo Aprende y Aplica

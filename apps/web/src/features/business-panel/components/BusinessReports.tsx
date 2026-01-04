@@ -214,18 +214,27 @@ export function BusinessReports() {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-inner">
-              <BarChart3 className="w-5 h-5 text-white" />
+              <BarChart3 className="w-5 h-5" style={{ color: '#FFFFFF' }} />
             </div>
-            <span className="text-sm font-bold tracking-widest uppercase text-blue-100/90 drop-shadow-sm">
+            <span 
+              className="text-sm font-bold tracking-widest uppercase drop-shadow-sm"
+              style={{ color: 'rgba(219, 234, 254, 0.9)' }}
+            >
               Centro de Reportes
             </span>
           </div>
           
-          <h1 className="text-3xl md:text-4xl font-bold mb-3 text-white tracking-tight drop-shadow-md">
+          <h1 
+            className="text-3xl md:text-4xl font-bold mb-3 tracking-tight drop-shadow-md"
+            style={{ color: '#FFFFFF' }}
+          >
             Reportes y Análisis
           </h1>
           
-          <p className="text-base text-blue-50 max-w-2xl leading-relaxed drop-shadow-sm">
+          <p 
+            className="text-base max-w-2xl leading-relaxed drop-shadow-sm"
+            style={{ color: '#EFF6FF' }}
+          >
             Genera reportes detallados de usuarios, actividad y certificados. 
             Exporta los datos en formato Excel para un análisis más profundo.
           </p>
@@ -245,10 +254,13 @@ export function BusinessReports() {
               transition={{ delay: index * 0.1 }}
               onClick={() => handleReportTypeChange(type.value)}
               disabled={isLoading}
-              className="relative group p-6 rounded-2xl border-2 text-left transition-all overflow-hidden"
+              className={`relative group p-6 rounded-2xl border-2 text-left transition-all overflow-hidden
+                ${isSelected 
+                  ? '' 
+                  : 'bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30'}
+              `}
               style={{
-                backgroundColor: isSelected ? `${type.color}15` : cardBg,
-                borderColor: isSelected ? type.color : cardBorder
+                ...(isSelected ? { backgroundColor: `${type.color}15`, borderColor: type.color } : {})
               }}
               whileHover={{ scale: 1.02, y: -4 }}
               whileTap={{ scale: 0.98 }}
@@ -267,8 +279,8 @@ export function BusinessReports() {
                 >
                   <Icon className="w-6 h-6" style={{ color: type.color }} />
                 </div>
-                <h3 className="font-bold text-lg mb-1">{type.label}</h3>
-                <p className="text-sm opacity-60">{type.description}</p>
+                <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-white">{type.label}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{type.description}</p>
               </div>
               {isSelected && (
                 <motion.div
@@ -287,18 +299,21 @@ export function BusinessReports() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl border"
-        style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+        className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl border bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
       >
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all hover:opacity-80"
-            style={{
-              backgroundColor: showFilters ? `${accentColor}20` : 'transparent',
-              borderColor: showFilters ? accentColor : cardBorder,
-              color: showFilters ? accentColor : textColor
-            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all hover:opacity-80
+              ${showFilters 
+                ? '' 
+                : 'bg-transparent border-gray-200 dark:border-slate-700/30 text-gray-700 dark:text-gray-300'}
+            `}
+            style={showFilters ? {
+              backgroundColor: `${accentColor}20`,
+              borderColor: accentColor,
+              color: accentColor
+            } : {}}
           >
             <Filter className="w-4 h-4" />
             Filtros
@@ -307,12 +322,7 @@ export function BusinessReports() {
           <button
             onClick={handleGenerateReport}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all hover:opacity-80 disabled:opacity-50"
-            style={{
-              backgroundColor: 'transparent',
-              borderColor: cardBorder,
-              color: textColor
-            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all hover:opacity-80 disabled:opacity-50 bg-transparent border-gray-200 dark:border-slate-700/30 text-gray-700 dark:text-gray-300"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             {isLoading ? 'Generando...' : 'Actualizar'}
@@ -324,8 +334,8 @@ export function BusinessReports() {
               onClick={handleExportExcel}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:opacity-90 text-white"
               style={{
-                background: `linear-gradient(135deg, ${accentColor} 0%, ${secondaryColor} 100%)`,
-                boxShadow: `0 4px 14px 0 ${accentColor}40`
+                background: 'linear-gradient(135deg, #0A2540 0%, #1e3a5f 100%)',
+                boxShadow: '0 4px 14px 0 rgba(10, 37, 64, 0.4)'
               }}
             >
               <FileSpreadsheet className="w-4 h-4" />
@@ -345,8 +355,7 @@ export function BusinessReports() {
             className="overflow-hidden"
           >
             <div
-              className="p-6 rounded-2xl border space-y-4"
-              style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+              className="p-6 rounded-2xl border space-y-4 bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
             >
               <h3 className="font-semibold flex items-center gap-2">
                 <Calendar className="w-4 h-4" style={{ color: accentColor }} />
@@ -437,12 +446,11 @@ export function BusinessReports() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="p-12 rounded-2xl border text-center"
-          style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+          className="p-12 rounded-2xl border text-center bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
         >
           <div className="inline-flex items-center gap-3">
             <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: primaryColor, borderTopColor: 'transparent' }} />
-            <span className="opacity-70">Generando reporte...</span>
+            <span className="text-gray-500 dark:text-gray-400">Generando reporte...</span>
           </div>
         </motion.div>
       )}
@@ -726,26 +734,20 @@ function CertificatesReport({ data }: { data: any }) {
 // COMPONENTES AUXILIARES
 // ============================================
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: any; color: string }) {
-  const { styles } = useOrganizationStylesContext()
-  const panelStyles = styles?.panel
-  const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
-  const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ scale: 1.02, y: -2 }}
-      className="p-5 rounded-2xl border backdrop-blur-sm"
-      style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+      className="p-5 rounded-2xl border backdrop-blur-sm bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="p-2 rounded-xl" style={{ backgroundColor: `${color}20` }}>
           <Icon className="w-5 h-5" style={{ color }} />
         </div>
       </div>
-      <p className="text-3xl font-bold mb-1">{typeof value === 'number' ? value.toLocaleString() : value}</p>
-      <p className="text-sm opacity-60">{label}</p>
+      <p className="text-3xl font-bold mb-1 text-gray-900 dark:text-white">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
     </motion.div>
   )
 }
@@ -753,20 +755,17 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
-  const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
-  const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
   const accentColor = panelStyles?.accent_color || '#00D4B3'
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-5 rounded-2xl border backdrop-blur-sm"
-      style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+      className="p-5 rounded-2xl border backdrop-blur-sm bg-white dark:bg-[#0F1419] border-gray-200 dark:border-slate-700/30"
     >
       <div className="flex items-center gap-2 mb-4">
         <PieChartIcon className="w-4 h-4" style={{ color: accentColor }} />
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
       </div>
       {children}
     </motion.div>

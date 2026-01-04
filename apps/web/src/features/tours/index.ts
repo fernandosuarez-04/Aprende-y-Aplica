@@ -1,8 +1,9 @@
 // Tours - Exportaciones principales
 export { useTourProgress } from './hooks/useTourProgress';
-export { 
-  dashboardTourSteps, 
-  DASHBOARD_TOUR_ID,
-  tourCardStyles,
-  tourButtonStyles 
-} from './config/dashboard-tour-steps';
+
+// Joyride-based tours (react-joyride)
+export { useStudyPlannerJoyride } from './hooks/useStudyPlannerJoyride';
+export { useBusinessUserJoyride } from './hooks/useBusinessUserJoyride';
+export { useBusinessPanelJoyride } from './hooks/useBusinessPanelJoyride';
+export { useCourseLearnJoyride } from './hooks/useCourseLearnJoyride';
+export { JoyrideTooltip } from './components/JoyrideTooltip';

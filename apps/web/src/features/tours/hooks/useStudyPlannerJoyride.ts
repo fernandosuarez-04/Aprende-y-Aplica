@@ -27,7 +27,23 @@ export const useStudyPlannerJoyride = () => {
 
   const handleJoyrideCallback = useCallback(async (data: CallBackProps) => {
     const { action, index, status, type } = data;
-    
+
+    // Handle close button click
+    if (action === ACTIONS.CLOSE) {
+      setRun(false);
+      setStepIndex(0);
+      await tourProgress.skipTour();
+      return;
+    }
+
+    // Handle skip button click
+    if (action === ACTIONS.SKIP) {
+      setRun(false);
+      setStepIndex(0);
+      await tourProgress.skipTour();
+      return;
+    }
+
     // Controlled navigation logic
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       if (action === ACTIONS.NEXT) {
@@ -36,11 +52,11 @@ export const useStudyPlannerJoyride = () => {
         setStepIndex(index - 1);
       }
     }
-    // Handle tour finish or skip
+    // Handle tour finish or skip via status
     else if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
       setStepIndex(0);
-      
+
       if (status === STATUS.FINISHED) {
         await tourProgress.completeTour();
       } else {

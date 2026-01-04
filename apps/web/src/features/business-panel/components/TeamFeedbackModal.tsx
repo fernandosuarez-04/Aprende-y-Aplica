@@ -136,7 +136,7 @@ export function TeamFeedbackModal({
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 flex items-center justify-center"
+        className="fixed inset-0 flex items-center justify-center p-4"
         style={{ zIndex: 99999 }}
       >
         {/* Backdrop transparente */}
@@ -154,14 +154,13 @@ export function TeamFeedbackModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative rounded-2xl shadow-2xl overflow-hidden border border-white/10"
-          style={{ backgroundColor: cardBg }}
+          className="relative rounded-2xl shadow-2xl overflow-hidden border w-full max-w-4xl max-h-[90vh] bg-white dark:bg-[#1a1f2e] border-gray-200 dark:border-white/10"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex min-h-[550px]">
-            {/* Panel Izquierdo - Preview */}
+          <div className="flex flex-col lg:flex-row max-h-[90vh]">
+            {/* Panel Izquierdo - Preview (hidden on mobile) */}
             <div
-              className="w-80 p-8 border-r border-white/5 flex flex-col"
+              className="hidden lg:flex lg:w-80 p-8 border-r border-gray-200 dark:border-white/5 flex-col shrink-0"
               style={{
                 background: `linear-gradient(135deg, ${primaryColor}15, ${accentColor}10)`
               }}
@@ -276,21 +275,15 @@ export function TeamFeedbackModal({
             </div>
 
             {/* Panel Derecho - Form */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0 max-h-[90vh] lg:max-h-full overflow-hidden">
               {/* Header */}
-              <div className="p-6 border-b border-white/5">
+              <div className="p-6 border-b border-gray-200 dark:border-white/5 shrink-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2
-                      className="text-xl font-bold"
-                      style={{ color: textColor }}
-                    >
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                       {t('teamFeedback.title')}
                     </h2>
-                    <p
-                      className="text-sm mt-1"
-                      style={{ color: textColor, opacity: 0.6 }}
-                    >
+                    <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">
                       {t('teamFeedback.subtitle')}
                     </p>
                   </div>
@@ -299,15 +292,15 @@ export function TeamFeedbackModal({
                     whileTap={{ scale: 0.9 }}
                     onClick={onClose}
                     disabled={isSubmitting}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-white/5"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors hover:bg-gray-100 dark:hover:bg-white/5"
                   >
-                    <X className="w-5 h-5" style={{ color: textColor, opacity: 0.5 }} />
+                    <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                   </motion.button>
                 </div>
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+              <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-6 space-y-5">
                   {/* Error */}
                   {error && (
@@ -327,21 +320,16 @@ export function TeamFeedbackModal({
 
                   {/* Destinatario Dropdown */}
                   <div>
-                    <label
-                      className="block text-sm font-medium mb-2"
-                      style={{ color: textColor }}
-                    >
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                       {t('teamFeedback.selectRecipient')} <span className="text-red-400">*</span>
                     </label>
                     <div className="relative" ref={memberDropdownRef}>
                       <button
                         type="button"
                         onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                        className="w-full px-4 py-3 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300 text-left"
+                        className="w-full px-4 py-3 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300 text-left bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
                         style={{
-                          backgroundColor: 'rgba(255,255,255,0.05)',
-                          borderColor: formData.to_user_id ? primaryColor : 'rgba(255,255,255,0.1)',
-                          color: textColor
+                          borderColor: formData.to_user_id ? primaryColor : undefined
                         }}
                       >
                         <div className="flex items-center gap-3">
@@ -426,22 +414,14 @@ export function TeamFeedbackModal({
 
                   {/* Tipo de Feedback Dropdown */}
                   <div>
-                    <label
-                      className="block text-sm font-medium mb-2"
-                      style={{ color: textColor }}
-                    >
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                       {t('teamFeedback.feedbackType')} <span className="text-red-400">*</span>
                     </label>
                     <div className="relative" ref={typeDropdownRef}>
                       <button
                         type="button"
                         onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                        className="w-full px-4 py-3 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300 text-left"
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.05)',
-                          borderColor: 'rgba(255,255,255,0.1)',
-                          color: textColor
-                        }}
+                        className="w-full px-4 py-3 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300 text-left bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
                       >
                         <div className="flex items-center gap-3">
                           {selectedType && (
@@ -465,32 +445,28 @@ export function TeamFeedbackModal({
                             initial={{ opacity: 0, y: -10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                            className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50"
-                            style={{
-                              backgroundColor: cardBg,
-                              borderColor: 'rgba(255,255,255,0.15)'
-                            }}
-                          >
-                            {FEEDBACK_TYPES.map((type) => (
-                              <button
-                                key={type.value}
-                                type="button"
-                                onClick={() => {
-                                  setFormData(prev => ({ ...prev, feedback_type: type.value as any }))
-                                  setShowTypeDropdown(false)
-                                }}
-                                className="w-full px-4 py-3 text-left flex items-center gap-3 transition-colors hover:bg-white/5"
-                                style={{
-                                  backgroundColor: formData.feedback_type === type.value ? `${type.color}20` : 'transparent'
-                                }}
-                              >
-                                <type.icon className="w-5 h-5" style={{ color: type.color }} />
-                                <span className="text-sm" style={{ color: textColor }}>
-                                  {t(`teamFeedback.types.${type.value}`)}
-                                </span>
-                              </button>
-                            ))}
-                          </motion.div>
+                          className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50 bg-white dark:bg-[#1a1f2e] border-gray-200 dark:border-white/15"
+                        >
+                          {FEEDBACK_TYPES.map((type) => (
+                            <button
+                              key={type.value}
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, feedback_type: type.value as any }))
+                                setShowTypeDropdown(false)
+                              }}
+                              className="w-full px-4 py-3 text-left flex items-center gap-3 transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+                              style={{
+                                backgroundColor: formData.feedback_type === type.value ? `${type.color}20` : 'transparent'
+                              }}
+                            >
+                              <type.icon className="w-5 h-5" style={{ color: type.color }} />
+                              <span className="text-sm text-gray-900 dark:text-white">
+                                {t(`teamFeedback.types.${type.value}`)}
+                              </span>
+                            </button>
+                          ))}
+                        </motion.div>
                         )}
                       </AnimatePresence>
                     </div>
@@ -498,10 +474,7 @@ export function TeamFeedbackModal({
 
                   {/* Contenido */}
                   <div>
-                    <label
-                      className="block text-sm font-medium mb-2"
-                      style={{ color: textColor }}
-                    >
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                       {t('teamFeedback.content')} <span className="text-red-400">*</span>
                     </label>
                     <textarea
@@ -509,24 +482,17 @@ export function TeamFeedbackModal({
                       onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                       rows={4}
                       maxLength={1000}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:border-white/20 transition-colors resize-none"
-                      style={{ color: textColor }}
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-white/20 transition-colors resize-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30"
                       placeholder={t('teamFeedback.contentPlaceholder')}
                     />
-                    <p
-                      className="text-xs mt-2"
-                      style={{ color: textColor, opacity: 0.5 }}
-                    >
+                    <p className="text-xs mt-2 text-gray-500 dark:text-gray-400">
                       {formData.content.length}/1000 caracteres
                     </p>
                   </div>
 
                   {/* Rating */}
                   <div>
-                    <label
-                      className="block text-sm font-medium mb-3"
-                      style={{ color: textColor }}
-                    >
+                    <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">
                       {t('teamFeedback.rating')}
                     </label>
                     <div className="flex items-center gap-2">
@@ -562,12 +528,12 @@ export function TeamFeedbackModal({
 
                   {/* Anónimo Toggle */}
                   <div
-                    className="flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-colors"
-                    style={{ backgroundColor: formData.is_anonymous ? `${primaryColor}15` : 'rgba(255,255,255,0.03)' }}
+                    className="flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-colors bg-gray-50 dark:bg-white/[0.03]"
+                    style={{ backgroundColor: formData.is_anonymous ? `${primaryColor}15` : undefined }}
                     onClick={() => setFormData(prev => ({ ...prev, is_anonymous: !prev.is_anonymous }))}
                   >
                     <div
-                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${formData.is_anonymous ? 'border-transparent' : 'border-white/20'
+                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${formData.is_anonymous ? 'border-transparent' : 'border-gray-300 dark:border-white/20'
                         }`}
                       style={{
                         backgroundColor: formData.is_anonymous ? primaryColor : 'transparent'
@@ -577,20 +543,19 @@ export function TeamFeedbackModal({
                         <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                       )}
                     </div>
-                    <span className="text-sm" style={{ color: textColor }}>
+                    <span className="text-sm text-gray-900 dark:text-white">
                       {t('teamFeedback.anonymous')}
                     </span>
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-white/5 flex justify-end gap-3">
+                <div className="p-6 border-t border-gray-200 dark:border-white/5 flex justify-end gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={onClose}
                     disabled={isSubmitting}
-                    className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-white/5"
-                    style={{ color: `${textColor}99` }}
+                    className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white"
                   >
                     {t('teamFeedback.buttons.cancel')}
                   </button>
