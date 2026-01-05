@@ -9780,10 +9780,10 @@ Cuéntame:
                           damping: 20
                         }}
                         className={`relative ${msg.role === 'user'
-                          ? 'bg-[#10B981] text-white'
+                          ? 'bg-[#0A2540] text-white'
                           : 'bg-[#FFFFFF] dark:bg-[#1E2329] text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30'
                           } px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-[18px] sm:rounded-[22px] shadow-sm ${msg.role === 'user'
-                            ? 'shadow-[#10B981]/25 rounded-br-[6px]'
+                            ? 'shadow-[#0A2540]/25 rounded-br-[6px]'
                             : 'shadow-sm rounded-bl-[6px]'
                           } overflow-hidden max-w-full`}
                       >
@@ -10162,104 +10162,28 @@ Cuéntame:
 
                       {/* Opciones de calendario */}
                       <div className="space-y-4 mb-6">
-                        {/* Google Calendar */}
-                        <div className="relative group">
+                        <div className="relative group grayscale">
                           <motion.button
-                            onClick={() => {
-                              if (connectedCalendar === 'google') {
-                                // Si ya está conectado, desconectar primero
-                                disconnectCalendar('google');
-                              } else {
-                                // Si hay otro calendario conectado, desconectarlo primero
-                                if (connectedCalendar === 'microsoft') {
-                                  disconnectCalendar('microsoft').then(() => {
-                                    setTimeout(() => connectGoogleCalendar(), 500);
-                                  });
-                                } else {
-                                  connectGoogleCalendar();
-                                }
-                              }
-                            }}
-                            disabled={isConnectingCalendar}
-                            whileHover={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
-                            whileTap={connectedCalendar === 'google' || isConnectingCalendar ? {} : { scale: 0.98 }}
-                            className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden ${connectedCalendar === 'google'
-                              ? 'bg-[#10B981]/10 dark:bg-[#10B981]/20 border-2 border-[#10B981]/30 shadow-sm'
-                              : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
-                              } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            disabled={true}
+                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 opacity-60 cursor-not-allowed"
                           >
-                            {/* Efecto de brillo en hover */}
-                            {connectedCalendar !== 'google' && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                            )}
+                            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Próximamente
+                            </div>
 
                             {/* Icono de Google */}
-                            <motion.div
-                              className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${connectedCalendar === 'google'
-                                ? 'bg-white ring-2 ring-green-500/50'
-                                : 'bg-white'
-                                }`}
-                              whileHover={connectedCalendar !== 'google' ? { rotate: [0, -5, 5, -5, 0] } : {}}
-                              transition={{ duration: 0.5 }}
-                            >
-                              {/* Icono de Google - siempre mostrar GoogleIcon */}
+                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white opacity-50">
                               <GoogleIcon />
-                            </motion.div>
+                            </div>
 
                             {/* Contenido del botón */}
                             <div className="flex-1 text-left min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <p className="text-[#0A2540] dark:text-white font-semibold text-sm">Google Calendar</p>
-                                {connectedCalendar === 'google' && (
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
-                                  />
-                                )}
                               </div>
-                              {connectedCalendar === 'google' ? (
-                                <div className="text-[#10B981] text-xs flex items-center gap-2 font-medium">
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ type: 'spring', stiffness: 500 }}
-                                  >
-                                    <Check className="w-3.5 h-3.5" />
-                                  </motion.div>
-                                  <span>Conectado exitosamente</span>
-                                </div>
-                              ) : (
-                                <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Google</p>
-                              )}
+                              <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Google</p>
                             </div>
-
-                            {/* Icono de acción */}
-                            {connectedCalendar !== 'google' && (
-                              <motion.div
-                                className="w-8 h-8 rounded-full bg-[#E9ECEF] dark:bg-[#6C757D]/30 flex items-center justify-center group-hover:bg-[#6C757D]/20 dark:group-hover:bg-[#6C757D]/50 transition-colors"
-                                whileHover={{ rotate: 45 }}
-                              >
-                                <ExternalLink className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" />
-                              </motion.div>
-                            )}
                           </motion.button>
-
-                          {/* Botón de desconectar mejorado */}
-                          {connectedCalendar === 'google' && (
-                            <motion.button
-                              initial={{ opacity: 0, scale: 0 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              onClick={() => disconnectCalendar('google')}
-                              disabled={isConnectingCalendar}
-                              whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
-                              whileTap={{ scale: 0.9 }}
-                              className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 backdrop-blur-sm z-10"
-                              title="Desconectar Google Calendar"
-                            >
-                              <X className="w-4 h-4" />
-                            </motion.button>
-                          )}
                         </div>
 
                         {/* Microsoft Calendar */}

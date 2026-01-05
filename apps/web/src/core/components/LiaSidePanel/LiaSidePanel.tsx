@@ -156,7 +156,7 @@ function LiaSidePanelContent() {
     textSecondary: isLightTheme ? '#64748B' : '#6b7280',
     inputBg: isLightTheme ? '#F1F5F9' : 'rgba(255, 255, 255, 0.05)',
     inputBorder: isLightTheme ? '#CBD5E1' : (effectiveStyles?.border_color || '#374151'),
-    accentColor: effectiveStyles?.primary_button_color || '#0A2540', // Usando color primario según SOFIA
+    accentColor: '#00D4B3', // Siempre usar Aqua para identidad de LIA
   };
   
   const { messages, isLoading, sendMessage, clearHistory } = useLiaGeneralChat();
@@ -350,7 +350,7 @@ function LiaSidePanelContent() {
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLightTheme ? '#fee2e2' : '#450a0a'} // Fondo rojo suave al hover
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <Trash2 style={{ width: '18px', height: '18px', color: isLightTheme ? '#ef4444' : '#f87171' }} />
+                <Trash2 style={{ width: '18px', height: '18px' }} color={isLightTheme ? '#ef4444' : '#f87171'} />
               </button>
 
               <button
@@ -370,7 +370,7 @@ function LiaSidePanelContent() {
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLightTheme ? '#E2E8F0' : '#1e2a35'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <X style={{ width: '18px', height: '18px', color: themeColors.textSecondary }} />
+                <X style={{ width: '18px', height: '18px' }} color={themeColors.textSecondary} />
               </button>
             </div>
           </div>
@@ -556,7 +556,7 @@ function LiaSidePanelContent() {
                         e.currentTarget.style.borderColor = themeColors.borderColor;
                       }}
                     >
-                      <Icon style={{ width: '14px', height: '14px', color: themeColors.accentColor }} />
+                      <Icon style={{ width: '14px', height: '14px' }} color={themeColors.accentColor} />
                       {action.label}
                     </button>
                   );

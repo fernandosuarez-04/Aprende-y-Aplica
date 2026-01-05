@@ -199,6 +199,34 @@ export default function CourseLearnPage() {
     [liaChat, isLiaOpen, openLia]
   );
 
+  // Handler para guardar notas desde LIA
+  const handleSaveLiaNote = useCallback((content: string) => {
+    // Convertir Markdown a HTML básico para el editor
+    let html = content
+      // Escapar HTML seguridad básica
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      // Negritas **text** -> <strong>text</strong>
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Cursivas *text* -> <em>text</em>
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Enlaces [text](url) -> <a href="url">text</a>
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #00D4B3; text-decoration: underline;">$1</a>')
+      // Listas - item -> • item (visual simple)
+      .replace(/^\s*-\s+/gm, '• ')
+      // Saltos de línea -> <br>
+      .replace(/\n/g, '<br/>');
+
+    setEditingNote({
+      id: "new",
+      title: "Nota de LIA",
+      content: html,
+      tags: ["lia"]
+    });
+    setIsNotesModalOpen(true);
+  }, []);
+
   const { user } = useAuth();
   const { effectiveStyles } = useOrganizationStyles();
 
@@ -4644,6 +4672,7 @@ export default function CourseLearnPage() {
             textPrimary: "#FFFFFF",
             textSecondary: "rgba(255,255,255,0.6)",
           }}
+          onSaveNote={handleSaveLiaNote}
         />
 
         {/* Tour de voz contextual para la página de aprendizaje */}

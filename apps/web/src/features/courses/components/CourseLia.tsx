@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Paperclip, Sparkles, MessageSquare, Lightbulb, HelpCircle, Trash2 } from 'lucide-react';
+import { X, Send, Paperclip, Sparkles, MessageSquare, Lightbulb, HelpCircle, Trash2, Copy, StickyNote, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useThemeStore } from '../../../core/stores/themeStore';
@@ -25,6 +25,7 @@ interface CourseLiaProps {
     textPrimary?: string;
     textSecondary?: string;
   };
+  onSaveNote?: (content: string) => void;
 }
 
 
@@ -135,7 +136,7 @@ function CourseLiaFloatingButton() {
 }
 
 // Panel Principal
-function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors, transcriptContent, summaryContent, lessonContent }: CourseLiaProps) {
+function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors, transcriptContent, summaryContent, lessonContent, onSaveNote }: CourseLiaProps) {
   const { isOpen, closeLia, currentActivity, registerLiaChat } = useLiaCourse();
   const prevActivityIdRef = useRef<string | null>(null);
   const { user } = useAuth();
@@ -162,7 +163,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
     borderColor: customColors?.borderColor || (isLightTheme ? '#E2E8F0' : '#1e2a35'),
     // Si es custom theme, forzar burbuja asistente oscura/transparente
     messageBubbleAssistant: isCustomTheme ? 'rgba(255,255,255,0.1)' : (isLightTheme ? '#F1F5F9' : '#1e2a35'),
-    messageBubbleUser: customColors?.accentColor || '#0A2540',
+    messageBubbleUser: '#0A2540',
     textPrimary: customColors?.textPrimary || (isLightTheme ? '#1E293B' : '#e5e7eb'),
     textSecondary: customColors?.textSecondary || (isLightTheme ? '#64748B' : '#6b7280'),
     // Si es custom theme, forzar input oscuro
@@ -357,11 +358,11 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
                 title="Borrar conversación"
                 style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                <Trash2 style={{ width: '18px', height: '18px', color: themeColors.textSecondary }} />
+                <Trash2 style={{ width: '18px', height: '18px' }} color={isLightTheme ? '#ef4444' : '#f87171'} />
               </button>
               
               <button onClick={closeLia} style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <X style={{ width: '18px', height: '18px', color: themeColors.textSecondary }} />
+                <X style={{ width: '18px', height: '18px' }} color={isLightTheme ? '#1E293B' : themeColors.textSecondary} />
               </button>
             </div>
           </div>
@@ -369,11 +370,31 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
           {/* Messages */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {messages.map((message) => (
-              <div key={message.id} style={{ display: 'flex', justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: '16px', backgroundColor: message.role === 'user' ? themeColors.messageBubbleUser : themeColors.messageBubbleAssistant }}>
+              <div key={message.id} style={{ display: 'flex', flexDirection: 'column', alignItems: message.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: '16px', backgroundColor: message.role === 'user' ? '#0A2540' : themeColors.messageBubbleAssistant }}>
                   <p className={message.role === 'user' ? 'lia-msg-user-text' : 'lia-msg-assistant-text'} style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
                     {message.role === 'assistant' ? parseMarkdownContent(message.content, handleLinkClick) : message.content}
                   </p>
+                  {message.role === 'assistant' && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px', justifyContent: 'flex-end', opacity: 0.7 }}>
+                      <button 
+                        onClick={() => navigator.clipboard.writeText(message.content)}
+                        title="Copiar texto"
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: isLightTheme ? '#64748B' : themeColors.textSecondary }}
+                      >
+                         <Copy style={{ width: '14px', height: '14px' }} />
+                      </button>
+                      {onSaveNote && (
+                        <button 
+                          onClick={() => onSaveNote(message.content)}
+                          title="Guardar como nota"
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', color: isLightTheme ? '#64748B' : themeColors.textSecondary }}
+                        >
+                           <StickyNote style={{ width: '14px', height: '14px' }} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
