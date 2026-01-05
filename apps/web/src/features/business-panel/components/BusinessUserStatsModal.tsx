@@ -85,8 +85,84 @@ interface UserStats {
   }
 }
 
+// Fallback translations in case i18n fails
+const fallbackTranslations: Record<string, string> = {
+  'users.stats.time.never': 'Nunca',
+  'users.stats.time.invalid': 'Fecha inválida',
+  'users.stats.time.moments': 'Hace unos momentos',
+  'users.stats.time.minutes': 'Hace {{count}} minuto(s)',
+  'users.stats.time.hours': 'Hace {{count}} hora(s)',
+  'users.stats.time.days': 'Hace {{count}} día(s)',
+  'users.stats.time.weeks': 'Hace {{count}} semana(s)',
+  'users.stats.time.months': 'Hace {{count}} mes(es)',
+  'users.stats.time.years': 'Hace {{count}} año(s)',
+  'users.stats.time.today': 'Hoy',
+  'users.stats.time.yesterday': 'Ayer',
+  'users.stats.labels.typeRole': 'Tipo de Rol',
+  'users.stats.labels.lastConnection': 'Última Conexión',
+  'users.stats.labels.joined': 'Se unió',
+  'users.stats.cards.courses': 'Cursos',
+  'users.stats.cards.completed': 'Completados',
+  'users.stats.cards.hours': 'Horas',
+  'users.stats.cards.certificates': 'Certificados',
+  'users.stats.platformActivity.title': 'Actividad en la Plataforma',
+  'users.stats.platformActivity.liaQueries': 'Consultas LIA',
+  'users.stats.platformActivity.messages': 'mensajes',
+  'users.stats.platformActivity.quizzesPassed': 'Quiz Aprobados',
+  'users.stats.platformActivity.average': 'promedio',
+  'users.stats.platformActivity.liaActivities': 'Actividades LIA',
+  'users.stats.platformActivity.total': 'total',
+  'users.stats.generalProgress.title': 'Progreso General',
+  'users.stats.generalProgress.subtitle': 'Avance en todos los cursos asignados',
+  'users.stats.generalProgress.completed': 'Completados',
+  'users.stats.generalProgress.inProgress': 'En Progreso',
+  'users.stats.generalProgress.notStarted': 'Sin Iniciar',
+  'users.stats.coursesList.empty': 'No hay cursos asignados',
+  'users.stats.coursesList.enrolled': 'Inscrito',
+  'users.stats.coursesList.certificate': 'Certificado',
+  'users.stats.coursesList.completed': 'Completado',
+  'users.stats.coursesList.inProgress': 'En progreso',
+  'users.stats.coursesList.notStarted': 'Sin iniciar',
+  'users.stats.coursesList.progress': 'Progreso del curso',
+  'users.stats.coursesList.time': 'Tiempo',
+  'users.stats.coursesList.lia': 'LIA',
+  'users.stats.coursesList.quiz': 'Quiz',
+  'users.stats.coursesList.notes': 'Notas',
+  'users.stats.timeline.empty': 'No hay progreso que mostrar',
+  'users.stats.timeline.modules': 'módulos',
+  'users.stats.timeline.lessons': 'lecciones',
+  'users.stats.timeline.quizzes': 'quiz',
+  'users.stats.activity.notesCreated': 'Notas Creadas',
+  'users.stats.activity.assignments': 'Asignaciones',
+  'users.stats.activity.certificates': 'Certificados',
+  'users.stats.activity.completionHistory': 'Historial de Completados',
+  'users.stats.activity.courses': 'curso(s)',
+  'users.stats.activity.summary': 'Resumen de Actividad',
+  'users.stats.activity.studyTime': 'Tiempo de estudio',
+  'users.stats.activity.lessons': 'Lecciones',
+  'users.roles.owner': 'Propietario',
+  'users.roles.admin': 'Administrador',
+  'users.roles.member': 'Miembro'
+}
+
 export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserStatsModalProps) {
-  const { t } = useTranslation('business')
+  const { t: originalT } = useTranslation('business')
+  
+  // Helper function that provides fallback translations
+  const t = (key: string, options?: any): string => {
+    const result = originalT(key, options)
+    // If the result equals the key, it means translation was not found
+    if (result === key || result.includes('.stats.')) {
+      let fallback = fallbackTranslations[key] || key
+      // Handle interpolation for count
+      if (options?.count !== undefined && fallback.includes('{{count}}')) {
+        fallback = fallback.replace('{{count}}', String(options.count))
+      }
+      return fallback
+    }
+    return result
+  }
+  
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const [stats, setStats] = useState<UserStats | null>(null)

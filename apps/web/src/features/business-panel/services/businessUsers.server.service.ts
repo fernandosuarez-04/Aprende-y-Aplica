@@ -173,6 +173,7 @@ export class BusinessUsersServerService {
       }
 
       // Paso 4: Crear el usuario
+      // NOTA: organization_id no existe en la tabla users, la relación se maneja en organization_users
       const userInsertData: any = {
         username: userData.username,
         email: userData.email,
@@ -181,7 +182,6 @@ export class BusinessUsersServerService {
         display_name: userData.display_name || null,
         cargo_rol: 'Business User',
         type_rol: userData.type_rol.trim(),
-        organization_id: organizationId,
         password_hash: passwordHash
       }
 
@@ -246,7 +246,10 @@ export class BusinessUsersServerService {
       // 
       return businessUser
     } catch (error) {
-      // console.error('Error in BusinessUsersService.createOrganizationUser:', error)
+      console.error('❌ [createOrganizationUser] Error completo:', error)
+      if (error && typeof error === 'object') {
+        console.error('❌ [createOrganizationUser] Error details:', JSON.stringify(error, null, 2))
+      }
       throw error
     }
   }
@@ -411,10 +414,10 @@ export class BusinessUsersServerService {
       }
 
       // 
-      // Actualizar el usuario para quitar referencia a la organización
+      // Actualizar el usuario para resetear el rol (organization_id no existe en users)
       await supabase
         .from('users')
-        .update({ organization_id: null, cargo_rol: 'Usuario', type_rol: 'Usuario' })
+        .update({ cargo_rol: 'Usuario', type_rol: 'Usuario' })
         .eq('id', userId)
     } catch (error) {
       // console.error('Error in BusinessUsersService.deleteOrganizationUser:', error)
