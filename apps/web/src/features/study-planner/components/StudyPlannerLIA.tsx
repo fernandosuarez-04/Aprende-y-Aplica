@@ -639,6 +639,7 @@ export function StudyPlannerLIA() {
 
   // Detener todo audio/voz en reproducción
   const stopAllAudio = () => {
+    console.log('🛑 [stopAllAudio] Deteniendo todo el audio...');
     try {
       if (ttsAbortRef.current) {
         try { ttsAbortRef.current.abort(); } catch (e) { /* ignore */ }
@@ -1348,9 +1349,14 @@ INSTRUCCIONES:
       }
 
       const audioBlob = await response.blob();
-      if (ttsAbortRef.current && ttsAbortRef.current.signal.aborted) {
-
-        ttsAbortRef.current = null;
+      
+      // ✅ FIX: Verificar rigurosamente si se canceló la reproducción
+      // Si ttsAbortRef es null (por stopAllAudio) o diferente al controller actual, o si la señal está abortada, DETENER
+      if (!ttsAbortRef.current || ttsAbortRef.current !== controller || controller.signal.aborted) {
+        console.log('🔇 [speakText] Reproducción abortada antes de iniciar audio (silenciado o cancelado).');
+        if (ttsAbortRef.current === controller) {
+            ttsAbortRef.current = null;
+        }
         return;
       }
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -1371,9 +1377,11 @@ INSTRUCCIONES:
       };
 
       try {
+        console.log('🔊 [speakText] Iniciando reproducción de audio...');
         await audio.play();
         if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
       } catch (playError: any) {
+        console.error('❌ [speakText] Error al reproducir audio:', playError);
         setIsSpeaking(false);
       }
     } catch (error: any) {

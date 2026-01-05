@@ -52,12 +52,13 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
 
   // Auto-fill display_name
   useEffect(() => {
-    if (formData.first_name || formData.last_name) {
-      const fullName = `${formData.first_name} ${formData.last_name}`.trim()
-      if (fullName && !formData.display_name) {
-        setFormData(prev => ({ ...prev, display_name: fullName }))
-      }
-    }
+    // Actualizar siempre el display_name al cambiar nombre o apellido
+    const fullName = `${formData.first_name} ${formData.last_name}`.trim()
+    setFormData(prev => {
+      // Solo actualizar si cambia para evitar rerenders innecesarios
+      if (prev.display_name === fullName) return prev
+      return { ...prev, display_name: fullName }
+    })
   }, [formData.first_name, formData.last_name])
 
   // Reset on close

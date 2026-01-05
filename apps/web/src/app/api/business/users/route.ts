@@ -105,6 +105,7 @@ export async function POST(request: Request) {
       first_name: body.first_name,
       last_name: body.last_name,
       display_name: body.display_name,
+      type_rol: body.type_rol,
       org_role: body.org_role || 'member',
       send_invitation: body.send_invitation !== undefined ? body.send_invitation : !body.password
     }
