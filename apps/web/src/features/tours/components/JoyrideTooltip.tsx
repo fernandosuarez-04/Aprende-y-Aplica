@@ -65,12 +65,14 @@ export const JoyrideTooltip: React.FC<TooltipRenderProps> = ({
           <div
             className="flex items-center justify-center w-10 h-10 rounded-xl text-xl shrink-0 bg-[#00D4B3]/20 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30"
           >
-            <span className="text-[#00D4B3]">✨</span>
+            {step.data?.icon || <span className="text-[#00D4B3]">✨</span>}
           </div>
           <h3
             className="text-lg font-bold leading-tight text-gray-900 dark:text-white"
           >
-            {step.title}
+            {typeof step.title === 'object' && 'props' in step.title 
+              ? step.title.props.children[1]?.props?.children || step.title
+              : step.title}
           </h3>
         </div>
 
@@ -124,7 +126,7 @@ export const JoyrideTooltip: React.FC<TooltipRenderProps> = ({
               onClick={handlePrimary}
               aria-label={primaryProps['aria-label']}
               data-action={isLastStep ? 'close' : 'next'}
-              className="flex items-center justify-center px-4 py-2 rounded-lg text-sm font-bold transition-all hover:brightness-110 shadow-lg bg-[#00D4B3] text-[#0A2540] shadow-[#00D4B3]/40 cursor-pointer"
+              className="flex items-center justify-center px-4 py-2 rounded-lg text-sm font-bold transition-all hover:brightness-110 shadow-lg bg-[#0A2540] text-white shadow-[#0A2540]/40 cursor-pointer"
             >
               {isLastStep ? (
                 <>

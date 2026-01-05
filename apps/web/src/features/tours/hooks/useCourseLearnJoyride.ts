@@ -2,16 +2,15 @@ import { useState, useCallback, useEffect } from 'react';
 import { CallBackProps, EVENTS, STATUS, ACTIONS } from 'react-joyride';
 import { useTourProgress } from './useTourProgress';
 import { COURSE_LEARN_TOUR_ID, courseLearnJoyrideSteps } from '../config/course-learn-joyride-steps';
-// import { useLiaPanel } from '@/core/contexts/LiaPanelContext'; // Omitir temporalmente si causa problemas de ciclo o si no estoy seguro del contexto
 import { JoyrideTooltip } from '../components/JoyrideTooltip';
 
 export const useCourseLearnJoyride = () => {
-  const { 
+  const {
     hasSeenTour,
     shouldShowTour,
-    isLoading, 
-    completeTour, 
-    skipTour 
+    isLoading,
+    completeTour,
+    skipTour
   } = useTourProgress(COURSE_LEARN_TOUR_ID);
 
   const [run, setRun] = useState(false);
@@ -49,37 +48,22 @@ export const useCourseLearnJoyride = () => {
 
     // Handle controlled navigation
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
-        if (action === ACTIONS.NEXT) {
-            setStepIndex(index + 1);
-        } else if (action === ACTIONS.PREV) {
-            setStepIndex(index - 1);
-        }
+      if (action === ACTIONS.NEXT) {
+        setStepIndex(index + 1);
+      } else if (action === ACTIONS.PREV) {
+        setStepIndex(index - 1);
+      }
     }
 
-    // UI Interactions logic (Tab switching y Panel opening)
-    // Usamos STEP_BEFORE para preparar la UI antes de mostrar el paso
+    // UI Interactions logic
     if (type === EVENTS.STEP_BEFORE) {
-        // Tab Switching
-        if (step.data?.tabId) {
-            const tabElement = document.getElementById(step.data.tabId);
-            if (tabElement) {
-                // Verificar si ya tiene aria-selected="true" o clase activa para no clickear en balde
-                // Pero un click extra no daña
-                tabElement.click();
-            } else {
-                console.warn(`[Tour] Tab element not found: ${step.data.tabId}`);
-            }
+      // LIA Panel Interaction
+      if (step.data?.liaAction === 'open') {
+        const liaButton = document.getElementById('tour-lia-course-button');
+        if (liaButton) {
+          liaButton.click();
         }
-
-        // LIA Panel Interaction
-        if (step.data?.liaAction === 'open') {
-            const liaButton = document.getElementById('tour-lia-course-button');
-            // Intentar abrir el panel simulando click si no tengo acceso al contexto directo aquí
-            // (Es más seguro simular click que depender del contexto si el hook está aislado)
-            if (liaButton) {
-                liaButton.click();
-            }
-        }
+      }
     }
 
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
@@ -94,7 +78,7 @@ export const useCourseLearnJoyride = () => {
     setStepIndex(0);
     // Force restart with timeout
     setTimeout(() => {
-        setRun(true);
+      setRun(true);
     }, 100);
   }, []);
 
@@ -106,6 +90,12 @@ export const useCourseLearnJoyride = () => {
     scrollToFirstStep: true,
     showProgress: true,
     showSkipButton: true,
+    hideCloseButton: false,
+    disableOverlayClose: false,
+    disableScrolling: false,
+    scrollOffset: 120,
+    spotlightClicks: false,
+    spotlightPadding: 10,
     tooltipComponent: JoyrideTooltip,
     callback: handleJoyrideCallback,
     styles: {
@@ -116,13 +106,31 @@ export const useCourseLearnJoyride = () => {
         backgroundColor: '#1E2329',
         arrowColor: '#1E2329',
       },
+      spotlight: {
+        borderRadius: 12,
+        boxShadow: '0 0 0 4px rgba(0, 212, 179, 0.6), 0 0 20px 8px rgba(0, 212, 179, 0.4), 0 0 40px 16px rgba(0, 212, 179, 0.2)',
+      },
       overlay: {
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
       },
     },
-    // Deshabilitar scrolling automático de Joyride si queremos controlar nosotros la vista,
-    // pero generalmente ayuda.
-    disableScrollParentFix: true, 
+    floaterProps: {
+      disableAnimation: false,
+      hideArrow: false,
+      offset: 15,
+      styles: {
+        floater: {
+          filter: 'drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3))',
+        },
+      },
+    },
+    locale: {
+      back: 'Anterior',
+      close: 'Cerrar',
+      last: 'Finalizar',
+      next: 'Siguiente',
+      skip: 'Saltar',
+    },
   };
 
   return { joyrideProps, restartTour };

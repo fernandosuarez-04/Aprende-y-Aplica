@@ -1591,3 +1591,20 @@ select::-webkit-scrollbar-thumb:hover {
 .notes-editor ol ol ol {
   list-style-type: lower-roman;
 }
+
+/* Fix para Joyride spotlight en contenedores con overflow */
+/* Esto asegura que el spotlight se posicione correctamente sobre elementos en contenedores con scroll */
+.react-joyride__spotlight {
+  pointer-events: none !important;
+}
+
+/* Asegurar que el overlay y spotlight de Joyride no sean afectados por transforms del padre */
+.__floater {
+  z-index: 10001 !important;
+}
+
+/* Fix específico para tabs del curso - forzar que el contenedor no afecte el cálculo de posición */
+[id^="tour-tab-"] {
+  position: relative;
+  z-index: 1;
+}

@@ -4141,6 +4141,7 @@ export default function CourseLearnPage() {
               <>
                 {/* Tabs mejorados - Responsive */}
                 <div
+                  id="tour-tabs-container"
                   className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-xl h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth"
                   style={{
                     scrollPaddingLeft: "0.5rem",

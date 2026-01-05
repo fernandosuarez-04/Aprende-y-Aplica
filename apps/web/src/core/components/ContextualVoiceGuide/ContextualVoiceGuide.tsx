@@ -1000,7 +1000,7 @@ export function ContextualVoiceGuide({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1, duration: 0.4 }}
-                        className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-[#0A2540] via-[#00D4B3] to-[#0A2540] dark:from-[#00D4B3] dark:via-[#00D4B3] dark:to-[#00D4B3] bg-clip-text text-transparent leading-tight px-2"
+                        className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-[#0A2540] via-[#1a4666] to-[#0A2540] dark:from-[#00D4B3] dark:via-[#00D4B3] dark:to-[#00D4B3] bg-clip-text text-transparent leading-tight px-2"
                         style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
                       >
                         {step.title}
@@ -1011,7 +1011,7 @@ export function ContextualVoiceGuide({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2, duration: 0.4 }}
-                        className="text-[#0A2540] dark:text-white text-xs sm:text-sm md:text-base leading-relaxed max-w-2xl mx-auto font-light px-2"
+                        className="text-gray-700 dark:text-gray-200 text-xs sm:text-sm md:text-base leading-relaxed max-w-2xl mx-auto font-light px-2"
                         style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                       >
                         {step.description}

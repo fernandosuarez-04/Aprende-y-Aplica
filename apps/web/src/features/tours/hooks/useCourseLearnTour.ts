@@ -129,22 +129,39 @@ export function useCourseLearnTour(options: UseCourseLearnTourOptions = {}) {
     showProgress: true,
     showSkipButton: true,
     spotlightClicks: true,
-    spotlightPadding: 8,
+    spotlightPadding: 10,
     disableOverlayClose: true,
     tooltipComponent: JoyrideTooltip,
     callback: handleJoyrideCallback,
     floaterProps: {
-      disableAnimation: true,
+      disableAnimation: false,
+      hideArrow: false,
+      offset: 15,
+      styles: {
+        floater: {
+          filter: 'drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3))',
+        },
+      },
     },
     styles: {
       options: {
         zIndex: 10000,
         primaryColor: '#00D4B3',
-        overlayColor: 'rgba(0, 0, 0, 0.7)',
+        overlayColor: 'rgba(0, 0, 0, 0.75)',
       },
       spotlight: {
-        backgroundColor: 'transparent',
+        borderRadius: 12,
       },
+      overlay: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      },
+    },
+    locale: {
+      back: 'Anterior',
+      close: 'Cerrar',
+      last: 'Finalizar',
+      next: 'Siguiente',
+      skip: 'Saltar',
     },
   };
 
