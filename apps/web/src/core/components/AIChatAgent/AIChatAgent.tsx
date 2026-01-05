@@ -828,7 +828,7 @@ export function AIChatAgent({
               router.push(linkUrl);
             }
           }}
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium"
+          className="text-[#00D4B3] dark:text-[#00D4B3] hover:text-[#00b89a] dark:hover:text-[#00b89a] underline font-medium transition-colors"
           {...(!isRelative && { target: '_blank', rel: 'noopener noreferrer' })}
         >
           {linkText}
