@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { CallBackProps, STATUS, ACTIONS, EVENTS } from 'react-joyride';
 import { useRouter } from 'next/navigation';
 import { useTourProgress } from './useTourProgress';
-import { businessUserJoyrideSteps, DASHBOARD_TOUR_ID } from '../config/business-user-joyride-steps';
+import { businessUserJoyrideSteps, DASHBOARD_TOUR_ID } from '../config/business-user-joyride-steps.tsx';
 import { JoyrideTooltip } from '../components/JoyrideTooltip';
 
 interface UseBusinessUserJoyrideOptions {

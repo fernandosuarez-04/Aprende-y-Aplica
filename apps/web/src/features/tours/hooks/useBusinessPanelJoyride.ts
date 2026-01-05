@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Joyride, { CallBackProps, STATUS, ACTIONS, EVENTS } from 'react-joyride';
 import { useTourProgress } from './useTourProgress';
-import { businessPanelJoyrideSteps, BUSINESS_PANEL_TOUR_ID } from '../config/business-panel-joyride-steps';
+import { businessPanelJoyrideSteps, BUSINESS_PANEL_TOUR_ID } from '../config/business-panel-joyride-steps.tsx';
 import { JoyrideTooltip } from '../components/JoyrideTooltip';
 
 interface UseBusinessPanelJoyrideOptions {

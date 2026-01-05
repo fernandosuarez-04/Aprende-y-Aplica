@@ -1,5 +1,6 @@
 import { Step } from 'react-joyride';
 import React from 'react';
+import { CalendarDays, Link2, PlusCircle, Settings, Bot } from 'lucide-react';
 
 export const studyPlannerDashboardJoyrideSteps: Step[] = [
   {
@@ -12,6 +13,9 @@ export const studyPlannerDashboardJoyrideSteps: Step[] = [
     ),
     placement: 'right' as const,
     disableBeacon: true,
+    data: {
+      icon: <CalendarDays className="w-5 h-5 text-[#00D4B3]" />
+    }
   },
   {
     target: '#dashboard-connect-calendar-button',
@@ -22,6 +26,9 @@ export const studyPlannerDashboardJoyrideSteps: Step[] = [
       </p>
     ),
     placement: 'bottom-start' as const,
+    data: {
+      icon: <Link2 className="w-5 h-5 text-[#00D4B3]" />
+    }
   },
   {
     target: '#dashboard-new-plan-button',
@@ -32,6 +39,9 @@ export const studyPlannerDashboardJoyrideSteps: Step[] = [
       </p>
     ),
     placement: 'bottom' as const,
+    data: {
+      icon: <PlusCircle className="w-5 h-5 text-[#00D4B3]" />
+    }
   },
   {
     target: '#dashboard-settings-button',
@@ -42,6 +52,9 @@ export const studyPlannerDashboardJoyrideSteps: Step[] = [
       </p>
     ),
     placement: 'bottom' as const,
+    data: {
+      icon: <Settings className="w-5 h-5 text-[#00D4B3]" />
+    }
   },
   {
     target: '#dashboard-lia-panel',
@@ -52,5 +65,8 @@ export const studyPlannerDashboardJoyrideSteps: Step[] = [
       </p>
     ),
     placement: 'left' as const,
+    data: {
+      icon: <Bot className="w-5 h-5 text-[#00D4B3]" />
+    }
   }
 ];

@@ -1,5 +1,6 @@
 import { Step } from 'react-joyride';
 import React from 'react';
+import { Sparkles, MessageCircle, Mic, Calendar } from 'lucide-react';
 
 export const studyPlannerJoyrideSteps: Step[] = [
   {
@@ -12,6 +13,9 @@ export const studyPlannerJoyrideSteps: Step[] = [
     ),
     placement: 'bottom' as const,
     disableBeacon: true,
+    data: {
+      icon: <Sparkles className="w-5 h-5 text-[#00D4B3]" />
+    }
   },
   {
     target: '#lia-chat-input',
@@ -22,6 +26,9 @@ export const studyPlannerJoyrideSteps: Step[] = [
       </p>
     ),
     placement: 'top' as const,
+    data: {
+      icon: <MessageCircle className="w-5 h-5 text-[#00D4B3]" />
+    }
   },
   {
     target: '#lia-voice-button',
@@ -32,6 +39,9 @@ export const studyPlannerJoyrideSteps: Step[] = [
       </p>
     ),
     placement: 'top' as const,
+    data: {
+      icon: <Mic className="w-5 h-5 text-[#00D4B3]" />
+    }
   },
   {
     target: '#lia-calendar-button',
@@ -42,5 +52,8 @@ export const studyPlannerJoyrideSteps: Step[] = [
       </p>
     ),
     placement: 'bottom' as const,
+    data: {
+      icon: <Calendar className="w-5 h-5 text-[#00D4B3]" />
+    }
   }
 ];

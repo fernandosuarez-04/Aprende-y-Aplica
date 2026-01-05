@@ -65,12 +65,16 @@ export async function middleware(request: NextRequest) {
               return NextResponse.redirect(new URL('/instructor/dashboard', request.url))
             } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
               // Para roles de empresa, verificar que pertenezca a una organización
-              const { data: userOrg, error: orgError } = await supabase
+              const { data: userOrgs, error: userOrgError } = await supabase
                 .from('organization_users')
-                .select('organization_id, status, organizations!inner(id, name, slug, is_active, subscription_plan, subscription_status)')
+                .select('organization_id, status, joined_at, organizations!inner(id, name, slug, is_active, subscription_plan, subscription_status)')
                 .eq('user_id', sessionData.user_id)
                 .eq('status', 'active')
-                .single()
+                .order('joined_at', { ascending: false })
+                .limit(1)
+
+              const userOrg = userOrgs && userOrgs.length > 0 ? userOrgs[0] : null
+              const orgError = userOrgError
 
               if (orgError || !userOrg) {
                 // Si no pertenece a ninguna organización, redirigir al dashboard normal

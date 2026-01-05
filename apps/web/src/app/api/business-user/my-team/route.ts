@@ -17,26 +17,27 @@ export async function GET() {
       return auth
     }
 
-    console.log('🟢 [my-team] Auth passed, userId:', auth.userId)
+    const { userId, organizationId } = auth
+    console.log('🟢 [my-team] Auth passed, userId:', userId, 'org:', organizationId)
 
-    if (!auth.userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json(
-        { success: false, error: 'Usuario no autenticado' },
+        { success: false, error: 'Usuario no autenticado o contexto de organización inválido' },
         { status: 401 }
       )
     }
 
     const supabase = await createClient()
-    const userId = auth.userId
 
     console.log('🔵 [my-team] Fetching memberships for user:', userId)
 
-    // Paso 1: Obtener todas las membresías del usuario
+    // Paso 1: Obtener todas las membresías del usuario filtradas por la organización actual
     const { data: memberships, error: membershipError } = await supabase
       .from('work_team_members')
-      .select('id, team_id, role, status, joined_at')
+      .select('id, team_id, role, status, joined_at, work_teams!inner(organization_id)')
       .eq('user_id', userId)
       .eq('status', 'active')
+      .eq('work_teams.organization_id', organizationId) // 🔒 SEGURIDAD: Filtrar por org actual
       .order('joined_at', { ascending: false })
 
     console.log('🔵 [my-team] Memberships result:', { 

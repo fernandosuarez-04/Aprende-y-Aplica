@@ -46,9 +46,22 @@ export async function GET() {
     }
 
     const supabase = await createClient()
-    const userId = auth.userId
+    const { userId, organizationId } = auth
 
-    logger.log('📊 Fetching dashboard data for user:', userId)
+    if (!organizationId) {
+      logger.error('No organizationId in auth object for user:', userId)
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Error de contexto de organización'
+        },
+        { status: 400 }
+      )
+    }
+
+    const supabase = await createClient()
+
+    logger.log('📊 Fetching dashboard data for user:', userId, 'org:', organizationId)
 
     // =====================================================
     // 🚀 OPTIMIZACIÓN: FASE 1 - Consultas paralelas iniciales
@@ -61,13 +74,16 @@ export async function GET() {
       { data: certificates, error: certificatesError }
     ] = await Promise.all([
       // PASO 1: Obtener los equipos a los que pertenece el usuario
+      // 🔒 SEGURIDAD: Filtrar equipos que pertenecen a la organización actual
       supabase
         .from('work_team_members')
-        .select('team_id, status')
+        .select('team_id, status, work_teams!inner(organization_id)')
         .eq('user_id', userId)
-        .eq('status', 'active'),
+        .eq('status', 'active')
+        .eq('work_teams.organization_id', organizationId),
 
       // PASO 2: Obtener asignaciones directas al usuario (límite 100)
+      // 🔒 SEGURIDAD: Filtrar por organization_id
       supabase
         .from('organization_course_assignments')
         .select(`
@@ -87,11 +103,15 @@ export async function GET() {
           )
         `)
         .eq('user_id', userId)
+        .eq('organization_id', organizationId) // ✅ FILTRO CRÍTICO
         .in('status', ['assigned', 'in_progress', 'completed'])
         .order('assigned_at', { ascending: false })
         .limit(100),
 
       // PASO 3: Obtener certificados (en paralelo, límite 100)
+      // Nota: Los certificados suelen ser globales del usuario, pero si quisiéramos filtrar
+      // por org, necesitaríamos un join. Por ahora mantenemos histórico global o
+      // asumimos que el frontend filtra/muestra contexto.
       supabase
         .from('user_course_certificates')
         .select('certificate_id, course_id')
@@ -110,6 +130,9 @@ export async function GET() {
     }
 
     const userTeamIds = userTeamMemberships?.map(m => m.team_id) || []
+    
+    // Debug log para verificar que los equipos son correctos
+    logger.debug('Teams found for org:', organizationId, 'teams:', userTeamIds)
 
     // =====================================================
     // 🚀 OPTIMIZACIÓN: FASE 2 - Consultas dependientes en paralelo

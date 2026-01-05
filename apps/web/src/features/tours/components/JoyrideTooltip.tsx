@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { TooltipRenderProps } from 'react-joyride';
-import { X, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, CheckCircle, Sparkles } from 'lucide-react';
 
 /**
  * Custom Joyride tooltip component with responsive light/dark mode styling.
@@ -65,7 +65,7 @@ export const JoyrideTooltip: React.FC<TooltipRenderProps> = ({
           <div
             className="flex items-center justify-center w-10 h-10 rounded-xl text-xl shrink-0 bg-[#00D4B3]/20 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30"
           >
-            {step.data?.icon || <span className="text-[#00D4B3]">✨</span>}
+            {step.data?.icon || <Sparkles className="w-5 h-5 text-[#00D4B3]" />}
           </div>
           <h3
             className="text-lg font-bold leading-tight text-gray-900 dark:text-white"
