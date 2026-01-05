@@ -59,7 +59,7 @@ export async function GET() {
       )
     }
 
-    const supabase = await createClient()
+
 
     logger.log('📊 Fetching dashboard data for user:', userId, 'org:', organizationId)
 
