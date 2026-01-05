@@ -55,16 +55,12 @@ const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asiste
 '- Incorrecto: /admin/dashboard (sin formato de enlace)\n' +
 '- Incorrecto: Panel de Administración (sin enlace)\n\n' +
 '## Rutas Principales de SOFIA\n' +
-'- [Dashboard Principal](/dashboard) - Vista general del usuario\n' +
-'- [Mis Cursos](/my-courses) - Cursos del usuario\n' +
-'- [Panel de Admin](/admin/dashboard) - Solo administradores\n' +
-'- [Gestión de Usuarios](/admin/users) - Administrar usuarios\n' +
-'- [Gestión de Cursos](/admin/courses) - Administrar cursos\n' +
-'- [Analíticas](/admin/reports) - Reportes y métricas\n' +
-'- [Perfil](/profile) - Configuración del perfil\n' +
-'- [Comunidades](/communities) - Comunidades de aprendizaje\n' +
-'- [Noticias](/news) - Últimas noticias\n' +
-'- [Talleres](/workshops) - Talleres disponibles\n\n' +
+'- [Dashboard Principal](/business-user/dashboard) - Vista general y métricas\n' +
+'- [Mis Equipos](/business-user/teams) - Colaboración y chat de equipo\n' +
+'- [Mis Cursos](/business-user/dashboard) - Listado de cursos asignados\n' +
+'- [Certificados](/profile?tab=certificates) - Diplomas obtenidos\n' +
+'- [Planificador](/study-planner) - Agenda inteligente de estudio\n' +
+'- [Perfil](/profile) - Configuración y datos personales\n\n' +
 '## REPORTE DE BUGS Y PROBLEMAS\n' +
 'Si el usuario reporta un error técnico, bug o problema con la plataforma:\n' +
 '1. Empatiza con el usuario y confirma que vas a reportar el problema al equipo técnico.\n' +
@@ -89,6 +85,7 @@ interface PlatformContext {
   currentPage?: string;
   // Propiedades dinámicas
   pageType?: string;
+  organizationName?: string; // ✅ Campo nuevo
   [key: string]: any;
   // Datos de la plataforma
   totalCourses?: number;
@@ -127,6 +124,9 @@ interface ChatRequest {
   context?: PlatformContext;
   stream?: boolean;
   sessionSnapshot?: string; // Base64 de rrweb
+  enrichedMetadata?: any;
+  isBugReport?: boolean;
+  recordingStatus?: string;
 }
 
 // ============================================
@@ -164,7 +164,7 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
         .limit(5);
       
       if (userEnrollments) {
-        context.userCourses = userEnrollments.map(ue => ({
+        context.userCourses = userEnrollments.map((ue: any) => ({
           title: ue.course?.title,
           slug: ue.course?.slug,
           progress: ue.overall_progress_percentage,
@@ -181,7 +181,7 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
         .limit(15);
 
       if (lessonProgress && lessonProgress.length > 0) {
-        context.userLessonProgress = lessonProgress.map(lp => ({
+        context.userLessonProgress = lessonProgress.map((lp: any) => ({
           lessonTitle: lp.lesson?.lesson_title,
           lessonDescription: lp.lesson?.lesson_description,
           lessonOrder: lp.lesson?.lesson_order_index,
@@ -204,10 +204,24 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
         .eq('id', userId)
         .single();
       if (userData) {
-        console.log('DEBUG DB USER:', userData); // VERIFICAR SI type_rol LLEGA
         context.userName = userData.first_name || userData.nombre;
         context.userRole = userData.cargo_rol;
         context.userJobTitle = userData.type_rol;
+
+        // ✅ OBTENER ORGANIZACIÓN ACTIVA
+        const { data: userOrg } = await supabase
+          .from('organization_users')
+          .select('organizations!inner(name)')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .order('joined_at', { ascending: false }) // Priorizar la más reciente
+          .limit(1)
+          .maybeSingle();
+
+        if (userOrg?.organizations) {
+          // @ts-ignore - Supabase tipos anidados a veces dan falsos positivos
+          context.organizationName = userOrg.organizations.name;
+        }
       }
     }
 
@@ -220,7 +234,7 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
       .limit(5);
 
     if (coursesWithContent) {
-      context.coursesWithContent = coursesWithContent.map(course => ({
+      context.coursesWithContent = coursesWithContent.map((course: any) => ({
         title: course.title,
         slug: course.slug,
         description: course.description,
@@ -246,7 +260,7 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
 
       // También agregar a platformStats
       context.platformStats = {
-        popularCourses: coursesWithContent.map(c => ({
+        popularCourses: coursesWithContent.map((c: any) => ({
           title: c.title,
           slug: c.slug,
           students: c.student_count,
@@ -425,39 +439,6 @@ Vista para empleados de una organización que usan la plataforma.
 
 ---
 
-### 🏠 DASHBOARD PRINCIPAL (/dashboard)
-Vista principal para usuarios individuales (B2C).
-
-**Elementos visuales**:
-- **Estadísticas rápidas (Sidebar)**:
-  - Horas totales de aprendizaje
-  - Cursos completados
-  - Racha de días
-- **Catálogo de cursos/talleres**: Grid con todos los cursos disponibles
-- **Filtros por categoría**: Barras de categorías dinámicas
-- **Tarjeta de curso**:
-  - Imagen del curso
-  - Título y descripción breve
-  - Rating y número de estudiantes
-  - Precio o "Inscrito"
-  - Botón de favoritos (corazón)
-  - Botón de carrito
-- **Actividad reciente**: Últimas acciones del usuario
-
----
-
-### 📚 MIS CURSOS (/my-courses)
-Cursos en los que el usuario está inscrito.
-
-**Elementos**:
-- **Estadísticas de progreso**: Cursos totales, completados, en progreso
-- **Grid de cursos**: Solo cursos donde está inscrito
-- **Indicador de progreso**: Barra de porcentaje completado
-- **Botón "Continuar"**: Ir a la última lección vista
-- **Filtros**: Por estado (todos, en progreso, completados)
-
----
-
 ### 📖 VISTA DE CURSO (/courses/[slug])
 Página de detalle de un curso específico.
 
@@ -465,117 +446,30 @@ Página de detalle de un curso específico.
 - **Hero del curso**: Imagen, título, descripción
 - **Información del instructor**
 - **Temario/Contenido**: Lista de módulos y lecciones
-- **Botón de inscripción/compra**
-- **Reviews y ratings**
+- **Botón "Comenzar" o "Continuar"**: Iniciar aprendizaje
 
 ---
 
 ### 🎬 REPRODUCTOR DE LECCIONES (/courses/[slug]/learn)
-Vista de aprendizaje activo.
+Vista de aprendizaje activo donde el usuario toma las clases.
 
 **Elementos**:
-- **Video player**: Reproductor con transcripción sincronizada
-- **Panel de contenido**: Resumen, materiales descargables
-- **Navegación de lecciones**: Lista lateral de módulos/lecciones
-- **Actividades interactivas**: Quizzes, ejercicios, reflexiones
-- **LIA en contexto**: Puedo ayudar con dudas sobre el contenido actual
-- **Barra de progreso**: Indicador de avance en el módulo
-
----
-
-### 👥 COMUNIDADES (/communities)
-Espacio de networking y aprendizaje grupal.
-
-**Elementos**:
-- **Lista de comunidades**: Cards con imagen, nombre, miembros
-- **Búsqueda y filtros**: Por categoría, nivel
-- **Modal de detalles**: Información completa de la comunidad
-- **Modal de normas**: Reglas de participación
-- **Botón "Unirse"**: Acceso público o solicitud de acceso
-- **Estadísticas globales**: Total de comunidades, miembros activos
-
----
-
-### 📰 NOTICIAS (/news)
-Centro de contenido editorial.
-
-**Pestañas**:
-- **Noticias**: Artículos escritos sobre IA y tecnología
-- **Reels**: Videos cortos verticales (similar a TikTok/Instagram)
-
-**Elementos**:
-- **Noticias destacadas**: Carousel de las más importantes
-- **Grid/Lista de noticias**: Vista configurable
-- **Filtros**: Por categoría, idioma, fecha
-- **Búsqueda**: Por texto
-
----
-
-### 🎥 REELS (/reels o pestaña en /news)
-Videos cortos sobre IA.
-
-**Funcionalidades**:
-- Reproducción automática
-- Navegación vertical (swipe)
-- Likes y compartir
-- Comentarios
+- **Video player**: Reproductor principal
+- **Panel de contenido**: Resumen y materiales
+- **Navegación de lecciones**: Panel lateral con el temario
+- **Actividades interactivas**: Quizzes y ejercicios prácticos
+- **LIA en contexto**: Asistencia sobre el contenido del video actual
 
 ---
 
 ### 👤 PERFIL (/profile)
-Configuración de datos personales.
+Configuración de datos personales y profesionales.
 
 **Secciones**:
-- **Avatar**: Subir foto de perfil
-- **Información personal**: Nombre, apellido, email
-- **Información profesional**: Cargo, empresa, área
-- **Enlaces sociales**: LinkedIn, Twitter, portafolio
-- **CV**: Subir curriculum en PDF
-- **Puntos del usuario**: Sistema de gamificación
-
----
-
-### 🏆 CERTIFICADOS (/certificates)
-Diplomas obtenidos.
-
-**Elementos**:
-- **Grid de certificados**: Cards con miniatura
-- **Botón descargar**: PDF con diseño profesional
-- **Botón compartir**: LinkedIn, redes sociales
-- **Detalles**: Fecha de obtención, curso, instructor
-
----
-
-### ⚙️ CONFIGURACIÓN DE CUENTA (/account-settings)
-Preferencias del usuario.
-
-**Secciones**:
-- **Notificaciones**: Configurar alertas por email, push
-- **Privacidad**: Visibilidad del perfil
-- **Idioma**: Español, Inglés, Portugués
-- **Tema**: Claro/Oscuro
-
----
-
-### 🛒 CARRITO (/cart)
-Gestión de compras.
-
-**Elementos**:
-- **Lista de items**: Cursos agregados
-- **Precio individual y total**
-- **Botón eliminar**
-- **Proceso de checkout**
-- **Métodos de pago**
-
----
-
-### 📋 HISTORIAL DE COMPRAS (/purchase-history)
-Transacciones pasadas.
-
-**Elementos**:
-- **Lista de compras**: Fecha, monto, cursos
-- **Descarga de facturas**: PDF
-- **Estado**: Completado, pendiente, reembolsado
+- **Pestaña General**: Foto, Nombre, Cargo, Datos de contacto
+- **Pestaña Seguridad**: Cambio de contraseña
+- **Pestaña Certificados**: Ver y descargar diplomas obtenidos
+- **Pestaña Gamificación**: Puntos y medallas
 
 ---
 
@@ -757,6 +651,11 @@ function getLIASystemPrompt(context?: PlatformContext): string {
     
     if (context.userName) {
       prompt += '- Usuario activo: ' + context.userName + '\n';
+    }
+
+    if (context.organizationName) {
+      prompt += '- Organización del usuario: ' + context.organizationName + '\n';
+      prompt += 'IMPORTANTE: El usuario pertenece a la organización "' + context.organizationName + '". Menciona este nombre explícitamente cuando hables sobre su dashboard o entorno de trabajo.\n';
     }
     
     // ✅ PERSONALIZACIÓN POR PERFIL (CRUCIAL)
