@@ -685,15 +685,27 @@ export class AdminUsersService {
       console.log('🔄 Eliminando compras de cursos...')
       await deleteFromTable('organization_course_purchases', 'purchased_by')
 
-      // 30. Manejar referencias como instructor
-      console.log('🔄 Manejando references de instructor...')
-      const { data: userLessons } = await adminSupabase
+      // 30. Manejar referencias como instructor en lecciones
+      // NOTA: instructor_id es NOT NULL en course_lessons, por lo que debemos ELIMINAR las lecciones
+      // Primero eliminamos todas las referencias a esas lecciones
+      console.log('🔄 Obteniendo lecciones donde el usuario es instructor...')
+
+      const { data: userLessons, error: fetchLessonsError } = await adminSupabase
         .from('course_lessons')
         .select('lesson_id')
         .eq('instructor_id', userId)
+
+      if (fetchLessonsError) {
+        console.error('❌ Error obteniendo lecciones:', fetchLessonsError)
+      }
+
       const lessonIds = userLessons?.map(lesson => lesson.lesson_id) || []
+      console.log(`📋 Encontradas ${lessonIds.length} lecciones con instructor_id=${userId}`)
 
       if (lessonIds.length > 0) {
+        console.log('🔄 Eliminando referencias a lecciones...')
+
+        // Eliminar todas las referencias a estas lecciones
         await adminSupabase.from('lesson_activities').delete().in('lesson_id', lessonIds)
         await adminSupabase.from('lesson_materials').delete().in('lesson_id', lessonIds)
         await adminSupabase.from('lesson_checkpoints').delete().in('lesson_id', lessonIds)
@@ -702,8 +714,28 @@ export class AdminUsersService {
         await adminSupabase.from('user_lesson_progress').delete().in('lesson_id', lessonIds)
         await adminSupabase.from('lesson_tracking').delete().in('lesson_id', lessonIds)
         await adminSupabase.from('lia_common_questions').delete().in('lesson_id', lessonIds)
-        // Actualizar las lecciones para quitar el instructor
-        await adminSupabase.from('course_lessons').delete().eq('instructor_id', userId)
+        await adminSupabase.from('lesson_notes').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('lia_conversations').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('study_sessions').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('user_activity_log').delete().in('lesson_id', lessonIds)
+
+        console.log('✅ Referencias a lecciones eliminadas')
+
+        // Ahora eliminar las lecciones
+        console.log('🔄 Eliminando lecciones donde el usuario es instructor...')
+
+        const { error: deleteLessonsError } = await adminSupabase
+          .from('course_lessons')
+          .delete()
+          .eq('instructor_id', userId)
+
+        if (deleteLessonsError) {
+          console.error('❌ Error eliminando course_lessons:', deleteLessonsError)
+        } else {
+          console.log('✅ course_lessons eliminadas correctamente')
+        }
+
+        // También eliminar de tablas de traducciones
         await adminSupabase.from('course_lessons_en').delete().eq('instructor_id', userId)
         await adminSupabase.from('course_lessons_pt').delete().eq('instructor_id', userId)
       }

@@ -275,14 +275,25 @@ export function BusinessSettings() {
           className="p-8"
         >
           {activeTab === 'organization' && (
-            <OrganizationTab
-              organization={data.organization}
-              updateOrganization={updateOrganization}
-              saveSuccess={saveSuccess}
-              setSaveSuccess={setSaveSuccess}
-              saveError={saveError}
-              setSaveError={setSaveError}
-            />
+            <>
+              <OrganizationTab
+                organization={data.organization}
+                updateOrganization={updateOrganization}
+                saveSuccess={saveSuccess}
+                setSaveSuccess={setSaveSuccess}
+                saveError={saveError}
+                setSaveError={setSaveError}
+              />
+              {/* Sección de Login Personalizado y SSO */}
+              {data.organization && (
+                <div className="mt-8">
+                  <LoginPersonalizadoSection
+                    organization={data.organization}
+                    updateOrganization={updateOrganization}
+                  />
+                </div>
+              )}
+            </>
           )}
           {activeTab === 'subscription' && (
             <SubscriptionTab subscription={data.subscription} />
