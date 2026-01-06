@@ -271,7 +271,7 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                       ) : isUploadingImage ? (
                         <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full" />
                       ) : (
-                        <Camera className="w-10 h-10 text-white/30 group-hover:text-white/50 transition-colors" />
+                        <Camera className="w-10 h-10 transition-colors" style={{ color: isDark ? 'rgba(255, 255, 255, 0.3)' : '#6C757D' }} />
                       )}
                     </div>
                     <motion.div
@@ -302,10 +302,10 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                   {/* Selected Members Preview */}
                   <div className="w-full">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
+                      <span className="text-xs font-medium uppercase tracking-wider" style={{ color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6C757D' }}>
                         {t('teams.modal.fields.members')}
                       </span>
-                      <span className="text-xs font-bold text-white/70">
+                      <span className="text-xs font-bold" style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#0A2540' }}>
                         {formData.member_ids.length}
                       </span>
                     </div>
@@ -341,13 +341,19 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                           </motion.div>
                         ))}
                         {selectedUsers.length > 6 && (
-                          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xs font-medium text-white/50">
+                          <div 
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-medium"
+                            style={{
+                              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#E9ECEF',
+                              color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6C757D'
+                            }}
+                          >
                             +{selectedUsers.length - 6}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-white/30 text-sm">
+                      <div className="flex items-center gap-2 text-sm" style={{ color: isDark ? 'rgba(255, 255, 255, 0.3)' : '#6C757D' }}>
                         <UsersRound className="w-4 h-4" />
                         {t('teams.modal.labels.noMembers', 'Sin miembros')}
                       </div>
@@ -357,8 +363,8 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
 
                 {/* Leader Section */}
                 {formData.team_leader_id && (
-                  <div className="pt-6 border-t border-white/5">
-                    <span className="text-xs font-medium text-white/50 uppercase tracking-wider block mb-3">
+                  <div className="pt-6 border-t" style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#E9ECEF' }}>
+                    <span className="text-xs font-medium uppercase tracking-wider block mb-3" style={{ color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6C757D' }}>
                       {t('teams.modal.fields.leader')}
                     </span>
                     {(() => {
@@ -380,8 +386,8 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
                             <Crown className="absolute -top-1 -right-1 w-4 h-4 text-amber-500" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-white">{getUserName(leader)}</p>
-                            <p className="text-xs text-white/40">{leader.email}</p>
+                            <p className="text-sm font-medium" style={{ color: isDark ? '#FFFFFF' : '#0A2540' }}>{getUserName(leader)}</p>
+                            <p className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#6C757D' }}>{leader.email}</p>
                           </div>
                         </div>
                       )

@@ -9,6 +9,7 @@ import { TeamsService, WorkTeamMember } from '../services/teams.service'
 import { useBusinessCourses } from '../hooks/useBusinessCourses'
 import { PremiumSelect } from './PremiumSelect'
 import { useTranslation } from 'react-i18next'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface BusinessAssignCourseToTeamModalProps {
   isOpen: boolean
@@ -31,13 +32,23 @@ export function BusinessAssignCourseToTeamModal({
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { courses } = useBusinessCourses()
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
 
   // Aplicar colores personalizados
-  const modalBg = panelStyles?.card_background || 'rgba(15, 23, 42, 0.95)'
-  const modalBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-  const textColor = panelStyles?.text_color || '#f8fafc'
+  const modalBg = isDark 
+    ? (panelStyles?.card_background || 'rgba(15, 23, 42, 0.95)')
+    : '#FFFFFF'
+  const modalBorder = isDark 
+    ? (panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)')
+    : '#E9ECEF'
+  const textColor = isDark 
+    ? (panelStyles?.text_color || '#f8fafc')
+    : '#0A2540'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
-  const sectionBg = `${modalBg}CC`
+  const sectionBg = isDark 
+    ? `${modalBg}CC`
+    : '#F9FAFB'
 
   const [selectedCourseId, setSelectedCourseId] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -120,7 +131,7 @@ export function BusinessAssignCourseToTeamModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+          className="absolute inset-0"
         />
 
         <motion.div
@@ -128,7 +139,7 @@ export function BusinessAssignCourseToTeamModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col z-10 backdrop-blur-xl"
+          className="relative rounded-3xl shadow-2xl border w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col z-10"
           style={{
             backgroundColor: modalBg,
             borderColor: modalBorder
@@ -136,7 +147,7 @@ export function BusinessAssignCourseToTeamModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative border-b p-5 backdrop-blur-sm" style={{
+          <div className="relative border-b p-5" style={{
             backgroundColor: modalBg,
             borderColor: modalBorder
           }}>
@@ -149,7 +160,7 @@ export function BusinessAssignCourseToTeamModal({
                   className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg"
                   style={{ backgroundColor: primaryColor }}
                 >
-                  <BookOpen className="w-5 h-5 text-white" />
+                  <BookOpen className="w-5 h-5" style={{ color: '#FFFFFF', fill: 'none' }} />
                 </motion.div>
                 <div>
                   <h2 className="font-heading text-xl font-bold tracking-tight" style={{ color: textColor }}>
@@ -179,7 +190,7 @@ export function BusinessAssignCourseToTeamModal({
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-3 rounded-xl text-red-400 flex items-center gap-3 border backdrop-blur-sm"
+                  className="p-3 rounded-xl text-red-400 flex items-center gap-3 border"
                   style={{
                     backgroundColor: 'rgba(127, 29, 29, 0.2)',
                     borderColor: 'rgba(220, 38, 38, 0.3)'
@@ -212,16 +223,16 @@ export function BusinessAssignCourseToTeamModal({
                   />
                 </div>
                 {courses.length === 0 && (
-                  <p className="text-xs font-body opacity-70 mt-2" style={{ color: textColor }}>
+                  <p className="text-xs font-body mt-2" style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#6C757D' }}>
                     {t('assignCourse.errors.noCoursesAvailable')}
                   </p>
                 )}
                 {selectedCourse && (
                   <div className="mt-3 p-3 rounded-xl border" style={{ backgroundColor: sectionBg, borderColor: modalBorder }}>
-                    <p className="text-sm font-body opacity-70 mb-1">{t('assignCourse.labels.selectedCourse')}</p>
-                    <p className="font-body font-medium">{selectedCourse.title}</p>
+                    <p className="text-sm font-body mb-1" style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#6C757D' }}>{t('assignCourse.labels.selectedCourse')}</p>
+                    <p className="font-body font-medium" style={{ color: textColor }}>{selectedCourse.title}</p>
                     {selectedCourse.description && (
-                      <p className="text-xs font-body opacity-70 mt-1 line-clamp-2">{selectedCourse.description}</p>
+                      <p className="text-xs font-body mt-1 line-clamp-2" style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#6C757D' }}>{selectedCourse.description}</p>
                     )}
                   </div>
                 )}
@@ -235,8 +246,8 @@ export function BusinessAssignCourseToTeamModal({
                 <div className="max-h-32 overflow-y-auto space-y-2 border rounded-xl p-3" style={{ borderColor: modalBorder, backgroundColor: sectionBg, scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
                   {teamMembers.map(member => (
                     <div key={member.id} className="flex items-center gap-2 text-sm font-body">
-                      <Users className="w-4 h-4 opacity-50" />
-                      <span>{member.user?.name || member.user?.email || 'Usuario'}</span>
+                      <Users className="w-4 h-4" style={{ color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6C757D' }} />
+                      <span style={{ color: textColor }}>{member.user?.name || member.user?.email || 'Usuario'}</span>
                     </div>
                   ))}
                 </div>
@@ -262,7 +273,7 @@ export function BusinessAssignCourseToTeamModal({
                     }}
                   />
                   {dueDate && (
-                    <p className="text-xs font-body opacity-70 mt-1">
+                    <p className="text-xs font-body mt-1" style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#6C757D' }}>
                       {t('assignCourse.labels.dueDate')}: {new Date(dueDate).toLocaleDateString('es-ES', {
                         day: 'numeric',
                         month: 'long',
@@ -289,13 +300,13 @@ export function BusinessAssignCourseToTeamModal({
                     }}
                     placeholder={t('assignCourse.placeholders.teamMessage')}
                   />
-                  <p className="text-xs font-body opacity-70 mt-1">{customMessage.length}/200</p>
+                  <p className="text-xs font-body mt-1" style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#6C757D' }}>{customMessage.length}/200</p>
                 </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="border-t p-4 backdrop-blur-sm flex justify-end gap-3 shrink-0" style={{
+            <div className="border-t p-4 flex justify-end gap-3 shrink-0" style={{
               backgroundColor: modalBg,
               borderColor: modalBorder
             }}>
