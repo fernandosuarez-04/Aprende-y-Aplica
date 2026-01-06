@@ -643,10 +643,12 @@ export function OrganizationRegisterForm({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1, duration: 0.5 }}
         >
-          <SocialLoginButtons 
+          <SocialLoginButtons
             googleEnabled={googleLoginEnabled}
             microsoftEnabled={microsoftLoginEnabled}
             organizationSlug={organizationSlug}
+            organizationId={organizationId}
+            invitationToken={invitationToken || undefined}
             showLoginLink={true}
           />
         </motion.div>

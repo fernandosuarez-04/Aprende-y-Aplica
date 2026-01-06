@@ -9,13 +9,17 @@ interface SocialLoginButtonsProps {
   googleEnabled?: boolean;
   microsoftEnabled?: boolean;
   organizationSlug?: string;
+  organizationId?: string;
+  invitationToken?: string;
   showLoginLink?: boolean;
 }
 
-export function SocialLoginButtons({ 
-  googleEnabled = true, 
+export function SocialLoginButtons({
+  googleEnabled = true,
   microsoftEnabled = true,
   organizationSlug,
+  organizationId,
+  invitationToken,
   showLoginLink = false
 }: SocialLoginButtonsProps) {
   const hasAnyProvider = googleEnabled || microsoftEnabled;
@@ -45,17 +49,25 @@ export function SocialLoginButtons({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
-              <GoogleLoginButton />
+              <GoogleLoginButton
+                organizationId={organizationId}
+                organizationSlug={organizationSlug}
+                invitationToken={invitationToken}
+              />
             </motion.div>
           )}
-          
+
           {microsoftEnabled && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.15, duration: 0.3 }}
             >
-              <MicrosoftLoginButton />
+              <MicrosoftLoginButton
+                organizationId={organizationId}
+                organizationSlug={organizationSlug}
+                invitationToken={invitationToken}
+              />
             </motion.div>
           )}
         </div>

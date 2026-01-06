@@ -51,6 +51,7 @@ interface ConsumeResult {
 interface FindInvitationResult {
   hasInvitation: boolean;
   role?: string;
+  position?: string;
   error?: string;
 }
 
@@ -349,7 +350,7 @@ export async function findInvitationByEmailAction(
 
     const { data: invitation } = await supabase
       .from('user_invitations')
-      .select('id, role, expires_at')
+      .select('id, role, expires_at, metadata')
       .ilike('email', email.trim())
       .eq('organization_id', organizationId)
       .eq('status', 'pending')
@@ -370,7 +371,11 @@ export async function findInvitationByEmailAction(
       return { hasInvitation: false, error: 'La invitación ha expirado' };
     }
 
-    return { hasInvitation: true, role: invitation.role };
+    // Extraer position del metadata
+    const metadata = invitation.metadata as { position?: string } | null;
+    const position = metadata?.position || undefined;
+
+    return { hasInvitation: true, role: invitation.role, position };
   } catch (error) {
     logger.error('Error en findInvitationByEmailAction:', error);
     return { hasInvitation: false, error: 'Error buscando invitación' };

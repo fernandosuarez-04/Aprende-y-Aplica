@@ -115,7 +115,7 @@ export class OAuthService {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, username, first_name, last_name, email_verified')
+      .select('id, email, username, first_name, last_name, email_verified, cargo_rol, type_rol')
       .eq('email', email)
       .single();
 
@@ -132,12 +132,16 @@ export class OAuthService {
   /**
    * Crea un nuevo usuario desde perfil OAuth
    * ✅ ISSUE #13: Implementa retry con exponential backoff para evitar race conditions
+   * @param cargoRol - Rol del usuario (Usuario, Business, Business User, etc.)
+   * @param typeRol - Tipo de rol/cargo (posición en la organización)
    */
   static async createUserFromOAuth(
     email: string,
     firstName: string,
     lastName: string,
-    profilePicture?: string
+    profilePicture?: string,
+    cargoRol?: string,
+    typeRol?: string
   ): Promise<string> {
     const supabase = await createClient();
 
@@ -168,8 +172,8 @@ export class OAuthService {
             email_verified: true, // OAuth emails ya están verificados
             profile_picture_url: profilePicture || null,
             password_hash: '', // String vacío para usuarios OAuth (workaround si NULL falla)
-            cargo_rol: 'Usuario',
-            type_rol: 'Usuario',
+            cargo_rol: cargoRol || 'Usuario',
+            type_rol: typeRol || 'Usuario',
           })
           .select()
           .single();

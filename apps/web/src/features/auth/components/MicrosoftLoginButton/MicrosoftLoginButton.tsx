@@ -14,13 +14,30 @@ const MicrosoftIcon = () => (
   </svg>
 );
 
-export function MicrosoftLoginButton() {
+interface MicrosoftLoginButtonProps {
+  /** ID de la organización (para registro B2B) */
+  organizationId?: string;
+  /** Slug de la organización (para registro B2B) */
+  organizationSlug?: string;
+  /** Token de invitación (para registro con invitación) */
+  invitationToken?: string;
+}
+
+export function MicrosoftLoginButton({
+  organizationId,
+  organizationSlug,
+  invitationToken
+}: MicrosoftLoginButtonProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     try {
       setIsLoading(true);
-      await initiateMicrosoftLogin();
+      await initiateMicrosoftLogin({
+        organizationId,
+        organizationSlug,
+        invitationToken,
+      });
     } catch (error: any) {
       if (error && typeof error === 'object' && 'digest' in error) return;
       setIsLoading(false);

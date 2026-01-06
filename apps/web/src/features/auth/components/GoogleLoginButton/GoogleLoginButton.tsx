@@ -27,13 +27,30 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export function GoogleLoginButton() {
+interface GoogleLoginButtonProps {
+  /** ID de la organización (para registro B2B) */
+  organizationId?: string;
+  /** Slug de la organización (para registro B2B) */
+  organizationSlug?: string;
+  /** Token de invitación (para registro con invitación) */
+  invitationToken?: string;
+}
+
+export function GoogleLoginButton({
+  organizationId,
+  organizationSlug,
+  invitationToken
+}: GoogleLoginButtonProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
-      await initiateGoogleLogin();
+      await initiateGoogleLogin({
+        organizationId,
+        organizationSlug,
+        invitationToken,
+      });
     } catch (error) {
       // Verificar si es una redirección de Next.js (no es un error real)
       if (error && typeof error === 'object' && 'digest' in error) {
