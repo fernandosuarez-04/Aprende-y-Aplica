@@ -398,7 +398,7 @@ export function RegisterForm() {
             transition={{ delay: 0.7, duration: 0.4 }}
             className="mt-5"
           >
-            <SocialLoginButtons />
+            <SocialLoginButtons showLoginLink={false} />
           </motion.div>
 
           <motion.div

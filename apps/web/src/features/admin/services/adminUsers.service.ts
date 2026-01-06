@@ -484,6 +484,35 @@ export class AdminUsersService {
       if (deleteFavoritesError) {
         }
 
+      // 8.1. Eliminar notas del usuario
+      const { error: deleteNotesError } = await adminSupabase
+        .from('notes')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteNotesError) {
+         // Ignorar error si la tabla no existe o falla
+      }
+
+      // 8.2. Eliminar tokens de recuperación de contraseña
+      const { error: deleteTokensError } = await adminSupabase
+        .from('password_reset_tokens')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteTokensError) {
+      }
+
+      // 8.3. Eliminar logs de auditoría PROPIOS del usuario
+      // (Es necesario para liberar la FK si audit_logs apunta a users)
+      const { error: deleteAuditLogsError } = await adminSupabase
+        .from('audit_logs')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteAuditLogsError) {
+      }
+
       // 8.5. Manejar referencias del usuario como instructor
       // Obtener todas las lecciones del instructor
       const { data: userLessons } = await adminSupabase

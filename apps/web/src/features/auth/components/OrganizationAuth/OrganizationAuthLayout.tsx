@@ -172,78 +172,76 @@ export function OrganizationAuthLayout({
         <div className="w-full max-w-7xl flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-20">
           
           {/* LEFT SIDE - 3D Floating Logo */}
-          {!isLoading && (
+          <motion.div
+            className="flex-1 flex items-center justify-center relative w-full lg:w-auto mb-8 lg:mb-0"
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {/* Floating Animation Container */}
             <motion.div
-              className="flex-1 flex items-center justify-center relative w-full lg:w-auto mb-8 lg:mb-0"
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative"
+              animate={{
+                y: [-10, 10, -10],
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
             >
-              {/* Floating Animation Container */}
-              <motion.div
-                className="relative"
-                animate={{
-                  y: [-10, 10, -10],
-                }}
-                transition={{
-                  duration: 6,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              >
-                {/* 3D Logo Container - Clean */}
-                <div className="relative w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] lg:w-[400px] lg:h-[400px] flex items-center justify-center">
+              {/* 3D Logo Container - Clean */}
+              <div className="relative w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] lg:w-[400px] lg:h-[400px] flex items-center justify-center">
 
-                  {/* Logo/Favicon - Center */}
-                  <motion.div
-                    className="relative w-full h-full flex items-center justify-center"
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  >
-                     <Image
-                        src={faviconUrl}
-                        alt={`${organization.name} Logo`}
-                        fill
-                        className="object-contain drop-shadow-2xl"
-                        sizes="(max-width: 768px) 240px, 400px"
-                        priority
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/icono.png';
-                        }}
-                      />
-                  </motion.div>
+                {/* Logo/Favicon - Center */}
+                <motion.div
+                  className="relative w-full h-full flex items-center justify-center"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                >
+                    <Image
+                      src={faviconUrl}
+                      alt={`${organization.name} Logo`}
+                      fill
+                      className="object-contain drop-shadow-2xl"
+                      sizes="(max-width: 768px) 240px, 400px"
+                      priority
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/icono.png';
+                      }}
+                    />
+                </motion.div>
 
-                  {/* Subtle Glow Effect behind logo */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full pointer-events-none -z-10 blur-[60px]"
-                    style={{
-                      background: `radial-gradient(circle, ${finalPrimaryColor}40, transparent 70%)`,
-                    }}
-                    animate={{
-                      scale: [0.8, 1.2, 0.8],
-                      opacity: [0.3, 0.6, 0.3],
-                    }}
-                    transition={{
-                      duration: 4,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    }}
-                  />
-                </div>
-              </motion.div>
+                {/* Subtle Glow Effect behind logo */}
+                <motion.div
+                  className="absolute inset-0 rounded-full pointer-events-none -z-10 blur-[60px]"
+                  style={{
+                    background: `radial-gradient(circle, ${finalPrimaryColor}40, transparent 70%)`,
+                  }}
+                  animate={{
+                    scale: [0.8, 1.2, 0.8],
+                    opacity: [0.3, 0.6, 0.3],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                />
+              </div>
             </motion.div>
-          )}
+          </motion.div>
 
           {/* RIGHT SIDE - Login Form Panel */}
           <motion.div
-            className="flex-1 w-full max-w-md lg:max-w-[480px]"
+            className="flex-1 w-full max-w-md lg:max-w-3xl"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
           >
             {/* Login Card */}
             <div 
-              className="relative backdrop-blur-xl p-8 lg:p-10 shadow-2xl rounded-3xl border overflow-hidden"
+              className="relative backdrop-blur-xl p-8 lg:p-10 shadow-2xl rounded-3xl border overflow-hidden min-h-[400px] flex flex-col justify-center"
               style={{
                 backgroundColor: cardBackgroundColor,
                 borderColor: borderColor,
@@ -276,7 +274,7 @@ export function OrganizationAuthLayout({
               />
 
               {/* Content */}
-              <div className="relative z-10">
+              <div className="relative z-10 w-full">
                 {/* Organization Info */}
                 {!isLoading && (
                   <motion.div
@@ -305,8 +303,31 @@ export function OrganizationAuthLayout({
                   </motion.div>
                 )}
 
-                {/* Loading State - Hidden */}
-                {isLoading && null}
+                {/* Loading State - Spinner */}
+                {isLoading && (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <motion.div
+                      className="w-12 h-12 border-4 rounded-full border-t-transparent"
+                      style={{
+                        borderColor: textColor,
+                        borderTopColor: 'transparent', 
+                        opacity: 0.2
+                      }}
+                    />
+                     <motion.div
+                      className="absolute w-12 h-12 border-4 rounded-full border-t-transparent"
+                      style={{
+                        borderColor: primaryColor,
+                        borderTopColor: 'transparent',
+                      }}
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    />
+                    <p className="text-sm font-medium animate-pulse" style={{ color: textColor }}>
+                      Cargando...
+                    </p>
+                  </div>
+                )} { /* ... existing error and content logic ... */ }
 
                 {/* Error State */}
                 {error && !isLoading && (
@@ -320,8 +341,8 @@ export function OrganizationAuthLayout({
                   </motion.div>
                 )}
 
-                {/* Form Content */}
-                {!isLoading && !error && (
+                {/* Form Content - Siempre mostrar children si no está loading */}
+                {!isLoading && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

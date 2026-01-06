@@ -4,6 +4,11 @@ import { createClient } from '../../../lib/supabase/server'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import crypto from 'crypto'
+import {
+  validateInvitationAction,
+  findInvitationByEmailAction,
+  consumeInvitationAction
+} from './invitation'
 
 const registerSchema = z.object({
   firstName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -49,8 +54,12 @@ export async function registerAction(formData: FormData) {
     // Obtener contexto de organización si viene de registro personalizado
     const organizationId = formData.get('organizationId')?.toString()
     const organizationSlug = formData.get('organizationSlug')?.toString()
+    const invitationToken = formData.get('invitationToken')?.toString()
 
     const supabase = await createClient()
+
+    // Variable para almacenar el rol de la invitación (si existe)
+    let invitedRole: string | undefined
 
     // Validar organización si viene de registro personalizado
     if (organizationId && organizationSlug) {
@@ -73,6 +82,47 @@ export async function registerAction(formData: FormData) {
         !activeStatuses.includes(organization.subscription_status) ||
         !organization.is_active) {
         return { error: 'Esta organización no permite nuevos registros' }
+      }
+
+      // ============================================================================
+      // VALIDACIÓN DE INVITACIÓN (NUEVO)
+      // ============================================================================
+
+      if (invitationToken) {
+        // Caso 1: Registro con token de invitación
+        const validation = await validateInvitationAction(invitationToken)
+
+        if (!validation.valid) {
+          return { error: validation.error || 'Invitación inválida o expirada' }
+        }
+
+        // Verificar que el email coincide con la invitación
+        if (validation.email?.toLowerCase() !== parsed.email.toLowerCase()) {
+          return { error: 'El email no coincide con la invitación' }
+        }
+
+        // Verificar que la invitación es para esta organización
+        if (validation.organizationId !== organizationId) {
+          return { error: 'Esta invitación no es para esta organización' }
+        }
+
+        // Guardar rol de la invitación
+        invitedRole = validation.role
+      } else {
+        // Caso 2: Registro manual sin token - buscar invitación por email
+        const { hasInvitation, role, error: invError } = await findInvitationByEmailAction(
+          parsed.email,
+          organizationId
+        )
+
+        if (!hasInvitation) {
+          return {
+            error: invError || 'Tu correo no ha sido invitado a esta organización. Contacta al administrador para solicitar una invitación.'
+          }
+        }
+
+        // Guardar rol de la invitación
+        invitedRole = role
       }
     }
 
@@ -132,10 +182,17 @@ export async function registerAction(formData: FormData) {
           .insert({
             organization_id: organizationId,
             user_id: user.id,
-            role: 'member',
+            role: invitedRole || 'member', // Usar rol de la invitación si existe
             status: 'active',
             joined_at: new Date().toISOString()
           })
+
+        // Consumir la invitación (marcar como aceptada)
+        await consumeInvitationAction(
+          invitationToken || parsed.email,
+          organizationId,
+          user.id
+        )
       } catch (orgUserError) {
         // No fallar el registro si hay error creando la relación
         // console.error('Error creating organization_users relation:', orgUserError)
