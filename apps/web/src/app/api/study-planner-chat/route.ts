@@ -58,8 +58,18 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Parsear el body
-        const body = await request.json() as StudyPlannerRequest;
+        // Parsear el body con manejo de errores
+        let body: StudyPlannerRequest;
+        try {
+            body = await request.json() as StudyPlannerRequest;
+        } catch (parseError) {
+            logger.error('❌ Error parseando body de la solicitud:', parseError);
+            return NextResponse.json(
+                { error: 'Body de solicitud inválido o vacío' },
+                { status: 400 }
+            );
+        }
+
         const { message, conversationHistory = [], systemPrompt, userId, userName } = body;
 
         logger.info('📝 Mensaje recibido:', message?.substring(0, 100));
