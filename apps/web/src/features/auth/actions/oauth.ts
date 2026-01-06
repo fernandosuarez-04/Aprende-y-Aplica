@@ -485,7 +485,7 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     logger.info('OAuth: Proceso completado', { isNewUser });
 
     // Verificar rol para redirección específica (B2B)
-    const supabase = await createClient();
+    // Reutilizar supabase ya declarado anteriormente
     const { data: user } = await supabase
       .from('users')
       .select('cargo_rol')
