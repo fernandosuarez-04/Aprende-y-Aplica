@@ -100,9 +100,10 @@ interface CourseCardProps {
   textColor: string
   cardBg: string
   onClick: () => void
+  isDark?: boolean
 }
 
-function CourseCard({ course, index, primaryColor, textColor, cardBg, onClick }: CourseCardProps) {
+function CourseCard({ course, index, primaryColor, textColor, cardBg, onClick, isDark }: CourseCardProps) {
   const { t } = useTranslation('business')
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return 'N/A'
@@ -255,12 +256,21 @@ function CourseCard({ course, index, primaryColor, textColor, cardBg, onClick }:
 
           {/* Arrow */}
           <motion.div
-            className="w-8 h-8 rounded-full flex items-center justify-center border border-white/10 group-hover:border-transparent transition-all duration-300"
-            style={{ backgroundColor: 'transparent' }}
-            whileHover={{ backgroundColor: primaryColor }}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 group/arrow"
+            style={{ 
+              backgroundColor: isDark ? 'transparent' : 'rgba(0, 0, 0, 0.05)',
+              border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)'
+            }}
+            whileHover={{ 
+              backgroundColor: primaryColor,
+              borderColor: 'transparent'
+            }}
           >
             <ChevronRight
-              className="w-4 h-4 text-white/50 group-hover:text-white transition-colors"
+              className="w-4 h-4 transition-colors group-hover/arrow:text-white"
+              style={{ 
+                color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'
+              }}
             />
           </motion.div>
         </div>
@@ -583,6 +593,7 @@ export default function BusinessPanelCoursesPage() {
                 textColor={textColor}
                 cardBg={cardBg}
                 onClick={() => router.push(`/business-panel/courses/${course.id}`)}
+                isDark={isDark}
               />
             ))}
           </div>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface BusinessImportUsersModalProps {
   isOpen: boolean
@@ -34,6 +35,8 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
   const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
 
   const [isDragging, setIsDragging] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
@@ -214,7 +217,7 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                         border: `2px solid ${primaryColor}50`
                       }}
                     >
-                      <Upload className="w-12 h-12" style={{ color: primaryColor }} />
+                      <Upload className="w-12 h-12" style={{ color: isDark ? '#FFFFFF' : primaryColor }} />
                     </div>
                     <motion.div
                       animate={{ scale: [1, 1.2, 1] }}
@@ -265,9 +268,14 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                       </div>
                     </div>
                   ) : (
-                    <div className="w-full p-4 rounded-xl border-2 border-dashed border-white/10 text-center">
-                      <FileText className="w-8 h-8 mx-auto mb-2 text-white/20" />
-                      <p className="text-xs text-white/30">Ningún archivo seleccionado</p>
+                    <div 
+                      className="w-full p-4 rounded-xl border-2 border-dashed text-center"
+                      style={{
+                        borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#6C757D'
+                      }}
+                    >
+                      <FileText className="w-8 h-8 mx-auto mb-2" style={{ color: isDark ? 'rgba(255, 255, 255, 0.2)' : '#6C757D' }} />
+                      <p className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.3)' : '#6C757D' }}>Ningún archivo seleccionado</p>
                     </div>
                   )}
                 </div>
@@ -277,9 +285,28 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleDownloadTemplate}
-                  className="w-full py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center gap-2 text-sm font-medium text-white/80"
+                  className="w-full py-3 px-4 rounded-xl border transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                  style={{
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#6C757D',
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#E9ECEF',
+                    color: isDark ? 'rgba(255, 255, 255, 0.8)' : '#0A2540'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (isDark) {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'
+                    } else {
+                      e.currentTarget.style.backgroundColor = '#D1D5DB'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isDark) {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'
+                    } else {
+                      e.currentTarget.style.backgroundColor = '#E9ECEF'
+                    }
+                  }}
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4" style={{ color: isDark ? '#FFFFFF' : '#0A2540' }} />
                   {t('users.modals.import.downloadTemplate')}
                 </motion.button>
               </div>
@@ -380,8 +407,8 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                         onClick={() => fileInputRef.current?.click()}
                         className="relative rounded-xl cursor-pointer transition-all duration-200 p-8"
                         style={{
-                          border: `2px dashed ${isDragging ? primaryColor : 'rgba(255,255,255,0.15)'}`,
-                          backgroundColor: isDragging ? `${primaryColor}10` : 'rgba(255,255,255,0.02)'
+                          border: `2px dashed ${isDragging ? primaryColor : (isDark ? 'rgba(255,255,255,0.15)' : '#6C757D')}`,
+                          backgroundColor: isDragging ? `${primaryColor}10` : (isDark ? 'rgba(255,255,255,0.02)' : '#E9ECEF')
                         }}
                       >
                         <input
@@ -413,12 +440,12 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                                 className="w-14 h-14 mx-auto rounded-xl flex items-center justify-center mb-4"
                                 style={{ backgroundColor: `${primaryColor}15` }}
                               >
-                                <Upload className="w-7 h-7" style={{ color: primaryColor }} />
+                                <Upload className="w-7 h-7" style={{ color: isDark ? '#FFFFFF' : primaryColor }} />
                               </div>
-                              <p className="font-medium text-white mb-1">
+                              <p className="font-medium mb-1" style={{ color: isDark ? '#FFFFFF' : '#0A2540' }}>
                                 {isDragging ? t('users.modals.import.dragDrop.drop') : t('users.modals.import.dragDrop.drag')}
                               </p>
-                              <p className="text-sm text-white/40">
+                              <p className="text-sm" style={{ color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#6C757D' }}>
                                 {t('users.modals.import.dragDrop.orKey')}
                               </p>
                             </>
@@ -442,15 +469,25 @@ export function BusinessImportUsersModal({ isOpen, onClose, onImportComplete }: 
                             <div key={item.field} className="flex items-center justify-between text-sm">
                               <div className="flex items-center gap-2">
                                 <code
-                                  className="px-2 py-0.5 rounded text-xs font-mono"
-                                  style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
+                                  className="px-2 py-0.5 rounded text-xs font-mono border font-semibold"
+                                  style={{ 
+                                    backgroundColor: isDark ? `${primaryColor}30` : `${primaryColor}15`,
+                                    color: isDark ? '#FFFFFF' : '#0A2540',
+                                    borderColor: isDark ? `${primaryColor}60` : '#6C757D'
+                                  }}
                                 >
                                   {item.field}
                                 </code>
-                                <span className="text-white/50">{item.desc}</span>
+                                <span style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#6C757D' }}>{item.desc}</span>
                               </div>
                               {item.required && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
+                                <span 
+                                  className="text-xs px-2 py-0.5 rounded-full"
+                                  style={{
+                                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)',
+                                    color: isDark ? '#FBBF24' : '#F59E0B'
+                                  }}
+                                >
                                   {t('users.modals.import.format.required')}
                                 </span>
                               )}

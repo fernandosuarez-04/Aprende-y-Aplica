@@ -131,7 +131,7 @@ function StatCard({ title, value, icon, gradient, delay, trend = 0, isDark }: St
         <motion.h3
           className="text-3xl font-black tracking-tight mb-1"
           style={{
-            color: isDark ? 'var(--org-text-color, #FFFFFF)' : '#0F172A',
+            color: isDark ? '#FFFFFF' : '#0F172A',
             textShadow: isDark ? '0 0 20px rgba(0,212,179,0.2)' : 'none'
           }}
           initial={{ opacity: 0, x: -10 }}
@@ -143,9 +143,9 @@ function StatCard({ title, value, icon, gradient, delay, trend = 0, isDark }: St
 
         <motion.p
           className="text-sm font-semibold tracking-wide uppercase"
-          style={{ color: isDark ? 'var(--org-border-color, #9CA3AF)' : '#64748B', letterSpacing: '0.05em' }}
+          style={{ color: isDark ? '#E5E7EB' : '#64748B', letterSpacing: '0.05em' }}
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.7 }}
+          animate={{ opacity: isDark ? 0.9 : 0.7 }}
           transition={{ delay: delay * 0.1 + 0.3 }}
         >
           {title}
@@ -186,6 +186,8 @@ interface UserCardProps {
 
 function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onResend, onSuspend, onActivate }: UserCardProps) {
   const { t } = useTranslation('business')
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const [showActions, setShowActions] = useState(false)
   const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
 
@@ -252,7 +254,7 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
       />
 
       {/* Content */}
-      <div className="relative z-10 p-5">
+      <div className="relative z-10 p-7">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -275,7 +277,10 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
               ) : (
                 <div
                   className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold border-2 border-white/10"
-                  style={{ backgroundColor: `${primaryColor}30`, color: primaryColor }}
+                  style={{ 
+                    backgroundColor: `${primaryColor}30`, 
+                    color: isDark ? '#FFFFFF' : primaryColor 
+                  }}
                 >
                   {displayName.charAt(0).toUpperCase()}
                 </div>
@@ -300,7 +305,7 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1.5"
               >
                 <button
                   onClick={onStats}
@@ -346,8 +351,8 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
         </div>
 
         {/* Footer Info */}
-        <div className="flex items-center justify-between pt-3 border-t border-white/5">
-          <div className="text-xs opacity-50">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-white/5">
+          <div className="text-xs opacity-50 flex-1 min-w-0">
             {user.last_login_at ? (
               <span>{t('users.card.lastAccess')}: {new Date(user.last_login_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>
             ) : (
@@ -356,11 +361,11 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
           </div>
 
           {/* Quick Actions Based on Status */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto justify-end sm:justify-start">
             {user.org_status === 'invited' && onResend && (
               <button
                 onClick={onResend}
-                className="text-xs px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
+                className="text-xs px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors whitespace-nowrap"
               >
                 Reenviar
               </button>
@@ -368,7 +373,7 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
             {user.org_status === 'active' && onSuspend && (
               <button
                 onClick={onSuspend}
-                className="text-xs px-2 py-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors whitespace-nowrap"
               >
                 {t('users.card.suspend')}
               </button>
@@ -376,7 +381,7 @@ function UserCard({ user, index, primaryColor, onEdit, onDelete, onStats, onRese
             {user.org_status === 'suspended' && onActivate && (
               <button
                 onClick={onActivate}
-                className="text-xs px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors whitespace-nowrap"
               >
                 {t('users.card.activate')}
               </button>
@@ -908,7 +913,7 @@ export default function BusinessPanelUsersPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6"
           >
             {filteredUsers.map((user, index) => (
               <UserCard

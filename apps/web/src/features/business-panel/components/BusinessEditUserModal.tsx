@@ -7,6 +7,7 @@ import { BusinessUser } from '../services/businessUsers.service'
 import Image from 'next/image'
 import { useTranslation } from 'react-i18next'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface BusinessEditUserModalProps {
   user: BusinessUser | null
@@ -32,6 +33,8 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
   const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Theme Colors
@@ -222,10 +225,17 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                     className="relative mb-6"
                   >
                     <div
-                      className="w-28 h-28 rounded-2xl flex items-center justify-center text-3xl font-bold text-white overflow-hidden"
+                      className="w-28 h-28 rounded-2xl flex items-center justify-center text-3xl font-bold overflow-hidden"
                       style={{
-                        background: previewImage ? 'transparent' : `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
-                        boxShadow: `0 8px 30px ${primaryColor}40`
+                        background: previewImage ? 'transparent' : (isDark 
+                          ? `linear-gradient(135deg, ${primaryColor}, ${accentColor})`
+                          : `linear-gradient(135deg, ${primaryColor}dd, ${accentColor}dd)`
+                        ),
+                        boxShadow: previewImage ? 'none' : (isDark 
+                          ? `0 8px 30px ${primaryColor}40`
+                          : `0 8px 30px ${primaryColor}30`
+                        ),
+                        color: previewImage ? 'transparent' : (isDark ? '#FFFFFF' : '#FFFFFF')
                       }}
                     >
                       {previewImage ? (
@@ -248,13 +258,16 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                       whileTap={{ scale: 0.9 }}
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isUploadingImage}
-                      className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg disabled:opacity-50"
-                      style={{ backgroundColor: primaryColor }}
+                      className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center border-2 shadow-lg disabled:opacity-50"
+                      style={{ 
+                        backgroundColor: isDark ? primaryColor : primaryColor,
+                        borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.3)'
+                      }}
                     >
                       {isUploadingImage ? (
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
-                        <Camera className="w-5 h-5 text-white" />
+                        <Camera className="w-5 h-5" style={{ color: '#FFFFFF' }} />
                       )}
                     </motion.button>
 
@@ -492,7 +505,10 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
 
                     {/* Org Role */}
                     <div>
-                      <label className="block text-sm font-medium text-white/70 mb-2">
+                      <label 
+                        className="block text-sm font-medium mb-2"
+                        style={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)' }}
+                      >
                         {t('users.modals.add.fields.orgRole')}
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:gap-3">
@@ -511,12 +527,24 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                             } : {}}
                           >
                             <div className="flex items-center gap-2 mb-1">
-                              <Shield className="w-4 h-4" style={{ color: formData.org_role === role ? primaryColor : 'rgba(255,255,255,0.5)' }} />
-                              <span className={`text-xs lg:text-sm font-medium ${formData.org_role === role ? 'text-white' : 'text-white/70'}`}>
+                              <Shield className="w-4 h-4" style={{ color: formData.org_role === role ? primaryColor : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)') }} />
+                              <span 
+                                className="text-xs lg:text-sm font-medium"
+                                style={{ 
+                                  color: formData.org_role === role 
+                                    ? (isDark ? '#FFFFFF' : '#0F172A')
+                                    : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)')
+                                }}
+                              >
                                 {roleLabels[role].label}
                               </span>
                             </div>
-                            <p className="text-xs text-white/40 hidden sm:block">{roleLabels[role].desc}</p>
+                            <p 
+                              className="text-xs hidden sm:block"
+                              style={{ color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)' }}
+                            >
+                              {roleLabels[role].desc}
+                            </p>
                           </button>
                         ))}
                       </div>
@@ -524,7 +552,10 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
 
                     {/* Org Status */}
                     <div>
-                      <label className="block text-sm font-medium text-white/70 mb-2">
+                      <label 
+                        className="block text-sm font-medium mb-2"
+                        style={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)' }}
+                      >
                         {t('users.modals.edit.fields.status')}
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3">
@@ -535,14 +566,21 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                             onClick={() => setFormData(prev => ({ ...prev, org_status: status }))}
                             className={`p-2 lg:p-3 rounded-xl border text-center transition-all ${formData.org_status === status
                               ? 'border-transparent'
-                              : 'border-white/10 hover:border-white/20 bg-white/5'
+                              : isDark ? 'border-white/10 hover:border-white/20 bg-white/5' : 'border-black/10 hover:border-black/20 bg-black/5'
                               }`}
                             style={formData.org_status === status ? {
                               background: `${statusLabels[status].color}20`,
                               borderColor: statusLabels[status].color
                             } : {}}
                           >
-                            <span className={`text-xs lg:text-sm font-medium ${formData.org_status === status ? 'text-white' : 'text-white/70'}`}>
+                            <span 
+                              className="text-xs lg:text-sm font-medium"
+                              style={{ 
+                                color: formData.org_status === status 
+                                  ? statusLabels[status].color
+                                  : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)')
+                              }}
+                            >
                               {statusLabels[status].label}
                             </span>
                           </button>
@@ -566,10 +604,15 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       disabled={isLoading || isUploadingImage}
-                      className="px-5 py-2.5 rounded-xl text-sm font-medium text-white flex items-center gap-2 disabled:opacity-50"
+                      className="px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50"
                       style={{
-                        background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
-                        boxShadow: `0 4px 15px ${primaryColor}40`
+                        background: isDark 
+                          ? `linear-gradient(135deg, ${primaryColor}, ${accentColor})`
+                          : `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                        color: '#FFFFFF',
+                        boxShadow: isDark 
+                          ? `0 4px 15px ${primaryColor}40`
+                          : `0 4px 15px ${primaryColor}30`
                       }}
                     >
                       {isLoading || isUploadingImage ? (

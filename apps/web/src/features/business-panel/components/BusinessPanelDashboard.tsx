@@ -21,6 +21,7 @@ import Link from 'next/link'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useTranslation } from 'react-i18next'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 // ============================================
 // COMPONENTE: StatCard Premium
@@ -58,34 +59,79 @@ function StatCard({ title, value, change, backgroundImage, gradient, gradientSty
       id={id}
       style={{
         backgroundColor: 'var(--org-card-background, #1E2329)',
-        border: `1px solid ${theme?.borderColor || '#6C757D'}33`
+        border: `1.5px solid ${theme?.borderColor || '#6C757D'}80`,
+        willChange: 'transform',
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden'
       }}
     >
 
       {/* Background Image with Overlay */}
       {backgroundImage && (
-        <div className="absolute inset-0 z-0">
+        <div 
+          className="absolute inset-0 z-0"
+          style={{
+            willChange: 'transform',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden'
+          }}
+        >
           <Image
             src={backgroundImage}
             alt={title}
             fill
             className="object-cover opacity-70 group-hover:opacity-80 transition-opacity duration-300"
+            style={{
+              willChange: 'opacity',
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden'
+            }}
+            unoptimized={false}
+            priority={false}
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--org-card-background,#1E2329)]/70 via-[var(--org-card-background,#1E2329)]/40 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--org-card-background,#1E2329)]/80 via-transparent to-transparent" />
+          <div 
+            className="absolute inset-0 bg-gradient-to-br from-[var(--org-card-background,#1E2329)]/70 via-[var(--org-card-background,#1E2329)]/40 to-transparent"
+            style={{
+              willChange: 'auto',
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden'
+            }}
+          />
+          <div 
+            className="absolute inset-0 bg-gradient-to-t from-[var(--org-card-background,#1E2329)]/80 via-transparent to-transparent"
+            style={{
+              willChange: 'auto',
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden'
+            }}
+          />
         </div>
       )}
 
       {/* Content Container */}
-      <div className="relative z-10 p-5 h-full flex flex-col justify-between">
+      <div 
+        className="relative z-10 p-5 h-full flex flex-col justify-between"
+        style={{
+          willChange: 'auto',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden'
+        }}
+      >
         {/* Top Row: Indicator + Badge */}
         <div className="flex items-start justify-between">
           {/* Visual Indicator */}
           <div
-            className="p-2.5 rounded-xl backdrop-blur-md"
+            className="p-2.5 rounded-xl"
             style={{ 
               backgroundColor: `${theme?.text || '#FFFFFF'}0D`,
-              border: `1px solid ${theme?.borderColor || '#FFFFFF'}1A`
+              border: `1px solid ${theme?.borderColor || '#FFFFFF'}1A`,
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              willChange: 'auto',
+              transform: 'translateZ(0)'
             }}
           >
             <div
@@ -96,10 +142,16 @@ function StatCard({ title, value, change, backgroundImage, gradient, gradientSty
 
           {/* Change Badge */}
           <div
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border ${isPositive
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${isPositive
               ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
               : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
               }`}
+            style={{
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              willChange: 'auto',
+              transform: 'translateZ(0)'
+            }}
           >
             {isPositive ? (
               <ArrowTrendingUpIcon className="h-4 w-4" />
@@ -158,6 +210,30 @@ function StatCard({ title, value, change, backgroundImage, gradient, gradientSty
 
 
 // ============================================
+// HELPER: Calcular luminosidad de un color
+// ============================================
+function getLuminance(color: string): number {
+  try {
+    // Convertir hex a RGB
+    const hex = color.replace('#', '').trim()
+    if (hex.length !== 6) {
+      // Si no es un hex válido, asumir que es oscuro
+      return 0.3
+    }
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+    
+    // Calcular luminosidad relativa usando la fórmula estándar
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    return luminance
+  } catch {
+    // En caso de error, asumir que es oscuro
+    return 0.3
+  }
+}
+
+// ============================================
 // COMPONENTE: Quick Action Button
 // ============================================
 interface QuickActionProps {
@@ -170,6 +246,28 @@ interface QuickActionProps {
 }
 
 function QuickAction({ title, description, icon: Icon, href, color, delay }: QuickActionProps) {
+  const { resolvedTheme } = useThemeStore()
+  const isLightMode = resolvedTheme === 'light'
+  
+  // Calcular luminosidad del color de fondo
+  const luminance = getLuminance(color)
+  const isLightColor = luminance > 0.5
+  
+  // El icono siempre será blanco (según lo solicitado por el usuario)
+  const iconColor = '#FFFFFF'
+  
+  // Ajustar el color de fondo en modo claro para asegurar contraste con el icono blanco
+  // Si el color es claro en modo claro, oscurecerlo para que el icono blanco se vea bien
+  let backgroundColor = color
+  if (isLightMode && isLightColor) {
+    // Oscurecer el color significativamente para mejor contraste con icono blanco
+    const hex = color.replace('#', '')
+    const r = Math.max(0, parseInt(hex.substring(0, 2), 16) - 60)
+    const g = Math.max(0, parseInt(hex.substring(2, 4), 16) - 60)
+    const b = Math.max(0, parseInt(hex.substring(4, 6), 16) - 60)
+    backgroundColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+  }
+  
   return (
     <motion.div
       initial={{ opacity: 0, x: -10 }}
@@ -186,9 +284,9 @@ function QuickAction({ title, description, icon: Icon, href, color, delay }: Qui
         >
           <div
             className="p-3 rounded-lg transition-colors"
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: backgroundColor }}
           >
-            <Icon className="h-5 w-5 text-white" />
+            <Icon className="h-5 w-5" style={{ color: iconColor }} />
           </div>
           <div className="flex-1">
             <h4
@@ -649,8 +747,8 @@ export function BusinessPanelDashboard() {
                 </span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: themeColors.secondary }} />
-              <span className="text-sm font-medium" style={{ color: themeColors.secondary }}>{t('dashboard.systemActive')}</span>
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#00D4B3' }} />
+              <span className="text-sm font-medium" style={{ color: '#00D4B3' }}>{t('dashboard.systemActive')}</span>
             </div>
           </motion.div>
         </div>
@@ -797,8 +895,8 @@ export function BusinessPanelDashboard() {
               transition={{ delay: 1 }}
               className="mt-6 p-6 rounded-2xl"
               style={{
-                background: `linear-gradient(to bottom right, ${themeColors.secondary}33, ${themeColors.secondary}0d)`,
-                borderColor: `${themeColors.secondary}4d`,
+                backgroundColor: 'var(--org-card-background, #1E2329)',
+                borderColor: 'var(--org-border-color, #6C757D)',
                 borderWidth: 1,
                 borderStyle: 'solid'
               }}
@@ -806,32 +904,35 @@ export function BusinessPanelDashboard() {
               <div className="flex items-center gap-3 mb-4">
                 <div
                   className="p-2 rounded-lg"
-                  style={{ backgroundColor: themeColors.secondary }}
+                  style={{ backgroundColor: '#00D4B3' }}
                 >
                   <RocketLaunchIcon className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold" style={{ color: themeColors.text }}>{t('dashboard.systemHealth.activeAccount')}</h3>
-                  <p className="text-xs" style={{ color: themeColors.secondary }}>{t('dashboard.systemHealth.servicesOperational')}</p>
+                  <h3 className="font-semibold" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>{t('dashboard.systemHealth.activeAccount')}</h3>
+                  <p className="text-xs" style={{ color: '#00D4B3' }}>{t('dashboard.systemHealth.servicesOperational')}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: themeColors.text, opacity: 0.7 }}>{t('dashboard.systemHealth.users')}</span>
-                  <span className="font-medium" style={{ color: themeColors.secondary }}>
+                  <span style={{ color: 'var(--org-text-color, #FFFFFF)', opacity: 0.8 }}>{t('dashboard.systemHealth.users')}</span>
+                  <span className="font-medium" style={{ color: '#00D4B3' }}>
                     {typeof stats?.activeUsers === 'object' ? stats.activeUsers.value : (stats?.activeUsers || 0)} {t('dashboard.systemHealth.active')}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: themeColors.text, opacity: 0.7 }}>{t('dashboard.systemHealth.courses')}</span>
-                  <span className="font-medium" style={{ color: themeColors.secondary }}>
+                  <span style={{ color: 'var(--org-text-color, #FFFFFF)', opacity: 0.8 }}>{t('dashboard.systemHealth.courses')}</span>
+                  <span className="font-medium" style={{ color: '#00D4B3' }}>
                     {typeof stats?.assignedCourses === 'object' ? stats.assignedCourses.value : (stats?.assignedCourses || 0)} asignados
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: themeColors.text, opacity: 0.7 }}>Sistema</span>
-                  <span className="font-medium" style={{ color: themeColors.secondary }}>Operativo</span>
+                <div className="flex justify-between text-sm items-center">
+                  <span style={{ color: 'var(--org-text-color, #FFFFFF)', opacity: 0.8 }}>Sistema</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#00D4B3' }} />
+                    <span className="font-medium" style={{ color: '#00D4B3' }}>Operativo</span>
+                  </div>
                 </div>
               </div>
             </motion.div>

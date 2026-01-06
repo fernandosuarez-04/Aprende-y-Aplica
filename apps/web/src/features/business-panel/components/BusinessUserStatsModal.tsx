@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import { BusinessUser } from '../services/businessUsers.service'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface BusinessUserStatsModalProps {
   user: BusinessUser | null
@@ -147,12 +148,15 @@ const fallbackTranslations: Record<string, string> = {
 
 export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserStatsModalProps) {
   const { t: originalT } = useTranslation('business')
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   
   // Helper function that provides fallback translations
   const t = (key: string, options?: any): string => {
     const result = originalT(key, options)
+    const resultStr = typeof result === 'string' ? result : String(result)
     // If the result equals the key, it means translation was not found
-    if (result === key || result.includes('.stats.')) {
+    if (resultStr === key || resultStr.includes('.stats.')) {
       let fallback = fallbackTranslations[key] || key
       // Handle interpolation for count
       if (options?.count !== undefined && fallback.includes('{{count}}')) {
@@ -160,7 +164,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
       }
       return fallback
     }
-    return result
+    return resultStr
   }
   
   const { styles } = useOrganizationStylesContext()
@@ -328,8 +332,12 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
 
                   {/* Role Badge */}
                   <div
-                    className="mt-3 px-3 py-1.5 rounded-full text-xs font-medium"
-                    style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                    className="mt-3 px-3 py-1.5 rounded-full text-xs font-medium border"
+                    style={{ 
+                      backgroundColor: isDark ? `${primaryColor}30` : `${primaryColor}20`, 
+                      color: isDark ? '#FFFFFF' : primaryColor,
+                      borderColor: isDark ? `${primaryColor}50` : `${primaryColor}30`
+                    }}
                   >
                     {user.org_role === 'owner' ? t('users.roles.owner') :
                       user.org_role === 'admin' ? t('users.roles.admin') : t('users.roles.member')}
@@ -389,7 +397,12 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                           ? ''
                           : 'text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
                           }`}
-                        style={activeTab === id ? { backgroundColor: `${primaryColor}20`, color: primaryColor } : {}}
+                        style={activeTab === id ? { 
+                          backgroundColor: isDark ? `${primaryColor}30` : `${primaryColor}20`, 
+                          color: isDark ? '#FFFFFF' : primaryColor,
+                          border: `1px solid ${primaryColor}60`,
+                          fontWeight: '600'
+                        } : {}}
                       >
                         <Icon className="w-4 h-4" />
                         <span className="hidden sm:inline">{label}</span>
@@ -472,7 +485,13 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.1 }}
-                                className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-4 group cursor-default border border-transparent dark:border-white/5`}
+                                className={`relative overflow-hidden rounded-2xl p-4 group cursor-default border`}
+                                style={{
+                                  background: isDark 
+                                    ? `linear-gradient(135deg, ${iconColor}20, ${iconColor}05)`
+                                    : '#E9ECEF',
+                                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#6C757D'
+                                }}
                               >
                                 {/* Glow effect */}
                                 <div
@@ -484,14 +503,18 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                   <Icon className="w-5 h-5" style={{ color: iconColor }} />
                                 </div>
 
-                                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{value}</div>
+                                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                                  {value !== undefined && value !== null ? value : '-'}
+                                </div>
                                 <div className="text-xs text-gray-500 dark:text-white/50 uppercase tracking-wider">{label}</div>
                               </motion.div>
                             ))}
                           </div>
 
                           {/* Activity Grid - Modern Cards */}
-                          {(stats.lia_conversations_total || stats.quiz_total || stats.lia_activities_completed) && (
+                          {((stats.lia_conversations_total !== undefined && stats.lia_conversations_total !== null) ||
+                            (stats.quiz_total !== undefined && stats.quiz_total !== null && stats.quiz_total > 0) ||
+                            (stats.lia_activities_completed !== undefined && stats.lia_activities_completed !== null)) && (
                             <motion.div
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -503,54 +526,93 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               </h3>
                               <div className="grid grid-cols-3 gap-3">
                                 {stats.lia_conversations_total !== undefined && (
-                                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500/10 to-transparent p-4 border border-cyan-500/20">
+                                  <div 
+                                    className="relative overflow-hidden rounded-xl p-4 border"
+                                    style={{
+                                      background: isDark 
+                                        ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), transparent)'
+                                        : '#E9ECEF',
+                                      borderColor: isDark ? 'rgba(6, 182, 212, 0.2)' : '#6C757D'
+                                    }}
+                                  >
                                     <div className="flex items-center gap-3">
-                                      <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                                        <MessageSquare className="w-6 h-6 text-cyan-400" />
+                                      <div 
+                                        className="w-12 h-12 rounded-xl flex items-center justify-center"
+                                        style={{
+                                          backgroundColor: isDark ? 'rgba(6, 182, 212, 0.2)' : 'rgba(6, 182, 212, 0.15)'
+                                        }}
+                                      >
+                                        <MessageSquare className="w-6 h-6" style={{ color: isDark ? '#06B6D4' : '#0891B2' }} />
                                       </div>
                                       <div>
-                                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.lia_conversations_total}</div>
-                                        <div className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.platformActivity.liaQueries')}</div>
+                                        <div className="text-2xl font-bold" style={{ color: isDark ? '#FFFFFF' : '#0A2540' }}>{stats.lia_conversations_total}</div>
+                                        <div className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6C757D' }}>{t('users.stats.platformActivity.liaQueries')}</div>
                                       </div>
                                     </div>
                                     {stats.lia_messages_total !== undefined && (
-                                      <div className="mt-2 text-xs text-cyan-400/80">{stats.lia_messages_total} {t('users.stats.platformActivity.messages')}</div>
+                                      <div className="mt-2 text-xs" style={{ color: isDark ? 'rgba(6, 182, 212, 0.8)' : '#0891B2' }}>{stats.lia_messages_total} {t('users.stats.platformActivity.messages')}</div>
                                     )}
                                   </div>
                                 )}
 
                                 {stats.quiz_total !== undefined && stats.quiz_total > 0 && (
-                                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-violet-500/10 to-transparent p-4 border border-violet-500/20">
+                                  <div 
+                                    className="relative overflow-hidden rounded-xl p-4 border"
+                                    style={{
+                                      background: isDark 
+                                        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), transparent)'
+                                        : '#E9ECEF',
+                                      borderColor: isDark ? 'rgba(139, 92, 246, 0.2)' : '#6C757D'
+                                    }}
+                                  >
                                     <div className="flex items-center gap-3">
-                                      <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center">
-                                        <HelpCircle className="w-6 h-6 text-violet-400" />
+                                      <div 
+                                        className="w-12 h-12 rounded-xl flex items-center justify-center"
+                                        style={{
+                                          backgroundColor: isDark ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.15)'
+                                        }}
+                                      >
+                                        <HelpCircle className="w-6 h-6" style={{ color: isDark ? '#8B5CF6' : '#7C3AED' }} />
                                       </div>
                                       <div>
-                                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                                          {stats.quiz_passed || 0}<span className="text-gray-400 dark:text-white/40">/{stats.quiz_total}</span>
+                                        <div className="text-2xl font-bold" style={{ color: isDark ? '#FFFFFF' : '#0A2540' }}>
+                                          {stats.quiz_passed || 0}<span style={{ color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#6C757D' }}>/{stats.quiz_total}</span>
                                         </div>
-                                        <div className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.platformActivity.quizzesPassed')}</div>
+                                        <div className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6C757D' }}>{t('users.stats.platformActivity.quizzesPassed')}</div>
                                       </div>
                                     </div>
                                     {stats.quiz_average_score !== undefined && (
-                                      <div className="mt-2 text-xs text-violet-400/80">{stats.quiz_average_score}% {t('users.stats.platformActivity.average')}</div>
+                                      <div className="mt-2 text-xs" style={{ color: isDark ? 'rgba(139, 92, 246, 0.8)' : '#7C3AED' }}>{stats.quiz_average_score}% {t('users.stats.platformActivity.average')}</div>
                                     )}
                                   </div>
                                 )}
 
                                 {stats.lia_activities_completed !== undefined && (
-                                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-rose-500/10 to-transparent p-4 border border-rose-500/20">
+                                  <div 
+                                    className="relative overflow-hidden rounded-xl p-4 border"
+                                    style={{
+                                      background: isDark 
+                                        ? 'linear-gradient(135deg, rgba(244, 63, 94, 0.1), transparent)'
+                                        : '#E9ECEF',
+                                      borderColor: isDark ? 'rgba(244, 63, 94, 0.2)' : '#6C757D'
+                                    }}
+                                  >
                                     <div className="flex items-center gap-3">
-                                      <div className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center">
-                                        <Zap className="w-6 h-6 text-rose-400" />
+                                      <div 
+                                        className="w-12 h-12 rounded-xl flex items-center justify-center"
+                                        style={{
+                                          backgroundColor: isDark ? 'rgba(244, 63, 94, 0.2)' : 'rgba(244, 63, 94, 0.15)'
+                                        }}
+                                      >
+                                        <Zap className="w-6 h-6" style={{ color: isDark ? '#F43F5E' : '#E11D48' }} />
                                       </div>
                                       <div>
-                                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.lia_activities_completed}</div>
-                                        <div className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.platformActivity.liaActivities')}</div>
+                                        <div className="text-2xl font-bold" style={{ color: isDark ? '#FFFFFF' : '#0A2540' }}>{stats.lia_activities_completed}</div>
+                                        <div className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6C757D' }}>{t('users.stats.platformActivity.liaActivities')}</div>
                                       </div>
                                     </div>
                                     {stats.lia_activities_total !== undefined && (
-                                      <div className="mt-2 text-xs text-rose-400/80">de {stats.lia_activities_total} {t('users.stats.platformActivity.total')}</div>
+                                      <div className="mt-2 text-xs" style={{ color: isDark ? 'rgba(244, 63, 94, 0.8)' : '#E11D48' }}>de {stats.lia_activities_total} {t('users.stats.platformActivity.total')}</div>
                                     )}
                                   </div>
                                 )}
@@ -563,7 +625,13 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.5 }}
-                            className="rounded-2xl bg-gradient-to-br from-gray-100 dark:from-white/5 to-transparent p-5 border border-gray-200 dark:border-white/10"
+                            className="rounded-2xl p-5 border"
+                            style={{
+                              background: isDark 
+                                ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent)'
+                                : '#E9ECEF',
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#6C757D'
+                            }}
                           >
                             <div className="flex items-center justify-between mb-4">
                               <div>
@@ -594,26 +662,59 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
 
                             {/* Distribution */}
                             <div className="grid grid-cols-3 gap-4">
-                              <div className="text-center">
-                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/20 mb-2">
-                                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                              <div 
+                                className="text-center p-3 rounded-xl border"
+                                style={{
+                                  background: isDark ? 'rgba(16, 185, 129, 0.1)' : '#E9ECEF',
+                                  borderColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#6C757D'
+                                }}
+                              >
+                                <div 
+                                  className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-2"
+                                  style={{
+                                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)'
+                                  }}
+                                >
+                                  <CheckCircle className="w-5 h-5" style={{ color: isDark ? '#10B981' : '#059669' }} />
                                 </div>
-                                <div className="text-2xl font-bold text-emerald-400">{stats.completed_courses}</div>
-                                <div className="text-xs text-gray-400 dark:text-white/40">{t('users.stats.generalProgress.completed')}</div>
+                                <div className="text-2xl font-bold" style={{ color: isDark ? '#10B981' : '#059669' }}>{stats.completed_courses}</div>
+                                <div className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#6C757D' }}>{t('users.stats.generalProgress.completed')}</div>
                               </div>
-                              <div className="text-center">
-                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-blue-500/20 mb-2">
-                                  <PlayCircle className="w-5 h-5 text-blue-400" />
+                              <div 
+                                className="text-center p-3 rounded-xl border"
+                                style={{
+                                  background: isDark ? 'rgba(59, 130, 246, 0.1)' : '#E9ECEF',
+                                  borderColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#6C757D'
+                                }}
+                              >
+                                <div 
+                                  className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-2"
+                                  style={{
+                                    backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.15)'
+                                  }}
+                                >
+                                  <PlayCircle className="w-5 h-5" style={{ color: isDark ? '#3B82F6' : '#2563EB' }} />
                                 </div>
-                                <div className="text-2xl font-bold text-blue-400">{stats.in_progress_courses}</div>
-                                <div className="text-xs text-gray-400 dark:text-white/40">{t('users.stats.generalProgress.inProgress')}</div>
+                                <div className="text-2xl font-bold" style={{ color: isDark ? '#3B82F6' : '#2563EB' }}>{stats.in_progress_courses}</div>
+                                <div className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#6C757D' }}>{t('users.stats.generalProgress.inProgress')}</div>
                               </div>
-                              <div className="text-center">
-                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-200 dark:bg-white/10 mb-2">
-                                  <XCircle className="w-5 h-5 text-gray-400 dark:text-white/40" />
+                              <div 
+                                className="text-center p-3 rounded-xl border"
+                                style={{
+                                  background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#E9ECEF',
+                                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#6C757D'
+                                }}
+                              >
+                                <div 
+                                  className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-2"
+                                  style={{
+                                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(108, 117, 125, 0.15)'
+                                  }}
+                                >
+                                  <XCircle className="w-5 h-5" style={{ color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#6C757D' }} />
                                 </div>
-                                <div className="text-2xl font-bold text-gray-400 dark:text-white/40">{stats.not_started_courses}</div>
-                                <div className="text-xs text-gray-400 dark:text-white/40">{t('users.stats.generalProgress.notStarted')}</div>
+                                <div className="text-2xl font-bold" style={{ color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#6C757D' }}>{stats.not_started_courses}</div>
+                                <div className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#6C757D' }}>{t('users.stats.generalProgress.notStarted')}</div>
                               </div>
                             </div>
                           </motion.div>
@@ -772,10 +873,15 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                         >
                           {stats.courses_data.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
-                              <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-4">
-                                <TrendingUp className="w-8 h-8 text-gray-400 dark:text-white/30" />
+                              <div 
+                                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                                style={{
+                                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F3F4F6'
+                                }}
+                              >
+                                <TrendingUp className="w-8 h-8" style={{ color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#9CA3AF' }} />
                               </div>
-                              <p className="text-gray-500 dark:text-white/50">{t('users.stats.timeline.empty')}</p>
+                              <p style={{ color: isDark ? 'rgba(255, 255, 255, 0.6)' : '#6B7280' }}>{t('users.stats.timeline.empty')}</p>
                             </div>
                           ) : (
                             stats.courses_data.map((course, index) => {
@@ -791,17 +897,25 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                 >
                                   {/* Timeline line */}
                                   {index < stats.courses_data.length - 1 && (
-                                    <div className="absolute left-6 top-16 bottom-0 w-0.5 bg-gradient-to-b from-white/20 to-transparent" />
+                                    <div 
+                                      className="absolute left-6 top-16 bottom-0 w-0.5"
+                                      style={{
+                                        background: isDark 
+                                          ? 'linear-gradient(to bottom, rgba(255, 255, 255, 0.3), transparent)'
+                                          : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.2), transparent)'
+                                      }}
+                                    />
                                   )}
 
                                   <div className="flex gap-4">
                                     {/* Progress Circle */}
                                     <div className="flex-shrink-0 relative">
                                       <div
-                                        className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold"
+                                        className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold border"
                                         style={{
-                                          backgroundColor: `${progressColor}20`,
-                                          color: progressColor
+                                          backgroundColor: isDark ? `${progressColor}30` : `${progressColor}20`,
+                                          color: progressColor,
+                                          borderColor: isDark ? `${progressColor}50` : `${progressColor}30`
                                         }}
                                       >
                                         {course.progress}%
@@ -810,12 +924,20 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
 
                                     {/* Course Content */}
                                     <div className="flex-1 pb-6">
-                                      <div className="rounded-2xl bg-gray-50 dark:bg-gradient-to-br dark:from-white/5 dark:to-transparent border border-gray-200 dark:border-white/10 p-4">
+                                      <div 
+                                        className="rounded-2xl border p-4"
+                                        style={{
+                                          background: isDark 
+                                            ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03))'
+                                            : '#E9ECEF',
+                                          borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : '#6C757D'
+                                        }}
+                                      >
                                         {/* Header */}
                                         <div className="flex items-start justify-between mb-4">
                                           <div>
-                                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{course.course_title}</h4>
-                                            <p className="text-xs text-gray-500 dark:text-white/40">
+                                            <h4 className="text-base font-semibold mb-1" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>{course.course_title}</h4>
+                                            <p className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6B7280' }}>
                                               {course.status === 'completed'
                                                 ? `${t('users.stats.coursesList.completed')} ${formatDate(course.completed_at)}`
                                                 : course.progress > 0
@@ -825,14 +947,24 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                             </p>
                                           </div>
                                           {course.status === 'completed' && (
-                                            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                              <CheckCircle className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+                                            <div 
+                                              className="w-8 h-8 rounded-full flex items-center justify-center"
+                                              style={{
+                                                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)'
+                                              }}
+                                            >
+                                              <CheckCircle className="w-5 h-5" style={{ color: isDark ? '#10B981' : '#059669' }} />
                                             </div>
                                           )}
                                         </div>
 
                                         {/* Progress Bar */}
-                                        <div className="relative h-3 rounded-full bg-white/10 overflow-hidden mb-4">
+                                        <div 
+                                          className="relative h-3 rounded-full overflow-hidden mb-4"
+                                          style={{
+                                            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)'
+                                          }}
+                                        >
                                           <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: `${course.progress}%` }}
@@ -849,27 +981,27 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                         <div className="flex flex-wrap gap-4">
                                           {course.modules_total !== undefined && course.modules_total > 0 && (
                                             <div className="flex items-center gap-2">
-                                              <Layers className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-                                              <span className="text-sm text-gray-600 dark:text-white/70">
-                                                <span className="font-semibold text-gray-900 dark:text-white">{course.modules_completed || 0}</span>
+                                              <Layers className="w-4 h-4" style={{ color: isDark ? '#60A5FA' : '#3B82F6' }} />
+                                              <span className="text-sm" style={{ color: isDark ? 'rgba(255, 255, 255, 0.8)' : '#4B5563' }}>
+                                                <span className="font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>{course.modules_completed || 0}</span>
                                                 /{course.modules_total} {t('users.stats.timeline.modules')}
                                               </span>
                                             </div>
                                           )}
                                           {course.lessons_total !== undefined && course.lessons_total > 0 && (
                                             <div className="flex items-center gap-2">
-                                              <BookOpen className="w-4 h-4 text-violet-500 dark:text-violet-400" />
-                                              <span className="text-sm text-gray-600 dark:text-white/70">
-                                                <span className="font-semibold text-gray-900 dark:text-white">{course.lessons_completed || 0}</span>
+                                              <BookOpen className="w-4 h-4" style={{ color: isDark ? '#A78BFA' : '#8B5CF6' }} />
+                                              <span className="text-sm" style={{ color: isDark ? 'rgba(255, 255, 255, 0.8)' : '#4B5563' }}>
+                                                <span className="font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>{course.lessons_completed || 0}</span>
                                                 /{course.lessons_total} {t('users.stats.timeline.lessons')}
                                               </span>
                                             </div>
                                           )}
                                           {course.quiz_total !== undefined && course.quiz_total > 0 && (
                                             <div className="flex items-center gap-2">
-                                              <HelpCircle className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-                                              <span className="text-sm text-gray-600 dark:text-white/70">
-                                                <span className="font-semibold text-gray-900 dark:text-white">{course.quiz_passed || 0}</span>
+                                              <HelpCircle className="w-4 h-4" style={{ color: isDark ? '#FBBF24' : '#F59E0B' }} />
+                                              <span className="text-sm" style={{ color: isDark ? 'rgba(255, 255, 255, 0.8)' : '#4B5563' }}>
+                                                <span className="font-semibold" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>{course.quiz_passed || 0}</span>
                                                 /{course.quiz_total} {t('users.stats.timeline.quizzes')}
                                               </span>
                                             </div>
@@ -898,14 +1030,25 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             <motion.div
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
-                              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/5 p-5 border border-emerald-500/20"
+                              className="relative overflow-hidden rounded-2xl p-5 border"
+                              style={{
+                                background: isDark 
+                                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(16, 185, 129, 0.1))'
+                                  : '#E9ECEF',
+                                borderColor: isDark ? 'rgba(16, 185, 129, 0.4)' : '#6C757D'
+                              }}
                             >
                               <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-emerald-500/10 blur-2xl" />
-                              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-3">
-                                <FileText className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
+                              <div 
+                                className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+                                style={{
+                                  backgroundColor: isDark ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)'
+                                }}
+                              >
+                                <FileText className="w-6 h-6" style={{ color: isDark ? '#10B981' : '#059669' }} />
                               </div>
-                              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stats.notes_count}</div>
-                              <div className="text-sm text-emerald-600 dark:text-emerald-400/80">{t('users.stats.activity.notesCreated')}</div>
+                              <div className="text-3xl font-bold mb-1" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>{stats.notes_count}</div>
+                              <div className="text-sm" style={{ color: isDark ? 'rgba(16, 185, 129, 0.9)' : '#059669' }}>{t('users.stats.activity.notesCreated')}</div>
                             </motion.div>
 
                             {/* Assignments Card */}
@@ -913,14 +1056,28 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.1 }}
-                              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/5 p-5 border border-blue-500/20"
+                              className="relative overflow-hidden rounded-2xl p-5 border"
+                              style={{
+                                background: isDark 
+                                  ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.1))'
+                                  : '#E9ECEF',
+                                borderColor: isDark ? 'rgba(59, 130, 246, 0.4)' : '#6C757D'
+                              }}
                             >
                               <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-blue-500/10 blur-2xl" />
-                              <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-3">
-                                <Target className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+                              <div 
+                                className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+                                style={{
+                                  backgroundColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'
+                                }}
+                              >
+                                <Target className="w-6 h-6" style={{ color: isDark ? '#3B82F6' : '#2563EB' }} />
                               </div>
-                              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stats.completed_assignments}<span className="text-gray-400 dark:text-white/40">/{stats.total_assignments}</span></div>
-                              <div className="text-sm text-blue-600 dark:text-blue-400/80">{t('users.stats.activity.assignments')}</div>
+                              <div className="text-3xl font-bold mb-1" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
+                                {stats.completed_assignments}
+                                <span style={{ color: isDark ? 'rgba(255, 255, 255, 0.6)' : '#9CA3AF' }}>/{stats.total_assignments}</span>
+                              </div>
+                              <div className="text-sm" style={{ color: isDark ? 'rgba(59, 130, 246, 0.9)' : '#2563EB' }}>{t('users.stats.activity.assignments')}</div>
                             </motion.div>
 
                             {/* Certificates Card */}
@@ -928,14 +1085,25 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.2 }}
-                              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/5 p-5 border border-amber-500/20"
+                              className="relative overflow-hidden rounded-2xl p-5 border"
+                              style={{
+                                background: isDark 
+                                  ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(245, 158, 11, 0.1))'
+                                  : '#E9ECEF',
+                                borderColor: isDark ? 'rgba(245, 158, 11, 0.4)' : '#6C757D'
+                              }}
                             >
                               <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-amber-500/10 blur-2xl" />
-                              <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-3">
-                                <Award className="w-6 h-6 text-amber-500 dark:text-amber-400" />
+                              <div 
+                                className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+                                style={{
+                                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.3)' : 'rgba(245, 158, 11, 0.2)'
+                                }}
+                              >
+                                <Award className="w-6 h-6" style={{ color: isDark ? '#F59E0B' : '#D97706' }} />
                               </div>
-                              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stats.certificates_count}</div>
-                              <div className="text-sm text-amber-600 dark:text-amber-400/80">{t('users.stats.activity.certificates')}</div>
+                              <div className="text-3xl font-bold mb-1" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>{stats.certificates_count}</div>
+                              <div className="text-sm" style={{ color: isDark ? 'rgba(245, 158, 11, 0.9)' : '#D97706' }}>{t('users.stats.activity.certificates')}</div>
                             </motion.div>
                           </div>
 
@@ -945,7 +1113,13 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.3 }}
-                              className="rounded-2xl bg-gray-50 dark:bg-gradient-to-br dark:from-white/5 dark:to-transparent border border-gray-200 dark:border-white/10 p-5"
+                              className="rounded-2xl border p-5"
+                              style={{
+                                background: isDark 
+                                  ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03))'
+                                  : '#E9ECEF',
+                                borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : '#6C757D'
+                              }}
                             >
                               <div className="flex items-center gap-2 mb-4">
                                 <Calendar className="w-5 h-5" style={{ color: primaryColor }} />
@@ -965,7 +1139,10 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                       transition={{ delay: 0.4 + index * 0.1 }}
                                       className="flex items-center gap-4"
                                     >
-                                      <div className="w-20 text-xs text-gray-500 dark:text-white/60 flex-shrink-0">
+                                      <div 
+                                        className="w-20 text-xs flex-shrink-0"
+                                        style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#6B7280' }}
+                                      >
                                         {formatMonth(item.month)}
                                       </div>
                                       <div className="flex-1 relative h-8">
@@ -996,26 +1173,44 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
-                            className="rounded-2xl bg-gray-50 dark:bg-gradient-to-br dark:from-white/5 dark:to-transparent border border-gray-200 dark:border-white/10 p-5"
+                            className="rounded-2xl border p-5"
+                            style={{
+                              background: isDark 
+                                ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03))'
+                                : '#E9ECEF',
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : '#6C757D'
+                            }}
                           >
                             <div className="flex items-center gap-2 mb-4">
                               <Activity className="w-5 h-5" style={{ color: primaryColor }} />
-                              <h3 className="text-sm font-medium text-gray-900 dark:text-white">Resumen de Actividad</h3>
+                              <h3 className="text-sm font-medium" style={{ color: isDark ? '#FFFFFF' : '#111827' }}>Resumen de Actividad</h3>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5">
-                                <Clock className="w-5 h-5 text-gray-400 dark:text-white/50" />
+                              <div 
+                                className="flex items-center gap-3 p-3 rounded-xl border"
+                                style={{
+                                  background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E9ECEF',
+                                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#6C757D'
+                                }}
+                              >
+                                <Clock className="w-5 h-5" style={{ color: isDark ? 'rgba(255, 255, 255, 0.6)' : '#6C757D' }} />
                                 <div>
-                                  <div className="text-lg font-semibold text-gray-900 dark:text-white">{stats.total_time_spent_hours}h</div>
-                                  <div className="text-xs text-gray-500 dark:text-white/40">{t('users.stats.activity.studyTime')}</div>
+                                  <div className="text-lg font-semibold" style={{ color: isDark ? '#FFFFFF' : '#0A2540' }}>{stats.total_time_spent_hours}h</div>
+                                  <div className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6C757D' }}>{t('users.stats.activity.studyTime')}</div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5">
-                                <BookOpen className="w-5 h-5 text-gray-400 dark:text-white/50" />
+                              <div 
+                                className="flex items-center gap-3 p-3 rounded-xl border"
+                                style={{
+                                  background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E9ECEF',
+                                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#6C757D'
+                                }}
+                              >
+                                <BookOpen className="w-5 h-5" style={{ color: isDark ? 'rgba(255, 255, 255, 0.6)' : '#6C757D' }} />
                                 <div>
-                                  <div className="text-lg font-semibold text-gray-900 dark:text-white">{stats.completed_lessons}/{stats.total_lessons}</div>
-                                  <div className="text-xs text-gray-500 dark:text-white/40">{t('users.stats.activity.lessons')}</div>
+                                  <div className="text-lg font-semibold" style={{ color: isDark ? '#FFFFFF' : '#0A2540' }}>{stats.completed_lessons}/{stats.total_lessons}</div>
+                                  <div className="text-xs" style={{ color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#6C757D' }}>{t('users.stats.activity.lessons')}</div>
                                 </div>
                               </div>
                             </div>
