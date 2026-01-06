@@ -100,9 +100,10 @@ interface CourseCardProps {
   textColor: string
   cardBg: string
   onClick: () => void
+  isDark?: boolean
 }
 
-function CourseCard({ course, index, primaryColor, textColor, cardBg, onClick }: CourseCardProps) {
+function CourseCard({ course, index, primaryColor, textColor, cardBg, onClick, isDark }: CourseCardProps) {
   const { t } = useTranslation('business')
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return 'N/A'
@@ -186,9 +187,14 @@ function CourseCard({ course, index, primaryColor, textColor, cardBg, onClick }:
         </motion.div>
 
         {/* Rating Badge */}
-        <div className="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full backdrop-blur-md bg-black/50">
-          <Star className="w-3.5 h-3.5 text-yellow-400" fill="#FACC15" />
-          <span className="text-xs font-semibold text-white">
+        <div 
+          className="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full backdrop-blur-md"
+          style={{
+            backgroundColor: isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.9)'
+          }}
+        >
+          <Star className="w-3.5 h-3.5" style={{ color: '#FACC15', fill: '#FACC15' }} />
+          <span className="text-xs font-semibold" style={{ color: isDark ? '#FFFFFF' : '#0A2540' }}>
             {course.rating ? course.rating.toFixed(1) : '0.0'}
           </span>
         </div>
@@ -255,12 +261,21 @@ function CourseCard({ course, index, primaryColor, textColor, cardBg, onClick }:
 
           {/* Arrow */}
           <motion.div
-            className="w-8 h-8 rounded-full flex items-center justify-center border border-white/10 group-hover:border-transparent transition-all duration-300"
-            style={{ backgroundColor: 'transparent' }}
-            whileHover={{ backgroundColor: primaryColor }}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 group/arrow"
+            style={{ 
+              backgroundColor: isDark ? 'transparent' : '#E9ECEF',
+              border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #6C757D'
+            }}
+            whileHover={{ 
+              backgroundColor: primaryColor,
+              borderColor: 'transparent'
+            }}
           >
             <ChevronRight
-              className="w-4 h-4 text-white/50 group-hover:text-white transition-colors"
+              className="w-4 h-4 transition-colors group-hover/arrow:text-white"
+              style={{ 
+                color: isDark ? 'rgba(255,255,255,0.5)' : '#6C757D'
+              }}
             />
           </motion.div>
         </div>
@@ -583,6 +598,7 @@ export default function BusinessPanelCoursesPage() {
                 textColor={textColor}
                 cardBg={cardBg}
                 onClick={() => router.push(`/business-panel/courses/${course.id}`)}
+                isDark={isDark}
               />
             ))}
           </div>
