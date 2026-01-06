@@ -472,7 +472,7 @@ export function ModernNavbar({
           }}
         />
 
-        <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1920px] mx-auto pl-2 pr-4 sm:pl-4 sm:pr-6 lg:pl-6 lg:pr-8">
           <div className="flex h-16 items-center justify-between">
             {/* Left: Logo y Nombre */}
             <div className="flex items-center gap-4">

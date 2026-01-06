@@ -362,7 +362,7 @@ Este es un email automático, por favor no respondas a este mensaje.
     organizationLogoUrl?: string
   ): string {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const sofiaLogoUrl = `${appUrl}/SofiaLogo.png`;
+    const sofiaLogoUrl = `${appUrl}/Logo.png`;
     
     return `
       <!DOCTYPE html>
@@ -393,7 +393,7 @@ Este es un email automático, por favor no respondas a este mensaje.
             text-align: center;
           }
           .sofia-logo {
-            height: 40px;
+            height: 60px;
             width: auto;
             margin-bottom: 0;
           }

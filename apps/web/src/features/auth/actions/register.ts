@@ -58,8 +58,9 @@ export async function registerAction(formData: FormData) {
 
     const supabase = await createClient()
 
-    // Variable para almacenar el rol de la invitación (si existe)
+    // Variables para almacenar datos de la invitación (si existe)
     let invitedRole: string | undefined
+    let invitedPosition: string | undefined
 
     // Validar organización si viene de registro personalizado
     if (organizationId && organizationSlug) {
@@ -106,8 +107,15 @@ export async function registerAction(formData: FormData) {
           return { error: 'Esta invitación no es para esta organización' }
         }
 
-        // Guardar rol de la invitación
+        // Guardar rol y posición de la invitación
         invitedRole = validation.role
+        invitedPosition = validation.position
+        
+        console.log('📋 [registerAction] Datos de invitación:', {
+          role: invitedRole,
+          position: invitedPosition,
+          organizationId
+        })
       } else {
         // Caso 2: Registro manual sin token - buscar invitación por email
         const { hasInvitation, role, error: invError } = await findInvitationByEmailAction(
@@ -146,7 +154,22 @@ export async function registerAction(formData: FormData) {
     const userId = crypto.randomUUID()
 
     // Crear usuario directamente en la tabla users (sin Supabase Auth)
-    const cargoTitulo = parsed.cargo_titulo?.trim() || 'Usuario';
+    // PRIORIDAD: 1. Posición de la invitación, 2. Dato del formulario, 3. 'Usuario'
+    const cargoTitulo = invitedPosition || parsed.cargo_titulo?.trim() || 'Usuario';
+
+    // Determinar cargo_rol basado en el contexto de registro
+    // Si viene de una invitación de organización, asignar rol correspondiente
+    let cargoRol = 'Usuario' // Valor por defecto para registro público
+    
+    if (organizationId && invitedRole) {
+      // Si es owner o admin de la organización, es usuario tipo "Business"
+      // Si es member, es "Business User"
+      if (invitedRole === 'owner' || invitedRole === 'admin') {
+        cargoRol = 'Business'
+      } else {
+        cargoRol = 'Business User'
+      }
+    }
 
     const { data: user, error } = await supabase
       .from('users')
@@ -160,24 +183,32 @@ export async function registerAction(formData: FormData) {
         display_name: `${parsed.firstName} ${parsed.lastName}`.trim(), // Generar display_name
         country_code: parsed.countryCode,
         phone: parsed.phoneNumber, // Campo phone para el número de teléfono (varchar en DB)
-        cargo_rol: 'Usuario', // Rol por defecto para nuevos usuarios
-        type_rol: cargoTitulo, // Tipo de rol: cargo_titulo si se proporciona, 'Usuario' por defecto
+        cargo_rol: cargoRol, // Rol basado en la invitación
+        type_rol: cargoTitulo, // Tipo de rol: Cargo/Posición
         email_verified: false, // Se verificará después con email manual
       })
       .select()
       .single()
 
     if (error) {
-      // console.error('Error creating user profile:', error)
+      console.error('❌ [registerAction] Error creating user profile:', error)
       // Limpiar cuenta de auth en caso de error
       // Nota: Esto requeriría service role key, por ahora solo logueamos
       return { error: 'Error al crear perfil de usuario' }
     }
 
+    console.log('✅ [registerAction] Usuario creado:', { id: userId, cargo_rol: cargoRol, type_rol: cargoTitulo });
+
     // Si viene de registro personalizado de organización, crear relación en organization_users
     if (organizationId) {
       try {
-        await supabase
+        console.log('🔄 [registerAction] Vinculando usuario a organización:', {
+          organizationId,
+          userId,
+          role: invitedRole || 'member'
+        });
+
+        const { error: orgUserError } = await supabase
           .from('organization_users')
           .insert({
             organization_id: organizationId,
@@ -187,6 +218,14 @@ export async function registerAction(formData: FormData) {
             joined_at: new Date().toISOString()
           })
 
+        if (orgUserError) {
+           console.error('❌ [registerAction] Error creating organization_users relation:', orgUserError)
+           // Hacemos throw para que vaya al catch, pero no bloqueamos el registro exitoso del usuario
+           throw orgUserError; 
+        } else {
+           console.log('✅ [registerAction] Usuario vinculado exitosamente a la organización');
+        }
+
         // Consumir la invitación (marcar como aceptada)
         await consumeInvitationAction(
           invitationToken || parsed.email,
@@ -195,7 +234,7 @@ export async function registerAction(formData: FormData) {
         )
       } catch (orgUserError) {
         // No fallar el registro si hay error creando la relación
-        // console.error('Error creating organization_users relation:', orgUserError)
+        console.error('⚠️ [registerAction] Error no crítico vinculando a organización:', orgUserError)
       }
     }
 

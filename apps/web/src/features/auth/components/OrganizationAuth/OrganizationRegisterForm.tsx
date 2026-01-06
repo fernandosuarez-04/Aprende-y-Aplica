@@ -185,16 +185,17 @@ export function OrganizationRegisterForm({
     });
   };
 
-  // Redirigir al login cuando se cree exitosamente la cuenta
+  // Redirigir al login de la organización cuando se cree exitosamente la cuenta
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => {
-        router.push('/auth?tab=login');
+        // Redirigir al login de la organización específica
+        router.push(`/auth/${organizationSlug}`);
       }, 2000); // Esperar 2 segundos para que el usuario vea el mensaje de éxito
 
       return () => clearTimeout(timer);
     }
-  }, [success, router]);
+  }, [success, router, organizationSlug]);
 
   return (
     <>

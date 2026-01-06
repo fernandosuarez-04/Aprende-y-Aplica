@@ -36,6 +36,7 @@ interface ValidateResult {
   valid: boolean;
   email?: string;
   role?: string;
+  position?: string;
   organizationId?: string;
   organizationName?: string;
   organizationSlug?: string;
@@ -207,6 +208,7 @@ export async function validateInvitationAction(
         status,
         expires_at,
         organization_id,
+        metadata,
         organizations (
           id,
           name,
@@ -245,11 +247,13 @@ export async function validateInvitationAction(
 
     // 4. Retornar datos de la invitación
     const org = invitation.organizations as any;
+    const metadata = invitation.metadata as any;
 
     return {
       valid: true,
       email: invitation.email,
       role: invitation.role,
+      position: metadata?.position || undefined,
       organizationId: invitation.organization_id,
       organizationName: org?.name,
       organizationSlug: org?.slug,
