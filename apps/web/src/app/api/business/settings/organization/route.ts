@@ -103,7 +103,8 @@ export async function PUT(request: NextRequest) {
       contact_phone,
       website_url,
       logo_url,
-      max_users
+      max_users,
+      slug
     } = body
 
     // Validar campos requeridos
@@ -112,6 +113,41 @@ export async function PUT(request: NextRequest) {
         success: false,
         error: 'El nombre de la organización es requerido'
       }, { status: 400 })
+    }
+
+    // Validar y verificar slug si se proporciona
+    if (slug !== undefined && slug !== null && slug.trim() !== '') {
+      const slugValue = slug.trim().toLowerCase()
+      
+      // Validar formato
+      if (!/^[a-z0-9-]+$/.test(slugValue)) {
+        return NextResponse.json({
+          success: false,
+          error: 'El slug solo puede contener letras minúsculas, números y guiones'
+        }, { status: 400 })
+      }
+
+      if (slugValue.length < 3 || slugValue.length > 50) {
+        return NextResponse.json({
+          success: false,
+          error: 'El slug debe tener entre 3 y 50 caracteres'
+        }, { status: 400 })
+      }
+
+      // Verificar que no esté siendo usado por otra organización
+      const { data: existingOrg } = await supabase
+        .from('organizations')
+        .select('id')
+        .ilike('slug', slugValue)
+        .neq('id', auth.organizationId)
+        .single()
+
+      if (existingOrg) {
+        return NextResponse.json({
+          success: false,
+          error: 'Este identificador ya está en uso por otra organización'
+        }, { status: 400 })
+      }
     }
 
     // Preparar datos para actualizar
@@ -125,6 +161,7 @@ export async function PUT(request: NextRequest) {
     if (contact_phone !== undefined) updateData.contact_phone = contact_phone?.trim() || null
     if (website_url !== undefined) updateData.website_url = website_url?.trim() || null
     if (logo_url !== undefined) updateData.logo_url = logo_url?.trim() || null
+    if (slug !== undefined) updateData.slug = slug?.trim().toLowerCase() || null
     if (max_users !== undefined) {
       const maxUsersNum = parseInt(max_users)
       if (isNaN(maxUsersNum) || maxUsersNum < 1) {

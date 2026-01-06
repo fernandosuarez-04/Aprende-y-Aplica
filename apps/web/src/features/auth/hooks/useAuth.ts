@@ -25,7 +25,43 @@ interface User {
   } | null
 }
 
-// Fetcher optimizado para autenticación
+// Cache key para localStorage
+const USER_CACHE_KEY = 'user-auth-cache'
+const CACHE_EXPIRY_MS = 5 * 60 * 1000 // 5 minutos
+
+// Helper para obtener usuario desde cache
+const getCachedUser = (): User | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const cached = localStorage.getItem(USER_CACHE_KEY)
+    if (!cached) return null
+    const { user, timestamp } = JSON.parse(cached)
+    // Verificar si el cache ha expirado
+    if (Date.now() - timestamp > CACHE_EXPIRY_MS) {
+      localStorage.removeItem(USER_CACHE_KEY)
+      return null
+    }
+    return user
+  } catch {
+    return null
+  }
+}
+
+// Helper para guardar usuario en cache
+const setCachedUser = (user: User | null) => {
+  if (typeof window === 'undefined') return
+  try {
+    if (user) {
+      localStorage.setItem(USER_CACHE_KEY, JSON.stringify({ user, timestamp: Date.now() }))
+    } else {
+      localStorage.removeItem(USER_CACHE_KEY)
+    }
+  } catch {
+    // Silenciar errores de localStorage
+  }
+}
+
+// Fetcher optimizado para autenticación con cache
 const authFetcher = async (url: string): Promise<User | null> => {
   try {
     const response = await fetch(url, {
@@ -37,32 +73,41 @@ const authFetcher = async (url: string): Promise<User | null> => {
     })
 
     if (!response.ok) {
-      // Si no está autenticado, no es un error - simplemente no hay usuario
+      // Si no está autenticado, limpiar cache y retornar null
       if (response.status === 401 || response.status === 403) {
+        setCachedUser(null)
         return null
       }
       throw new Error('Error fetching user')
     }
 
     const data = await response.json()
-    return data.success && data.user ? data.user : null
+    const user = data.success && data.user ? data.user : null
+
+    // Guardar en cache para carga instantánea en próximas visitas
+    setCachedUser(user)
+
+    return user
   } catch (error) {
     // Manejar errores de red de forma silenciosa
     // "Failed to fetch" puede ocurrir cuando el componente se desmonta durante la navegación
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      // Error de red esperado durante navegación - retornar null silenciosamente
-      return null
+      // Error de red esperado durante navegación - retornar cache si existe
+      return getCachedUser()
     }
 
     if (process.env.NODE_ENV === 'development') {
       // console.warn('useAuth fetcher error:', error)
     }
-    return null
+    return getCachedUser() // Intentar retornar cache en caso de error
   }
 }
 
 export function useAuth() {
   const router = useRouter()
+
+  // OPTIMIZACIÓN: Usar cache de localStorage como fallbackData para carga instantánea
+  const cachedUser = typeof window !== 'undefined' ? getCachedUser() : null
 
   // SWR maneja el estado global, deduplicación y caché automáticamente
   const { data: user, error, isLoading, mutate } = useSWR<User | null>(
@@ -76,7 +121,7 @@ export function useAuth() {
       refreshInterval: 0, // No hacer polling automático
       shouldRetryOnError: false, // No reintentar en errores (si no está autenticado, no hay que reintentar)
       errorRetryCount: 0, // No reintentar
-      fallbackData: null, // Valor por defecto mientras carga
+      fallbackData: cachedUser, // OPTIMIZADO: Usar cache para mostrar datos instantáneamente
       onError: (error) => {
         // Ignorar errores de red esperados (Failed to fetch durante navegación)
         if (error instanceof TypeError && error.message === 'Failed to fetch') {
@@ -92,6 +137,8 @@ export function useAuth() {
       if (typeof window !== 'undefined') {
         // Limpiar auth-storage (Zustand persist) - CRÍTICO
         localStorage.removeItem('auth-storage');
+        // Limpiar cache de usuario
+        localStorage.removeItem(USER_CACHE_KEY);
         // Limpiar tokens
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
@@ -124,6 +171,7 @@ export function useAuth() {
       // ⚠️ CRITICAL: Asegurar limpieza incluso si hay error
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth-storage');
+        localStorage.removeItem(USER_CACHE_KEY);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
 

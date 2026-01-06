@@ -290,16 +290,15 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className="rounded-2xl shadow-2xl overflow-hidden border border-white/10 w-full flex flex-col"
-            style={{ backgroundColor: 'var(--org-card-background, #1a1f2e)' }}
+            className="rounded-2xl shadow-2xl overflow-hidden border w-full flex flex-col bg-white dark:bg-[#1a1f2e] border-gray-200 dark:border-white/10"
           >
             {/* Two Column Layout */}
             <div className="flex min-h-[500px] max-h-[85vh]">
 
               {/* Left Side - User Profile */}
               <div
-                className="w-64 lg:w-72 p-4 lg:p-6 flex flex-col border-r border-white/5 shrink-0 overflow-y-auto"
-                style={{ background: `linear-gradient(135deg, ${primaryColor}15, ${primaryColor}05)`, scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
+                className="w-64 lg:w-72 p-4 lg:p-6 flex flex-col border-r shrink-0 overflow-y-auto border-gray-200 dark:border-white/5"
+                style={{ background: `linear-gradient(135deg, ${primaryColor}15, ${primaryColor}05)`, scrollbarWidth: 'thin', scrollbarColor: 'rgba(128,128,128,0.2) transparent' }}
               >
                 {/* User Avatar */}
                 <div className="flex flex-col items-center mb-6">
@@ -324,8 +323,8 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                       {initials}
                     </div>
                   )}
-                  <h2 className="text-lg font-bold text-white text-center">{displayName}</h2>
-                  <p className="text-sm text-white/50 text-center mt-1">{user.email}</p>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white text-center">{displayName}</h2>
+                  <p className="text-sm text-gray-500 dark:text-white/50 text-center mt-1">{user.email}</p>
 
                   {/* Role Badge */}
                   <div
@@ -339,34 +338,34 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
 
                 {/* User Info */}
                 <div className="space-y-3 lg:space-y-4 flex-1">
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <div className="p-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                     <div className="flex items-center gap-2 mb-1">
-                      <Briefcase className="w-4 h-4 text-white/50" />
-                      <span className="text-xs text-white/50">{t('users.stats.labels.typeRole')}</span>
+                      <Briefcase className="w-4 h-4 text-gray-400 dark:text-white/50" />
+                      <span className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.labels.typeRole')}</span>
                     </div>
-                    <p className="text-sm text-white font-medium">{user.type_rol || 'N/A'}</p>
+                    <p className="text-sm text-gray-900 dark:text-white font-medium">{user.type_rol || 'N/A'}</p>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <div className="p-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                     <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="w-4 h-4 text-white/50" />
-                      <span className="text-xs text-white/50">{t('users.stats.labels.lastConnection')}</span>
+                      <Calendar className="w-4 h-4 text-gray-400 dark:text-white/50" />
+                      <span className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.labels.lastConnection')}</span>
                     </div>
-                    <p className="text-sm text-white font-medium">
+                    <p className="text-sm text-gray-900 dark:text-white font-medium">
                       {user.last_login_at ? formatRelativeTime(user.last_login_at) : t('users.stats.time.never')}
                     </p>
                     {user.last_login_at && (
-                      <p className="text-xs text-white/40 mt-0.5">{formatDate(user.last_login_at)}</p>
+                      <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{formatDate(user.last_login_at)}</p>
                     )}
                   </div>
 
                   {user.joined_at && (
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <div className="p-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                       <div className="flex items-center gap-2 mb-1">
-                        <LogIn className="w-4 h-4 text-white/50" />
-                        <span className="text-xs text-white/50">{t('users.stats.labels.joined')}</span>
+                        <LogIn className="w-4 h-4 text-gray-400 dark:text-white/50" />
+                        <span className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.labels.joined')}</span>
                       </div>
-                      <p className="text-sm text-white font-medium">{formatDate(user.joined_at)}</p>
+                      <p className="text-sm text-gray-900 dark:text-white font-medium">{formatDate(user.joined_at)}</p>
                     </div>
                   )}
                 </div>
@@ -375,7 +374,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
               {/* Right Side - Stats Content */}
               <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Header with Tabs */}
-                <div className="flex items-center justify-between p-3 lg:p-4 border-b border-white/5 shrink-0">
+                <div className="flex items-center justify-between p-3 lg:p-4 border-b border-gray-200 dark:border-white/5 shrink-0">
                   <div className="flex gap-1">
                     {[
                       { id: 'overview', label: 'Resumen', icon: BarChart3 },
@@ -387,8 +386,8 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                         key={id}
                         onClick={() => setActiveTab(id as any)}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === id
-                          ? 'text-white'
-                          : 'text-white/50 hover:text-white hover:bg-white/5'
+                          ? ''
+                          : 'text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
                           }`}
                         style={activeTab === id ? { backgroundColor: `${primaryColor}20`, color: primaryColor } : {}}
                       >
@@ -399,9 +398,9 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                   </div>
                   <button
                     onClick={onClose}
-                    className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                   >
-                    <X className="w-5 h-5 text-white/40" />
+                    <X className="w-5 h-5 text-gray-400 dark:text-white/40" />
                   </button>
                 </div>
 
@@ -473,7 +472,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.1 }}
-                                className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-4 group cursor-default`}
+                                className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-4 group cursor-default border border-transparent dark:border-white/5`}
                               >
                                 {/* Glow effect */}
                                 <div
@@ -485,8 +484,8 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                   <Icon className="w-5 h-5" style={{ color: iconColor }} />
                                 </div>
 
-                                <div className="text-3xl font-bold text-white mb-1">{value}</div>
-                                <div className="text-xs text-white/50 uppercase tracking-wider">{label}</div>
+                                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{value}</div>
+                                <div className="text-xs text-gray-500 dark:text-white/50 uppercase tracking-wider">{label}</div>
                               </motion.div>
                             ))}
                           </div>
@@ -498,7 +497,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.4 }}
                             >
-                              <h3 className="text-sm font-medium text-white/70 mb-3 flex items-center gap-2">
+                              <h3 className="text-sm font-medium text-gray-600 dark:text-white/70 mb-3 flex items-center gap-2">
                                 <Activity className="w-4 h-4" style={{ color: primaryColor }} />
                                 {t('users.stats.platformActivity.title')}
                               </h3>
@@ -510,8 +509,8 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                         <MessageSquare className="w-6 h-6 text-cyan-400" />
                                       </div>
                                       <div>
-                                        <div className="text-2xl font-bold text-white">{stats.lia_conversations_total}</div>
-                                        <div className="text-xs text-white/50">{t('users.stats.platformActivity.liaQueries')}</div>
+                                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.lia_conversations_total}</div>
+                                        <div className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.platformActivity.liaQueries')}</div>
                                       </div>
                                     </div>
                                     {stats.lia_messages_total !== undefined && (
@@ -527,10 +526,10 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                         <HelpCircle className="w-6 h-6 text-violet-400" />
                                       </div>
                                       <div>
-                                        <div className="text-2xl font-bold text-white">
-                                          {stats.quiz_passed || 0}<span className="text-white/40">/{stats.quiz_total}</span>
+                                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                                          {stats.quiz_passed || 0}<span className="text-gray-400 dark:text-white/40">/{stats.quiz_total}</span>
                                         </div>
-                                        <div className="text-xs text-white/50">{t('users.stats.platformActivity.quizzesPassed')}</div>
+                                        <div className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.platformActivity.quizzesPassed')}</div>
                                       </div>
                                     </div>
                                     {stats.quiz_average_score !== undefined && (
@@ -546,8 +545,8 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                         <Zap className="w-6 h-6 text-rose-400" />
                                       </div>
                                       <div>
-                                        <div className="text-2xl font-bold text-white">{stats.lia_activities_completed}</div>
-                                        <div className="text-xs text-white/50">{t('users.stats.platformActivity.liaActivities')}</div>
+                                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.lia_activities_completed}</div>
+                                        <div className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.platformActivity.liaActivities')}</div>
                                       </div>
                                     </div>
                                     {stats.lia_activities_total !== undefined && (
@@ -564,12 +563,12 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.5 }}
-                            className="rounded-2xl bg-gradient-to-br from-white/5 to-transparent p-5 border border-white/10"
+                            className="rounded-2xl bg-gradient-to-br from-gray-100 dark:from-white/5 to-transparent p-5 border border-gray-200 dark:border-white/10"
                           >
                             <div className="flex items-center justify-between mb-4">
                               <div>
-                                <h3 className="text-sm font-medium text-white/70">Progreso General</h3>
-                                <p className="text-xs text-white/40 mt-0.5">Avance en todos los cursos asignados</p>
+                                <h3 className="text-sm font-medium text-gray-600 dark:text-white/70">Progreso General</h3>
+                                <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">Avance en todos los cursos asignados</p>
                               </div>
                               <div
                                 className="text-3xl font-bold"
@@ -580,7 +579,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             </div>
 
                             {/* Progress Bar */}
-                            <div className="relative h-3 rounded-full overflow-hidden bg-white/5 mb-5">
+                            <div className="relative h-3 rounded-full overflow-hidden bg-gray-200 dark:bg-white/5 mb-5">
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${stats.average_progress}%` }}
@@ -600,21 +599,21 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                   <CheckCircle className="w-5 h-5 text-emerald-400" />
                                 </div>
                                 <div className="text-2xl font-bold text-emerald-400">{stats.completed_courses}</div>
-                                <div className="text-xs text-white/40">{t('users.stats.generalProgress.completed')}</div>
+                                <div className="text-xs text-gray-400 dark:text-white/40">{t('users.stats.generalProgress.completed')}</div>
                               </div>
                               <div className="text-center">
                                 <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-blue-500/20 mb-2">
                                   <PlayCircle className="w-5 h-5 text-blue-400" />
                                 </div>
                                 <div className="text-2xl font-bold text-blue-400">{stats.in_progress_courses}</div>
-                                <div className="text-xs text-white/40">{t('users.stats.generalProgress.inProgress')}</div>
+                                <div className="text-xs text-gray-400 dark:text-white/40">{t('users.stats.generalProgress.inProgress')}</div>
                               </div>
                               <div className="text-center">
-                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 mb-2">
-                                  <XCircle className="w-5 h-5 text-white/40" />
+                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-200 dark:bg-white/10 mb-2">
+                                  <XCircle className="w-5 h-5 text-gray-400 dark:text-white/40" />
                                 </div>
-                                <div className="text-2xl font-bold text-white/40">{stats.not_started_courses}</div>
-                                <div className="text-xs text-white/40">{t('users.stats.generalProgress.notStarted')}</div>
+                                <div className="text-2xl font-bold text-gray-400 dark:text-white/40">{stats.not_started_courses}</div>
+                                <div className="text-xs text-gray-400 dark:text-white/40">{t('users.stats.generalProgress.notStarted')}</div>
                               </div>
                             </div>
                           </motion.div>
@@ -641,27 +640,27 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               const timeData = stats.time_by_course.find(t => t.course_id === course.course_id)
                               const progressColor = course.status === 'completed' ? '#10B981' : course.progress > 0 ? '#3B82F6' : '#6B7280'
 
-                              return (
+                                return (
                                 <motion.div
                                   key={course.course_id}
                                   initial={{ opacity: 0, y: 20 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: index * 0.1 }}
-                                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 hover:border-white/20 transition-all duration-300"
+                                  className="group relative overflow-hidden rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 transition-all duration-300"
                                 >
                                   {/* Course Header */}
                                   <div className="p-5">
                                     <div className="flex items-start justify-between gap-4 mb-4">
                                       <div className="flex-1 min-w-0">
-                                        <h4 className="text-base font-semibold text-white truncate mb-1">
+                                        <h4 className="text-base font-semibold text-gray-900 dark:text-white truncate mb-1">
                                           {course.course_title}
                                         </h4>
-                                        <div className="flex items-center gap-3 text-xs text-white/50">
+                                        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-white/50">
                                           {course.enrolled_at && (
                                             <span>{t('users.stats.coursesList.enrolled')}: {formatDate(course.enrolled_at)}</span>
                                           )}
                                           {course.has_certificate && (
-                                            <span className="flex items-center gap-1 text-amber-400">
+                                            <span className="flex items-center gap-1 text-amber-500 dark:text-amber-400">
                                               <Award className="w-3 h-3" />
                                               {t('users.stats.coursesList.certificate')}
                                             </span>
@@ -685,10 +684,10 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                     {/* Progress Bar */}
                                     <div className="mb-4">
                                       <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs text-white/50">{t('users.stats.coursesList.progress')}</span>
+                                        <span className="text-xs text-gray-500 dark:text-white/50">{t('users.stats.coursesList.progress')}</span>
                                         <span className="text-sm font-bold" style={{ color: progressColor }}>{course.progress}%</span>
                                       </div>
-                                      <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
+                                      <div className="relative h-2 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
                                         <motion.div
                                           initial={{ width: 0 }}
                                           animate={{ width: `${course.progress}%` }}
@@ -705,54 +704,54 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                     {/* Stats Grid */}
                                     <div className="grid grid-cols-4 gap-3">
                                       {/* Time */}
-                                      <div className="flex items-center gap-2 p-2 rounded-xl bg-white/5">
+                                      <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-100 dark:bg-white/5">
                                         <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                                          <Clock className="w-4 h-4 text-amber-400" />
+                                          <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                                         </div>
                                         <div>
-                                          <div className="text-sm font-semibold text-white">
+                                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
                                             {course.time_spent_minutes ? `${Math.round((course.time_spent_minutes / 60) * 10) / 10}h` : timeData ? `${timeData.total_hours}h` : '0h'}
                                           </div>
-                                          <div className="text-xs text-white/40">{t('users.stats.coursesList.time')}</div>
+                                          <div className="text-xs text-gray-500 dark:text-white/40">{t('users.stats.coursesList.time')}</div>
                                         </div>
                                       </div>
 
                                       {/* LIA */}
-                                      <div className="flex items-center gap-2 p-2 rounded-xl bg-white/5">
+                                      <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-100 dark:bg-white/5">
                                         <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                                          <MessageSquare className="w-4 h-4 text-cyan-400" />
+                                          <MessageSquare className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                                         </div>
                                         <div>
-                                          <div className="text-sm font-semibold text-white">
+                                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
                                             {course.lia_conversations_count || 0}
                                           </div>
-                                          <div className="text-xs text-white/40">{t('users.stats.coursesList.lia')}</div>
+                                          <div className="text-xs text-gray-500 dark:text-white/40">{t('users.stats.coursesList.lia')}</div>
                                         </div>
                                       </div>
 
                                       {/* Quiz */}
-                                      <div className="flex items-center gap-2 p-2 rounded-xl bg-white/5">
+                                      <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-100 dark:bg-white/5">
                                         <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                                          <HelpCircle className="w-4 h-4 text-violet-400" />
+                                          <HelpCircle className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                                         </div>
                                         <div>
-                                          <div className="text-sm font-semibold text-white">
+                                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
                                             {course.quiz_passed || 0}/{course.quiz_total || 0}
                                           </div>
-                                          <div className="text-xs text-white/40">{t('users.stats.coursesList.quiz')}</div>
+                                          <div className="text-xs text-gray-500 dark:text-white/40">{t('users.stats.coursesList.quiz')}</div>
                                         </div>
                                       </div>
 
                                       {/* Notes */}
-                                      <div className="flex items-center gap-2 p-2 rounded-xl bg-white/5">
+                                      <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-100 dark:bg-white/5">
                                         <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                                          <FileText className="w-4 h-4 text-emerald-400" />
+                                          <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                                         </div>
                                         <div>
-                                          <div className="text-sm font-semibold text-white">
+                                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
                                             {course.notes_count || 0}
                                           </div>
-                                          <div className="text-xs text-white/40">{t('users.stats.coursesList.notes')}</div>
+                                          <div className="text-xs text-gray-500 dark:text-white/40">{t('users.stats.coursesList.notes')}</div>
                                         </div>
                                       </div>
                                     </div>
@@ -773,10 +772,10 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                         >
                           {stats.courses_data.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
-                              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-                                <TrendingUp className="w-8 h-8 text-white/30" />
+                              <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-4">
+                                <TrendingUp className="w-8 h-8 text-gray-400 dark:text-white/30" />
                               </div>
-                              <p className="text-white/50">{t('users.stats.timeline.empty')}</p>
+                              <p className="text-gray-500 dark:text-white/50">{t('users.stats.timeline.empty')}</p>
                             </div>
                           ) : (
                             stats.courses_data.map((course, index) => {
@@ -811,12 +810,12 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
 
                                     {/* Course Content */}
                                     <div className="flex-1 pb-6">
-                                      <div className="rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-4">
+                                      <div className="rounded-2xl bg-gray-50 dark:bg-gradient-to-br dark:from-white/5 dark:to-transparent border border-gray-200 dark:border-white/10 p-4">
                                         {/* Header */}
                                         <div className="flex items-start justify-between mb-4">
                                           <div>
-                                            <h4 className="text-base font-semibold text-white mb-1">{course.course_title}</h4>
-                                            <p className="text-xs text-white/40">
+                                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{course.course_title}</h4>
+                                            <p className="text-xs text-gray-500 dark:text-white/40">
                                               {course.status === 'completed'
                                                 ? `${t('users.stats.coursesList.completed')} ${formatDate(course.completed_at)}`
                                                 : course.progress > 0
@@ -827,7 +826,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                           </div>
                                           {course.status === 'completed' && (
                                             <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                              <CheckCircle className="w-5 h-5 text-emerald-400" />
+                                              <CheckCircle className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
                                             </div>
                                           )}
                                         </div>
@@ -850,27 +849,27 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                         <div className="flex flex-wrap gap-4">
                                           {course.modules_total !== undefined && course.modules_total > 0 && (
                                             <div className="flex items-center gap-2">
-                                              <Layers className="w-4 h-4 text-blue-400" />
-                                              <span className="text-sm text-white/70">
-                                                <span className="font-semibold text-white">{course.modules_completed || 0}</span>
+                                              <Layers className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                                              <span className="text-sm text-gray-600 dark:text-white/70">
+                                                <span className="font-semibold text-gray-900 dark:text-white">{course.modules_completed || 0}</span>
                                                 /{course.modules_total} {t('users.stats.timeline.modules')}
                                               </span>
                                             </div>
                                           )}
                                           {course.lessons_total !== undefined && course.lessons_total > 0 && (
                                             <div className="flex items-center gap-2">
-                                              <BookOpen className="w-4 h-4 text-violet-400" />
-                                              <span className="text-sm text-white/70">
-                                                <span className="font-semibold text-white">{course.lessons_completed || 0}</span>
+                                              <BookOpen className="w-4 h-4 text-violet-500 dark:text-violet-400" />
+                                              <span className="text-sm text-gray-600 dark:text-white/70">
+                                                <span className="font-semibold text-gray-900 dark:text-white">{course.lessons_completed || 0}</span>
                                                 /{course.lessons_total} {t('users.stats.timeline.lessons')}
                                               </span>
                                             </div>
                                           )}
                                           {course.quiz_total !== undefined && course.quiz_total > 0 && (
                                             <div className="flex items-center gap-2">
-                                              <HelpCircle className="w-4 h-4 text-amber-400" />
-                                              <span className="text-sm text-white/70">
-                                                <span className="font-semibold text-white">{course.quiz_passed || 0}</span>
+                                              <HelpCircle className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                                              <span className="text-sm text-gray-600 dark:text-white/70">
+                                                <span className="font-semibold text-gray-900 dark:text-white">{course.quiz_passed || 0}</span>
                                                 /{course.quiz_total} {t('users.stats.timeline.quizzes')}
                                               </span>
                                             </div>
@@ -903,10 +902,10 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             >
                               <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-emerald-500/10 blur-2xl" />
                               <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-3">
-                                <FileText className="w-6 h-6 text-emerald-400" />
+                                <FileText className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
                               </div>
-                              <div className="text-3xl font-bold text-white mb-1">{stats.notes_count}</div>
-                              <div className="text-sm text-emerald-400/80">{t('users.stats.activity.notesCreated')}</div>
+                              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stats.notes_count}</div>
+                              <div className="text-sm text-emerald-600 dark:text-emerald-400/80">{t('users.stats.activity.notesCreated')}</div>
                             </motion.div>
 
                             {/* Assignments Card */}
@@ -918,10 +917,10 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             >
                               <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-blue-500/10 blur-2xl" />
                               <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-3">
-                                <Target className="w-6 h-6 text-blue-400" />
+                                <Target className="w-6 h-6 text-blue-500 dark:text-blue-400" />
                               </div>
-                              <div className="text-3xl font-bold text-white mb-1">{stats.completed_assignments}<span className="text-white/40">/{stats.total_assignments}</span></div>
-                              <div className="text-sm text-blue-400/80">{t('users.stats.activity.assignments')}</div>
+                              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stats.completed_assignments}<span className="text-gray-400 dark:text-white/40">/{stats.total_assignments}</span></div>
+                              <div className="text-sm text-blue-600 dark:text-blue-400/80">{t('users.stats.activity.assignments')}</div>
                             </motion.div>
 
                             {/* Certificates Card */}
@@ -933,10 +932,10 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             >
                               <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-amber-500/10 blur-2xl" />
                               <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-3">
-                                <Award className="w-6 h-6 text-amber-400" />
+                                <Award className="w-6 h-6 text-amber-500 dark:text-amber-400" />
                               </div>
-                              <div className="text-3xl font-bold text-white mb-1">{stats.certificates_count}</div>
-                              <div className="text-sm text-amber-400/80">{t('users.stats.activity.certificates')}</div>
+                              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stats.certificates_count}</div>
+                              <div className="text-sm text-amber-600 dark:text-amber-400/80">{t('users.stats.activity.certificates')}</div>
                             </motion.div>
                           </div>
 
@@ -946,11 +945,11 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.3 }}
-                              className="rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-5"
+                              className="rounded-2xl bg-gray-50 dark:bg-gradient-to-br dark:from-white/5 dark:to-transparent border border-gray-200 dark:border-white/10 p-5"
                             >
                               <div className="flex items-center gap-2 mb-4">
                                 <Calendar className="w-5 h-5" style={{ color: primaryColor }} />
-                                <h3 className="text-sm font-medium text-white">{t('users.stats.activity.completionHistory')}</h3>
+                                <h3 className="text-sm font-medium text-gray-900 dark:text-white">{t('users.stats.activity.completionHistory')}</h3>
                               </div>
 
                               <div className="space-y-3">
@@ -966,7 +965,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                       transition={{ delay: 0.4 + index * 0.1 }}
                                       className="flex items-center gap-4"
                                     >
-                                      <div className="w-20 text-xs text-white/60 flex-shrink-0">
+                                      <div className="w-20 text-xs text-gray-500 dark:text-white/60 flex-shrink-0">
                                         {formatMonth(item.month)}
                                       </div>
                                       <div className="flex-1 relative h-8">
@@ -980,7 +979,7 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                                             minWidth: '60px'
                                           }}
                                         >
-                                          <span className="text-xs font-semibold text-white">
+                                          <span className="text-xs font-semibold text-gray-900 dark:text-white">
                                             {item.count} {t('users.stats.activity.courses')}
                                           </span>
                                         </motion.div>
@@ -997,26 +996,26 @@ export function BusinessUserStatsModal({ user, isOpen, onClose }: BusinessUserSt
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
-                            className="rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-5"
+                            className="rounded-2xl bg-gray-50 dark:bg-gradient-to-br dark:from-white/5 dark:to-transparent border border-gray-200 dark:border-white/10 p-5"
                           >
                             <div className="flex items-center gap-2 mb-4">
                               <Activity className="w-5 h-5" style={{ color: primaryColor }} />
-                              <h3 className="text-sm font-medium text-white">Resumen de Actividad</h3>
+                              <h3 className="text-sm font-medium text-gray-900 dark:text-white">Resumen de Actividad</h3>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-                                <Clock className="w-5 h-5 text-white/50" />
+                              <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5">
+                                <Clock className="w-5 h-5 text-gray-400 dark:text-white/50" />
                                 <div>
-                                  <div className="text-lg font-semibold text-white">{stats.total_time_spent_hours}h</div>
-                                  <div className="text-xs text-white/40">{t('users.stats.activity.studyTime')}</div>
+                                  <div className="text-lg font-semibold text-gray-900 dark:text-white">{stats.total_time_spent_hours}h</div>
+                                  <div className="text-xs text-gray-500 dark:text-white/40">{t('users.stats.activity.studyTime')}</div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-                                <BookOpen className="w-5 h-5 text-white/50" />
+                              <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5">
+                                <BookOpen className="w-5 h-5 text-gray-400 dark:text-white/50" />
                                 <div>
-                                  <div className="text-lg font-semibold text-white">{stats.completed_lessons}/{stats.total_lessons}</div>
-                                  <div className="text-xs text-white/40">{t('users.stats.activity.lessons')}</div>
+                                  <div className="text-lg font-semibold text-gray-900 dark:text-white">{stats.completed_lessons}/{stats.total_lessons}</div>
+                                  <div className="text-xs text-gray-500 dark:text-white/40">{t('users.stats.activity.lessons')}</div>
                                 </div>
                               </div>
                             </div>

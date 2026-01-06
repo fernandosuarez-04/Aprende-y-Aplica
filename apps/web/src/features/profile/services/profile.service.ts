@@ -231,9 +231,16 @@ export class ProfileService {
     try {
       const supabase = createClient()
       
-      // Verificar contraseña actual
-      const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
-        email: '', // Necesitaríamos el email del usuario
+      // Obtener el email del usuario actual
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      
+      if (!currentUser?.email) {
+        throw new Error('No se pudo obtener el email del usuario')
+      }
+      
+      // Verificar contraseña actual haciendo re-autenticación
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
         password: currentPassword
       })
 

@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, AlertCircle, Eye, EyeOff, Lock, Check } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { GoogleLoginButton } from '../GoogleLoginButton/GoogleLoginButton';
 import { MicrosoftLoginButton } from '../MicrosoftLoginButton/MicrosoftLoginButton';
@@ -102,6 +101,7 @@ export function OrganizationLoginForm({
   
   const primaryColor = loginStyles?.primary_button_color || '#3b82f6';
   const secondaryColor = loginStyles?.secondary_button_color || '#10b981';
+  const focusColor = '#00D4B3'; // Color fijo para estados de enfoque - siempre visible
   const textColor = loginStyles?.text_color || defaultText;
   const borderColor = loginStyles?.border_color || defaultBorder;
   const cardBg = loginStyles?.card_background || defaultCardBg;
@@ -379,7 +379,7 @@ export function OrganizationLoginForm({
           htmlFor="emailOrUsername"
           className="block text-xs font-medium uppercase tracking-wider mb-1.5 transition-all duration-200"
           style={{
-            color: focusedField === 'emailOrUsername' ? primaryColor : textColor,
+            color: focusedField === 'emailOrUsername' ? focusColor : textColor,
             opacity: focusedField === 'emailOrUsername' ? 1 : 0.7
           }}
         >
@@ -396,13 +396,13 @@ export function OrganizationLoginForm({
                   : inputBgColor)
                 : inputBgColor,
               borderColor: focusedField === 'emailOrUsername'
-                ? primaryColor
+                ? focusColor
                 : errors.emailOrUsername
                   ? '#ef4444'
                   : borderColor,
               borderWidth: focusedField === 'emailOrUsername' ? '2px' : '1px',
               boxShadow: focusedField === 'emailOrUsername'
-                ? `0 0 0 3px ${primaryColor}15, 0 4px 12px -2px rgba(0, 0, 0, 0.2)`
+                ? `0 0 0 3px ${focusColor}20, 0 4px 12px -2px rgba(0, 0, 0, 0.2)`
                 : 'none',
             }}
             animate={{
@@ -415,7 +415,7 @@ export function OrganizationLoginForm({
               <motion.div
                 className="absolute bottom-0 left-0 right-0 h-0.5"
                 style={{
-                  background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor})`,
+                  background: focusColor,
                 }}
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
@@ -427,7 +427,7 @@ export function OrganizationLoginForm({
               <Mail
                 className="w-4 h-4 flex-shrink-0 mr-3 transition-colors duration-200"
                 style={{
-                  color: focusedField === 'emailOrUsername' ? primaryColor : `${textColor}50`
+                  color: focusedField === 'emailOrUsername' ? focusColor : `${textColor}50`
                 }}
               />
               <input
@@ -472,7 +472,7 @@ export function OrganizationLoginForm({
           htmlFor="password"
           className="block text-xs font-medium uppercase tracking-wider mb-1.5 transition-all duration-200"
           style={{
-            color: focusedField === 'password' ? primaryColor : textColor,
+            color: focusedField === 'password' ? focusColor : textColor,
             opacity: focusedField === 'password' ? 1 : 0.7
           }}
         >
@@ -489,13 +489,13 @@ export function OrganizationLoginForm({
                   : inputBgColor)
                 : inputBgColor,
               borderColor: focusedField === 'password'
-                ? primaryColor
+                ? focusColor
                 : errors.password
                   ? '#ef4444'
                   : borderColor,
               borderWidth: focusedField === 'password' ? '2px' : '1px',
               boxShadow: focusedField === 'password'
-                ? `0 0 0 3px ${primaryColor}15, 0 4px 12px -2px rgba(0, 0, 0, 0.2)`
+                ? `0 0 0 3px ${focusColor}20, 0 4px 12px -2px rgba(0, 0, 0, 0.2)`
                 : 'none',
             }}
             animate={{
@@ -508,7 +508,7 @@ export function OrganizationLoginForm({
               <motion.div
                 className="absolute bottom-0 left-0 right-0 h-0.5"
                 style={{
-                  background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor})`,
+                  background: focusColor,
                 }}
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
@@ -520,7 +520,7 @@ export function OrganizationLoginForm({
               <Lock
                 className="w-4 h-4 flex-shrink-0 mr-3 transition-colors duration-200"
                 style={{
-                  color: focusedField === 'password' ? primaryColor : `${textColor}50`
+                  color: focusedField === 'password' ? focusColor : `${textColor}50`
                 }}
               />
               <input
@@ -541,8 +541,8 @@ export function OrganizationLoginForm({
                 onClick={() => setShowPassword(!showPassword)}
                 className="ml-2 p-1.5 rounded-lg transition-colors flex-shrink-0 hover:opacity-70"
                 style={{
-                  color: focusedField === 'password' ? primaryColor : `${textColor}50`,
-                  backgroundColor: focusedField === 'password' ? `${primaryColor}15` : 'transparent'
+                  color: focusedField === 'password' ? focusColor : `${textColor}50`,
+                  backgroundColor: focusedField === 'password' ? `${focusColor}15` : 'transparent'
                 }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -572,9 +572,9 @@ export function OrganizationLoginForm({
         </AnimatePresence>
       </motion.div>
 
-      {/* Remember Me & Forgot Password - Rediseñado */}
+      {/* Remember Me - Rediseñado */}
       <motion.div
-        className="flex items-center justify-between pt-1"
+        className="flex items-center pt-1"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.4 }}
@@ -627,34 +627,9 @@ export function OrganizationLoginForm({
             Recordarme
           </span>
         </motion.label>
-
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Link
-            href={`/auth/${organizationSlug}/forgot-password`}
-            className="text-xs font-medium transition-all duration-200 relative group/link"
-            style={{
-              color: primaryColor,
-              textDecoration: 'none',
-            }}
-          >
-            <span className="relative z-10">¿Olvidaste tu contraseña?</span>
-            <motion.span
-              className="absolute bottom-0 left-0 right-0 h-px origin-left"
-              style={{
-                background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor})`,
-              }}
-              initial={{ scaleX: 0 }}
-              whileHover={{ scaleX: 1 }}
-              transition={{ duration: 0.2 }}
-            />
-          </Link>
-        </motion.div>
       </motion.div>
 
-      {/* Submit Button - Diseño completamente nuevo */}
+      {/* Submit Button - Azul sólido */}
       <motion.div
         className="pt-2"
         initial={{ opacity: 0, y: 15 }}
@@ -666,7 +641,7 @@ export function OrganizationLoginForm({
           disabled={isPending}
           className="w-full relative overflow-hidden group rounded-xl py-3.5 px-5 font-semibold text-sm text-white transition-all duration-300 border-0"
           style={{
-            background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+            backgroundColor: primaryColor,
             boxShadow: `0 4px 14px -2px ${primaryColor}40`,
           }}
           whileHover={{
@@ -675,20 +650,6 @@ export function OrganizationLoginForm({
           }}
           whileTap={{ scale: 0.99 }}
         >
-          {/* Subtle shimmer on hover */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-            animate={{
-              x: ['-100%', '100%'],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              repeatDelay: 2,
-              ease: 'linear',
-            }}
-          />
-
           {/* Button content */}
           <span className="relative z-10 flex items-center justify-center gap-2">
             {isPending ? (

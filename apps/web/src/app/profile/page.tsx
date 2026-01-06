@@ -456,6 +456,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState<UpdateProfileRequest>({})
   const [activeTab, setActiveTab] = useState<TabId>('personal')
   const [showSaveSuccess, setShowSaveSuccess] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   // Password states
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -643,13 +644,21 @@ export default function ProfilePage() {
           <div className="relative px-6 lg:px-12 py-12">
             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
               {/* Avatar */}
-              <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative group">
+                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative group">
                 <div className="w-32 h-32 lg:w-40 lg:h-40 rounded-3xl p-1" style={{ background: `linear-gradient(135deg, ${colors.accent}30, #8B5CF630)` }}>
-                  <div className="w-full h-full rounded-[22px] overflow-hidden flex items-center justify-center" style={{ backgroundColor: colors.bgSecondary }}>
-                    {profile.profile_picture_url ? (
-                      <img src={profile.profile_picture_url} alt="Profile" className="w-full h-full object-cover" />
+                  <div className="w-full h-full rounded-[22px] overflow-hidden flex items-center justify-center relative" style={{ backgroundColor: colors.bgSecondary }}>
+                    {profile.profile_picture_url && !imageError ? (
+                      <img 
+                        src={profile.profile_picture_url} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover" 
+                        onError={() => {
+                          // console.log('Error loading image:', profile.profile_picture_url)
+                          setImageError(true)
+                        }}
+                      />
                     ) : (
-                      <User className="w-16 h-16 text-white/20" />
+                      <User className="w-16 h-16" style={{ color: colors.textSecondary }} />
                     )}
                   </div>
                 </div>
@@ -657,14 +666,17 @@ export default function ProfilePage() {
                 <input type="file" id="avatar-upload" className="hidden" accept="image/jpeg,image/jpg,image/png,image/gif"
                   onChange={async (e) => {
                     if (e.target.files?.[0]) {
-                      try { await uploadProfilePicture(e.target.files[0]) }
+                      try { 
+                        setImageError(false) // Reset error state before uploading
+                        await uploadProfilePicture(e.target.files[0]) 
+                      }
                       catch (error) { console.error(error) }
                     }
                   }}
                 />
                 <motion.label
                   htmlFor="avatar-upload"
-                  className="absolute -bottom-2 -right-2 w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer"
+                  className="absolute -bottom-2 -right-2 w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95 z-10"
                   style={{ backgroundColor: colors.accent, boxShadow: `0 10px 30px ${colors.accent}40` }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}

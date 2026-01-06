@@ -307,17 +307,17 @@ export function BusinessAnalytics() {
                                                     {user.name ? user.name.charAt(0).toUpperCase() : '?'}
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-sm">{user.name || 'Sin nombre'}</p>
-                                                    <p className="text-xs opacity-50">{user.email}</p>
+                                                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{user.name || 'Sin nombre'}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="p-4">
                                             <span className={`
                                                 px-2 py-1 rounded-full text-xs font-medium border
-                                                ${user.role?.toLowerCase().includes('admin') ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 
-                                                  user.role?.toLowerCase().includes('instructor') ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
-                                                  'bg-blue-500/10 text-blue-400 border-blue-500/20'}
+                                                ${user.role?.toLowerCase().includes('admin') ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' : 
+                                                  user.role?.toLowerCase().includes('instructor') ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' : 
+                                                  'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'}
                                             `}>
                                                 {user.role || 'Estudiante'}
                                             </span>
@@ -333,29 +333,31 @@ export function BusinessAnalytics() {
                                                         }}
                                                     />
                                                 </div>
-                                                <span className="text-xs font-mono">{user.average_progress}%</span>
+                                                <span className="text-xs font-mono text-gray-700 dark:text-gray-300">{user.average_progress}%</span>
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="inline-flex items-center gap-1 text-sm bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-lg">
-                                                <span className="text-green-400 font-bold">{user.courses_completed}</span>
-                                                <span className="opacity-40">/</span>
-                                                <span>{user.courses_assigned}</span>
+                                            <div className="inline-flex items-center gap-1 text-sm bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-lg border border-gray-200 dark:border-white/5">
+                                                <span className="text-green-600 dark:text-green-400 font-bold">{user.courses_completed}</span>
+                                                <span className="text-gray-400 opacity-60">/</span>
+                                                <span className="text-gray-700 dark:text-gray-300 font-medium">{user.courses_assigned}</span>
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <div className="flex items-center gap-1 opacity-80">
-                                                <Clock className="w-3 h-3 opcaity-60" />
-                                                <span className="text-sm font-mono">{Math.round(user.total_time_minutes / 60 * 10) / 10}h</span>
+                                            <div className="inline-flex items-center gap-1 text-sm bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-lg border border-gray-200 dark:border-white/5">
+                                                <Clock className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                                                <span className="text-sm font-mono font-medium text-gray-700 dark:text-gray-300">{Math.round(user.total_time_minutes / 60 * 10) / 10}h</span>
                                             </div>
                                         </td>
-                                        <td className="p-4 text-sm opacity-60">
-                                            {user.last_active ? new Date(user.last_active).toLocaleDateString() : 'Nunca'}
+                                        <td className="p-4 text-sm">
+                                            <div className="inline-flex items-center text-sm bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-lg border border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-300 font-medium">
+                                                {user.last_active ? new Date(user.last_active).toLocaleDateString() : 'Nunca'}
+                                            </div>
                                         </td>
                                         <td className="p-4">
                                             <button 
                                                 onClick={() => setSelectedUser(user)}
-                                                className="p-2 hover:bg-white/10 rounded-lg transition-colors opacity-60 hover:opacity-100"
+                                                className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                                             >
                                                 <MoreHorizontal className="w-4 h-4" />
                                             </button>
@@ -585,9 +587,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                 onClick={(e) => e.stopPropagation()}
                 className="relative flex flex-col w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl border shadow-2xl bg-white dark:bg-[#0f172a] border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-50"
                 style={{ 
-                    ...(theme.cardBg ? { backgroundColor: theme.cardBg } : {}),
                     ...(theme.cardBorder ? { borderColor: theme.cardBorder } : {}),
-                    ...(theme.textColor ? { color: theme.textColor } : {})
                 }}
             >
                 {/* Header */}
@@ -615,25 +615,25 @@ function UserDetailModal({ user, onClose, theme }: any) {
                     
                     {/* Key Stats Badges */}
                     <div className="flex gap-3 mt-4">
-                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                            <Zap className="w-4 h-4 text-amber-400" />
+                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-black/30 backdrop-blur-sm border border-gray-200 dark:border-white/10 shadow-sm">
+                            <Zap className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                             <div>
-                                <p className="text-[10px] opacity-60 text-white">Racha</p>
-                                <p className="font-bold text-sm leading-none text-white">{user.stats?.current_streak || 0} días</p>
+                                <p className="text-[10px] uppercase font-bold tracking-wider opacity-60 text-gray-700 dark:text-white">Racha</p>
+                                <p className="font-bold text-sm leading-none text-gray-900 dark:text-white">{user.stats?.current_streak || 0} días</p>
                             </div>
                          </div>
-                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                            <Target className="w-4 h-4 text-emerald-400" />
+                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-black/30 backdrop-blur-sm border border-gray-200 dark:border-white/10 shadow-sm">
+                            <Target className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                             <div>
-                                <p className="text-[10px] opacity-60 text-white">Adherencia</p>
-                                <p className="font-bold text-sm leading-none text-white">{user.stats?.planner?.adherence || 0}%</p>
+                                <p className="text-[10px] uppercase font-bold tracking-wider opacity-60 text-gray-700 dark:text-white">Adherencia</p>
+                                <p className="font-bold text-sm leading-none text-gray-900 dark:text-white">{user.stats?.planner?.adherence || 0}%</p>
                             </div>
                          </div>
-                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/10">
-                            <Clock className="w-4 h-4 text-blue-400" />
+                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-black/30 backdrop-blur-sm border border-gray-200 dark:border-white/10 shadow-sm">
+                            <Clock className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                             <div>
-                                <p className="text-[10px] opacity-60 text-white">Tiempo Total</p>
-                                <p className="font-bold text-sm leading-none text-white">{Math.round((user.total_time_minutes || 0) / 60)}h</p>
+                                <p className="text-[10px] uppercase font-bold tracking-wider opacity-60 text-gray-700 dark:text-white">Tiempo Total</p>
+                                <p className="font-bold text-sm leading-none text-gray-900 dark:text-white">{Math.round((user.total_time_minutes || 0) / 60)}h</p>
                             </div>
                          </div>
                     </div>
@@ -648,7 +648,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                             <button
                                 key={tab}
                                 onClick={() => setSubTab(tab as any)}
-                                className={`pb-4 text-sm font-medium transition-all relative ${subTab === tab ? 'text-blue-500 opacity-100 dark:text-white' : 'opacity-40 hover:opacity-70'}`}
+                                className={`pb-4 text-sm font-medium transition-all relative ${subTab === tab ? 'text-blue-500 dark:text-blue-400 opacity-100' : 'text-gray-500 dark:text-gray-400 opacity-60 hover:opacity-100'}`}
                             >
                                 <span className="capitalize">{tab === 'activity' ? 'Actividad y Hábitos' : tab === 'planner' ? 'Planificador de Estudio' : 'Progreso de Cursos'}</span>
                                 {subTab === tab && (
@@ -747,7 +747,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                                                     className="relative w-full rounded-t-sm bg-purple-500/30 hover:bg-purple-500 transition-colors"
                                                     style={{ height: `${maxHour > 0 ? (count / maxHour) * 100 : 0}%`, minHeight: '4px' }}
                                                 >
-                                                    <div className="absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-black px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100">
+                                                    <div className="absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
                                                         {count} sesiones
                                                     </div>
                                                 </div>

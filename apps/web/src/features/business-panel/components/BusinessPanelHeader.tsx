@@ -194,26 +194,25 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
           <div className="relative" ref={dropdownRef}>
             <motion.button
               onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-200"
+              className="flex items-center justify-center p-1 rounded-full transition-all duration-200"
               style={{
                 backgroundColor: userDropdownOpen ? 'rgba(255, 255, 255, 0.1)' : 'transparent'
               }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               <div
-                className="h-8 w-8 rounded-full flex items-center justify-center ring-2 transition-all"
+                className="h-9 w-9 rounded-full flex items-center justify-center ring-2 ring-white/20 transition-all shadow-sm"
                 style={{
                   background: 'linear-gradient(135deg, var(--org-primary-button-color, #3b82f6), var(--org-secondary-button-color, #10b981))',
-                  ringColor: 'rgba(255, 255, 255, 0.2)'
                 }}
               >
                 {userProfile?.profile_picture_url || user?.profile_picture_url ? (
                   <Image
                     src={userProfile?.profile_picture_url || user?.profile_picture_url || ''}
                     alt={getDisplayName()}
-                    width={32}
-                    height={32}
+                    width={36}
+                    height={36}
                     className="h-full w-full rounded-full object-cover"
                   />
                 ) : (
@@ -222,19 +221,6 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                   </span>
                 )}
               </div>
-              <span
-                className="hidden md:block text-sm font-medium"
-                style={{ color: navbarStyle.color || 'rgba(255, 255, 255, 0.95)' }}
-              >
-                {getDisplayName()}
-              </span>
-              <ChevronDown
-                className="h-4 w-4 transition-transform duration-200 hidden md:block"
-                style={{
-                  color: navbarStyle.color || 'rgba(255, 255, 255, 0.6)',
-                  transform: userDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
-                }}
-              />
             </motion.button>
 
             {/* Dropdown */}

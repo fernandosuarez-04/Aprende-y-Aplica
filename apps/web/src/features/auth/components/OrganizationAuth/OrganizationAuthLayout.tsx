@@ -37,7 +37,7 @@ export function OrganizationAuthLayout({
     setMounted(true);
   }, []);
 
-  const isDark = mounted ? resolvedTheme === 'dark' : true; // Default to dark mostly for this page style, or handle loading
+  const isDark = mounted ? resolvedTheme === 'dark' : true; // Esperar a que se monte para evitar flash
 
   const faviconUrl = organization.brand_favicon_url || organization.logo_url || '/icono.png';
   const primaryColor = organization.brand_color_primary || '#3b82f6';
@@ -289,7 +289,7 @@ export function OrganizationAuthLayout({
                       className="text-3xl lg:text-4xl font-bold mb-3 tracking-tight"
                       style={{
                         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-                        color: '#FFFFFF',
+                        color: textColor,
                       }}
                     >
                       {organization.name}

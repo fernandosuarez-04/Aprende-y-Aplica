@@ -19,6 +19,7 @@ import {
   PlayCircle
 } from 'lucide-react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 import { TeamsService, WorkTeamCourseAssignment } from '../services/teams.service'
 import { BusinessAssignCourseToTeamModal } from './BusinessAssignCourseToTeamModal'
 import { WorkTeamMember } from '../services/teams.service'
@@ -32,13 +33,19 @@ interface TeamCoursesTabProps {
 
 export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTabProps) {
   const { styles } = useOrganizationStylesContext()
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const panelStyles = styles?.panel
 
   const primaryColor = panelStyles?.primary_button_color || '#8B5CF6'
   const accentColor = panelStyles?.accent_color || '#10B981'
-  const cardBackground = panelStyles?.card_background || '#1E2329'
-  const textColor = panelStyles?.text_color || '#FFFFFF'
-  const borderColor = panelStyles?.border_color || 'rgba(255,255,255,0.1)'
+  const cardBackground = isDark ? (panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)') : '#FFFFFF'
+  const textColor = isDark ? (panelStyles?.text_color || '#f8fafc') : '#0F172A'
+  const secondaryTextColor = isDark ? 'rgba(248, 250, 252, 0.6)' : 'rgba(15, 23, 42, 0.6)'
+  const tertiaryTextColor = isDark ? 'rgba(248, 250, 252, 0.5)' : 'rgba(15, 23, 42, 0.5)'
+  const borderColor = isDark ? (panelStyles?.border_color || 'rgba(255,255,255,0.1)') : 'rgba(0,0,0,0.1)'
+  const statBg = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'
+  const progressBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'
 
   const [assignments, setAssignments] = useState<WorkTeamCourseAssignment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -92,7 +99,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
               <BookOpen className="w-8 h-8" style={{ color: primaryColor }} />
             </div>
           </div>
-          <p className="text-sm" style={{ color: `${textColor}60` }}>
+          <p className="text-sm" style={{ color: secondaryTextColor }}>
             Cargando cursos...
           </p>
         </motion.div>
@@ -123,7 +130,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
             <h2 className="text-2xl font-bold" style={{ color: textColor }}>
               Cursos del Equipo
             </h2>
-            <p className="text-sm" style={{ color: `${textColor}60` }}>
+            <p className="text-sm" style={{ color: secondaryTextColor }}>
               {totalCourses} curso{totalCourses !== 1 ? 's' : ''} asignado{totalCourses !== 1 ? 's' : ''} a {teamName}
             </p>
           </div>
@@ -202,7 +209,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                 <p className="text-2xl font-bold mb-0.5" style={{ color: textColor }}>
                   {stat.value}
                 </p>
-                <p className="text-xs font-medium" style={{ color: `${textColor}60` }}>
+                <p className="text-xs font-medium" style={{ color: secondaryTextColor }}>
                   {stat.label}
                 </p>
               </div>
@@ -267,7 +274,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
             <h3 className="text-2xl font-bold mb-3" style={{ color: textColor }}>
               ¡Comienza a capacitar a tu equipo!
             </h3>
-            <p className="text-base mb-8 max-w-md mx-auto" style={{ color: `${textColor}60` }}>
+            <p className="text-base mb-8 max-w-md mx-auto" style={{ color: secondaryTextColor }}>
               Asigna cursos a tu equipo para impulsar su desarrollo profesional y hacer seguimiento de su progreso.
             </p>
 
@@ -295,7 +302,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                 <div
                   key={i}
                   className="flex items-center gap-2 justify-center text-sm"
-                  style={{ color: `${textColor}50` }}
+                  style={{ color: tertiaryTextColor }}
                 >
                   <feature.icon className="w-4 h-4" style={{ color: primaryColor }} />
                   {feature.text}
@@ -426,7 +433,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                           >
                             {assignment.course?.title || 'Curso sin título'}
                           </h3>
-                          <p className="text-sm" style={{ color: `${textColor}50` }}>
+                          <p className="text-sm" style={{ color: tertiaryTextColor }}>
                             Asignado el {new Date(assignment.assigned_at).toLocaleDateString('es-ES', {
                               day: 'numeric',
                               month: 'long',
@@ -440,7 +447,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                       {assignment.message && (
                         <p
                           className="text-sm mb-3 line-clamp-2 italic"
-                          style={{ color: `${textColor}60` }}
+                          style={{ color: secondaryTextColor }}
                         >
                           "{assignment.message}"
                         </p>
@@ -449,14 +456,14 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                       {/* Progress Section */}
                       <div className="mt-auto space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span style={{ color: `${textColor}60` }}>Progreso del equipo</span>
+                          <span style={{ color: secondaryTextColor }}>Progreso del equipo</span>
                           <span className="font-bold" style={{ color: status.color }}>
                             {status.progress}%
                           </span>
                         </div>
                         <div
                           className="h-2.5 rounded-full overflow-hidden"
-                          style={{ backgroundColor: `${textColor}10` }}
+                          style={{ backgroundColor: progressBg }}
                         >
                           <motion.div
                             initial={{ width: 0 }}
@@ -472,13 +479,13 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                       </div>
 
                       {/* Footer Info */}
-                      <div className="mt-4 pt-4 border-t flex flex-wrap items-center justify-between gap-3" style={{ borderColor: `${textColor}08` }}>
+                      <div className="mt-4 pt-4 border-t flex flex-wrap items-center justify-between gap-3" style={{ borderColor }}>
                         <div className="flex items-center gap-4">
                           {/* Due Date */}
                           {assignment.due_date && (
                             <div
                               className={`flex items-center gap-1.5 text-sm ${isOverdue ? 'text-red-400' : ''}`}
-                              style={{ color: isOverdue ? '#EF4444' : `${textColor}50` }}
+                              style={{ color: isOverdue ? '#EF4444' : tertiaryTextColor }}
                             >
                               <Calendar className="w-4 h-4" />
                               <span>

@@ -188,12 +188,12 @@ export function LoginForm() {
               />
             </motion.div>
 
-            {/* Recordar y Olvidé contraseña */}
+            {/* Recordar */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.4 }}
-              className="flex items-center justify-between"
+              className="flex items-center"
             >
               {/* Checkbox Recordar */}
               <label className="flex items-center cursor-pointer group">
@@ -236,14 +236,6 @@ export function LoginForm() {
                   Recordarme
                 </span>
               </label>
-
-              {/* Link Olvidé contraseña */}
-              <a
-                href="/auth/forgot-password"
-                className="text-sm font-medium text-[#00D4B3] hover:text-[#00D4B3]/80 dark:text-[#00D4B3] dark:hover:text-[#00D4B3]/70 transition-colors"
-              >
-                ¿Olvidaste tu contraseña?
-              </a>
             </motion.div>
 
             {/* Botón de Login */}

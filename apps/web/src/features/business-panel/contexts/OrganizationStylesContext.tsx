@@ -97,6 +97,7 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
   }, [styles, resolvedTheme]);
 
   // Memoizar fetchStyles para evitar recreaciones
+  // OPTIMIZADO: Carga instantánea desde cache, luego revalida en background
   const fetchStyles = useCallback(async () => {
     // Si es Administrador sin organización, usar tema por defecto sin llamar a la API
     const normalizedRole = user?.cargo_rol?.toLowerCase().trim() || '';
@@ -133,8 +134,32 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
       return;
     }
 
-    try {
+    // OPTIMIZACIÓN: Cargar PRIMERO desde cache para mostrar UI instantáneamente
+    const cacheKey = `business-theme-${user.organization_id}`;
+    let cachedStyles: OrganizationStyles | null = null;
+
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          cachedStyles = JSON.parse(cached);
+          // Mostrar cache inmediatamente (UI instantánea)
+          setStyles(cachedStyles);
+          setLoading(false); // Ya tenemos datos, no mostrar loading
+          log('📦 Estilos cargados desde cache instantáneamente');
+        }
+      } catch (e) {
+        // Cache inválido, continuar con fetch
+      }
+    }
+
+    // Si no hay cache, mostrar loading
+    if (!cachedStyles) {
       setLoading(true);
+    }
+
+    // Revalidar desde servidor en background (stale-while-revalidate pattern)
+    try {
       setError(null);
 
       const response = await fetch('/api/business/settings/styles', {
@@ -159,64 +184,39 @@ export function OrganizationStylesProvider({ children }: { children: ReactNode }
             supportsDualMode: defaultTheme.supportsDualMode
           };
           setStyles(defaultStyles);
+          // Guardar en cache
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem(cacheKey, JSON.stringify(defaultStyles));
+            } catch (e) { /* ignore */ }
+          }
           return;
         }
       }
 
-      setStyles(data.styles);
+      // Solo actualizar si los datos son diferentes (evitar re-renders innecesarios)
+      const newStylesStr = JSON.stringify(data.styles);
+      const cachedStylesStr = cachedStyles ? JSON.stringify(cachedStyles) : null;
 
-      // Guardar en localStorage como respaldo
+      if (newStylesStr !== cachedStylesStr) {
+        setStyles(data.styles);
+        log('🔄 Estilos actualizados desde servidor');
+      }
+
+      // Guardar en localStorage
       if (typeof window !== 'undefined' && data.styles) {
         try {
-          localStorage.setItem(
-            `business-theme-${user.organization_id}`,
-            JSON.stringify(data.styles)
-          );
+          localStorage.setItem(cacheKey, JSON.stringify(data.styles));
         } catch (e) {
           // Silenciar error de localStorage
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Error al obtener estilos');
+      // Si ya teníamos cache, no mostrar error (datos ya están en pantalla)
+      if (!cachedStyles) {
+        setError(err.message || 'Error al obtener estilos');
 
-      // Intentar cargar desde localStorage como fallback
-      if (typeof window !== 'undefined' && user?.organization_id) {
-        try {
-          const cached = localStorage.getItem(`business-theme-${user.organization_id}`);
-          if (cached) {
-            setStyles(JSON.parse(cached));
-          } else {
-            // No hay cache, usar tema por defecto
-            const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
-            if (defaultTheme) {
-              setStyles({
-                panel: defaultTheme.panel,
-                userDashboard: defaultTheme.userDashboard,
-                login: defaultTheme.login,
-                selectedTheme: DEFAULT_THEME,
-                supportsDualMode: defaultTheme.supportsDualMode
-              });
-            } else {
-              setStyles(null);
-            }
-          }
-        } catch (e) {
-          // Error parseando cache, usar tema por defecto
-          const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
-          if (defaultTheme) {
-            setStyles({
-              panel: defaultTheme.panel,
-              userDashboard: defaultTheme.userDashboard,
-              login: defaultTheme.login,
-              selectedTheme: DEFAULT_THEME,
-              supportsDualMode: defaultTheme.supportsDualMode
-            });
-          } else {
-            setStyles(null);
-          }
-        }
-      } else {
-        // Sin organization_id, usar tema por defecto
+        // Sin cache, usar tema por defecto
         const defaultTheme = PRESET_THEMES[DEFAULT_THEME];
         if (defaultTheme) {
           setStyles({
