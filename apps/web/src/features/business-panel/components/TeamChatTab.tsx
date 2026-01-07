@@ -242,7 +242,14 @@ export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps
                 />
               </div>
             ) : (
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold text-white bg-primary shadow-lg shadow-primary/40">
+              <div 
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shadow-lg"
+                style={{
+                  backgroundColor: primaryColor,
+                  color: '#FFFFFF',
+                  boxShadow: `0 4px 20px ${primaryColor}40`
+                }}
+              >
                 {(teamName || 'E')[0].toUpperCase()}
               </div>
             )}
@@ -302,9 +309,14 @@ export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => inputRef.current?.focus()}
-              className="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary shadow-lg shadow-primary/40"
+              className="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                backgroundColor: primaryColor,
+                color: '#FFFFFF',
+                boxShadow: `0 4px 20px ${primaryColor}40`
+              }}
             >
-              Escribir mensaje
+              <span style={{ color: '#FFFFFF' }}>Escribir mensaje</span>
             </motion.button>
           </motion.div>
         ) : (
@@ -446,7 +458,7 @@ export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps
       </div>
 
       {/* Input Area Premium - Nuevo Diseño */}
-      <div className="relative border-t border-gray-200 dark:border-white/10">
+      <div className="relative border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0d1117]">
         {/* Panel de Emojis Compacto - Estilo WhatsApp */}
         <AnimatePresence>
           {showStickerPanel && (
@@ -587,7 +599,7 @@ export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps
             </motion.button>
 
             {/* Campo de Texto */}
-            <div className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-100 dark:bg-white/5">
+            <div className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-50 dark:bg-[#0d1117]">
               <input
                 ref={inputRef}
                 type="text"

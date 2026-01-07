@@ -173,6 +173,7 @@ interface TeamCardProps {
 
 function TeamCard({ team, index, primaryColor, cardBg, cardBorder, textColor, onClick }: TeamCardProps) {
   const { t } = useTranslation('business')
+  const { resolvedTheme } = useThemeStore()
   const [imageError, setImageError] = useState(false)
   const imageUrl = team.image_url || team.metadata?.image_url || null
 
@@ -262,12 +263,26 @@ function TeamCard({ team, index, primaryColor, cardBg, cardBorder, textColor, on
 
           {/* Status Badge */}
           <motion.span
-            className={`px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border ${team.status === 'active'
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+            className="px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border"
+            style={
+              team.status === 'active'
+                ? {
+                    backgroundColor: resolvedTheme === 'dark' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                    color: '#10B981',
+                    borderColor: resolvedTheme === 'dark' ? 'rgba(16, 185, 129, 0.5)' : 'rgba(16, 185, 129, 0.4)'
+                  }
                 : team.status === 'inactive'
-                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                  : 'bg-gray-500/15 text-gray-400 border-gray-500/30'
-              }`}
+                  ? {
+                      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                      color: '#F59E0B',
+                      borderColor: 'rgba(245, 158, 11, 0.3)'
+                    }
+                  : {
+                      backgroundColor: 'rgba(107, 114, 128, 0.15)',
+                      color: '#6B7280',
+                      borderColor: 'rgba(107, 114, 128, 0.3)'
+                    }
+            }
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: index * 0.08 + 0.2, type: 'spring' }}
@@ -401,14 +416,15 @@ function EmptyState({
               onClick={onCreateClick}
               variant="gradient"
               size="lg"
-              className="font-semibold"
+              className="font-semibold !text-white"
               style={{
                 background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                boxShadow: `0 8px 30px ${primaryColor}40`
+                boxShadow: `0 8px 30px ${primaryColor}40`,
+                color: '#FFFFFF'
               }}
             >
-              <Plus className="w-5 h-5 mr-2" />
-              {t('teams.empty.createFirst')}
+              <Plus className="w-5 h-5 mr-2" style={{ color: '#FFFFFF' }} />
+              <span style={{ color: '#FFFFFF' }}>{t('teams.empty.createFirst')}</span>
             </Button>
           </motion.div>
         )}
