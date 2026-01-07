@@ -457,11 +457,96 @@ export function BusinessPanelDashboard() {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
   }
 
+  // Cargar estadísticas del dashboard
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/business/dashboard/stats', {
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          throw new Error('Error al cargar estadísticas')
+        }
+
+        const data = await response.json()
+        if (data.success && data.stats) {
+          setStats(data.stats)
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [])
+
+  // Cargar actividades recientes
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setActivitiesLoading(true)
+        const response = await fetch('/api/business/dashboard/activity', {
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          throw new Error('Error al cargar actividades')
+        }
+
+        const data = await response.json()
+        if (data.success && data.activities) {
+          // Mapear el formato de la API al formato esperado por el componente
+          const mappedActivities = data.activities.map((activity: any) => ({
+            title: activity.action || 'Actividad',
+            description: activity.action || 'Sin descripción',
+            user: activity.user || 'Usuario',
+            timestamp: activity.time || 'Hace un momento', // La API ya devuelve el tiempo formateado
+            type: activity.icon === 'CheckCircle' ? 'certificate' : 
+                  activity.icon === 'Users' ? 'user' : 
+                  activity.icon === 'BookOpen' ? 'course' : 'progress'
+          }))
+          setActivities(mappedActivities)
+        }
+      } catch (error) {
+        console.error('Error loading activities:', error)
+      } finally {
+        setActivitiesLoading(false)
+      }
+    }
+
+    fetchActivities()
+  }, [])
+
+  // Actualizar hora actual cada minuto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Función auxiliar para parsear el cambio (puede venir como string con + o - y %)
+  const parseChange = (change: any): number => {
+    if (typeof change === 'number') return change
+    if (typeof change === 'string') {
+      // Remover +, - y % del string
+      const cleaned = change.replace(/[+\-%]/g, '')
+      const parsed = parseFloat(cleaned)
+      return isNaN(parsed) ? 0 : parsed
+    }
+    return 0
+  }
+
   const statsData = useMemo(() => stats ? [
     {
       title: t('dashboard.stats.activeUsers'),
       value: typeof stats.activeUsers === 'object' ? stats.activeUsers.value : (stats.activeUsers || 0),
-      change: typeof stats.activeUsers === 'object' ? parseFloat(stats.activeUsers.change) : 0,
+      change: typeof stats.activeUsers === 'object' ? parseChange(stats.activeUsers.change) : 0,
       backgroundImage: '/images/dashboard-cards/users-card-bg.png',
       gradient: `bg-gradient-to-br from-[${themeColors.primary}] to-[${themeColors.primary}]/80`,
       gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.primary}, ${themeColors.primary}cc)` },
@@ -470,10 +555,9 @@ export function BusinessPanelDashboard() {
     {
       title: t('dashboard.stats.assignedCourses'),
       value: typeof stats.assignedCourses === 'object' ? stats.assignedCourses.value : (stats.assignedCourses || 0),
-      change: typeof stats.assignedCourses === 'object' ? parseFloat(stats.assignedCourses.change) : 0,
+      change: typeof stats.assignedCourses === 'object' ? parseChange(stats.assignedCourses.change) : 0,
       backgroundImage: '/images/dashboard-cards/courses-card-bg.png',
       gradient: `bg-gradient-to-br from-[${themeColors.secondary}] to-[${themeColors.secondary}]/80`,
-      gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.secondary}cc)` },
       gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.secondary}cc)` },
       href: `/${orgSlug}/business-panel/courses`,
       id: 'tour-stat-courses'
@@ -481,7 +565,7 @@ export function BusinessPanelDashboard() {
     {
       title: t('dashboard.stats.completed'),
       value: typeof stats.completed === 'object' ? stats.completed.value : (stats.completed || stats.completedCourses || 0),
-      change: typeof stats.completed === 'object' ? parseFloat(stats.completed.change) : 0,
+      change: typeof stats.completed === 'object' ? parseChange(stats.completed.change) : 0,
       backgroundImage: '/images/dashboard-cards/completed-card-bg.png',
       gradient: `bg-gradient-to-br from-[${themeColors.accent}] to-[${themeColors.accent}]/80`,
       gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.accent}, ${themeColors.accent}cc)` },
@@ -489,7 +573,7 @@ export function BusinessPanelDashboard() {
     {
       title: t('dashboard.stats.avgProgress'),
       value: typeof stats.inProgress === 'object' ? stats.inProgress.value : `${stats.averageProgress || 0}%`,
-      change: typeof stats.inProgress === 'object' ? parseFloat(stats.inProgress.change) : 0,
+      change: typeof stats.inProgress === 'object' ? parseChange(stats.inProgress.change) : 0,
       backgroundImage: '/images/dashboard-cards/progress-card-bg.png',
       gradient: 'bg-gradient-to-br from-[#F59E0B] to-[#F59E0B]/80',
       gradientStyle: { background: `linear-gradient(to bottom right, #F59E0B, #F59E0Bcc)` },
@@ -497,9 +581,8 @@ export function BusinessPanelDashboard() {
     {
       title: t('dashboard.stats.certificates'),
       value: stats.certificates || 0,
-      change: stats.certificateGrowth || 0,
+      change: parseChange(stats.certificateGrowth),
       backgroundImage: '/images/dashboard-cards/certificates-card-bg.png',
-      gradient: 'bg-gradient-to-br from-[#8B5CF6] to-[#8B5CF6]/80',
       gradient: 'bg-gradient-to-br from-[#8B5CF6] to-[#8B5CF6]/80',
       gradientStyle: { background: `linear-gradient(to bottom right, #8B5CF6, #8B5CF6cc)` },
       id: 'tour-stat-certificates'
@@ -507,7 +590,7 @@ export function BusinessPanelDashboard() {
     {
       title: t('dashboard.stats.engagement'),
       value: `${stats.engagementRate || 0}%`,
-      change: stats.engagementGrowth || 0,
+      change: parseChange(stats.engagementGrowth),
       backgroundImage: '/images/dashboard-cards/engagement-card-bg.png',
       gradient: 'bg-gradient-to-br from-[#EC4899] to-[#EC4899]/80',
       gradientStyle: { background: `linear-gradient(to bottom right, #EC4899, #EC4899cc)` },
@@ -753,7 +836,7 @@ export function BusinessPanelDashboard() {
                         title={activity.title || 'Actividad'}
                         description={activity.description || 'Sin descripción'}
                         user={activity.user || 'Usuario'}
-                        timestamp={activity.timestamp ? formatTimestamp(activity.timestamp) : 'Hace un momento'}
+                        timestamp={activity.timestamp || 'Hace un momento'}
                         type={activity.type || 'system'}
                         delay={index}
                       />

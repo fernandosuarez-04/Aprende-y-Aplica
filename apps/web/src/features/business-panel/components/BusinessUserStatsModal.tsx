@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import Image from 'next/image'
 import { BusinessUser } from '../services/businessUsers.service'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
-import { useThemeStore } from '@/core/stores/themeStore'
+import { useThemeStore } from '../../../core/stores/themeStore'
 
 interface BusinessUserStatsModalProps {
   user: BusinessUser | null
