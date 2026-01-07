@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/features/auth/hooks/useAuth'
+import { useParams } from 'next/navigation'
 import { hasFeature, getRequiredPlan, getFeatureMessage, getFeatureName, getAllowedNotificationChannels, type SubscriptionPlan, type FeatureKey } from '@/lib/subscription/subscriptionFeatures'
 
 type BillingCycle = 'monthly' | 'yearly'
@@ -30,17 +30,22 @@ interface UseSubscriptionFeaturesReturn {
 }
 
 /**
- * Hook para validar características según el plan de suscripción de la organización
+ * Hook para validar características según el plan de suscripción de la organización.
+ *
+ * IMPORTANTE: Este hook usa el orgSlug de la URL para asegurar
+ * que se obtengan los datos de la organización correcta.
  */
 export function useSubscriptionFeatures(): UseSubscriptionFeaturesReturn {
-  const { user } = useAuth()
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string | undefined
+
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null)
   const [billingCycle, setBillingCycle] = useState<BillingCycle | null>(null)
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchSubscription = useCallback(async () => {
-    if (!user?.organization_id) {
+    if (!orgSlug) {
       setLoading(false)
       return
     }
@@ -48,42 +53,39 @@ export function useSubscriptionFeatures(): UseSubscriptionFeaturesReturn {
     try {
       setLoading(true)
 
-      // Obtener AMBOS endpoints en paralelo para máximo rendimiento
-      const [subscriptionResponse, orgResponse] = await Promise.all([
-        fetch('/api/business/settings/subscription', { credentials: 'include' }),
-        fetch('/api/business/settings/organization', { credentials: 'include' })
-      ])
+      // Usar la API org-scoped para obtener datos de la organización correcta
+      const response = await fetch(`/api/${orgSlug}/business/settings`, {
+        credentials: 'include'
+      })
 
       let planValue: string | null = null
       let billingCycleValue: string = 'yearly'
       let subscriptionData: any = null
 
-      // Primero intentar desde subscription
-      if (subscriptionResponse.ok) {
-        const data = await subscriptionResponse.json()
+      if (response.ok) {
+        const data = await response.json()
+
+        // Primero intentar desde subscription
         if (data.success && data.subscription) {
           subscriptionData = data.subscription
           planValue = subscriptionData.plan?.toLowerCase()?.trim()
           billingCycleValue = subscriptionData.billing_cycle?.toLowerCase() || 'yearly'
         }
-      }
 
-      // Si no hay plan en subscription, usar organization (ya cargado en paralelo)
-      if (!planValue && orgResponse.ok) {
-        const orgData = await orgResponse.json()
-        if (orgData.success && orgData.organization?.subscription_plan) {
-          planValue = orgData.organization.subscription_plan.toLowerCase()?.trim()
-          billingCycleValue = orgData.organization.billing_cycle?.toLowerCase() || 'yearly'
+        // Si no hay plan en subscription, usar organization
+        if (!planValue && data.organization?.subscription_plan) {
+          planValue = data.organization.subscription_plan.toLowerCase()?.trim()
+          billingCycleValue = data.organization.billing_cycle?.toLowerCase() || 'yearly'
 
           // Si no había subscriptionData, crearlo desde organization
           if (!subscriptionData) {
             subscriptionData = {
               plan: planValue,
               billing_cycle: billingCycleValue,
-              status: orgData.organization.subscription_status,
-              start_date: orgData.organization.subscription_start_date,
-              end_date: orgData.organization.subscription_end_date,
-              max_users: orgData.organization.max_users
+              status: data.organization.subscription_status,
+              start_date: data.organization.subscription_start_date,
+              end_date: data.organization.subscription_end_date,
+              max_users: data.organization.max_users
             }
           }
         }
@@ -119,7 +121,7 @@ export function useSubscriptionFeatures(): UseSubscriptionFeaturesReturn {
     } finally {
       setLoading(false)
     }
-  }, [user?.organization_id])
+  }, [orgSlug])
 
   useEffect(() => {
     fetchSubscription()
@@ -138,8 +140,13 @@ export function useSubscriptionFeatures(): UseSubscriptionFeaturesReturn {
   }, [plan, billingCycle, subscription])
 
   const changePlan = useCallback(async (planId: string, billingCycle: BillingCycle): Promise<{ success: boolean; error?: string }> => {
+    if (!orgSlug) {
+      return { success: false, error: 'No se pudo determinar la organización' }
+    }
+
     try {
-      const response = await fetch('/api/business/settings/subscription/change-plan', {
+      // Usar la API org-scoped
+      const response = await fetch(`/api/${orgSlug}/business/subscription/change-plan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -169,7 +176,7 @@ export function useSubscriptionFeatures(): UseSubscriptionFeaturesReturn {
         error: error instanceof Error ? error.message : 'Error de conexión al cambiar el plan. Verifica tu conexión a internet.'
       }
     }
-  }, [fetchSubscription])
+  }, [orgSlug, fetchSubscription])
 
   const canUse = useCallback((feature: FeatureKey): boolean => {
     if (!plan) {

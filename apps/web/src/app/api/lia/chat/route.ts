@@ -55,16 +55,15 @@ const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asiste
 '- Incorrecto: /admin/dashboard (sin formato de enlace)\n' +
 '- Incorrecto: Panel de Administración (sin enlace)\n\n' +
 '## Rutas Principales de SOFIA\n' +
-'- [Dashboard Principal](/dashboard) - Vista general, catálogo de cursos y métricas\n' +
-'- [Mis Equipos](/business-user/teams) - Colaboración y chat de equipo\n' +
+'- [Mis Equipos](/{orgSlug}/business-user/teams) - Colaboración y chat de equipo (para usuarios empresariales)\n' +
 '- [Certificados](/profile?tab=certificates) - Diplomas obtenidos\n' +
 '- [Planificador](/study-planner) - Agenda inteligente de estudio\n' +
 '- [Perfil](/profile) - Configuración y datos personales\n\n' +
 '## RUTAS PROHIBIDAS (NO EXISTEN)\n' +
 '- NUNCA uses /my-courses - Esta ruta NO existe\n' +
 '- NUNCA pongas "Mis Cursos" como enlace a /my-courses\n' +
-'- Para ver cursos, usa [Dashboard](/dashboard) o el enlace directo al curso /courses/[slug]\n' +
-'- Para usuarios empresariales, usa [Dashboard](/business-user/dashboard)\n\n' +
+'- Para ver cursos,  el enlace directo al curso /courses/[slug]\n' +
+'- Para usuarios empresariales, usa [Dashboard](/{orgSlug}/business-user/dashboard) donde {orgSlug} es el slug de la organización del usuario\n\n' +
 '## REPORTE DE BUGS Y PROBLEMAS\n' +
 'Si el usuario reporta un error técnico, bug o problema con la plataforma:\n' +
 '1. Empatiza con el usuario y confirma que vas a reportar el problema al equipo técnico.\n' +
@@ -90,6 +89,7 @@ interface PlatformContext {
   // Propiedades dinámicas
   pageType?: string;
   organizationName?: string; // ✅ Campo nuevo
+  organizationSlug?: string; // ✅ Campo para rutas dinámicas
   [key: string]: any;
   // Datos de la plataforma
   totalCourses?: number;
@@ -212,10 +212,10 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
         context.userRole = userData.cargo_rol;
         context.userJobTitle = userData.type_rol;
 
-        // ✅ OBTENER ORGANIZACIÓN ACTIVA
+        // ✅ OBTENER ORGANIZACIÓN ACTIVA (nombre y slug)
         const { data: userOrg } = await supabase
           .from('organization_users')
-          .select('organizations!inner(name)')
+          .select('organizations!inner(name, slug)')
           .eq('user_id', userId)
           .eq('status', 'active')
           .order('joined_at', { ascending: false }) // Priorizar la más reciente
@@ -225,6 +225,7 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
         if (userOrg?.organizations) {
           // @ts-ignore - Supabase tipos anidados a veces dan falsos positivos
           context.organizationName = userOrg.organizations.name;
+          context.organizationSlug = userOrg.organizations.slug;
         }
       }
     }
@@ -579,21 +580,34 @@ Organización personal del tiempo de aprendizaje.
 function getLIASystemPrompt(context?: PlatformContext): string {
   let prompt = LIA_SYSTEM_PROMPT;
 
+  // Obtener el slug de la organización para rutas dinámicas
+  const orgSlug = context?.organizationSlug || '';
+  const orgPrefix = orgSlug ? `/${orgSlug}` : '';
+
   // Modificar las rutas sugeridas si estamos en contexto de negocio
-  if (context?.pageType?.startsWith('business_') || context?.currentPage?.includes('/business-panel')) {
+  if (context?.pageType?.startsWith('business_') || context?.currentPage?.includes('/business-panel') || context?.currentPage?.includes('/business-user')) {
      const businessRoutes = '## Rutas del Panel de Negocios\n' +
-       '- [Dashboard de Negocios](/business-panel)\n' +
-       '- [Gestión de Equipos](/business-panel/teams)\n' +
-       '- [Catálogo de Cursos](/business-panel/courses)\n' +
-       '- [Analytics](/business-panel/analytics)\n' +
-       '- [Configuración](/business-panel/settings)';
+       `- [Dashboard de Negocios](${orgPrefix}/business-panel/dashboard)\n` +
+       `- [Gestión de Equipos](${orgPrefix}/business-panel/teams)\n` +
+       `- [Catálogo de Cursos](${orgPrefix}/business-panel/courses)\n` +
+       `- [Analytics](${orgPrefix}/business-panel/analytics)\n` +
+       `- [Configuración](${orgPrefix}/business-panel/settings)`;
      
      const routesPattern = new RegExp('## Rutas Principales de SOFIA[\\s\\S]*?Talleres disponibles', 'g');
      prompt = prompt.replace(routesPattern, businessRoutes);
   }
 
-  // Inyectar Conocimiento Global de UI
-  prompt += '\n' + GLOBAL_UI_CONTEXT + '\n';
+  // Inyectar Conocimiento Global de UI (con rutas dinámicas)
+  let globalContext = GLOBAL_UI_CONTEXT;
+  // Reemplazar rutas estáticas con rutas dinámicas según el contexto
+  if (orgSlug) {
+    globalContext = globalContext
+      .replace(/\(\/business-panel\//g, `(${orgPrefix}/business-panel/`)
+      .replace(/\(\/business-user\//g, `(${orgPrefix}/business-user/`)
+      .replace(/Ruta base: \/business-panel/g, `Ruta base: ${orgPrefix}/business-panel`)
+      .replace(/Ruta base: \/business-user/g, `Ruta base: ${orgPrefix}/business-user`);
+  }
+  prompt += '\n' + globalContext + '\n';
 
   // Inyectar Esquema de Base de Datos (Contexto Técnico)
   prompt += '\n' + DATABASE_SCHEMA_CONTEXT + '\n';
@@ -660,6 +674,15 @@ function getLIASystemPrompt(context?: PlatformContext): string {
     if (context.organizationName) {
       prompt += '- Organización del usuario: ' + context.organizationName + '\n';
       prompt += 'IMPORTANTE: El usuario pertenece a la organización "' + context.organizationName + '". Menciona este nombre explícitamente cuando hables sobre su dashboard o entorno de trabajo.\n';
+    }
+
+    // ✅ SLUG DE ORGANIZACIÓN PARA RUTAS DINÁMICAS
+    if (context.organizationSlug) {
+      prompt += '- Slug de organización: ' + context.organizationSlug + '\n';
+      prompt += 'INSTRUCCIÓN CRÍTICA PARA RUTAS: Cuando sugieras rutas de business-panel o business-user, SIEMPRE usa el prefijo /' + context.organizationSlug + '/ antes de business-panel o business-user.\n';
+      prompt += 'Ejemplo correcto: [Dashboard](/' + context.organizationSlug + '/business-user/dashboard)\n';
+      prompt += 'Ejemplo correcto: [Panel Admin](/' + context.organizationSlug + '/business-panel/dashboard)\n';
+      prompt += 'NUNCA uses /business-panel/... o /business-user/... sin el slug de organización.\n';
     }
     
     // ✅ PERSONALIZACIÓN POR PERFIL (CRUCIAL)

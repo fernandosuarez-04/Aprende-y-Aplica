@@ -286,7 +286,7 @@ export default function BusinessCourseDetailPage() {
     return (
       <div className="p-6 lg:p-8 min-h-screen">
         <button
-          onClick={() => router.push('/business-panel/courses')}
+          onClick={() => router.push(`/${params.orgSlug}/business-panel/courses`)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all mb-8"
         >
           <ArrowLeft className="w-4 h-4" />

@@ -181,7 +181,7 @@ export class SessionService {
       const supabase = await createClient();
       const { data: user, error: userError } = await supabase
         .from('users')
-        .select('id, username, email, first_name, last_name, display_name, cargo_rol, type_rol, profile_picture_url, is_banned, signature_url, signature_name')
+        .select('id, username, email, first_name, last_name, display_name, cargo_rol, profile_picture_url, is_banned, signature_url, signature_name')
         .eq('id', userId)
         .single();
 

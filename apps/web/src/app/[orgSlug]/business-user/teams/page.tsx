@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
 import {
   Users,
@@ -42,6 +42,7 @@ interface TeamSummary {
 
 export default function MyTeamsPage() {
   const router = useRouter()
+  const params = useParams()
   const { user } = useAuth()
   const { effectiveStyles } = useOrganizationStyles()
   const { isOpen: isPanelOpen } = useLiaPanel()
@@ -202,7 +203,7 @@ export default function MyTeamsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-8">
         {/* Back button */}
         <motion.button
-          onClick={() => router.push('/business-user/dashboard')}
+          onClick={() => router.push(`/${params.orgSlug}/business-user/dashboard`)}
           className="flex items-center gap-2 transition-colors mb-8"
           style={{ color: orgColors.textSecondary }}
           whileHover={{ x: -4, color: orgColors.text }}
@@ -286,7 +287,7 @@ export default function MyTeamsPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  onClick={() => router.push(`/business-user/teams/${team.slug}`)}
+                  onClick={() => router.push(`/${params.orgSlug}/business-user/teams/${team.slug}`)}
                   className="group relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300 hover:shadow-xl"
                   style={{
                     backgroundColor: orgColors.cardBg,

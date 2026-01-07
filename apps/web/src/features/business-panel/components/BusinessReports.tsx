@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { useBusinessReports } from '../hooks/useBusinessReports'
-import { ReportType } from '@/app/api/business/reports/data/route'
+import { ReportType } from '@/app/api/[orgSlug]/business/reports/data/route'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useThemeStore } from '@/core/stores/themeStore'
 import { PremiumSelect } from './PremiumSelect'

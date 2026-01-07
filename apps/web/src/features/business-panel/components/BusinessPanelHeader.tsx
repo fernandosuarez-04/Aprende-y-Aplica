@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, ChevronDown, LogOut, Building2, User, LayoutDashboard, Globe, ChevronRight, Check, Sun, Moon } from 'lucide-react'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useUserProfile } from '../../auth/hooks/useUserProfile'
 import { useBusinessSettings } from '../hooks/useBusinessSettings'
@@ -32,6 +32,8 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
   const { user, logout } = useAuth()
   const { userProfile } = useUserProfile()
   const router = useRouter()
+  const params = useParams()
+  const orgSlug = params.orgSlug as string
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null)
   const { language, setLanguage } = useLanguage()
@@ -296,7 +298,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                     <div className="py-1.5">
                       <motion.button
                         onClick={() => {
-                          router.push('/business-user/dashboard')
+                          router.push(`/${orgSlug}/business-user/dashboard`)
                           setUserDropdownOpen(false)
                         }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"

@@ -465,9 +465,9 @@ export function getAvailableLinksForLIA(userRole: UserRole | null = null): strin
   linksText += `\n\n⚠️ NOTA IMPORTANTE SOBRE VER CURSOS:\n`;
   linksText += `Cuando el usuario pregunte sobre "ver todos los cursos", "cursos disponibles", o "catálogo de cursos":\n`;
   linksText += `- Para ver TODOS los cursos disponibles: Usa [Dashboard](/dashboard)\n`;
-  linksText += `- Para usuarios Business: Los cursos asignados están en [Dashboard de Empleado](/business-user/dashboard)\n`;
+  linksText += `- Para usuarios Business: Los cursos asignados están en [Dashboard de Empleado](/{orgSlug}/business-user/dashboard) - IMPORTANTE: Reemplaza {orgSlug} con el slug real de la organización del usuario\n`;
   linksText += `- Para ver el detalle de un curso específico: Usa /courses/[slug] donde [slug] es el identificador del curso\n`;
-  linksText += `IMPORTANTE: NO uses /my-courses ni /courses como páginas de catálogo. El catálogo está en el Dashboard.\n`;
+  linksText += `IMPORTANTE: Las rutas /business-panel/* y /business-user/* SIEMPRE deben tener el prefijo /{orgSlug}/ donde orgSlug es el slug de la organización del usuario.\n`;
   
   return linksText;
 }

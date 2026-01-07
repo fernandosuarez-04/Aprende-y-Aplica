@@ -268,7 +268,7 @@ export default function TeamDetailPage() {
           </div>
           <div className="flex gap-3">
             <motion.button
-              onClick={() => router.push('/business-user/teams')}
+              onClick={() => router.push(`/${params.orgSlug}/business-user/teams`)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-6 py-3 rounded-xl font-medium border border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white"
@@ -308,7 +308,7 @@ export default function TeamDetailPage() {
             </p>
           </div>
           <motion.button
-            onClick={() => router.push('/business-user/teams')}
+            onClick={() => router.push(`/${params.orgSlug}/business-user/teams`)}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-[#0A2540] to-[#00D4B3] text-white"
@@ -329,7 +329,7 @@ export default function TeamDetailPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-8">
           {/* Back button */}
           <motion.button
-            onClick={() => router.push('/business-user/teams')}
+            onClick={() => router.push(`/${params.orgSlug}/business-user/teams`)}
             className="flex items-center gap-2 transition-colors mb-8 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             whileHover={{ x: -4 }}
           >

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { useThemeStore } from '@/core/stores/themeStore';
 import { getThemeStylesForMode } from '../config/preset-themes';
 
@@ -26,8 +26,15 @@ export interface StyleConfig {
   sidebar_opacity?: number;
 }
 
+/**
+ * Hook para obtener y actualizar los estilos de la organización.
+ *
+ * IMPORTANTE: Este hook usa el orgSlug de la URL para asegurar
+ * que se obtengan los datos de la organización correcta.
+ */
 export function useOrganizationStyles() {
-  const { user } = useAuth();
+  const params = useParams();
+  const orgSlug = params?.orgSlug as string | undefined;
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const [styles, setStyles] = useState<OrganizationStyles | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,8 +43,6 @@ export function useOrganizationStyles() {
   // Calcular estilos efectivos según el modo del tema
   const effectiveStyles = useMemo<OrganizationStyles | null>(() => {
     // Si el tema soporta modo dual, SIEMPRE obtener los estilos del preset según el modo actual
-    // Esto es importante porque los estilos guardados en la BD pueden estar desactualizados
-    // y no reflejar correctamente el modo claro/oscuro
     if (styles?.supportsDualMode && styles?.selectedTheme) {
       const modeStyles = getThemeStylesForMode(styles.selectedTheme, resolvedTheme);
       if (modeStyles) {
@@ -49,7 +54,7 @@ export function useOrganizationStyles() {
         };
       }
     }
-    
+
     // Si styles es null pero tenemos tema por defecto, usar SOFIA con el modo actual
     if (!styles) {
       const defaultModeStyles = getThemeStylesForMode('sofia', resolvedTheme);
@@ -64,57 +69,63 @@ export function useOrganizationStyles() {
       }
       return null;
     }
-    
+
     // Si no soporta modo dual, retornar los estilos tal cual
     return styles;
   }, [styles, resolvedTheme]);
 
-  useEffect(() => {
-    if (!user) {
+  const fetchStyles = useCallback(async () => {
+    if (!orgSlug) {
       setLoading(false);
       return;
     }
 
-    const fetchStyles = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        const response = await fetch('/api/business/settings/styles', {
-          credentials: 'include',
-        });
+      // Usar la API org-scoped
+      const response = await fetch(`/api/${orgSlug}/business/styles`, {
+        credentials: 'include',
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Error al obtener estilos');
-        }
-
-        setStyles(data.styles);
-      } catch (err: any) {
-        // console.error('Error fetching organization styles:', err);
-        setError(err.message || 'Error al obtener estilos');
-        setStyles(null);
-      } finally {
-        setLoading(false);
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Error al obtener estilos');
       }
-    };
 
+      setStyles(data.styles);
+    } catch (err: any) {
+      setError(err.message || 'Error al obtener estilos');
+      setStyles(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [orgSlug]);
+
+  useEffect(() => {
     fetchStyles();
-  }, [user]);
+  }, [fetchStyles]);
 
-  const updateStyles = async (
+  const updateStyles = useCallback(async (
     panel?: StyleConfig,
     userDashboard?: StyleConfig,
     login?: StyleConfig
   ): Promise<boolean> => {
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización');
+      return false;
+    }
+
     try {
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       if (panel !== undefined) updateData.panel = panel;
       if (userDashboard !== undefined) updateData.userDashboard = userDashboard;
       if (login !== undefined) updateData.login = login;
 
-      const response = await fetch('/api/business/settings/styles', {
+      // Usar la API org-scoped
+      const response = await fetch(`/api/${orgSlug}/business/styles`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -132,15 +143,20 @@ export function useOrganizationStyles() {
       setStyles(data.styles);
       return true;
     } catch (err: any) {
-      // console.error('Error updating styles:', err);
       setError(err.message || 'Error al actualizar estilos');
       return false;
     }
-  };
+  }, [orgSlug]);
 
-  const applyTheme = async (themeId: string): Promise<boolean> => {
+  const applyTheme = useCallback(async (themeId: string): Promise<boolean> => {
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización');
+      return false;
+    }
+
     try {
-      const response = await fetch('/api/business/settings/styles', {
+      // Usar la API org-scoped
+      const response = await fetch(`/api/${orgSlug}/business/styles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -158,41 +174,18 @@ export function useOrganizationStyles() {
       setStyles(data.styles);
       return true;
     } catch (err: any) {
-      // console.error('Error applying theme:', err);
       setError(err.message || 'Error al aplicar tema');
       return false;
     }
-  };
+  }, [orgSlug]);
 
   return {
     styles,
-    effectiveStyles, // Estilos calculados según el modo claro/oscuro
+    effectiveStyles,
     loading,
     error,
     updateStyles,
     applyTheme,
-    refetch: async () => {
-      if (!user) return;
-      
-      try {
-        setLoading(true);
-        const response = await fetch('/api/business/settings/styles', {
-          credentials: 'include',
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Error al obtener estilos');
-        }
-
-        setStyles(data.styles);
-      } catch (err: any) {
-        // console.error('Error refetching styles:', err);
-        setError(err.message || 'Error al obtener estilos');
-      } finally {
-        setLoading(false);
-      }
-    },
+    refetch: fetchStyles,
   };
 }

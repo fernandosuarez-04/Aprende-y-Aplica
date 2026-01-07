@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
 
 export interface GeneralMetrics {
   total_users: number
@@ -93,29 +94,44 @@ export interface AnalyticsData {
   engagement_metrics?: any
 }
 
+/**
+ * Hook para obtener datos de analytics de la organización.
+ *
+ * IMPORTANTE: Este hook usa el orgSlug de la URL para asegurar
+ * que se obtengan los datos de la organización correcta.
+ */
 export function useBusinessAnalytics() {
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string | undefined
+
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización')
+      setIsLoading(false)
+      return
+    }
+
     try {
       setIsLoading(true)
       setError(null)
 
-      const response = await fetch('/api/business/analytics', {
+      // Usar la API org-scoped
+      const response = await fetch(`/api/${orgSlug}/business/analytics`, {
         credentials: 'include'
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         const errorMessage = errorData.error || errorData.message || `Error ${response.status}: ${response.statusText}`
-        
-        // Si es error 401 o 403, el usuario no está autenticado o no tiene permisos
+
         if (response.status === 401 || response.status === 403) {
           throw new Error(errorMessage)
         }
-        
+
         throw new Error(errorMessage)
       }
 
@@ -154,28 +170,26 @@ export function useBusinessAnalytics() {
       }
     } catch (err) {
       let errorMessage = 'Error desconocido al cargar analytics'
-      
+
       if (err instanceof Error) {
         errorMessage = err.message
-        
-        // Si es error de autenticación, mostrar mensaje más claro
+
         if (err.message.includes('401') || err.message.includes('No autenticado') || err.message.includes('Sesión')) {
           errorMessage = 'Sesión expirada. Por favor, inicia sesión nuevamente.'
         } else if (err.message.includes('403') || err.message.includes('Permisos insuficientes')) {
           errorMessage = 'No tienes permisos para acceder a esta información.'
         }
       }
-      
+
       setError(errorMessage)
-      // console.error('Error fetching analytics:', err)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [orgSlug])
 
   useEffect(() => {
     fetchAnalytics()
-  }, [])
+  }, [fetchAnalytics])
 
   return {
     data,
@@ -184,4 +198,3 @@ export function useBusinessAnalytics() {
     refetch: fetchAnalytics
   }
 }
-

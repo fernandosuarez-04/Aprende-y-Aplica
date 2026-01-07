@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
 
 export interface OrganizationData {
   id: string
@@ -39,60 +40,79 @@ export interface SubscriptionData {
 export interface BusinessSettingsData {
   organization: OrganizationData | null
   subscription: SubscriptionData | null
+  userRole?: 'owner' | 'admin' | 'member' | null
 }
 
+/**
+ * Hook para obtener y actualizar la configuración de la organización.
+ *
+ * IMPORTANTE: Este hook usa el orgSlug de la URL para asegurar
+ * que se obtengan los datos de la organización correcta cuando
+ * un usuario pertenece a múltiples organizaciones.
+ */
 export function useBusinessSettings() {
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string | undefined
+
   const [data, setData] = useState<BusinessSettingsData>({
     organization: null,
-    subscription: null
+    subscription: null,
+    userRole: null
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
+    // Si no hay orgSlug, no podemos obtener datos org-scoped
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización')
+      setIsLoading(false)
+      return
+    }
+
     try {
       setIsLoading(true)
       setError(null)
 
-      // Obtener datos de organización y suscripción en paralelo
-      const [orgResponse, subResponse] = await Promise.all([
-        fetch('/api/business/settings/organization', {
-          credentials: 'include'
-        }),
-        fetch('/api/business/settings/subscription', {
-          credentials: 'include'
-        })
-      ])
+      // Usar la API org-scoped para obtener datos de la organización correcta
+      const response = await fetch(`/api/${orgSlug}/business/settings`, {
+        credentials: 'include'
+      })
 
-      if (!orgResponse.ok) {
-        throw new Error(`Error ${orgResponse.status}: ${orgResponse.statusText}`)
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
 
-      const orgResult = await orgResponse.json()
-      const subResult = subResponse.ok ? await subResponse.json() : null
+      const result = await response.json()
 
-      if (orgResult.success) {
+      if (result.success) {
         setData({
-          organization: orgResult.organization,
-          subscription: subResult?.success ? subResult.subscription : null
+          organization: result.organization,
+          subscription: result.subscription || null,
+          userRole: result.userRole || null
         })
       } else {
-        throw new Error(orgResult.error || 'Error al obtener datos de configuración')
+        throw new Error(result.error || 'Error al obtener datos de configuración')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido al cargar configuración'
       setError(errorMessage)
-      // console.error('Error fetching settings:', err)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [orgSlug])
 
-  const updateOrganization = async (updateData: Partial<OrganizationData>): Promise<boolean> => {
+  const updateOrganization = useCallback(async (updateData: Partial<OrganizationData>): Promise<boolean> => {
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización')
+      return false
+    }
+
     try {
       setError(null)
 
-      const response = await fetch('/api/business/settings/organization', {
+      // Usar la API org-scoped para actualizar
+      const response = await fetch(`/api/${orgSlug}/business/settings`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -120,21 +140,21 @@ export function useBusinessSettings() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar la organización'
       setError(errorMessage)
-      // console.error('Error updating organization:', err)
       return false
     }
-  }
+  }, [orgSlug])
 
   useEffect(() => {
     fetchSettings()
-  }, [])
+  }, [fetchSettings])
 
   return {
     data,
     isLoading,
     error,
     refetch: fetchSettings,
-    updateOrganization
+    updateOrganization,
+    orgSlug
   }
 }
 

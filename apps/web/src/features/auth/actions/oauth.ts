@@ -263,6 +263,35 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
       }
     }
 
+    // ============================================================================
+    // BUSCAR INVITACIONES PENDIENTES (sin orgContext - login global)
+    // ============================================================================
+    // Si el usuario usa SSO desde login global, buscar si tiene invitaciones pendientes
+    if (!orgContext.orgId) {
+      const { data: pendingInvitations } = await supabase
+        .from('user_invitations')
+        .select('id, organization_id, role, metadata')
+        .eq('email', profile.email.toLowerCase())
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (pendingInvitations && pendingInvitations.length > 0) {
+        const invitation = pendingInvitations[0];
+        const metadata = invitation.metadata as { position?: string } | null;
+        logger.info('🔍 OAuth: Invitación pendiente encontrada para usuario sin orgContext', {
+          email: profile.email,
+          orgId: invitation.organization_id,
+          role: invitation.role
+        });
+
+        // Asignar contexto de organización desde la invitación
+        orgContext.orgId = invitation.organization_id;
+        invitedRole = invitation.role;
+        invitedPosition = metadata?.position || undefined;
+      }
+    }
+
     // PASO 3: Buscar si el usuario ya existe
     logger.info('OAuth: Buscando usuario existente');
     let userId: string;
@@ -276,19 +305,12 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
 
       // Si es usuario existente y viene de invitación, actualizar su rol
       if (orgContext.orgId && invitedRole) {
-        let cargoRol = 'Usuario';
-        if (invitedRole === 'owner' || invitedRole === 'admin') {
-          cargoRol = 'Business';
-        } else if (invitedRole === 'member') {
-          cargoRol = 'Business User';
-        }
+        // Después de migración: solo 'Business' es válido (no 'Business User')
+        const cargoRol = 'Business';
 
         const { error: updateError } = await supabase
           .from('users')
-          .update({
-            cargo_rol: cargoRol,
-            type_rol: invitedPosition || existingUser.type_rol || 'Usuario'
-          })
+          .update({ cargo_rol: cargoRol })
           .eq('id', userId);
 
         if (updateError) {
@@ -302,13 +324,10 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
       logger.info('OAuth: Creando nuevo usuario');
 
       // Determinar cargo_rol basado en invitación
+      // Después de migración: solo 'Business' es válido para usuarios de organización
       let cargoRol = 'Usuario';
       if (orgContext.orgId && invitedRole) {
-        if (invitedRole === 'owner' || invitedRole === 'admin') {
-          cargoRol = 'Business';
-        } else {
-          cargoRol = 'Business User';
-        }
+        cargoRol = 'Business';
       }
 
       userId = await OAuthService.createUserFromOAuth(
@@ -317,9 +336,9 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
         profile.family_name || profile.name.split(' ').slice(1).join(' ') || '',
         profile.picture,
         cargoRol,
-        invitedPosition
+        undefined // No pasamos position aquí, va en organization_users.job_title
       );
-      logger.auth('Nuevo usuario creado exitosamente', { cargoRol, typeRol: invitedPosition });
+      logger.auth('Nuevo usuario creado exitosamente', { cargoRol });
       isNewUser = true;
     }
 
@@ -349,7 +368,8 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
             user_id: userId,
             role: invitedRole || 'member',
             status: 'active',
-            joined_at: new Date().toISOString()
+            joined_at: new Date().toISOString(),
+            job_title: invitedPosition || 'Miembro' // Cargo/posición del usuario
           });
 
         if (orgUserError) {
@@ -697,6 +717,33 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
       }
     }
 
+    // ============================================================================
+    // BUSCAR INVITACIONES PENDIENTES (sin orgContext - login global)
+    // ============================================================================
+    if (!orgContext.orgId) {
+      const { data: pendingInvitations } = await supabase
+        .from('user_invitations')
+        .select('id, organization_id, role, metadata')
+        .eq('email', email.toLowerCase())
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (pendingInvitations && pendingInvitations.length > 0) {
+        const invitation = pendingInvitations[0];
+        const metadata = invitation.metadata as { position?: string } | null;
+        logger.info('🔍 Microsoft OAuth: Invitación pendiente encontrada para usuario sin orgContext', {
+          email: email,
+          orgId: invitation.organization_id,
+          role: invitation.role
+        });
+
+        orgContext.orgId = invitation.organization_id;
+        invitedRole = invitation.role;
+        invitedPosition = metadata?.position || undefined;
+      }
+    }
+
     // Usuario (crear o usar existente)
     let userId: string; let isNewUser = false;
     const existingUser = await OAuthService.findUserByEmail(email);
@@ -706,36 +753,26 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
 
       // Si es usuario existente y viene de invitación, actualizar su rol
       if (orgContext.orgId && invitedRole) {
-        let cargoRol = 'Usuario';
-        if (invitedRole === 'owner' || invitedRole === 'admin') {
-          cargoRol = 'Business';
-        } else if (invitedRole === 'member') {
-          cargoRol = 'Business User';
-        }
+        // Después de migración: solo 'Business' es válido
+        const cargoRol = 'Business';
 
         await supabase
           .from('users')
-          .update({
-            cargo_rol: cargoRol,
-            type_rol: invitedPosition || existingUser.type_rol || 'Usuario'
-          })
+          .update({ cargo_rol: cargoRol })
           .eq('id', userId);
 
         logger.info('✅ Microsoft OAuth: Rol de usuario actualizado', { cargoRol });
       }
     } else {
+      // Después de migración: solo 'Business' es válido para usuarios de organización
       let cargoRol = 'Usuario';
       if (orgContext.orgId && invitedRole) {
-        if (invitedRole === 'owner' || invitedRole === 'admin') {
-          cargoRol = 'Business';
-        } else {
-          cargoRol = 'Business User';
-        }
+        cargoRol = 'Business';
       }
 
       const first = (profile as any).givenName || ((profile as any).displayName?.split(' ')[0] ?? 'Usuario');
       const last  = (profile as any).surname || ((profile as any).displayName?.split(' ').slice(1).join(' ') ?? '');
-      userId = await OAuthService.createUserFromOAuth(email, first, last, undefined, cargoRol, invitedPosition);
+      userId = await OAuthService.createUserFromOAuth(email, first, last, undefined, cargoRol, undefined);
       isNewUser = true;
     }
 
@@ -764,7 +801,8 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
             user_id: userId,
             role: invitedRole || 'member',
             status: 'active',
-            joined_at: new Date().toISOString()
+            joined_at: new Date().toISOString(),
+            job_title: invitedPosition || 'Miembro'
           });
 
         if (orgUserError) {

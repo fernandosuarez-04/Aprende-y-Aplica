@@ -38,7 +38,7 @@ export async function loginAction(formData: FormData) {
     // OPTIMIZADO: Una sola consulta con OR en lugar de dos secuenciales
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, cargo_rol, type_rol, is_banned, ban_reason')
+      .select('id, username, email, password_hash, email_verified, cargo_rol, is_banned, ban_reason')
       .or(`username.ilike.${parsed.emailOrUsername},email.ilike.${parsed.emailOrUsername}`)
       .maybeSingle()
 

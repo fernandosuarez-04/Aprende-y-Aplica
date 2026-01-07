@@ -127,7 +127,7 @@ export default function BusinessTeamDetailPage() {
     try {
       setIsDeleting(true)
       await TeamsService.deleteTeam(teamId)
-      router.push('/business-panel/teams')
+      router.push(`/${params.orgSlug}/business-panel/teams`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar el equipo')
       setIsDeleting(false)
@@ -185,7 +185,7 @@ export default function BusinessTeamDetailPage() {
           animate={{ opacity: 1, x: 0 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => router.push('/business-panel/teams')}
+          onClick={() => router.push(`/${params.orgSlug}/business-panel/teams`)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl mb-6 transition-colors"
           style={{
             backgroundColor: `${cardBackground}80`,
@@ -249,7 +249,7 @@ export default function BusinessTeamDetailPage() {
             <motion.button
               whileHover={{ scale: 1.02, x: -2 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => router.push('/business-panel/teams')}
+              onClick={() => router.push(`/${params.orgSlug}/business-panel/teams`)}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all border"
               style={{
                 backgroundColor: `${cardBackground}60`,

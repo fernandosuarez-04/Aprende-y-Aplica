@@ -107,28 +107,36 @@ export async function middleware(request: NextRequest) {
           .single()
 
         if (sessionData) {
-          // Obtener información del usuario y su organización
+          // Obtener información del usuario
           const { data: user } = await supabase
             .from('users')
-            .select('organization_id, cargo_rol')
+            .select('cargo_rol')
             .eq('id', sessionData.user_id)
             .single()
 
-          if (user?.organization_id) {
+          // Obtener organización del usuario desde organization_users
+          const { data: orgUser } = await supabase
+            .from('organization_users')
+            .select('organization_id')
+            .eq('user_id', sessionData.user_id)
+            .eq('status', 'active')
+            .single()
+
+          if (orgUser?.organization_id) {
             // Obtener slug de la organización
             const { data: organization } = await supabase
               .from('organizations')
               .select('slug, subscription_plan, subscription_status, is_active')
-              .eq('id', user.organization_id)
+              .eq('id', orgUser.organization_id)
               .single()
 
             if (organization?.slug) {
               // Validar que puede usar login personalizado
               const allowedPlans = ['team', 'business', 'enterprise']
               const activeStatuses = ['active', 'trial']
-              
-              if (allowedPlans.includes(organization.subscription_plan) && 
-                  activeStatuses.includes(organization.subscription_status) &&
+
+              if (allowedPlans.includes(organization.subscription_plan ?? '') &&
+                  activeStatuses.includes(organization.subscription_status ?? '') &&
                   organization.is_active) {
                 // Redirigir a login personalizado
                 logger.log('🔄 Redirigiendo usuario de organización a login personalizado')

@@ -288,7 +288,7 @@ export function ModernNavbar({
             {/* Mi Equipo */}
             <motion.button
               onClick={() => {
-                router.push('/business-user/teams')
+                router.push(`/${organization?.slug || ''}/business-user/teams`)
                 setMobileMenuOpen(false)
               }}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors"
@@ -722,7 +722,7 @@ export function ModernNavbar({
                           {/* Mi Equipo */}
                           <motion.button
                             onClick={() => {
-                              router.push('/business-user/teams')
+                              router.push(`/${organization?.slug || ''}/business-user/teams`)
                               setUserDropdownOpen(false)
                             }}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"

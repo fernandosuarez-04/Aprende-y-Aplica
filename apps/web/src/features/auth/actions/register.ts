@@ -158,17 +158,13 @@ export async function registerAction(formData: FormData) {
     const cargoTitulo = invitedPosition || parsed.cargo_titulo?.trim() || 'Usuario';
 
     // Determinar cargo_rol basado en el contexto de registro
-    // Si viene de una invitación de organización, asignar rol correspondiente
+    // Después de la migración, solo existen: Usuario, Instructor, Administrador, Business
     let cargoRol = 'Usuario' // Valor por defecto para registro público
     
     if (organizationId && invitedRole) {
-      // Si es owner o admin de la organización, es usuario tipo "Business"
-      // Si es member, es "Business User"
-      if (invitedRole === 'owner' || invitedRole === 'admin') {
-        cargoRol = 'Business'
-      } else {
-        cargoRol = 'Business User'
-      }
+      // Si viene de una organización, siempre es 'Business'
+      // La diferenciación (owner/admin/member) se hace en organization_users.role
+      cargoRol = 'Business'
     }
 
     const { data: user, error } = await supabase
@@ -183,8 +179,8 @@ export async function registerAction(formData: FormData) {
         display_name: `${parsed.firstName} ${parsed.lastName}`.trim(), // Generar display_name
         country_code: parsed.countryCode,
         phone: parsed.phoneNumber, // Campo phone para el número de teléfono (varchar en DB)
-        cargo_rol: cargoRol, // Rol basado en la invitación
-        type_rol: cargoTitulo, // Tipo de rol: Cargo/Posición
+        cargo_rol: cargoRol, // Rol basado en la invitación (ya no incluye 'Business User')
+        // NOTA: type_rol fue eliminado - ahora el cargo/posición va en organization_users.job_title
         email_verified: false, // Se verificará después con email manual
       })
       .select()
@@ -197,7 +193,7 @@ export async function registerAction(formData: FormData) {
       return { error: 'Error al crear perfil de usuario' }
     }
 
-    console.log('✅ [registerAction] Usuario creado:', { id: userId, cargo_rol: cargoRol, type_rol: cargoTitulo });
+    console.log('✅ [registerAction] Usuario creado:', { id: userId, cargo_rol: cargoRol });
 
     // Si viene de registro personalizado de organización, crear relación en organization_users
     if (organizationId) {
@@ -205,7 +201,8 @@ export async function registerAction(formData: FormData) {
         console.log('🔄 [registerAction] Vinculando usuario a organización:', {
           organizationId,
           userId,
-          role: invitedRole || 'member'
+          role: invitedRole || 'member',
+          job_title: cargoTitulo // El cargo ahora va aquí
         });
 
         const { error: orgUserError } = await supabase
@@ -215,7 +212,8 @@ export async function registerAction(formData: FormData) {
             user_id: user.id,
             role: invitedRole || 'member', // Usar rol de la invitación si existe
             status: 'active',
-            joined_at: new Date().toISOString()
+            joined_at: new Date().toISOString(),
+            job_title: cargoTitulo // Cargo/posición del usuario en esta organización
           })
 
         if (orgUserError) {

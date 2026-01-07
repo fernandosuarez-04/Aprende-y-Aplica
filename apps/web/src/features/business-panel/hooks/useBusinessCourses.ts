@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
 
 export interface BusinessCourse {
   id: string
@@ -29,7 +30,16 @@ export interface BusinessCoursesStats {
   byLevel: Record<string, number>
 }
 
+/**
+ * Hook para obtener cursos disponibles para la organización.
+ *
+ * IMPORTANTE: Este hook usa el orgSlug de la URL para asegurar
+ * que se obtengan los datos de la organización correcta.
+ */
 export function useBusinessCourses() {
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string | undefined
+
   const [courses, setCourses] = useState<BusinessCourse[]>([])
   const [stats, setStats] = useState<BusinessCoursesStats>({
     total: 0,
@@ -39,12 +49,19 @@ export function useBusinessCourses() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización')
+      setIsLoading(false)
+      return
+    }
+
     try {
       setIsLoading(true)
       setError(null)
 
-      const response = await fetch('/api/business/courses', {
+      // Usar la API org-scoped
+      const response = await fetch(`/api/${orgSlug}/business/courses`, {
         credentials: 'include'
       })
 
@@ -82,15 +99,14 @@ export function useBusinessCourses() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(errorMessage)
-      // console.error('Error fetching courses:', err)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [orgSlug])
 
   useEffect(() => {
     fetchCourses()
-  }, [])
+  }, [fetchCourses])
 
   return {
     courses,

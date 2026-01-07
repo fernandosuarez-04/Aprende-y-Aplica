@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Building2,
@@ -1685,6 +1685,8 @@ function PersonalizationTab({
 // Tab: Suscripción
 function SubscriptionTab({ subscription }: { subscription: any }) {
   const router = useRouter()
+  const params = useParams()
+  const orgSlug = params.orgSlug as string
   const [isCancelling, setIsCancelling] = useState(false)
 
   if (!subscription) {
@@ -1805,7 +1807,7 @@ function SubscriptionTab({ subscription }: { subscription: any }) {
   }
 
   const handleChangePlan = () => {
-    router.push('/business-panel/subscription/plans')
+    router.push(`/${orgSlug}/business-panel/subscription/plans`)
   }
 
   const handleCancelSubscription = async () => {

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
-import { ReportType, ReportFilters } from '@/app/api/business/reports/data/route'
+import { useState, useCallback } from 'react'
+import { useParams } from 'next/navigation'
+import { ReportType, ReportFilters } from '@/app/api/[orgSlug]/business/reports/data/route'
 
 export interface ReportData {
   report_type: ReportType
@@ -8,7 +9,16 @@ export interface ReportData {
   generated_at: string
 }
 
+/**
+ * Hook para obtener datos de reportes de la organización.
+ *
+ * IMPORTANTE: Este hook usa el orgSlug de la URL para asegurar
+ * que se obtengan los datos de la organización correcta.
+ */
 export function useBusinessReports() {
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string | undefined
+
   const [reportType, setReportType] = useState<ReportType>('users')
   const [filters, setFilters] = useState<Partial<ReportFilters>>({
     start_date: undefined,
@@ -22,7 +32,12 @@ export function useBusinessReports() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchReport = async (type?: ReportType, customFilters?: Partial<ReportFilters>) => {
+  const fetchReport = useCallback(async (type?: ReportType, customFilters?: Partial<ReportFilters>) => {
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización')
+      return
+    }
+
     try {
       setIsLoading(true)
       setError(null)
@@ -67,7 +82,8 @@ export function useBusinessReports() {
         params.append('status', filtersToUse.status)
       }
 
-      const url = `/api/business/reports/data?${params.toString()}`
+      // Usar la API org-scoped
+      const url = `/api/${orgSlug}/business/reports/data?${params.toString()}`
 
       const response = await fetch(url, {
         credentials: 'include'
@@ -103,7 +119,7 @@ export function useBusinessReports() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [orgSlug, reportType, filters])
 
   const updateFilters = (newFilters: Partial<ReportFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }))

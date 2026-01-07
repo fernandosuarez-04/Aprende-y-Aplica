@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
 import { detectColorsFromImage } from '../utils/colorDetection'
 
 export interface BrandingData {
@@ -20,17 +21,33 @@ export interface UseBrandingReturn {
   refetch: () => Promise<void>
 }
 
+/**
+ * Hook para obtener y actualizar la configuración de branding.
+ *
+ * IMPORTANTE: Este hook usa el orgSlug de la URL para asegurar
+ * que se obtengan los datos de la organización correcta.
+ */
 export function useBranding(): UseBrandingReturn {
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string | undefined
+
   const [branding, setBranding] = useState<BrandingData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchBranding = async () => {
+  const fetchBranding = useCallback(async () => {
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización')
+      setIsLoading(false)
+      return
+    }
+
     try {
       setIsLoading(true)
       setError(null)
 
-      const response = await fetch('/api/business/settings/branding', {
+      // Usar la API org-scoped
+      const response = await fetch(`/api/${orgSlug}/business/branding`, {
         credentials: 'include'
       })
 
@@ -47,13 +64,19 @@ export function useBranding(): UseBrandingReturn {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [orgSlug])
 
-  const updateBranding = async (data: Partial<BrandingData>): Promise<boolean> => {
+  const updateBranding = useCallback(async (data: Partial<BrandingData>): Promise<boolean> => {
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización')
+      return false
+    }
+
     try {
       setError(null)
 
-      const response = await fetch('/api/business/settings/branding', {
+      // Usar la API org-scoped
+      const response = await fetch(`/api/${orgSlug}/business/branding`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -74,7 +97,7 @@ export function useBranding(): UseBrandingReturn {
       setError(err.message || 'Error al actualizar branding')
       return false
     }
-  }
+  }, [orgSlug])
 
   const detectColors = async (imageUrl: string): Promise<{ color_primary: string; color_secondary: string; color_accent: string } | null> => {
     try {
@@ -110,7 +133,7 @@ export function useBranding(): UseBrandingReturn {
 
   useEffect(() => {
     fetchBranding()
-  }, [])
+  }, [fetchBranding])
 
   return {
     branding,
