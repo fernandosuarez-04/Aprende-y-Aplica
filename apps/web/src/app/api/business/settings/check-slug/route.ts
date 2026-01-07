@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireBusiness } from '@/lib/auth'
-import { createServiceClient } from '@/lib/supabase/service'
+import { requireBusiness } from '@/lib/auth/requireBusiness'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * GET /api/business/settings/check-slug
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar si el slug ya está en uso por otra organización
-    const supabase = createServiceClient()
+    const supabase = await createClient()
     
     const { data: existingOrg, error } = await supabase
       .from('organizations')

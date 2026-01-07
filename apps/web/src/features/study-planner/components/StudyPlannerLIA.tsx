@@ -10,8 +10,8 @@ import { useOrganizationStylesContext } from '../../business-panel/contexts/Orga
 import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
 import { useLIAData } from '../hooks/useLIAData';
 import { parseLiaResponseToSchedules } from '../services/plan-parser.service';
-import Joyride from 'react-joyride';
-import { useStudyPlannerJoyride } from '../../tours/hooks/useStudyPlannerJoyride';
+// import Joyride from 'react-joyride';
+// import { useStudyPlannerJoyride } from '../../tours/hooks/useStudyPlannerJoyride';
 
 // Componentes de iconos de Google y Microsoft
 const GoogleIcon = () => (
@@ -124,8 +124,9 @@ function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
 export function StudyPlannerLIA() {
   const router = useRouter();
   
-  // Joyride integration
-  const { joyrideProps, restartTour, isRunning } = useStudyPlannerJoyride();
+  // Joyride integration protected (commented out due to webpack error)
+  // const { joyrideProps, restartTour, isRunning } = useStudyPlannerJoyride();
+  const joyrideProps = {}; const restartTour = () => {}; const isRunning = false;
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
@@ -802,6 +803,61 @@ export function StudyPlannerLIA() {
     }
   }, [showDateModal, currentMonth]);
 
+  // ✅ NUEVO: Detectar retorno de conexión OAuth exitosa
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const calendarConnected = params.get('calendar_connected');
+    const calendarError = params.get('calendar_error');
+
+    if (calendarConnected === 'true') {
+      console.log('🔗 [OAuth Return] Calendario conectado detectado en URL');
+      
+      // Limpiar URL para no re-ejecutar
+      window.history.replaceState({}, '', window.location.pathname);
+
+      // Verificar estado y reanudar análisis
+      const resumeFlow = async () => {
+        try {
+          // 1. Verificar estado actual del calendario
+          const response = await fetch('/api/study-planner/calendar/status');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.isConnected && data.provider) {
+              console.log('✅ [OAuth Return] Estado verificado:', data.provider);
+              setConnectedCalendar(data.provider);
+              
+              // 2. Dar feedback al usuario
+              const msg = `¡Excelente! He confirmado que tu calendario de ${data.provider === 'google' ? 'Google' : 'Microsoft'} está conectado. Voy a analizar tu disponibilidad ahora mismo.`;
+              setConversationHistory(prev => [...prev, { role: 'assistant', content: msg }]);
+              
+              // 3. Reanudar análisis (usando valores por defecto seguros ya que el estado se perdió)
+              // B2B suele usar 'normal' como default seguro
+              setTimeout(() => {
+                analyzeCalendarAndSuggest(
+                  data.provider,
+                  undefined, 
+                  'normal'
+                );
+              }, 1000);
+            }
+          }
+        } catch (error) {
+          console.error('❌ [OAuth Return] Error reanudando flujo:', error);
+        }
+      };
+
+      resumeFlow();
+    } else if (calendarError) {
+       console.error('❌ [OAuth Return] Error en conexión:', calendarError);
+       // Limpiar URL
+       window.history.replaceState({}, '', window.location.pathname);
+       setConversationHistory(prev => [...prev, { 
+           role: 'assistant', 
+           content: `Hubo un problema al conectar tu calendario: ${decodeURIComponent(calendarError)}. ¿Quieres intentarlo de nuevo o continuar sin calendario?` 
+       }]);
+    }
+  }, []); // Solo al montar
+
   // ✅ CRÍTICO: Cargar lecciones pendientes cuando hay cursos asignados
   // Usa el hook useLIAData que consulta directamente la BD para obtener nombres EXACTOS
   // Esto evita alucinaciones de la IA (patrón Bridge de IRIS)
@@ -858,10 +914,10 @@ export function StudyPlannerLIA() {
 
     const generateWelcomeMessage = async (externalController?: AbortController) => {
       // ✅ NUEVO: Si hay un tour activo, esperar (Requisito de flujo: Tour -> Planificador)
-      if (isRunning) {
-        console.log('⏳ [Welcome] Tour activo, esperando a que termine...');
-        return;
-      }
+      // if (isRunning) {
+      //   console.log('⏳ [Welcome] Tour activo, esperando a que termine...');
+      //   return;
+      // }
 
       if (!showConversation || conversationHistory.length > 0 || showCourseSelector) {
         console.log('❌ [Welcome] Condiciones iniciales no cumplidas');
@@ -2859,6 +2915,20 @@ INSTRUCCIONES:
       });
       setTargetDate(nearestDueDateFormatted);
       setHasAskedTargetDate(true);
+    } else {
+      // ✅ FIX: Si no hay fecha límite, generar una fecha objetivo predeterminada basada en el enfoque
+      // Esto evita que el flujo se rompa cuando los cursos no tienen dueDate
+      const weeksToAdd = approach === 'rapido' ? 2 : (approach === 'normal' ? 4 : 8);
+      const defaultTargetDate = new Date();
+      defaultTargetDate.setDate(defaultTargetDate.getDate() + (weeksToAdd * 7));
+      nearestDueDateFormatted = defaultTargetDate.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+      setTargetDate(nearestDueDateFormatted);
+      setHasAskedTargetDate(true);
+      console.log(`📅 [handleApproachSelection] No hay fecha límite, usando fecha predeterminada: ${nearestDueDateFormatted} (${weeksToAdd} semanas)`);
     }
 
     // Verificar si ya tiene calendario conectado antes de generar el mensaje
@@ -3005,6 +3075,10 @@ INSTRUCCIONES:
           console.log('✅ [handleApproachSelection] analyzeCalendarAndSuggest completado');
         } catch (error) {
           console.error('❌ [handleApproachSelection] Error en analyzeCalendarAndSuggest:', error);
+          // ✅ FIX: Mostrar mensaje de fallback al usuario cuando hay un error
+          setIsProcessing(false);
+          const fallbackMsg = `Tu calendario de ${calendarProvider === 'google' ? 'Google' : 'Microsoft'} está conectado, pero hubo un pequeño problema al analizarlo.\n\n¿Qué días de la semana prefieres estudiar? ¿Y en qué horario te concentras mejor: **mañana**, **tarde** o **noche**?`;
+          setConversationHistory(prev => [...prev, { role: 'assistant', content: fallbackMsg }]);
         }
       }, 5000); // Esperar 5 segundos para que el usuario lea el mensaje
     } else if (!calendarSkipped) {
@@ -3127,13 +3201,17 @@ INSTRUCCIONES:
         .map(d => new Date(d!))
         .sort((a, b) => b.getTime() - a.getTime()); // Más lejana primero
 
-      const furthestDueDate = allDueDates[0];
-      const nearestDueDate = allDueDates[allDueDates.length - 1];
+      let furthestDueDate = allDueDates[0];
+      let nearestDueDate = allDueDates[allDueDates.length - 1];
 
+      // ✅ FIX: Si no hay fechas límite, generar una fecha predeterminada basada en el enfoque
       if (!furthestDueDate) {
-        console.error('❌ [B2B] No se encontraron fechas límite válidas');
-        setIsProcessing(false);
-        return;
+        console.log('⚠️ [B2B] No hay fechas límite, generando fecha predeterminada...');
+        const weeksToAdd = approach === 'rapido' ? 2 : (approach === 'normal' ? 4 : 8);
+        furthestDueDate = new Date();
+        furthestDueDate.setDate(furthestDueDate.getDate() + (weeksToAdd * 7));
+        nearestDueDate = furthestDueDate; // Si no hay fechas, usar la misma
+        console.log(`📅 [B2B] Usando fecha predeterminada: ${furthestDueDate.toLocaleDateString('es-ES')} (${weeksToAdd} semanas)`);
       }
 
       const startDate = new Date();
@@ -3165,9 +3243,9 @@ INSTRUCCIONES:
       // Esta es la lógica específica B2B: distribuir según plazos organizacionales
       const courseAnalysis = await Promise.all(
         assignedCourses.map(async (course) => {
-          if (!course.dueDate) return null;
-
-          const courseDueDate = new Date(course.dueDate);
+          // ✅ FIX: Usar furthestDueDate si el curso no tiene dueDate propio
+          const effectiveDueDate = course.dueDate ? new Date(course.dueDate) : furthestDueDate;
+          const courseDueDate = effectiveDueDate;
           const daysUntilDeadline = Math.ceil((courseDueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
           const weeksUntilDeadline = Math.ceil(daysUntilDeadline / 7);
 
@@ -3290,7 +3368,7 @@ INSTRUCCIONES:
                 return {
                   courseId: course.courseId,
                   title: course.title,
-                  dueDate: course.dueDate,
+                  dueDate: course.dueDate || courseDueDate.toISOString(), // ✅ FIX: Usar fecha efectiva si no hay dueDate
                   dueDateObj: courseDueDate,
                   daysUntilDeadline,
                   weeksUntilDeadline,
@@ -3315,7 +3393,7 @@ INSTRUCCIONES:
           return {
             courseId: course.courseId,
             title: course.title,
-            dueDate: course.dueDate,
+            dueDate: course.dueDate || courseDueDate.toISOString(), // ✅ FIX: Usar fecha efectiva si no hay dueDate
             dueDateObj: courseDueDate,
             daysUntilDeadline,
             weeksUntilDeadline,
@@ -3378,23 +3456,32 @@ INSTRUCCIONES:
 
       // Llamar a analyzeCalendarAndSuggest con skipB2BRedirect=true para evitar bucle
       // Esto permite usar toda la lógica de B2C (slots, distribución, etc.) pero desde B2B
-      await analyzeCalendarAndSuggest(
-        provider,
-        nearestDueDateFormatted,
-        'normal', // ✅ SIMPLIFICADO: Siempre usar 'normal'
-        true // ✅ skipB2BRedirect: evitar redirección y usar lógica B2C directamente
-      );
+      console.log('🚀 [B2B] Llama a analyzeCalendarAndSuggest (modo B2C forzado)...');
+      
+      try {
+        await analyzeCalendarAndSuggest(
+          provider,
+          nearestDueDateFormatted,
+          'normal', // ✅ SIMPLIFICADO: Siempre usar 'normal'
+          true // ✅ skipB2BRedirect: evitar redirección y usar lógica B2C directamente
+        );
+        console.log('✅ [B2B] Retorno exitoso de analyzeCalendarAndSuggest');
+      } catch (innerError) {
+        console.error('❌ [B2B] Error interno en analyzeCalendarAndSuggest:', innerError);
+        throw innerError; // Re-lanzar para que lo capture el catch externo y muestre el mensaje
+      } finally {
+        setIsProcessing(false);
+      }
 
       // Restaurar selectedCourseIds original
       setSelectedCourseIds(originalSelectedCourseIds);
-
-      setIsProcessing(false);
 
     } catch (error) {
       console.error('❌ [B2B] Error en análisis de calendario:', error);
       setIsProcessing(false);
 
-      const errorMsg = 'Hubo un error al analizar tu calendario. Por favor, intenta de nuevo.';
+      // ✅ FIX: Preguntar por preferencias de estudio en lugar de mensaje genérico de error
+      const errorMsg = `Tu calendario está conectado, pero no pude completar el análisis automático.\n\nNo te preocupes, podemos continuar de forma manual. **¿Qué días de la semana prefieres estudiar?** ¿Y en qué horario te concentras mejor: **mañana**, **tarde** o **noche**?`;
       setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMsg }]);
     }
   };
@@ -3448,10 +3535,19 @@ INSTRUCCIONES:
     });
 
     // Evitar múltiples llamadas simultáneas
+    // ✅ FIX: Permitir reintentos incluso si isProcessing es true, pero loguearlo
     if (isProcessing) {
-      console.log('⚠️ [analyzeCalendarAndSuggest] Ya está procesando, saliendo...');
-      return;
+      console.warn('⚠️ [analyzeCalendarAndSuggest] Se llamó mientras estaba procesando. Continuando de todos modos para asegurar recuperación...');
+      // No retornamos, permitimos que continúe y sobrescriba el proceso actual si es necesario
     }
+
+    // Safety timeout: Asegurar que isProcessing se apague después de 45 segundos pase lo que pase
+    // IMPORTANTE: No usar 'if (isProcessing)' aquí porque el closure captura el valor inicial (false)
+    // y nunca ejecutaría la limpieza. Forzar la limpieza es más seguro.
+    setTimeout(() => {
+        console.log('⏰ [Safety Timeout] Ejecutando limpieza de seguridad de estado (45s)');
+        setIsProcessing(false);
+    }, 45000);
 
     // Verificar que se tengan los datos necesarios antes de analizar
     // NOTA: Para usuarios B2B, el effectiveApproach viene como parámetro, no del estado
@@ -3462,21 +3558,12 @@ INSTRUCCIONES:
         approachParam,
         effectiveApproach
       });
+      setIsProcessing(false);
       return;
     }
 
     // Para B2B: si hay cursos asignados con fechas límite, NO requerir targetDate manual
     const hasAssignedCoursesWithDueDate = assignedCourses.some(c => c.dueDate);
-
-    if (!effectiveTargetDate && !hasAssignedCoursesWithDueDate) {
-      console.log('❌ [analyzeCalendarAndSuggest] Falta targetDate y no hay cursos con fecha límite, saliendo...', {
-        effectiveTargetDate,
-        targetDate,
-        targetDateParam,
-        hasAssignedCoursesWithDueDate
-      });
-      return;
-    }
 
     // Si no hay targetDate pero hay cursos B2B con fecha límite, usar esa fecha
     let dateToUse = effectiveTargetDate;
@@ -3491,6 +3578,19 @@ INSTRUCCIONES:
         });
         console.log('📅 [analyzeCalendarAndSuggest] Usando fecha límite de curso B2B:', dateToUse);
       }
+    }
+    
+    // ✅ FIX: Si aún no hay fecha, generar una predeterminada basada en el enfoque
+    if (!dateToUse) {
+      const weeksToAdd = approachToUse === 'rapido' ? 2 : (approachToUse === 'normal' ? 4 : 8);
+      const defaultTargetDate = new Date();
+      defaultTargetDate.setDate(defaultTargetDate.getDate() + (weeksToAdd * 7));
+      dateToUse = defaultTargetDate.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+      console.log(`📅 [analyzeCalendarAndSuggest] Usando fecha predeterminada: ${dateToUse} (${weeksToAdd} semanas)`);
     }
 
     console.log('✅ [analyzeCalendarAndSuggest] Todas las validaciones pasadas, procediendo con análisis...');
@@ -3524,17 +3624,17 @@ INSTRUCCIONES:
 
           // ✅ DETECTAR B2B Y REDIRIGIR A LÓGICA ESPECÍFICA
           // Solo redirigir si no se está saltando la redirección (evitar bucle)
-          if (userProfile.userType === 'b2b' && assignedCourses.length > 0 && !skipB2BRedirect) {
-            console.log('✅ [B2B] Detectado usuario B2B, usando lógica específica para análisis de calendario');
-            setIsProcessing(false);
-            await analyzeCalendarAndSuggestB2B(
-              provider,
-              effectiveApproach!,
-              userProfile,
-              assignedCourses
-            );
-            return; // Salir temprano, no ejecutar lógica B2C
-          }
+            if (userProfile.userType === 'b2b' && assignedCourses.length > 0 && !skipB2BRedirect) {
+              console.log('✅ [B2B] Detectado usuario B2B, usando lógica específica para análisis de calendario');
+              // Mantener isProcessing en true mientras redirigimos
+              await analyzeCalendarAndSuggestB2B(
+                provider,
+                effectiveApproach!,
+                userProfile,
+                assignedCourses
+              );
+              return; // Salir temprano, no ejecutar lógica B2C
+            }
         }
       }
 
@@ -10837,7 +10937,7 @@ Cuéntame:
           </div >
         )
       }
-      {isMounted && <Joyride {...joyrideProps} />}
+      {/* {isMounted && <Joyride {...joyrideProps} />} */}
     </>
   );
 }

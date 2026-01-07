@@ -100,3 +100,7 @@ logs
 *.log
 
 
+  
+# Backups  
+Backup*.sql  
+*.sql.bak 

@@ -67,16 +67,17 @@ export default function OrganizationLoginPage() {
 
   if (isLoading) {
     return (
-      <OrganizationAuthLayout
-        organization={{
-          id: '',
-          name: 'Cargando...',
-          logo_url: '/icono.png',
-        }}
-        isLoading={true}
-      >
-        <div></div>
-      </OrganizationAuthLayout>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 border-4 border-white/10 rounded-full" />
+            <div 
+              className="absolute inset-0 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"
+            />
+          </div>
+          <p className="text-white/60 text-sm font-medium">Cargando...</p>
+        </div>
+      </div>
     );
   }
 

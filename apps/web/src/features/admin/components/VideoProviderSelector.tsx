@@ -10,6 +10,7 @@ interface VideoProviderSelectorProps {
   onProviderChange: (provider: 'youtube' | 'vimeo' | 'direct' | 'custom') => void
   onVideoIdChange: (id: string) => void
   onDurationChange?: (durationSeconds: number) => void
+  onUploadComplete?: (url: string) => void
   disabled?: boolean
 }
 
@@ -19,6 +20,7 @@ export function VideoProviderSelector({
   onProviderChange,
   onVideoIdChange,
   onDurationChange,
+  onUploadComplete,
   disabled = false
 }: VideoProviderSelectorProps) {
   const [uploading, setUploading] = useState(false)
@@ -374,6 +376,7 @@ export function VideoProviderSelector({
 
           setUploadProgress(100)
           onVideoIdChange(result.url)
+          if (onUploadComplete) onUploadComplete(result.url)
           return
         }
 
@@ -397,6 +400,7 @@ export function VideoProviderSelector({
 
       setUploadProgress(100)
       onVideoIdChange(urlData.publicUrl)
+      if (onUploadComplete) onUploadComplete(urlData.publicUrl)
 
     } catch (err) {
       // console.error('💥 Error uploading video:', err)

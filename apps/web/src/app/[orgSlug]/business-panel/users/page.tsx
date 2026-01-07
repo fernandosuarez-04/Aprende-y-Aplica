@@ -33,12 +33,14 @@ import { BusinessUser } from '@/features/business-panel/services/businessUsers.s
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/core/stores/themeStore'
+import { useAuth } from '@/features/auth/hooks/useAuth'
 
 const AddUserModal = dynamic(() => import('@/features/business-panel/components/BusinessAddUserModal').then(mod => ({ default: mod.BusinessAddUserModal })), { ssr: false })
 const EditUserModal = dynamic(() => import('@/features/business-panel/components/BusinessEditUserModal').then(mod => ({ default: mod.BusinessEditUserModal })), { ssr: false })
 const DeleteUserModal = dynamic(() => import('@/features/business-panel/components/BusinessDeleteUserModal').then(mod => ({ default: mod.BusinessDeleteUserModal })), { ssr: false })
 const ImportUsersModal = dynamic(() => import('@/features/business-panel/components/BusinessImportUsersModal').then(mod => ({ default: mod.BusinessImportUsersModal })), { ssr: false })
 const UserStatsModal = dynamic(() => import('@/features/business-panel/components/BusinessUserStatsModal').then((mod) => ({ default: mod.BusinessUserStatsModal })), { ssr: false })
+const InviteUserModal = dynamic(() => import('@/features/business-panel/components/BusinessInviteUserModal').then(mod => ({ default: mod.BusinessInviteUserModal })), { ssr: false })
 
 // ============================================
 // COMPONENTE: StatCard Premium
@@ -481,6 +483,7 @@ export default function BusinessPanelUsersPage() {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { users, stats, isLoading, error, refetch, createUser, updateUser, deleteUser, resendInvitation, suspendUser, activateUser } = useBusinessUsers()
+  const { user: currentUser } = useAuth()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState('all')
@@ -495,7 +498,7 @@ export default function BusinessPanelUsersPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [statsUser, setStatsUser] = useState<BusinessUser | null>(null)
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
-
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
   // Theme Colors
   // Theme Colors
@@ -656,6 +659,20 @@ export default function BusinessPanelUsersPage() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5 }}
+                onClick={() => setIsInviteModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl font-medium text-sm border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-2"
+                style={{ color: '#FFFFFF', borderColor: 'rgba(255,255,255,0.3)' }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Mail className="w-4 h-4" />
+                {t('users.buttons.invite', 'Invitar')}
+              </motion.button>
+
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.55 }}
                 onClick={() => setIsAddModalOpen(true)}
                 className="px-6 py-2.5 rounded-xl font-bold text-sm !text-white transition-all flex items-center gap-2"
                 style={{
@@ -939,6 +956,12 @@ export default function BusinessPanelUsersPage() {
       <DeleteUserModal user={deletingUser} isOpen={isDeleteModalOpen} onClose={() => { setIsDeleteModalOpen(false); setDeletingUser(null) }} onConfirm={async () => { if (deletingUser) await deleteUser(deletingUser.id) }} />
       <ImportUsersModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} onImportComplete={() => { refetch(); setIsImportModalOpen(false) }} />
       {statsUser && <UserStatsModal user={statsUser} isOpen={isStatsModalOpen} onClose={() => { setIsStatsModalOpen(false); setStatsUser(null) }} />}
+      <InviteUserModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        onInviteSent={() => refetch()}
+        organizationId={currentUser?.organization_id || undefined}
+      />
     </div>
   )
 }

@@ -30,53 +30,6 @@ CREATE TABLE public.adopcion_genai (
   fecha_fuente text,
   CONSTRAINT adopcion_genai_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.ai_apps (
-  app_id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  name character varying NOT NULL,
-  slug character varying NOT NULL UNIQUE,
-  description text NOT NULL,
-  long_description text,
-  category_id uuid,
-  website_url text,
-  logo_url text,
-  pricing_model character varying NOT NULL,
-  pricing_details jsonb,
-  features ARRAY,
-  use_cases ARRAY,
-  advantages ARRAY,
-  disadvantages ARRAY,
-  alternatives ARRAY,
-  tags ARRAY,
-  supported_languages ARRAY,
-  integrations ARRAY,
-  api_available boolean DEFAULT false,
-  mobile_app boolean DEFAULT false,
-  desktop_app boolean DEFAULT false,
-  browser_extension boolean DEFAULT false,
-  is_featured boolean DEFAULT false,
-  is_verified boolean DEFAULT false,
-  view_count integer DEFAULT 0,
-  like_count integer DEFAULT 0,
-  rating numeric DEFAULT 0.0,
-  rating_count integer DEFAULT 0,
-  is_active boolean DEFAULT true,
-  created_at timestamp without time zone DEFAULT now(),
-  updated_at timestamp without time zone DEFAULT now(),
-  CONSTRAINT ai_apps_pkey PRIMARY KEY (app_id),
-  CONSTRAINT ai_apps_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.ai_categories(category_id)
-);
-CREATE TABLE public.ai_categories (
-  category_id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  name character varying NOT NULL UNIQUE,
-  slug character varying NOT NULL UNIQUE,
-  description text,
-  icon character varying,
-  color character varying,
-  is_active boolean DEFAULT true,
-  created_at timestamp without time zone DEFAULT now(),
-  updated_at timestamp without time zone DEFAULT now(),
-  CONSTRAINT ai_categories_pkey PRIMARY KEY (category_id)
-);
 CREATE TABLE public.ai_moderation_config (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   config_key text NOT NULL UNIQUE,
@@ -1261,6 +1214,22 @@ CREATE TABLE public.user_course_enrollments (
   CONSTRAINT user_course_enrollments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT user_course_enrollments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
 );
+CREATE TABLE public.user_invitations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  email text NOT NULL,
+  token text NOT NULL UNIQUE,
+  role text NOT NULL DEFAULT 'member'::text CHECK (role = ANY (ARRAY['owner'::text, 'admin'::text, 'member'::text])),
+  organization_id uuid NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'accepted'::text, 'expired'::text, 'revoked'::text])),
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  accepted_at timestamp with time zone,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT user_invitations_pkey PRIMARY KEY (id),
+  CONSTRAINT user_invitations_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT user_invitations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.user_lesson_notes (
   note_id uuid NOT NULL DEFAULT gen_random_uuid(),
   note_title character varying NOT NULL,
@@ -1586,6 +1555,7 @@ CREATE TABLE public.work_teams (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   image_url text,
+  slug character varying NOT NULL,
   CONSTRAINT work_teams_pkey PRIMARY KEY (team_id),
   CONSTRAINT work_teams_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
   CONSTRAINT work_teams_team_leader_id_fkey FOREIGN KEY (team_leader_id) REFERENCES public.users(id),

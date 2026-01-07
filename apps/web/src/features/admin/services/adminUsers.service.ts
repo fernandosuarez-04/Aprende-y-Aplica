@@ -351,7 +351,6 @@ export class AdminUsersService {
         .single()
 
       // Registrar en el log de auditoría ANTES de eliminar el usuario
-      // Esto evita problemas con las políticas RLS que requieren que el user_id exista
       try {
         await AuditLogService.logAction({
           user_id: userId,
@@ -366,217 +365,413 @@ export class AdminUsersService {
         })
       } catch (auditError) {
         // No fallar la eliminación si el log de auditoría falla
-        // console.error('Error en auditoría:', auditError)
       }
 
-      // Eliminar todas las referencias del usuario antes de eliminar el usuario
-      // Usar cliente admin para bypass RLS en todas las eliminaciones
-      // Orden importante: primero las tablas dependientes, luego el usuario
+      console.log('🗑️ [AdminUsersService.deleteUser] Intentando eliminar usuario:', userId)
 
-      // 1. Obtener IDs de posts del usuario para eliminar comentarios y reacciones relacionados
+      // ============================================
+      // INTENTO 1: Usar función RPC delete_user_cascade (más confiable)
+      // ============================================
+      console.log('🔄 Intentando eliminar via RPC delete_user_cascade...')
+      const { data: rpcResult, error: rpcError } = await adminSupabase
+        .rpc('delete_user_cascade', { target_user_id: userId })
+
+      if (!rpcError) {
+        console.log('✅ Usuario eliminado exitosamente via RPC:', rpcResult)
+        return // Éxito - no necesitamos continuar
+      }
+
+      console.warn('⚠️ RPC delete_user_cascade falló, usando método manual:', rpcError.message)
+
+      // ============================================
+      // INTENTO 2: Método manual si RPC falla
+      // ============================================
+      console.log('🗑️ [AdminUsersService.deleteUser] Iniciando eliminación manual en cascada')
+
+      // Helper function para eliminar de una tabla de forma segura
+      const deleteFromTable = async (tableName: string, column: string = 'user_id') => {
+        try {
+          const { error } = await adminSupabase.from(tableName).delete().eq(column, userId)
+          if (error && error.code !== '42P01' && error.code !== 'PGRST116') {
+            console.warn(`⚠️ Error eliminando de ${tableName}:`, error.message)
+          }
+        } catch (e) {
+          console.warn(`⚠️ Excepción eliminando de ${tableName}:`, e)
+        }
+      }
+
+      // ============================================
+      // PASO 1: Eliminar datos dependientes primero (orden de dependencias)
+      // ============================================
+
+      // 1. LIA - Primero feedback, luego activity completions, luego conversaciones
+      console.log('🔄 Eliminando datos de LIA...')
+      await deleteFromTable('lia_user_feedback')
+      await deleteFromTable('lia_activity_completions')
+      await deleteFromTable('lia_conversations')
+
+      // 2. CRÍTICO: Obtener enrollment_ids del usuario ANTES de eliminar dependencias
+      console.log('🔄 Obteniendo enrollment IDs...')
+      const { data: enrollments } = await adminSupabase
+        .from('user_course_enrollments')
+        .select('enrollment_id')
+        .eq('user_id', userId)
+      
+      const enrollmentIds = enrollments?.map(e => e.enrollment_id) || []
+      console.log(`📋 Encontrados ${enrollmentIds.length} enrollments para eliminar`)
+
+      // 3. Eliminar tablas que dependen de enrollment_id PRIMERO
+      if (enrollmentIds.length > 0) {
+        console.log('🔄 Eliminando dependencias de enrollments...')
+        
+        // user_lesson_progress tiene FK a enrollment_id
+        const { error: progErr } = await adminSupabase
+          .from('user_lesson_progress')
+          .delete()
+          .in('enrollment_id', enrollmentIds)
+        if (progErr) console.warn('⚠️ Error en user_lesson_progress:', progErr.message)
+
+        // user_quiz_submissions tiene FK a enrollment_id
+        const { error: quizErr } = await adminSupabase
+          .from('user_quiz_submissions')
+          .delete()
+          .in('enrollment_id', enrollmentIds)
+        if (quizErr) console.warn('⚠️ Error en user_quiz_submissions:', quizErr.message)
+
+        // user_course_certificates tiene FK a enrollment_id
+        // NOTA: certificate_ledger es append-only, NO intentar eliminar de ahí
+        // Solo eliminar los certificados directamente
+        console.log('🔄 Eliminando certificados (sin tocar ledger)...')
+        const { error: certErr } = await adminSupabase
+          .from('user_course_certificates')
+          .delete()
+          .in('enrollment_id', enrollmentIds)
+        
+        if (certErr) {
+          console.warn('⚠️ Error inicial en user_course_certificates:', certErr.message)
+          // Si falla, intentar por user_id
+          const { error: certErr2 } = await adminSupabase
+            .from('user_course_certificates')
+            .delete()
+            .eq('user_id', userId)
+          if (certErr2) {
+            console.error('❌ No se pueden eliminar certificados:', certErr2.message)
+            // Intentar con SQL directo via RPC si existe
+          }
+        }
+      }
+
+      // 4. También eliminar certificados, quiz submissions y progress por user_id (por si acaso)
+      console.log('🔄 Eliminando certificados por user_id...')
+      await deleteFromTable('user_course_certificates')
+      
+      console.log('🔄 Eliminando quiz submissions por user_id...')
+      await deleteFromTable('user_quiz_submissions')
+
+      // 5. Progreso de lecciones y tracking
+      console.log('🔄 Eliminando progreso...')
+      await deleteFromTable('lesson_tracking')
+      await deleteFromTable('user_lesson_progress')
+      await deleteFromTable('daily_progress')
+
+      // 6. Notas de lecciones
+      console.log('🔄 Eliminando notas de lecciones...')
+      await deleteFromTable('user_lesson_notes')
+
+      // 7. Sesiones de estudio
+      console.log('🔄 Eliminando sesiones de estudio...')
+      await deleteFromTable('study_sessions')
+
+      // 8. Calendar sync history
+      console.log('🔄 Eliminando calendar sync...')
+      await deleteFromTable('calendar_sync_history')
+
+      // 9. Study plans
+      console.log('🔄 Eliminando planes de estudio...')
+      await deleteFromTable('study_plans')
+
+      // 10. CRÍTICO: Eliminar enrollments - verificar que se eliminen
+      console.log('🔄 Eliminando enrollments...')
+      const { error: enrollError } = await adminSupabase
+        .from('user_course_enrollments')
+        .delete()
+        .eq('user_id', userId)
+      
+      if (enrollError) {
+        console.error('❌ Error crítico eliminando enrollments:', enrollError)
+        // Intentar de nuevo después de limpiar más dependencias
+      }
+
+      // Verificar que los enrollments se eliminaron
+      const { data: remainingEnrollments } = await adminSupabase
+        .from('user_course_enrollments')
+        .select('enrollment_id')
+        .eq('user_id', userId)
+      
+      if (remainingEnrollments && remainingEnrollments.length > 0) {
+        console.error(`❌ Aún quedan ${remainingEnrollments.length} enrollments sin eliminar`)
+        // Forzar eliminación
+        for (const enrollment of remainingEnrollments) {
+          await adminSupabase
+            .from('user_lesson_progress')
+            .delete()
+            .eq('enrollment_id', enrollment.enrollment_id)
+          await adminSupabase
+            .from('user_quiz_submissions')
+            .delete()
+            .eq('enrollment_id', enrollment.enrollment_id)
+          await adminSupabase
+            .from('user_course_certificates')
+            .delete()
+            .eq('enrollment_id', enrollment.enrollment_id)
+        }
+        // Intentar eliminar enrollments de nuevo
+        await adminSupabase
+          .from('user_course_enrollments')
+          .delete()
+          .eq('user_id', userId)
+      }
+
+
+      // 10. Asignaciones de cursos
+      console.log('🔄 Eliminando asignaciones de cursos...')
+      await deleteFromTable('organization_course_assignments')
+      await deleteFromTable('organization_course_assignments', 'assigned_by')
+
+      // 11. Preguntas, respuestas y reacciones de cursos
+      console.log('🔄 Eliminando Q&A de cursos...')
+      await deleteFromTable('course_question_reactions')
+      await deleteFromTable('course_question_responses')
+      await deleteFromTable('course_questions')
+      await deleteFromTable('course_reviews')
+      await deleteFromTable('lesson_feedback')
+
+      // 12. Notificaciones y preferencias
+      console.log('🔄 Eliminando notificaciones...')
+      await deleteFromTable('notification_email_queue')
+      await deleteFromTable('notification_push_subscriptions')
+      await deleteFromTable('notification_stats')
+      await deleteFromTable('user_notification_preferences')
+      await deleteFromTable('user_notifications')
+
+      // 13. Calendario
+      console.log('🔄 Eliminando calendario...')
+      await deleteFromTable('user_calendar_events')
+      await deleteFromTable('calendar_subscription_tokens')
+      await deleteFromTable('calendar_integrations')
+
+      // 14. SCORM
+      console.log('🔄 Eliminando SCORM...')
+      const { data: scormAttempts } = await adminSupabase
+        .from('scorm_attempts')
+        .select('id')
+        .eq('user_id', userId)
+      
+      if (scormAttempts && scormAttempts.length > 0) {
+        const attemptIds = scormAttempts.map(a => a.id)
+        await adminSupabase.from('scorm_interactions').delete().in('attempt_id', attemptIds)
+        await adminSupabase.from('scorm_objectives').delete().in('attempt_id', attemptIds)
+      }
+      await deleteFromTable('scorm_attempts')
+
+      // 15. Transacciones y pagos
+      console.log('🔄 Eliminando transacciones...')
+      await deleteFromTable('transactions')
+      await deleteFromTable('subscriptions')
+      await deleteFromTable('payment_methods')
+
+      // 16. OAuth y autenticación
+      console.log('🔄 Eliminando auth data...')
+      await deleteFromTable('oauth_accounts')
+      await deleteFromTable('password_reset_tokens')
+      await deleteFromTable('refresh_tokens')
+      await deleteFromTable('user_session')
+
+      // 17. Work teams
+      console.log('🔄 Eliminando datos de equipos...')
+      await deleteFromTable('work_team_feedback', 'from_user_id')
+      await deleteFromTable('work_team_feedback', 'to_user_id')
+      await deleteFromTable('work_team_messages', 'sender_id')
+      await deleteFromTable('work_team_objectives', 'created_by')
+      await deleteFromTable('work_team_course_assignments', 'assigned_by')
+      await deleteFromTable('work_team_members')
+      // Actualizar work_teams donde el usuario es leader o creador
+      await adminSupabase.from('work_teams').update({ team_leader_id: null }).eq('team_leader_id', userId)
+      await adminSupabase.from('work_teams').update({ created_by: null }).eq('created_by', userId)
+
+      // 18. User perfil y respuestas
+      console.log('🔄 Eliminando perfil...')
+      const { data: userPerfil } = await adminSupabase
+        .from('user_perfil')
+        .select('id')
+        .eq('user_id', userId)
+      
+      if (userPerfil && userPerfil.length > 0) {
+        const perfilIds = userPerfil.map(p => p.id)
+        await adminSupabase.from('respuestas').delete().in('user_perfil_id', perfilIds)
+      }
+      await deleteFromTable('user_perfil')
+
+      // 19. Reportes de problemas
+      console.log('🔄 Eliminando reportes...')
+      await deleteFromTable('reportes_problemas')
+      await adminSupabase.from('reportes_problemas').update({ admin_asignado: null }).eq('admin_asignado', userId)
+
+      // 20. Admin dashboard
+      console.log('🔄 Eliminando admin dashboard data...')
+      await deleteFromTable('admin_dashboard_layouts')
+      await deleteFromTable('admin_dashboard_preferences')
+
+      // 21. Study preferences y streaks
+      console.log('🔄 Eliminando preferencias de estudio...')
+      await deleteFromTable('study_preferences')
+      await deleteFromTable('user_streaks')
+
+      // 22. Activity logs
+      console.log('🔄 Eliminando activity logs...')
+      await deleteFromTable('user_activity_log')
+
+      // 23. Progreso de tours
+      console.log('🔄 Eliminando tour progress...')
+      await deleteFromTable('user_tour_progress')
+
+      // 24. Warnings y moderación
+      console.log('🔄 Eliminando warnings y moderación...')
+      await deleteFromTable('user_warnings')
+      await deleteFromTable('ai_moderation_logs')
+
+      // 25. Audit logs
+      console.log('🔄 Eliminando audit logs...')
+      await deleteFromTable('audit_logs')
+      await deleteFromTable('audit_logs', 'admin_user_id')
+
+      // 26. Datos adicionales
+      console.log('🔄 Eliminando datos adicionales...')
+      await deleteFromTable('user_favorites')
+      await deleteFromTable('app_favorites')
+      await deleteFromTable('notes')
+
+      // 27. Comunidad - Obtener posts primero para limpiar dependencias
+      console.log('🔄 Eliminando datos de comunidad...')
       const { data: userPosts } = await adminSupabase
         .from('community_posts')
         .select('id')
         .eq('user_id', userId)
-
       const postIds = userPosts?.map(post => post.id) || []
 
-      // 2. Eliminar comentarios en posts del usuario
+      // Comentarios y reacciones en posts del usuario
       if (postIds.length > 0) {
-        const { error: deleteCommentsError } = await adminSupabase
-          .from('community_comments')
-          .delete()
-          .in('post_id', postIds)
-
-        if (deleteCommentsError) {
-          }
+        await adminSupabase.from('community_comments').delete().in('post_id', postIds)
+        await adminSupabase.from('community_reactions').delete().in('post_id', postIds)
+        await adminSupabase.from('community_post_reactions').delete().in('post_id', postIds)
       }
 
-      // 3. Eliminar reacciones en posts del usuario
-      if (postIds.length > 0) {
-        const { error: deleteReactionsError } = await adminSupabase
-          .from('community_reactions')
-          .delete()
-          .in('post_id', postIds)
+      // Reacciones y comentarios creados por el usuario
+      await deleteFromTable('community_reactions')
+      await deleteFromTable('community_post_reactions')
+      await deleteFromTable('community_comment_reactions')
+      await deleteFromTable('community_comments')
+      await deleteFromTable('community_posts')
+      await deleteFromTable('community_members')
+      await deleteFromTable('community_access_requests', 'requester_id')
+      await adminSupabase.from('community_access_requests').update({ reviewed_by: null }).eq('reviewed_by', userId)
 
-        if (deleteReactionsError) {
-          }
-      }
+      // 28. Organization users
+      console.log('🔄 Eliminando de organization_users...')
+      await adminSupabase.from('organization_users').update({ invited_by: null }).eq('invited_by', userId)
+      await deleteFromTable('organization_users')
 
-      // 3.5. Eliminar TODAS las reacciones creadas por el usuario (no solo en sus posts)
-      const { error: deleteUserReactionsError } = await adminSupabase
-        .from('community_reactions')
-        .delete()
-        .eq('user_id', userId)
+      // 29. Compras de cursos de organización
+      console.log('🔄 Eliminando compras de cursos...')
+      await deleteFromTable('organization_course_purchases', 'purchased_by')
 
-      if (deleteUserReactionsError) {
-        }
+      // 30. Manejar referencias como instructor en lecciones
+      // NOTA: instructor_id es NOT NULL en course_lessons, por lo que debemos ELIMINAR las lecciones
+      // Primero eliminamos todas las referencias a esas lecciones
+      console.log('🔄 Obteniendo lecciones donde el usuario es instructor...')
 
-      // 4. Eliminar posts de comunidades del usuario
-      const { error: deletePostsError } = await adminSupabase
-        .from('community_posts')
-        .delete()
-        .eq('user_id', userId)
-
-      if (deletePostsError) {
-        }
-
-      // 5. Eliminar miembros de comunidades del usuario
-      const { error: deleteMembersError } = await adminSupabase
-        .from('community_members')
-        .delete()
-        .eq('user_id', userId)
-
-      if (deleteMembersError) {
-        }
-
-      // 5.5. Eliminar solicitudes de acceso a comunidades donde el usuario es el solicitante
-      const { error: deleteAccessRequestsError } = await adminSupabase
-        .from('community_access_requests')
-        .delete()
-        .eq('requester_id', userId)
-
-      if (deleteAccessRequestsError) {
-        }
-
-      // 5.6. Eliminar solicitudes de acceso a comunidades donde el usuario es el revisor (opcional pero recomendado)
-      const { error: deleteReviewedRequestsError } = await adminSupabase
-        .from('community_access_requests')
-        .delete()
-        .eq('reviewed_by', userId)
-
-      if (deleteReviewedRequestsError) {
-        }
-
-      // 6. Eliminar usuarios de organizaciones
-      const { error: deleteOrgUsersError } = await adminSupabase
-        .from('organization_users')
-        .delete()
-        .eq('user_id', userId)
-
-      if (deleteOrgUsersError) {
-        }
-
-      // 6.5. Eliminar inscripciones a cursos del usuario
-      const { error: deleteEnrollmentsError } = await adminSupabase
-        .from('user_course_enrollments')
-        .delete()
-        .eq('user_id', userId)
-
-      if (deleteEnrollmentsError) {
-        }
-
-      // 7. Eliminar sesiones del usuario
-      const { error: deleteSessionsError } = await adminSupabase
-        .from('user_session')
-        .delete()
-        .eq('user_id', userId)
-
-      if (deleteSessionsError) {
-        }
-
-      // 8. Eliminar favoritos del usuario
-      const { error: deleteFavoritesError } = await adminSupabase
-        .from('app_favorites')
-        .delete()
-        .eq('user_id', userId)
-
-      if (deleteFavoritesError) {
-        }
-
-      // 8.5. Manejar referencias del usuario como instructor
-      // Obtener todas las lecciones del instructor
-      const { data: userLessons } = await adminSupabase
+      const { data: userLessons, error: fetchLessonsError } = await adminSupabase
         .from('course_lessons')
         .select('lesson_id')
         .eq('instructor_id', userId)
 
-      const lessonIds = userLessons?.map(lesson => lesson.lesson_id) || []
-
-      // Eliminar actividades de las lecciones antes de eliminar las lecciones
-      if (lessonIds.length > 0) {
-        const { error: deleteActivitiesError } = await adminSupabase
-          .from('lesson_activities')
-          .delete()
-          .in('lesson_id', lessonIds)
-
-        if (deleteActivitiesError) {
-          }
-
-        // Eliminar materiales de las lecciones antes de eliminar las lecciones
-        const { error: deleteMaterialsError } = await adminSupabase
-          .from('lesson_materials')
-          .delete()
-          .in('lesson_id', lessonIds)
-
-        if (deleteMaterialsError) {
-          }
-
-        // Eliminar progreso de lecciones antes de eliminar las lecciones
-        const { error: deleteProgressError } = await adminSupabase
-          .from('user_lesson_progress')
-          .delete()
-          .in('lesson_id', lessonIds)
-
-        if (deleteProgressError) {
-          }
+      if (fetchLessonsError) {
+        console.error('❌ Error obteniendo lecciones:', fetchLessonsError)
       }
 
-      // Eliminar las lecciones del instructor
-      const { error: deleteLessonsError } = await adminSupabase
-        .from('course_lessons')
-        .delete()
-        .eq('instructor_id', userId)
+      const lessonIds = userLessons?.map(lesson => lesson.lesson_id) || []
+      console.log(`📋 Encontradas ${lessonIds.length} lecciones con instructor_id=${userId}`)
 
-      if (deleteLessonsError) {
-        }
+      if (lessonIds.length > 0) {
+        console.log('🔄 Eliminando referencias a lecciones...')
 
-      // Cambiar instructor_id a NULL en courses (o eliminar si no permite NULL)
-      const { error: updateCoursesError } = await adminSupabase
-        .from('courses')
-        .update({ instructor_id: null })
-        .eq('instructor_id', userId)
+        // Eliminar todas las referencias a estas lecciones
+        await adminSupabase.from('lesson_activities').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('lesson_materials').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('lesson_checkpoints').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('lesson_time_estimates').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('lesson_feedback').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('user_lesson_progress').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('lesson_tracking').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('lia_common_questions').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('lesson_notes').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('lia_conversations').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('study_sessions').delete().in('lesson_id', lessonIds)
+        await adminSupabase.from('user_activity_log').delete().in('lesson_id', lessonIds)
 
-      if (updateCoursesError) {
-        // Si falla porque instructor_id no puede ser NULL, intentar eliminar los cursos
-        const { error: deleteCoursesError } = await adminSupabase
-          .from('courses')
+        console.log('✅ Referencias a lecciones eliminadas')
+
+        // Ahora eliminar las lecciones
+        console.log('🔄 Eliminando lecciones donde el usuario es instructor...')
+
+        const { error: deleteLessonsError } = await adminSupabase
+          .from('course_lessons')
           .delete()
           .eq('instructor_id', userId)
-        
-        if (deleteCoursesError) {
-          }
+
+        if (deleteLessonsError) {
+          console.error('❌ Error eliminando course_lessons:', deleteLessonsError)
+        } else {
+          console.log('✅ course_lessons eliminadas correctamente')
+        }
+
+        // También eliminar de tablas de traducciones
+        await adminSupabase.from('course_lessons_en').delete().eq('instructor_id', userId)
+        await adminSupabase.from('course_lessons_pt').delete().eq('instructor_id', userId)
       }
 
-      // Cambiar created_by a NULL en news
-      const { error: updateNewsError } = await adminSupabase
-        .from('news')
-        .update({ created_by: null })
-        .eq('created_by', userId)
+      // Actualizar cursos donde es instructor o approved_by
+      await adminSupabase.from('courses').update({ instructor_id: null }).eq('instructor_id', userId)
+      await adminSupabase.from('courses').update({ approved_by: null }).eq('approved_by', userId)
 
-      if (updateNewsError) {
-        // Si falla porque created_by no puede ser NULL, intentar eliminar las noticias
-        const { error: deleteNewsError } = await adminSupabase
-          .from('news')
-          .delete()
-          .eq('created_by', userId)
-        
-        if (deleteNewsError) {
-          }
-      }
+      // Actualizar news
+      await adminSupabase.from('news').update({ created_by: null }).eq('created_by', userId)
 
-      // 9. Finalmente eliminar el usuario
+      // Actualizar content_translations
+      await adminSupabase.from('content_translations').update({ created_by: null }).eq('created_by', userId)
+
+      // Actualizar scorm_packages
+      await adminSupabase.from('scorm_packages').update({ created_by: null }).eq('created_by', userId)
+
+      console.log('✅ [AdminUsersService.deleteUser] Todos los datos relacionados eliminados')
+
+      // ============================================
+      // PASO FINAL: Eliminar el usuario
+      // ============================================
+      console.log('🔄 Eliminando usuario de la tabla users...')
       const { error } = await adminSupabase
         .from('users')
         .delete()
         .eq('id', userId)
 
       if (error) {
-        // console.error('Error deleting user:', error)
+        console.error('❌ Error eliminando usuario:', error)
         throw error
       }
+
+      console.log('✅ [AdminUsersService.deleteUser] Usuario eliminado completamente:', userId)
     } catch (error) {
-      // console.error('Error in AdminUsersService.deleteUser:', error)
+      console.error('❌ Error in AdminUsersService.deleteUser:', error)
       throw error
     }
   }
