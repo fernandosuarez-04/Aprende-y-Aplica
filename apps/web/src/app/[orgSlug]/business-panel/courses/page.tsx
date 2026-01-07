@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import {
   BookOpen,
   Search,
@@ -296,6 +296,8 @@ export default function BusinessPanelCoursesPage() {
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterLevel, setFilterLevel] = useState('all')
   const router = useRouter()
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string
 
   // Theme Colors
   const { resolvedTheme } = useThemeStore()
@@ -597,7 +599,7 @@ export default function BusinessPanelCoursesPage() {
                 primaryColor={primaryColor}
                 textColor={textColor}
                 cardBg={cardBg}
-                onClick={() => router.push(`/business-panel/courses/${course.id}`)}
+                onClick={() => router.push(`/${orgSlug}/business-panel/courses/${course.id}`)}
                 isDark={isDark}
               />
             ))}
