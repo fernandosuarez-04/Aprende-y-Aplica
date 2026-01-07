@@ -53,6 +53,32 @@ export function useCourseLearnTour(options: UseCourseLearnTourOptions = {}) {
   const handleJoyrideCallback = useCallback(async (data: CallBackProps) => {
     const { action, index, status, type, step } = data;
 
+    // Handle close button click (X button)
+    if (action === ACTIONS.CLOSE) {
+      setRun(false);
+      setStepIndex(0);
+      // Cleanup immediately
+      onCloseLia?.();
+      onCloseNotes?.();
+      onSwitchTab?.('video');
+      // Mark as skipped (non-blocking)
+      skipTour().catch(console.error);
+      return;
+    }
+
+    // Handle skip button click
+    if (action === ACTIONS.SKIP) {
+      setRun(false);
+      setStepIndex(0);
+      // Cleanup immediately
+      onCloseLia?.();
+      onCloseNotes?.();
+      onSwitchTab?.('video');
+      // Mark as skipped (non-blocking)
+      skipTour().catch(console.error);
+      return;
+    }
+
     // Handle controlled navigation
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
         if (action === ACTIONS.NEXT) {
@@ -93,21 +119,23 @@ export function useCourseLearnTour(options: UseCourseLearnTourOptions = {}) {
     if (status === STATUS.FINISHED) {
       setRun(false);
       setStepIndex(0);
-      await completeTour();
-      // Cleanup
+      // Cleanup immediately
       onCloseLia?.();
       onCloseNotes?.();
       onSwitchTab?.('video');
+      // Complete tour (non-blocking)
+      completeTour().catch(console.error);
     }
 
     if (status === STATUS.SKIPPED) {
       setRun(false);
       setStepIndex(0);
-      await skipTour();
-      // Cleanup
+      // Cleanup immediately
       onCloseLia?.();
       onCloseNotes?.();
       onSwitchTab?.('video');
+      // Skip tour (non-blocking)
+      skipTour().catch(console.error);
     }
   }, [completeTour, skipTour, onOpenLia, onCloseLia, onOpenNotes, onCloseNotes, onSwitchTab]);
 
@@ -128,9 +156,11 @@ export function useCourseLearnTour(options: UseCourseLearnTourOptions = {}) {
     scrollToFirstStep: true,
     showProgress: true,
     showSkipButton: true,
+    hideCloseButton: false,
     spotlightClicks: true,
     spotlightPadding: 10,
-    disableOverlayClose: true,
+    disableOverlayClose: false,
+    disableScrolling: false,
     tooltipComponent: JoyrideTooltip,
     callback: handleJoyrideCallback,
     floaterProps: {

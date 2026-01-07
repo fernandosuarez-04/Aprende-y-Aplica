@@ -92,7 +92,7 @@ export default function BusinessUserDashboardPage() {
   const cssVariables = generateCSSVariables(userDashboardStyles)
 
   // Tour inicializado
-  const { joyrideProps, restartTour } = useBusinessUserJoyride()
+  const { joyrideProps, startTour: restartTour } = useBusinessUserJoyride()
   const [isMounted, setIsMounted] = useState(false)
   useEffect(() => setIsMounted(true), [])
 

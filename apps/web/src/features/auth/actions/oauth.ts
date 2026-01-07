@@ -520,19 +520,29 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     } else if (normalizedRole === 'instructor') {
       destination = '/instructor/dashboard';
     } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
-        // Verificar organización activa
-        const { data: userOrg } = await supabase
+      // Verificar organización activa y obtener slug
+      const { data: userOrg } = await supabase
         .from('organization_users')
-        .select('organization_id')
+        .select('organization_id, role, organizations!inner(slug)')
         .eq('user_id', userId)
         .eq('status', 'active')
         .single();
       
       if (userOrg) {
-        if (normalizedRole === 'business') {
-          destination = '/business-panel/dashboard';
+        const orgSlug = (userOrg.organizations as any)?.slug;
+        const orgRole = userOrg.role; // Rol en la organización: 'owner', 'admin', 'member', etc.
+        
+        if (orgSlug) {
+          // Determinar destino según el rol en la organización
+          // owner y admin van a business-panel, member va a business-user
+          if (orgRole === 'owner' || orgRole === 'admin') {
+            destination = `/${orgSlug}/business-panel/dashboard`;
+          } else {
+            destination = `/${orgSlug}/business-user/dashboard`;
+          }
         } else {
-          destination = '/business-user/dashboard';
+          // Fallback sin slug
+          destination = '/dashboard';
         }
       }
     }
@@ -877,18 +887,29 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
     } else if (normalizedRole === 'instructor') {
       destination = '/instructor/dashboard';
     } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
-        const { data: userOrg } = await supabase
+      // Verificar organización activa y obtener slug
+      const { data: userOrg } = await supabase
         .from('organization_users')
-        .select('organization_id')
+        .select('organization_id, role, organizations!inner(slug)')
         .eq('user_id', userId)
         .eq('status', 'active')
         .single();
 
       if (userOrg) {
-        if (normalizedRole === 'business') {
-          destination = '/business-panel/dashboard';
+        const orgSlug = (userOrg.organizations as any)?.slug;
+        const orgRole = userOrg.role; // Rol en la organización: 'owner', 'admin', 'member', etc.
+        
+        if (orgSlug) {
+          // Determinar destino según el rol en la organización
+          // owner y admin van a business-panel, member va a business-user
+          if (orgRole === 'owner' || orgRole === 'admin') {
+            destination = `/${orgSlug}/business-panel/dashboard`;
+          } else {
+            destination = `/${orgSlug}/business-user/dashboard`;
+          }
         } else {
-          destination = '/business-user/dashboard';
+          // Fallback sin slug
+          destination = '/dashboard';
         }
       }
     }

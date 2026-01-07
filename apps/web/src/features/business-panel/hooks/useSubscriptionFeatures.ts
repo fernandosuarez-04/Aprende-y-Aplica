@@ -127,17 +127,31 @@ export function useSubscriptionFeatures(): UseSubscriptionFeaturesReturn {
     fetchSubscription()
   }, [fetchSubscription])
 
-  // Disparar evento personalizado cuando el plan cambie
+  // Disparar evento personalizado SOLO cuando el plan cambia por acción del usuario
+  // NO durante la carga inicial (esto evita loops infinitos de recargas)
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
+  const [previousPlan, setPreviousPlan] = useState<SubscriptionPlan | null>(null)
+
   useEffect(() => {
-    if (plan) {
-      // Disparar evento para notificar a otros componentes del cambio de plan
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('subscription-plan-changed', {
-          detail: { plan, billingCycle, subscription }
-        }))
+    if (!loading && plan !== null) {
+      // Marcar que ya se cargó inicialmente
+      if (!hasInitiallyLoaded) {
+        setHasInitiallyLoaded(true)
+        setPreviousPlan(plan)
+        return // No disparar evento en la carga inicial
+      }
+
+      // Solo disparar si el plan realmente cambió después de la carga inicial
+      if (previousPlan !== null && previousPlan !== plan) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('subscription-plan-changed', {
+            detail: { plan, billingCycle, subscription }
+          }))
+        }
+        setPreviousPlan(plan)
       }
     }
-  }, [plan, billingCycle, subscription])
+  }, [loading, plan, billingCycle, subscription, hasInitiallyLoaded, previousPlan])
 
   const changePlan = useCallback(async (planId: string, billingCycle: BillingCycle): Promise<{ success: boolean; error?: string }> => {
     if (!orgSlug) {

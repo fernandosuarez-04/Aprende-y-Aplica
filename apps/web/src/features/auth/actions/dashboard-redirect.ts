@@ -6,11 +6,11 @@ import { SessionService } from '../services/session.service';
 import { logger } from '@/lib/logger';
 
 /**
- * Redirige al usuario al dashboard apropiado según su cargo_rol (Enfoque B2B)
+ * Redirige al usuario al dashboard apropiado según su cargo_rol y rol en la organización
  * - Administrador → /admin/dashboard
  * - Instructor → /instructor/dashboard (Panel de Instructor)
- * - Business → /business-panel/dashboard (Panel Admin Empresas)
- * - Business User → /business-user/dashboard (Dashboard Usuario Business)
+ * - Business (owner/admin en org) → /{orgSlug}/business-panel/dashboard (Panel Admin Empresas)
+ * - Business User (member en org) → /{orgSlug}/business-user/dashboard (Dashboard Usuario Business)
  * - Usuario (o cualquier otro) → /dashboard (Tour SOFIA + Planes)
  */
 export async function redirectToDashboard() {
@@ -47,24 +47,32 @@ export async function redirectToDashboard() {
     } else if (normalizedRole === 'instructor') {
       redirect('/instructor/dashboard');
     } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
-      
-      if (normalizedRole === 'business') {
-        // Redirigir siempre al panel de negocios
-        redirect('/business-panel/dashboard');
-      } else {
-        // Para Business User (empleados), verificar organización
-        const { data: userOrg, error: orgError } = await supabase
-          .from('organization_users')
-          .select('organization_id, status')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .single();
+      // Obtener organización activa con slug y rol
+      const { data: userOrg, error: orgError } = await supabase
+        .from('organization_users')
+        .select('organization_id, role, status, organizations!inner(slug)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
 
-        if (orgError || !userOrg) {
-          logger.warn(`Usuario Business User sin organización activa, redirigiendo a /dashboard`);
-          redirect('/dashboard');
+      if (orgError || !userOrg) {
+        logger.warn(`Usuario Business sin organización activa, redirigiendo a /dashboard`);
+        redirect('/dashboard');
+      } else {
+        const orgSlug = (userOrg.organizations as any)?.slug;
+        const orgRole = userOrg.role; // Rol en la organización: 'owner', 'admin', 'member', etc.
+        
+        if (orgSlug) {
+          // Determinar destino según el rol en la organización
+          // owner y admin van a business-panel, member va a business-user
+          if (orgRole === 'owner' || orgRole === 'admin') {
+            redirect(`/${orgSlug}/business-panel/dashboard`);
+          } else {
+            redirect(`/${orgSlug}/business-user/dashboard`);
+          }
         } else {
-          redirect('/business-user/dashboard');
+          // Fallback sin slug
+          redirect('/dashboard');
         }
       }
     } else {
