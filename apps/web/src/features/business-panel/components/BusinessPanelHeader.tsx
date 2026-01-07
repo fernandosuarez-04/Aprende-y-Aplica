@@ -309,6 +309,19 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
 
                       <motion.button
                         onClick={() => {
+                          router.push('/auth/select-organization')
+                          setUserDropdownOpen(false)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                        style={{ color: navbarStyle.color || 'rgba(255, 255, 255, 0.8)' }}
+                        whileHover={{ x: 2 }}
+                      >
+                        <Building2 className="h-4 w-4 opacity-70" />
+                        <span>Mis organizaciones</span>
+                      </motion.button>
+
+                      <motion.button
+                        onClick={() => {
                           router.push('/profile')
                           setUserDropdownOpen(false)
                         }}

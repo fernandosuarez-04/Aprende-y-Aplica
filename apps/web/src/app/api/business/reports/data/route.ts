@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireBusiness } from '@/lib/auth/requireBusiness'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export type ReportType = 
   | 'users' 
@@ -11,6 +12,7 @@ export type ReportType =
   | 'completion'
   | 'time_spent'
   | 'certificates'
+  | 'lia-analysis'
 
 export interface ReportFilters {
   report_type: ReportType
@@ -84,6 +86,9 @@ export async function GET(request: NextRequest) {
       case 'certificates':
         reportData = await generateCertificatesReport(supabase, organizationId, filters)
         break
+      case 'lia-analysis':
+        reportData = await generateLiaAnalysisReport(supabase, organizationId, filters)
+        break
       default:
         return NextResponse.json({
           success: false,
@@ -108,6 +113,166 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * Genera reporte de análisis de IA con LIA
+ */
+async function generateLiaAnalysisReport(supabase: any, organizationId: string, filters: ReportFilters) {
+  // 1. Recopilar datos de todas las fuentes relevantes
+  const [usersReport, activityReport, certificatesReport, coursesReport] = await Promise.all([
+    generateUsersReport(supabase, organizationId, filters),
+    generateActivityReport(supabase, organizationId, filters),
+    generateCertificatesReport(supabase, organizationId, filters),
+    generateCoursesReport(supabase, organizationId, filters)
+  ])
+
+  // Obtener IDs de usuarios para consultas adicionales
+  const userIds = usersReport.users.map((u: any) => u.user_id)
+
+  // 2. Consultas adicionales para análisis profundo (Equipos, Planner, LIA)
+  const [workTeamsData, studyPlansData, studySessionsData, liaConversationsData] = await Promise.all([
+    // Equipos
+    supabase.from('work_teams').select('team_id, name, status').eq('organization_id', organizationId),
+    // Planes de estudio
+    supabase.from('study_plans').select('id, status').in('user_id', userIds),
+    // Sesiones de estudio (para adherencia)
+    supabase.from('study_sessions').select('id, status, is_ai_generated').in('user_id', userIds),
+    // Interacciones LIA
+    supabase.from('lia_conversations').select('id, context_type, created_at').in('user_id', userIds)
+  ])
+
+  // Obtener asignaciones de cursos a equipos (depende de los equipos obtenidos)
+  const teamIds = workTeamsData.data?.map((t: any) => t.team_id) || []
+  const { data: teamAssignmentsData } = await supabase
+        .from('work_team_course_assignments')
+        .select('id, course_id')
+        .in('team_id', teamIds)
+
+  // Procesar métricas adicionales
+  const teamsCount = workTeamsData.data?.length || 0
+  const activeTeams = workTeamsData.data?.filter((t: any) => t.status === 'active').length || 0
+  const teamAssignmentsCount = teamAssignmentsData?.length || 0
+
+  const totalStudyPlans = studyPlansData.data?.length || 0
+  const totalSessions = studySessionsData.data?.length || 0
+  const completedSessions = studySessionsData.data?.filter((s: any) => s.status === 'completed').length || 0
+  const adherenceRate = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0
+  
+  const totalLiaConversations = liaConversationsData.data?.length || 0
+  const aiChatConversations = liaConversationsData.data?.filter((c: any) => c.context_type === 'ai_chat').length || 0
+  const courseContextConversations = liaConversationsData.data?.filter((c: any) => c.context_type?.includes('course')).length || 0
+
+  // 3. Preparar el prompt para Gemini
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '')
+  const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro' 
+  const model = genAI.getGenerativeModel({ model: modelName })
+
+  const prompt = `
+    Actúa como LIA, la experta en análisis de datos y recursos humanos de la plataforma SOFIA.
+    
+    Tu tarea es generar un "Reporte Ejecutivo de Análisis Predictivo y Rendimiento" para el administrador de la organización.
+    Debes analizar los datos proporcionados y generar un informe profesional, detallado y útil para la toma de decisiones.
+    
+    DATOS DE LA ORGANIZACIÓN:
+    - Total Usuarios: ${usersReport.total_users}
+    - Usuarios Activos: ${usersReport.summary?.by_status?.active || 0}
+    - Total Cursos Asignados (Directos + Equipos): ${coursesReport.total_assignments}
+    - Tasa de Finalización de Cursos: ${coursesReport.summary?.average_completion_rate?.toFixed(2)}%
+    
+    ESTRUCTURA DE EQUIPOS:
+    - Equipos Totales: ${teamsCount}
+    - Equipos Activos: ${activeTeams}
+    - Cursos Asignados a Equipos: ${teamAssignmentsCount}
+    *Nota: Un alto número de asignaciones a equipos indica una gestión eficiente. Si es 0, sugiere subutilización de esta función.*
+
+    PLANIFICACIÓN Y HÁBITOS DE ESTUDIO:
+    - Planes de Estudio Activos: ${totalStudyPlans}
+    - Tasa de Adherencia al Plan (Cumplimiento): ${adherenceRate.toFixed(1)}%
+    - Sesiones de Estudio Completadas: ${completedSessions}
+
+    INTERACCIÓN CON INTELIGENCIA ARTIFICIAL (LIA):
+    - Conversaciones de Orientación General: ${aiChatConversations}
+    - Consultas sobre Cursos Específicos: ${courseContextConversations}
+    - Total Interacciones: ${totalLiaConversations}
+
+    DETALLE DE USUARIOS (Muestra representativa):
+    ${JSON.stringify(usersReport.users.slice(0, 15).map((u: any) => ({
+      nombre: u.display_name,
+      cargo: u.job_title,
+      progreso_promedio: u.progress.average_progress,
+      cursos_asignados: u.progress.total_courses,
+      cursos_completados: u.progress.completed_courses,
+      ultimo_acceso: u.last_login_at
+    })))}
+
+    INSTRUCCIONES PARA EL REPORTE:
+    1. **Resumen Ejecutivo**: Breve visión general del estado de la capacitación y la salud digital de la organización.
+    2. **Análisis de Rendimiento y Adopción**:
+       - Evalúa el ritmo de aprendizaje.
+       - **IMPORTANTE**: Analiza la adopción de herramientas de productividad como el "Planificador de Estudios" y el asistente "LIA". ¿Están usando la IA para aprender mejor?
+    3. **Estructura y Equipos**: Comenta sobre la organización en equipos (${teamsCount} equipos detectados). ¿Se está aprovechando la estructura grupal?
+    4. **Top Talent & Riesgos**:
+       - Menciona usuarios destacados.
+       - Identifica usuarios en riesgo.
+    5. **Predicciones y Sugerencias Estratégicas**:
+       - Basado en la adherencia (${adherenceRate.toFixed(1)}%), predice si se cumplirán las metas trimestrales.
+       - Sugiere acciones para mejorar el uso del Planificador y LIA si las métricas son bajas.
+    6. **Conclusión Profesional**: Cierre motivador.
+
+    FORMATO:
+    - Usa Markdown enriquecido.
+    - Tono Ejecutivo/Directivo.
+    - Idioma: Español.
+    - **FIRMA (OBLIGATORIO):** Al final del reporte, usa EXCLUSIVAMENTE este formato centrado (usa HTML):
+      
+      <div style="text-align: center; margin-top: 40px;">
+        Atentamente,<br><br>
+        <strong>LIA</strong><br>
+        <span style="color: #64748b; font-size: 14px;">Sistema Operativo de Formación de Inteligencia Aplicada</span>
+      </div>
+
+    - **PROHIBIDO**: No pongas "Sistema de Analítica", "Plataforma SOFIA" ni "Estrategia de Talento" en la firma. Usa solo el texto indicado arriba.
+  `
+
+  try {
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
+
+    return {
+      analysis_text: text,
+      raw_data: {
+        users: usersReport,
+        activity: activityReport,
+        certificates: certificatesReport,
+        courses: coursesReport,
+        teams: {
+          total: teamsCount,
+          active: activeTeams
+        },
+        planner: {
+          total_plans: totalStudyPlans,
+          adherence: adherenceRate
+        },
+        lia: {
+          total_conversations: totalLiaConversations
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error generating LIA report:', error)
+    return {
+      analysis_text: "Lo sentimos, no pudimos generar el análisis predictivo en este momento debido a un error de conexión con el motor de IA. Por favor, revisa los datos crudos a continuación.",
+      raw_data: {
+        users: usersReport,
+        activity: activityReport,
+        certificates: certificatesReport,
+        courses: coursesReport
+      }
+    }
+  }
+}
+
+
+/**
  * Genera reporte de usuarios
  */
 async function generateUsersReport(supabase: any, organizationId: string, filters: ReportFilters) {
@@ -118,6 +283,7 @@ async function generateUsersReport(supabase: any, organizationId: string, filter
       status,
       joined_at,
       user_id,
+      job_title,
       users!organization_users_user_id_fkey (
         id,
         username,
@@ -128,8 +294,7 @@ async function generateUsersReport(supabase: any, organizationId: string, filter
         profile_picture_url,
         last_login_at,
         created_at,
-        updated_at,
-        type_rol
+        updated_at
       )
     `)
     .eq('organization_id', organizationId)
@@ -255,8 +420,8 @@ async function generateUsersReport(supabase: any, organizationId: string, filter
         display_name: ou.users.display_name || `${ou.users.first_name || ''} ${ou.users.last_name || ''}`.trim() || ou.users.username,
         first_name: ou.users.first_name,
         last_name: ou.users.last_name,
-        role: ou.role, // Rol en la organización
-        type_rol: ou.users.type_rol || 'No especificado', // type_rol del usuario
+        role: ou.role, // Rol en la organización (owner/admin/member)
+        job_title: ou.job_title || 'No especificado', // Cargo/puesto en esta organización
         status: ou.status,
         joined_at: ou.joined_at,
         last_login_at: ou.users.updated_at || ou.users.last_login_at, // Usar updated_at como última conexión
@@ -271,9 +436,9 @@ async function generateUsersReport(supabase: any, organizationId: string, filter
     total_users: users.length,
     users: users,
     summary: {
-      by_type_rol: users.reduce((acc: any, u: any) => {
-        const typeRol = u.type_rol || 'No especificado'
-        acc[typeRol] = (acc[typeRol] || 0) + 1
+      by_job_title: users.reduce((acc: any, u: any) => {
+        const jobTitle = u.job_title || 'No especificado'
+        acc[jobTitle] = (acc[jobTitle] || 0) + 1
         return acc
       }, {}),
       by_status: users.reduce((acc: any, u: any) => {

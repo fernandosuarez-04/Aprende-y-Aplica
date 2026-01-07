@@ -248,7 +248,7 @@ export const UserDropdown = React.memo(function UserDropdown({ className = '' }:
               {/* Menu Items */}
               <div className="py-1">
                 {/* Learning Section */}
-                <MenuItem icon={BookOpen} label="Mis Cursos" onClick={() => handleNavigation('/my-courses')} />
+                <MenuItem icon={BookOpen} label="Mis Cursos" onClick={() => handleNavigation('/dashboard')} />
                 <MenuItem icon={BarChart3} label="Estadísticas" onClick={() => handleNavigation('/statistics')} />
                 <MenuItem icon={Award} label="Certificados" onClick={() => handleNavigation('/certificates')} />
                 

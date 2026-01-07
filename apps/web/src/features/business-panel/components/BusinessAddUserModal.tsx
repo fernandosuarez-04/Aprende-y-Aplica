@@ -17,7 +17,7 @@ interface BusinessAddUserModalProps {
     first_name?: string
     last_name?: string
     display_name?: string
-    type_rol: string
+    job_title: string  // Antes type_rol - ahora se guarda en organization_users
     org_role?: 'owner' | 'admin' | 'member'
     profile_picture_url?: string
   }) => Promise<void>
@@ -40,7 +40,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
     first_name: '',
     last_name: '',
     display_name: '',
-    type_rol: '',
+    job_title: '',  // Antes type_rol - ahora se guarda en organization_users
     org_role: 'member' as 'owner' | 'admin' | 'member',
     profile_picture_url: ''
   })
@@ -71,7 +71,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
         first_name: '',
         last_name: '',
         display_name: '',
-        type_rol: '',
+        job_title: '',
         org_role: 'member',
         profile_picture_url: ''
       })
@@ -198,13 +198,14 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
         className="fixed inset-0 flex items-center justify-center p-4"
         style={{ zIndex: 99999 }}
       >
-        {/* Backdrop - transparent, just for closing */}
+        {/* Backdrop - dark with blur */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0"
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          style={{ zIndex: 0 }}
         />
 
         {/* Modal */}
@@ -310,11 +311,11 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                     {roleLabels[formData.org_role].label}
                   </div>
 
-                  {/* Type Role Badge */}
-                  {formData.type_rol && (
+                  {/* Job Title Badge */}
+                  {formData.job_title && (
                     <div className="mt-3 flex items-center gap-2 text-white/50 text-sm">
                       <Briefcase className="w-4 h-4" />
-                      <span>{formData.type_rol}</span>
+                      <span>{formData.job_title}</span>
                     </div>
                   )}
 
@@ -445,7 +446,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                       </div>
                     </div>
 
-                    {/* Type Role */}
+                    {/* Job Title (Cargo/Puesto en la organización) */}
                     <div>
                       <label className="block text-sm font-medium text-white/70 mb-2">
                         {t('users.modals.add.fields.position')} <span className="text-red-400">*</span>
@@ -454,8 +455,8 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                         <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                         <input
                           type="text"
-                          name="type_rol"
-                          value={formData.type_rol}
+                          name="job_title"
+                          value={formData.job_title}
                           onChange={handleChange}
                           required
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"

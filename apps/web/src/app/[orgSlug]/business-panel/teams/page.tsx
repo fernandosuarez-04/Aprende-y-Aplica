@@ -21,7 +21,7 @@ import {
 import { ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
 import { useTeams } from '@/features/business-panel/hooks/useTeams'
 import { Button } from '@aprende-y-aplica/ui'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { BusinessTeamModal } from '@/features/business-panel/components/BusinessTeamModal'
 import { useTranslation } from 'react-i18next'
@@ -445,6 +445,7 @@ export default function BusinessPanelTeamsPage() {
   const [filterStatus, setFilterStatus] = useState('active')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const router = useRouter()
+  const params = useParams()
 
   const { resolvedTheme } = useThemeStore()
   const isDark = resolvedTheme === 'dark'
@@ -747,7 +748,7 @@ export default function BusinessPanelTeamsPage() {
                 cardBg={cardBg}
                 cardBorder={cardBorder}
                 textColor={textColor}
-                onClick={() => router.push(`/business-panel/teams/${team.team_id}`)}
+                onClick={() => router.push(`/${params.orgSlug}/business-panel/teams/${team.team_id}`)}
               />
             ))}
           </motion.div>

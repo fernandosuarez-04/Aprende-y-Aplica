@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BarChart3, TrendingUp, Users, MessageSquare, Target, Award, Clock, BookOpen, Bot, FileText, CheckCircle2, ChevronDown, ChevronUp, Search } from 'lucide-react'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 import { TeamsService, WorkTeamStatistics, UserDetailedAudit } from '../services/teams.service'
 import {
   LineChart,
@@ -29,13 +30,15 @@ interface TeamAnalyticsTabProps {
 
 export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
   const { styles } = useOrganizationStylesContext()
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const panelStyles = styles?.panel
 
-  const cardBg = panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)'
-  const cardBorder = panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)'
-  const textColor = panelStyles?.text_color || '#f8fafc'
+  const cardBg = isDark ? (panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)') : '#FFFFFF'
+  const cardBorder = isDark ? (panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)') : 'rgba(226, 232, 240, 0.8)'
+  const textColor = isDark ? (panelStyles?.text_color || '#f8fafc') : '#0F172A'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
-  const sectionBg = `${cardBg}CC`
+  const sectionBg = isDark ? `${cardBg}CC` : '#F8FAFC'
 
   // Colores vibrantes para gráficas - mejor contraste en dark mode
   const chartColors = {
@@ -284,7 +287,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                 {currentStats.average_completion_percentage.toFixed(1)}%
               </p>
             </div>
-            <TrendingUp className="w-8 h-8 opacity-50" style={{ color: primaryColor }} />
+            <TrendingUp className="w-8 h-8" style={{ color: '#00D4B3' }} />
           </div>
         </motion.div>
 
@@ -302,7 +305,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                 {currentStats.average_score.toFixed(1)}/10
               </p>
             </div>
-            <Award className="w-8 h-8 opacity-50" style={{ color: primaryColor }} />
+            <Award className="w-8 h-8" style={{ color: '#00D4B3' }} />
           </div>
         </motion.div>
 
@@ -318,7 +321,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
               <p className="text-sm font-body opacity-70 mb-1">Mensajes</p>
               <p className="text-2xl font-bold font-heading">{currentStats.total_messages}</p>
             </div>
-            <MessageSquare className="w-8 h-8 opacity-50" style={{ color: primaryColor }} />
+            <MessageSquare className="w-8 h-8" style={{ color: '#00D4B3' }} />
           </div>
         </motion.div>
 
@@ -334,7 +337,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
               <p className="text-sm font-body opacity-70 mb-1">Feedback</p>
               <p className="text-2xl font-bold font-heading">{currentStats.total_feedback_given}</p>
             </div>
-            <Target className="w-8 h-8 opacity-50" style={{ color: primaryColor }} />
+            <Target className="w-8 h-8" style={{ color: '#00D4B3' }} />
           </div>
         </motion.div>
       </div>
@@ -727,7 +730,9 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                                             className="flex items-center justify-between p-3 rounded-lg"
                                             style={{ backgroundColor: cardBg }}
                                           >
-                                            <div className="flex-1">
+                                            <div
+                                              className="flex-1"
+                                            >
                                               <p className="text-sm font-body font-medium" style={{ color: textColor }}>
                                                 {lesson.lesson_title}
                                               </p>
@@ -736,7 +741,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                                                   lesson.completion_status === 'in_progress' ? 'En progreso' : 'No iniciada'}
                                               </p>
                                             </div>
-                                            <p className="text-sm font-body font-semibold" style={{ color: primaryColor }}>
+                                            <p className="text-sm font-body font-semibold" style={{ color: isDark ? '#FFFFFF' : primaryColor }}>
                                               {formatTime(lesson.time_spent_minutes)}
                                             </p>
                                           </div>

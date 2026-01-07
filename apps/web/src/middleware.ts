@@ -63,27 +63,31 @@ export async function middleware(request: NextRequest) {
             } else if (normalizedRole === 'instructor') {
               // Instructor → Panel de instructor
               return NextResponse.redirect(new URL('/instructor/dashboard', request.url))
-            } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
-              // Para roles de empresa, verificar que pertenezca a una organización
+            } else if (normalizedRole === 'business') {
+              // Para usuarios Business, verificar que pertenezca a una organización
+              // La redirección se basa en organization_users.role (owner/admin/member)
               const { data: userOrgs, error: userOrgError } = await supabase
                 .from('organization_users')
-                .select('organization_id, status, joined_at, organizations!inner(id, name, slug, is_active, subscription_plan, subscription_status)')
+                .select('organization_id, role, status, joined_at, organizations!inner(id, name, slug, is_active, subscription_plan, subscription_status)')
                 .eq('user_id', sessionData.user_id)
                 .eq('status', 'active')
                 .order('joined_at', { ascending: false })
-                .limit(1)
 
-              const userOrg = userOrgs && userOrgs.length > 0 ? userOrgs[0] : null
-              const orgError = userOrgError
-
-              if (orgError || !userOrg) {
+              if (userOrgError || !userOrgs || userOrgs.length === 0) {
                 // Si no pertenece a ninguna organización, redirigir al dashboard normal
                 return NextResponse.redirect(new URL('/dashboard', request.url))
               }
 
-              // ✅ Usuario Enterprise o Business autenticado -> ir al dashboard correspondiente
-              // El auth personalizado es para cuando NO están autenticados
-              if (normalizedRole === 'business') {
+              // Si el usuario pertenece a más de una organización, ir a selección
+              if (userOrgs.length > 1) {
+                return NextResponse.redirect(new URL('/auth/select-organization', request.url))
+              }
+
+              const userOrg = userOrgs[0]
+              const orgRole = userOrg.role as string
+
+              // ✅ Redirección basada en organization_users.role (owner/admin → panel, member → user dashboard)
+              if (orgRole === 'owner' || orgRole === 'admin') {
                 return NextResponse.redirect(new URL(`/${userOrg.organizations.slug}/business-panel/dashboard`, request.url))
               } else {
                 return NextResponse.redirect(new URL(`/${userOrg.organizations.slug}/business-user/dashboard`, request.url))

@@ -140,14 +140,15 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsAssignModalOpen(true)}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold transition-all"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl !text-white font-semibold transition-all"
           style={{
-            background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
-            boxShadow: `0 4px 20px ${primaryColor}50`
+            background: 'linear-gradient(135deg, #0A2540 0%, #1e3a5f 100%)',
+            boxShadow: '0 4px 20px rgba(10, 37, 64, 0.5)',
+            color: '#FFFFFF'
           }}
         >
-          <Plus className="w-5 h-5" />
-          Asignar Curso
+          <Plus className="w-5 h-5 !text-white" />
+          <span className="!text-white font-bold">Asignar Curso</span>
         </motion.button>
       </motion.div>
 
@@ -282,14 +283,14 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsAssignModalOpen(true)}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-white font-semibold text-lg"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl !text-white font-semibold text-lg"
               style={{
                 background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
                 boxShadow: `0 8px 30px ${primaryColor}50`
               }}
             >
-              <Sparkles className="w-5 h-5" />
-              Asignar Primer Curso
+              <Sparkles className="w-5 h-5 !text-white" />
+              <span className="!text-white">Asignar Primer Curso</span>
             </motion.button>
 
             {/* Features List */}

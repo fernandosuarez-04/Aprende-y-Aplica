@@ -34,10 +34,13 @@ const NAVBAR_HEIGHT = 58; // Ajuste final milimétrico para cubrir totalmente el
 const MOBILE_BOTTOM_NAV_HEIGHT = 104; // Altura de la barra de navegación inferior móvil (70px base + safe-area)
 
 // Función helper para markdown
-function parseMarkdownContent(text: string, onLinkClick: (url: string) => void): React.ReactNode {
+function parseMarkdownContent(text: string, onLinkClick: (url: string) => void, isDarkMode: boolean = true): React.ReactNode {
   let keyIndex = 0;
   let processedText = text.replace(/^\*\s+/gm, '- ');
   const lines = processedText.split('\n');
+  
+  // Color del enlace basado en el tema
+  const linkColor = isDarkMode ? '#00D4B3' : '#0A2540';
 
   const processInlineFormatting = (line: string): React.ReactNode[] => {
     const elements: React.ReactNode[] = [];
@@ -58,7 +61,7 @@ function parseMarkdownContent(text: string, onLinkClick: (url: string) => void):
             key={`link-${keyIndex++}`}
             href={linkUrl}
             onClick={(e) => { e.preventDefault(); onLinkClick(linkUrl); }}
-            style={{ color: '#00D4B3', textDecoration: 'underline', cursor: 'pointer', fontWeight: 500 }}
+            style={{ color: linkColor, textDecoration: 'underline', cursor: 'pointer', fontWeight: 500 }}
           >
             {linkText}
           </a>
@@ -373,7 +376,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
               <div key={message.id} style={{ display: 'flex', flexDirection: 'column', alignItems: message.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: '16px', backgroundColor: message.role === 'user' ? '#0A2540' : themeColors.messageBubbleAssistant }}>
                   <p className={message.role === 'user' ? 'lia-msg-user-text' : 'lia-msg-assistant-text'} style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
-                    {message.role === 'assistant' ? parseMarkdownContent(message.content, handleLinkClick) : message.content}
+                    {message.role === 'assistant' ? parseMarkdownContent(message.content, handleLinkClick, isDarkMode) : message.content}
                   </p>
                   {message.role === 'assistant' && (
                     <div style={{ display: 'flex', gap: '8px', marginTop: '8px', justifyContent: 'flex-end', opacity: 0.7 }}>

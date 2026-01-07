@@ -55,12 +55,16 @@ const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asiste
 '- Incorrecto: /admin/dashboard (sin formato de enlace)\n' +
 '- Incorrecto: Panel de Administración (sin enlace)\n\n' +
 '## Rutas Principales de SOFIA\n' +
-'- [Dashboard Principal](/business-user/dashboard) - Vista general y métricas\n' +
+'- [Dashboard Principal](/dashboard) - Vista general, catálogo de cursos y métricas\n' +
 '- [Mis Equipos](/business-user/teams) - Colaboración y chat de equipo\n' +
-'- [Mis Cursos](/business-user/dashboard) - Listado de cursos asignados\n' +
 '- [Certificados](/profile?tab=certificates) - Diplomas obtenidos\n' +
 '- [Planificador](/study-planner) - Agenda inteligente de estudio\n' +
 '- [Perfil](/profile) - Configuración y datos personales\n\n' +
+'## RUTAS PROHIBIDAS (NO EXISTEN)\n' +
+'- NUNCA uses /my-courses - Esta ruta NO existe\n' +
+'- NUNCA pongas "Mis Cursos" como enlace a /my-courses\n' +
+'- Para ver cursos, usa [Dashboard](/dashboard) o el enlace directo al curso /courses/[slug]\n' +
+'- Para usuarios empresariales, usa [Dashboard](/business-user/dashboard)\n\n' +
 '## REPORTE DE BUGS Y PROBLEMAS\n' +
 'Si el usuario reporta un error técnico, bug o problema con la plataforma:\n' +
 '1. Empatiza con el usuario y confirma que vas a reportar el problema al equipo técnico.\n' +
@@ -522,7 +526,7 @@ Organización personal del tiempo de aprendizaje.
 
 **Quick Actions disponibles** (botones rápidos):
 - "¿Qué puedes hacer?" - Explico mis capacidades
-- "Ver mis cursos" - Dirijo a /my-courses
+- "Ver mis cursos" - Dirijo al Dashboard (/dashboard)
 - "Recomiéndame" - Sugiero cursos según perfil
 - "Ayuda rápida" - Guía de navegación
 

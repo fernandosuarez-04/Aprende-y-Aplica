@@ -325,8 +325,14 @@ export function BusinessAssignCourseToTeamModal({
                 disabled={isAssigning || !selectedCourseId}
                 className="font-body"
                 style={{
-                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${panelStyles?.secondary_button_color || '#8b5cf6'} 100%)`,
-                  boxShadow: `0 4px 14px 0 ${primaryColor}40`
+                  background: (isAssigning || !selectedCourseId) 
+                    ? (isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0') 
+                    : 'linear-gradient(135deg, #0A2540 0%, #1e3a5f 100%)',
+                  boxShadow: (isAssigning || !selectedCourseId) ? 'none' : '0 4px 20px rgba(10, 37, 64, 0.5)',
+                  color: (isAssigning || !selectedCourseId) 
+                    ? (isDark ? 'rgba(255, 255, 255, 0.4)' : '#94A3B8') 
+                    : '#FFFFFF',
+                  cursor: (isAssigning || !selectedCourseId) ? 'not-allowed' : 'pointer'
                 }}
               >
                 {isAssigning ? (

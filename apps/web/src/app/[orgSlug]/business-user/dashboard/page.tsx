@@ -2,7 +2,7 @@
 
 import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
 import {
   BookOpen,
@@ -65,12 +65,17 @@ interface AssignedCourse {
 interface Organization {
   id: string
   name: string
+  slug: string
   logo_url?: string | null
   favicon_url?: string | null
 }
 
+type OrgRole = 'owner' | 'admin' | 'member' | null
+
 export default function BusinessUserDashboardPage() {
   const router = useRouter()
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string | undefined
   const { user, logout } = useAuth()
   const { t } = useTranslation('business')
   const { effectiveStyles } = useOrganizationStyles()
@@ -78,6 +83,7 @@ export default function BusinessUserDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
+  const [orgRole, setOrgRole] = useState<OrgRole>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
 
   // Aplicar estilos personalizados (usando effectiveStyles que respeta modo claro/oscuro)
@@ -143,15 +149,25 @@ export default function BusinessUserDashboardPage() {
     return t('dashboard.greetings.evening')
   }, [currentTime, t])
 
-  // Obtener información de la organización
+  // Obtener información de la organización y rol del usuario usando el orgSlug de la URL
   useEffect(() => {
     const fetchOrganization = async () => {
+      if (!orgSlug) return
+
       try {
-        const response = await fetch('/api/auth/me', { credentials: 'include' })
+        // Use the org-scoped API to get organization info and user role
+        const response = await fetch(`/api/${orgSlug}/organization`, { credentials: 'include' })
         if (response.ok) {
           const data = await response.json()
-          if (data.success && data.user?.organization) {
-            setOrganization(data.user.organization)
+          if (data.success && data.organization) {
+            setOrganization({
+              ...data.organization,
+              slug: orgSlug // Asegurar que el slug esté presente
+            })
+            // El rol del usuario en esta organización viene de la API
+            if (data.userRole) {
+              setOrgRole(data.userRole as OrgRole)
+            }
           }
         }
       } catch (error) {
@@ -159,7 +175,7 @@ export default function BusinessUserDashboardPage() {
       }
     }
     fetchOrganization()
-  }, [])
+  }, [orgSlug])
 
   const myStats = useMemo(() => [
     { label: t('dashboard.stats.assignedCourses', 'Cursos Asignados'), value: stats.total_assigned, icon: BookOpen, color: 'from-blue-500 to-cyan-500' },
@@ -168,16 +184,19 @@ export default function BusinessUserDashboardPage() {
     { label: t('dashboard.stats.certificates', 'Certificados'), value: stats.certificates, icon: Award, color: 'from-orange-500 to-red-500' },
   ], [stats, t])
 
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
+  const fetchDashboardData = useCallback(async () => {
+    if (!orgSlug) {
+      setError('No se pudo determinar la organización')
+      setLoading(false)
+      return
+    }
 
-  const fetchDashboardData = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('/api/business-user/dashboard', { credentials: 'include' })
+      // CRITICAL: Use the org-scoped API to ensure proper data isolation
+      const response = await fetch(`/api/${orgSlug}/business-user/dashboard`, { credentials: 'include' })
       const data = await response.json()
 
       if (!response.ok) {
@@ -202,7 +221,14 @@ export default function BusinessUserDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [orgSlug])
+
+  // Fetch dashboard data when orgSlug is available
+  useEffect(() => {
+    if (orgSlug) {
+      fetchDashboardData()
+    }
+  }, [orgSlug, fetchDashboardData])
 
   const handleCourseClick = useCallback((course: AssignedCourse, action?: 'start' | 'continue' | 'certificate') => {
     if (action === 'certificate' && course.has_certificate) {
@@ -354,6 +380,7 @@ export default function BusinessUserDashboardPage() {
         <ModernNavbar
           organization={organization}
           user={user}
+          orgRole={orgRole}
           getDisplayName={getDisplayName}
           getInitials={getInitials}
           onProfileClick={handleProfileClick}

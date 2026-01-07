@@ -159,11 +159,15 @@ function hasRoleAccess(role: ValidRole, pathname: string): boolean {
     return isInstructorRoute || isUserRoute;
   }
 
-  // ✅ Business tiene acceso a rutas business-panel y rutas de usuario básico
+  // ✅ Business tiene acceso a rutas business-panel, business-user y rutas de usuario básico
+  // NOTA: Ya no existe 'Business User' en cargo_rol - todos son 'Business'
+  // La diferenciación entre admin/owner y member se hace en organization_users.role
   if (role === 'Business') {
     const isBusinessRoute = ROLE_ROUTES.business.some(route =>
       pathname.startsWith(route)
     );
+    const isBusinessUserRoute = pathname.startsWith('/business-user') ||
+      pathname.includes('/business-user');
     const isUserRoute = ROLE_ROUTES.user.some(route =>
       pathname.startsWith(route)
     );
@@ -176,26 +180,7 @@ function hasRoleAccess(role: ValidRole, pathname: string): boolean {
       return false;
     }
 
-    return isBusinessRoute || isUserRoute;
-  }
-
-  // ✅ Business User tiene acceso a rutas business-user y rutas de usuario básico
-  if (role === 'Business User') {
-    const isBusinessRoute = pathname.startsWith('/business-user') ||
-      pathname.startsWith('/business-panel'); // También puede ver el panel
-    const isUserRoute = ROLE_ROUTES.user.some(route =>
-      pathname.startsWith(route)
-    );
-    const isAdminRoute = ROLE_ROUTES.admin.some(route =>
-      pathname.startsWith(route)
-    );
-
-    // Business User NO puede acceder a rutas admin
-    if (isAdminRoute) {
-      return false;
-    }
-
-    return isBusinessRoute || isUserRoute;
+    return isBusinessRoute || isBusinessUserRoute || isUserRoute;
   }
 
   // Usuario solo tiene acceso a rutas de usuario

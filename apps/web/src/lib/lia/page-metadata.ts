@@ -29,7 +29,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'educacion',
     keywords: ['curso', 'detalle', 'información', 'adquirir', 'comprar'],
     availableActions: ['Ver detalles', 'Adquirir curso', 'Agregar al carrito', 'Acceder al curso'],
-    relatedPages: ['/dashboard', '/my-courses', '/courses/[slug]/learn'],
+    relatedPages: ['/dashboard', '/courses/[slug]/learn'],
     features: ['Vista detallada del curso', 'Adquisición de cursos', 'Información del instructor']
   },
   '/communities': {
@@ -50,22 +50,12 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'navegacion',
     keywords: ['dashboard', 'inicio', 'panel', 'resumen', 'talleres', 'cursos', 'catálogo de cursos', 'cursos disponibles', 'todos los cursos'],
     availableActions: ['Ver talleres', 'Ver todos los cursos', 'Filtrar por categoría', 'Agregar a favoritos', 'Agregar al carrito', 'Ver detalles', 'Acceder a cursos comprados'],
-    relatedPages: ['/my-courses', '/courses/[slug]', '/courses/[slug]/learn', '/statistics', '/news', '/cart'],
+    relatedPages: ['/courses/[slug]', '/courses/[slug]/learn', '/statistics', '/news', '/cart'],
     features: ['Catálogo completo de cursos/talleres', 'Filtros por categorías dinámicas', 'Sistema de favoritos', 'Estadísticas rápidas', 'Actividad reciente'],
     contentSections: ['Grid de talleres/cursos disponibles', 'Sidebar con estadísticas', 'Actividad reciente', 'Filtros de categorías'],
     specialNotes: 'IMPORTANTE: El Dashboard (/dashboard) es donde se encuentra el CATÁLOGO COMPLETO de todos los cursos y talleres disponibles. Cuando el usuario pregunte sobre "ver todos los cursos" o "cursos disponibles", debe dirigirse al Dashboard, NO a /courses (que no existe como página de catálogo). La ruta /courses/[slug] es solo para ver el detalle de un curso específico.'
   },
-  '/my-courses': {
-    path: '/my-courses',
-    title: 'Mis Cursos',
-    description: 'Cursos en los que el usuario está inscrito',
-    category: 'educacion',
-    keywords: ['mis cursos', 'cursos inscritos', 'progreso', 'aprendizaje'],
-    availableActions: ['Buscar cursos', 'Filtrar por estado', 'Ver progreso', 'Continuar aprendizaje', 'Ver detalles del curso'],
-    relatedPages: ['/courses/[slug]/learn', '/dashboard', '/statistics', '/certificates'],
-    features: ['Estadísticas de progreso', 'Búsqueda de cursos', 'Filtros por estado', 'Indicadores visuales de progreso'],
-    contentSections: ['Estadísticas', 'Grid de cursos inscritos', 'Filtros y búsqueda']
-  },
+
   '/news': {
     path: '/news',
     title: 'Noticias',
@@ -146,7 +136,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'analisis',
     keywords: ['estadísticas', 'métricas', 'progreso', 'análisis', 'aprendizaje'],
     availableActions: ['Ver progreso', 'Analizar datos', 'Ver métricas de aprendizaje'],
-    relatedPages: ['/dashboard', '/my-courses', '/profile'],
+    relatedPages: ['/dashboard', '/profile'],
     features: ['Visualización de métricas', 'Análisis de progreso', 'Estadísticas de aprendizaje']
   },
   '/reels': {
@@ -167,7 +157,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'logros',
     keywords: ['certificados', 'logros', 'completado', 'diplomas', 'reconocimiento'],
     availableActions: ['Ver certificados', 'Descargar', 'Compartir', 'Ver detalles'],
-    relatedPages: ['/my-courses', '/profile', '/courses/[slug]'],
+    relatedPages: ['/dashboard', '/profile', '/courses/[slug]'],
     features: ['Visualización de certificados', 'Descarga de certificados', 'Compartir certificados']
   },
   '/account-settings': {
@@ -188,7 +178,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'comercio',
     keywords: ['carrito', 'compras', 'checkout', 'pago', 'items'],
     availableActions: ['Ver items', 'Eliminar items', 'Proceder a compra'],
-    relatedPages: ['/dashboard', '/my-courses', '/payment-methods'],
+    relatedPages: ['/dashboard', '/payment-methods'],
     features: ['Gestión de items', 'Eliminación de items', 'Proceso de compra']
   },
   '/purchase-history': {
@@ -198,7 +188,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'comercio',
     keywords: ['historial', 'compras', 'facturas', 'transacciones', 'pedidos'],
     availableActions: ['Ver compras pasadas', 'Descargar facturas'],
-    relatedPages: ['/my-courses', '/cart'],
+    relatedPages: ['/dashboard', '/cart'],
     features: ['Visualización de compras', 'Descarga de facturas']
   },
   // ==========================================
@@ -343,7 +333,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'negocios',
     keywords: ['empleado', 'cursos asignados', 'progreso', 'deadline', 'certificados'],
     availableActions: ['Ver cursos asignados', 'Ver progreso', 'Ver fechas límite', 'Descargar certificados', 'Continuar aprendizaje'],
-    relatedPages: ['/business-user/teams', '/my-courses'],
+    relatedPages: ['/business-user/teams'],
     features: ['Branding corporativo', 'Cursos obligatorios', 'Indicadores de deadline', 'Certificados'],
     contentSections: ['Mis cursos asignados', 'Progreso', 'Próximas fechas', 'Logros'],
     specialNotes: 'Esta vista tiene el branding (logo y colores) de la empresa configurado por el administrador.',
@@ -474,10 +464,10 @@ export function getAvailableLinksForLIA(userRole: UserRole | null = null): strin
   // Agregar nota especial sobre ver todos los cursos
   linksText += `\n\n⚠️ NOTA IMPORTANTE SOBRE VER CURSOS:\n`;
   linksText += `Cuando el usuario pregunte sobre "ver todos los cursos", "cursos disponibles", o "catálogo de cursos":\n`;
-  linksText += `- Para ver TODOS los cursos disponibles: Usa [Dashboard](/dashboard) - NO uses /courses (que no existe como página de catálogo)\n`;
-  linksText += `- Para ver los cursos del usuario: Usa [Mis Cursos](/my-courses)\n`;
+  linksText += `- Para ver TODOS los cursos disponibles: Usa [Dashboard](/dashboard)\n`;
+  linksText += `- Para usuarios Business: Los cursos asignados están en [Dashboard de Empleado](/business-user/dashboard)\n`;
   linksText += `- Para ver el detalle de un curso específico: Usa /courses/[slug] donde [slug] es el identificador del curso\n`;
-  linksText += `IMPORTANTE: La ruta /courses NO existe como página de catálogo. El catálogo completo está en el Dashboard.\n`;
+  linksText += `IMPORTANTE: NO uses /my-courses ni /courses como páginas de catálogo. El catálogo está en el Dashboard.\n`;
   
   return linksText;
 }

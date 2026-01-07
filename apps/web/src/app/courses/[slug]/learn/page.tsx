@@ -2766,7 +2766,7 @@ export default function CourseLearnPage() {
             {t("errors.courseNotFoundMessage")}
           </p>
           <button
-            onClick={() => router.push("/my-courses")}
+            onClick={() => router.push("/dashboard")}
             className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-colors"
           >
             {t("navigation.backToCourses")}

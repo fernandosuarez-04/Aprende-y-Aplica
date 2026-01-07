@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -153,152 +153,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ai_apps: {
-        Row: {
-          advantages: string[] | null
-          alternatives: string[] | null
-          api_available: boolean | null
-          app_id: string
-          browser_extension: boolean | null
-          category_id: string | null
-          created_at: string | null
-          description: string
-          desktop_app: boolean | null
-          disadvantages: string[] | null
-          features: string[] | null
-          integrations: string[] | null
-          is_active: boolean | null
-          is_featured: boolean | null
-          is_verified: boolean | null
-          like_count: number | null
-          logo_url: string | null
-          long_description: string | null
-          mobile_app: boolean | null
-          name: string
-          pricing_details: Json | null
-          pricing_model: string
-          rating: number | null
-          rating_count: number | null
-          slug: string
-          supported_languages: string[] | null
-          tags: string[] | null
-          updated_at: string | null
-          use_cases: string[] | null
-          view_count: number | null
-          website_url: string | null
-        }
-        Insert: {
-          advantages?: string[] | null
-          alternatives?: string[] | null
-          api_available?: boolean | null
-          app_id?: string
-          browser_extension?: boolean | null
-          category_id?: string | null
-          created_at?: string | null
-          description: string
-          desktop_app?: boolean | null
-          disadvantages?: string[] | null
-          features?: string[] | null
-          integrations?: string[] | null
-          is_active?: boolean | null
-          is_featured?: boolean | null
-          is_verified?: boolean | null
-          like_count?: number | null
-          logo_url?: string | null
-          long_description?: string | null
-          mobile_app?: boolean | null
-          name: string
-          pricing_details?: Json | null
-          pricing_model: string
-          rating?: number | null
-          rating_count?: number | null
-          slug: string
-          supported_languages?: string[] | null
-          tags?: string[] | null
-          updated_at?: string | null
-          use_cases?: string[] | null
-          view_count?: number | null
-          website_url?: string | null
-        }
-        Update: {
-          advantages?: string[] | null
-          alternatives?: string[] | null
-          api_available?: boolean | null
-          app_id?: string
-          browser_extension?: boolean | null
-          category_id?: string | null
-          created_at?: string | null
-          description?: string
-          desktop_app?: boolean | null
-          disadvantages?: string[] | null
-          features?: string[] | null
-          integrations?: string[] | null
-          is_active?: boolean | null
-          is_featured?: boolean | null
-          is_verified?: boolean | null
-          like_count?: number | null
-          logo_url?: string | null
-          long_description?: string | null
-          mobile_app?: boolean | null
-          name?: string
-          pricing_details?: Json | null
-          pricing_model?: string
-          rating?: number | null
-          rating_count?: number | null
-          slug?: string
-          supported_languages?: string[] | null
-          tags?: string[] | null
-          updated_at?: string | null
-          use_cases?: string[] | null
-          view_count?: number | null
-          website_url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_apps_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "ai_categories"
-            referencedColumns: ["category_id"]
-          },
-        ]
-      }
-      ai_categories: {
-        Row: {
-          category_id: string
-          color: string | null
-          created_at: string | null
-          description: string | null
-          icon: string | null
-          is_active: boolean | null
-          name: string
-          slug: string
-          updated_at: string | null
-        }
-        Insert: {
-          category_id?: string
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          icon?: string | null
-          is_active?: boolean | null
-          name: string
-          slug: string
-          updated_at?: string | null
-        }
-        Update: {
-          category_id?: string
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          icon?: string | null
-          is_active?: boolean | null
-          name?: string
-          slug?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       ai_moderation_config: {
         Row: {
           config_key: string
@@ -408,293 +262,6 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_moderation_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      ai_prompts: {
-        Row: {
-          author_id: string | null
-          category_id: string | null
-          content: string
-          created_at: string | null
-          description: string
-          difficulty_level: string | null
-          download_count: number | null
-          estimated_time_minutes: number | null
-          is_active: boolean | null
-          is_featured: boolean | null
-          is_verified: boolean | null
-          like_count: number | null
-          prompt_id: string
-          rating: number | null
-          rating_count: number | null
-          slug: string
-          tags: string[] | null
-          tips: string[] | null
-          title: string
-          updated_at: string | null
-          use_cases: string[] | null
-          view_count: number | null
-        }
-        Insert: {
-          author_id?: string | null
-          category_id?: string | null
-          content: string
-          created_at?: string | null
-          description: string
-          difficulty_level?: string | null
-          download_count?: number | null
-          estimated_time_minutes?: number | null
-          is_active?: boolean | null
-          is_featured?: boolean | null
-          is_verified?: boolean | null
-          like_count?: number | null
-          prompt_id?: string
-          rating?: number | null
-          rating_count?: number | null
-          slug: string
-          tags?: string[] | null
-          tips?: string[] | null
-          title: string
-          updated_at?: string | null
-          use_cases?: string[] | null
-          view_count?: number | null
-        }
-        Update: {
-          author_id?: string | null
-          category_id?: string | null
-          content?: string
-          created_at?: string | null
-          description?: string
-          difficulty_level?: string | null
-          download_count?: number | null
-          estimated_time_minutes?: number | null
-          is_active?: boolean | null
-          is_featured?: boolean | null
-          is_verified?: boolean | null
-          like_count?: number | null
-          prompt_id?: string
-          rating?: number | null
-          rating_count?: number | null
-          slug?: string
-          tags?: string[] | null
-          tips?: string[] | null
-          title?: string
-          updated_at?: string | null
-          use_cases?: string[] | null
-          view_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_prompts_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "ai_prompts_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_prompts_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "ai_prompts_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "ai_prompts_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "ai_categories"
-            referencedColumns: ["category_id"]
-          },
-        ]
-      }
-      app_directory_translations: {
-        Row: {
-          advantages: string[] | null
-          app_id: string
-          created_at: string | null
-          description: string
-          disadvantages: string[] | null
-          features: string[] | null
-          id: number
-          language: string
-          long_description: string | null
-          name: string
-          updated_at: string | null
-          use_cases: string[] | null
-        }
-        Insert: {
-          advantages?: string[] | null
-          app_id: string
-          created_at?: string | null
-          description: string
-          disadvantages?: string[] | null
-          features?: string[] | null
-          id?: number
-          language: string
-          long_description?: string | null
-          name: string
-          updated_at?: string | null
-          use_cases?: string[] | null
-        }
-        Update: {
-          advantages?: string[] | null
-          app_id?: string
-          created_at?: string | null
-          description?: string
-          disadvantages?: string[] | null
-          features?: string[] | null
-          id?: number
-          language?: string
-          long_description?: string | null
-          name?: string
-          updated_at?: string | null
-          use_cases?: string[] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "app_directory_translations_app_id_fkey"
-            columns: ["app_id"]
-            isOneToOne: false
-            referencedRelation: "ai_apps"
-            referencedColumns: ["app_id"]
-          },
-        ]
-      }
-      app_favorites: {
-        Row: {
-          app_id: string | null
-          created_at: string | null
-          favorite_id: string
-          user_id: string | null
-        }
-        Insert: {
-          app_id?: string | null
-          created_at?: string | null
-          favorite_id?: string
-          user_id?: string | null
-        }
-        Update: {
-          app_id?: string | null
-          created_at?: string | null
-          favorite_id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "app_favorites_app_id_fkey"
-            columns: ["app_id"]
-            isOneToOne: false
-            referencedRelation: "ai_apps"
-            referencedColumns: ["app_id"]
-          },
-          {
-            foreignKeyName: "app_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "app_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "app_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "app_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      app_ratings: {
-        Row: {
-          app_id: string | null
-          created_at: string | null
-          rating: number
-          rating_id: string
-          review: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          app_id?: string | null
-          created_at?: string | null
-          rating: number
-          rating_id?: string
-          review?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          app_id?: string | null
-          created_at?: string | null
-          rating?: number
-          rating_id?: string
-          review?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "app_ratings_app_id_fkey"
-            columns: ["app_id"]
-            isOneToOne: false
-            referencedRelation: "ai_apps"
-            referencedColumns: ["app_id"]
-          },
-          {
-            foreignKeyName: "app_ratings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "app_ratings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "app_ratings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "app_ratings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "v_user_security_summary"
@@ -943,6 +510,92 @@ export type Database = {
           },
         ]
       }
+      calendar_sync_history: {
+        Row: {
+          changes_detected: Json | null
+          created_at: string | null
+          events_snapshot: Json
+          id: string
+          lia_notification_sent: boolean | null
+          notification_message: string | null
+          plan_id: string | null
+          synced_at: string | null
+          user_id: string
+        }
+        Insert: {
+          changes_detected?: Json | null
+          created_at?: string | null
+          events_snapshot: Json
+          id?: string
+          lia_notification_sent?: boolean | null
+          notification_message?: string | null
+          plan_id?: string | null
+          synced_at?: string | null
+          user_id: string
+        }
+        Update: {
+          changes_detected?: Json | null
+          created_at?: string | null
+          events_snapshot?: Json
+          id?: string
+          lia_notification_sent?: boolean | null
+          notification_message?: string | null
+          plan_id?: string | null
+          synced_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_sync_history_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "study_plan_progress"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "calendar_sync_history_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "study_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_sync_history_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_generated_plans"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "calendar_sync_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "calendar_sync_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_sync_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "calendar_sync_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_security_summary"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       certificate_ledger: {
         Row: {
           block_hash: string
@@ -971,15 +624,7 @@ export type Database = {
           payload?: Json
           prev_hash?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "certificate_ledger_cert_id_fkey"
-            columns: ["cert_id"]
-            isOneToOne: false
-            referencedRelation: "user_course_certificates"
-            referencedColumns: ["certificate_id"]
-          },
-        ]
+        Relationships: []
       }
       certificate_templates: {
         Row: {
@@ -1036,955 +681,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_organization_users_detailed"
             referencedColumns: ["organization_id"]
-          },
-        ]
-      }
-      communities: {
-        Row: {
-          access_type: string
-          course_id: string | null
-          created_at: string | null
-          creator_id: string | null
-          description: string | null
-          id: string
-          image_url: string | null
-          is_active: boolean | null
-          member_count: number | null
-          name: string
-          slug: string
-          updated_at: string | null
-          visibility: string
-        }
-        Insert: {
-          access_type: string
-          course_id?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean | null
-          member_count?: number | null
-          name: string
-          slug: string
-          updated_at?: string | null
-          visibility?: string
-        }
-        Update: {
-          access_type?: string
-          course_id?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean | null
-          member_count?: number | null
-          name?: string
-          slug?: string
-          updated_at?: string | null
-          visibility?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "communities_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "communities_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "communities_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "communities_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "v_incomplete_lesson_times"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "communities_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "communities_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "communities_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "communities_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      community_access_requests: {
-        Row: {
-          community_id: string
-          created_at: string
-          id: string
-          note: string | null
-          requester_id: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string
-        }
-        Insert: {
-          community_id: string
-          created_at?: string
-          id?: string
-          note?: string | null
-          requester_id?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-        }
-        Update: {
-          community_id?: string
-          created_at?: string
-          id?: string
-          note?: string | null
-          requester_id?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_access_requests_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "mv_community_stats"
-            referencedColumns: ["community_id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_access_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      community_comments: {
-        Row: {
-          community_id: string
-          content: string
-          created_at: string
-          id: string
-          is_deleted: boolean
-          parent_comment_id: string | null
-          post_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          community_id: string
-          content: string
-          created_at?: string
-          id?: string
-          is_deleted?: boolean
-          parent_comment_id?: string | null
-          post_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          community_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          is_deleted?: boolean
-          parent_comment_id?: string | null
-          post_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_comments_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_comments_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_comments_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "mv_community_stats"
-            referencedColumns: ["community_id"]
-          },
-          {
-            foreignKeyName: "community_comments_parent_comment_id_fkey"
-            columns: ["parent_comment_id"]
-            isOneToOne: false
-            referencedRelation: "community_comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "mv_post_stats"
-            referencedColumns: ["post_id"]
-          },
-        ]
-      }
-      community_creation_requests: {
-        Row: {
-          access_type: string
-          course_id: string | null
-          created_at: string
-          description: string | null
-          id: string
-          image_url: string | null
-          name: string
-          rejection_reason: string | null
-          requester_id: string
-          requester_note: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          slug: string
-          status: string
-          updated_at: string
-          visibility: string
-        }
-        Insert: {
-          access_type?: string
-          course_id?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          name: string
-          rejection_reason?: string | null
-          requester_id: string
-          requester_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          slug: string
-          status?: string
-          updated_at?: string
-          visibility?: string
-        }
-        Update: {
-          access_type?: string
-          course_id?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          name?: string
-          rejection_reason?: string | null
-          requester_id?: string
-          requester_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          slug?: string
-          status?: string
-          updated_at?: string
-          visibility?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_creation_requests_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "v_incomplete_lesson_times"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_creation_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      community_members: {
-        Row: {
-          community_id: string
-          id: string
-          is_active: boolean | null
-          joined_at: string | null
-          role: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          community_id: string
-          id?: string
-          is_active?: boolean | null
-          joined_at?: string | null
-          role?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          community_id?: string
-          id?: string
-          is_active?: boolean | null
-          joined_at?: string | null
-          role?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_members_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_members_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_members_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "mv_community_stats"
-            referencedColumns: ["community_id"]
-          },
-          {
-            foreignKeyName: "community_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "fk_community_members_community_id"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_community_members_community_id"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_community_members_community_id"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "mv_community_stats"
-            referencedColumns: ["community_id"]
-          },
-        ]
-      }
-      community_post_reports: {
-        Row: {
-          community_id: string
-          created_at: string | null
-          id: string
-          post_id: string
-          reason_category: string
-          reason_details: string | null
-          reported_by_user_id: string
-          resolution_action: string | null
-          resolution_notes: string | null
-          reviewed_at: string | null
-          reviewed_by_user_id: string | null
-          status: string
-          updated_at: string | null
-        }
-        Insert: {
-          community_id: string
-          created_at?: string | null
-          id?: string
-          post_id: string
-          reason_category: string
-          reason_details?: string | null
-          reported_by_user_id: string
-          resolution_action?: string | null
-          resolution_notes?: string | null
-          reviewed_at?: string | null
-          reviewed_by_user_id?: string | null
-          status?: string
-          updated_at?: string | null
-        }
-        Update: {
-          community_id?: string
-          created_at?: string | null
-          id?: string
-          post_id?: string
-          reason_category?: string
-          reason_details?: string | null
-          reported_by_user_id?: string
-          resolution_action?: string | null
-          resolution_notes?: string | null
-          reviewed_at?: string | null
-          reviewed_by_user_id?: string | null
-          status?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_post_reports_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "mv_community_stats"
-            referencedColumns: ["community_id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "mv_post_stats"
-            referencedColumns: ["post_id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_reported_by_user_id_fkey"
-            columns: ["reported_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_reported_by_user_id_fkey"
-            columns: ["reported_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_reported_by_user_id_fkey"
-            columns: ["reported_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_reported_by_user_id_fkey"
-            columns: ["reported_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_reviewed_by_user_id_fkey"
-            columns: ["reviewed_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_reviewed_by_user_id_fkey"
-            columns: ["reviewed_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_reviewed_by_user_id_fkey"
-            columns: ["reviewed_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_post_reports_reviewed_by_user_id_fkey"
-            columns: ["reviewed_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      community_posts: {
-        Row: {
-          attachment_data: Json | null
-          attachment_type: string | null
-          attachment_url: string | null
-          comment_count: number
-          comments_count: number | null
-          community_id: string
-          content: string
-          created_at: string | null
-          edited_at: string | null
-          id: string
-          is_edited: boolean | null
-          is_hidden: boolean | null
-          is_pinned: boolean | null
-          likes_count: number | null
-          poll_data: Json | null
-          poll_options: Json | null
-          poll_question: string | null
-          post_type: string | null
-          reaction_count: number
-          title: string | null
-          updated_at: string | null
-          user_id: string
-          views_count: number | null
-        }
-        Insert: {
-          attachment_data?: Json | null
-          attachment_type?: string | null
-          attachment_url?: string | null
-          comment_count?: number
-          comments_count?: number | null
-          community_id: string
-          content: string
-          created_at?: string | null
-          edited_at?: string | null
-          id?: string
-          is_edited?: boolean | null
-          is_hidden?: boolean | null
-          is_pinned?: boolean | null
-          likes_count?: number | null
-          poll_data?: Json | null
-          poll_options?: Json | null
-          poll_question?: string | null
-          post_type?: string | null
-          reaction_count?: number
-          title?: string | null
-          updated_at?: string | null
-          user_id: string
-          views_count?: number | null
-        }
-        Update: {
-          attachment_data?: Json | null
-          attachment_type?: string | null
-          attachment_url?: string | null
-          comment_count?: number
-          comments_count?: number | null
-          community_id?: string
-          content?: string
-          created_at?: string | null
-          edited_at?: string | null
-          id?: string
-          is_edited?: boolean | null
-          is_hidden?: boolean | null
-          is_pinned?: boolean | null
-          likes_count?: number | null
-          poll_data?: Json | null
-          poll_options?: Json | null
-          poll_question?: string | null
-          post_type?: string | null
-          reaction_count?: number
-          title?: string | null
-          updated_at?: string | null
-          user_id?: string
-          views_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_posts_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "mv_community_stats"
-            referencedColumns: ["community_id"]
-          },
-          {
-            foreignKeyName: "community_posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      community_reactions: {
-        Row: {
-          comment_id: string | null
-          created_at: string | null
-          id: string
-          post_id: string | null
-          reaction_type: string
-          user_id: string
-        }
-        Insert: {
-          comment_id?: string | null
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          reaction_type?: string
-          user_id: string
-        }
-        Update: {
-          comment_id?: string | null
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          reaction_type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_reactions_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_reactions_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "mv_post_stats"
-            referencedColumns: ["post_id"]
-          },
-          {
-            foreignKeyName: "community_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      community_videos: {
-        Row: {
-          community_id: string
-          created_at: string
-          description: string | null
-          duration: number | null
-          id: string
-          is_active: boolean
-          metadata: Json | null
-          order_index: number
-          thumbnail_url: string | null
-          title: string
-          updated_at: string
-          video_provider: string
-          video_type: string
-          video_url: string
-        }
-        Insert: {
-          community_id: string
-          created_at?: string
-          description?: string | null
-          duration?: number | null
-          id?: string
-          is_active?: boolean
-          metadata?: Json | null
-          order_index?: number
-          thumbnail_url?: string | null
-          title: string
-          updated_at?: string
-          video_provider?: string
-          video_type?: string
-          video_url: string
-        }
-        Update: {
-          community_id?: string
-          created_at?: string
-          description?: string | null
-          duration?: number | null
-          id?: string
-          is_active?: boolean
-          metadata?: Json | null
-          order_index?: number
-          thumbnail_url?: string | null
-          title?: string
-          updated_at?: string
-          video_provider?: string
-          video_type?: string
-          video_url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_videos_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_videos_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_videos_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "mv_community_stats"
-            referencedColumns: ["community_id"]
           },
         ]
       }
@@ -2050,83 +746,6 @@ export type Database = {
           },
         ]
       }
-      coupons: {
-        Row: {
-          coupon_code: string
-          coupon_description: string | null
-          coupon_id: string
-          course_id: string | null
-          created_at: string | null
-          current_uses: number | null
-          discount_type: string
-          discount_value: number
-          is_active: boolean | null
-          max_uses: number | null
-          minimum_amount_cents: number | null
-          valid_from: string | null
-          valid_until: string | null
-        }
-        Insert: {
-          coupon_code: string
-          coupon_description?: string | null
-          coupon_id?: string
-          course_id?: string | null
-          created_at?: string | null
-          current_uses?: number | null
-          discount_type: string
-          discount_value: number
-          is_active?: boolean | null
-          max_uses?: number | null
-          minimum_amount_cents?: number | null
-          valid_from?: string | null
-          valid_until?: string | null
-        }
-        Update: {
-          coupon_code?: string
-          coupon_description?: string | null
-          coupon_id?: string
-          course_id?: string | null
-          created_at?: string | null
-          current_uses?: number | null
-          discount_type?: string
-          discount_value?: number
-          is_active?: boolean | null
-          max_uses?: number | null
-          minimum_amount_cents?: number | null
-          valid_from?: string | null
-          valid_until?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "coupons_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "coupons_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "coupons_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "coupons_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "v_incomplete_lesson_times"
-            referencedColumns: ["course_id"]
-          },
-        ]
-      }
       course_lessons: {
         Row: {
           created_at: string | null
@@ -2139,6 +758,7 @@ export type Database = {
           lesson_title: string
           module_id: string
           summary_content: string | null
+          total_duration_minutes: number | null
           transcript_content: string | null
           updated_at: string | null
           video_provider: string
@@ -2155,6 +775,7 @@ export type Database = {
           lesson_title: string
           module_id: string
           summary_content?: string | null
+          total_duration_minutes?: number | null
           transcript_content?: string | null
           updated_at?: string | null
           video_provider: string
@@ -2171,6 +792,7 @@ export type Database = {
           lesson_title?: string
           module_id?: string
           summary_content?: string | null
+          total_duration_minutes?: number | null
           transcript_content?: string | null
           updated_at?: string | null
           video_provider?: string
@@ -2430,20 +1052,6 @@ export type Database = {
             foreignKeyName: "course_modules_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "course_modules_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "course_modules_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
@@ -2453,210 +1061,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_incomplete_lesson_times"
             referencedColumns: ["course_id"]
-          },
-        ]
-      }
-      course_purchases: {
-        Row: {
-          access_granted_at: string | null
-          access_status: Database["public"]["Enums"]["access_status"]
-          accessed_at: string | null
-          coupon_id: string | null
-          course_id: string
-          created_at: string
-          created_by: string | null
-          currency: string
-          discount_cents: number | null
-          discount_type: Database["public"]["Enums"]["discount_type"] | null
-          discount_value: number | null
-          discounted_price_cents: number
-          enrollment_id: string | null
-          expires_at: string | null
-          final_price_cents: number
-          internal_notes: string | null
-          metadata: Json
-          original_price_cents: number
-          payment_method_id: string | null
-          purchase_id: string
-          purchase_method: Database["public"]["Enums"]["purchase_method"] | null
-          purchase_notes: string | null
-          purchased_at: string
-          transaction_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_granted_at?: string | null
-          access_status?: Database["public"]["Enums"]["access_status"]
-          accessed_at?: string | null
-          coupon_id?: string | null
-          course_id: string
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          discount_cents?: number | null
-          discount_type?: Database["public"]["Enums"]["discount_type"] | null
-          discount_value?: number | null
-          discounted_price_cents: number
-          enrollment_id?: string | null
-          expires_at?: string | null
-          final_price_cents: number
-          internal_notes?: string | null
-          metadata?: Json
-          original_price_cents: number
-          payment_method_id?: string | null
-          purchase_id?: string
-          purchase_method?:
-            | Database["public"]["Enums"]["purchase_method"]
-            | null
-          purchase_notes?: string | null
-          purchased_at?: string
-          transaction_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_granted_at?: string | null
-          access_status?: Database["public"]["Enums"]["access_status"]
-          accessed_at?: string | null
-          coupon_id?: string | null
-          course_id?: string
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          discount_cents?: number | null
-          discount_type?: Database["public"]["Enums"]["discount_type"] | null
-          discount_value?: number | null
-          discounted_price_cents?: number
-          enrollment_id?: string | null
-          expires_at?: string | null
-          final_price_cents?: number
-          internal_notes?: string | null
-          metadata?: Json
-          original_price_cents?: number
-          payment_method_id?: string | null
-          purchase_id?: string
-          purchase_method?:
-            | Database["public"]["Enums"]["purchase_method"]
-            | null
-          purchase_notes?: string | null
-          purchased_at?: string
-          transaction_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "course_purchases_coupon_id_fkey"
-            columns: ["coupon_id"]
-            isOneToOne: false
-            referencedRelation: "coupons"
-            referencedColumns: ["coupon_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "v_incomplete_lesson_times"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "course_purchases_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_enrollment_id_fkey"
-            columns: ["enrollment_id"]
-            isOneToOne: false
-            referencedRelation: "user_course_enrollments"
-            referencedColumns: ["enrollment_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_payment_method_id_fkey"
-            columns: ["payment_method_id"]
-            isOneToOne: false
-            referencedRelation: "payment_methods"
-            referencedColumns: ["payment_method_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "transactions"
-            referencedColumns: ["transaction_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "course_purchases_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -2744,6 +1148,7 @@ export type Database = {
           is_deleted: boolean | null
           is_edited: boolean | null
           is_instructor_answer: boolean | null
+          organization_id: string | null
           parent_response_id: string | null
           question_id: string
           reaction_count: number | null
@@ -2764,6 +1169,7 @@ export type Database = {
           is_deleted?: boolean | null
           is_edited?: boolean | null
           is_instructor_answer?: boolean | null
+          organization_id?: string | null
           parent_response_id?: string | null
           question_id: string
           reaction_count?: number | null
@@ -2784,6 +1190,7 @@ export type Database = {
           is_deleted?: boolean | null
           is_edited?: boolean | null
           is_instructor_answer?: boolean | null
+          organization_id?: string | null
           parent_response_id?: string | null
           question_id?: string
           reaction_count?: number | null
@@ -2792,20 +1199,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "course_question_responses_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "course_question_responses_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
           {
             foreignKeyName: "course_question_responses_course_id_fkey"
             columns: ["course_id"]
@@ -2819,6 +1212,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_incomplete_lesson_times"
             referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "course_question_responses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_question_responses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "course_question_responses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "course_question_responses_parent_response_id_fkey"
@@ -2878,6 +1292,7 @@ export type Database = {
           is_hidden: boolean | null
           is_pinned: boolean | null
           is_resolved: boolean | null
+          organization_id: string | null
           reaction_count: number | null
           response_count: number | null
           tags: string[] | null
@@ -2899,6 +1314,7 @@ export type Database = {
           is_hidden?: boolean | null
           is_pinned?: boolean | null
           is_resolved?: boolean | null
+          organization_id?: string | null
           reaction_count?: number | null
           response_count?: number | null
           tags?: string[] | null
@@ -2920,6 +1336,7 @@ export type Database = {
           is_hidden?: boolean | null
           is_pinned?: boolean | null
           is_resolved?: boolean | null
+          organization_id?: string | null
           reaction_count?: number | null
           response_count?: number | null
           tags?: string[] | null
@@ -2933,20 +1350,6 @@ export type Database = {
             foreignKeyName: "course_questions_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "course_questions_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "course_questions_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
@@ -2956,6 +1359,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_incomplete_lesson_times"
             referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "course_questions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_questions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "course_questions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "course_questions_user_id_fkey"
@@ -3029,20 +1453,6 @@ export type Database = {
             foreignKeyName: "course_reviews_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "course_reviews_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "course_reviews_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
@@ -3080,85 +1490,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_user_security_summary"
             referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      course_skills: {
-        Row: {
-          course_id: string
-          created_at: string
-          display_order: number | null
-          id: string
-          is_primary: boolean | null
-          is_required: boolean | null
-          proficiency_level: string | null
-          skill_id: string
-          updated_at: string
-        }
-        Insert: {
-          course_id: string
-          created_at?: string
-          display_order?: number | null
-          id?: string
-          is_primary?: boolean | null
-          is_required?: boolean | null
-          proficiency_level?: string | null
-          skill_id: string
-          updated_at?: string
-        }
-        Update: {
-          course_id?: string
-          created_at?: string
-          display_order?: number | null
-          id?: string
-          is_primary?: boolean | null
-          is_required?: boolean | null
-          proficiency_level?: string | null
-          skill_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "course_skills_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "course_skills_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "course_skills_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "course_skills_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "v_incomplete_lesson_times"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "course_skills_skill_id_fkey"
-            columns: ["skill_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["skill_id"]
-          },
-          {
-            foreignKeyName: "course_skills_skill_id_fkey"
-            columns: ["skill_id"]
-            isOneToOne: false
-            referencedRelation: "skills"
-            referencedColumns: ["skill_id"]
           },
         ]
       }
@@ -3296,6 +1627,7 @@ export type Database = {
           created_at: string | null
           had_activity: boolean | null
           id: string
+          organization_id: string | null
           progress_date: string
           sessions_completed: number | null
           sessions_missed: number | null
@@ -3308,6 +1640,7 @@ export type Database = {
           created_at?: string | null
           had_activity?: boolean | null
           id?: string
+          organization_id?: string | null
           progress_date: string
           sessions_completed?: number | null
           sessions_missed?: number | null
@@ -3320,6 +1653,7 @@ export type Database = {
           created_at?: string | null
           had_activity?: boolean | null
           id?: string
+          organization_id?: string | null
           progress_date?: string
           sessions_completed?: number | null
           sessions_missed?: number | null
@@ -3329,6 +1663,27 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "daily_progress_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_progress_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "daily_progress_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
+          },
           {
             foreignKeyName: "daily_progress_user_id_fkey"
             columns: ["user_id"]
@@ -3566,6 +1921,7 @@ export type Database = {
           feedback_type: string
           id: string
           lesson_id: string
+          organization_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -3574,6 +1930,7 @@ export type Database = {
           feedback_type: string
           id?: string
           lesson_id: string
+          organization_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -3582,6 +1939,7 @@ export type Database = {
           feedback_type?: string
           id?: string
           lesson_id?: string
+          organization_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -3606,6 +1964,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_lessons_by_session_type_compatibility"
             referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lesson_feedback_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_feedback_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "lesson_feedback_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "lesson_feedback_user_id_fkey"
@@ -3774,6 +2153,186 @@ export type Database = {
           },
         ]
       }
+      lesson_tracking: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          end_trigger: string | null
+          id: string
+          last_activity_at: string | null
+          lesson_id: string
+          lia_first_message_at: string | null
+          lia_last_message_at: string | null
+          next_analysis_at: string | null
+          organization_id: string | null
+          plan_id: string | null
+          post_content_start_at: string | null
+          session_id: string | null
+          start_trigger: string | null
+          started_at: string | null
+          status: string
+          t_lesson_minutes: number | null
+          t_materials_minutes: number | null
+          t_restante_minutes: number | null
+          t_video_minutes: number | null
+          updated_at: string
+          user_id: string
+          video_ended_at: string | null
+          video_started_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          end_trigger?: string | null
+          id?: string
+          last_activity_at?: string | null
+          lesson_id: string
+          lia_first_message_at?: string | null
+          lia_last_message_at?: string | null
+          next_analysis_at?: string | null
+          organization_id?: string | null
+          plan_id?: string | null
+          post_content_start_at?: string | null
+          session_id?: string | null
+          start_trigger?: string | null
+          started_at?: string | null
+          status?: string
+          t_lesson_minutes?: number | null
+          t_materials_minutes?: number | null
+          t_restante_minutes?: number | null
+          t_video_minutes?: number | null
+          updated_at?: string
+          user_id: string
+          video_ended_at?: string | null
+          video_started_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          end_trigger?: string | null
+          id?: string
+          last_activity_at?: string | null
+          lesson_id?: string
+          lia_first_message_at?: string | null
+          lia_last_message_at?: string | null
+          next_analysis_at?: string | null
+          organization_id?: string | null
+          plan_id?: string | null
+          post_content_start_at?: string | null
+          session_id?: string | null
+          start_trigger?: string | null
+          started_at?: string | null
+          status?: string
+          t_lesson_minutes?: number | null
+          t_materials_minutes?: number | null
+          t_restante_minutes?: number | null
+          t_video_minutes?: number | null
+          updated_at?: string
+          user_id?: string
+          video_ended_at?: string | null
+          video_started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_tracking_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons"
+            referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v_incomplete_lesson_times"
+            referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v_lessons_by_session_type_compatibility"
+            referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "study_plan_progress"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "study_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_generated_plans"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "study_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "lesson_tracking_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_security_summary"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       lia_activity_completions: {
         Row: {
           activity_id: string
@@ -3786,6 +2345,7 @@ export type Database = {
           current_step: number | null
           generated_output: Json | null
           lia_had_to_redirect: number | null
+          organization_id: string | null
           started_at: string | null
           status: string
           time_to_complete_seconds: number | null
@@ -3805,6 +2365,7 @@ export type Database = {
           current_step?: number | null
           generated_output?: Json | null
           lia_had_to_redirect?: number | null
+          organization_id?: string | null
           started_at?: string | null
           status: string
           time_to_complete_seconds?: number | null
@@ -3824,6 +2385,7 @@ export type Database = {
           current_step?: number | null
           generated_output?: Json | null
           lia_had_to_redirect?: number | null
+          organization_id?: string | null
           started_at?: string | null
           status?: string
           time_to_complete_seconds?: number | null
@@ -3841,13 +2403,6 @@ export type Database = {
             referencedColumns: ["activity_id"]
           },
           {
-            foreignKeyName: "lia_activity_completions_activity_id_fkey"
-            columns: ["activity_id"]
-            isOneToOne: false
-            referencedRelation: "lia_activity_performance"
-            referencedColumns: ["activity_id"]
-          },
-          {
             foreignKeyName: "lia_activity_completions_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
@@ -3860,6 +2415,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lia_conversations"
             referencedColumns: ["conversation_id"]
+          },
+          {
+            foreignKeyName: "lia_activity_completions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lia_activity_completions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "lia_activity_completions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "lia_activity_completions_user_id_fkey"
@@ -3943,13 +2519,6 @@ export type Database = {
             referencedColumns: ["activity_id"]
           },
           {
-            foreignKeyName: "lia_common_questions_activity_id_fkey"
-            columns: ["activity_id"]
-            isOneToOne: false
-            referencedRelation: "lia_activity_performance"
-            referencedColumns: ["activity_id"]
-          },
-          {
             foreignKeyName: "lia_common_questions_lesson_id_fkey"
             columns: ["lesson_id"]
             isOneToOne: false
@@ -3988,6 +2557,7 @@ export type Database = {
           ip_address: unknown
           lesson_id: string | null
           module_id: string | null
+          organization_id: string | null
           started_at: string
           total_lia_messages: number | null
           total_messages: number | null
@@ -4011,6 +2581,7 @@ export type Database = {
           ip_address?: unknown
           lesson_id?: string | null
           module_id?: string | null
+          organization_id?: string | null
           started_at?: string
           total_lia_messages?: number | null
           total_messages?: number | null
@@ -4034,6 +2605,7 @@ export type Database = {
           ip_address?: unknown
           lesson_id?: string | null
           module_id?: string | null
+          organization_id?: string | null
           started_at?: string
           total_lia_messages?: number | null
           total_messages?: number | null
@@ -4049,27 +2621,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lesson_activities"
             referencedColumns: ["activity_id"]
-          },
-          {
-            foreignKeyName: "lia_conversations_activity_id_fkey"
-            columns: ["activity_id"]
-            isOneToOne: false
-            referencedRelation: "lia_activity_performance"
-            referencedColumns: ["activity_id"]
-          },
-          {
-            foreignKeyName: "lia_conversations_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "lia_conversations_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
           },
           {
             foreignKeyName: "lia_conversations_course_id_fkey"
@@ -4112,6 +2663,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "course_modules"
             referencedColumns: ["module_id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "lia_conversations_user_id_fkey"
@@ -4218,6 +2790,66 @@ export type Database = {
           },
         ]
       }
+      lia_messages_tokens_tmp: {
+        Row: {
+          contains_question: boolean | null
+          content: string | null
+          conversation_id: string | null
+          cost_usd: number | null
+          created_at: string | null
+          is_off_topic: boolean | null
+          is_system_message: boolean | null
+          lia_provided_example: boolean | null
+          lia_redirected: boolean | null
+          message_id: string
+          message_sequence: number | null
+          model_used: string | null
+          response_time_ms: number | null
+          role: string | null
+          sentiment_score: number | null
+          tokens_used: number | null
+          user_sentiment: string | null
+        }
+        Insert: {
+          contains_question?: boolean | null
+          content?: string | null
+          conversation_id?: string | null
+          cost_usd?: number | null
+          created_at?: string | null
+          is_off_topic?: boolean | null
+          is_system_message?: boolean | null
+          lia_provided_example?: boolean | null
+          lia_redirected?: boolean | null
+          message_id: string
+          message_sequence?: number | null
+          model_used?: string | null
+          response_time_ms?: number | null
+          role?: string | null
+          sentiment_score?: number | null
+          tokens_used?: number | null
+          user_sentiment?: string | null
+        }
+        Update: {
+          contains_question?: boolean | null
+          content?: string | null
+          conversation_id?: string | null
+          cost_usd?: number | null
+          created_at?: string | null
+          is_off_topic?: boolean | null
+          is_system_message?: boolean | null
+          lia_provided_example?: boolean | null
+          lia_redirected?: boolean | null
+          message_id?: string
+          message_sequence?: number | null
+          model_used?: string | null
+          response_time_ms?: number | null
+          role?: string | null
+          sentiment_score?: number | null
+          tokens_used?: number | null
+          user_sentiment?: string | null
+        }
+        Relationships: []
+      }
       lia_user_feedback: {
         Row: {
           comment: string | null
@@ -4309,66 +2941,6 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
-      }
-      news: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          cta: Json | null
-          hero_image_url: string | null
-          id: string
-          intro: string | null
-          language: string | null
-          links: Json | null
-          metrics: Json | null
-          published_at: string | null
-          sections: Json | null
-          slug: string
-          status: string | null
-          subtitle: string | null
-          title: string
-          tldr: Json | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          cta?: Json | null
-          hero_image_url?: string | null
-          id?: string
-          intro?: string | null
-          language?: string | null
-          links?: Json | null
-          metrics?: Json | null
-          published_at?: string | null
-          sections?: Json | null
-          slug: string
-          status?: string | null
-          subtitle?: string | null
-          title: string
-          tldr?: Json | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          cta?: Json | null
-          hero_image_url?: string | null
-          id?: string
-          intro?: string | null
-          language?: string | null
-          links?: Json | null
-          metrics?: Json | null
-          published_at?: string | null
-          sections?: Json | null
-          slug?: string
-          status?: string | null
-          subtitle?: string | null
-          title?: string
-          tldr?: Json | null
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       niveles: {
         Row: {
@@ -4853,6 +3425,7 @@ export type Database = {
       }
       organization_course_assignments: {
         Row: {
+          approach: string | null
           assigned_at: string | null
           assigned_by: string | null
           completed_at: string | null
@@ -4863,11 +3436,13 @@ export type Database = {
           id: string
           message: string | null
           organization_id: string
+          start_date: string | null
           status: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          approach?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           completed_at?: string | null
@@ -4878,11 +3453,13 @@ export type Database = {
           id?: string
           message?: string | null
           organization_id: string
+          start_date?: string | null
           status?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          approach?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           completed_at?: string | null
@@ -4893,6 +3470,7 @@ export type Database = {
           id?: string
           message?: string | null
           organization_id?: string
+          start_date?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string
@@ -4925,20 +3503,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_user_security_summary"
             referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "organization_course_assignments_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "organization_course_assignments_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
           },
           {
             foreignKeyName: "organization_course_assignments_course_id_fkey"
@@ -5012,7 +3576,6 @@ export type Database = {
           billing_month: string
           billing_month_number: number
           billing_year: number
-          coupon_id: string | null
           course_id: string
           created_at: string
           currency: string
@@ -5041,7 +3604,6 @@ export type Database = {
           billing_month: string
           billing_month_number: number
           billing_year: number
-          coupon_id?: string | null
           course_id: string
           created_at?: string
           currency?: string
@@ -5070,7 +3632,6 @@ export type Database = {
           billing_month?: string
           billing_month_number?: number
           billing_year?: number
-          coupon_id?: string | null
           course_id?: string
           created_at?: string
           currency?: string
@@ -5094,27 +3655,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "organization_course_purchases_coupon_id_fkey"
-            columns: ["coupon_id"]
-            isOneToOne: false
-            referencedRelation: "coupons"
-            referencedColumns: ["coupon_id"]
-          },
-          {
-            foreignKeyName: "organization_course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "organization_course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
           {
             foreignKeyName: "organization_course_purchases_course_id_fkey"
             columns: ["course_id"]
@@ -5255,6 +3795,7 @@ export type Database = {
           id: string
           invited_at: string | null
           invited_by: string | null
+          job_title: string | null
           joined_at: string | null
           organization_id: string
           role: string | null
@@ -5267,6 +3808,7 @@ export type Database = {
           id?: string
           invited_at?: string | null
           invited_by?: string | null
+          job_title?: string | null
           joined_at?: string | null
           organization_id: string
           role?: string | null
@@ -5279,6 +3821,7 @@ export type Database = {
           id?: string
           invited_at?: string | null
           invited_by?: string | null
+          job_title?: string | null
           joined_at?: string | null
           organization_id?: string
           role?: string | null
@@ -5380,15 +3923,17 @@ export type Database = {
           contact_phone: string | null
           created_at: string | null
           description: string | null
+          google_login_enabled: boolean | null
           id: string
           is_active: boolean | null
           login_styles: Json | null
           logo_url: string | null
           max_users: number | null
+          microsoft_login_enabled: boolean | null
           name: string
           panel_styles: Json | null
           selected_theme: string | null
-          slug: string | null
+          slug: string
           subscription_end_date: string | null
           subscription_plan: string | null
           subscription_start_date: string | null
@@ -5410,15 +3955,17 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string | null
           description?: string | null
+          google_login_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
           login_styles?: Json | null
           logo_url?: string | null
           max_users?: number | null
+          microsoft_login_enabled?: boolean | null
           name: string
           panel_styles?: Json | null
           selected_theme?: string | null
-          slug?: string | null
+          slug: string
           subscription_end_date?: string | null
           subscription_plan?: string | null
           subscription_start_date?: string | null
@@ -5440,15 +3987,17 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string | null
           description?: string | null
+          google_login_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
           login_styles?: Json | null
           logo_url?: string | null
           max_users?: number | null
+          microsoft_login_enabled?: boolean | null
           name?: string
           panel_styles?: Json | null
           selected_theme?: string | null
-          slug?: string | null
+          slug?: string
           subscription_end_date?: string | null
           subscription_plan?: string | null
           subscription_start_date?: string | null
@@ -5690,603 +4239,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      prompt_favorites: {
-        Row: {
-          created_at: string | null
-          favorite_id: string
-          prompt_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          favorite_id?: string
-          prompt_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          favorite_id?: string
-          prompt_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "prompt_favorites_prompt_id_fkey"
-            columns: ["prompt_id"]
-            isOneToOne: false
-            referencedRelation: "ai_prompts"
-            referencedColumns: ["prompt_id"]
-          },
-          {
-            foreignKeyName: "prompt_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "prompt_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "prompt_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "prompt_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      prompt_ratings: {
-        Row: {
-          created_at: string | null
-          prompt_id: string | null
-          rating: number
-          rating_id: string
-          review: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          prompt_id?: string | null
-          rating: number
-          rating_id?: string
-          review?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          prompt_id?: string | null
-          rating?: number
-          rating_id?: string
-          review?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "prompt_ratings_prompt_id_fkey"
-            columns: ["prompt_id"]
-            isOneToOne: false
-            referencedRelation: "ai_prompts"
-            referencedColumns: ["prompt_id"]
-          },
-          {
-            foreignKeyName: "prompt_ratings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "prompt_ratings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "prompt_ratings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "prompt_ratings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      reel_comment_replies: {
-        Row: {
-          comment_id: string
-          content: string
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          comment_id: string
-          content: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          comment_id?: string
-          content?: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reel_comment_replies_comment_id_fkey"
-            columns: ["comment_id"]
-            isOneToOne: false
-            referencedRelation: "reel_comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_comment_replies_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_comment_replies_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_comment_replies_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_comment_replies_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      reel_comments: {
-        Row: {
-          content: string
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          parent_id: string | null
-          reel_id: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          parent_id?: string | null
-          reel_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          parent_id?: string | null
-          reel_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reel_comments_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "reel_comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_comments_reel_id_fkey"
-            columns: ["reel_id"]
-            isOneToOne: false
-            referencedRelation: "reels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      reel_hashtag_relations: {
-        Row: {
-          created_at: string | null
-          hashtag_id: string | null
-          id: string
-          reel_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          hashtag_id?: string | null
-          id?: string
-          reel_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          hashtag_id?: string | null
-          id?: string
-          reel_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reel_hashtag_relations_hashtag_id_fkey"
-            columns: ["hashtag_id"]
-            isOneToOne: false
-            referencedRelation: "reel_hashtags"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_hashtag_relations_reel_id_fkey"
-            columns: ["reel_id"]
-            isOneToOne: false
-            referencedRelation: "reels"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reel_hashtags: {
-        Row: {
-          created_at: string | null
-          id: string
-          name: string
-          usage_count: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          name: string
-          usage_count?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          name?: string
-          usage_count?: number | null
-        }
-        Relationships: []
-      }
-      reel_likes: {
-        Row: {
-          created_at: string | null
-          id: string
-          reel_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          reel_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          reel_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reel_likes_reel_id_fkey"
-            columns: ["reel_id"]
-            isOneToOne: false
-            referencedRelation: "reels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      reel_shares: {
-        Row: {
-          created_at: string | null
-          id: string
-          platform: string | null
-          reel_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          platform?: string | null
-          reel_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          platform?: string | null
-          reel_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reel_shares_reel_id_fkey"
-            columns: ["reel_id"]
-            isOneToOne: false
-            referencedRelation: "reels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_shares_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_shares_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_shares_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_shares_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      reel_views: {
-        Row: {
-          id: string
-          ip_address: unknown
-          reel_id: string | null
-          user_agent: string | null
-          user_id: string | null
-          viewed_at: string | null
-          watch_duration_seconds: number | null
-        }
-        Insert: {
-          id?: string
-          ip_address?: unknown
-          reel_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-          viewed_at?: string | null
-          watch_duration_seconds?: number | null
-        }
-        Update: {
-          id?: string
-          ip_address?: unknown
-          reel_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-          viewed_at?: string | null
-          watch_duration_seconds?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reel_views_reel_id_fkey"
-            columns: ["reel_id"]
-            isOneToOne: false
-            referencedRelation: "reels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_views_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_views_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reel_views_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reel_views_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      reels: {
-        Row: {
-          category: string | null
-          comment_count: number | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          duration_seconds: number | null
-          id: string
-          is_active: boolean | null
-          is_featured: boolean | null
-          language: string | null
-          like_count: number | null
-          published_at: string | null
-          share_count: number | null
-          thumbnail_url: string | null
-          title: string
-          updated_at: string | null
-          video_url: string
-          view_count: number | null
-        }
-        Insert: {
-          category?: string | null
-          comment_count?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          duration_seconds?: number | null
-          id?: string
-          is_active?: boolean | null
-          is_featured?: boolean | null
-          language?: string | null
-          like_count?: number | null
-          published_at?: string | null
-          share_count?: number | null
-          thumbnail_url?: string | null
-          title: string
-          updated_at?: string | null
-          video_url: string
-          view_count?: number | null
-        }
-        Update: {
-          category?: string | null
-          comment_count?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          duration_seconds?: number | null
-          id?: string
-          is_active?: boolean | null
-          is_featured?: boolean | null
-          language?: string | null
-          like_count?: number | null
-          published_at?: string | null
-          share_count?: number | null
-          thumbnail_url?: string | null
-          title?: string
-          updated_at?: string | null
-          video_url?: string
-          view_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reels_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reels_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reels_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "reels_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -6614,6 +4566,320 @@ export type Database = {
           },
         ]
       }
+      scorm_attempts: {
+        Row: {
+          attempt_number: number | null
+          completed_at: string | null
+          credit: string | null
+          entry: string | null
+          exit_type: string | null
+          id: string
+          last_accessed_at: string | null
+          lesson_location: string | null
+          lesson_status: string | null
+          package_id: string
+          score_max: number | null
+          score_min: number | null
+          score_raw: number | null
+          score_scaled: number | null
+          session_time: unknown
+          started_at: string | null
+          suspend_data: string | null
+          total_time: unknown
+          user_id: string
+        }
+        Insert: {
+          attempt_number?: number | null
+          completed_at?: string | null
+          credit?: string | null
+          entry?: string | null
+          exit_type?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          lesson_location?: string | null
+          lesson_status?: string | null
+          package_id: string
+          score_max?: number | null
+          score_min?: number | null
+          score_raw?: number | null
+          score_scaled?: number | null
+          session_time?: unknown
+          started_at?: string | null
+          suspend_data?: string | null
+          total_time?: unknown
+          user_id: string
+        }
+        Update: {
+          attempt_number?: number | null
+          completed_at?: string | null
+          credit?: string | null
+          entry?: string | null
+          exit_type?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          lesson_location?: string | null
+          lesson_status?: string | null
+          package_id?: string
+          score_max?: number | null
+          score_min?: number | null
+          score_raw?: number | null
+          score_scaled?: number | null
+          session_time?: unknown
+          started_at?: string | null
+          suspend_data?: string | null
+          total_time?: unknown
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorm_attempts_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "scorm_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorm_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "scorm_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorm_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "scorm_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_security_summary"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      scorm_interactions: {
+        Row: {
+          attempt_id: string | null
+          correct_response: string | null
+          description: string | null
+          id: string
+          interaction_id: string
+          interaction_type: string | null
+          latency: unknown
+          learner_response: string | null
+          result: string | null
+          timestamp: string | null
+          weighting: number | null
+        }
+        Insert: {
+          attempt_id?: string | null
+          correct_response?: string | null
+          description?: string | null
+          id?: string
+          interaction_id: string
+          interaction_type?: string | null
+          latency?: unknown
+          learner_response?: string | null
+          result?: string | null
+          timestamp?: string | null
+          weighting?: number | null
+        }
+        Update: {
+          attempt_id?: string | null
+          correct_response?: string | null
+          description?: string | null
+          id?: string
+          interaction_id?: string
+          interaction_type?: string | null
+          latency?: unknown
+          learner_response?: string | null
+          result?: string | null
+          timestamp?: string | null
+          weighting?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorm_interactions_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "scorm_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scorm_objectives: {
+        Row: {
+          attempt_id: string | null
+          completion_status: string | null
+          description: string | null
+          id: string
+          objective_id: string
+          score_max: number | null
+          score_min: number | null
+          score_raw: number | null
+          score_scaled: number | null
+          success_status: string | null
+        }
+        Insert: {
+          attempt_id?: string | null
+          completion_status?: string | null
+          description?: string | null
+          id?: string
+          objective_id: string
+          score_max?: number | null
+          score_min?: number | null
+          score_raw?: number | null
+          score_scaled?: number | null
+          success_status?: string | null
+        }
+        Update: {
+          attempt_id?: string | null
+          completion_status?: string | null
+          description?: string | null
+          id?: string
+          objective_id?: string
+          score_max?: number | null
+          score_min?: number | null
+          score_raw?: number | null
+          score_scaled?: number | null
+          success_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorm_objectives_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "scorm_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scorm_packages: {
+        Row: {
+          course_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          entry_point: string
+          file_size: number | null
+          id: string
+          manifest_data: Json
+          organization_id: string | null
+          status: string | null
+          storage_path: string
+          title: string
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          entry_point: string
+          file_size?: number | null
+          id?: string
+          manifest_data: Json
+          organization_id?: string | null
+          status?: string | null
+          storage_path: string
+          title: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          entry_point?: string
+          file_size?: number | null
+          id?: string
+          manifest_data?: Json
+          organization_id?: string | null
+          status?: string | null
+          storage_path?: string
+          title?: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorm_packages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorm_packages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_incomplete_lesson_times"
+            referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "scorm_packages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "moderation_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "scorm_packages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorm_packages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "scorm_packages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_security_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "scorm_packages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scorm_packages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "scorm_packages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
       sectores: {
         Row: {
           id: number
@@ -6632,154 +4898,29 @@ export type Database = {
         }
         Relationships: []
       }
-      skill_badges: {
-        Row: {
-          badge_url: string
-          created_at: string
-          id: string
-          level: string
-          skill_id: string
-          storage_path: string
-          updated_at: string
-        }
-        Insert: {
-          badge_url: string
-          created_at?: string
-          id?: string
-          level: string
-          skill_id: string
-          storage_path: string
-          updated_at?: string
-        }
-        Update: {
-          badge_url?: string
-          created_at?: string
-          id?: string
-          level?: string
-          skill_id?: string
-          storage_path?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "skill_badges_skill_id_fkey"
-            columns: ["skill_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["skill_id"]
-          },
-          {
-            foreignKeyName: "skill_badges_skill_id_fkey"
-            columns: ["skill_id"]
-            isOneToOne: false
-            referencedRelation: "skills"
-            referencedColumns: ["skill_id"]
-          },
-        ]
-      }
-      skill_categories: {
-        Row: {
-          category_id: string
-          color: string | null
-          created_at: string
-          description: string | null
-          display_order: number | null
-          icon_url: string | null
-          is_active: boolean | null
-          name: string
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          category_id?: string
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          display_order?: number | null
-          icon_url?: string | null
-          is_active?: boolean | null
-          name: string
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          category_id?: string
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          display_order?: number | null
-          icon_url?: string | null
-          is_active?: boolean | null
-          name?: string
-          slug?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      skills: {
-        Row: {
-          category: string
-          color: string | null
-          created_at: string
-          description: string | null
-          display_order: number | null
-          icon_name: string | null
-          icon_type: string | null
-          icon_url: string | null
-          is_active: boolean | null
-          is_featured: boolean | null
-          level: string | null
-          name: string
-          skill_id: string
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          category?: string
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          display_order?: number | null
-          icon_name?: string | null
-          icon_type?: string | null
-          icon_url?: string | null
-          is_active?: boolean | null
-          is_featured?: boolean | null
-          level?: string | null
-          name: string
-          skill_id?: string
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          display_order?: number | null
-          icon_name?: string | null
-          icon_type?: string | null
-          icon_url?: string | null
-          is_active?: boolean | null
-          is_featured?: boolean | null
-          level?: string | null
-          name?: string
-          skill_id?: string
-          slug?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       study_plans: {
         Row: {
           ai_generation_metadata: Json | null
+          break_duration_minutes: number | null
+          break_intervals: Json | null
+          calendar_analyzed: boolean | null
+          calendar_provider: string | null
+          course_ids: string[] | null
           created_at: string
           description: string | null
           end_date: string | null
           generation_mode: string | null
           goal_hours_per_week: number
           id: string
+          lia_availability_analysis: Json | null
+          lia_time_analysis: Json | null
+          max_session_minutes: number | null
+          max_study_session_minutes: number | null
+          min_rest_minutes: number | null
+          min_session_minutes: number | null
+          min_study_minutes: number | null
           name: string
+          organization_id: string | null
           preferred_days: number[]
           preferred_session_type: string | null
           preferred_time_blocks: Json | null
@@ -6787,16 +4928,30 @@ export type Database = {
           timezone: string
           updated_at: string
           user_id: string
+          user_type: string | null
         }
         Insert: {
           ai_generation_metadata?: Json | null
+          break_duration_minutes?: number | null
+          break_intervals?: Json | null
+          calendar_analyzed?: boolean | null
+          calendar_provider?: string | null
+          course_ids?: string[] | null
           created_at?: string
           description?: string | null
           end_date?: string | null
           generation_mode?: string | null
           goal_hours_per_week?: number
           id?: string
+          lia_availability_analysis?: Json | null
+          lia_time_analysis?: Json | null
+          max_session_minutes?: number | null
+          max_study_session_minutes?: number | null
+          min_rest_minutes?: number | null
+          min_session_minutes?: number | null
+          min_study_minutes?: number | null
           name: string
+          organization_id?: string | null
           preferred_days?: number[]
           preferred_session_type?: string | null
           preferred_time_blocks?: Json | null
@@ -6804,16 +4959,30 @@ export type Database = {
           timezone?: string
           updated_at?: string
           user_id: string
+          user_type?: string | null
         }
         Update: {
           ai_generation_metadata?: Json | null
+          break_duration_minutes?: number | null
+          break_intervals?: Json | null
+          calendar_analyzed?: boolean | null
+          calendar_provider?: string | null
+          course_ids?: string[] | null
           created_at?: string
           description?: string | null
           end_date?: string | null
           generation_mode?: string | null
           goal_hours_per_week?: number
           id?: string
+          lia_availability_analysis?: Json | null
+          lia_time_analysis?: Json | null
+          max_session_minutes?: number | null
+          max_study_session_minutes?: number | null
+          min_rest_minutes?: number | null
+          min_session_minutes?: number | null
+          min_study_minutes?: number | null
           name?: string
+          organization_id?: string | null
           preferred_days?: number[]
           preferred_session_type?: string | null
           preferred_time_blocks?: Json | null
@@ -6821,8 +4990,30 @@ export type Database = {
           timezone?: string
           updated_at?: string
           user_id?: string
+          user_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "study_plans_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_plans_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "study_plans_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
+          },
           {
             foreignKeyName: "study_plans_user_id_fkey"
             columns: ["user_id"]
@@ -6855,9 +5046,14 @@ export type Database = {
       }
       study_preferences: {
         Row: {
+          break_duration_minutes: number | null
+          calendar_connected: boolean | null
+          calendar_provider: string | null
           created_at: string
           daily_target_minutes: number
           id: string
+          max_session_minutes: number | null
+          min_session_minutes: number | null
           preferred_days: number[]
           preferred_session_type: string | null
           preferred_time_of_day: string
@@ -6867,9 +5063,14 @@ export type Database = {
           weekly_target_minutes: number
         }
         Insert: {
+          break_duration_minutes?: number | null
+          calendar_connected?: boolean | null
+          calendar_provider?: string | null
           created_at?: string
           daily_target_minutes?: number
           id?: string
+          max_session_minutes?: number | null
+          min_session_minutes?: number | null
           preferred_days?: number[]
           preferred_session_type?: string | null
           preferred_time_of_day?: string
@@ -6879,9 +5080,14 @@ export type Database = {
           weekly_target_minutes?: number
         }
         Update: {
+          break_duration_minutes?: number | null
+          calendar_connected?: boolean | null
+          calendar_provider?: string | null
           created_at?: string
           daily_target_minutes?: number
           id?: string
+          max_session_minutes?: number | null
+          min_session_minutes?: number | null
           preferred_days?: number[]
           preferred_session_type?: string | null
           preferred_time_of_day?: string
@@ -6924,12 +5130,17 @@ export type Database = {
       study_sessions: {
         Row: {
           actual_duration_minutes: number | null
+          break_duration_minutes: number | null
+          calendar_conflict_checked: boolean | null
           calendar_provider: string | null
+          calendar_synced_at: string | null
           completed_at: string | null
+          completion_method: string | null
           course_complexity: Json | null
           course_id: string | null
           created_at: string
           description: string | null
+          due_date: string | null
           duration_minutes: number | null
           end_time: string
           external_event_id: string | null
@@ -6938,14 +5149,17 @@ export type Database = {
           is_ai_generated: boolean | null
           lesson_id: string | null
           lesson_min_time_minutes: number | null
+          lia_suggested: boolean | null
           metrics: Json | null
           notes: string | null
+          organization_id: string | null
           plan_id: string | null
           recurrence: Json | null
           rescheduled_from: string | null
           self_evaluation: number | null
           session_type: string | null
           start_time: string
+          started_at: string | null
           status: string
           streak_day: number | null
           title: string
@@ -6955,12 +5169,17 @@ export type Database = {
         }
         Insert: {
           actual_duration_minutes?: number | null
+          break_duration_minutes?: number | null
+          calendar_conflict_checked?: boolean | null
           calendar_provider?: string | null
+          calendar_synced_at?: string | null
           completed_at?: string | null
+          completion_method?: string | null
           course_complexity?: Json | null
           course_id?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           duration_minutes?: number | null
           end_time: string
           external_event_id?: string | null
@@ -6969,14 +5188,17 @@ export type Database = {
           is_ai_generated?: boolean | null
           lesson_id?: string | null
           lesson_min_time_minutes?: number | null
+          lia_suggested?: boolean | null
           metrics?: Json | null
           notes?: string | null
+          organization_id?: string | null
           plan_id?: string | null
           recurrence?: Json | null
           rescheduled_from?: string | null
           self_evaluation?: number | null
           session_type?: string | null
           start_time: string
+          started_at?: string | null
           status?: string
           streak_day?: number | null
           title: string
@@ -6986,12 +5208,17 @@ export type Database = {
         }
         Update: {
           actual_duration_minutes?: number | null
+          break_duration_minutes?: number | null
+          calendar_conflict_checked?: boolean | null
           calendar_provider?: string | null
+          calendar_synced_at?: string | null
           completed_at?: string | null
+          completion_method?: string | null
           course_complexity?: Json | null
           course_id?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           duration_minutes?: number | null
           end_time?: string
           external_event_id?: string | null
@@ -7000,14 +5227,17 @@ export type Database = {
           is_ai_generated?: boolean | null
           lesson_id?: string | null
           lesson_min_time_minutes?: number | null
+          lia_suggested?: boolean | null
           metrics?: Json | null
           notes?: string | null
+          organization_id?: string | null
           plan_id?: string | null
           recurrence?: Json | null
           rescheduled_from?: string | null
           self_evaluation?: number | null
           session_type?: string | null
           start_time?: string
+          started_at?: string | null
           status?: string
           streak_day?: number | null
           title?: string
@@ -7036,6 +5266,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_lessons_by_session_type_compatibility"
             referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "study_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "study_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "study_sessions_plan_id_fkey"
@@ -7132,20 +5383,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "subscriptions_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "subscriptions_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
           {
             foreignKeyName: "subscriptions_course_id_fkey"
             columns: ["course_id"]
@@ -7262,20 +5499,6 @@ export type Database = {
             foreignKeyName: "transactions_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "transactions_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "transactions_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
@@ -7332,6 +5555,7 @@ export type Database = {
           ip_address: unknown
           lesson_id: string | null
           log_id: string
+          organization_id: string | null
           session_id: string | null
           user_agent: string | null
           user_id: string
@@ -7344,6 +5568,7 @@ export type Database = {
           ip_address?: unknown
           lesson_id?: string | null
           log_id?: string
+          organization_id?: string | null
           session_id?: string | null
           user_agent?: string | null
           user_id: string
@@ -7356,25 +5581,12 @@ export type Database = {
           ip_address?: unknown
           lesson_id?: string | null
           log_id?: string
+          organization_id?: string | null
           session_id?: string | null
           user_agent?: string | null
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "user_activity_log_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "user_activity_log_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
           {
             foreignKeyName: "user_activity_log_course_id_fkey"
             columns: ["course_id"]
@@ -7411,6 +5623,27 @@ export type Database = {
             referencedColumns: ["lesson_id"]
           },
           {
+            foreignKeyName: "user_activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "user_activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
+          },
+          {
             foreignKeyName: "user_activity_log_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -7440,6 +5673,89 @@ export type Database = {
           },
         ]
       }
+      user_calendar_events: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          end_time: string
+          google_event_id: string | null
+          id: string
+          is_all_day: boolean | null
+          location: string | null
+          microsoft_event_id: string | null
+          provider: string | null
+          source: string | null
+          start_time: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time: string
+          google_event_id?: string | null
+          id?: string
+          is_all_day?: boolean | null
+          location?: string | null
+          microsoft_event_id?: string | null
+          provider?: string | null
+          source?: string | null
+          start_time: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string
+          google_event_id?: string | null
+          id?: string
+          is_all_day?: boolean | null
+          location?: string | null
+          microsoft_event_id?: string | null
+          provider?: string | null
+          source?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_calendar_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_calendar_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_calendar_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_calendar_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_security_summary"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       user_course_certificates: {
         Row: {
           certificate_hash: string | null
@@ -7450,6 +5766,7 @@ export type Database = {
           enrollment_id: string
           expires_at: string | null
           issued_at: string
+          organization_id: string | null
           template_id: string | null
           user_id: string
         }
@@ -7462,6 +5779,7 @@ export type Database = {
           enrollment_id: string
           expires_at?: string | null
           issued_at?: string
+          organization_id?: string | null
           template_id?: string | null
           user_id: string
         }
@@ -7474,24 +5792,11 @@ export type Database = {
           enrollment_id?: string
           expires_at?: string | null
           issued_at?: string
+          organization_id?: string | null
           template_id?: string | null
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "user_course_certificates_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "user_course_certificates_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
           {
             foreignKeyName: "user_course_certificates_course_id_fkey"
             columns: ["course_id"]
@@ -7512,6 +5817,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_course_enrollments"
             referencedColumns: ["enrollment_id"]
+          },
+          {
+            foreignKeyName: "user_course_certificates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_course_certificates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "user_course_certificates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "user_course_certificates_template_id_fkey"
@@ -7559,6 +5885,7 @@ export type Database = {
           enrollment_id: string
           enrollment_status: string | null
           last_accessed_at: string | null
+          organization_id: string | null
           overall_progress_percentage: number | null
           started_at: string | null
           updated_at: string | null
@@ -7572,6 +5899,7 @@ export type Database = {
           enrollment_id?: string
           enrollment_status?: string | null
           last_accessed_at?: string | null
+          organization_id?: string | null
           overall_progress_percentage?: number | null
           started_at?: string | null
           updated_at?: string | null
@@ -7585,6 +5913,7 @@ export type Database = {
           enrollment_id?: string
           enrollment_status?: string | null
           last_accessed_at?: string | null
+          organization_id?: string | null
           overall_progress_percentage?: number | null
           started_at?: string | null
           updated_at?: string | null
@@ -7595,20 +5924,6 @@ export type Database = {
             foreignKeyName: "user_course_enrollments_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "user_course_enrollments_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "user_course_enrollments_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
@@ -7620,215 +5935,141 @@ export type Database = {
             referencedColumns: ["course_id"]
           },
           {
-            foreignKeyName: "user_course_enrollments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_course_enrollments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_course_enrollments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_course_enrollments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      user_favorites: {
-        Row: {
-          course_id: string
-          created_at: string
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          course_id: string
-          created_at?: string
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          course_id?: string
-          created_at?: string
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_favorites_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "user_favorites_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "user_favorites_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_favorites_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "v_incomplete_lesson_times"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "user_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      user_group_members: {
-        Row: {
-          assigned_at: string | null
-          group_id: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          assigned_at?: string | null
-          group_id: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          assigned_at?: string | null
-          group_id?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "user_groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_group_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_group_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_group_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_group_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      user_groups: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          name: string
-          organization_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name: string
-          organization_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-          organization_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_groups_organization_id_fkey"
+            foreignKeyName: "user_course_enrollments_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_groups_organization_id_fkey"
+            foreignKeyName: "user_course_enrollments_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "v_organization_stats"
             referencedColumns: ["organization_id"]
           },
           {
-            foreignKeyName: "user_groups_organization_id_fkey"
+            foreignKeyName: "user_course_enrollments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "user_course_enrollments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_course_enrollments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_course_enrollments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_course_enrollments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_security_summary"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      user_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          metadata: Json | null
+          organization_id: string
+          role: string
+          status: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          role?: string
+          status?: string
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          role?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "moderation_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_security_summary"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "user_invitations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "v_organization_users_detailed"
@@ -7845,6 +6086,7 @@ export type Database = {
           note_id: string
           note_tags: Json | null
           note_title: string
+          organization_id: string | null
           source_type: string | null
           updated_at: string | null
           user_id: string
@@ -7857,6 +6099,7 @@ export type Database = {
           note_id?: string
           note_tags?: Json | null
           note_title: string
+          organization_id?: string | null
           source_type?: string | null
           updated_at?: string | null
           user_id: string
@@ -7869,6 +6112,7 @@ export type Database = {
           note_id?: string
           note_tags?: Json | null
           note_title?: string
+          organization_id?: string | null
           source_type?: string | null
           updated_at?: string | null
           user_id?: string
@@ -7894,6 +6138,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_lessons_by_session_type_compatibility"
             referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "user_lesson_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_lesson_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "user_lesson_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "user_lesson_notes_user_id_fkey"
@@ -7935,6 +6200,7 @@ export type Database = {
           last_accessed_at: string | null
           lesson_id: string
           lesson_status: string | null
+          organization_id: string | null
           progress_id: string
           quiz_completed: boolean | null
           quiz_passed: boolean | null
@@ -7954,6 +6220,7 @@ export type Database = {
           last_accessed_at?: string | null
           lesson_id: string
           lesson_status?: string | null
+          organization_id?: string | null
           progress_id?: string
           quiz_completed?: boolean | null
           quiz_passed?: boolean | null
@@ -7973,6 +6240,7 @@ export type Database = {
           last_accessed_at?: string | null
           lesson_id?: string
           lesson_status?: string | null
+          organization_id?: string | null
           progress_id?: string
           quiz_completed?: boolean | null
           quiz_passed?: boolean | null
@@ -8011,6 +6279,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_lessons_by_session_type_compatibility"
             referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "user_lesson_progress_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_lesson_progress_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "user_lesson_progress_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "user_lesson_progress_user_id_fkey"
@@ -8357,6 +6646,7 @@ export type Database = {
           is_passed: boolean | null
           lesson_id: string
           material_id: string | null
+          organization_id: string | null
           percentage_score: number | null
           score: number | null
           submission_id: string
@@ -8373,6 +6663,7 @@ export type Database = {
           is_passed?: boolean | null
           lesson_id: string
           material_id?: string | null
+          organization_id?: string | null
           percentage_score?: number | null
           score?: number | null
           submission_id?: string
@@ -8389,6 +6680,7 @@ export type Database = {
           is_passed?: boolean | null
           lesson_id?: string
           material_id?: string | null
+          organization_id?: string | null
           percentage_score?: number | null
           score?: number | null
           submission_id?: string
@@ -8403,13 +6695,6 @@ export type Database = {
             columns: ["activity_id"]
             isOneToOne: false
             referencedRelation: "lesson_activities"
-            referencedColumns: ["activity_id"]
-          },
-          {
-            foreignKeyName: "user_quiz_submissions_activity_id_fkey"
-            columns: ["activity_id"]
-            isOneToOne: false
-            referencedRelation: "lia_activity_performance"
             referencedColumns: ["activity_id"]
           },
           {
@@ -8446,6 +6731,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lesson_materials"
             referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "user_quiz_submissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_quiz_submissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "user_quiz_submissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "user_quiz_submissions_user_id_fkey"
@@ -8539,169 +6845,17 @@ export type Database = {
           },
         ]
       }
-      user_skills: {
-        Row: {
-          course_id: string | null
-          created_at: string
-          display_order: number | null
-          enrollment_id: string | null
-          id: string
-          is_displayed: boolean | null
-          obtained_at: string
-          proficiency_level: string | null
-          skill_id: string
-          updated_at: string
-          user_id: string
-          verified: boolean | null
-          verified_by: string | null
-        }
-        Insert: {
-          course_id?: string | null
-          created_at?: string
-          display_order?: number | null
-          enrollment_id?: string | null
-          id?: string
-          is_displayed?: boolean | null
-          obtained_at?: string
-          proficiency_level?: string | null
-          skill_id: string
-          updated_at?: string
-          user_id: string
-          verified?: boolean | null
-          verified_by?: string | null
-        }
-        Update: {
-          course_id?: string | null
-          created_at?: string
-          display_order?: number | null
-          enrollment_id?: string | null
-          id?: string
-          is_displayed?: boolean | null
-          obtained_at?: string
-          proficiency_level?: string | null
-          skill_id?: string
-          updated_at?: string
-          user_id?: string
-          verified?: boolean | null
-          verified_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_skills_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "user_skills_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "user_skills_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_skills_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "v_incomplete_lesson_times"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "user_skills_enrollment_id_fkey"
-            columns: ["enrollment_id"]
-            isOneToOne: false
-            referencedRelation: "user_course_enrollments"
-            referencedColumns: ["enrollment_id"]
-          },
-          {
-            foreignKeyName: "user_skills_skill_id_fkey"
-            columns: ["skill_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["skill_id"]
-          },
-          {
-            foreignKeyName: "user_skills_skill_id_fkey"
-            columns: ["skill_id"]
-            isOneToOne: false
-            referencedRelation: "skills"
-            referencedColumns: ["skill_id"]
-          },
-          {
-            foreignKeyName: "user_skills_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_skills_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_skills_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_skills_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_skills_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_skills_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_skills_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_skills_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
       user_streaks: {
         Row: {
           created_at: string | null
           current_streak: number | null
+          id: string
           last_session_date: string | null
           longest_streak: number | null
           month_start_date: string | null
           monthly_sessions_completed: number | null
           monthly_study_minutes: number | null
+          organization_id: string | null
           total_sessions_completed: number | null
           total_sessions_missed: number | null
           total_sessions_rescheduled: number | null
@@ -8715,11 +6869,13 @@ export type Database = {
         Insert: {
           created_at?: string | null
           current_streak?: number | null
+          id?: string
           last_session_date?: string | null
           longest_streak?: number | null
           month_start_date?: string | null
           monthly_sessions_completed?: number | null
           monthly_study_minutes?: number | null
+          organization_id?: string | null
           total_sessions_completed?: number | null
           total_sessions_missed?: number | null
           total_sessions_rescheduled?: number | null
@@ -8733,11 +6889,13 @@ export type Database = {
         Update: {
           created_at?: string | null
           current_streak?: number | null
+          id?: string
           last_session_date?: string | null
           longest_streak?: number | null
           month_start_date?: string | null
           monthly_sessions_completed?: number | null
           monthly_study_minutes?: number | null
+          organization_id?: string | null
           total_sessions_completed?: number | null
           total_sessions_missed?: number | null
           total_sessions_rescheduled?: number | null
@@ -8750,30 +6908,113 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "user_streaks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_streaks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_stats"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "user_streaks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["organization_id"]
+          },
+          {
             foreignKeyName: "user_streaks_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "moderation_stats"
             referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "user_streaks_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "user_streaks_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "v_organization_users_detailed"
             referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "user_streaks_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
+            referencedRelation: "v_user_security_summary"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      user_tour_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          skipped_at: string | null
+          step_reached: number | null
+          tour_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          skipped_at?: string | null
+          step_reached?: number | null
+          tour_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          skipped_at?: string | null
+          step_reached?: number | null
+          tour_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tour_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_tour_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_tour_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_organization_users_detailed"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_tour_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "v_user_security_summary"
             referencedColumns: ["user_id"]
           },
@@ -8846,18 +7087,15 @@ export type Database = {
           cargo_rol: string | null
           country_code: string | null
           created_at: string
-          curriculum_url: string | null
           display_name: string | null
           email: string | null
           email_verified: boolean
           email_verified_at: string | null
           first_name: string | null
-          github_url: string | null
           id: string
           is_banned: boolean
           last_login_at: string | null
           last_name: string | null
-          linkedin_url: string | null
           location: string | null
           notification_community_updates: boolean | null
           notification_course_updates: boolean | null
@@ -8866,21 +7104,14 @@ export type Database = {
           notification_push: boolean | null
           oauth_provider: string | null
           oauth_provider_id: string | null
-          organization_id: string | null
           password_hash: string | null
           phone: string | null
-          points: number | null
           profile_picture_url: string | null
-          profile_visibility: string | null
-          role_zoom: string | null
-          show_activity: boolean | null
-          show_email: boolean | null
           signature_name: string | null
           signature_url: string | null
           type_rol: string | null
           updated_at: string
           username: string
-          website_url: string | null
         }
         Insert: {
           ban_reason?: string | null
@@ -8889,18 +7120,15 @@ export type Database = {
           cargo_rol?: string | null
           country_code?: string | null
           created_at?: string
-          curriculum_url?: string | null
           display_name?: string | null
           email?: string | null
           email_verified?: boolean
           email_verified_at?: string | null
           first_name?: string | null
-          github_url?: string | null
           id?: string
           is_banned?: boolean
           last_login_at?: string | null
           last_name?: string | null
-          linkedin_url?: string | null
           location?: string | null
           notification_community_updates?: boolean | null
           notification_course_updates?: boolean | null
@@ -8909,21 +7137,14 @@ export type Database = {
           notification_push?: boolean | null
           oauth_provider?: string | null
           oauth_provider_id?: string | null
-          organization_id?: string | null
           password_hash?: string | null
           phone?: string | null
-          points?: number | null
           profile_picture_url?: string | null
-          profile_visibility?: string | null
-          role_zoom?: string | null
-          show_activity?: boolean | null
-          show_email?: boolean | null
           signature_name?: string | null
           signature_url?: string | null
           type_rol?: string | null
           updated_at?: string
           username: string
-          website_url?: string | null
         }
         Update: {
           ban_reason?: string | null
@@ -8932,18 +7153,15 @@ export type Database = {
           cargo_rol?: string | null
           country_code?: string | null
           created_at?: string
-          curriculum_url?: string | null
           display_name?: string | null
           email?: string | null
           email_verified?: boolean
           email_verified_at?: string | null
           first_name?: string | null
-          github_url?: string | null
           id?: string
           is_banned?: boolean
           last_login_at?: string | null
           last_name?: string | null
-          linkedin_url?: string | null
           location?: string | null
           notification_community_updates?: boolean | null
           notification_course_updates?: boolean | null
@@ -8952,45 +7170,16 @@ export type Database = {
           notification_push?: boolean | null
           oauth_provider?: string | null
           oauth_provider_id?: string | null
-          organization_id?: string | null
           password_hash?: string | null
           phone?: string | null
-          points?: number | null
           profile_picture_url?: string | null
-          profile_visibility?: string | null
-          role_zoom?: string | null
-          show_activity?: boolean | null
-          show_email?: boolean | null
           signature_name?: string | null
           signature_url?: string | null
           type_rol?: string | null
           updated_at?: string
           username?: string
-          website_url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "users_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "users_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_stats"
-            referencedColumns: ["organization_id"]
-          },
-          {
-            foreignKeyName: "users_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["organization_id"]
-          },
-        ]
+        Relationships: []
       }
       work_team_course_assignments: {
         Row: {
@@ -9062,20 +7251,6 @@ export type Database = {
             foreignKeyName: "work_team_course_assignments_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "work_team_course_assignments_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "work_team_course_assignments_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
@@ -9136,20 +7311,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "work_team_feedback_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "work_team_feedback_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
           {
             foreignKeyName: "work_team_feedback_course_id_fkey"
             columns: ["course_id"]
@@ -9340,20 +7501,6 @@ export type Database = {
             foreignKeyName: "work_team_messages_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "work_team_messages_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "work_team_messages_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
@@ -9459,20 +7606,6 @@ export type Database = {
             foreignKeyName: "work_team_objectives_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "work_team_objectives_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "work_team_objectives_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
@@ -9571,20 +7704,6 @@ export type Database = {
             foreignKeyName: "work_team_statistics_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "work_team_statistics_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "work_team_statistics_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
@@ -9614,6 +7733,7 @@ export type Database = {
           metadata: Json | null
           name: string
           organization_id: string
+          slug: string
           status: string | null
           team_id: string
           team_leader_id: string | null
@@ -9628,6 +7748,7 @@ export type Database = {
           metadata?: Json | null
           name: string
           organization_id: string
+          slug: string
           status?: string | null
           team_id?: string
           team_leader_id?: string | null
@@ -9642,26 +7763,13 @@ export type Database = {
           metadata?: Json | null
           name?: string
           organization_id?: string
+          slug?: string
           status?: string | null
           team_id?: string
           team_leader_id?: string | null
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "work_teams_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "work_teams_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
           {
             foreignKeyName: "work_teams_course_id_fkey"
             columns: ["course_id"]
@@ -9804,203 +7912,202 @@ export type Database = {
           },
         ]
       }
-      community_stats: {
+      lia_activity_performance: {
         Row: {
-          access_type: string | null
-          active_comments_count: number | null
-          active_members_count: number | null
-          active_videos_count: number | null
-          admin_count: number | null
-          approved_requests_count: number | null
-          comments_count: number | null
+          activity_id: string | null
+          activity_title: string | null
+          activity_type: string | null
+          avg_attempts: number | null
+          avg_time_seconds: number | null
+          completed_count: number | null
+          completion_rate_percentage: number | null
           course_id: string | null
-          course_id_full: string | null
-          course_slug: string | null
-          course_thumbnail: string | null
           course_title: string | null
-          created_at: string | null
-          creator_avatar: string | null
-          creator_display_name: string | null
-          creator_email: string | null
-          creator_first_name: string | null
-          creator_id: string | null
-          creator_last_name: string | null
-          creator_username: string | null
-          description: string | null
-          id: string | null
-          image_url: string | null
-          is_active: boolean | null
-          last_comment_at: string | null
-          last_member_joined_at: string | null
-          last_post_at: string | null
-          member_count: number | null
-          members_count: number | null
-          moderator_count: number | null
-          name: string | null
-          pending_requests_count: number | null
-          pinned_posts_count: number | null
-          posts_count: number | null
-          reaction_like_count: number | null
-          reaction_love_count: number | null
-          rejected_requests_count: number | null
-          slug: string | null
-          total_posts_likes: number | null
-          total_posts_views: number | null
-          total_reactions_count: number | null
-          updated_at: string | null
-          videos_count: number | null
-          visibility: string | null
+          help_needed_count: number | null
+          total_attempts: number | null
+          unique_users: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "communities_course_id_fkey"
-            columns: ["course_id"]
+            foreignKeyName: "lia_activity_completions_activity_id_fkey"
+            columns: ["activity_id"]
             isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
+            referencedRelation: "lesson_activities"
+            referencedColumns: ["activity_id"]
           },
           {
-            foreignKeyName: "communities_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "communities_course_id_fkey"
+            foreignKeyName: "lia_conversations_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "communities_course_id_fkey"
+            foreignKeyName: "lia_conversations_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_incomplete_lesson_times"
+            referencedColumns: ["course_id"]
+          },
+        ]
+      }
+      lia_conversation_analytics: {
+        Row: {
+          avg_response_time_ms: number | null
+          context_type: string | null
+          conversation_completed: boolean | null
+          conversation_id: string | null
+          course_id: string | null
+          course_title: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          lesson_id: string | null
+          lesson_title: string | null
+          module_id: string | null
+          module_title: string | null
+          primary_model: string | null
+          started_at: string | null
+          total_cost_usd: number | null
+          total_lia_messages: number | null
+          total_messages: number | null
+          total_tokens: number | null
+          total_user_messages: number | null
+          user_abandoned: boolean | null
+          user_avatar: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lia_conversations_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "v_incomplete_lesson_times"
             referencedColumns: ["course_id"]
           },
           {
-            foreignKeyName: "community_members_user_id_fkey"
-            columns: ["creator_id"]
+            foreignKeyName: "lia_conversations_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons"
+            referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v_incomplete_lesson_times"
+            referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v_lessons_by_session_type_compatibility"
+            referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["module_id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "moderation_stats"
             referencedColumns: ["user_id"]
           },
           {
-            foreignKeyName: "community_members_user_id_fkey"
-            columns: ["creator_id"]
+            foreignKeyName: "lia_conversations_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "community_members_user_id_fkey"
-            columns: ["creator_id"]
+            foreignKeyName: "lia_conversations_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "v_organization_users_detailed"
             referencedColumns: ["user_id"]
           },
           {
-            foreignKeyName: "community_members_user_id_fkey"
-            columns: ["creator_id"]
+            foreignKeyName: "lia_conversations_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "v_user_security_summary"
             referencedColumns: ["user_id"]
           },
         ]
       }
-      course_skills_view: {
+      lia_course_analytics: {
         Row: {
-          color: string | null
+          avg_duration_seconds: number | null
           course_id: string | null
-          course_slug: string | null
           course_title: string | null
-          display_order: number | null
-          icon_name: string | null
-          icon_type: string | null
-          icon_url: string | null
-          is_primary: boolean | null
-          is_required: boolean | null
-          proficiency_level: string | null
-          skill_category: string | null
-          skill_description: string | null
-          skill_id: string | null
-          skill_name: string | null
-          skill_slug: string | null
-        }
-        Relationships: []
-      }
-      lia_activity_performance: {
-        Row: {
-          abandoned_count: number | null
-          activity_id: string | null
-          activity_title: string | null
-          activity_type: string | null
-          avg_attempts_to_complete: number | null
-          avg_completion_time_seconds: number | null
-          avg_redirects_per_user: number | null
-          avg_user_rating: number | null
-          completed_count: number | null
-          completion_rate_pct: number | null
-          course_title: string | null
+          lesson_id: string | null
           lesson_title: string | null
-          total_attempts: number | null
-          unique_users: number | null
-        }
-        Relationships: []
-      }
-      lia_conversation_analytics: {
-        Row: {
-          activity_title: string | null
-          avg_rating: number | null
-          avg_response_time_ms: number | null
-          context_type: string | null
-          conversation_completed: boolean | null
-          conversation_id: string | null
-          course_title: string | null
-          duration_seconds: number | null
-          email: string | null
-          ended_at: string | null
-          feedback_count: number | null
-          lesson_title: string | null
-          lia_messages_per_user_message: number | null
-          started_at: string | null
+          module_id: string | null
+          module_title: string | null
+          total_conversations: number | null
           total_cost_usd: number | null
           total_messages: number | null
-          total_tokens: number | null
-          user_abandoned: boolean | null
-          user_id: string | null
-          username: string | null
+          total_tokens_consumed: number | null
+          unique_users: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "lia_conversations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "lia_conversations_course_id_fkey"
+            columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "lia_conversations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "courses"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lia_conversations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "lia_conversations_course_id_fkey"
+            columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
+            referencedRelation: "v_incomplete_lesson_times"
+            referencedColumns: ["course_id"]
           },
           {
-            foreignKeyName: "lia_conversations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "lia_conversations_lesson_id_fkey"
+            columns: ["lesson_id"]
             isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
+            referencedRelation: "course_lessons"
+            referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v_incomplete_lesson_times"
+            referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v_lessons_by_session_type_compatibility"
+            referencedColumns: ["lesson_id"]
+          },
+          {
+            foreignKeyName: "lia_conversations_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["module_id"]
           },
         ]
       }
@@ -10017,175 +8124,6 @@ export type Database = {
           warning_reasons: string[] | null
         }
         Relationships: []
-      }
-      mv_community_stats: {
-        Row: {
-          comment_count: number | null
-          community_id: string | null
-          last_comment_at: string | null
-          last_post_at: string | null
-          member_count: number | null
-          name: string | null
-          post_count: number | null
-          reaction_count: number | null
-          slug: string | null
-        }
-        Relationships: []
-      }
-      mv_post_stats: {
-        Row: {
-          angry_count: number | null
-          comment_count: number | null
-          community_id: string | null
-          last_comment_at: string | null
-          laugh_count: number | null
-          like_count: number | null
-          love_count: number | null
-          post_id: string | null
-          reaction_count: number | null
-          sad_count: number | null
-          user_id: string | null
-          wow_count: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_posts_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "communities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_community_id_fkey"
-            columns: ["community_id"]
-            isOneToOne: false
-            referencedRelation: "mv_community_stats"
-            referencedColumns: ["community_id"]
-          },
-          {
-            foreignKeyName: "community_posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "community_posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      my_courses: {
-        Row: {
-          access_granted_at: string | null
-          access_status: Database["public"]["Enums"]["access_status"] | null
-          course_id: string | null
-          course_title: string | null
-          currency: string | null
-          enrollment_id: string | null
-          expires_at: string | null
-          final_price_cents: number | null
-          purchase_id: string | null
-          purchased_at: string | null
-          transaction_id: string | null
-          user_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "community_stats"
-            referencedColumns: ["course_id_full"]
-          },
-          {
-            foreignKeyName: "course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "course_skills_view"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "course_purchases_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "v_incomplete_lesson_times"
-            referencedColumns: ["course_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_enrollment_id_fkey"
-            columns: ["enrollment_id"]
-            isOneToOne: false
-            referencedRelation: "user_course_enrollments"
-            referencedColumns: ["enrollment_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "transactions"
-            referencedColumns: ["transaction_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "moderation_stats"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "course_purchases_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_organization_users_detailed"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "course_purchases_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_user_security_summary"
-            referencedColumns: ["user_id"]
-          },
-        ]
       }
       reportes_con_usuario: {
         Row: {
@@ -10617,9 +8555,17 @@ export type Database = {
         Args: { p_category: string; p_level: string }
         Returns: number
       }
+      calculate_course_duration: {
+        Args: { p_course_id: string }
+        Returns: undefined
+      }
       calculate_lesson_total_time: {
         Args: { p_lesson_id: string }
         Returns: number
+      }
+      calculate_module_duration: {
+        Args: { p_module_id: string }
+        Returns: undefined
       }
       calculate_reel_comment_count: {
         Args: { reel_uuid: string }
@@ -10644,7 +8590,27 @@ export type Database = {
         }
         Returns: string
       }
+      check_b2b_deadlines: {
+        Args: { p_user_id: string; p_weekly_study_minutes: number }
+        Returns: {
+          can_complete: boolean
+          course_id: string
+          course_title: string
+          due_date: string
+          remaining_minutes: number
+          weeks_needed: number
+        }[]
+      }
+      check_user_is_org_admin: {
+        Args: { p_organization_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      check_user_org_membership: {
+        Args: { p_organization_id: string; p_user_id: string }
+        Returns: boolean
+      }
       clean_expired_refresh_tokens: { Args: never; Returns: undefined }
+      cleanup_expired_invitations: { Args: never; Returns: undefined }
       cleanup_expired_refresh_tokens: { Args: never; Returns: undefined }
       cleanup_old_community_data: { Args: never; Returns: undefined }
       close_conversation: {
@@ -10657,6 +8623,7 @@ export type Database = {
         Returns: number
       }
       decrement_comment_count: { Args: { post_id: string }; Returns: undefined }
+      delete_user_cascade: { Args: { target_user_id: string }; Returns: Json }
       detect_suspicious_token_activity: {
         Args: never
         Returns: {
@@ -10668,6 +8635,10 @@ export type Database = {
       }
       expire_certificate: { Args: { p_cert_id: string }; Returns: undefined }
       extract_team_id_from_path: { Args: { p_path: string }; Returns: string }
+      generate_team_slug: {
+        Args: { p_team_id: string; p_team_name: string }
+        Returns: string
+      }
       get_ai_moderation_stats: { Args: { p_days?: number }; Returns: Json }
       get_comments_with_user_data: {
         Args: { p_limit?: number; p_offset?: number; p_post_id: string }
@@ -10792,6 +8763,11 @@ export type Database = {
           p_field_name: string
           p_language_code: string
         }
+        Returns: string
+      }
+      get_user_primary_org: { Args: { p_user_id: string }; Returns: string }
+      get_user_primary_organization: {
+        Args: { p_user_id: string }
         Returns: string
       }
       get_user_skill_level: {
@@ -10937,6 +8913,15 @@ export type Database = {
       validate_lesson_fits_session_type: {
         Args: { p_lesson_id: string; p_session_type: string }
         Returns: boolean
+      }
+      validate_session_times: {
+        Args: { p_plan_id: string }
+        Returns: {
+          error_message: string
+          is_valid: boolean
+          min_lesson_time: number
+          plan_min_session: number
+        }[]
       }
     }
     Enums: {

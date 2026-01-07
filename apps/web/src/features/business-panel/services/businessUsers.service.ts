@@ -6,7 +6,7 @@ export interface BusinessUser {
   last_name?: string | null
   display_name?: string | null
   cargo_rol: string
-  type_rol: string
+  job_title?: string | null  // Antes type_rol - ahora en organization_users
   organization_id?: string | null
   email_verified: boolean
   profile_picture_url?: string | null
@@ -38,7 +38,7 @@ export interface CreateBusinessUserRequest {
   first_name?: string
   last_name?: string
   display_name?: string
-  type_rol: string
+  job_title: string  // Antes type_rol - cargo/puesto en la organización
   org_role?: 'owner' | 'admin' | 'member'
 }
 
@@ -48,7 +48,7 @@ export interface UpdateBusinessUserRequest {
   display_name?: string
   email?: string
   cargo_rol?: string
-  type_rol?: string
+  job_title?: string  // Antes type_rol - cargo/puesto en la organización
   org_role?: 'owner' | 'admin' | 'member'
   org_status?: 'active' | 'invited' | 'suspended' | 'removed'
   profile_picture_url?: string

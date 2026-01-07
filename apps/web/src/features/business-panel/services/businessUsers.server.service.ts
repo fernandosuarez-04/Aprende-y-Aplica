@@ -37,6 +37,7 @@ export class BusinessUsersServerService {
       // 🚀 OPTIMIZACIÓN: Una sola query con JOIN
       // Antes: 2 queries secuenciales (~600ms)
       // Después: 1 query con JOIN (~200ms)
+      // NOTA: job_title ahora viene de organization_users, no de users.type_rol
       const { data: orgUsersData, error: orgUsersError } = await supabase
         .from('organization_users')
         .select(`
@@ -44,6 +45,7 @@ export class BusinessUsersServerService {
           organization_id,
           user_id,
           role,
+          job_title,
           status,
           joined_at,
           users:users!organization_users_user_id_fkey (
@@ -54,7 +56,6 @@ export class BusinessUsersServerService {
             last_name,
             display_name,
             cargo_rol,
-            type_rol,
             email_verified,
             profile_picture_url,
             bio,
@@ -80,12 +81,14 @@ export class BusinessUsersServerService {
       }
 
       // Transformar los datos al formato esperado
+      // NOTA: job_title viene de organization_users, no de users
       const users: BusinessUser[] = orgUsersData
         .filter(ou => ou.users)
         .map(ou => {
           const userData = ou.users as any
           return {
             ...userData,
+            job_title: ou.job_title,  // Cargo/puesto en esta organización
             org_role: ou.role as 'owner' | 'admin' | 'member',
             org_status: ou.status as 'active' | 'invited' | 'suspended' | 'removed',
             joined_at: ou.joined_at
@@ -166,22 +169,23 @@ export class BusinessUsersServerService {
       // Paso 2: Hash de contraseña (obligatoria)
       const passwordHash = await bcrypt.hash(userData.password.trim(), 10)
 
-      // 
-      // Paso 3: Validar que type_rol esté presente
-      if (!userData.type_rol || !userData.type_rol.trim()) {
-        throw new Error('El tipo de rol es obligatorio')
+      //
+      // Paso 3: Validar que job_title esté presente
+      if (!userData.job_title || !userData.job_title.trim()) {
+        throw new Error('El cargo/puesto es obligatorio')
       }
 
       // Paso 4: Crear el usuario
       // NOTA: organization_id no existe en la tabla users, la relación se maneja en organization_users
+      // NOTA: cargo_rol siempre es 'Business' - la diferenciación se hace en organization_users.role
+      // NOTA: type_rol ya no se usa - job_title se guarda en organization_users
       const userInsertData: any = {
         username: userData.username,
         email: userData.email,
         first_name: userData.first_name || null,
         last_name: userData.last_name || null,
         display_name: userData.display_name || null,
-        cargo_rol: 'Business User',
-        type_rol: userData.type_rol.trim(),
+        cargo_rol: 'Business',  // Todos los usuarios de empresa son 'Business'
         password_hash: passwordHash
       }
 
@@ -198,14 +202,16 @@ export class BusinessUsersServerService {
         throw userError
       }
 
-      // 
-      // Paso 4: Agregar a organization_users (siempre activo porque siempre hay contraseña)
+      //
+      // Paso 5: Agregar a organization_users (siempre activo porque siempre hay contraseña)
+      // job_title ahora se guarda aquí (antes era type_rol en users)
       const { error: orgUserError } = await supabase
         .from('organization_users')
         .insert({
           organization_id: organizationId,
           user_id: newUser.id,
           role: userData.org_role || 'member',
+          job_title: userData.job_title.trim(),  // Cargo/puesto en esta organización
           status: 'active',
           invited_by: createdBy,
           invited_at: new Date().toISOString(),

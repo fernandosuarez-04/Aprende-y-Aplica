@@ -3,38 +3,47 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 
-// ✅ Constantes para roles - evita typos y facilita mantenimiento
+/**
+ * Roles globales del sistema (cargo_rol en tabla users)
+ *
+ * NOTA: 'Business User' ya no existe - todos los usuarios de empresa tienen cargo_rol='Business'.
+ * La diferenciación entre admin/owner y member se hace en organization_users.role
+ */
 const ROLES = {
   ADMIN: 'administrador',
   INSTRUCTOR: 'instructor',
   BUSINESS: 'business',
-  BUSINESS_USER: 'business user',
   USER: 'usuario'
 } as const
 
+/**
+ * Hook para verificar el rol global del usuario (cargo_rol)
+ *
+ * Para verificar permisos dentro de una organización específica,
+ * usa el rol de organization_users.role (owner/admin/member)
+ */
 export function useUserRole() {
   const { user, loading } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
   const [isInstructor, setIsInstructor] = useState(false)
   const [isBusiness, setIsBusiness] = useState(false)
-  const [isBusinessUser, setIsBusinessUser] = useState(false)
   const [isUser, setIsUser] = useState(false)
 
   useEffect(() => {
     if (user && !loading) {
-      // ✅ Normalizar con toLowerCase() y trim() para evitar bugs con espacios
+      // Normalizar con toLowerCase() y trim() para evitar bugs con espacios
       const role = user.cargo_rol?.toLowerCase().trim()
 
       setIsAdmin(role === ROLES.ADMIN)
       setIsInstructor(role === ROLES.INSTRUCTOR)
+      // Todos los usuarios de empresa tienen cargo_rol='Business'
+      // La diferenciación owner/admin/member se hace en organization_users.role
       setIsBusiness(role === ROLES.BUSINESS)
-      setIsBusinessUser(role === ROLES.BUSINESS_USER)
       setIsUser(role === ROLES.USER)
     } else {
       setIsAdmin(false)
       setIsInstructor(false)
       setIsBusiness(false)
-      setIsBusinessUser(false)
       setIsUser(false)
     }
   }, [user, loading])
@@ -45,7 +54,6 @@ export function useUserRole() {
     isAdmin,
     isInstructor,
     isBusiness,
-    isBusinessUser,
     isUser,
     role: user?.cargo_rol || null
   }

@@ -102,6 +102,8 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
     }
   }
 
+  const trackColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'
+
   // Estadísticas rápidas
   const stats = {
     total: objectives.length,
@@ -181,15 +183,15 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
           }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm !text-white transition-all"
           style={{
-            background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
-            boxShadow: `0 8px 25px ${accentColor}40`,
+            background: 'linear-gradient(135deg, #0A2540 0%, #1e3a5f 100%)',
+            boxShadow: '0 8px 25px rgba(10, 37, 64, 0.4)',
             color: '#FFFFFF'
           }}
         >
-          <Plus className="w-4 h-4" />
-          <span style={{ color: '#FFFFFF' }}>Crear Objetivo</span>
+          <Plus className="w-4 h-4 !text-white" />
+          <span className="!text-white">Crear Objetivo</span>
         </motion.button>
       </motion.div>
 
@@ -223,7 +225,6 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.05 }}
-              className="p-4 rounded-xl border backdrop-blur-sm"
               className="p-4 rounded-xl border backdrop-blur-sm"
               style={{
                 backgroundColor: statBg,
@@ -287,7 +288,7 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
                   cy="90"
                   r="70"
                   fill="none"
-                  stroke="rgba(255,255,255,0.08)"
+                  stroke={trackColor}
                   strokeWidth="20"
                 />
 
@@ -444,15 +445,15 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
               }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all !text-white"
               style={{
-                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                boxShadow: `0 8px 25px ${primaryColor}40`,
+                background: 'linear-gradient(135deg, #0A2540 0%, #1e3a5f 100%)',
+                boxShadow: '0 8px 25px rgba(10, 37, 64, 0.4)',
                 color: '#FFFFFF'
               }}
             >
-              <Sparkles className="w-4 h-4" style={{ color: '#FFFFFF' }} />
-              <span style={{ color: '#FFFFFF' }}>Crear Primer Objetivo</span>
+              <Sparkles className="w-4 h-4 !text-white" />
+              <span className="!text-white">Crear Primer Objetivo</span>
             </motion.button>
           </motion.div>
         </motion.div>
@@ -488,7 +489,7 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
                             cy="28"
                             r="24"
                             fill="none"
-                            stroke="rgba(255,255,255,0.1)"
+                            stroke={trackColor}
                             strokeWidth="4"
                           />
                           <motion.circle
@@ -591,7 +592,7 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
                   </div>
 
                   {/* Linear Progress Bar */}
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: trackColor }}>
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${objective.progress_percentage || 0}%` }}

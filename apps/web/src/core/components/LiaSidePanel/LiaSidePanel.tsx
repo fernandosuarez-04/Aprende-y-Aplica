@@ -13,7 +13,7 @@ import { useThemeStore } from '@/core/stores/themeStore';
 import { useTranslation } from 'react-i18next';
 
 // Función para parsear Markdown completo y convertirlo a elementos React
-function parseMarkdownContent(text: string, onLinkClick: (url: string) => void): React.ReactNode {
+function parseMarkdownContent(text: string, onLinkClick: (url: string) => void, isDarkMode: boolean = false): React.ReactNode {
   let keyIndex = 0;
   
   // Primero convertir listas con asterisco a guiones
@@ -21,6 +21,9 @@ function parseMarkdownContent(text: string, onLinkClick: (url: string) => void):
   
   // Dividir por líneas para procesar cada una
   const lines = processedText.split('\n');
+  
+  // Color del enlace basado en el tema
+  const linkColor = isDarkMode ? '#00D4B3' : '#0A2540';
   
   const processInlineFormatting = (line: string): React.ReactNode[] => {
     const elements: React.ReactNode[] = [];
@@ -51,7 +54,7 @@ function parseMarkdownContent(text: string, onLinkClick: (url: string) => void):
               onLinkClick(linkUrl);
             }}
             style={{
-              color: '#0A2540',
+              color: linkColor,
               textDecoration: 'underline',
               cursor: 'pointer',
               fontWeight: 500,
@@ -483,7 +486,7 @@ function LiaSidePanelContent() {
                 >
                   <p style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
                     {message.role === 'assistant' 
-                      ? parseMarkdownContent(message.content, handleLinkClick)
+                      ? parseMarkdownContent(message.content, handleLinkClick, isDarkMode)
                       : message.content
                     }
                   </p>

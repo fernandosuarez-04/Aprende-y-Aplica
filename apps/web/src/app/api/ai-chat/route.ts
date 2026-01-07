@@ -519,7 +519,7 @@ const getContextPrompt = (
 INSTRUCCIONES PARA PROPORCIONAR URLs Y NAVEGACIÓN:
 - Cuando sugieras navegar a otra página, SIEMPRE proporciona la URL completa con formato de hipervínculo
 - Formato: [texto del enlace](URL_completa)
-- Ejemplo: Puedes ver tus cursos en [Mis Cursos](/my-courses)
+- Ejemplo: Puedes ver todos los cursos disponibles en [Dashboard](/dashboard)
 - Ejemplo: Puedes ver todos los cursos disponibles en [Dashboard](/dashboard)
 - IMPORTANTE: Para ver TODOS los cursos disponibles, usa [Dashboard](/dashboard), NO /courses (que no existe como página de catálogo)
 - La ruta /courses/[slug] es solo para ver el detalle de un curso específico, no para ver el catálogo completo
@@ -553,7 +553,7 @@ Usuario: "dame el link del dashboard"
 Respuesta: "Aquí tienes el acceso directo: [Dashboard](/dashboard)"
 
 Usuario: "¿dónde están los cursos?"
-Respuesta: "Puedes ver tus cursos aquí: [Mis Cursos](/my-courses). Y el catálogo completo está en el [Dashboard](/dashboard)"
+Respuesta: "Puedes ver tus cursos y el catálogo completo está en el [Dashboard](/dashboard)"
 
 REGLA DE ORO: Cuando el usuario pida ir a algún lugar, el enlace DEBE estar en tu PRIMERA respuesta. NUNCA le pidas que busque en menús o que navegue manualmente.
 
@@ -725,7 +725,7 @@ FORMATO DE RESPUESTAS - REGLAS ABSOLUTAS (CRÍTICO):
 - Usa MAYÚSCULAS o repetición de palabras para enfatizar (ejemplo: "MUY importante" o "importante - muy importante")
 - Mantén un tono positivo y motivador
 - Cita específicamente el contenido de la transcripción cuando sea relevante
-- ✅ IMPORTANTE: Para enlaces, SIEMPRE usa el formato [texto del enlace](URL). Ejemplo: [Mis Cursos](/my-courses) o [Dashboard](/dashboard)
+- ✅ IMPORTANTE: Para enlaces, SIEMPRE usa el formato [texto del enlace](URL). Ejemplo: [Dashboard](/dashboard)
 
 RECUERDA: Tu respuesta debe ser texto plano puro, EXCEPTO para enlaces donde DEBES usar [texto](url). Si detectas que estás a punto de usar cualquier símbolo de Markdown que no sea para enlaces, detente y reescribe sin ese símbolo.
 

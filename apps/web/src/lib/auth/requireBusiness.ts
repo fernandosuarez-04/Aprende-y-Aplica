@@ -218,8 +218,10 @@ export async function requireBusiness(options?: RequireBusinessOptions): Promise
 
     // PASO 6: Verificar que el usuario sea Business o Administrador
     // Los Administradores tienen acceso elevado y pueden acceder a rutas de Business
+    // NOTA: 'Business User' ya no existe en cargo_rol - todos son 'Business'
+    // La diferenciación se hace en organization_users.role (owner/admin/member)
     const normalizedRole = user.cargo_rol?.toLowerCase().trim() || '';
-    const isBusiness = normalizedRole === 'business' || normalizedRole.includes('business');
+    const isBusiness = normalizedRole === 'business';
     const isAdmin = normalizedRole === 'administrador';
 
     if (!isBusiness && !isAdmin) {
@@ -364,12 +366,42 @@ export async function requireBusiness(options?: RequireBusinessOptions): Promise
 }
 
 /**
+ * Options for requireBusinessUser middleware
+ */
+export interface RequireBusinessUserOptions {
+  /**
+   * Specific organization ID to verify membership against.
+   * If provided, verifies user belongs to this specific org.
+   */
+  organizationId?: string;
+
+  /**
+   * Organization slug to verify membership against.
+   * Alternative to organizationId for URL-based routing.
+   */
+  organizationSlug?: string;
+}
+
+/**
  * Verifica autenticación y autorización de Business User (empleado)
  * Permite acceso a usuarios con rol Business User dentro de una organización
- * 
+ *
+ * @param options - Optional configuration for organization verification
  * @returns BusinessAuth si el usuario es Business User autenticado, o NextResponse con error
+ *
+ * @example
+ * ```typescript
+ * // Basic usage - uses user's default organization
+ * const auth = await requireBusinessUser();
+ *
+ * // With specific organization verification (RECOMMENDED for org-scoped routes)
+ * const auth = await requireBusinessUser({ organizationSlug: 'acme-corp' });
+ *
+ * // With organization ID
+ * const auth = await requireBusinessUser({ organizationId: 'uuid-here' });
+ * ```
  */
-export async function requireBusinessUser(): Promise<BusinessAuth | NextResponse> {
+export async function requireBusinessUser(options?: RequireBusinessUserOptions): Promise<BusinessAuth | NextResponse> {
   try {
     const cookieStore = await cookies();
     const supabase = await createClient();
@@ -476,12 +508,13 @@ export async function requireBusinessUser(): Promise<BusinessAuth | NextResponse
     }
 
 
-    // Permitir Business y Business User (flexible con variaciones)
+    // Verificar que el usuario sea Business
+    // NOTA: 'Business User' ya no existe en cargo_rol - todos son 'Business'
+    // La diferenciación se hace en organization_users.role (owner/admin/member)
     const normalizedRole = user.cargo_rol?.toLowerCase().trim() || '';
-    const isBusiness = normalizedRole === 'business' || normalizedRole.includes('business');
-    const isBusinessUser = normalizedRole === 'business user' || normalizedRole.includes('business user');
+    const isBusiness = normalizedRole === 'business';
 
-    if (!isBusiness && !isBusinessUser) {
+    if (!isBusiness) {
       logger.warn('Unauthorized access attempt - invalid role', {
         userId: user.id,
         role: user.cargo_rol,
@@ -490,7 +523,7 @@ export async function requireBusinessUser(): Promise<BusinessAuth | NextResponse
       return NextResponse.json(
         {
           success: false,
-          error: `Permisos insuficientes. Se requiere rol de Business o Business User. Rol actual: ${user.cargo_rol || 'sin rol'}`
+          error: `Permisos insuficientes. Se requiere rol de Business. Rol actual: ${user.cargo_rol || 'sin rol'}`
         },
         { status: 403 }
       );
@@ -498,31 +531,115 @@ export async function requireBusinessUser(): Promise<BusinessAuth | NextResponse
 
     // Obtener organizationId desde organization_users (única fuente de verdad)
     let organizationId: string | undefined = undefined;
+    let organizationSlug: string | undefined = undefined;
+    let organizationRole: 'owner' | 'admin' | 'member' | undefined = undefined;
 
-    const { data: userOrgs } = await supabase
-      .from('organization_users')
-      .select('organization_id, joined_at')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('joined_at', { ascending: false })
-      .limit(1);
+    // If specific organization is requested via options, verify membership
+    if (options?.organizationId || options?.organizationSlug) {
+      // Build query based on what was provided
+      let orgQuery = supabase
+        .from('organizations')
+        .select('id, slug')
+        .eq('is_active', true);
 
-    if (userOrgs && userOrgs.length > 0) {
-      organizationId = userOrgs[0].organization_id;
+      if (options.organizationId) {
+        orgQuery = orgQuery.eq('id', options.organizationId);
+      } else if (options.organizationSlug) {
+        orgQuery = orgQuery.eq('slug', options.organizationSlug);
+      }
+
+      const { data: requestedOrg, error: orgError } = await orgQuery.single();
+
+      if (orgError || !requestedOrg) {
+        logger.warn('Requested organization not found', {
+          organizationId: options.organizationId,
+          organizationSlug: options.organizationSlug
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Organización no encontrada.'
+          },
+          { status: 404 }
+        );
+      }
+
+      // Verify user belongs to this specific organization
+      const { data: membership, error: membershipError } = await supabase
+        .from('organization_users')
+        .select('role')
+        .eq('organization_id', requestedOrg.id)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (membershipError || !membership) {
+        logger.warn('User not member of requested organization', {
+          userId: user.id,
+          organizationId: requestedOrg.id,
+          organizationSlug: requestedOrg.slug
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'No tienes acceso a esta organización.'
+          },
+          { status: 403 }
+        );
+      }
+
+      organizationId = requestedOrg.id;
+      organizationSlug = requestedOrg.slug;
+      organizationRole = membership.role as 'owner' | 'admin' | 'member';
+    } else {
+      // Default: get user's most recent organization
+      const { data: userOrgs } = await supabase
+        .from('organization_users')
+        .select(`
+          organization_id,
+          role,
+          joined_at,
+          organizations!inner (
+            id,
+            slug,
+            is_active
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .eq('organizations.is_active', true)
+        .order('joined_at', { ascending: false })
+        .limit(1);
+
+      if (userOrgs && userOrgs.length > 0) {
+        const org = userOrgs[0];
+        organizationId = org.organization_id;
+        organizationRole = org.role as 'owner' | 'admin' | 'member';
+        // Access nested organization data
+        const orgData = org.organizations as unknown as { id: string; slug: string };
+        organizationSlug = orgData?.slug;
+      }
     }
+
+    const isOrgAdmin = organizationRole === 'owner' || organizationRole === 'admin';
 
     logger.auth('Business User access granted', {
       userId: user.id,
       email: user.email,
       role: user.cargo_rol,
-      organizationId: organizationId
+      organizationId: organizationId,
+      organizationSlug: organizationSlug,
+      organizationRole: organizationRole
     });
 
     return {
       userId: user.id,
       userEmail: user.email,
       userRole: user.cargo_rol,
-      organizationId: organizationId
+      organizationId: organizationId,
+      organizationSlug: organizationSlug,
+      organizationRole: organizationRole,
+      isOrgAdmin: isOrgAdmin
     };
 
   } catch (error) {

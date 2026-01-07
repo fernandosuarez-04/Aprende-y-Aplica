@@ -17,6 +17,8 @@ import {
   PlayCircle
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 // Importaciones dinámicas de Nivo para mejor performance
 const ResponsiveLine = dynamic(() => import('@nivo/line').then(mod => mod.ResponsiveLine), { ssr: false })
@@ -36,120 +38,107 @@ const COLORS = {
   gray: '#6b7280'
 }
 
-// Tema para Nivo (dark mode)
-const nivoTheme = {
-  background: 'transparent',
-  text: {
-    fontSize: 12,
-    fill: '#e5e7eb',
-    outlineWidth: 0,
-    outlineColor: 'transparent'
-  },
-  axis: {
-    domain: {
-      line: {
-        stroke: '#4b5563',
-        strokeWidth: 1
-      }
-    },
-    legend: {
-      text: {
-        fontSize: 12,
-        fill: '#e5e7eb',
-        outlineWidth: 0,
-        outlineColor: 'transparent'
-      }
-    },
-    ticks: {
-      line: {
-        stroke: '#4b5563',
-        strokeWidth: 1
-      },
-      text: {
-        fontSize: 11,
-        fill: '#9ca3af',
-        outlineWidth: 0,
-        outlineColor: 'transparent'
-      }
-    }
-  },
-  grid: {
-    line: {
-      stroke: '#374151',
-      strokeWidth: 1
-    }
-  },
-  legends: {
-    title: {
-      text: {
-        fontSize: 11,
-        fill: '#e5e7eb',
-        outlineWidth: 0,
-        outlineColor: 'transparent'
-      }
-    },
-    text: {
-      fontSize: 11,
-      fill: '#9ca3af',
-      outlineWidth: 0,
-      outlineColor: 'transparent'
-    },
-    ticks: {
-      line: {},
-      text: {
-        fontSize: 10,
-        fill: '#9ca3af',
-        outlineWidth: 0,
-        outlineColor: 'transparent'
-      }
-    }
-  },
-  annotations: {
-    text: {
-      fontSize: 13,
-      fill: '#e5e7eb',
-      outlineWidth: 2,
-      outlineColor: '#1f2937',
-      outlineOpacity: 1
-    },
-    link: {
-      stroke: '#4b5563',
-      strokeWidth: 1,
-      outlineWidth: 2,
-      outlineColor: '#1f2937',
-      outlineOpacity: 1
-    },
-    outline: {
-      stroke: '#4b5563',
-      strokeWidth: 2,
-      outlineWidth: 2,
-      outlineColor: '#1f2937',
-      outlineOpacity: 1
-    },
-    symbol: {
-      fill: '#e5e7eb',
-      outlineWidth: 2,
-      outlineColor: '#1f2937',
-      outlineOpacity: 1
-    }
-  },
-  tooltip: {
-    container: {
-      background: '#1f2937',
-      color: '#e5e7eb',
-      fontSize: 12,
-      borderRadius: '8px',
-      padding: '8px 12px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-    }
-  }
-}
-
 export function BusinessTeamProgress() {
   const { data, isLoading, error, refetch } = useTeamProgress()
   const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'users' | 'trends'>('overview')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState<'all' | 'owner' | 'admin' | 'member'>('all')
+
+  const { styles } = useOrganizationStylesContext()
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+  const panelStyles = styles?.panel
+
+  // Dynamic Styles
+  const cardBg = isDark ? (panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)') : '#FFFFFF'
+  const cardBorder = isDark ? (panelStyles?.border_color || 'rgba(51, 65, 85, 0.3)') : '#E2E8F0'
+  const textColor = isDark ? (panelStyles?.text_color || '#f8fafc') : '#0F172A'
+  const subTextColor = isDark ? '#9ca3af' : '#64748B'
+  const primaryColor = panelStyles?.primary_button_color || '#8b5cf6'
+  
+  const tableHeaderBg = isDark ? 'rgba(0, 0, 0, 0.2)' : '#F1F5F9'
+  const inputBg = isDark ? 'rgba(0, 0, 0, 0.2)' : '#FFFFFF'
+
+  // Nivo Theme
+  const nivoTheme = useMemo(() => ({
+    background: 'transparent',
+    text: {
+      fontSize: 12,
+      fill: isDark ? '#e5e7eb' : '#374151',
+      outlineWidth: 0,
+      outlineColor: 'transparent'
+    },
+    axis: {
+      domain: {
+        line: {
+          stroke: isDark ? '#4b5563' : '#cbd5e1',
+          strokeWidth: 1
+        }
+      },
+      legend: {
+        text: {
+          fontSize: 12,
+          fill: isDark ? '#e5e7eb' : '#374151',
+          outlineWidth: 0,
+          outlineColor: 'transparent'
+        }
+      },
+      ticks: {
+        line: {
+          stroke: isDark ? '#4b5563' : '#cbd5e1',
+          strokeWidth: 1
+        },
+        text: {
+          fontSize: 11,
+          fill: isDark ? '#9ca3af' : '#64748B',
+          outlineWidth: 0,
+          outlineColor: 'transparent'
+        }
+      }
+    },
+    grid: {
+      line: {
+        stroke: isDark ? '#374151' : '#e2e8f0',
+        strokeWidth: 1
+      }
+    },
+    legends: {
+      title: {
+        text: {
+          fontSize: 11,
+          fill: isDark ? '#e5e7eb' : '#374151',
+          outlineWidth: 0,
+          outlineColor: 'transparent'
+        }
+      },
+      text: {
+        fontSize: 11,
+        fill: isDark ? '#9ca3af' : '#64748B',
+        outlineWidth: 0,
+        outlineColor: 'transparent'
+      },
+      ticks: {
+        line: {},
+        text: {
+          fontSize: 10,
+          fill: isDark ? '#9ca3af' : '#64748B',
+          outlineWidth: 0,
+          outlineColor: 'transparent'
+        }
+      }
+    },
+    tooltip: {
+      container: {
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#e5e7eb' : '#374151',
+        fontSize: 12,
+        borderRadius: '8px',
+        padding: '8px 12px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        border: `1px solid ${cardBorder}`
+      }
+    }
+  }), [isDark, cardBorder])
 
   const filteredUsers = useMemo(() => {
     if (!data?.users) return []
@@ -206,7 +195,7 @@ export function BusinessTeamProgress() {
   if (!data) {
     return (
       <div className="text-center py-20">
-        <p className="text-carbon-400">No hay datos disponibles</p>
+        <p style={{ color: subTextColor }}>No hay datos disponibles</p>
       </div>
     )
   }
@@ -215,86 +204,36 @@ export function BusinessTeamProgress() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-4 border border-carbon-600"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <Users className="w-5 h-5 text-blue-400" />
-          </div>
-          <p className="text-sm text-carbon-400 mb-1">Total Usuarios</p>
-          <p className="text-2xl font-bold text-white">{data.stats.total_users}</p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-4 border border-carbon-600"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <BookOpen className="w-5 h-5 text-purple-400" />
-          </div>
-          <p className="text-sm text-carbon-400 mb-1">Cursos Asignados</p>
-          <p className="text-2xl font-bold text-white">{data.stats.total_courses_assigned}</p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-4 border border-carbon-600"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <CheckCircle className="w-5 h-5 text-green-400" />
-          </div>
-          <p className="text-sm text-carbon-400 mb-1">Completados</p>
-          <p className="text-2xl font-bold text-white">{data.stats.completed_courses}</p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-4 border border-carbon-600"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <Target className="w-5 h-5 text-yellow-400" />
-          </div>
-          <p className="text-sm text-carbon-400 mb-1">Progreso Promedio</p>
-          <p className="text-2xl font-bold text-white">{data.stats.average_progress}%</p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-4 border border-carbon-600"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <Clock className="w-5 h-5 text-cyan-400" />
-          </div>
-          <p className="text-sm text-carbon-400 mb-1">Tiempo Total</p>
-          <p className="text-2xl font-bold text-white">{data.stats.total_time_spent_hours}h</p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-4 border border-carbon-600"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <TrendingUp className="w-5 h-5 text-green-400" />
-          </div>
-          <p className="text-sm text-carbon-400 mb-1">Tasa Completación</p>
-          <p className="text-2xl font-bold text-white">{data.stats.completion_rate}%</p>
-        </motion.div>
+        {[
+          { label: 'Total Usuarios', value: data.stats.total_users, icon: Users, color: '#60A5FA' },
+          { label: 'Cursos Asignados', value: data.stats.total_courses_assigned, icon: BookOpen, color: '#A78BFA' },
+          { label: 'Completados', value: data.stats.completed_courses, icon: CheckCircle, color: '#4ADE80' },
+          { label: 'Progreso Promedio', value: `${data.stats.average_progress}%`, icon: Target, color: '#FACC15' },
+          { label: 'Tiempo Total', value: `${data.stats.total_time_spent_hours}h`, icon: Clock, color: '#22D3EE' },
+          { label: 'Tasa Completación', value: `${data.stats.completion_rate}%`, icon: TrendingUp, color: '#4ADE80' },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="rounded-xl p-4 border backdrop-blur-sm"
+            style={{ 
+              backgroundColor: cardBg, 
+              borderColor: cardBorder 
+            }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
+            </div>
+            <p className="text-sm mb-1" style={{ color: subTextColor }}>{stat.label}</p>
+            <p className="text-2xl font-bold" style={{ color: textColor }}>{stat.value}</p>
+          </motion.div>
+        ))}
       </div>
 
       {/* Tabs */}
-      <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-1 border border-carbon-600 flex gap-2">
+      <div className="rounded-xl p-1 border flex gap-2" style={{ backgroundColor: cardBg, borderColor: cardBorder }}>
         {[
           { id: 'overview', label: 'Resumen General', icon: BarChart3 },
           { id: 'courses', label: 'Por Curso', icon: BookOpen },
@@ -307,8 +246,13 @@ export function BusinessTeamProgress() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all flex-1 ${
               activeTab === id
                 ? 'bg-primary/20 text-primary border border-primary/30'
-                : 'text-carbon-400 hover:text-white hover:bg-carbon-700/50'
+                : 'hover:bg-black/5 dark:hover:bg-white/5'
             }`}
+            style={{
+              color: activeTab === id ? primaryColor : subTextColor,
+              backgroundColor: activeTab === id ? `${primaryColor}20` : 'transparent',
+              borderColor: activeTab === id ? `${primaryColor}30` : 'transparent',
+            }}
           >
             <Icon className="w-4 h-4" />
             <span className="text-sm font-medium">{label}</span>
@@ -323,9 +267,12 @@ export function BusinessTeamProgress() {
           <div className="space-y-6">
             {/* Distribution Chart */}
             {data.charts.distribution.length > 0 && (
-              <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Target className="w-5 h-5 text-primary" />
+              <div 
+                className="rounded-xl p-6 border backdrop-blur-sm"
+                style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+              >
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+                  <Target className="w-5 h-5" style={{ color: primaryColor }} />
                   Distribución de Cursos
                 </h3>
                 <div className="h-80">
@@ -344,7 +291,7 @@ export function BusinessTeamProgress() {
                     borderWidth={1}
                     borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
                     arcLinkLabelsSkipAngle={10}
-                    arcLinkLabelsTextColor="#e5e7eb"
+                    arcLinkLabelsTextColor={textColor}
                     arcLinkLabelsThickness={2}
                     arcLinkLabelsColor={{ from: 'color' }}
                     arcLabelsSkipAngle={10}
@@ -357,9 +304,12 @@ export function BusinessTeamProgress() {
 
             {/* Progress by Course */}
             {data.charts.progress_by_course.length > 0 && (
-              <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-primary" />
+              <div 
+                className="rounded-xl p-6 border backdrop-blur-sm"
+                style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+              >
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+                  <BookOpen className="w-5 h-5" style={{ color: primaryColor }} />
                   Progreso por Curso
                 </h3>
                 <div className="h-96">
@@ -412,43 +362,47 @@ export function BusinessTeamProgress() {
         {activeTab === 'courses' && (
           <div className="space-y-6">
             {/* Courses List */}
-            <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl border border-carbon-600 overflow-hidden">
+            <div 
+              className="rounded-xl border overflow-hidden"
+              style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+            >
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-carbon-900/50 border-b border-carbon-600">
+                  <thead className="border-b" style={{ backgroundColor: tableHeaderBg, borderColor: cardBorder }}>
                     <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Curso</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Asignados</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Completados</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">En Progreso</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Progreso Promedio</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Tiempo</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Curso</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Asignados</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Completados</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>En Progreso</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Progreso Promedio</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Tiempo</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-carbon-600">
+                  <tbody className="divide-y" style={{ borderColor: cardBorder }}>
                     {data.courses.map((course, index) => (
                       <motion.tr
                         key={course.course_id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: index * 0.05 }}
-                        className="hover:bg-carbon-700/50 transition-colors"
+                        className="transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                        style={{ backgroundColor: 'transparent' }}
                       >
                         <td className="px-6 py-4">
-                          <p className="text-white font-medium">{course.course_title}</p>
+                          <p className="font-medium" style={{ color: textColor }}>{course.course_title}</p>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-carbon-300">{course.total_assigned}</span>
+                          <span style={{ color: subTextColor }}>{course.total_assigned}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-green-400 font-medium">{course.completed}</span>
+                          <span className="text-green-500 font-medium">{course.completed}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-yellow-400 font-medium">{course.in_progress}</span>
+                          <span className="text-yellow-500 font-medium">{course.in_progress}</span>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-carbon-600 rounded-full overflow-hidden">
+                            <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${course.average_progress}%` }}
@@ -456,11 +410,11 @@ export function BusinessTeamProgress() {
                                 className="h-full bg-gradient-to-r from-primary to-success rounded-full"
                               />
                             </div>
-                            <span className="text-sm text-white font-medium">{course.average_progress}%</span>
+                            <span className="text-sm font-medium" style={{ color: textColor }}>{course.average_progress}%</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-carbon-300">{course.total_time_hours}h</span>
+                          <span style={{ color: subTextColor }}>{course.total_time_hours}h</span>
                         </td>
                       </motion.tr>
                     ))}
@@ -471,9 +425,12 @@ export function BusinessTeamProgress() {
 
             {/* Time by Course Chart */}
             {data.charts.time_by_course.length > 0 && (
-              <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
+              <div 
+                className="rounded-xl p-6 border backdrop-blur-sm"
+                style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+              >
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+                  <Clock className="w-5 h-5" style={{ color: primaryColor }} />
                   Tiempo Dedicado por Curso
                 </h3>
                 <div className="h-96">
@@ -523,21 +480,34 @@ export function BusinessTeamProgress() {
         {activeTab === 'users' && (
           <div className="space-y-6">
             {/* Filters */}
-            <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-4 border border-carbon-600 flex gap-4">
+            <div 
+              className="rounded-xl p-4 border flex gap-4"
+              style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+            >
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-carbon-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: subTextColor }} />
                 <input
                   type="text"
                   placeholder="Buscar usuarios..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-carbon-600 border border-carbon-500 rounded-lg text-white placeholder-carbon-400 focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  style={{
+                    backgroundColor: inputBg,
+                    borderColor: cardBorder,
+                    color: textColor
+                  }}
                 />
               </div>
               <select
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value as any)}
-                className="px-4 py-2 bg-carbon-600 border border-carbon-500 rounded-lg text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                style={{
+                  backgroundColor: inputBg,
+                  borderColor: cardBorder,
+                  color: textColor
+                }}
               >
                 <option value="all">Todos los roles</option>
                 <option value="owner">Propietario</option>
@@ -547,28 +517,32 @@ export function BusinessTeamProgress() {
             </div>
 
             {/* Users Table */}
-            <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl border border-carbon-600 overflow-hidden">
+            <div 
+              className="rounded-xl border overflow-hidden"
+              style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+            >
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-carbon-900/50 border-b border-carbon-600">
+                  <thead className="border-b" style={{ backgroundColor: tableHeaderBg, borderColor: cardBorder }}>
                     <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Usuario</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Rol</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Cursos</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Completados</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Progreso</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Tiempo</th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-carbon-300">Certificados</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Usuario</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Rol</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Cursos</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Completados</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Progreso</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Tiempo</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: subTextColor }}>Certificados</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-carbon-600">
+                  <tbody className="divide-y" style={{ borderColor: cardBorder }}>
                     {filteredUsers.map((user, index) => (
                       <motion.tr
                         key={user.user_id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: index * 0.05 }}
-                        className="hover:bg-carbon-700/50 transition-colors"
+                        className="transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                        style={{ backgroundColor: 'transparent' }}
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -588,8 +562,8 @@ export function BusinessTeamProgress() {
                               </div>
                             )}
                             <div>
-                              <p className="text-white font-medium">{user.display_name}</p>
-                              <p className="text-carbon-400 text-xs">{user.email}</p>
+                              <p className="font-medium" style={{ color: textColor }}>{user.display_name}</p>
+                              <p className="text-xs" style={{ color: subTextColor }}>{user.email}</p>
                             </div>
                           </div>
                         </td>
@@ -604,14 +578,14 @@ export function BusinessTeamProgress() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-carbon-300">{user.courses_assigned}</span>
+                          <span style={{ color: subTextColor }}>{user.courses_assigned}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-green-400 font-medium">{user.courses_completed}</span>
+                          <span className="text-green-500 font-medium">{user.courses_completed}</span>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-20 h-2 bg-carbon-600 rounded-full overflow-hidden">
+                            <div className="w-20 h-2 rounded-full overflow-hidden" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${user.average_progress}%` }}
@@ -619,16 +593,16 @@ export function BusinessTeamProgress() {
                                 className="h-full bg-gradient-to-r from-primary to-success rounded-full"
                               />
                             </div>
-                            <span className="text-sm text-white font-medium">{user.average_progress}%</span>
+                            <span className="text-sm font-medium" style={{ color: textColor }}>{user.average_progress}%</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-carbon-300">{user.time_spent_hours}h</span>
+                          <span style={{ color: subTextColor }}>{user.time_spent_hours}h</span>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1">
                             <Award className="w-4 h-4 text-purple-400" />
-                            <span className="text-carbon-300">{user.certificates_count}</span>
+                            <span style={{ color: subTextColor }}>{user.certificates_count}</span>
                           </div>
                         </td>
                       </motion.tr>
@@ -640,9 +614,12 @@ export function BusinessTeamProgress() {
 
             {/* Top Users Chart */}
             {data.charts.progress_by_user.length > 0 && (
-              <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
+              <div 
+                className="rounded-xl p-6 border backdrop-blur-sm"
+                style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+              >
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+                  <TrendingUp className="w-5 h-5" style={{ color: primaryColor }} />
                   Top 10 Usuarios por Progreso
                 </h3>
                 <div className="h-96">
@@ -694,9 +671,12 @@ export function BusinessTeamProgress() {
           <div className="space-y-6">
             {/* Completion Trends */}
             {data.charts.completion_trends.length > 0 && (
-              <div className="bg-gradient-to-br from-carbon-700 to-carbon-800 rounded-xl p-6 border border-carbon-600">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
+              <div 
+                className="rounded-xl p-6 border backdrop-blur-sm"
+                style={{ backgroundColor: cardBg, borderColor: cardBorder }}
+              >
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: textColor }}>
+                  <TrendingUp className="w-5 h-5" style={{ color: primaryColor }} />
                   Tendencias de Completación
                 </h3>
                 <div className="h-96">
@@ -756,4 +736,3 @@ export function BusinessTeamProgress() {
     </div>
   )
 }
-

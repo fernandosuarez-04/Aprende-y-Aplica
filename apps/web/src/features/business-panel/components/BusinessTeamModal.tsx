@@ -218,13 +218,14 @@ export function BusinessTeamModal({ isOpen, onClose, onSuccess, teamId }: Busine
         className="fixed inset-0 flex items-center justify-center p-4"
         style={{ zIndex: 99999 }}
       >
-        {/* Backdrop - transparent, just for closing */}
+        {/* Backdrop - dark with blur */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0"
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          style={{ zIndex: 0 }}
         />
 
         {/* Modal */}
