@@ -294,7 +294,7 @@ export class BusinessUsersServerService {
       if (userData.display_name !== undefined) userUpdateData.display_name = userData.display_name
       if (userData.email !== undefined) userUpdateData.email = userData.email
       if (userData.cargo_rol !== undefined) userUpdateData.cargo_rol = userData.cargo_rol
-      if (userData.type_rol !== undefined) userUpdateData.type_rol = userData.type_rol
+      // if (userData.type_rol !== undefined) userUpdateData.type_rol = userData.type_rol
       if (userData.profile_picture_url !== undefined) userUpdateData.profile_picture_url = userData.profile_picture_url
       if (userData.bio !== undefined) userUpdateData.bio = userData.bio
       if (userData.location !== undefined) userUpdateData.location = userData.location
@@ -317,6 +317,7 @@ export class BusinessUsersServerService {
       // Actualizar datos en organization_users
       const orgUpdateData: any = {}
       if (userData.org_role !== undefined) orgUpdateData.role = userData.org_role
+      if (userData.job_title !== undefined) orgUpdateData.job_title = userData.job_title
       if (userData.org_status !== undefined) orgUpdateData.status = userData.org_status
 
       // 

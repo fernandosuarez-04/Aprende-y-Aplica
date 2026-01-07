@@ -271,8 +271,8 @@ export default function BusinessCourseDetailPage() {
     return (
       <div className="p-6 lg:p-8 min-h-screen animate-pulse">
         <div className="h-10 w-32 bg-white/5 rounded-xl mb-8" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 2xl:grid-cols-3 gap-8">
+          <div className="2xl:col-span-2 space-y-6">
             <div className="h-80 bg-white/5 rounded-2xl" />
             <div className="h-48 bg-white/5 rounded-2xl" />
           </div>
@@ -330,9 +330,9 @@ export default function BusinessCourseDetailPage() {
         <span className="font-medium">Volver a Cursos</span>
       </motion.button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 2xl:grid-cols-3 gap-8">
         {/* Main Content - Left Column */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="2xl:col-span-2 space-y-6">
 
           {/* Hero Card */}
           <motion.div
@@ -342,7 +342,7 @@ export default function BusinessCourseDetailPage() {
             style={{ backgroundColor: cardBackground, borderColor: borderColor }}
           >
             {/* Thumbnail with Overlay */}
-            <div className="relative h-72 lg:h-80">
+            <div className="relative h-72 xl:h-80">
               {course.thumbnail_url ? (
                 <Image
                   src={course.thumbnail_url}
@@ -376,48 +376,36 @@ export default function BusinessCourseDetailPage() {
                   </span>
                 )}
               </div>
-
-              {/* Play Button */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-20 h-20 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-md border border-white/30"
-                  style={{ backgroundColor: `${primaryColor}90` }}
-                >
-                  <Play className="w-8 h-8 text-white ml-1" fill="white" />
-                </motion.div>
-              </div>
             </div>
 
             {/* Course Info */}
-            <div className="p-6 lg:p-8">
-              <h1 className="text-2xl lg:text-3xl font-bold mb-4" style={{ color: textColor }}>
+            <div className="p-6 xl:p-8">
+              <h1 className="text-2xl xl:text-3xl font-bold mb-4" style={{ color: textColor }}>
                 {course.title}
               </h1>
 
               {course.description && (
-                <p className="text-base mb-6 line-clamp-3" style={{ color: `${textColor}80` }}>
+                <p className="text-base mb-6 line-clamp-3" style={{ color: isDark ? 'rgba(255,255,255,0.9)' : `${textColor}80` }}>
                   {course.description}
                 </p>
               )}
 
               {/* Meta Info */}
-              <div className="flex flex-wrap items-center gap-4 lg:gap-6 text-sm">
+              <div className="flex flex-wrap items-center gap-4 xl:gap-6 text-sm">
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-yellow-400" fill="#FACC15" />
                   <span className="font-bold" style={{ color: textColor }}>{course.rating.toFixed(1)}</span>
-                  <span style={{ color: `${textColor}60` }}>({course.review_count} reseñas)</span>
+                  <span style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}60` }}>({course.review_count} reseñas)</span>
                 </div>
-                <div className="flex items-center gap-2" style={{ color: `${textColor}70` }}>
+                <div className="flex items-center gap-2" style={{ color: isDark ? 'rgba(255,255,255,0.85)' : `${textColor}70` }}>
                   <Users className="w-5 h-5" />
                   <span>{course.student_count.toLocaleString()} estudiantes</span>
                 </div>
-                <div className="flex items-center gap-2" style={{ color: `${textColor}70` }}>
+                <div className="flex items-center gap-2" style={{ color: isDark ? 'rgba(255,255,255,0.85)' : `${textColor}70` }}>
                   <Clock className="w-5 h-5" />
                   <span>{formatDuration(course.stats.total_duration_minutes)}</span>
                 </div>
-                <div className="flex items-center gap-2" style={{ color: `${textColor}70` }}>
+                <div className="flex items-center gap-2" style={{ color: isDark ? 'rgba(255,255,255,0.85)' : `${textColor}70` }}>
                   <Video className="w-5 h-5" />
                   <span>{course.stats.total_lessons} lecciones</span>
                 </div>
@@ -440,7 +428,7 @@ export default function BusinessCourseDetailPage() {
                   )}
                   <div>
                     <p className="font-semibold" style={{ color: textColor }}>{course.instructor.name}</p>
-                    <p className="text-sm" style={{ color: `${textColor}60` }}>Instructor del curso</p>
+                    <p className="text-sm" style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}60` }}>Instructor del curso</p>
                   </div>
                 </div>
               )}
@@ -469,19 +457,27 @@ export default function BusinessCourseDetailPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className="flex-1 min-w-[120px] px-4 py-4 flex items-center justify-center gap-2 transition-all relative"
+                    className="group flex-1 flex items-center justify-center relative px-3 py-4 transition-all duration-300"
                     style={{
-                      color: isActive ? primaryColor : `${textColor}60`,
-                      backgroundColor: isActive ? `${primaryColor}10` : 'transparent'
+                      color: isActive ? '#10B981' : (isDark ? 'rgba(255,255,255,0.85)' : `${textColor}80`),
+                      backgroundColor: isActive ? (isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)') : 'transparent'
                     }}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium text-sm whitespace-nowrap">{tab.label}</span>
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    <span 
+                      className={`font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-out ${
+                        isActive 
+                          ? 'max-w-[150px] ml-2 opacity-100' 
+                          : 'max-w-0 opacity-0 ml-0 group-hover:max-w-[150px] group-hover:ml-2 group-hover:opacity-100'
+                      }`}
+                    >
+                      {tab.label}
+                    </span>
                     {isActive && (
                       <motion.div
                         layoutId="activeTab"
                         className="absolute bottom-0 left-0 right-0 h-0.5"
-                        style={{ backgroundColor: primaryColor }}
+                        style={{ backgroundColor: '#10B981' }}
                       />
                     )}
                   </button>
@@ -521,7 +517,7 @@ export default function BusinessCourseDetailPage() {
                       )}
 
                       {/* Stats Grid */}
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 2xl:grid-cols-4 gap-4">
                         {[
                           { icon: FileText, label: 'Módulos', value: course.stats.total_modules },
                           { icon: Video, label: 'Lecciones', value: course.stats.total_lessons },
@@ -534,11 +530,14 @@ export default function BusinessCourseDetailPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
                             className="p-4 rounded-xl border"
-                            style={{ backgroundColor: `${primaryColor}05`, borderColor: borderColor }}
+                            style={{ 
+                              backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)', 
+                              borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : borderColor 
+                            }}
                           >
                             <div className="flex items-center gap-2 mb-2">
-                              <stat.icon className="w-5 h-5" style={{ color: primaryColor }} />
-                              <span className="text-sm" style={{ color: `${textColor}60` }}>{stat.label}</span>
+                              <stat.icon className="w-5 h-5" style={{ color: '#10B981' }} />
+                              <span className="text-sm font-medium" style={{ color: isDark ? 'rgba(255,255,255,0.85)' : `${textColor}70` }}>{stat.label}</span>
                             </div>
                             <p className="text-2xl font-bold" style={{ color: textColor }}>{stat.value}</p>
                           </motion.div>
@@ -605,14 +604,14 @@ export default function BusinessCourseDetailPage() {
                                     </div>
                                     <div className="text-left">
                                       <h4 className="font-semibold" style={{ color: textColor }}>{module.module_title}</h4>
-                                      <p className="text-sm" style={{ color: `${textColor}50` }}>
+                                      <p className="text-sm" style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}50` }}>
                                         {module.lessons.length} lecciones • {formatDuration(moduleDurationMinutes)}
                                       </p>
                                     </div>
                                   </div>
                                   <ChevronDown
                                     className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                                    style={{ color: `${textColor}50` }}
+                                    style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}50` }}
                                   />
                                 </button>
 
@@ -639,7 +638,7 @@ export default function BusinessCourseDetailPage() {
                                                 {lessonIndex + 1}. {lesson.lesson_title}
                                               </p>
                                             </div>
-                                            <span className="text-xs" style={{ color: `${textColor}50` }}>
+                                            <span className="text-xs" style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}50` }}>
                                               {formatDurationSeconds(lesson.duration_seconds)}
                                             </span>
                                           </div>
@@ -661,8 +660,8 @@ export default function BusinessCourseDetailPage() {
                   <motion.div key="reviews" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                     {course.reviews.length === 0 ? (
                       <div className="text-center py-12">
-                        <Star className="w-16 h-16 mx-auto mb-4" style={{ color: `${textColor}30` }} />
-                        <p style={{ color: `${textColor}50` }}>Aún no hay reseñas para este curso</p>
+                        <Star className="w-16 h-16 mx-auto mb-4" style={{ color: isDark ? 'rgba(255,255,255,0.4)' : `${textColor}30` }} />
+                        <p style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}50` }}>Aún no hay reseñas para este curso</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -695,10 +694,10 @@ export default function BusinessCourseDetailPage() {
                                   {[...Array(5)].map((_, i) => (
                                     <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} />
                                   ))}
-                                  <span className="text-xs" style={{ color: `${textColor}50` }}>{formatDate(review.created_at)}</span>
+                                  <span className="text-xs" style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}50` }}>{formatDate(review.created_at)}</span>
                                 </div>
                                 {review.title && <h5 className="font-medium mb-2" style={{ color: textColor }}>{review.title}</h5>}
-                                <p className="text-sm leading-relaxed" style={{ color: `${textColor}80` }}>{review.content}</p>
+                                <p className="text-sm leading-relaxed" style={{ color: isDark ? 'rgba(255,255,255,0.85)' : `${textColor}80` }}>{review.content}</p>
                               </div>
                             </div>
                           </motion.div>
@@ -728,7 +727,7 @@ export default function BusinessCourseDetailPage() {
                           )}
                           <div>
                             <h3 className="text-2xl font-bold mb-1" style={{ color: textColor }}>{course.instructor.name}</h3>
-                            <p className="text-lg mb-4" style={{ color: `${textColor}60` }}>Instructor</p>
+                            <p className="text-lg mb-4" style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}60` }}>Instructor</p>
                             <div className="flex items-center gap-3">
                               {course.instructor.linkedin_url && (
                                 <a href={course.instructor.linkedin_url} target="_blank" rel="noopener noreferrer"
@@ -765,7 +764,7 @@ export default function BusinessCourseDetailPage() {
                         {course.instructor.bio && (
                           <div className="p-5 rounded-xl border border-white/10" style={{ backgroundColor: `${primaryColor}05` }}>
                             <h4 className="font-bold mb-3" style={{ color: textColor }}>Biografía</h4>
-                            <p className="leading-relaxed whitespace-pre-line" style={{ color: `${textColor}80` }}>
+                            <p className="leading-relaxed whitespace-pre-line" style={{ color: isDark ? 'rgba(255,255,255,0.85)' : `${textColor}80` }}>
                               {course.instructor.bio}
                             </p>
                           </div>
@@ -777,12 +776,12 @@ export default function BusinessCourseDetailPage() {
                           className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center"
                           style={{ backgroundColor: `${primaryColor}15` }}
                         >
-                          <GraduationCap className="w-10 h-10" style={{ color: `${textColor}40` }} />
+                          <GraduationCap className="w-10 h-10" style={{ color: isDark ? 'rgba(255,255,255,0.5)' : `${textColor}40` }} />
                         </div>
                         <h4 className="text-lg font-semibold mb-2" style={{ color: textColor }}>
                           Información del instructor no disponible
                         </h4>
-                        <p className="text-sm" style={{ color: `${textColor}50` }}>
+                        <p className="text-sm" style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}50` }}>
                           Este curso aún no tiene un instructor asignado o la información no está disponible.
                         </p>
                       </div>
@@ -804,19 +803,19 @@ export default function BusinessCourseDetailPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="rounded-2xl p-6 border sticky top-6 shadow-sm"
+            className="rounded-2xl p-4 sm:p-6 border sticky top-6 shadow-sm"
             style={{ backgroundColor: cardBackground, borderColor: borderColor }}
           >
             {/* Price Section */}
-            <div className="mb-6 pb-6 border-b" style={{ borderColor: borderColor }}>
+            <div className="mb-4 sm:mb-6 pb-4 sm:pb-6 border-b" style={{ borderColor: borderColor }}>
               {course.subscription_status?.is_organization_purchased ? (
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${accentColor}20` }}>
-                    <CheckCircle2 className="w-6 h-6" style={{ color: accentColor }} />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${accentColor}20` }}>
+                    <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: accentColor }} />
                   </div>
-                  <div>
-                    <span className="text-2xl font-bold" style={{ color: accentColor }}>Adquirido</span>
-                    <p className="text-sm" style={{ color: `${textColor}60` }}>Listo para asignar</p>
+                  <div className="min-w-0">
+                    <span className="text-xl sm:text-2xl font-bold block truncate" style={{ color: accentColor }}>Adquirido</span>
+                    <p className="text-xs sm:text-sm truncate" style={{ color: `${textColor}60` }}>Listo para asignar</p>
                   </div>
                 </div>
               ) : course.subscription_status?.can_purchase_for_free ? (
@@ -900,7 +899,7 @@ export default function BusinessCourseDetailPage() {
               ].map((feature, index) => (
                 <div key={index} className="flex items-center gap-3">
                   <feature.icon className="w-5 h-5" style={{ color: accentColor }} />
-                  <span className="text-sm" style={{ color: `${textColor}80` }}>{feature.text}</span>
+                  <span className="text-sm" style={{ color: isDark ? 'rgba(255,255,255,0.85)' : `${textColor}80` }}>{feature.text}</span>
                 </div>
               ))}
             </div>
@@ -914,7 +913,7 @@ export default function BusinessCourseDetailPage() {
                       <Star className="w-6 h-6 text-yellow-400" fill="#FACC15" />
                       <span className="text-2xl font-bold" style={{ color: textColor }}>{course.rating.toFixed(1)}</span>
                     </div>
-                    <p className="text-xs" style={{ color: `${textColor}50` }}>{course.review_count} reseñas</p>
+                    <p className="text-xs" style={{ color: isDark ? 'rgba(255,255,255,0.75)' : `${textColor}50` }}>{course.review_count} reseñas</p>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-1">

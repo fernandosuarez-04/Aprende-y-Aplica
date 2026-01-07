@@ -61,9 +61,11 @@ const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asiste
 '- [Perfil](/profile) - Configuración y datos personales\n\n' +
 '## RUTAS PROHIBIDAS (NO EXISTEN)\n' +
 '- NUNCA uses /my-courses - Esta ruta NO existe\n' +
-'- NUNCA pongas "Mis Cursos" como enlace a /my-courses\n' +
-'- Para ver cursos,  el enlace directo al curso /courses/[slug]\n' +
-'- Para usuarios empresariales, usa [Dashboard](/{orgSlug}/business-user/dashboard) donde {orgSlug} es el slug de la organización del usuario\n\n' +
+'- NUNCA uses /courses/[slug] - Esta ruta NO existe\n' +
+'- NUNCA pongas enlaces directos a cursos con /courses/\n' +
+'- Para acceder a cursos, SIEMPRE usa [Dashboard](/{orgSlug}/business-user/dashboard)\n' +
+'- SOLO menciona cursos que están en la lista de "Cursos Asignados al Usuario"\n' +
+'- NUNCA inventes ni sugieras cursos que no aparezcan explícitamente en esa lista\n\n' +
 '## REPORTE DE BUGS Y PROBLEMAS\n' +
 'Si el usuario reporta un error técnico, bug o problema con la plataforma:\n' +
 '1. Empatiza con el usuario y confirma que vas a reportar el problema al equipo técnico.\n' +
@@ -230,48 +232,35 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
       }
     }
 
-    // CURSOS COMPLETOS CON MÓDULOS Y LECCIONES (para contexto de LIA)
-    const { data: coursesWithContent } = await supabase
-      .from('courses')
-      .select('id, title, slug, description, level, student_count, average_rating, duration_total_minutes, modules:course_modules(module_id, module_title, module_description, module_order_index, lessons:course_lessons(lesson_id, lesson_title, lesson_description, lesson_order_index, duration_seconds, summary_content))')
-      .eq('is_active', true)
-      .order('student_count', { ascending: false })
-      .limit(5);
-
-    if (coursesWithContent) {
-      context.coursesWithContent = coursesWithContent.map((course: any) => ({
-        title: course.title,
-        slug: course.slug,
-        description: course.description,
-        level: course.level,
-        students: course.student_count,
-        rating: course.average_rating,
-        durationMinutes: course.duration_total_minutes,
-        modules: course.modules
-          ?.sort((a: any, b: any) => a.module_order_index - b.module_order_index)
-          .map((mod: any) => ({
-            title: mod.module_title,
-            description: mod.module_description,
-            lessons: mod.lessons
-              ?.sort((a: any, b: any) => a.lesson_order_index - b.lesson_order_index)
-              .map((lesson: any) => ({
-                title: lesson.lesson_title,
-                description: lesson.lesson_description,
-                durationMinutes: Math.round((lesson.duration_seconds || 0) / 60),
-                summary: lesson.summary_content?.substring(0, 300)
-              }))
-          }))
-      }));
-
-      // También agregar a platformStats
-      context.platformStats = {
-        popularCourses: coursesWithContent.map((c: any) => ({
-          title: c.title,
-          slug: c.slug,
-          students: c.student_count,
-          rating: c.average_rating
-        }))
-      };
+    // ✅ CURSOS ASIGNADOS AL USUARIO
+    // IMPORTANTE: Solo cargamos cursos que el usuario tiene ASIGNADOS
+    // NO hay usuarios B2C - todos son usuarios de business
+    if (userId) {
+      // Solo mostrar cursos asignados a través de organization_course_assignments
+      const { data: assignedCourses } = await supabase
+        .from('organization_course_assignments')
+        .select('course:courses!inner(id, title, slug, description, level, duration_total_minutes)')
+        .eq('user_id', userId)
+        .limit(20);
+      
+      if (assignedCourses && assignedCourses.length > 0) {
+        context.coursesWithContent = assignedCourses.map((assignment: any) => ({
+          title: assignment.course?.title,
+          slug: assignment.course?.slug,
+          description: assignment.course?.description,
+          level: assignment.course?.level,
+          durationMinutes: assignment.course?.duration_total_minutes,
+          isAssigned: true
+        }));
+      } else {
+        // Si no tiene cursos asignados, marcarlo explícitamente
+        context.coursesWithContent = [];
+        context.noCoursesAssigned = true;
+      }
+    } else {
+      // Sin userId, no podemos mostrar cursos
+      context.coursesWithContent = [];
+      context.noCoursesAssigned = true;
     }
 
   } catch (error) {
@@ -709,6 +698,10 @@ function getLIASystemPrompt(context?: PlatformContext): string {
       prompt += '- Página actual: ' + context.currentPage + '\n';
     }
     
+    // Determinar prefijo de organización para rutas
+    // Prefijo de organización para rutas
+    const orgPrefix = context.organizationSlug ? '/' + context.organizationSlug : '';
+    
     // Estadísticas de la plataforma
     prompt += '\n### Estadísticas Generales de SOFIA:\n';
     prompt += '- Total de cursos activos: ' + (context.totalCourses || 'N/A') + '\n';
@@ -719,7 +712,7 @@ function getLIASystemPrompt(context?: PlatformContext): string {
     if (context.userCourses && context.userCourses.length > 0) {
       prompt += '\n### Cursos en los que está inscrito ' + (context.userName || 'el usuario') + ':\n';
       context.userCourses.forEach(course => {
-        prompt += '- ' + course.title + ' (' + course.progress + '% completado, Estado: ' + (course.status || 'activo') + ') - [Ver curso](/courses/' + course.slug + ')\n';
+        prompt += '- ' + course.title + ' (' + course.progress + '% completado) - Accede desde tu [Dashboard](' + orgPrefix + '/business-user/dashboard)\n';
       });
     }
 
@@ -738,7 +731,7 @@ function getLIASystemPrompt(context?: PlatformContext): string {
         prompt += '   - Curso: ' + inProgressLesson.courseName + '\n';
         prompt += '   - Video visto: ' + (inProgressLesson.videoProgress || 0) + '%\n';
         prompt += '   - Tiempo dedicado: ' + (inProgressLesson.timeSpentMinutes || 0) + ' minutos\n';
-        prompt += '   - Enlace: [Continuar lección](/courses/' + inProgressLesson.courseSlug + ')\n\n';
+        prompt += '   - Acceso: Desde el [Dashboard](' + orgPrefix + '/business-user/dashboard)\n\n';
       }
       
       if (nextLesson && !inProgressLesson) {
@@ -768,45 +761,28 @@ function getLIASystemPrompt(context?: PlatformContext): string {
       });
     }
 
-    // CONTENIDO DETALLADO DE CURSOS (para que LIA pueda responder sobre lecciones específicas)
+    // CURSOS ASIGNADOS AL USUARIO (todos son usuarios de business)
     if (context.coursesWithContent && context.coursesWithContent.length > 0) {
-      prompt += '\n### CATÁLOGO DE CURSOS CON CONTENIDO DETALLADO:\n';
-      prompt += '(USA esta información para responder preguntas sobre el contenido de los cursos)\n\n';
+      const orgPrefix = context.organizationSlug ? '/' + context.organizationSlug : '';
+      
+      prompt += '\n### 📚 CURSOS ASIGNADOS AL USUARIO (SOLO ESTOS PUEDE VER):\n';
+      prompt += '⚠️ RESTRICCIÓN CRÍTICA: El usuario SOLO tiene acceso a los cursos listados abajo.\n';
+      prompt += 'NUNCA menciones, recomiendes ni enlaces a cursos que NO estén en esta lista.\n';
+      prompt += 'NUNCA uses enlaces a /courses/[slug] - esas rutas NO existen.\n';
+      prompt += 'Si el usuario pregunta por un curso que no está aquí, dile que no lo tiene asignado.\n\n';
       
       context.coursesWithContent.forEach((course: any, courseIndex: number) => {
         prompt += '📚 CURSO ' + (courseIndex + 1) + ': ' + course.title + '\n';
-        prompt += '   - Slug: ' + course.slug + '\n';
         prompt += '   - Descripción: ' + (course.description || 'Sin descripción') + '\n';
-        prompt += '   - Nivel: ' + course.level + '\n';
-        prompt += '   - Estudiantes: ' + (course.students || 0) + '\n';
-        prompt += '   - Rating: ' + (course.rating || 'N/A') + '\n';
-        prompt += '   - Duración total: ' + (course.durationMinutes || 0) + ' minutos\n';
-        prompt += '   - Enlace: [Ver ' + course.title + '](/courses/' + course.slug + ')\n\n';
-        
-        if (course.modules && course.modules.length > 0) {
-          course.modules.forEach((mod: any, modIndex: number) => {
-            prompt += '   📁 MÓDULO ' + (modIndex + 1) + ': ' + mod.title + '\n';
-            if (mod.description) {
-              prompt += '      Descripción: ' + mod.description + '\n';
-            }
-            
-            if (mod.lessons && mod.lessons.length > 0) {
-              mod.lessons.forEach((lesson: any, lessonIndex: number) => {
-                prompt += '      📖 Lección ' + (lessonIndex + 1) + ': ' + lesson.title + '\n';
-                if (lesson.description) {
-                  prompt += '         - Descripción: ' + lesson.description + '\n';
-                }
-                if (lesson.summary) {
-                  prompt += '         - Resumen: ' + lesson.summary + '...\n';
-                }
-                prompt += '         - Duración: ' + lesson.durationMinutes + ' minutos\n';
-              });
-            }
-            prompt += '\n';
-          });
-        }
-        prompt += '\n';
+        prompt += '   - Nivel: ' + (course.level || 'N/A') + '\n';
+        prompt += '   - Duración: ' + (course.durationMinutes || 0) + ' minutos\n';
+        prompt += '   - Acceso: Desde el [Dashboard](' + orgPrefix + '/business-user/dashboard)\n\n';
       });
+    } else if (context.noCoursesAssigned) {
+      prompt += '\n### ⚠️ CURSOS ASIGNADOS AL USUARIO:\n';
+      prompt += 'El usuario NO tiene cursos asignados actualmente.\n';
+      prompt += 'Si pregunta por cursos, infórmale que debe esperar a que su organización le asigne formación.\n';
+      prompt += 'NUNCA recomiendes cursos ni enlaces a /courses/ - esas rutas NO existen.\n\n';
     }
     prompt += '\n\n### INSTRUCCIONES DE SISTEMA INTERNO (META-PROMPT)\n';
     prompt += 'El sistema puede enviarte mensajes especiales que empiezan con "[SYSTEM_EVENT:".\n';
@@ -865,11 +841,60 @@ export async function POST(request: NextRequest) {
       userRole: requestContext?.userRole || platformContext.userRole,
     };
 
+    // ✅ FALLBACK: Extraer organizationSlug del pathname si no se obtuvo de la BD
+    // Esto es crítico para evitar que LIA redirija a rutas B2C incorrectas
+    if (!fullContext.organizationSlug && fullContext.currentPage) {
+      const pathMatch = fullContext.currentPage.match(/^\/([^/]+)\/(business-panel|business-user)/);
+      if (pathMatch && pathMatch[1]) {
+        fullContext.organizationSlug = pathMatch[1];
+        console.log('📍 OrgSlug extraído del pathname:', fullContext.organizationSlug);
+      }
+    }
+
     console.log('📊 Context loaded:', {
       userName: fullContext.userName,
+      organizationSlug: fullContext.organizationSlug,
+      organizationName: fullContext.organizationName,
       totalCourses: fullContext.totalCourses,
-      userCoursesCount: fullContext.userCourses?.length
+      userCoursesCount: fullContext.userCourses?.length,
+      coursesWithContentCount: fullContext.coursesWithContent?.length,
+      noCoursesAssigned: fullContext.noCoursesAssigned,
+      currentPage: fullContext.currentPage
     });
+
+    // ✅ SEGUNDA CARGA: Si detectamos que es usuario de business pero los cursos no se cargaron
+    // (porque organizationSlug no estaba disponible durante fetchPlatformContext)
+    if (fullContext.organizationSlug && requestContext?.userId && !fullContext.coursesWithContent) {
+      console.log('🔄 Cargando cursos asignados para usuario de business...');
+      try {
+        const supabase = await createClient();
+        const { data: assignedCourses, error } = await supabase
+          .from('organization_course_assignments')
+          .select('course:courses!inner(id, title, slug, description, level, duration_total_minutes)')
+          .eq('user_id', requestContext.userId)
+          .limit(20);
+        
+        if (error) {
+          console.error('⚠️ Error cargando cursos asignados:', error);
+        } else if (assignedCourses && assignedCourses.length > 0) {
+          fullContext.coursesWithContent = assignedCourses.map((assignment: any) => ({
+            title: assignment.course?.title,
+            slug: assignment.course?.slug,
+            description: assignment.course?.description,
+            level: assignment.course?.level,
+            durationMinutes: assignment.course?.duration_total_minutes,
+            isAssigned: true
+          }));
+          console.log('✅ Cursos asignados cargados:', fullContext.coursesWithContent.length);
+        } else {
+          fullContext.coursesWithContent = [];
+          fullContext.noCoursesAssigned = true;
+          console.log('⚠️ Usuario de business sin cursos asignados');
+        }
+      } catch (err) {
+        console.error('⚠️ Error en segunda carga de cursos:', err);
+      }
+    }
 
     // Inicializar Gemini
     const genAI = new GoogleGenerativeAI(googleApiKey);
@@ -1153,6 +1178,96 @@ export async function POST(request: NextRequest) {
         console.error('❌ Error procesando JSON de bug report:', e);
         // Log del contenido que falló para debugging
         console.error('Contenido del match:', bugMatch[1]?.substring(0, 200));
+      }
+    }
+
+    // ==========================================
+    // GUARDAR HISTORIAL DE CONVERSACIÓN (DB)
+    // ==========================================
+    if (body.conversationId) {
+      try {
+        const userId = requestContext?.userId || fullContext?.userId;
+        
+        if (userId) {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+          
+          if (supabaseServiceKey) {
+            const supabaseAdmin = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+              auth: { autoRefreshToken: false, persistSession: false }
+            });
+
+            // Determinar tipo de contexto - LiaSidePanel siempre es 'general'
+            // para evitar mezclar con StudyPlanner o Course LIA
+            const contextType = 'general';
+            
+            // 1. Upsert conversación (crear o actualizar fecha)
+            // Solo insertamos campos básicos, dejamos que por defecto se llenen created_at
+            // Si ya existe, actualizamos updated_at (si existe columna) o solo hacemos 'touch'
+            // Asumiremos que tenemos permiso para upsert.
+            
+            // Verificar si tenemos lastMessage definido previamente
+            const userMsg = messages[messages.length - 1];
+            
+            if (userMsg && userMsg.role === 'user') {
+                // Upsert conversación - usar updated_at en lugar de last_message_at (que no existe)
+                const { error: upsertError } = await supabaseAdmin.from('lia_conversations').upsert({
+                  conversation_id: body.conversationId,
+                  user_id: userId,
+                  context_type: contextType,
+                  started_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }, { onConflict: 'conversation_id' });
+
+                if (upsertError) {
+                  console.error('❌ Error en upsert de conversación:', upsertError);
+                }
+
+                // 2. Obtener el último message_sequence para esta conversación
+                const { data: lastMessage } = await supabaseAdmin
+                  .from('lia_messages')
+                  .select('message_sequence')
+                  .eq('conversation_id', body.conversationId)
+                  .order('message_sequence', { ascending: false })
+                  .limit(1)
+                  .single();
+
+                const nextSequence = (lastMessage?.message_sequence || 0) + 1;
+
+                // 3. Guardar mensaje del usuario
+                const { error: userMsgError } = await supabaseAdmin.from('lia_messages').insert({
+                  conversation_id: body.conversationId,
+                  role: 'user',
+                  content: userMsg.content,
+                  message_sequence: nextSequence
+                });
+
+                if (userMsgError) {
+                  console.error('❌ Error guardando mensaje del usuario:', userMsgError);
+                }
+
+                // 4. Guardar respuesta del asistente
+                const { error: assistantMsgError } = await supabaseAdmin.from('lia_messages').insert({
+                  conversation_id: body.conversationId,
+                  role: 'assistant',
+                  content: clientContent,
+                  model_used: 'gemini-1.5-flash',
+                  tokens_used: 0,
+                  message_sequence: nextSequence + 1
+                });
+
+                if (assistantMsgError) {
+                  console.error('❌ Error guardando mensaje del asistente:', assistantMsgError);
+                }
+
+                if (!upsertError && !userMsgError && !assistantMsgError) {
+                  console.log('✅ Conversación persistida en DB:', body.conversationId);
+                }
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error('❌ Error guardando historial de conversación:', dbError);
       }
     }
 

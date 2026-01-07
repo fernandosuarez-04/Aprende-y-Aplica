@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
       .from('lia_conversations')
       .select(`
         conversation_id,
+        conversation_title,
         context_type,
         started_at,
         ended_at,
@@ -72,8 +73,9 @@ export async function GET(request: NextRequest) {
         .eq('context_type', 'course')
         .or(`course_id.eq.${courseId},course_id.is.null`);
     } else {
-      // Si no hay courseSlug, solo mostrar conversaciones generales (no de talleres)
-      query = query.neq('context_type', 'course');
+      // Si no hay courseSlug, solo mostrar conversaciones del chat general
+      // IMPORTANTE: Usar filtrado positivo para evitar mezclar con otros contextos
+      query = query.eq('context_type', 'general');
     }
 
     const { data: conversations, error } = await query;
@@ -108,7 +110,8 @@ export async function GET(request: NextRequest) {
             .eq('context_type', 'course')
             .or(`course_id.eq.${courseId},course_id.is.null`);
         } else {
-          retryQuery = retryQuery.neq('context_type', 'course');
+          // Solo mostrar conversaciones del chat general
+          retryQuery = retryQuery.eq('context_type', 'general');
         }
 
         const { data: retryConversations, error: retryError } = await retryQuery;
@@ -170,6 +173,49 @@ export async function GET(request: NextRequest) {
       { error: 'Error interno del servidor' },
       { status: 500 }
     );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await SessionService.getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { conversationId, title } = body;
+
+    if (!conversationId || !title) {
+        return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    
+    // Verificar propiedad
+    const { data: conversation } = await supabase
+        .from('lia_conversations')
+        .select('conversation_id')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id)
+        .single();
+        
+    if (!conversation) {
+        return NextResponse.json({ error: 'Conversación no encontrada' }, { status: 404 });
+    }
+
+    // Actualizar
+    const { error } = await supabase
+        .from('lia_conversations')
+        .update({ conversation_title: title })
+        .eq('conversation_id', conversationId);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+      console.error('Error updating conversation:', error);
+      return NextResponse.json({ error: 'Error actualizando conversación' }, { status: 500 });
   }
 }
 

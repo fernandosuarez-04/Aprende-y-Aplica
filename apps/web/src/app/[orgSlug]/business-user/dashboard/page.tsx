@@ -18,9 +18,7 @@ import {
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useOrganizationStyles } from '@/features/business-panel/hooks/useOrganizationStyles'
 import { getBackgroundStyle, generateCSSVariables } from '@/features/business-panel/utils/styles'
-import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 import { useThemeStore } from '@/core/stores/themeStore'
-import { LIA_PANEL_WIDTH } from '@/core/components/LiaSidePanel'
 
 // Removed old tour hook
 import { useBusinessUserJoyride } from '@/features/tours/hooks/useBusinessUserJoyride'
@@ -79,7 +77,7 @@ export default function BusinessUserDashboardPage() {
   const { user, logout } = useAuth()
   const { t } = useTranslation('business')
   const { effectiveStyles } = useOrganizationStyles()
-  const { isOpen: isPanelOpen } = useLiaPanel()
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
@@ -392,10 +390,7 @@ export default function BusinessUserDashboardPage() {
 
       {/* Main Content */}
       <main
-        className="relative overflow-hidden min-h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out"
-        style={{
-          paddingRight: isPanelOpen ? `${LIA_PANEL_WIDTH}px` : '0'
-        }}
+        className="relative overflow-hidden min-h-[calc(100vh-4rem)]"
       >
         {/* Background gradient - static, no heavy effects */}
         <div 

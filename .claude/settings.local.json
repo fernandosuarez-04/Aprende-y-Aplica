@@ -63,7 +63,8 @@
       "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\config\\\\dashboard-tour-steps.ts\")",
       "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\config\\\\course-learn-tour-steps.tsx\")",
       "Bash(del \"apps\\\\web\\\\src\\\\features\\\\tours\\\\config\\\\business-panel-tour-steps.tsx\")",
-      "Bash(ren:*)"
+      "Bash(ren:*)",
+      "Bash(if exist \"c:\\\\Users\\\\fysg5\\\\OneDrive\\\\Escritorio\\\\Trabajo\\\\Aprende y Aplica\\\\Aprende-y-Aplica\\\\apps\\\\web\\\\.next\" rmdir /s /q \"c:\\\\Users\\\\fysg5\\\\OneDrive\\\\Escritorio\\\\Trabajo\\\\Aprende y Aplica\\\\Aprende-y-Aplica\\\\apps\\\\web\\\\.next\")"
     ],
     "deny": [],
     "ask": []

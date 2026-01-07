@@ -7654,6 +7654,97 @@ Cuéntame:
 
     const lowerMessage = message.toLowerCase();
 
+    // ✅ NUEVO: Detectar si el usuario está aceptando ampliar horarios después de mensaje de deadline excedido
+    // Esto ocurre cuando:
+    // 1. El usuario dice "sí", "ok", "acepto", etc.
+    // 2. NO hay savedLessonDistribution (porque el deadline se excedió y no se generó plan)
+    // 3. El último mensaje de LIA mencionaba ampliar horarios o fecha límite
+    const isAcceptingToExpandSchedule = (
+      (lowerMessage === 'sí' || lowerMessage === 'si' || lowerMessage === 'ok' ||
+       lowerMessage === 'acepto' || lowerMessage === 'dale' || lowerMessage === 'va' ||
+       lowerMessage.includes('está bien') || lowerMessage.includes('de acuerdo') ||
+       lowerMessage.includes('adelante') || lowerMessage.includes('claro'))
+    ) && savedLessonDistribution.length === 0;
+
+    if (isAcceptingToExpandSchedule) {
+      // Verificar si el último mensaje de LIA era sobre deadline excedido
+      const lastAssistantMsg = conversationHistory.filter(m => m.role === 'assistant').pop();
+      const wasDeadlineWarning = lastAssistantMsg && (
+        lastAssistantMsg.content.includes('no sería posible completar') ||
+        lastAssistantMsg.content.includes('extendería hasta') ||
+        lastAssistantMsg.content.includes('ampliar tus horarios') ||
+        lastAssistantMsg.content.includes('fines de semana') ||
+        lastAssistantMsg.content.includes('fecha límite')
+      );
+
+      if (wasDeadlineWarning) {
+        console.log('✅ Usuario aceptó ampliar horarios después de advertencia de deadline');
+
+        // Extraer los días que el usuario había mencionado previamente
+        const previousUserMsgs = conversationHistory.filter(m => m.role === 'user');
+        let detectedDays: string[] = [];
+        let detectedTimes: string[] = [];
+
+        previousUserMsgs.forEach(msg => {
+          const msgLower = msg.content.toLowerCase();
+          if (msgLower.includes('lunes')) detectedDays.push('lunes');
+          if (msgLower.includes('martes')) detectedDays.push('martes');
+          if (msgLower.includes('miércoles') || msgLower.includes('miercoles')) detectedDays.push('miércoles');
+          if (msgLower.includes('jueves')) detectedDays.push('jueves');
+          if (msgLower.includes('viernes')) detectedDays.push('viernes');
+          if (msgLower.includes('sábado') || msgLower.includes('sabado')) detectedDays.push('sábado');
+          if (msgLower.includes('domingo')) detectedDays.push('domingo');
+          if (msgLower.includes('mañana')) detectedTimes.push('mañana');
+          if (msgLower.includes('tarde')) detectedTimes.push('tarde');
+          if (msgLower.includes('noche')) detectedTimes.push('noche');
+        });
+
+        // Eliminar duplicados
+        detectedDays = [...new Set(detectedDays)];
+        detectedTimes = [...new Set(detectedTimes)];
+
+        // Calcular días adicionales sugeridos
+        const allDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+        const missingDays = allDays.filter(d => !detectedDays.includes(d));
+
+        // Priorizar fines de semana si no están incluidos
+        let suggestedDays: string[] = [];
+        if (!detectedDays.includes('sábado')) suggestedDays.push('sábado');
+        if (!detectedDays.includes('domingo')) suggestedDays.push('domingo');
+        if (suggestedDays.length < 2) {
+          // Agregar días de semana faltantes
+          const weekdaysMissing = missingDays.filter(d => !['sábado', 'domingo'].includes(d));
+          suggestedDays = [...suggestedDays, ...weekdaysMissing.slice(0, 2 - suggestedDays.length)];
+        }
+
+        // Crear propuesta expandida automáticamente
+        const expandedDays = [...detectedDays, ...suggestedDays.slice(0, 2)];
+        const expandedTimes = detectedTimes.length > 0 ? detectedTimes : ['noche'];
+
+        // Si solo tiene un horario, sugerir agregar otro
+        let additionalTime = '';
+        if (expandedTimes.length === 1) {
+          const allTimes = ['mañana', 'tarde', 'noche'];
+          const missingTimes = allTimes.filter(t => !expandedTimes.includes(t));
+          if (missingTimes.length > 0) {
+            additionalTime = ` y ${missingTimes[0]}`;
+          }
+        }
+
+        // Construir mensaje enriquecido con la propuesta concreta
+        const proposalMessage = `${message}\n\n[SISTEMA: El usuario ACEPTÓ ampliar sus horarios. ` +
+          `Sus días originales eran: ${detectedDays.join(', ') || 'no especificados'}. ` +
+          `Sus horarios originales eran: ${detectedTimes.join(', ') || 'noche'}. ` +
+          `PROPÓN INMEDIATAMENTE este plan expandido: "${expandedDays.join(', ')} por la ${expandedTimes.join(' y ')}${additionalTime}". ` +
+          `NO vuelvas a preguntar si quiere ampliar - YA DIJO QUE SÍ. ` +
+          `Genera el plan con estos horarios expandidos AHORA.]`;
+
+        // Continuar con el mensaje enriquecido
+        message = proposalMessage;
+        console.log('📅 Propuesta expandida automática:', expandedDays, expandedTimes);
+      }
+    }
+
     // PRIMERO verificar si el usuario está AGREGANDO horarios (tiene prioridad sobre cambio)
     const isAddingSchedules = (
       lowerMessage.includes('añade') ||
@@ -8379,6 +8470,32 @@ Cuéntame:
         return;
       }
 
+      // ✅ NUEVO: Detección de bucles - si LIA está repitiendo preguntas similares
+      const lastAssistantMessages = conversationHistory
+        .filter(m => m.role === 'assistant')
+        .slice(-5);
+
+      // Patrones que indican bucle (LIA repitiendo la misma pregunta)
+      const loopPatterns = [
+        /confirmes los días/i,
+        /te refieres a todos los/i,
+        /qué días.*prefieres/i,
+        /qué horario.*funciona/i,
+        /podrías.*ampliar.*horarios/i,
+        /necesito que me confirmes/i,
+      ];
+
+      // Contar cuántos mensajes recientes de LIA tienen patrones de bucle
+      const loopCount = lastAssistantMessages.filter(m =>
+        loopPatterns.some(p => p.test(m.content))
+      ).length;
+
+      if (loopCount >= 2) {
+        console.warn('🔄 Posible bucle detectado en conversación. Forzando propuesta de alternativas.');
+        // Agregar instrucción extra para forzar propuesta concreta
+        enrichedMessage = message + `\n\n[SISTEMA: Se detectó un posible bucle en la conversación. En lugar de volver a preguntar lo mismo, PROPÓN opciones específicas como: "¿Te funcionaría estudiar lunes, miércoles y viernes por la noche? Así podríamos terminar a tiempo." NO vuelvas a pedir que el usuario confirme los días.]`;
+      }
+
       // Generar el systemPrompt para esta llamada
       const sendMsgDateStr = new Date().toLocaleDateString('es-ES', {
         weekday: 'long',
@@ -8468,15 +8585,54 @@ Cuéntame:
               const genData = await genRes.json();
               if (genData.exceedsDeadline) {
                   blockPlanGeneration = true; // ⛔ ACTIVAR BLOQUEO
+
+                  // ✅ NUEVO: Calcular alternativas específicas para proponer al usuario
+                  const allDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+                  const userDaysLower = uniqueDays.map(d => d.toLowerCase());
+                  const missingDays = allDays.filter(d => !userDaysLower.includes(d));
+
+                  // Calcular cuántos días adicionales necesita aproximadamente
+                  const daysExcess = genData.daysExcess || 7;
+                  const sessionsNeeded = Math.ceil(daysExcess / 7) + 1; // Sesiones adicionales por semana
+
+                  // Generar sugerencias específicas basadas en los días faltantes
+                  let suggestedDays: string[] = [];
+                  if (missingDays.includes('sábado')) suggestedDays.push('sábado');
+                  if (missingDays.includes('domingo')) suggestedDays.push('domingo');
+                  if (suggestedDays.length < sessionsNeeded) {
+                    // Agregar días de semana faltantes
+                    const weekdaysMissing = missingDays.filter(d => !['sábado', 'domingo'].includes(d));
+                    suggestedDays = [...suggestedDays, ...weekdaysMissing.slice(0, sessionsNeeded - suggestedDays.length)];
+                  }
+
+                  // Determinar horarios sugeridos basados en los que el usuario NO mencionó
+                  const allTimes = ['mañana', 'tarde', 'noche'];
+                  const userTimesLower = uniqueTimes.map(t => t.toLowerCase());
+                  const missingTimes = allTimes.filter(t => !userTimesLower.includes(t));
+
+                  // Construir opciones específicas para el usuario
+                  let alternativeOptions = '';
+                  if (suggestedDays.length > 0) {
+                    alternativeOptions += `OPCIÓN 1: Agregar ${suggestedDays.slice(0, 2).join(' y ')} a tus días de estudio.\n`;
+                  }
+                  if (missingTimes.length > 0 && uniqueTimes.length < 2) {
+                    alternativeOptions += `OPCIÓN 2: Agregar sesiones en la ${missingTimes[0]} además de la ${uniqueTimes[0] || 'mañana'}.\n`;
+                  }
+                  alternativeOptions += `OPCIÓN 3: Aumentar la duración de cada sesión (estudiar más tiempo por día).\n`;
+
                   preCalculatedPlanContext = `\n\n⛔ BLOQUEO DE SEGURIDAD: LOS HORARIOS PROPUESTOS NO CUMPLEN LA FECHA LÍMITE.\n` +
                   `Fecha estimada terminación: ${genData.endDate}\n` +
                   `Fecha límite del curso: ${genData.deadline}\n` +
                   `Exceso: ${genData.daysExcess} días.\n\n` +
-                  `⚠️ INSTRUCCIÓN ÚNICA PARA LIA:\n` +
-                  `1. INFORMA al usuario que NO PUEDES crear el plan porque terminaría el ${genData.endDate} (tarde).\n` +
+                  `⚠️ INSTRUCCIÓN CRÍTICA PARA LIA (NO esperes que el usuario proponga, TÚ PROPONE):\n` +
+                  `1. INFORMA al usuario que con los horarios propuestos ("${uniqueDays.join(', ')} por la ${uniqueTimes.join(' y ')}") terminarías el ${genData.endDate}, que es DESPUÉS de la fecha límite (${genData.deadline}).\n` +
                   `2. NO muestres, ni inventes, ni menciones ninguna lección.\n` +
-                  `3. EXIGE amablemente ampliar el horario (ej: fines de semana) para cumplir la meta.\n`;
-                  console.log('⛔ [Deterministic] Plan excede fecha límite. LECCIONES OCULTADAS.');
+                  `3. PROPÓN DIRECTAMENTE estas alternativas específicas al usuario:\n\n` +
+                  `${alternativeOptions}\n` +
+                  `4. Pregunta al usuario: "¿Cuál de estas opciones te funcionaría mejor?" o "¿Te gustaría que pruebe con [opción específica]?"\n` +
+                  `5. Si el usuario elige una opción, PROCESA ESA OPCIÓN inmediatamente sin volver a preguntar.\n` +
+                  `6. NO le pidas al usuario que él proponga los horarios - TÚ eres quien propone las alternativas.\n`;
+                  console.log('⛔ [Deterministic] Plan excede fecha límite. LECCIONES OCULTADAS. Alternativas calculadas:', suggestedDays, missingTimes);
               } else if (genData.plan) {
                   preCalculatedPlanContext = `\n\n═══════════════════════════════════════════════════════════════════════════════\n🚨 PLAN DE ESTUDIO PRE-CALCULADO (PRIORIDAD MÁXIMA - COPIAR LITERALMENTE)\n═══════════════════════════════════════════════════════════════════════════════\n\n${genData.plan}\n\n⚠️ INSTRUCCIÓN OBLIGATORIA: El usuario ha definido sus horarios y CUMPLEN con la fecha límite.\n1. NO LO RECALCULES.\n2. COPIA los horarios y lecciones EXACTAMENTE como aparecen arriba.\n3. Las lecciones secuenciales (1, 1.1) YA ESTÁN AGRUPADAS correctamente.\n4. Solo dale formato bonito (negritas, emojis).\n`;
                   console.log('✅ [Deterministic] Plan pre-calculado generado e inyectado en contexto.');

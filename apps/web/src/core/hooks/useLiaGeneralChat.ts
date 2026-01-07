@@ -179,6 +179,11 @@ export function useLiaGeneralChat(initialMessage?: string | null): UseLiaGeneral
         }
       }
       
+      // Generar ID de conversación si no existe
+      if (!conversationIdRef.current) {
+        conversationIdRef.current = crypto.randomUUID();
+      }
+
       // Usar la nueva API de LIA (similar a ARIA en IRIS)
       const response = await fetch('/api/lia/chat', {
         method: 'POST',
@@ -186,6 +191,7 @@ export function useLiaGeneralChat(initialMessage?: string | null): UseLiaGeneral
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          conversationId: conversationIdRef.current,
           messages: [
             ...messages.map(msg => ({
               role: msg.role,

@@ -69,10 +69,10 @@ function CourseStatCard({ title, value, icon: Icon, color, delay, isDark }: Cour
           <Icon className="w-6 h-6" style={{ color }} />
         </div>
         <div>
-          <h4 className="text-2xl font-bold" style={{ color: isDark ? 'var(--org-text-color, #FFFFFF)' : '#0F172A' }}>
+          <h4 className="text-2xl font-bold" style={{ color: isDark ? '#FFFFFF' : '#0F172A' }}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </h4>
-          <p className="text-sm" style={{ color: isDark ? 'var(--org-border-color, #9CA3AF)' : '#64748B' }}>
+          <p className="text-sm font-medium" style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#64748B' }}>
             {title}
           </p>
         </div>
@@ -463,7 +463,7 @@ export default function BusinessPanelCoursesPage() {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-4 mb-8">
         {courseStats.map((stat, index) => (
           <CourseStatCard key={stat.title} {...stat} delay={index} isDark={isDark} />
         ))}
@@ -501,7 +501,7 @@ export default function BusinessPanelCoursesPage() {
           border: `1px solid ${borderColor}`
         }}
       >
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col 2xl:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative group">
             <Search
@@ -524,7 +524,7 @@ export default function BusinessPanelCoursesPage() {
           </div>
 
           {/* Category Filter */}
-          <div className="w-full lg:w-56">
+          <div className="w-full 2xl:w-56">
             <PremiumSelect
               value={filterCategory}
               onChange={setFilterCategory}
@@ -538,7 +538,7 @@ export default function BusinessPanelCoursesPage() {
           </div>
 
           {/* Level Filter */}
-          <div className="w-full lg:w-56">
+          <div className="w-full 2xl:w-56">
             <PremiumSelect
               value={filterLevel}
               onChange={setFilterLevel}
@@ -590,7 +590,7 @@ export default function BusinessPanelCoursesPage() {
           </motion.div>
 
           {/* Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
             {filteredCourses.map((course, index) => (
               <CourseCard
                 key={course.id}

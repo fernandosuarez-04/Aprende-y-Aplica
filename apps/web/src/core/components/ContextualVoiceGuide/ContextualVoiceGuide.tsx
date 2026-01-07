@@ -71,6 +71,8 @@ export function ContextualVoiceGuide({
     'pt': 'pt-BR'
   };
   const storageKey = `has-seen-tour-${tourId}`;
+  const conversationStorageKey = `lia-conversation-history`; // Clave para persistir historial de conversación
+  
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -78,11 +80,28 @@ export function ContextualVoiceGuide({
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
-  // Estados para conversaciÃ³n por voz
+  // Estados para conversación por voz
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>([]);
+  
+  // ✅ Cargar historial de conversación desde sessionStorage para mantener contexto entre páginas
+  const [conversationHistory, setConversationHistory] = useState<Array<{role: string, content: string}>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem(conversationStorageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Error cargando historial de LIA:', e);
+      }
+    }
+    return [];
+  });
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -136,6 +155,21 @@ export function ContextualVoiceGuide({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // ✅ Persistir historial de conversación en sessionStorage para mantener contexto entre páginas
+  useEffect(() => {
+    if (typeof window !== 'undefined' && conversationHistory.length > 0) {
+      try {
+        // Limitar el historial a las últimas 50 entradas para no sobrecargar el storage
+        const historyToSave = conversationHistory.slice(-50);
+        sessionStorage.setItem(conversationStorageKey, JSON.stringify(historyToSave));
+      } catch (e) {
+        console.warn('Error guardando historial de LIA:', e);
+      }
+    }
+    // Sincronizar la referencia con el estado
+    conversationHistoryRef.current = conversationHistory;
+  }, [conversationHistory, conversationStorageKey]);
 
   // Verificar si debe mostrar el tour
   useEffect(() => {
