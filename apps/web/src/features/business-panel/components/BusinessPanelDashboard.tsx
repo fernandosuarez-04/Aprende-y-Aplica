@@ -395,8 +395,67 @@ export function BusinessPanelDashboard() {
   const [activitiesLoading, setActivitiesLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
   const { t } = useTranslation('business')
+  const { effectiveStyles } = useOrganizationStylesContext()
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
 
-/* ... skipping lines ... */
+  // Obtener estilos del panel con fallbacks
+  const panelStyles = effectiveStyles?.panel
+
+  // Definir themeColors basado en los estilos del panel
+  const themeColors = useMemo(() => {
+    return {
+      primary: panelStyles?.primary_button_color || (isDark ? '#8B5CF6' : '#6366F1'),
+      secondary: panelStyles?.secondary_button_color || '#3B82F6',
+      accent: panelStyles?.accent_color || '#00D4B3',
+      text: isDark ? (panelStyles?.text_color || '#FFFFFF') : '#0F172A',
+      cardBg: isDark ? (panelStyles?.card_background || '#1E2329') : '#FFFFFF',
+      borderColor: isDark ? (panelStyles?.border_color || 'rgba(255,255,255,0.1)') : 'rgba(0,0,0,0.1)',
+      background: panelStyles?.background_value || (isDark ? '#0F172A' : '#F8FAFC'),
+      backgroundType: panelStyles?.background_type || 'color'
+    }
+  }, [panelStyles, isDark])
+
+  // Funciones auxiliares
+  const getGreeting = () => {
+    const hour = currentTime.getHours()
+    if (hour < 12) return 'Buenos días'
+    if (hour < 18) return 'Buenas tardes'
+    return 'Buenas noches'
+  }
+
+  const getUserName = () => {
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name} ${user.last_name}`
+    }
+    if (user?.display_name) {
+      return user.display_name
+    }
+    if (user?.first_name) {
+      return user.first_name
+    }
+    if (user?.username) {
+      return user.username
+    }
+    return 'Usuario'
+  }
+
+  const formatTimestamp = (dateString: string): string => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Ahora'
+    if (diffMins < 60) return `Hace ${diffMins} minuto${diffMins > 1 ? 's' : ''}`
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`
+    if (diffDays === 1) return 'Ayer'
+    if (diffDays < 7) return `Hace ${diffDays} días`
+
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+  }
 
   const statsData = useMemo(() => stats ? [
     {
