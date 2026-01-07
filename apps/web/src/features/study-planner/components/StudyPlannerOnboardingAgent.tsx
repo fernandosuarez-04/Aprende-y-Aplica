@@ -213,7 +213,7 @@ export function StudyPlannerOnboardingAgent() {
         utterance.lang = 'es-ES';
         utterance.rate = 0.9;
         utterance.pitch = 1;
-        utterance.volume = 1;
+        utterance.volume = 0.3;
 
         utterance.onend = () => {
           setIsSpeaking(false);

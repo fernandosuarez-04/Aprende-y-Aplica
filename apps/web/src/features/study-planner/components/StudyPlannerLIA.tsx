@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft, HelpCircle, GraduationCap, Zap, Scale, Clock } from 'lucide-react';
+import { X, Volume2, VolumeX, ChevronRight, Mic, MicOff, Send, Check, BookOpen, Loader2, Calendar, ExternalLink, Search, ChevronLeft, HelpCircle, GraduationCap, Zap, Scale, Clock, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { HolidayService } from '../../../lib/holidays';
 import { useOrganizationStylesContext } from '../../business-panel/contexts/OrganizationStylesContext';
 import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
@@ -123,6 +123,7 @@ function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
 
 export function StudyPlannerLIA() {
   const router = useRouter();
+  const params = useParams();
   
   // Joyride integration protected (commented out due to webpack error)
   // const { joyrideProps, restartTour, isRunning } = useStudyPlannerJoyride();
@@ -1352,7 +1353,7 @@ INSTRUCCIONES:
         utterance.lang = 'es-ES';
         utterance.rate = 0.9;
         utterance.pitch = 1;
-        utterance.volume = 1;
+        utterance.volume = 0.8;
 
         utterance.onend = () => {
           setIsSpeaking(false);
@@ -1418,6 +1419,7 @@ INSTRUCCIONES:
       const audioUrl = URL.createObjectURL(audioBlob);
 
       const audio = new Audio(audioUrl);
+      audio.volume = 0.8;
       audioRef.current = audio;
 
       audio.onended = () => {
@@ -9662,7 +9664,23 @@ Cuéntame:
             {/* Header */}
             <div id="lia-planner-header" className="flex-shrink-0 z-10 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 py-3 sm:px-4 sm:py-4">
               <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                  <motion.button
+                    onClick={() => {
+                      if (params?.orgSlug) {
+                        router.push(`/${params.orgSlug}/business-user/dashboard`);
+                      } else {
+                        router.back();
+                      }
+                    }}
+                    whileHover={{ scale: 1.1, x: -2 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-2 rounded-full text-[#6C757D] dark:text-gray-400 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF] dark:hover:bg-[#0A2540]/20 transition-all mr-1"
+                    title="Volver al panel"
+                  >
+                    <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </motion.button>
+
                   <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-[#0A2540]/20 dark:border-[#00D4B3]/30 flex-shrink-0">
                     <Image
                       src="/lia-avatar.png"
@@ -9819,16 +9837,7 @@ Cuéntame:
             {/* Área de mensajes */}
             <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-6 min-h-0 bg-[#F8F9FA] dark:bg-[#0F1419]/50">
               <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
-                {conversationHistory.length === 0 && (
-                   <div className="flex flex-col items-center justify-center py-10 opacity-60">
-                     <div className="w-16 h-16 bg-[#0A2540]/10 dark:bg-white/10 rounded-full flex items-center justify-center mb-4">
-                       <Image src="/lia-avatar.png" alt="LIA" width={40} height={40} className="rounded-full opacity-80" />
-                     </div>
-                     <p className="text-[#6C757D] dark:text-gray-400 text-sm font-medium text-center max-w-xs">
-                       Soy LIA, tu asistente de planificación.<br/>¿En qué puedo ayudarte hoy?
-                     </p>
-                   </div>
-                )}
+                {/* Welcome message removed as per user request */}
                 
                 {conversationHistory.map((msg, idx) => (
                   <motion.div

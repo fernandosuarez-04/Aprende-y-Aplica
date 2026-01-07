@@ -276,6 +276,7 @@ export function OnboardingAgent() {
       const audioUrl = URL.createObjectURL(audioBlob);
       
       const audio = new Audio(audioUrl);
+      audio.volume = 0.8;
       audioRef.current = audio;
 
       audio.onended = () => {
