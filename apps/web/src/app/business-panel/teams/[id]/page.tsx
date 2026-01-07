@@ -165,7 +165,7 @@ export default function BusinessTeamDetailPage() {
             <div
               className="absolute inset-0 flex items-center justify-center"
             >
-              <UsersRound className="w-8 h-8" style={{ color: primaryColor }} />
+              <UsersRound className="w-8 h-8" style={{ color: isDark ? '#FFFFFF' : primaryColor, opacity: isDark ? 0.8 : 1 }} />
             </div>
           </div>
           <p className="text-lg font-medium" style={{ color: `${textColor}80` }}>
@@ -323,7 +323,7 @@ export default function BusinessTeamDetailPage() {
               <div
                 className="absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 text-white"
                 style={{
-                  backgroundColor: team.status === 'active' ? primaryColor : '#F59E0B'
+                  backgroundColor: team.status === 'active' ? '#10B981' : '#F59E0B'
                 }}
               >
                 {team.status === 'active' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
@@ -350,14 +350,14 @@ export default function BusinessTeamDetailPage() {
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm"
                   style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
                 >
-                  <UserCheck className="w-4 h-4" />
+                  <UserCheck className="w-4 h-4" style={{ color: isDark ? accentColor : accentColor }} />
                   <span className="font-medium">{team.active_member_count || 0} activos</span>
                 </div>
                 <div
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm"
                   style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
                 >
-                  <BookOpen className="w-4 h-4" />
+                  <BookOpen className="w-4 h-4" style={{ color: isDark ? accentColor : accentColor }} />
                   <span className="font-medium">{teamCourses.length} cursos</span>
                 </div>
                 <div
@@ -446,7 +446,7 @@ export default function BusinessTeamDetailPage() {
                   />
                 )}
                 <span className="relative z-10 flex items-center gap-2">
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4" style={{ color: isActive ? (isDark ? '#FFFFFF' : '#FFFFFF') : (isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)') }} />
                   <span className="hidden sm:inline">{tab.label}</span>
                 </span>
               </motion.button>
@@ -513,8 +513,11 @@ export default function BusinessTeamDetailPage() {
                   >
                     <div className="relative z-10">
                       <stat.icon
-                        className="w-8 h-8 mb-3 opacity-80"
-                        style={{ color: stat.color }}
+                        className="w-8 h-8 mb-3"
+                        style={{ 
+                          color: isDark ? '#FFFFFF' : stat.color,
+                          opacity: isDark ? 0.9 : 0.8
+                        }}
                       />
                       <p className="text-3xl font-bold mb-1" style={{ color: textColor }}>
                         {stat.value}
@@ -853,7 +856,7 @@ export default function BusinessTeamDetailPage() {
                                       border: `1px solid ${primaryColor}30`
                                     }}
                                   >
-                                    <BookOpen className="w-8 h-8" style={{ color: primaryColor }} />
+                                    <BookOpen className="w-8 h-8" style={{ color: isDark ? '#FFFFFF' : primaryColor, opacity: isDark ? 0.9 : 1 }} />
                                   </div>
                                 )}
 
@@ -970,7 +973,7 @@ export default function BusinessTeamDetailPage() {
                     className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
                     style={{ backgroundColor: `${primaryColor}15` }}
                   >
-                    <BookOpen className="w-10 h-10" style={{ color: primaryColor }} />
+                    <BookOpen className="w-10 h-10" style={{ color: isDark ? '#FFFFFF' : primaryColor, opacity: isDark ? 0.8 : 1 }} />
                   </div>
                   <h3 className="text-xl font-bold mb-2" style={{ color: textColor }}>
                     Sin cursos asignados

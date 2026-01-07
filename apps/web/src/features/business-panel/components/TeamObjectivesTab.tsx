@@ -444,14 +444,15 @@ export function TeamObjectivesTab({ teamId }: TeamObjectivesTabProps) {
               }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all"
               style={{
                 background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                boxShadow: `0 8px 25px ${primaryColor}40`
+                boxShadow: `0 8px 25px ${primaryColor}40`,
+                color: '#FFFFFF'
               }}
             >
-              <Sparkles className="w-4 h-4" />
-              Crear Primer Objetivo
+              <Sparkles className="w-4 h-4" style={{ color: '#FFFFFF' }} />
+              <span style={{ color: '#FFFFFF' }}>Crear Primer Objetivo</span>
             </motion.button>
           </motion.div>
         </motion.div>
