@@ -15,6 +15,7 @@ import { LiaPanelProvider } from '../core/contexts/LiaPanelContext';
 import { ContentWrapper } from '../core/components/ContentWrapper';
 import { AuthSecurityGuard } from '../features/auth/components/AuthSecurityGuard';
 import { OrganizationStylesProvider } from '../features/business-panel/contexts/OrganizationStylesContext';
+import { OrganizationProvider } from '../core/providers/OrganizationProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -211,8 +212,9 @@ export default function RootLayout({
               <ThemeProvider>
                 <ShareModalProvider>
                   <NotificationProvider pollingInterval={60000}>
-                    <OrganizationStylesProvider>
-                      <LiaPanelProvider>
+                    <OrganizationProvider>
+                      <OrganizationStylesProvider>
+                        <LiaPanelProvider>
                         <PrefetchManager />
                         <AuthSecurityGuard>
                           <ContentWrapper>
@@ -226,7 +228,8 @@ export default function RootLayout({
                         
 
                       </LiaPanelProvider>
-                    </OrganizationStylesProvider>
+                      </OrganizationStylesProvider>
+                    </OrganizationProvider>
                   </NotificationProvider>
                 </ShareModalProvider>
               </ThemeProvider>

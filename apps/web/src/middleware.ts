@@ -84,9 +84,9 @@ export async function middleware(request: NextRequest) {
               // ✅ Usuario Enterprise o Business autenticado -> ir al dashboard correspondiente
               // El auth personalizado es para cuando NO están autenticados
               if (normalizedRole === 'business') {
-                return NextResponse.redirect(new URL('/business-panel/dashboard', request.url))
+                return NextResponse.redirect(new URL(`/${userOrg.organizations.slug}/business-panel/dashboard`, request.url))
               } else {
-                return NextResponse.redirect(new URL('/business-user/dashboard', request.url))
+                return NextResponse.redirect(new URL(`/${userOrg.organizations.slug}/business-user/dashboard`, request.url))
               }
             } else {
               // Usuario normal (cargo_rol === 'usuario' o cualquier otro) → Tour SOFIA + Planes
@@ -108,7 +108,8 @@ export async function middleware(request: NextRequest) {
     '/statistics',
     '/welcome',
     '/_next',
-    '/favicon.ico'
+    '/favicon.ico',
+    '/auth/select-organization' // ✅ Permitir acceso a selección de organización
   ]
 
   const isExemptRoute = exemptRoutes.some(route =>
@@ -227,18 +228,14 @@ export async function middleware(request: NextRequest) {
     if (!userId) {
       logger.log('❌ Sesión inválida o expirada, redirigiendo a /auth')
       // Eliminar cookies inválidas
+      const redirectResponse = NextResponse.redirect(new URL('/auth', request.url));
       if (hasLegacySession) {
-        response.cookies.delete('aprende-y-aplica-session')
+          redirectResponse.cookies.delete('aprende-y-aplica-session');
       }
-      return NextResponse.redirect(new URL('/auth', request.url))
+      return redirectResponse;
     }
 
     logger.log('✅ Sesión válida para usuario:', userId)
-
-    // Guardar userId para uso posterior en el middleware
-    const sessionData = { user_id: userId };
-
-
 
   } catch (error) {
     logger.error('❌ Error validando sesión:', error)

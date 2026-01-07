@@ -1364,7 +1364,8 @@ export default function CourseLearnPage() {
   const loadLessonNotes = async (lessonId: string, courseSlug: string) => {
     try {
       const response = await fetch(
-        `/api/courses/${courseSlug}/lessons/${lessonId}/notes`
+        `/api/courses/${courseSlug}/lessons/${lessonId}/notes`,
+        { credentials: 'include' }
       );
       if (response.ok) {
         const notes = await response.json();
@@ -1396,7 +1397,9 @@ export default function CourseLearnPage() {
   // Función para cargar estadísticas del curso
   const loadNotesStats = async (courseSlug: string) => {
     try {
-      const response = await fetch(`/api/courses/${courseSlug}/notes/stats`);
+      const response = await fetch(`/api/courses/${courseSlug}/notes/stats`, {
+        credentials: "include",
+      });
       if (response.ok) {
         const stats = await response.json();
         setNotesStats({
@@ -1810,7 +1813,8 @@ export default function CourseLearnPage() {
         const fullQuery = queryString ? `?${queryString}` : "";
 
         const learnData = await dedupedFetch(
-          `/api/courses/${slug}/learn-data${fullQuery}`
+          `/api/courses/${slug}/learn-data${fullQuery}`,
+          { credentials: 'include' }
         );
 
         // Extraer datos del response unificado
@@ -1924,7 +1928,8 @@ export default function CourseLearnPage() {
         if (learnData.lastWatchedLessonId && !lessonId && learnData.modules) {
           // Precargar datos de la lección en segundo plano para acelerar cuando el usuario la vea
           dedupedFetch(
-            `/api/courses/${slug}/learn-data?lessonId=${learnData.lastWatchedLessonId}`
+            `/api/courses/${slug}/learn-data?lessonId=${learnData.lastWatchedLessonId}`,
+            { credentials: 'include' }
           ).catch(() => null); // Ignorar errores, es solo precarga
         }
       } catch (error) {
@@ -1952,7 +1957,8 @@ export default function CourseLearnPage() {
       // Cargar transcript en background
       try {
         const tRes = await fetch(
-          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/transcript?language=${selectedLang}`
+          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/transcript?language=${selectedLang}`,
+          { credentials: 'include' }
         );
         if (tRes.ok) {
           const tData = await tRes.json();
@@ -1968,7 +1974,8 @@ export default function CourseLearnPage() {
       // Cargar summary en background
       try {
         const sRes = await fetch(
-          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/summary?language=${selectedLang}`
+          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/summary?language=${selectedLang}`,
+          { credentials: 'include' }
         );
         if (sRes.ok) {
           const sData = await sRes.json();
@@ -1996,6 +2003,7 @@ export default function CourseLearnPage() {
       fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/access`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
       }).catch(() => null); // Ignorar errores silenciosamente
     }
   }, [currentLesson?.lesson_id, slug]);
@@ -2014,7 +2022,9 @@ export default function CourseLearnPage() {
   const loadModules = async (courseSlug: string) => {
     try {
       // ⚡ OPTIMIZACIÓN: Usar dedupedFetch para evitar requests duplicados
-      const data = await dedupedFetch(`/api/courses/${courseSlug}/modules`);
+      const data = await dedupedFetch(`/api/courses/${courseSlug}/modules`, {
+        credentials: "include",
+      });
       const modulesResponse: Module[] = Array.isArray(data)
         ? data
         : Array.isArray(data?.modules)
@@ -2084,7 +2094,8 @@ export default function CourseLearnPage() {
     try {
       // ⚡ OPTIMIZACIÓN: Una sola petición en lugar de 3
       const response = await fetch(
-        `/api/courses/${slug}/lessons/${lessonId}/sidebar-data`
+        `/api/courses/${slug}/lessons/${lessonId}/sidebar-data`,
+        { credentials: 'include' }
       );
 
       if (response.ok) {
@@ -6940,11 +6951,13 @@ function ActivitiesContent({
         const [activitiesResponse, materialsResponse, quizStatusResponse] =
           await Promise.all([
             fetch(
-              `/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`
+              `/api/courses/${slug}/lessons/${lesson.lesson_id}/activities`,
+              { credentials: 'include' }
             ),
-            fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`),
+            fetch(`/api/courses/${slug}/lessons/${lesson.lesson_id}/materials`, { credentials: 'include' }),
             fetch(
-              `/api/courses/${slug}/lessons/${lesson.lesson_id}/quiz/status`
+              `/api/courses/${slug}/lessons/${lesson.lesson_id}/quiz/status`,
+              { credentials: 'include' }
             ),
           ]);
 
@@ -7009,7 +7022,8 @@ function ActivitiesContent({
 
       try {
         const response = await fetch(
-          `/api/courses/${slug}/lessons/${lesson.lesson_id}/feedback`
+          `/api/courses/${slug}/lessons/${lesson.lesson_id}/feedback`,
+          { credentials: 'include' }
         );
         if (response.ok) {
           const data = await response.json();
@@ -7037,6 +7051,7 @@ function ActivitiesContent({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ feedback_type: feedbackType }),
+        credentials: "include",
       });
 
       if (response.ok) {

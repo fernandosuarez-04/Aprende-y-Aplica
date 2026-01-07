@@ -23,7 +23,7 @@ import { getBackgroundStyle, generateCSSVariables } from '@/features/business-pa
 import { LiaSidePanel } from '@/core/components/LiaSidePanel'
 import { LiaFloatingButton } from '@/core/components/LiaSidePanel/LiaFloatingButton'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import { ModernNavbar } from '../business-user/dashboard/components/ModernNavbar'
+import { ModernNavbar } from '../[orgSlug]/business-user/dashboard/components/ModernNavbar'
 import { useCallback, Suspense } from 'react'
 import { useThemeStore } from '@/core/stores/themeStore'
 

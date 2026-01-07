@@ -326,34 +326,48 @@ export async function loginAction(formData: FormData) {
     } else if (normalizedRole === 'instructor') {
       redirectTo = '/instructor/dashboard';
     } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
-      // Para roles de empresa, verificar que pertenezca a una organización
-      const { data: userOrg, error: orgError } = await supabase
+      // Para roles de empresa, verificar organizaciones del usuario
+      const { data: userOrgs, error: orgError } = await supabase
         .from('organization_users')
-        .select('organization_id, status, organizations!inner(id, name, slug, is_active)')
+        .select('organization_id, status, role, organizations!inner(id, name, slug, is_active)')
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single()
+        .eq('organizations.is_active', true)
+        .order('joined_at', { ascending: true })
 
-      if (orgError || !userOrg) {
+      if (orgError || !userOrgs || userOrgs.length === 0) {
         console.log('⚠️ [loginAction] Usuario Business sin organización activa:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           error: orgError?.message
         })
         redirectTo = '/dashboard'; // Sin organización, ir al dashboard normal
+      } else if (userOrgs.length > 1) {
+        // Usuario pertenece a MÚLTIPLES organizaciones - mostrar selector
+        console.log('🏢 [loginAction] Usuario Business con múltiples organizaciones:', {
+          userId: user.id,
+          cargo_rol: normalizedRole,
+          organizationCount: userOrgs.length
+        })
+        redirectTo = '/auth/select-organization';
       } else {
-        console.log('✅ [loginAction] Usuario Business con organización:', {
+        // Usuario pertenece a UNA sola organización - redirigir directamente
+        const userOrg = userOrgs[0]
+        const orgSlug = (userOrg.organizations as any)?.slug
+
+        console.log('✅ [loginAction] Usuario Business con organización única:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           organizationId: userOrg.organization_id,
-          organizationName: userOrg.organizations?.name
+          organizationSlug: orgSlug
         })
 
-        // Redirigir según el rol específico
-        if (normalizedRole === 'business') {
-          redirectTo = '/business-panel/dashboard';
+        // Redirigir a la ruta de la organización
+        if (orgSlug) {
+          redirectTo = `/${orgSlug}/dashboard`;
         } else {
-          redirectTo = '/business-user/dashboard';
+          // Fallback: sin slug, ir al dashboard general
+          redirectTo = '/dashboard';
         }
       }
     }

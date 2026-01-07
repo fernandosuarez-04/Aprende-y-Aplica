@@ -55,11 +55,23 @@ export async function GET(
     }
 
     // Obtener actividades de la lección
-    const { data: activities, error: activitiesError } = await supabase
+    console.log(`[activities/route] Buscando actividades para lessonId: ${lessonId} (slug: ${slug})`);
+    
+    // Check session to confirm user is authenticated (RLS check)
+    const { data: { session: debugSession } } = await supabase.auth.getSession();
+    console.log(`[activities/route] Session present: ${!!debugSession}, User ID: ${debugSession?.user?.id}`);
+
+    const { data: activities, error: activitiesError, count } = await supabase
       .from('lesson_activities')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('lesson_id', lessonId)
       .order('activity_order_index', { ascending: true });
+
+    console.log(`[activities/route] Resultado DB:`, { 
+      count: activities?.length, 
+      error: activitiesError ? activitiesError.message : null,
+      hasActivities: activities && activities.length > 0
+    });
 
     if (activitiesError) {
       console.error('[activities/route] Error obteniendo actividades:', activitiesError);

@@ -230,11 +230,14 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
     setError(null)
   }, [lesson, instructors])
 
-  const handleGenerateAI = async () => {
+  const handleGenerateAI = async (videoUrl?: string) => {
+    // Usar la URL pasada como argumento O la del estado
+    const targetUrl = videoUrl || formData.video_provider_id
+
     // Validar que haya un video válido para analizar
     const canAnalyze = (formData.video_provider === 'direct' || formData.video_provider === 'custom') && 
-                       formData.video_provider_id && 
-                       formData.video_provider_id.startsWith('http')
+                       targetUrl && 
+                       targetUrl.startsWith('http')
 
     if (!canAnalyze) {
       setError('Debes subir un video o proporcionar una URL válida primero (proveedor: Directo o Custom).')
@@ -243,6 +246,8 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
 
     setGeneratingAI(true)
     setError(null)
+    // Cambiamos automáticamente al tab de contenido para ver el progreso
+    setActiveTab('content')
 
     try {
       const response = await fetch('/api/admin/ai/process-video', {
@@ -250,7 +255,7 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ videoUrl: formData.video_provider_id }),
+        body: JSON.stringify({ videoUrl: targetUrl }),
       })
 
       const data = await response.json()
@@ -528,6 +533,12 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
                                 setDurationAutoDetected(true)
                               }
                             }}
+                            onUploadComplete={(url) => {
+                              // Cuando termina de subir, activamos automáticamente la generación de IA
+                              if (url && url.startsWith('http')) {
+                                handleGenerateAI(url)
+                              }
+                            }}
                           />
 
                           <div className="group">
@@ -597,7 +608,7 @@ export function LessonModal({ lesson, moduleId, onClose, onSave, instructors = [
                               </div>
                               <motion.button
                                 type="button"
-                                onClick={handleGenerateAI}
+                                onClick={() => handleGenerateAI()}
                                 disabled={generatingAI || !formData.video_provider_id}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}

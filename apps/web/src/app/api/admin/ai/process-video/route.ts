@@ -88,18 +88,22 @@ export async function POST(req: NextRequest) {
       
       Debes generar un objeto JSON con dos campos obligatorios:
       
-      1. "transcript": La transcripción LITERAL y COMPLETA de todo lo que se dice en el video. No resumas nada aquí.
+      1. "transcript": La transcripción COMPLETA de todo lo que se dice en el video.
+         - IMPORTANTE: No devuelvas un solo bloque masivo de texto.
+         - Divide el texto en párrafos lógicos y legibles usando doble salto de línea (\\n\\n).
+         - La lectura debe ser fluida y natural visualmente.
       
-      2. "summary": Un resumen educativo, rico y estructurado del contenido. 
-         - Debe tener al menos 3 párrafos.
-         - Debe capturar los conceptos clave, definiciones y conclusiones.
-         - NO debe ser una sola frase. Debe ser útil para un estudiante que no vio el video.
-         - Usa formato Markdown simple (sin bloques de código) dentro del string si es necesario para listas.
+      2. "summary": Un resumen educativo, rico y MUY BIEN ESTRUCTURADO. 
+         - EL FORMATO ES CRÍTICO: Usa Markdown para dar estructura visual.
+         - Usa Títulos (###) para separar secciones (ej: Introducción, Conceptos Clave, Conclusión).
+         - Usa **Negritas** para resaltar términos importantes.
+         - Usa listas con viñetas (-) para enumerar características o pasos.
+         - Debe ser un material de estudio listo para leer, no solo texto plano.
 
       Respuesta JSON esperada:
       {
-        "transcript": "...",
-        "summary": "..."
+        "transcript": "Párrafo 1...\\n\\nPárrafo 2...",
+        "summary": "### Introducción\\nTexto...\\n\\n### Puntos Clave\\n- Item 1\\n- Item 2"
       }
     `;
 

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useBusinessSettings } from '../hooks/useBusinessSettings'
@@ -59,15 +59,19 @@ export function BusinessPanelSidebar({
   
   const { t } = useTranslation('business')
 
+  /* New import for dynamic routing */
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string
+
   const navigation = useMemo(() => [
-    { name: t('sidebar.dashboard'), href: '/business-panel/dashboard', icon: LayoutDashboard },
-    { name: t('sidebar.users'), href: '/business-panel/users', icon: Users },
-    { name: t('sidebar.courses'), href: '/business-panel/courses', icon: BookOpen },
-    { name: t('sidebar.teams'), href: '/business-panel/teams', icon: UsersRound },
-    { name: t('sidebar.reports'), href: '/business-panel/reports', icon: FileText },
-    { name: t('sidebar.analytics'), href: '/business-panel/analytics', icon: BarChart3 },
-    { name: t('sidebar.settings'), href: '/business-panel/settings', icon: Settings },
-  ], [t])
+    { name: t('sidebar.dashboard'), href: `/${orgSlug}/business-panel/dashboard`, icon: LayoutDashboard },
+    { name: t('sidebar.users'), href: `/${orgSlug}/business-panel/users`, icon: Users },
+    { name: t('sidebar.courses'), href: `/${orgSlug}/business-panel/courses`, icon: BookOpen },
+    { name: t('sidebar.teams'), href: `/${orgSlug}/business-panel/teams`, icon: UsersRound },
+    { name: t('sidebar.reports'), href: `/${orgSlug}/business-panel/reports`, icon: FileText },
+    { name: t('sidebar.analytics'), href: `/${orgSlug}/business-panel/analytics`, icon: BarChart3 },
+    { name: t('sidebar.settings'), href: `/${orgSlug}/business-panel/settings`, icon: Settings },
+  ], [t, orgSlug])
 
   // State for hover/pin interaction
   const [isHovered, setIsHovered] = useState(false)
@@ -248,6 +252,7 @@ export function BusinessPanelSidebar({
           <ul className="space-y-1.5">
             {navigation.map((item) => {
               const Icon = item.icon
+              /* Check if active: exact match or starts with (for sub-routes) */
               const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
 
               return (
@@ -256,7 +261,9 @@ export function BusinessPanelSidebar({
                     href={item.href}
                     onClick={() => {
                       if (isMobile) onClose();
-                      onSectionChange(item.href.replace('/business-panel/', ''));
+                      /* Extract section name for analytics/state tracking, removing the orgSlug prefix */
+                      const sectionName = item.href.split('/').pop() || ''; 
+                      onSectionChange(sectionName);
                       if (!isMobile && isCollapsed && !isPinned && isHovered) {
                         setIsHovered(false)
                       }

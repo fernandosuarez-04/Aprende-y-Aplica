@@ -32,15 +32,52 @@ export interface BusinessAuth {
   userId: string;
   userEmail: string;
   userRole: string;
+  /** Organization ID (from organization_users or request context) */
   organizationId?: string;
+  /** Organization slug for URL building */
+  organizationSlug?: string;
+  /** User's role in the organization */
+  organizationRole?: 'owner' | 'admin' | 'member';
+  /** Whether user is an admin/owner of the organization */
+  isOrgAdmin?: boolean;
+}
+
+/**
+ * Options for requireBusiness middleware
+ */
+export interface RequireBusinessOptions {
+  /**
+   * Specific organization ID to verify membership against.
+   * If provided, verifies user belongs to this specific org.
+   */
+  organizationId?: string;
+
+  /**
+   * Organization slug to verify membership against.
+   * Alternative to organizationId for URL-based routing.
+   */
+  organizationSlug?: string;
 }
 
 /**
  * Verifica autenticación y autorización de Business Admin
- * 
+ *
+ * @param options - Optional configuration for organization verification
  * @returns BusinessAuth si el usuario es Business autenticado, o NextResponse con error
+ *
+ * @example
+ * ```typescript
+ * // Basic usage - uses user's default organization
+ * const auth = await requireBusiness();
+ *
+ * // With specific organization verification
+ * const auth = await requireBusiness({ organizationSlug: 'acme-corp' });
+ *
+ * // With organization ID
+ * const auth = await requireBusiness({ organizationId: 'uuid-here' });
+ * ```
  */
-export async function requireBusiness(): Promise<BusinessAuth | NextResponse> {
+export async function requireBusiness(options?: RequireBusinessOptions): Promise<BusinessAuth | NextResponse> {
   try {
     const cookieStore = await cookies();
     const supabase = await createClient();
@@ -203,31 +240,115 @@ export async function requireBusiness(): Promise<BusinessAuth | NextResponse> {
 
     // PASO 7: Obtener organizationId desde organization_users (única fuente de verdad)
     let organizationId: string | undefined = undefined;
+    let organizationSlug: string | undefined = undefined;
+    let organizationRole: 'owner' | 'admin' | 'member' | undefined = undefined;
 
-    const { data: userOrgs } = await supabase
-      .from('organization_users')
-      .select('organization_id, joined_at')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('joined_at', { ascending: false })
-      .limit(1);
+    // If specific organization is requested via options, verify membership
+    if (options?.organizationId || options?.organizationSlug) {
+      // Build query based on what was provided
+      let orgQuery = supabase
+        .from('organizations')
+        .select('id, slug')
+        .eq('is_active', true);
 
-    if (userOrgs && userOrgs.length > 0) {
-      organizationId = userOrgs[0].organization_id;
+      if (options.organizationId) {
+        orgQuery = orgQuery.eq('id', options.organizationId);
+      } else if (options.organizationSlug) {
+        orgQuery = orgQuery.eq('slug', options.organizationSlug);
+      }
+
+      const { data: requestedOrg, error: orgError } = await orgQuery.single();
+
+      if (orgError || !requestedOrg) {
+        logger.warn('Requested organization not found', {
+          organizationId: options.organizationId,
+          organizationSlug: options.organizationSlug
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Organización no encontrada.'
+          },
+          { status: 404 }
+        );
+      }
+
+      // Verify user belongs to this specific organization
+      const { data: membership, error: membershipError } = await supabase
+        .from('organization_users')
+        .select('role')
+        .eq('organization_id', requestedOrg.id)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (membershipError || !membership) {
+        logger.warn('User not member of requested organization', {
+          userId: user.id,
+          organizationId: requestedOrg.id
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'No tienes acceso a esta organización.'
+          },
+          { status: 403 }
+        );
+      }
+
+      organizationId = requestedOrg.id;
+      organizationSlug = requestedOrg.slug;
+      organizationRole = membership.role as 'owner' | 'admin' | 'member';
+    } else {
+      // Default: get user's most recent organization
+      const { data: userOrgs } = await supabase
+        .from('organization_users')
+        .select(`
+          organization_id,
+          role,
+          joined_at,
+          organizations!inner (
+            id,
+            slug,
+            is_active
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .eq('organizations.is_active', true)
+        .order('joined_at', { ascending: false })
+        .limit(1);
+
+      if (userOrgs && userOrgs.length > 0) {
+        const org = userOrgs[0];
+        organizationId = org.organization_id;
+        organizationRole = org.role as 'owner' | 'admin' | 'member';
+        // Access nested organization data
+        const orgData = org.organizations as unknown as { id: string; slug: string };
+        organizationSlug = orgData?.slug;
+      }
     }
+
+    const isOrgAdmin = organizationRole === 'owner' || organizationRole === 'admin';
 
     // ✅ AUTENTICACIÓN Y AUTORIZACIÓN EXITOSA
     logger.auth('Business access granted', {
       userId: user.id,
       email: user.email,
-      organizationId: organizationId
+      organizationId: organizationId,
+      organizationSlug: organizationSlug,
+      organizationRole: organizationRole,
+      isOrgAdmin: isOrgAdmin
     });
 
     return {
       userId: user.id,
       userEmail: user.email,
       userRole: user.cargo_rol,
-      organizationId: organizationId
+      organizationId: organizationId,
+      organizationSlug: organizationSlug,
+      organizationRole: organizationRole,
+      isOrgAdmin: isOrgAdmin
     };
 
   } catch (error) {

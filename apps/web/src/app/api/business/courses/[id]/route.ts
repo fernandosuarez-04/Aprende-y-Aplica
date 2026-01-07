@@ -184,6 +184,7 @@ export async function GET(
             lesson_description,
             lesson_order_index,
             duration_seconds,
+            total_duration_minutes,
             video_provider,
             video_provider_id,
             is_published
@@ -195,35 +196,44 @@ export async function GET(
         const lessonsList = lessons || []
         const lessonIds = lessonsList.map((l: any) => l.lesson_id)
 
-        // Obtener tiempo de materiales y actividades para todas las lecciones del módulo
-        let materialsMinutes = 0
-        let activitiesMinutes = 0
+        // Calcular duración usando total_duration_minutes de cada lección (prioridad)
+        // Este campo ya incluye video + materiales + actividades
+        let totalModuleDuration = 0
+        let hasLessonTotalDuration = false
 
-        if (lessonIds.length > 0) {
-          // Obtener materiales
+        // Primero, intentar usar total_duration_minutes de cada lección
+        for (const lesson of lessonsList) {
+          if (lesson.total_duration_minutes && lesson.total_duration_minutes > 0) {
+            totalModuleDuration += lesson.total_duration_minutes
+            hasLessonTotalDuration = true
+          } else if (lesson.duration_seconds && lesson.duration_seconds > 0) {
+            // Fallback: usar duration_seconds si no hay total_duration_minutes
+            totalModuleDuration += Math.ceil(lesson.duration_seconds / 60)
+          }
+        }
+
+        // Si ninguna lección tiene total_duration_minutes, calcular manualmente
+        if (!hasLessonTotalDuration && lessonIds.length > 0) {
+          // Obtener tiempo de materiales
           const { data: materials } = await supabase
             .from('lesson_materials')
             .select('estimated_time_minutes')
             .in('lesson_id', lessonIds)
 
-          materialsMinutes = (materials || []).reduce((sum: number, m: any) =>
+          const materialsMinutes = (materials || []).reduce((sum: number, m: any) =>
             sum + (m.estimated_time_minutes || 0), 0)
 
-          // Obtener actividades
+          // Obtener tiempo de actividades
           const { data: activities } = await supabase
             .from('lesson_activities')
             .select('estimated_time_minutes')
             .in('lesson_id', lessonIds)
 
-          activitiesMinutes = (activities || []).reduce((sum: number, a: any) =>
+          const activitiesMinutes = (activities || []).reduce((sum: number, a: any) =>
             sum + (a.estimated_time_minutes || 0), 0)
-        }
 
-        // Calcular duración total del módulo (videos + materiales + actividades)
-        const videoSeconds = lessonsList.reduce((sum: number, l: any) =>
-          sum + (l.duration_seconds || 0), 0)
-        const videoMinutes = Math.round(videoSeconds / 60)
-        const totalModuleDuration = videoMinutes + materialsMinutes + activitiesMinutes
+          totalModuleDuration += materialsMinutes + activitiesMinutes
+        }
 
         return {
           ...module,

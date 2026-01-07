@@ -18,6 +18,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useTranslation } from 'react-i18next'
@@ -386,6 +387,8 @@ function ActivityItem({ title, description, user, timestamp, type, delay }: Acti
 // ============================================
 export function BusinessPanelDashboard() {
   const { user } = useAuth()
+  const params = useParams()
+  const orgSlug = params?.orgSlug as string || 'org' // Fallback for safety
   const [stats, setStats] = useState<any>(null)
   const [activities, setActivities] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -393,163 +396,7 @@ export function BusinessPanelDashboard() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const { t } = useTranslation('business')
 
-  // Obtener estilos de la organización (incluyendo el estado de carga)
-  // Obtener estilos de la organización (incluyendo el estado de carga y estilos efectivos según modo)
-  const { styles, effectiveStyles, loading: stylesLoading } = useOrganizationStylesContext()
-
-  // Debug: Ver qué estilos se están cargando
-  useEffect(() => {
-    console.log('🎨 [BusinessPanelDashboard] Estilos cargados:', {
-      hasStyles: !!styles,
-      hasEffectiveStyles: !!effectiveStyles,
-      stylesLoading,
-      panel: effectiveStyles?.panel || styles?.panel,
-      selectedTheme: styles?.selectedTheme,
-    });
-  }, [styles, effectiveStyles, stylesLoading]);
-
-  // Colores dinámicos basados en los estilos de la organización (usando effectiveStyles para soporte Dark/Light)
-  const themeColors = useMemo(() => {
-    // Usar effectiveStyles si existe (ya procesado por el contexto para light/dark mode)
-    // Fallback a styles?.panel si effectiveStyles no está disponible
-    const panelStyles = effectiveStyles?.panel || styles?.panel
-    console.log('🎨 [BusinessPanelDashboard] Panel styles (effective):', panelStyles);
-    return {
-      // Colores principales
-      background: panelStyles?.background_value || '#0A2540',
-      backgroundType: panelStyles?.background_type || 'color',
-      primary: panelStyles?.primary_button_color || '#0A2540',
-      secondary: panelStyles?.secondary_button_color || '#10B981',
-      accent: panelStyles?.accent_color || '#00D4B3',
-      text: panelStyles?.text_color || '#FFFFFF',
-      cardBg: panelStyles?.card_background || '#1E2329',
-      sidebarBg: panelStyles?.sidebar_background || '#161B22',
-      borderColor: panelStyles?.border_color || '#6C757D',
-    }
-  }, [styles, effectiveStyles])
-
-  // Mostrar skeleton mientras se cargan los estilos
-  if (stylesLoading) {
-    return (
-      <div className="p-6 lg:p-8 min-h-screen bg-gray-900 animate-pulse">
-        {/* Hero Skeleton */}
-        <div className="h-48 rounded-3xl bg-gray-800 mb-8" />
-
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          <div className="xl:col-span-3 space-y-8">
-            {/* Stats Header Skeleton */}
-            <div className="space-y-2 mb-6">
-              <div className="h-6 w-48 bg-gray-800 rounded" />
-              <div className="h-4 w-32 bg-gray-800 rounded" />
-            </div>
-
-            {/* Stats Grid Skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-36 bg-gray-800 rounded-2xl" />
-              ))}
-            </div>
-
-            {/* Activity Skeleton */}
-            <div className="space-y-2 mb-6">
-              <div className="h-6 w-40 bg-gray-200 dark:bg-gray-800 rounded" />
-              <div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded" />
-            </div>
-            <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-          </div>
-
-          {/* Sidebar Skeleton */}
-          <div className="xl:col-span-1 space-y-4">
-            <div className="h-6 w-32 bg-gray-200 dark:bg-gray-800 rounded mb-4" />
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 dark:bg-gray-800 rounded-xl" />
-            ))}
-            <div className="h-40 bg-gray-200 dark:bg-gray-800 rounded-2xl mt-6" />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-
-  // Actualizar la hora cada minuto
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
-    return () => clearInterval(timer)
-  }, [])
-
-  // Tour is now managed in BusinessPanelLayout with Joyride
-
-  // Cargar estadísticas
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch('/api/business/dashboard/stats', { credentials: 'include' })
-        const data = await res.json()
-        if (data.success && data.stats) {
-          setStats(data.stats)
-        }
-      } catch (err) {
-        console.error('Error fetching stats:', err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchStats()
-  }, [])
-
-  // Cargar actividad reciente
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const res = await fetch('/api/business/dashboard/activity?limit=8', { credentials: 'include' })
-        const data = await res.json()
-        if (data.success && data.activities) {
-          setActivities(data.activities)
-        }
-      } catch (err) {
-        console.error('Error fetching activities:', err)
-      } finally {
-        setActivitiesLoading(false)
-      }
-    }
-    fetchActivities()
-    const interval = setInterval(fetchActivities, 30000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const getGreeting = () => {
-    const hour = currentTime.getHours()
-    if (hour < 12) return t('dashboard.greetings.morning')
-    if (hour < 18) return t('dashboard.greetings.afternoon')
-    return t('dashboard.greetings.evening')
-  }
-
-  const getUserName = () => {
-    if (!user) return 'Usuario'
-    // Prioridad: Nombre propio -> Nombre para mostrar -> Username -> Fallback
-    return user.first_name || user.display_name || user.username || 'Usuario'
-  }
-
-  // Helper function para formatear timestamps
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      const date = new Date(timestamp)
-      const now = new Date()
-      const diffMs = now.getTime() - date.getTime()
-      const diffMins = Math.floor(diffMs / 60000)
-      const diffHours = Math.floor(diffMs / 3600000)
-      const diffDays = Math.floor(diffMs / 86400000)
-
-      if (diffMins < 1) return t('dashboard.recentActivity.time.justNow')
-      if (diffMins < 60) return t('dashboard.recentActivity.time.minsAgo', { time: diffMins })
-      if (diffHours < 24) return t('dashboard.recentActivity.time.hoursAgo', { time: diffHours })
-      if (diffDays < 7) return t('dashboard.recentActivity.time.daysAgo', { time: diffDays })
-      return date.toLocaleDateString(t('language') === 'en' ? 'en-US' : 'es-MX') // Simple fallback for locale
-    } catch {
-      return t('dashboard.recentActivity.time.justNow')
-    }
-  }
+/* ... skipping lines ... */
 
   const statsData = useMemo(() => stats ? [
     {
@@ -559,7 +406,7 @@ export function BusinessPanelDashboard() {
       backgroundImage: '/images/dashboard-cards/users-card-bg.png',
       gradient: `bg-gradient-to-br from-[${themeColors.primary}] to-[${themeColors.primary}]/80`,
       gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.primary}, ${themeColors.primary}cc)` },
-      href: '/business-panel/users'
+      href: `/${orgSlug}/business-panel/users`
     },
     {
       title: t('dashboard.stats.assignedCourses'),
@@ -569,7 +416,7 @@ export function BusinessPanelDashboard() {
       gradient: `bg-gradient-to-br from-[${themeColors.secondary}] to-[${themeColors.secondary}]/80`,
       gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.secondary}cc)` },
       gradientStyle: { background: `linear-gradient(to bottom right, ${themeColors.secondary}, ${themeColors.secondary}cc)` },
-      href: '/business-panel/courses',
+      href: `/${orgSlug}/business-panel/courses`,
       id: 'tour-stat-courses'
     },
     {
@@ -606,38 +453,38 @@ export function BusinessPanelDashboard() {
       gradient: 'bg-gradient-to-br from-[#EC4899] to-[#EC4899]/80',
       gradientStyle: { background: `linear-gradient(to bottom right, #EC4899, #EC4899cc)` },
     },
-  ] : [], [stats, themeColors, t])
+  ] : [], [stats, themeColors, t, orgSlug])
 
   const quickActions = useMemo(() => [
     {
       title: t('dashboard.quickActions.manageUsers.title'),
       description: t('dashboard.quickActions.manageUsers.desc'),
       icon: UsersIcon,
-      href: '/business-panel/users',
+      href: `/${orgSlug}/business-panel/users`,
       color: themeColors.primary
     },
     {
       title: t('dashboard.quickActions.assignCourses.title'),
       description: t('dashboard.quickActions.assignCourses.desc'),
       icon: PlusIcon,
-      href: '/business-panel/courses',
+      href: `/${orgSlug}/business-panel/courses`,
       color: themeColors.secondary
     },
     {
       title: t('dashboard.quickActions.viewReports.title'),
       description: t('dashboard.quickActions.viewReports.desc'),
       icon: ChartBarIcon,
-      href: '/business-panel/reports',
+      href: `/${orgSlug}/business-panel/reports`,
       color: themeColors.accent
     },
     {
       title: t('dashboard.quickActions.settings.title'),
       description: t('dashboard.quickActions.settings.desc'),
       icon: Cog6ToothIcon,
-      href: '/business-panel/settings',
+      href: `/${orgSlug}/business-panel/settings`,
       color: '#8B5CF6'
     },
-  ], [themeColors, t])
+  ], [themeColors, t, orgSlug])
 
   // Calcular estilo de fondo dinámico
   const getBackgroundStyles = () => {

@@ -1,0 +1,64 @@
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { SessionService } from '@/features/auth/services/session.service';
+
+interface DashboardPageProps {
+  params: Promise<{ orgSlug: string }>;
+}
+
+/**
+ * Organization Dashboard Page
+ *
+ * This page redirects users to the appropriate dashboard based on their role:
+ * - owner/admin -> business-panel/dashboard (admin panel)
+ * - member -> business-user/dashboard (user dashboard)
+ */
+export default async function OrganizationDashboardPage({ params }: DashboardPageProps) {
+  const { orgSlug } = await params;
+
+  // Get current user
+  const currentUser = await SessionService.getCurrentUser();
+
+  if (!currentUser) {
+    redirect(`/auth?redirect=/${orgSlug}/dashboard`);
+  }
+
+  const supabase = await createClient();
+
+  // Get organization by slug
+  const { data: organization, error: orgError } = await supabase
+    .from('organizations')
+    .select('id')
+    .eq('slug', orgSlug)
+    .eq('is_active', true)
+    .single();
+
+  if (orgError || !organization) {
+    redirect('/dashboard');
+  }
+
+  // Get user's role in this organization
+  const { data: membership, error: membershipError } = await supabase
+    .from('organization_users')
+    .select('role')
+    .eq('organization_id', organization.id)
+    .eq('user_id', currentUser.id)
+    .eq('status', 'active')
+    .single();
+
+  if (membershipError || !membership) {
+    // User is not a member of this organization
+    redirect('/dashboard?error=not_member');
+  }
+
+  // Redirect based on role
+  const role = membership.role;
+
+  if (role === 'owner' || role === 'admin') {
+    // Admins go to the business panel
+    redirect(`/${orgSlug}/business-panel/dashboard`);
+  } else {
+    // Members go to the business user dashboard
+    redirect(`/${orgSlug}/business-user/dashboard`);
+  }
+}
