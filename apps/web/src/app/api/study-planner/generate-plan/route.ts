@@ -32,6 +32,16 @@ export async function POST(request: NextRequest) {
     const result = generateDeterministicPlan(lessons as Lesson[], preferences as Preferences, deadlineDate, body.maxSessionMinutes || 50);
 
     if (typeof result !== 'string') {
+       // Si excede deadline, calcular alternativas válidas
+       if (result.exceedsDeadline && deadlineDate) {
+         const validAlternatives = calculateValidAlternatives(
+           lessons as Lesson[],
+           preferences as Preferences,
+           deadlineDate,
+           body.maxSessionMinutes || 50
+         );
+         return NextResponse.json({ ...result, validAlternatives });
+       }
        return NextResponse.json(result);
     }
 
@@ -285,4 +295,224 @@ function getWeekNumber(date: Date, startDate: Date): number {
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+interface ValidAlternative {
+  id: string;
+  description: string;
+  days: string[];
+  times: string[];
+  sessionDuration: number;
+  estimatedEndDate: string;
+  daysBeforeDeadline: number;
+}
+
+/**
+ * Calcula alternativas VÁLIDAS que realmente permiten terminar antes del deadline.
+ * Prueba diferentes combinaciones de días, horarios y duraciones de sesión.
+ */
+function calculateValidAlternatives(
+  lessons: Lesson[],
+  currentPrefs: Preferences,
+  deadlineDate: string,
+  maxSessionMinutes: number
+): ValidAlternative[] {
+  const validAlternatives: ValidAlternative[] = [];
+  const deadline = new Date(deadlineDate);
+  deadline.setHours(0, 0, 0, 0);
+
+  const allDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+  const allTimes = ['mañana', 'tarde', 'noche'];
+
+  const currentDays = currentPrefs.days.map(d => d.toLowerCase());
+  const currentTimes = currentPrefs.times.map(t => t.toLowerCase());
+
+  // Calcular días y horarios faltantes
+  const missingDays = allDays.filter(d => !currentDays.includes(d));
+  const missingTimes = allTimes.filter(t => !currentTimes.includes(t));
+
+  // Función auxiliar para probar una configuración y ver si cumple el deadline
+  const testConfiguration = (days: string[], times: string[], sessionDuration: number): { valid: boolean, endDate: Date | null } => {
+    const testPrefs: Preferences = {
+      days,
+      times,
+      startDate: currentPrefs.startDate
+    };
+
+    const result = generateDeterministicPlan(lessons, testPrefs, undefined, sessionDuration);
+
+    if (typeof result === 'string') {
+      // Extraer fecha del plan - buscar "Fecha de finalización:"
+      const match = result.match(/Fecha de finalización:\s*(\d+)\s+de\s+(\w+)\s+de\s+(\d+)/i);
+      if (match) {
+        const monthMap: { [key: string]: number } = {
+          'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+          'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+        };
+        const day = parseInt(match[1]);
+        const month = monthMap[match[2].toLowerCase()];
+        const year = parseInt(match[3]);
+        const endDate = new Date(year, month, day);
+        endDate.setHours(0, 0, 0, 0);
+        return { valid: endDate <= deadline, endDate };
+      }
+    }
+    return { valid: false, endDate: null };
+  };
+
+  // Opción 1: Agregar fines de semana (sábado y/o domingo)
+  const weekendDays = ['sábado', 'domingo'].filter(d => !currentDays.includes(d));
+  if (weekendDays.length > 0) {
+    // Probar agregando solo sábado
+    if (!currentDays.includes('sábado')) {
+      const daysWithSat = [...currentDays, 'sábado'];
+      const result = testConfiguration(daysWithSat, currentTimes, maxSessionMinutes);
+      if (result.valid && result.endDate) {
+        const daysBeforeDeadline = Math.ceil((deadline.getTime() - result.endDate.getTime()) / (1000 * 3600 * 24));
+        validAlternatives.push({
+          id: 'add_saturday',
+          description: `Agregar sábado a tus días de estudio`,
+          days: daysWithSat,
+          times: currentTimes,
+          sessionDuration: maxSessionMinutes,
+          estimatedEndDate: result.endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+          daysBeforeDeadline
+        });
+      }
+    }
+
+    // Probar agregando sábado y domingo
+    if (weekendDays.length === 2) {
+      const daysWithWeekend = [...currentDays, 'sábado', 'domingo'];
+      const result = testConfiguration(daysWithWeekend, currentTimes, maxSessionMinutes);
+      if (result.valid && result.endDate) {
+        const daysBeforeDeadline = Math.ceil((deadline.getTime() - result.endDate.getTime()) / (1000 * 3600 * 24));
+        validAlternatives.push({
+          id: 'add_weekend',
+          description: `Agregar sábado y domingo a tus días de estudio`,
+          days: daysWithWeekend,
+          times: currentTimes,
+          sessionDuration: maxSessionMinutes,
+          estimatedEndDate: result.endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+          daysBeforeDeadline
+        });
+      }
+    }
+  }
+
+  // Opción 2: Agregar más días de semana
+  const weekdaysMissing = missingDays.filter(d => !['sábado', 'domingo'].includes(d));
+  for (let i = 1; i <= Math.min(weekdaysMissing.length, 3); i++) {
+    const additionalDays = weekdaysMissing.slice(0, i);
+    const newDays = [...currentDays, ...additionalDays];
+    const result = testConfiguration(newDays, currentTimes, maxSessionMinutes);
+    if (result.valid && result.endDate) {
+      const daysBeforeDeadline = Math.ceil((deadline.getTime() - result.endDate.getTime()) / (1000 * 3600 * 24));
+      // Evitar duplicados
+      const alreadyExists = validAlternatives.some(a =>
+        JSON.stringify(a.days.sort()) === JSON.stringify(newDays.sort())
+      );
+      if (!alreadyExists) {
+        validAlternatives.push({
+          id: `add_weekdays_${i}`,
+          description: `Agregar ${additionalDays.join(' y ')} a tus días de estudio`,
+          days: newDays,
+          times: currentTimes,
+          sessionDuration: maxSessionMinutes,
+          estimatedEndDate: result.endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+          daysBeforeDeadline
+        });
+      }
+      break; // Solo agregar la primera combinación que funcione
+    }
+  }
+
+  // Opción 3: Agregar horarios adicionales (ej: estudiar mañana Y tarde)
+  if (currentTimes.length < 3 && missingTimes.length > 0) {
+    for (const additionalTime of missingTimes) {
+      const newTimes = [...currentTimes, additionalTime];
+      const result = testConfiguration(currentDays, newTimes, maxSessionMinutes);
+      if (result.valid && result.endDate) {
+        const daysBeforeDeadline = Math.ceil((deadline.getTime() - result.endDate.getTime()) / (1000 * 3600 * 24));
+        validAlternatives.push({
+          id: `add_time_${additionalTime}`,
+          description: `Agregar sesiones en la ${additionalTime} además de la ${currentTimes.join(' y ')}`,
+          days: currentDays,
+          times: newTimes,
+          sessionDuration: maxSessionMinutes,
+          estimatedEndDate: result.endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+          daysBeforeDeadline
+        });
+        break; // Solo la primera que funcione
+      }
+    }
+  }
+
+  // Opción 4: Aumentar duración de sesiones (en incrementos de 15 minutos)
+  for (let extraMinutes = 15; extraMinutes <= 60; extraMinutes += 15) {
+    const newDuration = maxSessionMinutes + extraMinutes;
+    const result = testConfiguration(currentDays, currentTimes, newDuration);
+    if (result.valid && result.endDate) {
+      const daysBeforeDeadline = Math.ceil((deadline.getTime() - result.endDate.getTime()) / (1000 * 3600 * 24));
+      validAlternatives.push({
+        id: `increase_duration_${extraMinutes}`,
+        description: `Aumentar cada sesión a ${newDuration} minutos (+${extraMinutes} min)`,
+        days: currentDays,
+        times: currentTimes,
+        sessionDuration: newDuration,
+        estimatedEndDate: result.endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+        daysBeforeDeadline
+      });
+      break; // Solo la primera que funcione
+    }
+  }
+
+  // Opción 5: Combinación - agregar días Y aumentar duración (si las anteriores no funcionan)
+  if (validAlternatives.length === 0) {
+    // Probar agregando todos los días faltantes + aumentando duración
+    const allDaysPossible = [...new Set([...currentDays, ...missingDays.slice(0, 2)])];
+    for (let extraMinutes = 15; extraMinutes <= 90; extraMinutes += 15) {
+      const newDuration = maxSessionMinutes + extraMinutes;
+      const result = testConfiguration(allDaysPossible, currentTimes, newDuration);
+      if (result.valid && result.endDate) {
+        const daysBeforeDeadline = Math.ceil((deadline.getTime() - result.endDate.getTime()) / (1000 * 3600 * 24));
+        const addedDays = missingDays.slice(0, 2).filter(d => !currentDays.includes(d));
+        validAlternatives.push({
+          id: 'combo_days_duration',
+          description: `Agregar ${addedDays.join(' y ')} + sesiones de ${newDuration} min`,
+          days: allDaysPossible,
+          times: currentTimes,
+          sessionDuration: newDuration,
+          estimatedEndDate: result.endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+          daysBeforeDeadline
+        });
+        break;
+      }
+    }
+  }
+
+  // Opción 6: Estudiar todos los días + múltiples horarios (opción intensiva)
+  if (validAlternatives.length < 3) {
+    const intensiveDays = allDays;
+    const intensiveTimes = currentTimes.length < 2 ? [...currentTimes, missingTimes[0] || 'tarde'] : currentTimes;
+    const result = testConfiguration(intensiveDays, intensiveTimes, maxSessionMinutes + 30);
+    if (result.valid && result.endDate) {
+      const daysBeforeDeadline = Math.ceil((deadline.getTime() - result.endDate.getTime()) / (1000 * 3600 * 24));
+      validAlternatives.push({
+        id: 'intensive',
+        description: `Plan intensivo: estudiar todos los días con sesiones de ${maxSessionMinutes + 30} min`,
+        days: intensiveDays,
+        times: intensiveTimes,
+        sessionDuration: maxSessionMinutes + 30,
+        estimatedEndDate: result.endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+        daysBeforeDeadline
+      });
+    }
+  }
+
+  // Ordenar por días antes del deadline (las que dejan más margen primero)
+  validAlternatives.sort((a, b) => b.daysBeforeDeadline - a.daysBeforeDeadline);
+
+  // Limitar a 4 alternativas máximo
+  return validAlternatives.slice(0, 4);
 }

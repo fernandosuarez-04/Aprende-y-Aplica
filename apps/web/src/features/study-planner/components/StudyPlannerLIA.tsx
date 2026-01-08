@@ -2934,21 +2934,38 @@ INSTRUCCIONES:
     }
 
     // Verificar si ya tiene calendario conectado antes de generar el mensaje
-    let calendarAlreadyConnected = false;
-    let calendarProvider: 'google' | 'microsoft' | null = null;
+    // ✅ CORRECCIÓN: Primero usar el estado local (connectedCalendar) que ya fue establecido
+    // cuando se conectó el calendario. Solo hacer consulta HTTP como fallback.
+    let calendarAlreadyConnected = connectedCalendar !== null;
+    let calendarProvider: 'google' | 'microsoft' | null = connectedCalendar;
 
-    try {
-      const calendarResponse = await fetch('/api/study-planner/calendar/status');
-      if (calendarResponse.ok) {
-        const calendarData = await calendarResponse.json();
-        if (calendarData.isConnected && calendarData.provider) {
-          calendarAlreadyConnected = true;
-          calendarProvider = calendarData.provider;
-          setConnectedCalendar(calendarData.provider as 'google' | 'microsoft');
+    console.log('🔍 [handleApproachSelection] Estado inicial del calendario:', {
+      connectedCalendarState: connectedCalendar,
+      calendarAlreadyConnected,
+      calendarProvider
+    });
+
+    // Si el estado local no indica conexión, verificar con el servidor como fallback
+    if (!calendarAlreadyConnected) {
+      try {
+        console.log('📡 [handleApproachSelection] Consultando estado del calendario al servidor...');
+        const calendarResponse = await fetch('/api/study-planner/calendar/status');
+        if (calendarResponse.ok) {
+          const calendarData = await calendarResponse.json();
+          console.log('📡 [handleApproachSelection] Respuesta del servidor:', calendarData);
+          if (calendarData.isConnected && calendarData.provider) {
+            calendarAlreadyConnected = true;
+            calendarProvider = calendarData.provider;
+            setConnectedCalendar(calendarData.provider as 'google' | 'microsoft');
+          }
+        } else {
+          console.warn('⚠️ [handleApproachSelection] Error HTTP verificando calendario:', calendarResponse.status);
         }
+      } catch (error) {
+        console.error('❌ [handleApproachSelection] Error verificando calendario:', error);
       }
-    } catch (error) {
-      console.error('Error verificando calendario:', error);
+    } else {
+      console.log('✅ [handleApproachSelection] Usando estado local del calendario (ya conectado)');
     }
 
     // Construir el prompt para LIA dependiendo del estado del calendario
@@ -3061,28 +3078,37 @@ INSTRUCCIONES:
       calendarAlreadyConnected,
       calendarProvider,
       nearestDueDateFormatted,
-      approach
+      approach,
+      connectedCalendarState: connectedCalendar // También loguear el estado React
     });
 
     if (calendarAlreadyConnected && calendarProvider) {
-      console.log('✅ [handleApproachSelection] Calendario conectado, iniciando análisis en 5 segundos...');
+      console.log('✅ [handleApproachSelection] Calendario conectado, iniciando análisis en 2 segundos...');
+      // ✅ CORRECCIÓN: Reducir timeout y usar provider capturado para evitar problemas de closure
+      const providerToUse = calendarProvider;
+      const dateToUse = nearestDueDateFormatted ?? undefined;
+
       setTimeout(async () => {
-        console.log('🚀 [handleApproachSelection] Ejecutando analyzeCalendarAndSuggest...');
+        console.log('🚀 [handleApproachSelection] Ejecutando analyzeCalendarAndSuggest...', {
+          provider: providerToUse,
+          targetDate: dateToUse,
+          approach
+        });
         try {
           await analyzeCalendarAndSuggest(
-            calendarProvider,
-            nearestDueDateFormatted || undefined,
+            providerToUse,
+            dateToUse,
             approach // Usar la selección del usuario
           );
-          console.log('✅ [handleApproachSelection] analyzeCalendarAndSuggest completado');
+          console.log('✅ [handleApproachSelection] analyzeCalendarAndSuggest completado exitosamente');
         } catch (error) {
           console.error('❌ [handleApproachSelection] Error en analyzeCalendarAndSuggest:', error);
           // ✅ FIX: Mostrar mensaje de fallback al usuario cuando hay un error
           setIsProcessing(false);
-          const fallbackMsg = `Tu calendario de ${calendarProvider === 'google' ? 'Google' : 'Microsoft'} está conectado, pero hubo un pequeño problema al analizarlo.\n\n¿Qué días de la semana prefieres estudiar? ¿Y en qué horario te concentras mejor: **mañana**, **tarde** o **noche**?`;
+          const fallbackMsg = `Tu calendario de ${providerToUse === 'google' ? 'Google' : 'Microsoft'} está conectado, pero hubo un pequeño problema al analizarlo.\n\n¿Qué días de la semana prefieres estudiar? ¿Y en qué horario te concentras mejor: **mañana**, **tarde** o **noche**?`;
           setConversationHistory(prev => [...prev, { role: 'assistant', content: fallbackMsg }]);
         }
-      }, 5000); // Esperar 5 segundos para que el usuario lea el mensaje
+      }, 2000); // ✅ Reducido a 2 segundos para mejor UX
     } else if (!calendarSkipped) {
       console.log('⚠️ [handleApproachSelection] Calendario NO conectado y NO rechazado, mostrando modal...');
       // Calendario NO está conectado Y el usuario NO ha rechazado, mostrar modal después de un delay
@@ -6511,6 +6537,7 @@ Cuéntame manualmente:
 
   // Desconectar calendario
   const disconnectCalendar = async (provider: 'google' | 'microsoft') => {
+    console.log('🔌 [disconnectCalendar] Iniciando desconexión de:', provider);
     try {
       setIsConnectingCalendar(true);
 
@@ -6524,6 +6551,7 @@ Cuéntame manualmente:
       });
 
       const data = await response.json();
+      console.log('🔌 [disconnectCalendar] Respuesta:', { ok: response.ok, data });
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error al desconectar el calendario');
@@ -6531,9 +6559,12 @@ Cuéntame manualmente:
 
       // Actualizar estado local
       setConnectedCalendar(null);
+      // ✅ CORRECCIÓN: Cerrar el modal después de desconectar para permitir reconexión
+      setShowCalendarModal(false);
+      console.log('✅ [disconnectCalendar] Estado actualizado: connectedCalendar = null');
 
       // Agregar mensaje a la conversación
-      const disconnectMsg = `He desconectado tu calendario de ${provider === 'google' ? 'Google' : 'Microsoft'}.`;
+      const disconnectMsg = `He desconectado tu calendario de ${provider === 'google' ? 'Google' : 'Microsoft'}. Puedes volver a conectarlo cuando lo desees.`;
       setConversationHistory(prev => [...prev, {
         role: 'assistant',
         content: disconnectMsg
@@ -6543,7 +6574,7 @@ Cuéntame manualmente:
         await speakText(`Calendario de ${provider === 'google' ? 'Google' : 'Microsoft'} desconectado exitosamente.`);
       }
     } catch (error) {
-      console.error('Error desconectando calendario:', error);
+      console.error('❌ [disconnectCalendar] Error desconectando calendario:', error);
       const errorMsg = error instanceof Error ? error.message : 'Error desconocido al desconectar el calendario';
 
       setConversationHistory(prev => [...prev, {
@@ -7745,6 +7776,42 @@ Cuéntame:
       }
     }
 
+    // ✅ NUEVO: Detectar si el usuario está eligiendo una opción numerada de las alternativas validadas
+    // Ejemplos: "opción 1", "la primera", "la 2", "opcion 3", "prefiero la opción 2"
+    const optionMatch = lowerMessage.match(/opci[oó]n\s*(\d)|la\s+(\d)|(\d)\s*(opci[oó]n)?|primera|segunda|tercera|cuarta/i);
+    let selectedOptionNumber: number | null = null;
+
+    if (optionMatch) {
+      if (optionMatch[1]) selectedOptionNumber = parseInt(optionMatch[1]);
+      else if (optionMatch[2]) selectedOptionNumber = parseInt(optionMatch[2]);
+      else if (optionMatch[3]) selectedOptionNumber = parseInt(optionMatch[3]);
+      else if (lowerMessage.includes('primera')) selectedOptionNumber = 1;
+      else if (lowerMessage.includes('segunda')) selectedOptionNumber = 2;
+      else if (lowerMessage.includes('tercera')) selectedOptionNumber = 3;
+      else if (lowerMessage.includes('cuarta')) selectedOptionNumber = 4;
+    }
+
+    // Si eligió una opción y no tiene plan guardado (estaba en flujo de alternativas)
+    if (selectedOptionNumber !== null && savedLessonDistribution.length === 0) {
+      // Buscar en el último mensaje de LIA los datos JSON de alternativas
+      const lastAssistantMsg = conversationHistory.filter(m => m.role === 'assistant').pop();
+      const wasAlternativesMessage = lastAssistantMsg && (
+        lastAssistantMsg.content.includes('OPCIÓN') ||
+        lastAssistantMsg.content.includes('alternativas') ||
+        lastAssistantMsg.content.includes('fecha límite')
+      );
+
+      if (wasAlternativesMessage) {
+        console.log(`✅ Usuario eligió OPCIÓN ${selectedOptionNumber} de las alternativas`);
+        // Enriquecer el mensaje para que LIA sepa que debe regenerar el plan con esa opción
+        message = `${message}\n\n[SISTEMA: El usuario eligió la OPCIÓN ${selectedOptionNumber}. ` +
+          `Busca en tu contexto los datos de esa alternativa (días, horarios, duración de sesión). ` +
+          `GENERA EL PLAN INMEDIATAMENTE con esos parámetros. ` +
+          `La opción ya fue VALIDADA y garantiza terminar antes del deadline. ` +
+          `NO preguntes de nuevo, simplemente genera el plan con los horarios de la opción elegida.]`;
+      }
+    }
+
     // PRIMERO verificar si el usuario está AGREGANDO horarios (tiene prioridad sobre cambio)
     const isAddingSchedules = (
       lowerMessage.includes('añade') ||
@@ -8586,53 +8653,40 @@ Cuéntame:
               if (genData.exceedsDeadline) {
                   blockPlanGeneration = true; // ⛔ ACTIVAR BLOQUEO
 
-                  // ✅ NUEVO: Calcular alternativas específicas para proponer al usuario
-                  const allDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
-                  const userDaysLower = uniqueDays.map(d => d.toLowerCase());
-                  const missingDays = allDays.filter(d => !userDaysLower.includes(d));
+                  // ✅ USAR ALTERNATIVAS VALIDADAS POR EL BACKEND
+                  // El backend ya calculó qué opciones REALMENTE permiten completar antes del deadline
+                  const validAlternatives = genData.validAlternatives || [];
 
-                  // Calcular cuántos días adicionales necesita aproximadamente
-                  const daysExcess = genData.daysExcess || 7;
-                  const sessionsNeeded = Math.ceil(daysExcess / 7) + 1; // Sesiones adicionales por semana
-
-                  // Generar sugerencias específicas basadas en los días faltantes
-                  let suggestedDays: string[] = [];
-                  if (missingDays.includes('sábado')) suggestedDays.push('sábado');
-                  if (missingDays.includes('domingo')) suggestedDays.push('domingo');
-                  if (suggestedDays.length < sessionsNeeded) {
-                    // Agregar días de semana faltantes
-                    const weekdaysMissing = missingDays.filter(d => !['sábado', 'domingo'].includes(d));
-                    suggestedDays = [...suggestedDays, ...weekdaysMissing.slice(0, sessionsNeeded - suggestedDays.length)];
-                  }
-
-                  // Determinar horarios sugeridos basados en los que el usuario NO mencionó
-                  const allTimes = ['mañana', 'tarde', 'noche'];
-                  const userTimesLower = uniqueTimes.map(t => t.toLowerCase());
-                  const missingTimes = allTimes.filter(t => !userTimesLower.includes(t));
-
-                  // Construir opciones específicas para el usuario
                   let alternativeOptions = '';
-                  if (suggestedDays.length > 0) {
-                    alternativeOptions += `OPCIÓN 1: Agregar ${suggestedDays.slice(0, 2).join(' y ')} a tus días de estudio.\n`;
+                  if (validAlternatives.length > 0) {
+                    // Mostrar solo opciones que realmente funcionan, con fecha estimada
+                    validAlternatives.forEach((alt: any, index: number) => {
+                      alternativeOptions += `OPCIÓN ${index + 1}: ${alt.description}\n`;
+                      alternativeOptions += `   → Terminarías el: ${alt.estimatedEndDate} (${alt.daysBeforeDeadline} días antes del límite)\n\n`;
+                    });
+                  } else {
+                    // Si no hay alternativas válidas, el deadline es muy ajustado
+                    alternativeOptions = `⚠️ ADVERTENCIA: La fecha límite es muy ajustada.\n`;
+                    alternativeOptions += `Para poder completar el curso a tiempo, necesitarías estudiar TODOS los días con sesiones intensivas.\n`;
+                    alternativeOptions += `Considera solicitar una extensión de la fecha límite a tu instructor.\n`;
                   }
-                  if (missingTimes.length > 0 && uniqueTimes.length < 2) {
-                    alternativeOptions += `OPCIÓN 2: Agregar sesiones en la ${missingTimes[0]} además de la ${uniqueTimes[0] || 'mañana'}.\n`;
-                  }
-                  alternativeOptions += `OPCIÓN 3: Aumentar la duración de cada sesión (estudiar más tiempo por día).\n`;
 
                   preCalculatedPlanContext = `\n\n⛔ BLOQUEO DE SEGURIDAD: LOS HORARIOS PROPUESTOS NO CUMPLEN LA FECHA LÍMITE.\n` +
                   `Fecha estimada terminación: ${genData.endDate}\n` +
                   `Fecha límite del curso: ${genData.deadline}\n` +
                   `Exceso: ${genData.daysExcess} días.\n\n` +
-                  `⚠️ INSTRUCCIÓN CRÍTICA PARA LIA (NO esperes que el usuario proponga, TÚ PROPONE):\n` +
+                  `⚠️ INSTRUCCIÓN CRÍTICA PARA LIA:\n` +
                   `1. INFORMA al usuario que con los horarios propuestos ("${uniqueDays.join(', ')} por la ${uniqueTimes.join(' y ')}") terminarías el ${genData.endDate}, que es DESPUÉS de la fecha límite (${genData.deadline}).\n` +
                   `2. NO muestres, ni inventes, ni menciones ninguna lección.\n` +
-                  `3. PROPÓN DIRECTAMENTE estas alternativas específicas al usuario:\n\n` +
-                  `${alternativeOptions}\n` +
-                  `4. Pregunta al usuario: "¿Cuál de estas opciones te funcionaría mejor?" o "¿Te gustaría que pruebe con [opción específica]?"\n` +
-                  `5. Si el usuario elige una opción, PROCESA ESA OPCIÓN inmediatamente sin volver a preguntar.\n` +
-                  `6. NO le pidas al usuario que él proponga los horarios - TÚ eres quien propone las alternativas.\n`;
-                  console.log('⛔ [Deterministic] Plan excede fecha límite. LECCIONES OCULTADAS. Alternativas calculadas:', suggestedDays, missingTimes);
+                  `3. PROPÓN DIRECTAMENTE estas alternativas VALIDADAS (cada una incluye la fecha en que terminarías):\n\n` +
+                  `${alternativeOptions}` +
+                  `4. IMPORTANTE: Cada opción ya fue calculada y GARANTIZA terminar antes del ${genData.deadline}.\n` +
+                  `5. Pregunta al usuario: "¿Cuál de estas opciones te funcionaría mejor?"\n` +
+                  `6. Si el usuario elige una opción, GENERA EL PLAN con esos nuevos horarios.\n` +
+                  `7. DATOS DE LAS ALTERNATIVAS (para cuando el usuario elija):\n` +
+                  `${JSON.stringify(validAlternatives)}\n`;
+
+                  console.log('⛔ [Deterministic] Plan excede fecha límite. Alternativas VALIDADAS:', validAlternatives.length);
               } else if (genData.plan) {
                   preCalculatedPlanContext = `\n\n═══════════════════════════════════════════════════════════════════════════════\n🚨 PLAN DE ESTUDIO PRE-CALCULADO (PRIORIDAD MÁXIMA - COPIAR LITERALMENTE)\n═══════════════════════════════════════════════════════════════════════════════\n\n${genData.plan}\n\n⚠️ INSTRUCCIÓN OBLIGATORIA: El usuario ha definido sus horarios y CUMPLEN con la fecha límite.\n1. NO LO RECALCULES.\n2. COPIA los horarios y lecciones EXACTAMENTE como aparecen arriba.\n3. Las lecciones secuenciales (1, 1.1) YA ESTÁN AGRUPADAS correctamente.\n4. Solo dale formato bonito (negritas, emojis).\n`;
                   console.log('✅ [Deterministic] Plan pre-calculado generado e inyectado en contexto.');
@@ -10459,108 +10513,34 @@ Cuéntame:
                           </motion.button>
                         </div>
 
-                        {/* Microsoft Calendar */}
-                        <div className="relative group">
+                        {/* Microsoft Calendar - TEMPORALMENTE DESHABILITADO */}
+                        <div className="relative group grayscale">
                           <motion.button
-                            onClick={() => {
-                              if (connectedCalendar === 'microsoft') {
-                                // Si ya está conectado, desconectar primero
-                                disconnectCalendar('microsoft');
-                              } else {
-                                // Si hay otro calendario conectado, desconectarlo primero
-                                if (connectedCalendar === 'google') {
-                                  disconnectCalendar('google').then(() => {
-                                    setTimeout(() => connectMicrosoftCalendar(), 500);
-                                  });
-                                } else {
-                                  connectMicrosoftCalendar();
-                                }
-                              }
-                            }}
-                            disabled={isConnectingCalendar}
-                            whileHover={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
-                            whileTap={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 0.98 }}
-                            className={`w-full flex items-center gap-4 p-5 rounded-2xl transition-all relative overflow-hidden ${connectedCalendar === 'microsoft'
-                              ? 'bg-gradient-to-r from-green-500/20 via-green-500/15 to-green-500/20 border-2 border-green-500/60 shadow-lg shadow-green-500/20'
-                              : 'bg-gradient-to-r from-slate-700/50 to-slate-800/50 hover:from-slate-700/70 hover:to-slate-800/70 border border-slate-600/50 hover:border-slate-500/50'
-                              } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            disabled={true}
+                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 opacity-60 cursor-not-allowed"
                           >
-                            {/* Efecto de brillo en hover */}
-                            {connectedCalendar !== 'microsoft' && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                            )}
+                            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Próximamente
+                            </div>
 
                             {/* Icono de Microsoft */}
-                            <motion.div
-                              className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${connectedCalendar === 'microsoft'
-                                ? 'bg-white ring-2 ring-green-500/50'
-                                : 'bg-white'
-                                }`}
-                              whileHover={connectedCalendar !== 'microsoft' ? { rotate: [0, -5, 5, -5, 0] } : {}}
-                              transition={{ duration: 0.5 }}
-                            >
+                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white opacity-50">
                               <svg viewBox="0 0 23 23" className="w-8 h-8">
                                 <path fill="#f25022" d="M1 1h10v10H1z" />
                                 <path fill="#00a4ef" d="M12 1h10v10H12z" />
                                 <path fill="#7fba00" d="M1 12h10v10H1z" />
                                 <path fill="#ffb900" d="M12 12h10v10H12z" />
                               </svg>
-                            </motion.div>
+                            </div>
 
                             {/* Contenido del botón */}
                             <div className="flex-1 text-left min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <p className="text-[#0A2540] dark:text-white font-semibold text-sm">Microsoft Outlook</p>
-                                {connectedCalendar === 'microsoft' && (
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
-                                  />
-                                )}
                               </div>
-                              {connectedCalendar === 'microsoft' ? (
-                                <div className="text-[#10B981] text-xs flex items-center gap-2 font-medium">
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ type: 'spring', stiffness: 500 }}
-                                  >
-                                    <Check className="w-3.5 h-3.5" />
-                                  </motion.div>
-                                  <span>Conectado exitosamente</span>
-                                </div>
-                              ) : (
-                                <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Microsoft</p>
-                              )}
+                              <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Microsoft</p>
                             </div>
-
-                            {/* Icono de acción */}
-                            {connectedCalendar !== 'microsoft' && (
-                              <motion.div
-                                className="w-8 h-8 rounded-full bg-[#E9ECEF] dark:bg-[#6C757D]/30 flex items-center justify-center group-hover:bg-[#6C757D]/20 dark:group-hover:bg-[#6C757D]/50 transition-colors"
-                                whileHover={{ rotate: 45 }}
-                              >
-                                <ExternalLink className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" />
-                              </motion.div>
-                            )}
                           </motion.button>
-
-                          {/* Botón de desconectar mejorado */}
-                          {connectedCalendar === 'microsoft' && (
-                            <motion.button
-                              initial={{ opacity: 0, scale: 0 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              onClick={() => disconnectCalendar('microsoft')}
-                              disabled={isConnectingCalendar}
-                              whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
-                              whileTap={{ scale: 0.9 }}
-                              className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 backdrop-blur-sm z-10"
-                              title="Desconectar Microsoft Calendar"
-                            >
-                              <X className="w-4 h-4" />
-                            </motion.button>
-                          )}
                         </div>
                       </div>
 

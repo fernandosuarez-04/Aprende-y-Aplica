@@ -90,6 +90,8 @@ import {
   LessonTrackingProvider,
   useLessonTrackingOptional,
 } from "./LessonTrackingContext";
+// 🎬 Import para contexto de VideoPlayer (Picture-in-Picture automático)
+import { VideoPlayerProvider, useVideoPlayerOptional } from "./VideoPlayerContext";
 // 🎯 Import para el tour del curso
 import { useCourseLearnTour } from "../../../../features/tours/hooks/useCourseLearnTour";
 import Joyride from 'react-joyride';
@@ -616,6 +618,40 @@ export default function CourseLearnPage() {
   const [activeTab, setActiveTab] = useState<
     "video" | "transcript" | "summary" | "activities" | "questions"
   >("video");
+  
+  // 🎬 Contexto del VideoPlayer para Picture-in-Picture automático
+  const videoPlayerContext = useVideoPlayerOptional();
+  
+  // 🎬 Función para manejar cambio de tab con PiP automático
+  const handleTabChange = useCallback((newTab: "video" | "transcript" | "summary" | "activities" | "questions") => {
+    // Si estamos cambiando desde "video" a otra pestaña
+    if (activeTab === "video" && newTab !== "video") {
+      // Verificar si el video está reproduciéndose (tanto por contexto como por DOM directo)
+      const videoElement = document.querySelector('video');
+      const isVideoCurrentlyPlaying = videoPlayerContext?.isVideoPlaying || (videoElement && !videoElement.paused);
+      const isPiPAlreadyActive = videoPlayerContext?.isPiPActive || document.pictureInPictureElement;
+      
+      if (isVideoCurrentlyPlaying && !isPiPAlreadyActive) {
+        // Activar Picture-in-Picture automáticamente
+        if (videoElement) {
+          videoElement.requestPictureInPicture().catch(err => {
+            console.log('No se pudo activar PiP automáticamente:', err);
+          });
+        }
+      }
+    }
+    
+    // Si volvemos al tab de video, salir de PiP
+    if (newTab === "video" && activeTab !== "video") {
+      if (document.pictureInPictureElement) {
+        document.exitPictureInPicture().catch(err => {
+          console.log('No se pudo desactivar PiP:', err);
+        });
+      }
+    }
+    
+    setActiveTab(newTab);
+  }, [activeTab, videoPlayerContext]);
 
   // Estado para detectar si estamos en móvil
   const [isMobile, setIsMobile] = useState(false);
@@ -2777,6 +2813,7 @@ export default function CourseLearnPage() {
   }
 
   return (
+    <VideoPlayerProvider>
     <WorkshopLearningProvider
       workshopId={course?.id || course?.course_id || slug}
       activityId={currentLesson?.lesson_id || "no-lesson"}
@@ -4200,7 +4237,7 @@ export default function CourseLearnPage() {
                         <button
                           key={tab.id}
                           id={`tour-tab-${tab.id}`}
-                          onClick={() => setActiveTab(tab.id)}
+                          onClick={() => handleTabChange(tab.id)}
                           className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
                             shouldHideText
                               ? "px-2 py-2 hover:px-3 hover:gap-2"
@@ -4692,6 +4729,7 @@ export default function CourseLearnPage() {
         {isJoyrideMounted && <Joyride {...joyrideProps} />}
       </div>
     </WorkshopLearningProvider>
+    </VideoPlayerProvider>
   );
 }
 
@@ -4719,6 +4757,9 @@ function VideoContent({
   onCourseCompleted: () => void;
   onCannotComplete: () => void;
 }) {
+  // 🎬 Obtener contexto del VideoPlayer para PiP automático
+  const videoPlayerContext = useVideoPlayerOptional();
+  
   // Verificar si la lección tiene video
   const hasVideo = lesson.video_provider && lesson.video_provider_id;
 
@@ -4741,17 +4782,71 @@ function VideoContent({
   // Determinar si es la última lección
   const isLastLesson = !hasNextLesson;
 
-  // Debug logging
-  // console.log('VideoContent - Lesson data:', {
-  //   lesson_id: lesson.lesson_id,
-  //   lesson_title: lesson.lesson_title,
-  //   video_provider: lesson.video_provider,
-  //   video_provider_id: lesson.video_provider_id,
-  //   hasVideo,
-  //   hasPreviousVideo,
-  //   hasNextVideo,
-  //   fullLesson: lesson
-  // });
+  // 🎬 Efecto para detectar play/pause del elemento video nativo y eventos de PiP
+  useEffect(() => {
+    let cleanupFn: (() => void) | undefined;
+    
+    // Función para configurar listeners del video
+    const setupVideoListeners = () => {
+      const videoElement = document.querySelector('video');
+      if (videoElement) {
+        const onPlay = () => {
+          videoPlayerContext?.setIsVideoPlaying(true);
+        };
+        const onPause = () => {
+          videoPlayerContext?.setIsVideoPlaying(false);
+        };
+        const onEnded = () => {
+          videoPlayerContext?.setIsVideoPlaying(false);
+        };
+        const onEnterPiP = () => {
+          videoPlayerContext?.setIsPiPActive(true);
+        };
+        const onLeavePiP = () => {
+          videoPlayerContext?.setIsPiPActive(false);
+        };
+
+        // Añadir listeners
+        videoElement.addEventListener('play', onPlay);
+        videoElement.addEventListener('pause', onPause);
+        videoElement.addEventListener('ended', onEnded);
+        videoElement.addEventListener('enterpictureinpicture', onEnterPiP);
+        videoElement.addEventListener('leavepictureinpicture', onLeavePiP);
+
+        // Actualizar estado inicial si el video ya está reproduciéndose
+        if (!videoElement.paused) {
+          videoPlayerContext?.setIsVideoPlaying(true);
+        }
+
+        cleanupFn = () => {
+          videoElement.removeEventListener('play', onPlay);
+          videoElement.removeEventListener('pause', onPause);
+          videoElement.removeEventListener('ended', onEnded);
+          videoElement.removeEventListener('enterpictureinpicture', onEnterPiP);
+          videoElement.removeEventListener('leavepictureinpicture', onLeavePiP);
+        };
+        
+        return true;
+      }
+      return false;
+    };
+
+    // Intentar encontrar el video inmediatamente
+    const found = setupVideoListeners();
+    
+    // Si no se encontró, intentar después de un delay (el video puede tardar en cargarse)
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (!found) {
+      timeoutId = setTimeout(() => {
+        setupVideoListeners();
+      }, 1000);
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (cleanupFn) cleanupFn();
+    };
+  }, [lesson.lesson_id, videoPlayerContext]);
 
   return (
     <div className="space-y-6 pb-16 md:pb-6">

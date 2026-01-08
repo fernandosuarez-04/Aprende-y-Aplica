@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, 
@@ -21,15 +21,26 @@ interface CustomVideoPlayerProps {
   className?: string;
   onProgress?: (progress: number) => void;
   onComplete?: () => void;
+  onPiPChange?: (isPiP: boolean) => void;
 }
 
-export function CustomVideoPlayer({
+// Interfaz para exponer métodos del reproductor
+export interface CustomVideoPlayerRef {
+  requestPiP: () => Promise<void>;
+  exitPiP: () => Promise<void>;
+  isPlaying: () => boolean;
+  isPiPActive: () => boolean;
+  getVideoElement: () => HTMLVideoElement | null;
+}
+
+export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPlayerProps>(({
   src,
   title,
   className = '',
   onProgress,
-  onComplete
-}: CustomVideoPlayerProps) {
+  onComplete,
+  onPiPChange
+}, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -50,6 +61,61 @@ export function CustomVideoPlayer({
   const [isBuffering, setIsBuffering] = useState(false);
   const [isDraggingProgress, setIsDraggingProgress] = useState(false);
   const [isDraggingVolume, setIsDraggingVolume] = useState(false);
+  const [isPiP, setIsPiP] = useState(false);
+
+  // Exponer métodos al componente padre mediante useImperativeHandle
+  useImperativeHandle(ref, () => ({
+    requestPiP: async () => {
+      const video = videoRef.current;
+      if (!video || document.pictureInPictureElement) return;
+      
+      try {
+        await video.requestPictureInPicture();
+        setIsPiP(true);
+        onPiPChange?.(true);
+      } catch (error) {
+        console.error('Error al activar Picture-in-Picture:', error);
+      }
+    },
+    exitPiP: async () => {
+      if (document.pictureInPictureElement) {
+        try {
+          await document.exitPictureInPicture();
+          setIsPiP(false);
+          onPiPChange?.(false);
+        } catch (error) {
+          console.error('Error al salir de Picture-in-Picture:', error);
+        }
+      }
+    },
+    isPlaying: () => isPlaying,
+    isPiPActive: () => isPiP,
+    getVideoElement: () => videoRef.current
+  }), [isPlaying, isPiP, onPiPChange]);
+
+  // Escuchar eventos de PiP
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleEnterPiP = () => {
+      setIsPiP(true);
+      onPiPChange?.(true);
+    };
+
+    const handleLeavePiP = () => {
+      setIsPiP(false);
+      onPiPChange?.(false);
+    };
+
+    video.addEventListener('enterpictureinpicture', handleEnterPiP);
+    video.addEventListener('leavepictureinpicture', handleLeavePiP);
+
+    return () => {
+      video.removeEventListener('enterpictureinpicture', handleEnterPiP);
+      video.removeEventListener('leavepictureinpicture', handleLeavePiP);
+    };
+  }, [onPiPChange]);
 
   // Ocultar controles automáticamente después de 3 segundos
   useEffect(() => {
@@ -617,5 +683,7 @@ export function CustomVideoPlayer({
       </AnimatePresence>
     </div>
   );
-}
+});
 
+// Añadir displayName para debugging
+CustomVideoPlayer.displayName = 'CustomVideoPlayer';
