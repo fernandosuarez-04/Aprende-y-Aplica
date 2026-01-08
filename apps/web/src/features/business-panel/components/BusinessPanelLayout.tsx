@@ -13,6 +13,7 @@ import { LiaSidePanel } from '@/core/components/LiaSidePanel'
 import { LiaFloatingButton } from '@/core/components/LiaSidePanel/LiaFloatingButton'
 import { useLiaPanel } from '@/core/contexts/LiaPanelContext'
 import { useBusinessPanelJoyride } from '@/features/tours/hooks/useBusinessPanelJoyride'
+import { BusinessPanelTourProvider } from '../contexts/BusinessPanelTourContext'
 
 
 interface BusinessPanelLayoutProps {
@@ -25,7 +26,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   // Usar effectiveStyles para soportar modo claro/oscuro
   const { styles, effectiveStyles, loading: stylesLoading } = useOrganizationStylesContext()
   // Use the new Joyride hook
-  const { joyrideProps } = useBusinessPanelJoyride()
+  const { joyrideProps, startTour, resetTour, run } = useBusinessPanelJoyride()
   // Track if component has mounted (for client-only rendering)
   const [isMounted, setIsMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -168,6 +169,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   }
 
   return (
+    <BusinessPanelTourProvider startTour={startTour} resetTour={resetTour} isRunning={run}>
     <>
       {/* Joyride Tour Component - Only render on client */}
       {isMounted && <Joyride {...joyrideProps} />}
@@ -221,6 +223,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
         </div>
       </div>
     </>
+    </BusinessPanelTourProvider>
   )
 }
 

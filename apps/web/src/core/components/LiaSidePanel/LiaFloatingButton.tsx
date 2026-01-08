@@ -38,17 +38,6 @@ function LiaFloatingButtonContent() {
           }}
           aria-label="Abrir asistente LIA"
         >
-          <img
-            src="/lia-avatar.png"
-            alt="LIA"
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              objectFit: 'cover',
-            }}
-          />
-          
           {/* Pulse effect */}
           <motion.div
             style={{
@@ -56,6 +45,7 @@ function LiaFloatingButtonContent() {
               inset: 0,
               borderRadius: '50%',
               backgroundColor: '#00D4B3',
+              zIndex: 0,
             }}
             animate={{
               scale: [1, 1.4, 1.4],
@@ -65,6 +55,19 @@ function LiaFloatingButtonContent() {
               duration: 2,
               repeat: Infinity,
               ease: 'easeOut',
+            }}
+          />
+
+          <img
+            src="/lia-avatar.png"
+            alt="LIA"
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              position: 'relative',
+              zIndex: 1,
             }}
           />
         </motion.button>

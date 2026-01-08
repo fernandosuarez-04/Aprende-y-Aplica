@@ -644,6 +644,12 @@ export default function CourseLearnPage() {
     // Si volvemos al tab de video, salir de PiP
     if (newTab === "video" && activeTab !== "video") {
       if (document.pictureInPictureElement) {
+        // Guardar progreso del video en PiP antes de cerrarlo
+        const pipVideo = document.pictureInPictureElement as HTMLVideoElement;
+        if (currentLesson && videoPlayerContext) {
+          videoPlayerContext.saveVideoProgress(currentLesson.lesson_id, pipVideo.currentTime);
+        }
+
         document.exitPictureInPicture().catch(err => {
           console.log('No se pudo desactivar PiP:', err);
         });
@@ -651,7 +657,7 @@ export default function CourseLearnPage() {
     }
     
     setActiveTab(newTab);
-  }, [activeTab, videoPlayerContext]);
+  }, [activeTab, videoPlayerContext, currentLesson]);
 
   // Estado para detectar si estamos en móvil
   const [isMobile, setIsMobile] = useState(false);
@@ -4759,6 +4765,8 @@ function VideoContent({
 }) {
   // 🎬 Obtener contexto del VideoPlayer para PiP automático
   const videoPlayerContext = useVideoPlayerOptional();
+  // Ref para guardar el tiempo actual sin re-renderizar
+  const currentTimeRef = useRef(0);
   
   // Verificar si la lección tiene video
   const hasVideo = lesson.video_provider && lesson.video_provider_id;
@@ -4790,6 +4798,21 @@ function VideoContent({
     const setupVideoListeners = () => {
       const videoElement = document.querySelector('video');
       if (videoElement) {
+        // 🔄 RESTAURAR TIEMPO: Si hay un tiempo guardado, restaurarlo
+        if (videoPlayerContext && lesson.lesson_id) {
+          const savedTime = videoPlayerContext.getVideoProgress(lesson.lesson_id);
+          if (savedTime > 0) {
+            // Pequeño hack para asegurar que el video esté listo
+            if (videoElement.readyState >= 1) {
+              videoElement.currentTime = savedTime;
+            } else {
+              videoElement.addEventListener('loadedmetadata', () => {
+                videoElement.currentTime = savedTime;
+              }, { once: true });
+            }
+          }
+        }
+
         const onPlay = () => {
           videoPlayerContext?.setIsVideoPlaying(true);
         };
@@ -4805,6 +4828,9 @@ function VideoContent({
         const onLeavePiP = () => {
           videoPlayerContext?.setIsPiPActive(false);
         };
+        const onTimeUpdate = () => {
+          currentTimeRef.current = videoElement.currentTime;
+        };
 
         // Añadir listeners
         videoElement.addEventListener('play', onPlay);
@@ -4812,6 +4838,7 @@ function VideoContent({
         videoElement.addEventListener('ended', onEnded);
         videoElement.addEventListener('enterpictureinpicture', onEnterPiP);
         videoElement.addEventListener('leavepictureinpicture', onLeavePiP);
+        videoElement.addEventListener('timeupdate', onTimeUpdate);
 
         // Actualizar estado inicial si el video ya está reproduciéndose
         if (!videoElement.paused) {
@@ -4824,6 +4851,12 @@ function VideoContent({
           videoElement.removeEventListener('ended', onEnded);
           videoElement.removeEventListener('enterpictureinpicture', onEnterPiP);
           videoElement.removeEventListener('leavepictureinpicture', onLeavePiP);
+          videoElement.removeEventListener('timeupdate', onTimeUpdate);
+
+          // Guardar progreso al desmontar (si no hay PiP activo, o como backup)
+          if (videoPlayerContext && lesson.lesson_id) {
+            videoPlayerContext.saveVideoProgress(lesson.lesson_id, currentTimeRef.current);
+          }
         };
         
         return true;

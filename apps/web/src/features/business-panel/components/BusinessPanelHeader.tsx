@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ChevronDown, LogOut, Building2, User, LayoutDashboard, Globe, ChevronRight, Check, Sun, Moon } from 'lucide-react'
+import { Menu, X, ChevronDown, LogOut, Building2, User, LayoutDashboard, Globe, ChevronRight, Check, Sun, Moon, Compass } from 'lucide-react'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { useRouter, useParams } from 'next/navigation'
@@ -13,6 +13,7 @@ import { hexToRgb } from '../utils/styles'
 import { useLanguage } from '../../../core/providers/I18nProvider'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '../../../core/stores/themeStore'
+import { useBusinessPanelTourOptional } from '../contexts/BusinessPanelTourContext'
 
 interface BusinessPanelHeaderProps {
   onMenuClick: () => void
@@ -39,6 +40,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
   const { language, setLanguage } = useLanguage()
   const { t } = useTranslation(['business', 'common'])
   const { theme, resolvedTheme, setTheme } = useThemeStore()
+  const tourContext = useBusinessPanelTourOptional()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const languageOptions = [
@@ -350,6 +352,22 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                         )}
                         <span>{resolvedTheme === 'dark' ? t('common:menu.theme.light') : t('common:menu.theme.dark')}</span>
                       </motion.button>
+
+                      {/* Ver Tour button */}
+                      {tourContext && (
+                        <motion.button
+                          onClick={() => {
+                            tourContext.startTour()
+                            setUserDropdownOpen(false)
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                          style={{ color: navbarStyle.color || 'rgba(255, 255, 255, 0.8)' }}
+                          whileHover={{ x: 2 }}
+                        >
+                          <Compass className="h-4 w-4 opacity-70" />
+                          <span>{t('common:menu.viewTour', 'Ver Tour')}</span>
+                        </motion.button>
+                      )}
 
                       <div className="relative">
                         <motion.button

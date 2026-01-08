@@ -427,8 +427,26 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
                  id="lia-course-chat-input"
                  className="lia-input-reset lia-chat-input"
                />
-               <button onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading} style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: inputValue.trim() && !isLoading ? themeColors.primaryAction : '#CBD5E1', border: 'none', cursor: inputValue.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                 <Send style={{ width: '16px', height: '16px', color: 'white' }} />
+               <button 
+                 onClick={handleSendMessage} 
+                 disabled={!inputValue.trim() || isLoading} 
+                 style={{ 
+                   width: '36px', 
+                   height: '36px', 
+                   borderRadius: '50%', 
+                   backgroundColor: inputValue.trim() && !isLoading ? themeColors.primaryAction : '#CBD5E1', 
+                   border: 'none', 
+                   cursor: inputValue.trim() ? 'pointer' : 'not-allowed', 
+                   display: 'flex', 
+                   alignItems: 'center', 
+                   justifyContent: 'center' 
+                 }}
+               >
+                 <Send style={{ 
+                   width: '16px', 
+                   height: '16px', 
+                   color: inputValue.trim() && !isLoading ? '#FFFFFF' : '#6B7280' 
+                 }} />
                </button>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { Award, Play, BookOpen, CheckCircle2 } from 'lucide-react'
 import { hexToRgb } from '@/features/business-panel/utils/styles'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface AssignedCourse {
   id: string
@@ -38,11 +39,20 @@ export function CourseCard3D({
   onCertificateClick,
   styles
 }: CourseCard3DProps) {
+  const { resolvedTheme } = useThemeStore()
+  const isSystemLight = resolvedTheme === 'light'
+
   const primaryColor = styles?.primary_button_color || '#0A2540'
   const accentColor = styles?.accent_color || '#00D4B3'
-  const cardBackground = styles?.card_background || '#1E2329'
-  const textColor = styles?.text_color || '#FFFFFF'
-  const borderColor = styles?.border_color || '#334155'
+  
+  // Defaults adaptativos basados en el tema del sistema
+  const defaultCardBg = isSystemLight ? '#FFFFFF' : '#1E2329'
+  const defaultText = isSystemLight ? '#0F172A' : '#FFFFFF'
+  const defaultBorder = isSystemLight ? '#E2E8F0' : '#334155'
+
+  const cardBackground = styles?.card_background || defaultCardBg
+  const textColor = styles?.text_color || defaultText
+  const borderColor = styles?.border_color || defaultBorder
   const cardOpacity = styles?.card_opacity ?? 0.95
 
   // Determinar si estamos en modo claro basándonos en el color de fondo
