@@ -115,6 +115,10 @@ export default function BusinessUserDashboardPage() {
       // Colores secundarios que se adaptan al modo
       textSecondary: isLightMode ? '#64748B' : '#9CA3AF',
       textMuted: isLightMode ? '#94A3B8' : '#6B7280',
+      // Color de iconos: aqua en modo oscuro para visibilidad (SOFIA Design System)
+      iconColor: isLightMode 
+        ? (userDashboardStyles?.primary_button_color || '#0A2540')
+        : (userDashboardStyles?.accent_color || '#00D4B3'),
       heroBg: isLightMode 
         ? 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 50%, #F8FAFC 100%)'
         : 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)',
@@ -565,11 +569,11 @@ export default function BusinessUserDashboardPage() {
                   <div
                     className="p-2 rounded-xl border"
                     style={{
-                      background: `linear-gradient(135deg, ${orgColors.primary}25, ${orgColors.primary}08)`,
-                      borderColor: `${orgColors.primary}30`
+                      background: `linear-gradient(135deg, ${orgColors.iconColor}25, ${orgColors.iconColor}08)`,
+                      borderColor: `${orgColors.iconColor}30`
                     }}
                   >
-                    <TrendingUp className="w-5 h-5" style={{ color: orgColors.primary }} />
+                    <TrendingUp className="w-5 h-5" style={{ color: orgColors.iconColor }} />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold" style={{ color: orgColors.text }}>{t('dashboard.generalStats', 'Tu Progreso')}</h2>
@@ -629,11 +633,11 @@ export default function BusinessUserDashboardPage() {
                 <div
                   className="p-2 rounded-xl border"
                   style={{
-                    background: `linear-gradient(135deg, ${orgColors.primary}25, ${orgColors.primary}08)`,
-                    borderColor: `${orgColors.primary}30`
+                    background: `linear-gradient(135deg, ${orgColors.iconColor}25, ${orgColors.iconColor}08)`,
+                    borderColor: `${orgColors.iconColor}30`
                   }}
                 >
-                  <GraduationCap className="w-5 h-5" style={{ color: orgColors.primary }} />
+                  <GraduationCap className="w-5 h-5" style={{ color: orgColors.iconColor }} />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold" style={{ color: orgColors.text }}>{t('sidebar.courses')}</h2>
@@ -669,11 +673,11 @@ export default function BusinessUserDashboardPage() {
                   <div
                     className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 border"
                     style={{
-                      background: `linear-gradient(135deg, ${orgColors.primary}25, ${orgColors.primary}08)`,
-                      borderColor: `${orgColors.primary}30`
+                      background: `linear-gradient(135deg, ${orgColors.iconColor}25, ${orgColors.iconColor}08)`,
+                      borderColor: `${orgColors.iconColor}30`
                     }}
                   >
-                    <BookOpen className="w-10 h-10" style={{ color: orgColors.primary }} />
+                    <BookOpen className="w-10 h-10" style={{ color: orgColors.iconColor }} />
                   </div>
                   <h3 className="text-xl font-bold mb-2" style={{ color: orgColors.text }}>No tienes cursos asignados aún</h3>
                   <p className="max-w-md mx-auto" style={{ color: orgColors.textSecondary }}>
@@ -682,10 +686,10 @@ export default function BusinessUserDashboardPage() {
 
                   {/* Decorative elements - static */}
                   <div className="absolute top-6 right-6">
-                    <Sparkles className="w-5 h-5" style={{ color: `${orgColors.primary}50` }} />
+                    <Sparkles className="w-5 h-5" style={{ color: `${orgColors.iconColor}50` }} />
                   </div>
                   <div className="absolute bottom-8 left-8">
-                    <GraduationCap className="w-6 h-6" style={{ color: `${orgColors.primary}50` }} />
+                    <GraduationCap className="w-6 h-6" style={{ color: `${orgColors.iconColor}50` }} />
                   </div>
                 </motion.div>
 

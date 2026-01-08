@@ -31,6 +31,7 @@ export function ModernStatsCard({
   id
 }: ModernStatsCardProps) {
   const primaryColor = styles?.primary_button_color || '#0A2540'
+  const accentColor = styles?.accent_color || '#00D4B3' // Aqua from SOFIA Design System
   const cardBackground = styles?.card_background || '#1E2329'
   const textColor = styles?.text_color || '#FFFFFF'
   const borderColor = styles?.border_color || '#334155'
@@ -41,6 +42,9 @@ export function ModernStatsCard({
                       cardBackground.toLowerCase() === '#f8fafc' ||
                       cardBackground.startsWith('rgb(255') ||
                       cardBackground.startsWith('rgba(255')
+  
+  // En modo oscuro, usar aqua para iconos (mejor visibilidad según SOFIA Design System)
+  const iconColor = isLightMode ? primaryColor : accentColor
 
   // Calcular RGB para opacidad
   const cardBgRgb = hexToRgb(cardBackground)
@@ -75,11 +79,11 @@ export function ModernStatsCard({
           <div
             className="p-2.5 rounded-xl"
             style={{
-              background: `linear-gradient(135deg, ${primaryColor}25, ${primaryColor}10)`,
-              border: `1px solid ${primaryColor}30`
+              background: `linear-gradient(135deg, ${iconColor}25, ${iconColor}10)`,
+              border: `1px solid ${iconColor}30`
             }}
           >
-            <Icon className="w-5 h-5" style={{ color: primaryColor }} />
+            <Icon className="w-5 h-5" style={{ color: iconColor }} />
           </div>
         </div>
         

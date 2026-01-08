@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Settings, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { CustomVideoPlayer } from '../CustomVideoPlayer/CustomVideoPlayer';
+import { CustomVideoPlayer, type CustomVideoPlayerRef } from '../CustomVideoPlayer/CustomVideoPlayer';
 
 interface VideoPlayerProps {
   videoProvider: 'youtube' | 'vimeo' | 'direct' | 'custom';
@@ -12,21 +12,44 @@ interface VideoPlayerProps {
   className?: string;
   onProgress?: (progress: number) => void;
   onComplete?: () => void;
+  onPiPChange?: (isPiP: boolean) => void;
 }
 
-export function VideoPlayer({ 
+// Re-export the interface for external use
+export type { CustomVideoPlayerRef as VideoPlayerRef };
+
+export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({ 
   videoProvider, 
   videoProviderId, 
   title,
   className = '',
   onProgress,
-  onComplete 
-}: VideoPlayerProps) {
+  onComplete,
+  onPiPChange
+}, ref) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [preloadStrategy, setPreloadStrategy] = useState<'none' | 'metadata' | 'auto'>('metadata'); // Cambiado a 'metadata' por defecto
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const customVideoRef = useRef<CustomVideoPlayerRef>(null);
+  
+  // Forward the ref to the CustomVideoPlayer
+  useImperativeHandle(ref, () => ({
+    requestPiP: async () => {
+      if (customVideoRef.current) {
+        await customVideoRef.current.requestPiP();
+      }
+    },
+    exitPiP: async () => {
+      if (customVideoRef.current) {
+        await customVideoRef.current.exitPiP();
+      }
+    },
+    isPlaying: () => customVideoRef.current?.isPlaying() ?? false,
+    isPiPActive: () => customVideoRef.current?.isPiPActive() ?? false,
+    getVideoElement: () => customVideoRef.current?.getVideoElement() ?? null
+  }), []);
 
   // Detectar si estamos en móvil y ajustar estrategia de preload
   useEffect(() => {
@@ -205,11 +228,13 @@ export function VideoPlayer({
     if (videoProvider === 'direct' || videoProvider === 'custom') {
       return (
         <CustomVideoPlayer
+          ref={customVideoRef}
           src={videoUrl}
           title={title}
           className="w-full h-full"
           onProgress={onProgress}
           onComplete={onComplete}
+          onPiPChange={onPiPChange}
         />
       );
     }
@@ -242,7 +267,9 @@ export function VideoPlayer({
       {renderVideoContent()}
     </div>
   );
-}
+});
+
+VideoPlayer.displayName = 'VideoPlayer';
 
 // Componente específico para YouTube con controles personalizados
 export function YouTubePlayer({ 
