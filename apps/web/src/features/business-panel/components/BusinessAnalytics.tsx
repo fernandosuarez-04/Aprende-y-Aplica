@@ -316,9 +316,30 @@ export function BusinessAnalytics() {
                                     <tr key={user.user_id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
-                                                    {initials}
-                                                </div>
+                                                {user.profile_picture_url ? (
+                                                    <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 shadow-lg shrink-0 border-gray-200 dark:border-gray-700">
+                                                        <Image
+                                                            src={user.profile_picture_url}
+                                                            alt={displayName}
+                                                            fill
+                                                            className="object-cover"
+                                                            sizes="40px"
+                                                            onError={(e) => {
+                                                                // Si la imagen falla, mostrar iniciales
+                                                                const target = e.target as HTMLImageElement
+                                                                target.style.display = 'none'
+                                                                const parent = target.parentElement
+                                                                if (parent) {
+                                                                    parent.innerHTML = `<div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">${initials}</div>`
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
+                                                        {initials}
+                                                    </div>
+                                                )}
                                                 <div>
                                                     <p className="font-semibold text-sm text-gray-900 dark:text-white">{displayName}</p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>

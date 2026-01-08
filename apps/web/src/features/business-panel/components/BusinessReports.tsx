@@ -333,7 +333,27 @@ function LiaAnalysisReport({ data }: { data: any }) {
                     </button>
                 </div>
 
-                <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-h2:text-xl prose-h3:text-lg text-sm leading-relaxed prose-strong:text-blue-500 dark:prose-strong:text-blue-400">
+                <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-h2:text-xl prose-h3:text-lg text-sm leading-relaxed">
+                  <style jsx global>{`
+                    .prose strong {
+                      color: ${isDark ? '#60a5fa' : '#2563eb'} !important;
+                      font-weight: 700 !important;
+                    }
+                    .prose h1, .prose h2, .prose h3, .prose h4 {
+                      color: ${isDark ? '#f8fafc' : '#0f172a'} !important;
+                      font-weight: 700 !important;
+                    }
+                    .prose p {
+                      color: ${isDark ? 'rgba(248, 250, 252, 0.9)' : '#334155'} !important;
+                    }
+                    .prose li {
+                      color: ${isDark ? 'rgba(248, 250, 252, 0.9)' : '#334155'} !important;
+                    }
+                    .prose code {
+                      color: ${isDark ? '#60a5fa' : '#2563eb'} !important;
+                      background-color: ${isDark ? 'rgba(96, 165, 250, 0.1)' : 'rgba(37, 99, 235, 0.1)'} !important;
+                    }
+                  `}</style>
                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{data.analysis_text}</ReactMarkdown>
                 </div>
                 
