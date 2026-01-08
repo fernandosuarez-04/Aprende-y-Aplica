@@ -243,7 +243,7 @@ function TeamCard({ team, index, primaryColor, cardBg, cardBorder, textColor, on
                   className="w-full h-full flex items-center justify-center"
                   style={{ backgroundColor: `${primaryColor}20` }}
                 >
-                  <UsersRound className="w-7 h-7" style={{ color: primaryColor }} />
+                  <UsersRound className="w-7 h-7" style={{ color: resolvedTheme === 'dark' ? '#FFFFFF' : primaryColor }} />
                 </div>
               )}
             </motion.div>
@@ -357,6 +357,7 @@ function EmptyState({
   secondaryColor: string
 }) {
   const { t } = useTranslation('business')
+  const { resolvedTheme } = useThemeStore()
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -394,7 +395,7 @@ function EmptyState({
           animate={{ rotate: [0, 5, -5, 0] }}
           transition={{ duration: 4, repeat: Infinity }}
         >
-          <UsersRound className="w-12 h-12" style={{ color: primaryColor, opacity: 0.6 }} />
+          <UsersRound className="w-12 h-12" style={{ color: resolvedTheme === 'dark' ? '#FFFFFF' : primaryColor, opacity: resolvedTheme === 'dark' ? 0.8 : 0.6 }} />
         </motion.div>
 
         <h3 className="text-2xl font-bold mb-3" style={{ color: 'var(--org-text-color, #FFFFFF)' }}>

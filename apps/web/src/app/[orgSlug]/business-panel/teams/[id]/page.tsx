@@ -80,6 +80,11 @@ export default function BusinessTeamDetailPage() {
         TeamsService.getTeamMembers(teamId),
         TeamsService.getTeamCourses(teamId).catch(() => [])
       ])
+      console.log('Team data received:', {
+        team_id: teamData.team_id,
+        image_url: teamData.image_url,
+        has_image: !!teamData.image_url
+      })
       setTeam(teamData)
       setTeamMembers(members)
       setTeamCourses(courses)
@@ -102,7 +107,7 @@ export default function BusinessTeamDetailPage() {
     if (team && typeof setPageContext === 'function') {
       setPageContext({
         pageType: 'business_team_detail',
-        entityId: team.id,
+        entityId: team.team_id,
         teamName: team.name,
         memberCount: teamMembers.length,
         activeMemberCount: team.active_member_count,
@@ -306,7 +311,16 @@ export default function BusinessTeamDetailPage() {
             >
               {team.image_url ? (
                 <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2" style={{ borderColor: primaryColor }}>
-                  <Image src={team.image_url} alt={team.name} fill className="object-cover" />
+                  <Image 
+                    src={team.image_url} 
+                    alt={team.name} 
+                    fill 
+                    className="object-cover"
+                    onError={(e) => {
+                      console.error('Error loading team image:', team.image_url, e)
+                    }}
+                    unoptimized={team.image_url?.includes('supabase.co')}
+                  />
                 </div>
               ) : (
                 <div
