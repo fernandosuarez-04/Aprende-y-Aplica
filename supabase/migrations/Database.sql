@@ -802,6 +802,7 @@ CREATE TABLE public.organizations (
   brand_banner_url text,
   google_login_enabled boolean DEFAULT false,
   microsoft_login_enabled boolean DEFAULT false,
+  show_navbar_name boolean DEFAULT true,
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.password_reset_tokens (

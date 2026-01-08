@@ -40,6 +40,7 @@ interface ModernNavbarProps {
     slug: string
     logo_url?: string | null
     favicon_url?: string | null
+    show_navbar_name?: boolean
   } | null
   user: {
     profile_picture_url?: string | null
@@ -519,15 +520,15 @@ export function ModernNavbar({
                 <div className="relative">
                   {(organization?.favicon_url || organization?.logo_url) ? (
                     <motion.div
-                      className="relative h-9 w-auto min-w-[36px] flex items-center justify-center"
+                      className="relative h-16 w-auto min-w-[36px] flex items-center justify-center"
                       whileHover={{ scale: 1.05 }}
                       transition={{ type: 'spring', stiffness: 400 }}
                     >
                       <Image
-                        src={organization.favicon_url || organization.logo_url || '/icono.png'}
+                        src={organization.logo_url || organization.favicon_url || '/icono.png'}
                         alt={organization.name}
-                        width={36}
-                        height={36}
+                        width={64}
+                        height={64}
                         className="object-contain h-full w-auto"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/icono.png';
@@ -559,6 +560,7 @@ export function ModernNavbar({
                 </div>
 
                 {/* Nombre y subtítulo */}
+                {organization?.show_navbar_name !== false && (
                 <div className="hidden sm:block">
                   <h1
                     className="text-lg font-bold leading-tight tracking-tight"
@@ -579,6 +581,7 @@ export function ModernNavbar({
                     </p>
                   </div>
                 </div>
+                )}
               </motion.div>
             </div>
 
