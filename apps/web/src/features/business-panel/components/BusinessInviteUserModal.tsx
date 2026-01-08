@@ -257,7 +257,7 @@ export function BusinessInviteUserModal({ isOpen, onClose, onInviteSent, organiz
                           <div className="flex items-center gap-2 mb-1">
                             <Shield
                               className="w-4 h-4"
-                              style={{ color: formData.role === role ? primaryColor : 'rgba(255,255,255,0.5)' }}
+                              style={{ color: formData.role === role ? '#FFFFFF' : 'rgba(255,255,255,0.8)' }}
                             />
                             <span className={`text-sm font-medium ${formData.role === role ? 'text-white' : 'text-white/70'}`}>
                               {roleLabels[role].label}

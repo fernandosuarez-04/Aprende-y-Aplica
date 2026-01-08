@@ -212,6 +212,7 @@
         "title": "Editar Usuario",
         "subtitle": "Modificar información del miembro",
         "infoNote": "Los cambios realizados se guardarán y el usuario recibirá una notificación si es necesario.",
+        "currentRole": "Rol actual",
         "fields": {
           "fullName": "Nombre Completo",
           "phone": "Teléfono",
