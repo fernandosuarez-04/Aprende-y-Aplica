@@ -303,7 +303,7 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                     <div className="text-xs text-white/50 mb-1 text-center">
                       {t('users.modals.edit.currentRole')}
                     </div>
-                    <div
+                  <div
                       className="px-4 py-2 rounded-full text-sm font-semibold text-center"
                       style={{ 
                         background: isDark 
@@ -315,8 +315,8 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                           ? `0 4px 15px ${primaryColor}40`
                           : `0 4px 15px ${primaryColor}30`
                       }}
-                    >
-                      {roleLabels[formData.org_role].label}
+                  >
+                    {roleLabels[formData.org_role].label}
                     </div>
                   </div>
 
@@ -520,12 +520,12 @@ export function BusinessEditUserModal({ user, isOpen, onClose, onSave }: Busines
                     {/* Org Role */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label 
+                      <label 
                           className="block text-sm font-medium"
-                          style={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)' }}
-                        >
-                          {t('users.modals.add.fields.orgRole')}
-                        </label>
+                        style={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)' }}
+                      >
+                        {t('users.modals.add.fields.orgRole')}
+                      </label>
                         <div 
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold"
                           style={{ 

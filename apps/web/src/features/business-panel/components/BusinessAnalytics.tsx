@@ -299,22 +299,35 @@ export function BusinessAnalytics() {
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-white/5">
                             {data.user_analytics && data.user_analytics.length > 0 ? (
-                                data.user_analytics.map((user: any) => (
+                                data.user_analytics.map((user: any) => {
+                                    // Obtener el nombre del usuario con múltiples fallbacks
+                                    const displayName = user.name || 
+                                                      user.display_name || 
+                                                      (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : null) ||
+                                                      user.first_name || 
+                                                      user.username || 
+                                                      user.email?.split('@')[0] || 
+                                                      'Sin nombre'
+                                    const initials = displayName && displayName !== 'Sin nombre' 
+                                        ? displayName.charAt(0).toUpperCase() 
+                                        : user.email?.charAt(0).toUpperCase() || '?'
+                                    
+                                    return (
                                     <tr key={user.user_id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
-                                                    {user.name ? user.name.charAt(0).toUpperCase() : '?'}
+                                                    {initials}
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{user.name || 'Sin nombre'}</p>
+                                                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{displayName}</p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="p-4 min-w-[150px]">
                                             <span className={`
-                                                px-2 py-1 rounded-full text-xs font-medium border
+                                                inline-block px-3 py-1.5 rounded-lg text-xs font-medium border whitespace-normal break-words max-w-full
                                                 ${user.role?.toLowerCase().includes('admin') ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' : 
                                                   user.role?.toLowerCase().includes('instructor') ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' : 
                                                   'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'}
@@ -363,7 +376,8 @@ export function BusinessAnalytics() {
                                             </button>
                                         </td>
                                     </tr>
-                                ))
+                                    )
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan={7} className="p-8 text-center opacity-50">
@@ -568,6 +582,19 @@ export function BusinessAnalytics() {
 function UserDetailModal({ user, onClose, theme }: any) {
     const [subTab, setSubTab] = useState<'activity' | 'planner' | 'courses'>('activity');
 
+    // Obtener el nombre del usuario con múltiples fallbacks (igual que en la tabla)
+    const displayName = user.name || 
+                      user.display_name || 
+                      (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : null) ||
+                      user.first_name || 
+                      user.username || 
+                      user.email?.split('@')[0] || 
+                      'Sin nombre'
+    
+    const initials = displayName && displayName !== 'Sin nombre' 
+        ? displayName.charAt(0).toUpperCase() 
+        : user.email?.charAt(0).toUpperCase() || '?'
+
     const getHeatmapColor = (level: number) => {
         if (!level) return 'bg-gray-200 dark:bg-white/5';
         if (level === 1) return 'bg-emerald-500/20';
@@ -579,7 +606,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
     const maxHour = user.stats?.hourly_distribution ? Math.max(...user.stats.hourly_distribution) : 1;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -591,24 +618,39 @@ function UserDetailModal({ user, onClose, theme }: any) {
                 }}
             >
                 {/* Header */}
-                <div className="relative shrink-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 p-6 pb-4">
+                <div className="relative shrink-0 bg-gray-100 dark:bg-gray-800 p-6 pb-4">
+                    {/* Gradiente de colores azul y morado */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 pointer-events-none" />
+                    <div className="relative z-10">
                     <button 
                         onClick={onClose}
-                        className="absolute top-4 right-4 z-10 p-2 transition-colors rounded-full bg-black/20 hover:bg-white/10"
+                        className="absolute top-4 right-4 z-10 p-2 transition-colors rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
                     >
-                        <X className="w-5 h-5 text-white" />
+                        <X className="w-5 h-5 text-gray-700 dark:text-gray-200" />
                     </button>
                     
                     <div className="flex items-start gap-5">
-                        <div className="w-20 h-20 text-3xl font-bold text-white border-4 rounded-2xl shadow-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 shrink-0" style={{ borderColor: theme.cardBg }}>
-                            {user.name ? user.name.charAt(0).toUpperCase() : '?'}
-                        </div>
+                        {user.profile_picture_url ? (
+                            <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-4 shadow-xl shrink-0" style={{ borderColor: theme.cardBg }}>
+                                <Image
+                                    src={user.profile_picture_url}
+                                    alt={user.name || 'Usuario'}
+                                    fill
+                                    className="object-cover"
+                                    sizes="80px"
+                                />
+                            </div>
+                        ) : (
+                            <div className="w-20 h-20 text-3xl font-bold text-white border-4 rounded-2xl shadow-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 shrink-0" style={{ borderColor: theme.cardBg }}>
+                                {initials}
+                            </div>
+                        )}
                         <div className="flex-1 pt-1">
-                            <h2 className="text-2xl font-bold mb-1">{user.name}</h2>
-                            <div className="flex items-center gap-3 text-sm opacity-70 flex-wrap">
-                                <span>{user.email}</span>
-                                <span className="w-1 h-1 rounded-full bg-current" />
-                                <span className="capitalize">{user.role || 'Usuario'}</span>
+                            <h2 className="text-2xl font-bold mb-1 text-gray-900 dark:text-white">{displayName}</h2>
+                            <div className="flex items-center gap-3 text-sm flex-wrap">
+                                <span className="text-gray-600 dark:text-gray-300">{user.email}</span>
+                                <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500" />
+                                <span className="capitalize text-gray-600 dark:text-gray-300">{user.role || 'Usuario'}</span>
                             </div>
                         </div>
                     </div>
@@ -636,6 +678,7 @@ function UserDetailModal({ user, onClose, theme }: any) {
                                 <p className="font-bold text-sm leading-none text-gray-900 dark:text-white">{Math.round((user.total_time_minutes || 0) / 60)}h</p>
                             </div>
                          </div>
+                    </div>
                     </div>
                 </div>
 

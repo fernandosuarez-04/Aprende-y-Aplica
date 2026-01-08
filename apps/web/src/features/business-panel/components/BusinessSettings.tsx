@@ -41,6 +41,7 @@ import { useSubscriptionFeatures } from '../hooks/useSubscriptionFeatures'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useBranding } from '../hooks/useBranding'
 import { BrandingColorPicker } from './BrandingColorPicker'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 export function BusinessSettings() {
   const { data, isLoading, error, refetch, updateOrganization } = useBusinessSettings()
@@ -351,6 +352,8 @@ function OrganizationTab({
   saveError: string | null
   setSaveError: (msg: string | null) => void
 }) {
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const [formData, setFormData] = useState({
     name: organization?.name || '',
     description: organization?.description || '',
@@ -499,9 +502,9 @@ function OrganizationTab({
             <motion.div
               whileHover={{ rotate: 15, scale: 1.1 }}
               className="p-3 rounded-xl"
-              style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
+              style={{ background: isDark ? 'linear-gradient(135deg, #0A2540, #1e3a5f)' : 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
             >
-              <Building2 className="w-5 h-5 text-white" />
+              <Building2 className="w-5 h-5" style={{ color: isDark ? '#FFFFFF' : '#FFFFFF' }} />
             </motion.div>
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Información Básica</h3>
@@ -628,9 +631,9 @@ function OrganizationTab({
               <motion.div
                 whileHover={{ rotate: 15, scale: 1.1 }}
                 className="p-3 rounded-xl"
-                style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
+                style={{ background: isDark ? 'linear-gradient(135deg, #0A2540, #1e3a5f)' : 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
               >
-                <Mail className="w-5 h-5 text-white" />
+                <Mail className="w-5 h-5" style={{ color: isDark ? '#FFFFFF' : '#FFFFFF' }} />
               </motion.div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Información de Contacto</h3>
@@ -812,6 +815,8 @@ function LoginPersonalizadoSection({
   organization: OrganizationData
   updateOrganization: (data: Partial<OrganizationData>) => Promise<boolean>
 }) {
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const [copiedLogin, setCopiedLogin] = useState(false)
   const [copiedRegister, setCopiedRegister] = useState(false)
   const [baseUrl, setBaseUrl] = useState('')
@@ -933,9 +938,9 @@ function LoginPersonalizadoSection({
         <motion.div
           whileHover={{ rotate: 15, scale: 1.1 }}
           className="p-3 rounded-xl"
-          style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
+          style={{ background: isDark ? 'linear-gradient(135deg, #0A2540, #1e3a5f)' : 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
         >
-          <LinkIcon className="w-5 h-5 text-white" />
+          <LinkIcon className="w-5 h-5" style={{ color: '#FFFFFF' }} />
         </motion.div>
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">Link Personalizado de Login</h3>
@@ -1339,9 +1344,9 @@ function PersonalizationTab({
           <motion.div
             whileHover={{ rotate: 15, scale: 1.1 }}
             className="p-3 rounded-xl"
-            style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+            style={{ background: isDark ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #f59e0b, #d97706)' }}
           >
-            <LinkIcon className="w-5 h-5 text-white" />
+            <LinkIcon className="w-5 h-5" style={{ color: '#FFFFFF' }} />
           </motion.div>
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Identificador de URL</h3>
@@ -1455,9 +1460,9 @@ function PersonalizationTab({
             <motion.div
               whileHover={{ rotate: 15, scale: 1.1 }}
               className="p-3 rounded-xl"
-              style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
+              style={{ background: isDark ? 'linear-gradient(135deg, #0A2540, #1e3a5f)' : 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
             >
-              <LinkIcon className="w-5 h-5 text-white" />
+              <LinkIcon className="w-5 h-5" style={{ color: '#FFFFFF' }} />
             </motion.div>
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Links de Acceso</h3>

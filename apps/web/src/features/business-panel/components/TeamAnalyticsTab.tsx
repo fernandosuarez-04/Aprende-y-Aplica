@@ -252,11 +252,57 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
 
   const COLORS = completionData.map(item => item.color)
 
+  // Componente CustomTooltip para mejor control del estilo
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const tooltipTextColor = isDark ? '#e5e7eb' : '#111827'
+      return (
+        <div
+          style={{
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
+            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            borderRadius: '8px',
+            padding: '8px 12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            fontSize: '12px'
+          }}
+        >
+          {label && (
+            <p style={{ color: tooltipTextColor, margin: '0 0 4px 0', fontWeight: 600 }}>
+              {label}
+            </p>
+          )}
+          {payload.map((entry: any, index: number) => (
+            <p 
+              key={index}
+              style={{ 
+                color: tooltipTextColor, 
+                margin: 0, 
+                fontWeight: 500 
+              }}
+            >
+              {entry.name || 'Valor'}: {typeof entry.value === 'number' 
+                ? entry.value % 1 === 0 
+                  ? entry.value 
+                  : entry.value.toFixed(1)
+                : entry.value}
+              {entry.dataKey === 'progreso' && '%'}
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
+
   const chartTooltipStyle = {
-    backgroundColor: cardBg,
-    border: `1px solid ${cardBorder}`,
+    backgroundColor: isDark ? '#1f2937' : '#ffffff',
+    border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
     borderRadius: '8px',
-    color: textColor
+    color: isDark ? '#e5e7eb' : '#111827',
+    padding: '8px 12px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    fontSize: '12px'
   }
 
   if (isLoading) {
@@ -367,7 +413,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                 style={{ fontSize: '12px' }}
                 domain={[0, 100]}
               />
-              <Tooltip contentStyle={chartTooltipStyle} />
+              <Tooltip content={<CustomTooltip />} />
               <Line
                 type="monotone"
                 dataKey="progreso"
@@ -417,8 +463,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={chartTooltipStyle}
-                  formatter={(value: number) => [`${value.toFixed(1)}%`, 'Valor']}
+                  content={<CustomTooltip />}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -498,7 +543,7 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                 stroke={textColor}
                 style={{ fontSize: '12px' }}
               />
-              <Tooltip contentStyle={chartTooltipStyle} />
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
               <Area
                 type="monotone"
@@ -566,7 +611,10 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                 style={{ fontSize: '12px' }}
                 domain={[0, 100]}
               />
-              <Tooltip contentStyle={chartTooltipStyle} />
+              <Tooltip 
+                content={<CustomTooltip />}
+                cursor={{ fill: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }}
+              />
               <Legend />
               <Bar
                 dataKey="progreso"
@@ -651,9 +699,13 @@ export function TeamAnalyticsTab({ teamId }: TeamAnalyticsTabProps) {
                     ) : (
                       <div
                         className="w-12 h-12 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: `${primaryColor}30` }}
+                        style={{
+                          background: isDark 
+                            ? `linear-gradient(135deg, ${chartColors.cyan}, ${chartColors.teal})`
+                            : `linear-gradient(135deg, ${chartColors.cyan}CC, ${chartColors.teal}CC)`
+                        }}
                       >
-                        <Users className="w-6 h-6" style={{ color: primaryColor }} />
+                        <Users className="w-6 h-6" style={{ color: '#FFFFFF' }} />
                       </div>
                     )}
                     <div className="flex-1">

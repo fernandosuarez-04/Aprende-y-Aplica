@@ -205,7 +205,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
               <div className="relative z-10">
                 <stat.icon
                   className="w-6 h-6 mb-2"
-                  style={{ color: stat.color }}
+                  style={{ color: isDark ? '#FFFFFF' : stat.color }}
                 />
                 <p className="text-2xl font-bold mb-0.5" style={{ color: textColor }}>
                   {stat.value}
@@ -269,7 +269,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                 border: `2px dashed ${primaryColor}40`
               }}
             >
-              <GraduationCap className="w-12 h-12" style={{ color: primaryColor }} />
+              <GraduationCap className="w-12 h-12" style={{ color: isDark ? '#FFFFFF' : primaryColor }} />
             </motion.div>
 
             <h3 className="text-2xl font-bold mb-3" style={{ color: textColor }}>
@@ -305,7 +305,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                   className="flex items-center gap-2 justify-center text-sm"
                   style={{ color: tertiaryTextColor }}
                 >
-                  <feature.icon className="w-4 h-4" style={{ color: primaryColor }} />
+                  <feature.icon className="w-4 h-4" style={{ color: isDark ? '#FFFFFF' : primaryColor }} />
                   {feature.text}
                 </div>
               ))}

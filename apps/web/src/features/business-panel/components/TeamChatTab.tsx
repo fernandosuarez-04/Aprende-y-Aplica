@@ -19,6 +19,7 @@ import { useOrganizationStylesContext } from '../contexts/OrganizationStylesCont
 import { TeamsService, WorkTeamMessage } from '../services/teams.service'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
+import { useThemeStore } from '@/core/stores/themeStore'
 import Image from 'next/image'
 
 // Emojis organizados por categorías
@@ -54,6 +55,8 @@ interface TeamChatTabProps {
 export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps) {
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const primaryColor = panelStyles?.primary_button_color || '#3b82f6'
   const accentColor = panelStyles?.accent_color || '#10B981'
   const { user } = useAuth()
@@ -599,14 +602,27 @@ export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps
             </motion.button>
 
             {/* Campo de Texto */}
-            <div className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-50 dark:bg-[#0d1117]">
+            <div 
+              className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-xl border"
+              style={{
+                backgroundColor: isDark ? (panelStyles?.card_background || 'rgba(30, 41, 59, 0.8)') : '#FFFFFF',
+                borderColor: isDark ? (panelStyles?.border_color || 'rgba(255, 255, 255, 0.1)') : 'rgba(0, 0, 0, 0.1)'
+              }}
+            >
               <input
                 ref={inputRef}
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Escribe un mensaje..."
-                className="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/40"
+                className={`flex-1 border-none outline-none text-sm bg-transparent ${
+                  isDark 
+                    ? 'text-white placeholder:text-white/40' 
+                    : 'text-gray-900 placeholder:text-gray-500'
+                }`}
+                style={{
+                  color: isDark ? (panelStyles?.text_color || '#f8fafc') : '#0F172A'
+                }}
                 disabled={isSending}
               />
 
