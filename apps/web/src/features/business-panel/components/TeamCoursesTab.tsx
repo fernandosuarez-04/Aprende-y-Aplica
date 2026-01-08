@@ -480,7 +480,7 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                       </div>
 
                       {/* Footer Info */}
-                      <div className="mt-4 pt-4 border-t flex flex-wrap items-center justify-between gap-3" style={{ borderColor }}>
+                      <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-3" style={{ borderColor }}>
                         <div className="flex items-center gap-4">
                           {/* Due Date */}
                           {assignment.due_date && (
@@ -518,16 +518,6 @@ export function TeamCoursesTab({ teamId, teamName, teamMembers }: TeamCoursesTab
                             </span>
                           )}
                         </div>
-
-                        {/* View More */}
-                        <motion.div
-                          whileHover={{ x: 3 }}
-                          className="flex items-center gap-1 text-sm font-medium"
-                          style={{ color: primaryColor }}
-                        >
-                          Ver detalles
-                          <ChevronRight className="w-4 h-4" />
-                        </motion.div>
                       </div>
                     </div>
                   </div>

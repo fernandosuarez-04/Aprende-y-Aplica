@@ -10,6 +10,8 @@ interface VideoPlayerContextType {
   setIsPiPActive: (active: boolean) => void;
   requestPiP: () => Promise<void>;
   exitPiP: () => Promise<void>;
+  getVideoProgress: (lessonId: string) => number;
+  saveVideoProgress: (lessonId: string, time: number) => void;
 }
 
 // Crear el contexto
@@ -19,6 +21,8 @@ const VideoPlayerContext = createContext<VideoPlayerContextType | null>(null);
 export function VideoPlayerProvider({ children }: { children: React.ReactNode }) {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isPiPActive, setIsPiPActive] = useState(false);
+  // Mapa de progreso por lección: { lessonId: currentTime }
+  const [videoProgress, setVideoProgress] = useState<Record<string, number>>({});
 
   // Función para activar PiP - busca el elemento video en el DOM
   const requestPiP = useCallback(async () => {
@@ -51,6 +55,14 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
+  const saveVideoProgress = useCallback((lessonId: string, time: number) => {
+    setVideoProgress((prev) => ({ ...prev, [lessonId]: time }));
+  }, []);
+
+  const getVideoProgress = useCallback((lessonId: string) => {
+    return videoProgress[lessonId] || 0;
+  }, [videoProgress]);
+
   return (
     <VideoPlayerContext.Provider
       value={{
@@ -60,6 +72,8 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
         setIsPiPActive,
         requestPiP,
         exitPiP,
+        getVideoProgress,
+        saveVideoProgress,
       }}
     >
       {children}

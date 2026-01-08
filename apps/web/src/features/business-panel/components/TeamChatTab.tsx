@@ -632,15 +632,11 @@ export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps
               disabled={(!newMessage.trim() && !selectedFile) || isSending}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-50 ${
-                (newMessage.trim() || selectedFile)
-                  ? 'shadow-lg'
-                  : 'bg-gray-200 dark:bg-white/10'
-              }`}
-              style={(newMessage.trim() || selectedFile) ? {
-                backgroundColor: primaryColor,
-                boxShadow: `0 4px 15px ${primaryColor}40`
-              } : {}}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-50"
+              style={{
+                backgroundColor: (newMessage.trim() || selectedFile) ? primaryColor : '#E5E7EB',
+                boxShadow: (newMessage.trim() || selectedFile) ? `0 4px 15px ${primaryColor}40` : 'none'
+              }}
             >
               {isSending ? (
                 <motion.div
@@ -649,7 +645,12 @@ export function TeamChatTab({ teamId, teamName, teamImageUrl }: TeamChatTabProps
                   className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white"
                 />
               ) : (
-                <Send className={`w-5 h-5 ${(newMessage.trim() || selectedFile) ? 'text-white' : 'text-gray-400 dark:text-white/40'}`} />
+                <Send 
+                  className="w-5 h-5" 
+                  style={{ 
+                    color: (newMessage.trim() || selectedFile) ? '#FFFFFF' : '#9CA3AF'
+                  }} 
+                />
               )}
             </motion.button>
           </div>

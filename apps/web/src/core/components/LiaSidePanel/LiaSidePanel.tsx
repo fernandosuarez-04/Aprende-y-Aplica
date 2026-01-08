@@ -114,6 +114,9 @@ interface QuickAction {
   prompt: string;
 }
 
+// Variable global para persistir el scroll
+let liaPanelScrollTop = -1;
+
 function LiaSidePanelContent() {
   const { t } = useTranslation('common');
   const { isOpen, closePanel, pageContext } = useLiaPanel();
@@ -160,6 +163,7 @@ function LiaSidePanelContent() {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const [currentTip, setCurrentTip] = useState('');
   const [isAvatarExpanded, setIsAvatarExpanded] = useState(false);
   
@@ -271,9 +275,43 @@ function LiaSidePanelContent() {
     }
   }, [router, closePanel]);
 
+  // Scroll Logic: Restore position on open, sticky scroll on new messages
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    const container = chatContainerRef.current;
+    if (!container || !isOpen) return;
+
+    // Si acabamos de abrir el panel
+    // Usamos setTimeout para asegurar que el layout esté listo
+    const timer = setTimeout(() => {
+        // Si tenemos una posición guardada, restaurarla
+        if (liaPanelScrollTop !== -1) {
+            container.scrollTop = liaPanelScrollTop;
+        } else {
+            // Si es la primera vez, ir al fondo
+            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
+  // Efecto para auto-scroll cuando llegan mensajes nuevos (solo si estamos abajo)
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    // Si no hay posición guardada (primera carga) o estamos cerca del fondo, hacer scroll
+    const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    // Umbral de 150px para considerar que está "abajo"
+    const isNearBottom = scrollBottom < 150;
+    
+    // Si el último mensaje es del usuario, siempre scroll
+    const lastMsg = messages[messages.length - 1];
+    const isUserMsg = lastMsg?.role === 'user';
+
+    // Hacer scroll si estamos abajo, es mensaje del usuario, o es la primera vez (-1)
+    if (isNearBottom || isUserMsg || liaPanelScrollTop === -1) {
+       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
@@ -450,6 +488,8 @@ function LiaSidePanelContent() {
 
           {/* Messages Area */}
           <div
+            ref={chatContainerRef}
+            onScroll={(e) => { liaPanelScrollTop = e.currentTarget.scrollTop; }}
             style={{
               flex: 1,
               overflowY: 'auto',
@@ -703,7 +743,11 @@ function LiaSidePanelContent() {
                   transition: 'background-color 0.2s',
                 }}
               >
-                <Send style={{ width: '16px', height: '16px', color: 'white' }} />
+                <Send style={{ 
+                  width: '16px', 
+                  height: '16px', 
+                  color: inputValue.trim() && !isLoading ? '#FFFFFF' : (isLightTheme ? '#6B7280' : '#9CA3AF')
+                }} />
               </button>
             </div>
           </div>

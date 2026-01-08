@@ -711,7 +711,7 @@ export default function BusinessTeamDetailPage() {
                           </div>
 
                           {/* Footer */}
-                          <div className="mt-4 pt-4 border-t flex items-center justify-between" style={{ borderColor: `${textColor}10` }}>
+                          <div className="mt-4 pt-4 border-t flex items-center" style={{ borderColor: `${textColor}10` }}>
                             <span
                               className="text-sm font-medium flex items-center gap-1.5"
                               style={{ color: member.status === 'active' ? primaryColor : '#6B7280' }}
@@ -722,14 +722,6 @@ export default function BusinessTeamDetailPage() {
                               />
                               {member.status === 'active' ? 'Activo' : 'Inactivo'}
                             </span>
-                            <motion.div
-                              whileHover={{ x: 3 }}
-                              className="text-sm font-medium flex items-center gap-1"
-                              style={{ color: primaryColor }}
-                            >
-                              Ver perfil
-                              <ChevronRight className="w-4 h-4" />
-                            </motion.div>
                           </div>
                         </div>
                       </motion.div>
@@ -945,7 +937,7 @@ export default function BusinessTeamDetailPage() {
                             </div>
 
                             {/* Footer */}
-                            <div className="mt-4 pt-3 border-t flex items-center justify-between" style={{ borderColor: `${textColor}08` }}>
+                            <div className="mt-4 pt-3 border-t flex items-center" style={{ borderColor: `${textColor}08` }}>
                               <span className="text-xs" style={{ color: `${textColor}50` }}>
                                 {assignment.course?.category && (
                                   <span
@@ -957,14 +949,6 @@ export default function BusinessTeamDetailPage() {
                                 )}
                                 Asignado al equipo
                               </span>
-                              <motion.div
-                                whileHover={{ x: 3 }}
-                                className="text-sm font-medium flex items-center gap-1"
-                                style={{ color: primaryColor }}
-                              >
-                                Ver detalles
-                                <ChevronRight className="w-4 h-4" />
-                              </motion.div>
                             </div>
                           </div>
                         </motion.div>
