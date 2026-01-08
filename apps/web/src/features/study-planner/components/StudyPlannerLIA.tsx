@@ -10513,108 +10513,34 @@ Cuéntame:
                           </motion.button>
                         </div>
 
-                        {/* Microsoft Calendar */}
-                        <div className="relative group">
+                        {/* Microsoft Calendar - TEMPORALMENTE DESHABILITADO */}
+                        <div className="relative group grayscale">
                           <motion.button
-                            onClick={() => {
-                              if (connectedCalendar === 'microsoft') {
-                                // Si ya está conectado, desconectar primero
-                                disconnectCalendar('microsoft');
-                              } else {
-                                // Si hay otro calendario conectado, desconectarlo primero
-                                if (connectedCalendar === 'google') {
-                                  disconnectCalendar('google').then(() => {
-                                    setTimeout(() => connectMicrosoftCalendar(), 500);
-                                  });
-                                } else {
-                                  connectMicrosoftCalendar();
-                                }
-                              }
-                            }}
-                            disabled={isConnectingCalendar}
-                            whileHover={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 1.02, y: -2 }}
-                            whileTap={connectedCalendar === 'microsoft' || isConnectingCalendar ? {} : { scale: 0.98 }}
-                            className={`w-full flex items-center gap-4 p-5 rounded-2xl transition-all relative overflow-hidden ${connectedCalendar === 'microsoft'
-                              ? 'bg-gradient-to-r from-green-500/20 via-green-500/15 to-green-500/20 border-2 border-green-500/60 shadow-lg shadow-green-500/20'
-                              : 'bg-gradient-to-r from-slate-700/50 to-slate-800/50 hover:from-slate-700/70 hover:to-slate-800/70 border border-slate-600/50 hover:border-slate-500/50'
-                              } ${isConnectingCalendar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            disabled={true}
+                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 opacity-60 cursor-not-allowed"
                           >
-                            {/* Efecto de brillo en hover */}
-                            {connectedCalendar !== 'microsoft' && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                            )}
+                            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Próximamente
+                            </div>
 
                             {/* Icono de Microsoft */}
-                            <motion.div
-                              className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${connectedCalendar === 'microsoft'
-                                ? 'bg-white ring-2 ring-green-500/50'
-                                : 'bg-white'
-                                }`}
-                              whileHover={connectedCalendar !== 'microsoft' ? { rotate: [0, -5, 5, -5, 0] } : {}}
-                              transition={{ duration: 0.5 }}
-                            >
+                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white opacity-50">
                               <svg viewBox="0 0 23 23" className="w-8 h-8">
                                 <path fill="#f25022" d="M1 1h10v10H1z" />
                                 <path fill="#00a4ef" d="M12 1h10v10H12z" />
                                 <path fill="#7fba00" d="M1 12h10v10H1z" />
                                 <path fill="#ffb900" d="M12 12h10v10H12z" />
                               </svg>
-                            </motion.div>
+                            </div>
 
                             {/* Contenido del botón */}
                             <div className="flex-1 text-left min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <p className="text-[#0A2540] dark:text-white font-semibold text-sm">Microsoft Outlook</p>
-                                {connectedCalendar === 'microsoft' && (
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="w-2 h-2 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50"
-                                  />
-                                )}
                               </div>
-                              {connectedCalendar === 'microsoft' ? (
-                                <div className="text-[#10B981] text-xs flex items-center gap-2 font-medium">
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ type: 'spring', stiffness: 500 }}
-                                  >
-                                    <Check className="w-3.5 h-3.5" />
-                                  </motion.div>
-                                  <span>Conectado exitosamente</span>
-                                </div>
-                              ) : (
-                                <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Microsoft</p>
-                              )}
+                              <p className="text-[#6C757D] dark:text-gray-400 text-xs">Conecta tu cuenta de Microsoft</p>
                             </div>
-
-                            {/* Icono de acción */}
-                            {connectedCalendar !== 'microsoft' && (
-                              <motion.div
-                                className="w-8 h-8 rounded-full bg-[#E9ECEF] dark:bg-[#6C757D]/30 flex items-center justify-center group-hover:bg-[#6C757D]/20 dark:group-hover:bg-[#6C757D]/50 transition-colors"
-                                whileHover={{ rotate: 45 }}
-                              >
-                                <ExternalLink className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" />
-                              </motion.div>
-                            )}
                           </motion.button>
-
-                          {/* Botón de desconectar mejorado */}
-                          {connectedCalendar === 'microsoft' && (
-                            <motion.button
-                              initial={{ opacity: 0, scale: 0 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              onClick={() => disconnectCalendar('microsoft')}
-                              disabled={isConnectingCalendar}
-                              whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
-                              whileTap={{ scale: 0.9 }}
-                              className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 backdrop-blur-sm z-10"
-                              title="Desconectar Microsoft Calendar"
-                            >
-                              <X className="w-4 h-4" />
-                            </motion.button>
-                          )}
                         </div>
                       </div>
 
