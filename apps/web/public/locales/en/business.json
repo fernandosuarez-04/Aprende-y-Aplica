@@ -212,6 +212,7 @@
         "title": "Edit User",
         "subtitle": "Modify member information",
         "infoNote": "Changes made will be saved and the user will receive a notification if necessary.",
+        "currentRole": "Current role",
         "fields": {
           "fullName": "Full Name",
           "phone": "Phone",

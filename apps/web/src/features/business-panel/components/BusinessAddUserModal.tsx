@@ -6,6 +6,7 @@ import { X, User, Mail, Shield, Lock, UserPlus, Camera, Sparkles, Briefcase } fr
 import Image from 'next/image'
 import { useTranslation } from 'react-i18next'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 interface BusinessAddUserModalProps {
   isOpen: boolean
@@ -27,6 +28,8 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
   const { t } = useTranslation('business')
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Theme Colors
@@ -198,13 +201,13 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
         className="fixed inset-0 flex items-center justify-center p-4"
         style={{ zIndex: 99999 }}
       >
-        {/* Backdrop - dark with blur */}
+        {/* Backdrop - transparent, just for closing */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          className="absolute inset-0"
           style={{ zIndex: 0 }}
         />
 
@@ -304,11 +307,21 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                   </p>
 
                   {/* Role Badge */}
-                  <div
-                    className="px-3 py-1.5 rounded-full text-xs font-medium"
-                    style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
-                  >
-                    {roleLabels[formData.org_role].label}
+                  <div className="mb-2">
+                    <div className="text-xs text-white/50 mb-1 text-center">
+                      {t('users.modals.edit.currentRole', 'Rol actual')}
+                    </div>
+                    <div
+                      className="px-4 py-2 rounded-full text-sm font-semibold text-center"
+                      style={{ 
+                        background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                        color: '#FFFFFF',
+                        border: `1px solid ${primaryColor}80`,
+                        boxShadow: `0 4px 15px ${primaryColor}40`
+                      }}
+                    >
+                      {roleLabels[formData.org_role].label}
+                    </div>
                   </div>
 
                   {/* Job Title Badge */}
@@ -369,7 +382,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                           {t('users.modals.add.fields.username')} <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }} />
                           <input
                             type="text"
                             name="username"
@@ -386,7 +399,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                           {t('users.modals.add.fields.email')} <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }} />
                           <input
                             type="email"
                             name="email"
@@ -432,7 +445,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                         {t('users.modals.add.fields.password')} <span className="text-red-400">*</span>
                       </label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }} />
                         <input
                           type="password"
                           name="password"
@@ -452,7 +465,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                         {t('users.modals.add.fields.position')} <span className="text-red-400">*</span>
                       </label>
                       <div className="relative">
-                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }} />
                         <input
                           type="text"
                           name="job_title"
@@ -486,7 +499,11 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                             } : {}}
                           >
                             <div className="flex items-center gap-2 mb-1">
-                              <Shield className="w-4 h-4" style={{ color: formData.org_role === role ? primaryColor : 'rgba(255,255,255,0.5)' }} />
+                              <Shield className="w-4 h-4" style={{ 
+                                color: formData.org_role === role 
+                                  ? '#FFFFFF'
+                                  : (isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)')
+                              }} />
                               <span className={`text-xs lg:text-sm font-medium ${formData.org_role === role ? 'text-white' : 'text-white/70'}`}>
                                 {roleLabels[role].label}
                               </span>
@@ -504,7 +521,20 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                       type="button"
                       onClick={onClose}
                       disabled={isLoading}
-                      className="px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                      className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                      style={{
+                        color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isLoading) {
+                          e.currentTarget.style.color = isDark ? '#FFFFFF' : '#000000';
+                          e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
                     >
                       {t('users.buttons.cancel')}
                     </button>
