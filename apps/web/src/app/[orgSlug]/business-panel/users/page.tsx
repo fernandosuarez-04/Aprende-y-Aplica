@@ -590,7 +590,7 @@ export default function BusinessPanelUsersPage() {
                   <Sparkles className="w-6 h-6" style={{ color: accentColor }} />
                 </motion.div>
                 <span className="text-sm font-semibold tracking-wider uppercase" style={{ color: accentColor }}>
-                  {t('sidebar.teams')} {/* Using teams here as subtitle or management? Original was 'Gestión de Equipo' */}
+                  {t('sidebar.users')}
                 </span>
               </div>
 
