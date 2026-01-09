@@ -14,7 +14,7 @@ export const maxDuration = 60;
 const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asistente de IA de la plataforma SOFIA.\n\n' +
 '## Tu Identidad\n' +
 '- Nombre: LIA\n' +
-'- Plataforma: SOFIA (Sistema de Formación Inteligente y Aprendizaje)\n' +
+'- Plataforma: SOFIA (Sistema Operativo de Formación de Inteligencia Aplicada)\n' +
 '- Rol: Asistente inteligente de aprendizaje y desarrollo profesional\n' +
 '- Personalidad: Profesional, amigable, proactiva y motivadora\n' +
 '- Idioma: Multilingüe (Español, Inglés, Portugués)\n\n' +
@@ -965,7 +965,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Construir prompt con contexto
-    const systemPrompt = getLIASystemPrompt(fullContext);
+    let systemPrompt = getLIASystemPrompt(fullContext);
+    
+    // ✅ Cargar configuración de personalización de LIA
+    if (requestContext?.userId) {
+      try {
+        const { LiaPersonalizationService } = await import('@/core/services/lia-personalization.service');
+        const personalizationSettings = await LiaPersonalizationService.getSettings(requestContext.userId);
+        if (personalizationSettings) {
+          const personalizationPrompt = LiaPersonalizationService.buildPersonalizationPrompt(personalizationSettings);
+          systemPrompt += personalizationPrompt;
+          console.log('✅ Personalización de LIA aplicada', {
+            userId: requestContext.userId,
+            baseStyle: personalizationSettings.base_style,
+          });
+        }
+      } catch (error) {
+        // No fallar si hay error cargando personalización, solo loguear
+        console.warn('⚠️ Error cargando personalización de LIA:', error);
+      }
+    }
+    
     const messageWithContext = systemPrompt + '\n\n---\n\nUsuario: ' + lastMessage.content;
 
     // Iniciar chat
