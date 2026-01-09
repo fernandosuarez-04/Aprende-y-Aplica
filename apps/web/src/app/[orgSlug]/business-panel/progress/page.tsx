@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { BusinessTeamProgress } from '@/features/business-panel/components/BusinessTeamProgress'
 import { useTranslation } from 'react-i18next'
 
 export default function BusinessPanelProgressPage() {
@@ -18,7 +17,9 @@ export default function BusinessPanelProgressPage() {
         <p className="text-carbon-300">{t('progress.subtitle')}</p>
       </div>
       
-      <BusinessTeamProgress />
+      <div className="text-white p-4 border border-white/10 rounded-lg">
+        Sección de progreso de equipos eliminada.
+      </div>
     </motion.div>
   )
 }
