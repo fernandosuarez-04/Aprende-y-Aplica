@@ -662,7 +662,7 @@ export default function CourseDetailPage() {
                                             key={lesson.lesson_id || lesson.id}
                                             className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-600"
                                           >
-                                            <Play className="w-4 h-4 text-gray-600 dark:text-slate-300 flex-shrink-0" />
+                                            <Play className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" style={{ strokeWidth: 2.5 }} />
                                             <div className="flex-1 min-w-0">
                                               <p className="text-gray-900 dark:text-white text-sm font-medium">
                                                 {lessonIndex + 1}. {lesson.lesson_title || lesson.title}

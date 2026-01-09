@@ -597,8 +597,11 @@ export default function BusinessCourseDetailPage() {
                                 >
                                   <div className="flex items-center gap-4">
                                     <div
-                                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white"
-                                      style={{ backgroundColor: isExpanded ? primaryColor : `${primaryColor}40` }}
+                                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold"
+                                      style={{ 
+                                        backgroundColor: isExpanded ? primaryColor : `${primaryColor}40`,
+                                        color: isExpanded ? '#FFFFFF' : (isDark ? '#FFFFFF' : primaryColor)
+                                      }}
                                     >
                                       {moduleIndex + 1}
                                     </div>
@@ -630,8 +633,8 @@ export default function BusinessCourseDetailPage() {
                                             key={lesson.lesson_id}
                                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
                                           >
-                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
-                                              <Play className="w-4 h-4" style={{ color: primaryColor }} />
+                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: isDark ? `${primaryColor}40` : `${primaryColor}50` }}>
+                                              <Play className="w-4 h-4" style={{ color: '#FFFFFF', strokeWidth: 3 }} />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                               <p className="text-sm font-medium" style={{ color: textColor }}>

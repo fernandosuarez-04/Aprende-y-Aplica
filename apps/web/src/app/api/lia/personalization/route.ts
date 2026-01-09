@@ -1,0 +1,198 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { SessionService } from '@/features/auth/services/session.service';
+import { LiaPersonalizationService } from '@/core/services/lia-personalization.service';
+import type { LiaPersonalizationSettingsInput } from '@/core/types/lia-personalization.types';
+import { logger } from '@/lib/utils/logger';
+
+/**
+ * GET /api/lia/personalization
+ * Obtiene la configuración de personalización del usuario actual
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const user = await SessionService.getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
+
+    const settings = await LiaPersonalizationService.getSettings(user.id);
+
+    return NextResponse.json({
+      settings,
+      success: true,
+    });
+  } catch (error: any) {
+    logger.error('Error obteniendo configuración de personalización:', error);
+    return NextResponse.json(
+      { 
+        error: 'Error al obtener configuración',
+        message: error.message,
+        success: false 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/lia/personalization
+ * Actualiza la configuración de personalización del usuario actual
+ * 
+ * Body:
+ * {
+ *   base_style?: 'professional' | 'casual' | 'technical' | 'friendly' | 'formal',
+ *   is_friendly?: boolean,
+ *   is_enthusiastic?: boolean,
+ *   emoji_level?: 'none' | 'less' | 'normal' | 'more',
+ *   custom_instructions?: string | null,
+ *   nickname?: string | null,
+ *   recording_history_enabled?: boolean,
+ *   voice_enabled?: boolean,
+ *   dictation_enabled?: boolean,
+ *   conversation_pagination_enabled?: boolean,
+ *   connector_search_enabled?: boolean
+ * }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const user = await SessionService.getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const settingsInput: LiaPersonalizationSettingsInput = {
+      base_style: body.base_style,
+      is_friendly: body.is_friendly,
+      is_enthusiastic: body.is_enthusiastic,
+      emoji_level: body.emoji_level,
+      custom_instructions: body.custom_instructions || null,
+      nickname: body.nickname || null,
+      recording_history_enabled: body.recording_history_enabled,
+      voice_enabled: body.voice_enabled,
+      dictation_enabled: body.dictation_enabled,
+      conversation_pagination_enabled: body.conversation_pagination_enabled,
+      connector_search_enabled: body.connector_search_enabled,
+    };
+
+    // Validar que al menos un campo esté presente
+    const hasAnyField = Object.values(settingsInput).some(
+      (value) => value !== undefined
+    );
+
+    if (!hasAnyField) {
+      return NextResponse.json(
+        { error: 'Debe proporcionar al menos un campo para actualizar' },
+        { status: 400 }
+      );
+    }
+
+    // Sanitizar custom_instructions para prevenir prompt injection básico
+    if (settingsInput.custom_instructions) {
+      // Remover caracteres peligrosos comunes en prompt injection
+      const dangerousPatterns = [
+        /ignore\s+previous\s+instructions/gi,
+        /disregard\s+all\s+prior\s+commands/gi,
+        /act\s+as\s+a/gi,
+        /jailbreak/gi,
+        /forget\s+everything/gi,
+        /new\s+instructions/gi,
+        /override/gi,
+        /system\s+prompt/gi,
+        /you\s+are\s+now/gi,
+        /pretend\s+to\s+be/gi,
+        /roleplay\s+as/gi,
+        /dan\s+mode/gi,
+        /developer\s+mode/gi,
+      ];
+
+      let sanitized = settingsInput.custom_instructions;
+      for (const pattern of dangerousPatterns) {
+        sanitized = sanitized.replace(pattern, '[contenido bloqueado]');
+      }
+
+      // Si se detectó contenido peligroso, advertir pero permitir (el usuario puede querer instrucciones específicas)
+      if (sanitized !== settingsInput.custom_instructions) {
+        logger.warn('Se detectó posible prompt injection en custom_instructions:', {
+          userId: user.id,
+          originalLength: settingsInput.custom_instructions.length,
+        });
+        // No bloquear, solo sanitizar
+        settingsInput.custom_instructions = sanitized;
+      }
+    }
+
+    const updatedSettings = await LiaPersonalizationService.updateSettings(
+      user.id,
+      settingsInput
+    );
+
+    return NextResponse.json({
+      settings: updatedSettings,
+      success: true,
+      message: 'Configuración actualizada correctamente',
+    });
+  } catch (error: any) {
+    logger.error('Error actualizando configuración de personalización:', error);
+    
+    // Manejar errores de validación
+    if (error.message.includes('exceder')) {
+      return NextResponse.json(
+        { 
+          error: error.message,
+          success: false 
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { 
+        error: 'Error al actualizar configuración',
+        message: error.message,
+        success: false 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/lia/personalization
+ * Elimina la configuración de personalización del usuario (restablece a valores por defecto)
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await SessionService.getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
+
+    await LiaPersonalizationService.deleteSettings(user.id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Configuración eliminada correctamente',
+    });
+  } catch (error: any) {
+    logger.error('Error eliminando configuración de personalización:', error);
+    return NextResponse.json(
+      { 
+        error: 'Error al eliminar configuración',
+        message: error.message,
+        success: false 
+      },
+      { status: 500 }
+    );
+  }
+}
+

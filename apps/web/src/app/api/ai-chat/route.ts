@@ -10,6 +10,7 @@ import { SessionService } from '../../../features/auth/services/session.service'
 import { LiaLogger, type ContextType } from '../../../lib/analytics/lia-logger';
 import { LiaContextService } from '../../../features/study-planner/services/lia-context.service';
 import { generateStudyPlannerPrompt, generateAvailabilityPrompt } from '../../../features/study-planner/prompts/study-planner.prompt';
+import { LiaPersonalizationService } from '../../../core/services/lia-personalization.service';
 
 // Tipo para el contexto de la página
 interface PageContext {
@@ -1952,6 +1953,27 @@ export async function POST(request: NextRequest) {
 
     // Iniciar inicialización de analytics en background (no esperar)
     const analyticsPromise = initializeAnalyticsAsync();
+
+    // ✅ Cargar configuración de personalización de LIA
+    let personalizationPrompt = '';
+    if (user) {
+      try {
+        const personalizationSettings = await LiaPersonalizationService.getSettings(user.id);
+        if (personalizationSettings) {
+          personalizationPrompt = LiaPersonalizationService.buildPersonalizationPrompt(personalizationSettings);
+          // Agregar la personalización al contextPrompt
+          contextPrompt += personalizationPrompt;
+          logger.info('✅ Personalización de LIA aplicada', {
+            userId: user.id,
+            baseStyle: personalizationSettings.base_style,
+            hasCustomInstructions: !!personalizationSettings.custom_instructions,
+          });
+        }
+      } catch (error) {
+        // No fallar si hay error cargando personalización, solo loguear
+        logger.warn('⚠️ Error cargando personalización de LIA:', error);
+      }
+    }
 
     // Intentar usar OpenAI si está disponible
     const openaiApiKey = process.env.OPENAI_API_KEY;

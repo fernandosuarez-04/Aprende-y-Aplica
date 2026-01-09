@@ -483,6 +483,7 @@ export async function GET() {
           user_id: u.user_id,
           name: u.users?.display_name || u.users?.first_name || u.users?.email?.split('@')[0] || 'Usuario',
           email: u.users?.email,
+          profile_picture_url: u.users?.profile_picture_url || null,
           // job_title ahora viene de organization_users, no de users.type_rol
           role: u.job_title || u.role,
           last_active: u.users?.last_login_at,

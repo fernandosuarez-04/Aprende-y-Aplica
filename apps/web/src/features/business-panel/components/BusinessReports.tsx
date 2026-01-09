@@ -333,7 +333,27 @@ function LiaAnalysisReport({ data }: { data: any }) {
                     </button>
                 </div>
 
-                <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-h2:text-xl prose-h3:text-lg text-sm leading-relaxed prose-strong:text-blue-500 dark:prose-strong:text-blue-400">
+                <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-h2:text-xl prose-h3:text-lg text-sm leading-relaxed">
+                  <style jsx global>{`
+                    .prose strong {
+                      color: ${isDark ? '#60a5fa' : '#2563eb'} !important;
+                      font-weight: 700 !important;
+                    }
+                    .prose h1, .prose h2, .prose h3, .prose h4 {
+                      color: ${isDark ? '#f8fafc' : '#0f172a'} !important;
+                      font-weight: 700 !important;
+                    }
+                    .prose p {
+                      color: ${isDark ? 'rgba(248, 250, 252, 0.9)' : '#334155'} !important;
+                    }
+                    .prose li {
+                      color: ${isDark ? 'rgba(248, 250, 252, 0.9)' : '#334155'} !important;
+                    }
+                    .prose code {
+                      color: ${isDark ? '#60a5fa' : '#2563eb'} !important;
+                      background-color: ${isDark ? 'rgba(96, 165, 250, 0.1)' : 'rgba(37, 99, 235, 0.1)'} !important;
+                    }
+                  `}</style>
                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{data.analysis_text}</ReactMarkdown>
                 </div>
                 
@@ -875,6 +895,37 @@ function UsersReport({ data }: { data: any }) {
     value: value as number
   }))
 
+  // CustomTooltip para gráficos de pastel
+  const CustomPieTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0]
+      return (
+        <div
+          style={{
+            backgroundColor: cardBg,
+            border: `1px solid ${cardBorder}`,
+            borderRadius: '8px',
+            padding: '8px 12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            fontSize: '12px'
+          }}
+        >
+          <p style={{ color: textColor, margin: 0, fontWeight: 600 }}>
+            {data.name || 'Valor'}
+          </p>
+          <p style={{ color: textColor, margin: '4px 0 0 0', fontWeight: 500 }}>
+            {typeof data.value === 'number' 
+              ? data.value % 1 === 0 
+                ? data.value 
+                : data.value.toFixed(1)
+              : data.value}
+          </p>
+        </div>
+      )
+    }
+    return null
+  }
+
   const columns: ColumnDef<any>[] = [
     { accessorKey: 'username', header: 'Username' },
     { accessorKey: 'email', header: 'Email' },
@@ -915,7 +966,7 @@ function UsersReport({ data }: { data: any }) {
                   <Pie data={roleData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
                     {roleData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip content={<CustomPieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -935,6 +986,7 @@ function UsersReport({ data }: { data: any }) {
                       color: textColor
                     }}
                     labelStyle={{ color: textColor }}
+                    cursor={{ fill: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }}
                   />
                   <Bar dataKey="value" fill={accentColor} radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -971,6 +1023,37 @@ function ActivityReport({ data }: { data: any }) {
     { name: 'Inactivos', value: data.inactive_count || 0 }
   ].filter(s => s.value > 0)
 
+  // CustomTooltip para gráficos de pastel
+  const CustomPieTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0]
+      return (
+        <div
+          style={{
+            backgroundColor: cardBg,
+            border: `1px solid ${cardBorder}`,
+            borderRadius: '8px',
+            padding: '8px 12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            fontSize: '12px'
+          }}
+        >
+          <p style={{ color: textColor, margin: 0, fontWeight: 600 }}>
+            {data.name || 'Valor'}
+          </p>
+          <p style={{ color: textColor, margin: '4px 0 0 0', fontWeight: 500 }}>
+            {typeof data.value === 'number' 
+              ? data.value % 1 === 0 
+                ? data.value 
+                : data.value.toFixed(1)
+              : data.value}
+          </p>
+        </div>
+      )
+    }
+    return null
+  }
+
   const columns: ColumnDef<any>[] = [
     { accessorKey: 'user_name', header: 'Usuario' },
     { accessorKey: 'course_title', header: 'Curso' },
@@ -1003,14 +1086,7 @@ function ActivityReport({ data }: { data: any }) {
               <Pie data={statusData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
                 {statusData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
               </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: cardBg, 
-                  border: `1px solid ${cardBorder}`,
-                  borderRadius: '8px',
-                  color: textColor
-                }}
-              />
+              <Tooltip content={<CustomPieTooltip />} />
               <Legend wrapperStyle={{ color: textColor }} />
             </PieChart>
           </ResponsiveContainer>
@@ -1078,6 +1154,7 @@ function CertificatesReport({ data }: { data: any }) {
                   color: textColor
                 }}
                 labelStyle={{ color: textColor }}
+                cursor={{ fill: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }}
               />
               <Bar dataKey="certificados" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
             </BarChart>

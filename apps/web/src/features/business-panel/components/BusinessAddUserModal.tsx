@@ -311,7 +311,7 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                     <div className="text-xs text-white/50 mb-1 text-center">
                       {t('users.modals.edit.currentRole', 'Rol actual')}
                     </div>
-                    <div
+                  <div
                       className="px-4 py-2 rounded-full text-sm font-semibold text-center"
                       style={{ 
                         background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
@@ -319,8 +319,8 @@ export function BusinessAddUserModal({ isOpen, onClose, onSave }: BusinessAddUse
                         border: `1px solid ${primaryColor}80`,
                         boxShadow: `0 4px 15px ${primaryColor}40`
                       }}
-                    >
-                      {roleLabels[formData.org_role].label}
+                  >
+                    {roleLabels[formData.org_role].label}
                     </div>
                   </div>
 

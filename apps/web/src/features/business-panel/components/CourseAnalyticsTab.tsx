@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users,
@@ -13,6 +13,7 @@ import {
   Target
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 const ResponsiveBar = dynamic(() => import('@nivo/bar').then(mod => mod.ResponsiveBar), { ssr: false })
 const ResponsivePie = dynamic(() => import('@nivo/pie').then(mod => mod.ResponsivePie), { ssr: false })
@@ -26,39 +27,6 @@ const COLORS = {
   info: '#3b82f6'
 }
 
-const nivoTheme = {
-  background: 'transparent',
-  text: {
-    fontSize: 12,
-    fill: '#e5e7eb',
-    outlineWidth: 0
-  },
-  axis: {
-    domain: {
-      line: {
-        stroke: '#4b5563',
-        strokeWidth: 1
-      }
-    },
-    ticks: {
-      line: {
-        stroke: '#4b5563',
-        strokeWidth: 1
-      },
-      text: {
-        fontSize: 11,
-        fill: '#9ca3af'
-      }
-    }
-  },
-  grid: {
-    line: {
-      stroke: '#374151',
-      strokeWidth: 1
-    }
-  }
-}
-
 interface CourseAnalyticsTabProps {
   courseId: string
 }
@@ -67,6 +35,52 @@ export function CourseAnalyticsTab({ courseId }: CourseAnalyticsTabProps) {
   const [analyticsData, setAnalyticsData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+
+  const nivoTheme = useMemo(() => ({
+    background: 'transparent',
+    text: {
+      fontSize: 12,
+      fill: isDark ? '#e5e7eb' : '#374151',
+      outlineWidth: 0
+    },
+    axis: {
+      domain: {
+        line: {
+          stroke: isDark ? '#4b5563' : '#cbd5e1',
+          strokeWidth: 1
+        }
+      },
+      ticks: {
+        line: {
+          stroke: isDark ? '#4b5563' : '#cbd5e1',
+          strokeWidth: 1
+        },
+        text: {
+          fontSize: 11,
+          fill: isDark ? '#9ca3af' : '#64748b'
+        }
+      }
+    },
+    grid: {
+      line: {
+        stroke: isDark ? '#374151' : '#e2e8f0',
+        strokeWidth: 1
+      }
+    },
+    tooltip: {
+      container: {
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#e5e7eb' : '#111827',
+        fontSize: 12,
+        borderRadius: '8px',
+        padding: '8px 12px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`
+      }
+    }
+  }), [isDark])
 
   useEffect(() => {
     fetchAnalytics()

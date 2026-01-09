@@ -20,7 +20,9 @@ import {
   MessageSquare,
   Brain,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  Settings,
+  MoreVertical
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { usePathname } from 'next/navigation';
@@ -34,6 +36,8 @@ import { IntentDetectionService } from '../../services/intent-detection.service'
 import { PromptPreviewPanel, type PromptDraft } from './PromptPreviewPanel';
 import { NanoBananaPreviewPanel } from './NanoBananaPreviewPanel';
 import type { NanoBananaSchema, NanoBananaDomain, OutputFormat } from '../../../lib/nanobana/templates';
+import { LiaPersonalizationSettings } from '../../../features/lia/components/LiaPersonalizationSettings';
+import { useThemeStore } from '../../stores/themeStore';
 
 interface Message {
   id: string;
@@ -276,6 +280,8 @@ export function AIChatAgent({
   const pathname = usePathname();
   const { language } = useLanguage();
   const { t: tCommon } = useTranslation('common');
+  const { resolvedTheme } = useThemeStore();
+  const isDark = resolvedTheme === 'dark';
 
   // Estados para el modo prompt (declarados temprano para poder usarlos en placeholderText)
   const [isPromptMode, setIsPromptMode] = useState(false);
@@ -293,6 +299,30 @@ export function AIChatAgent({
   const [isNanoBananaPanelOpen, setIsNanoBananaPanelOpen] = useState(false);
   const [nanoBananaMessages, setNanoBananaMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+
+  // Estado para modal de personalización
+  const [isPersonalizationOpen, setIsPersonalizationOpen] = useState(false);
+  
+  // Estado para menú de opciones (3 puntos)
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const optionsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar menú de opciones al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
+        setIsOptionsMenuOpen(false);
+      }
+    };
+
+    if (isOptionsMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOptionsMenuOpen]);
 
   // Estados del chat (declarados temprano para poder usarlos en useMemo)
   const [isOpen, setIsOpen] = useState(false);
@@ -2396,16 +2426,83 @@ Fecha: ${new Date().toLocaleString()}
                   </div>
 
                   <div className="flex items-center gap-1">
-                    {/* Botón limpiar conversación */}
-                    <button
-                      onClick={handleClearConversation}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
-                      aria-label={clearConversationLabel}
-                      title={clearConversationLabel}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* Menú de opciones (3 puntos) */}
+                    <div className="relative" ref={optionsMenuRef}>
+                      <button
+                        onClick={() => setIsOptionsMenuOpen(!isOptionsMenuOpen)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
+                        aria-label="Opciones"
+                        title="Opciones"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
 
+                      {/* Menú desplegable */}
+                      <AnimatePresence>
+                        {isOptionsMenuOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            transition={{ duration: 0.15, ease: 'easeOut' }}
+                            className="absolute right-0 top-full mt-2 rounded-xl border overflow-hidden backdrop-blur-xl z-[100000] min-w-[200px]"
+                            style={{
+                              backgroundColor: isDark ? '#1E2329' : '#FFFFFF',
+                              borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                            }}
+                          >
+                            <div className="py-2">
+                              {/* Opción: Personalización */}
+                              <button
+                                onClick={() => {
+                                  setIsPersonalizationOpen(true);
+                                  setIsOptionsMenuOpen(false);
+                                }}
+                                className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 transition-all duration-150"
+                                style={{
+                                  backgroundColor: 'transparent',
+                                  color: isDark ? '#FFFFFF' : '#0A2540',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }}
+                              >
+                                <Settings className="w-4 h-4" style={{ color: isDark ? '#9CA3AF' : '#6C757D' }} />
+                                <span>Personalización</span>
+                              </button>
+
+                              {/* Opción: Borrar chat */}
+                              <button
+                                onClick={() => {
+                                  handleClearConversation();
+                                  setIsOptionsMenuOpen(false);
+                                }}
+                                className="w-full px-4 py-3 text-left text-sm flex items-center gap-3 transition-all duration-150"
+                                style={{
+                                  backgroundColor: 'transparent',
+                                  color: isDark ? '#f87171' : '#ef4444',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span>{clearConversationLabel}</span>
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Botón cerrar */}
                     <button
                       onClick={handleClose}
                       className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
@@ -2805,6 +2902,12 @@ Fecha: ${new Date().toLocaleString()}
           />
         </div>
       )}
+
+      {/* Modal de Personalización */}
+      <LiaPersonalizationSettings
+        isOpen={isPersonalizationOpen}
+        onClose={() => setIsPersonalizationOpen(false)}
+      />
     </>
   );
 }

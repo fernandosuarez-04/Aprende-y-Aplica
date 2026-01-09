@@ -41,6 +41,7 @@ import { useSubscriptionFeatures } from '../hooks/useSubscriptionFeatures'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useBranding } from '../hooks/useBranding'
 import { BrandingColorPicker } from './BrandingColorPicker'
+import { useThemeStore } from '@/core/stores/themeStore'
 
 export function BusinessSettings() {
   const { data, isLoading, error, refetch, updateOrganization } = useBusinessSettings()
@@ -351,6 +352,8 @@ function OrganizationTab({
   saveError: string | null
   setSaveError: (msg: string | null) => void
 }) {
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const [formData, setFormData] = useState({
     name: organization?.name || '',
     description: organization?.description || '',
@@ -504,7 +507,7 @@ function OrganizationTab({
               className="p-3 rounded-xl"
               style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
             >
-              <Building2 className="w-5 h-5 text-white" />
+              <Building2 className="w-5 h-5" style={{ color: '#FFFFFF' }} />
             </motion.div>
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Información Básica</h3>
@@ -664,7 +667,7 @@ function OrganizationTab({
                 className="p-3 rounded-xl"
                 style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
               >
-                <Mail className="w-5 h-5 text-white" />
+                <Mail className="w-5 h-5" style={{ color: '#FFFFFF' }} />
               </motion.div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Información de Contacto</h3>
@@ -846,6 +849,8 @@ function LoginPersonalizadoSection({
   organization: OrganizationData
   updateOrganization: (data: Partial<OrganizationData>) => Promise<boolean>
 }) {
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
   const [copiedLogin, setCopiedLogin] = useState(false)
   const [copiedRegister, setCopiedRegister] = useState(false)
   const [baseUrl, setBaseUrl] = useState('')
@@ -969,7 +974,7 @@ function LoginPersonalizadoSection({
           className="p-3 rounded-xl"
           style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
         >
-          <LinkIcon className="w-5 h-5 text-white" />
+          <LinkIcon className="w-5 h-5" style={{ color: '#FFFFFF' }} />
         </motion.div>
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">Link Personalizado de Login</h3>
@@ -1151,8 +1156,8 @@ function LoginPersonalizadoSection({
             <Info className="w-5 h-5 text-blue-400" />
           </motion.div>
           <div className="flex-1">
-            <p className="text-sm text-blue-300">
-              <strong className="text-blue-200">Nota:</strong> Los usuarios que accedan a estos links verán el login personalizado con tu logo y nombre de empresa.
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              <strong className="text-blue-800 dark:text-blue-200">Nota:</strong> Los usuarios que accedan a estos links verán el login personalizado con tu logo y nombre de empresa.
               Si intentan acceder al login principal, serán redirigidos automáticamente a tu login personalizado.
             </p>
           </div>
@@ -1373,9 +1378,9 @@ function PersonalizationTab({
           <motion.div
             whileHover={{ rotate: 15, scale: 1.1 }}
             className="p-3 rounded-xl"
-            style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+            style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
           >
-            <LinkIcon className="w-5 h-5 text-white" />
+            <LinkIcon className="w-5 h-5" style={{ color: '#FFFFFF' }} />
           </motion.div>
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Identificador de URL</h3>
@@ -1489,9 +1494,9 @@ function PersonalizationTab({
             <motion.div
               whileHover={{ rotate: 15, scale: 1.1 }}
               className="p-3 rounded-xl"
-              style={{ background: 'linear-gradient(135deg, #0A2540, #1e3a5f)' }}
+              style={{ background: isDark ? 'linear-gradient(135deg, #0A2540, #1e3a5f)' : 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
             >
-              <LinkIcon className="w-5 h-5 text-white" />
+              <LinkIcon className="w-5 h-5" style={{ color: '#FFFFFF' }} />
             </motion.div>
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Links de Acceso</h3>
@@ -1674,8 +1679,8 @@ function PersonalizationTab({
             <Info className="w-5 h-5 text-blue-400" />
           </motion.div>
           <div className="flex-1">
-            <p className="text-sm text-blue-300">
-              <strong className="text-blue-200">Nota:</strong> Los usuarios que accedan a tu link personalizado verán el login con tu logo y branding.
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              <strong className="text-blue-800 dark:text-blue-200">Nota:</strong> Los usuarios que accedan a tu link personalizado verán el login con tu logo y branding.
               Si habilitas SSO, podrán elegir iniciar sesión con Google o Microsoft además de email/contraseña.
             </p>
           </div>
