@@ -28,6 +28,7 @@ interface OrganizationRegisterFormProps {
   invitationToken?: string | null;
   invitedEmail?: string | null;
   invitedRole?: string | null;
+  bulkInviteToken?: string | null;
   googleLoginEnabled?: boolean;
   microsoftLoginEnabled?: boolean;
 }
@@ -45,6 +46,7 @@ export function OrganizationRegisterForm({
   invitationToken,
   invitedEmail,
   invitedRole,
+  bulkInviteToken,
   googleLoginEnabled = false,
   microsoftLoginEnabled = false,
 }: OrganizationRegisterFormProps) {
@@ -80,7 +82,7 @@ export function OrganizationRegisterForm({
 
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const [mounted, setMounted] = useState(false);
-  
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -148,10 +150,10 @@ export function OrganizationRegisterForm({
   const onSubmit = async (data: RegisterFormData) => {
     setError(null);
     setSuccess(null);
-    
+
     startTransition(async () => {
       const formData = new FormData();
-      
+
       // Añadir todos los campos del formulario
       Object.entries(data).forEach(([key, value]) => {
         if (typeof value === 'boolean') {
@@ -168,6 +170,11 @@ export function OrganizationRegisterForm({
       // Agregar token de invitación si existe
       if (invitationToken) {
         formData.append('invitationToken', invitationToken);
+      }
+
+      // Agregar token de invitación masiva si existe
+      if (bulkInviteToken) {
+        formData.append('bulkInviteToken', bulkInviteToken);
       }
 
       try {
@@ -363,6 +370,7 @@ export function OrganizationRegisterForm({
               <div>
                 <p className="text-sm text-blue-700 dark:text-blue-300">
                   Serás registrado como: <strong>{roleLabels[invitedRole] || invitedRole}</strong>
+                  {bulkInviteToken && <span className="ml-1 text-xs opacity-70">(vía enlace de invitación)</span>}
                 </p>
               </div>
             </div>
@@ -649,6 +657,7 @@ export function OrganizationRegisterForm({
             organizationSlug={organizationSlug}
             organizationId={organizationId}
             invitationToken={invitationToken || undefined}
+            bulkInviteToken={bulkInviteToken || undefined}
             showLoginLink={true}
           />
         </motion.div>

@@ -28,6 +28,7 @@ interface OAuthInitParams {
   organizationId?: string;
   organizationSlug?: string;
   invitationToken?: string;
+  bulkInviteToken?: string;
 }
 
 /**
@@ -42,20 +43,21 @@ export async function initiateGoogleLogin(params: OAuthInitParams = {}) {
 
   // Crear state con contexto de organización (si existe)
   let state: string;
-  if (params.organizationId || params.invitationToken) {
+  if (params.organizationId || params.invitationToken || params.bulkInviteToken) {
     // Incluir contexto de organización en el state
     const stateData = {
       csrf: csrfToken,
       orgId: params.organizationId,
       orgSlug: params.organizationSlug,
       invToken: params.invitationToken,
+      bulkToken: params.bulkInviteToken,
     };
     state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
   } else {
     state = csrfToken;
   }
 
-  logger.auth('OAuth: Generando state CSRF', { stateLength: state.length, hasOrgContext: !!params.organizationId });
+  logger.auth('OAuth: Generando state CSRF', { stateLength: state.length, hasOrgContext: !!params.organizationId, hasBulkToken: !!params.bulkInviteToken });
 
   // ✅ SEGURIDAD: Guardar CSRF token en cookie HttpOnly para validación posterior
   const cookieStore = await cookies();
@@ -68,11 +70,12 @@ export async function initiateGoogleLogin(params: OAuthInitParams = {}) {
   });
 
   // Guardar contexto de organización en cookie separada (si existe)
-  if (params.organizationId || params.invitationToken) {
+  if (params.organizationId || params.invitationToken || params.bulkInviteToken) {
     const orgContext = {
       orgId: params.organizationId,
       orgSlug: params.organizationSlug,
       invToken: params.invitationToken,
+      bulkToken: params.bulkInviteToken,
     };
     cookieStore.set('oauth_org_context', JSON.stringify(orgContext), {
       httpOnly: true,
@@ -166,14 +169,15 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     logger.auth('State CSRF validado exitosamente');
 
     // Obtener contexto de organización de la cookie
-    let orgContext: { orgId?: string; orgSlug?: string; invToken?: string } = {};
+    let orgContext: { orgId?: string; orgSlug?: string; invToken?: string; bulkToken?: string } = {};
     if (orgContextCookie) {
       try {
         orgContext = JSON.parse(orgContextCookie);
         logger.info('📋 OAuth: Contexto de organización encontrado', {
           orgId: orgContext.orgId,
           orgSlug: orgContext.orgSlug,
-          hasInvToken: !!orgContext.invToken
+          hasInvToken: !!orgContext.invToken,
+          hasBulkToken: !!orgContext.bulkToken
         });
       } catch {
         logger.warn('No se pudo parsear contexto de organización');
@@ -211,13 +215,65 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
     // ============================================================================
     let invitedRole: string | undefined;
     let invitedPosition: string | undefined;
+    let bulkInviteLinkId: string | undefined; // Para registrar el uso del enlace masivo
     const supabase = await createClient();
 
     if (orgContext.orgId) {
       logger.info('🔍 OAuth: Validando invitación para organización', { orgId: orgContext.orgId });
 
-      if (orgContext.invToken) {
-        // Caso 1: OAuth con token de invitación
+      if (orgContext.bulkToken) {
+        // Caso 0: OAuth con token de enlace de invitación masiva
+        logger.info('🔗 OAuth: Validando enlace de invitación masiva', { bulkToken: orgContext.bulkToken });
+
+        const { data: bulkLink, error: bulkError } = await supabase
+          .from('bulk_invite_links')
+          .select('*')
+          .eq('token', orgContext.bulkToken)
+          .single();
+
+        if (bulkError || !bulkLink) {
+          logger.error('OAuth: Enlace de invitación masiva no encontrado', { error: bulkError });
+          return { error: 'Enlace de invitación inválido o no encontrado' };
+        }
+
+        // Verificar que el enlace pertenece a la organización
+        if (bulkLink.organization_id !== orgContext.orgId) {
+          logger.error('OAuth: Enlace no pertenece a la organización');
+          return { error: 'Este enlace de invitación no es para esta organización' };
+        }
+
+        // Verificar que el enlace está activo (usando campo status)
+        if (bulkLink.status !== 'active') {
+          logger.error('OAuth: Enlace de invitación no activo', { status: bulkLink.status });
+          if (bulkLink.status === 'paused') {
+            return { error: 'Este enlace de invitación está pausado' };
+          } else if (bulkLink.status === 'expired') {
+            return { error: 'Este enlace de invitación ha expirado' };
+          } else if (bulkLink.status === 'exhausted') {
+            return { error: 'Este enlace de invitación ha alcanzado el límite de usos' };
+          }
+          return { error: 'Este enlace de invitación no está activo' };
+        }
+
+        // Verificar expiración
+        if (bulkLink.expires_at && new Date(bulkLink.expires_at) < new Date()) {
+          logger.error('OAuth: Enlace de invitación expirado');
+          return { error: 'Este enlace de invitación ha expirado' };
+        }
+
+        // Verificar límite de usos
+        if (bulkLink.max_uses && bulkLink.current_uses >= bulkLink.max_uses) {
+          logger.error('OAuth: Enlace de invitación agotado');
+          return { error: 'Este enlace de invitación ha alcanzado el límite de usos' };
+        }
+
+        // Enlace válido - asignar rol del enlace
+        invitedRole = bulkLink.role || 'member';
+        bulkInviteLinkId = bulkLink.id;
+        logger.info('✅ OAuth: Enlace de invitación masiva validado', { role: invitedRole, linkId: bulkInviteLinkId });
+
+      } else if (orgContext.invToken) {
+        // Caso 1: OAuth con token de invitación individual
         const validation = await validateInvitationAction(orgContext.invToken);
 
         if (!validation.valid) {
@@ -378,13 +434,54 @@ export async function handleGoogleCallback(params: OAuthCallbackParams) {
           logger.info('✅ OAuth: Usuario vinculado exitosamente a la organización');
         }
 
-        // Consumir la invitación
-        await consumeInvitationAction(
-          orgContext.invToken || profile.email,
-          orgContext.orgId,
-          userId
-        );
-        logger.info('✅ OAuth: Invitación consumida');
+        // Si es un enlace de invitación masiva, registrar el uso y actualizar contador
+        if (bulkInviteLinkId) {
+          logger.info('📝 OAuth: Registrando uso de enlace de invitación masiva', { bulkInviteLinkId, userId });
+
+          // Registrar en bulk_invite_registrations
+          const { error: regError } = await supabase
+            .from('bulk_invite_registrations')
+            .insert({
+              bulk_invite_link_id: bulkInviteLinkId,
+              user_id: userId,
+              registered_at: new Date().toISOString()
+            });
+
+          if (regError) {
+            logger.warn('⚠️ OAuth: Error registrando uso del enlace masivo:', regError);
+          } else {
+            logger.info('✅ OAuth: Registro de uso de enlace masivo creado');
+          }
+
+          // Incrementar current_uses en bulk_invite_links
+          // Obtener valor actual y sumar 1
+          const { data: currentLink } = await supabase
+            .from('bulk_invite_links')
+            .select('current_uses')
+            .eq('id', bulkInviteLinkId)
+            .single();
+
+          if (currentLink) {
+            const { error: updateError } = await supabase
+              .from('bulk_invite_links')
+              .update({ current_uses: (currentLink.current_uses || 0) + 1 })
+              .eq('id', bulkInviteLinkId);
+
+            if (updateError) {
+              logger.warn('⚠️ OAuth: Error actualizando contador del enlace:', updateError);
+            }
+          }
+
+          logger.info('✅ OAuth: Contador de usos del enlace masivo actualizado');
+        } else {
+          // Consumir la invitación individual
+          await consumeInvitationAction(
+            orgContext.invToken || profile.email,
+            orgContext.orgId,
+            userId
+          );
+          logger.info('✅ OAuth: Invitación consumida');
+        }
       } else {
         logger.info('OAuth: Usuario ya estaba vinculado a la organización');
       }
@@ -579,12 +676,13 @@ export async function initiateMicrosoftLogin(params: OAuthInitParams = {}) {
 
   // Crear state con contexto de organización (si existe)
   let state: string;
-  if (params.organizationId || params.invitationToken) {
+  if (params.organizationId || params.invitationToken || params.bulkInviteToken) {
     const stateData = {
       csrf: csrfToken,
       orgId: params.organizationId,
       orgSlug: params.organizationSlug,
       invToken: params.invitationToken,
+      bulkToken: params.bulkInviteToken,
     };
     state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
   } else {
@@ -601,11 +699,12 @@ export async function initiateMicrosoftLogin(params: OAuthInitParams = {}) {
   });
 
   // Guardar contexto de organización en cookie separada (si existe)
-  if (params.organizationId || params.invitationToken) {
+  if (params.organizationId || params.invitationToken || params.bulkInviteToken) {
     const orgContext = {
       orgId: params.organizationId,
       orgSlug: params.organizationSlug,
       invToken: params.invitationToken,
+      bulkToken: params.bulkInviteToken,
     };
     cookieStore.set('oauth_org_context', JSON.stringify(orgContext), {
       httpOnly: true,
@@ -653,14 +752,15 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
     }
 
     // Obtener contexto de organización de la cookie
-    let orgContext: { orgId?: string; orgSlug?: string; invToken?: string } = {};
+    let orgContext: { orgId?: string; orgSlug?: string; invToken?: string; bulkToken?: string } = {};
     if (orgContextCookie) {
       try {
         orgContext = JSON.parse(orgContextCookie);
         logger.info('📋 Microsoft OAuth: Contexto de organización encontrado', {
           orgId: orgContext.orgId,
           orgSlug: orgContext.orgSlug,
-          hasInvToken: !!orgContext.invToken
+          hasInvToken: !!orgContext.invToken,
+          hasBulkToken: !!orgContext.bulkToken
         });
       } catch {
         logger.warn('No se pudo parsear contexto de organización');
@@ -684,12 +784,65 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
     // ============================================================================
     let invitedRole: string | undefined;
     let invitedPosition: string | undefined;
+    let bulkInviteLinkId: string | undefined; // Para registrar el uso del enlace masivo
     const supabase = await createClient();
 
     if (orgContext.orgId) {
       logger.info('🔍 Microsoft OAuth: Validando invitación para organización', { orgId: orgContext.orgId });
 
-      if (orgContext.invToken) {
+      if (orgContext.bulkToken) {
+        // Caso 0: OAuth con token de enlace de invitación masiva
+        logger.info('🔗 Microsoft OAuth: Validando enlace de invitación masiva', { bulkToken: orgContext.bulkToken });
+
+        const { data: bulkLink, error: bulkError } = await supabase
+          .from('bulk_invite_links')
+          .select('*')
+          .eq('token', orgContext.bulkToken)
+          .single();
+
+        if (bulkError || !bulkLink) {
+          logger.error('Microsoft OAuth: Enlace de invitación masiva no encontrado', { error: bulkError });
+          return { error: 'Enlace de invitación inválido o no encontrado' };
+        }
+
+        // Verificar que el enlace pertenece a la organización
+        if (bulkLink.organization_id !== orgContext.orgId) {
+          logger.error('Microsoft OAuth: Enlace no pertenece a la organización');
+          return { error: 'Este enlace de invitación no es para esta organización' };
+        }
+
+        // Verificar que el enlace está activo (usando campo status)
+        if (bulkLink.status !== 'active') {
+          logger.error('Microsoft OAuth: Enlace de invitación no activo', { status: bulkLink.status });
+          if (bulkLink.status === 'paused') {
+            return { error: 'Este enlace de invitación está pausado' };
+          } else if (bulkLink.status === 'expired') {
+            return { error: 'Este enlace de invitación ha expirado' };
+          } else if (bulkLink.status === 'exhausted') {
+            return { error: 'Este enlace de invitación ha alcanzado el límite de usos' };
+          }
+          return { error: 'Este enlace de invitación no está activo' };
+        }
+
+        // Verificar expiración
+        if (bulkLink.expires_at && new Date(bulkLink.expires_at) < new Date()) {
+          logger.error('Microsoft OAuth: Enlace de invitación expirado');
+          return { error: 'Este enlace de invitación ha expirado' };
+        }
+
+        // Verificar límite de usos
+        if (bulkLink.max_uses && bulkLink.current_uses >= bulkLink.max_uses) {
+          logger.error('Microsoft OAuth: Enlace de invitación agotado');
+          return { error: 'Este enlace de invitación ha alcanzado el límite de usos' };
+        }
+
+        // Enlace válido - asignar rol del enlace
+        invitedRole = bulkLink.role || 'member';
+        bulkInviteLinkId = bulkLink.id;
+        logger.info('✅ Microsoft OAuth: Enlace de invitación masiva validado', { role: invitedRole, linkId: bulkInviteLinkId });
+
+      } else if (orgContext.invToken) {
+        // Caso 1: OAuth con token de invitación individual
         const validation = await validateInvitationAction(orgContext.invToken);
 
         if (!validation.valid) {
@@ -710,6 +863,7 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
 
         logger.info('✅ Microsoft OAuth: Invitación validada', { role: invitedRole, position: invitedPosition });
       } else {
+        // Caso 2: OAuth desde página de organización sin token - buscar invitación por email
         const { hasInvitation, role, position, error: invError } = await findInvitationByEmailAction(
           email,
           orgContext.orgId
@@ -821,13 +975,53 @@ export async function handleMicrosoftCallback(params: { code?: string; state?: s
           logger.info('✅ Microsoft OAuth: Usuario vinculado exitosamente a la organización');
         }
 
-        // Consumir la invitación
-        await consumeInvitationAction(
-          orgContext.invToken || email,
-          orgContext.orgId,
-          userId
-        );
-        logger.info('✅ Microsoft OAuth: Invitación consumida');
+        // Si es un enlace de invitación masiva, registrar el uso y actualizar contador
+        if (bulkInviteLinkId) {
+          logger.info('📝 Microsoft OAuth: Registrando uso de enlace de invitación masiva', { bulkInviteLinkId, userId });
+
+          // Registrar en bulk_invite_registrations
+          const { error: regError } = await supabase
+            .from('bulk_invite_registrations')
+            .insert({
+              bulk_invite_link_id: bulkInviteLinkId,
+              user_id: userId,
+              registered_at: new Date().toISOString()
+            });
+
+          if (regError) {
+            logger.warn('⚠️ Microsoft OAuth: Error registrando uso del enlace masivo:', regError);
+          } else {
+            logger.info('✅ Microsoft OAuth: Registro de uso de enlace masivo creado');
+          }
+
+          // Incrementar current_uses en bulk_invite_links
+          const { data: currentLink } = await supabase
+            .from('bulk_invite_links')
+            .select('current_uses')
+            .eq('id', bulkInviteLinkId)
+            .single();
+
+          if (currentLink) {
+            const { error: updateError } = await supabase
+              .from('bulk_invite_links')
+              .update({ current_uses: (currentLink.current_uses || 0) + 1 })
+              .eq('id', bulkInviteLinkId);
+
+            if (updateError) {
+              logger.warn('⚠️ Microsoft OAuth: Error actualizando contador del enlace:', updateError);
+            }
+          }
+
+          logger.info('✅ Microsoft OAuth: Contador de usos del enlace masivo actualizado');
+        } else {
+          // Consumir la invitación individual
+          await consumeInvitationAction(
+            orgContext.invToken || email,
+            orgContext.orgId,
+            userId
+          );
+          logger.info('✅ Microsoft OAuth: Invitación consumida');
+        }
       }
     }
 

@@ -32,14 +32,17 @@ interface GoogleLoginButtonProps {
   organizationId?: string;
   /** Slug de la organización (para registro B2B) */
   organizationSlug?: string;
-  /** Token de invitación (para registro con invitación) */
+  /** Token de invitación individual (para registro con invitación) */
   invitationToken?: string;
+  /** Token de enlace de invitación masiva */
+  bulkInviteToken?: string;
 }
 
 export function GoogleLoginButton({
   organizationId,
   organizationSlug,
-  invitationToken
+  invitationToken,
+  bulkInviteToken
 }: GoogleLoginButtonProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -50,6 +53,7 @@ export function GoogleLoginButton({
         organizationId,
         organizationSlug,
         invitationToken,
+        bulkInviteToken,
       });
     } catch (error) {
       // Verificar si es una redirección de Next.js (no es un error real)

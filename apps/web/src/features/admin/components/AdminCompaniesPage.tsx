@@ -18,10 +18,14 @@ import {
   PhoneIcon,
   SparklesIcon,
   ChartBarIcon,
-  EyeIcon
+  ChevronDownIcon,
+  EyeIcon,
+  ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline'
 import { useAdminCompanies } from '../hooks/useAdminCompanies'
 import { AdminCompany } from '../services/adminCompanies.service'
+import { AdminEditCompanyModal } from './AdminEditCompanyModal'
+import { AdminCreateCompanyModal, CreateCompanyData } from './AdminCreateCompanyModal'
 
 // ============================================
 // DESIGN SYSTEM - SOFIA COLORS
@@ -693,336 +697,19 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
 }
 
 // ============================================
-// EDIT MODAL COMPONENT
-// ============================================
-interface EditModalProps {
-  company: AdminCompany
-  onClose: () => void
-  onSave: (updates: Partial<AdminCompany>) => Promise<void>
-  isSaving: boolean
-}
-
-const PLAN_OPTIONS = [
-  { value: 'team', label: 'Team', color: '#3B82F6', description: 'Hasta 10 usuarios' },
-  { value: 'business', label: 'Business', color: '#8B5CF6', description: 'Hasta 50 usuarios' },
-  { value: 'enterprise', label: 'Enterprise', color: '#F59E0B', description: 'Usuarios ilimitados' }
-]
-
-function EditModal({ company, onClose, onSave, isSaving }: EditModalProps) {
-  const [formData, setFormData] = useState({
-    name: company.name || '',
-    slug: company.slug || '',
-    contact_email: company.contact_email || '',
-    contact_phone: company.contact_phone || '',
-    website_url: company.website_url || '',
-    subscription_plan: company.subscription_plan || 'team',
-    max_users: company.max_users || 10,
-    is_active: company.is_active
-  })
-  const [isPlanOpen, setIsPlanOpen] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await onSave(formData)
-  }
-
-  const selectedPlan = PLAN_OPTIONS.find(p => p.value === formData.subscription_plan) || PLAN_OPTIONS[0]
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
-      style={{ backgroundColor: 'rgba(10, 13, 18, 0.95)' }}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.95, opacity: 0, y: 20 }}
-        transition={{ type: 'spring', duration: 0.4, bounce: 0.2 }}
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg my-8 rounded-2xl shadow-2xl"
-        style={{ backgroundColor: colors.bgSecondary }}
-      >
-        {/* Gradient accent */}
-        <div
-          className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
-          style={{ background: `linear-gradient(90deg, ${colors.accent}, ${colors.primary})` }}
-        />
-
-        {/* Header */}
-        <div className="p-5 border-b" style={{ borderColor: `${colors.grayMedium}15` }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className="p-2.5 rounded-xl"
-                style={{ backgroundColor: `${colors.accent}15` }}
-              >
-                <PencilSquareIcon className="h-5 w-5" style={{ color: colors.accent }} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">Editar Empresa</h2>
-                <p className="text-xs" style={{ color: colors.grayMedium }}>{company.name}</p>
-              </div>
-            </div>
-            <motion.button
-              onClick={onClose}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-2 rounded-lg transition-colors"
-              style={{ backgroundColor: `${colors.grayMedium}15`, color: colors.grayMedium }}
-            >
-              <XMarkIcon className="h-5 w-5" />
-            </motion.button>
-          </div>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-5">
-          {/* Basic Info Section */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: colors.accent }}>
-              Información básica
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-white/70 mb-1.5">Nombre</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
-                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-white/70 mb-1.5">Slug</label>
-                <input
-                  type="text"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
-                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Section */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: colors.accent }}>
-              Contacto
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-white/70 mb-1.5">Email</label>
-                <input
-                  type="email"
-                  value={formData.contact_email}
-                  onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
-                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-white/70 mb-1.5">Teléfono</label>
-                <input
-                  type="tel"
-                  value={formData.contact_phone}
-                  onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
-                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-white/70 mb-1.5">Sitio web</label>
-              <input
-                type="url"
-                value={formData.website_url}
-                onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
-                style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
-                placeholder="https://"
-              />
-            </div>
-          </div>
-
-          {/* Plan Section */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: colors.accent }}>
-              Suscripción
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Custom Select */}
-              <div className="relative">
-                <label className="block text-xs font-medium text-white/70 mb-1.5">Plan</label>
-                <button
-                  type="button"
-                  onClick={() => setIsPlanOpen(!isPlanOpen)}
-                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white text-left flex items-center justify-between transition-colors"
-                  style={{
-                    backgroundColor: colors.bgTertiary,
-                    borderColor: isPlanOpen ? colors.accent : `${colors.grayMedium}20`
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: selectedPlan.color }}
-                    />
-                    <span>{selectedPlan.label}</span>
-                  </div>
-                  <motion.svg
-                    animate={{ rotate: isPlanOpen ? 180 : 0 }}
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </motion.svg>
-                </button>
-
-                {/* Dropdown */}
-                <AnimatePresence>
-                  {isPlanOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-xl border"
-                      style={{
-                        backgroundColor: colors.bgSecondary,
-                        borderColor: `${colors.grayMedium}20`
-                      }}
-                    >
-                      {PLAN_OPTIONS.map((plan) => (
-                        <button
-                          key={plan.value}
-                          type="button"
-                          onClick={() => {
-                            setFormData({ ...formData, subscription_plan: plan.value })
-                            setIsPlanOpen(false)
-                          }}
-                          className="w-full px-4 py-3 text-left flex items-center gap-3 transition-colors hover:bg-white/5"
-                          style={{
-                            backgroundColor: formData.subscription_plan === plan.value ? `${plan.color}15` : 'transparent'
-                          }}
-                        >
-                          <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: plan.color }}
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-white">{plan.label}</p>
-                            <p className="text-xs" style={{ color: colors.grayMedium }}>{plan.description}</p>
-                          </div>
-                          {formData.subscription_plan === plan.value && (
-                            <CheckCircleIcon className="w-4 h-4" style={{ color: plan.color }} />
-                          )}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-white/70 mb-1.5">Máximo de usuarios</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.max_users}
-                  onChange={(e) => setFormData({ ...formData, max_users: parseInt(e.target.value) || 10 })}
-                  className="w-full px-3 py-2.5 rounded-lg border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] transition-colors"
-                  style={{ backgroundColor: colors.bgTertiary, borderColor: `${colors.grayMedium}20` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Status Toggle */}
-          <div
-            className="flex items-center justify-between p-4 rounded-xl"
-            style={{ backgroundColor: colors.bgTertiary }}
-          >
-            <div>
-              <p className="text-sm font-medium text-white">Estado de la empresa</p>
-              <p className="text-xs" style={{ color: colors.grayMedium }}>
-                {formData.is_active ? 'Empresa activa y operativa' : 'Empresa pausada temporalmente'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
-              className="relative w-12 h-6 rounded-full transition-colors"
-              style={{
-                backgroundColor: formData.is_active ? colors.success : `${colors.grayMedium}40`
-              }}
-            >
-              <motion.div
-                className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
-                animate={{ left: formData.is_active ? '1.75rem' : '0.25rem' }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            </button>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <motion.button
-              type="button"
-              onClick={onClose}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
-              style={{ color: colors.grayMedium }}
-            >
-              Cancelar
-            </motion.button>
-            <motion.button
-              type="submit"
-              disabled={isSaving}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-              style={{ backgroundColor: colors.accent, color: colors.primary }}
-            >
-              {isSaving ? (
-                <>
-                  <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <CheckCircleIcon className="h-4 w-4" />
-                  Guardar cambios
-                </>
-              )}
-            </motion.button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-  )
-}
-
-// ============================================
 // MAIN COMPONENT
 // ============================================
 export function AdminCompaniesPage() {
-  const { companies, stats, isLoading, error, refetch, updatingId, updateCompany, actionError } = useAdminCompanies()
+  const { companies, stats, isLoading, error, refetch, updatingId, updateCompany, createCompany, actionError } = useAdminCompanies()
   const [searchTerm, setSearchTerm] = useState('')
   const [planFilter, setPlanFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewCompany, setViewCompany] = useState<AdminCompany | null>(null)
   const [editCompany, setEditCompany] = useState<AdminCompany | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+
 
   const filteredCompanies = useMemo(() => {
     return companies.filter(company => {
@@ -1062,6 +749,18 @@ export function AdminCompaniesPage() {
       setIsSaving(false)
     }
   }
+
+  const handleCreateCompany = async (data: CreateCompanyData) => {
+    setIsCreating(true)
+    try {
+      await createCompany(data)
+      setShowCreateModal(false)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+
 
   if (isLoading) {
     return (
@@ -1136,16 +835,29 @@ export function AdminCompaniesPage() {
               Gestiona organizaciones, planes y usuarios empresariales
             </p>
           </div>
-          <motion.button
-            onClick={refetch}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl font-medium"
-            style={{ backgroundColor: colors.accent, color: colors.primary }}
-          >
-            <ArrowPathIcon className="h-5 w-5" />
-            Actualizar
-          </motion.button>
+          <div className="flex items-center gap-3">
+            <motion.button
+              onClick={refetch}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl font-medium"
+              style={{ backgroundColor: `${colors.grayMedium}20`, color: 'white' }}
+            >
+              <ArrowPathIcon className="h-5 w-5" />
+              Actualizar
+            </motion.button>
+            <motion.button
+              onClick={() => setShowCreateModal(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl font-medium"
+              style={{ backgroundColor: colors.success, color: 'white' }}
+            >
+              <BuildingOffice2Icon className="h-5 w-5" />
+              Nueva Organización
+            </motion.button>
+
+          </div>
         </div>
       </motion.header>
 
@@ -1322,13 +1034,21 @@ export function AdminCompaniesPage() {
           />
         )}
         {editCompany && (
-          <EditModal
+          <AdminEditCompanyModal
             company={editCompany}
             onClose={() => setEditCompany(null)}
             onSave={handleSaveEdit}
             isSaving={isSaving}
           />
         )}
+        {showCreateModal && (
+          <AdminCreateCompanyModal
+            onClose={() => setShowCreateModal(false)}
+            onCreate={handleCreateCompany}
+            isCreating={isCreating}
+          />
+        )}
+
       </AnimatePresence>
     </div>
   )

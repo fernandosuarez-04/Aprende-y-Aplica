@@ -19,14 +19,17 @@ interface MicrosoftLoginButtonProps {
   organizationId?: string;
   /** Slug de la organización (para registro B2B) */
   organizationSlug?: string;
-  /** Token de invitación (para registro con invitación) */
+  /** Token de invitación individual (para registro con invitación) */
   invitationToken?: string;
+  /** Token de enlace de invitación masiva */
+  bulkInviteToken?: string;
 }
 
 export function MicrosoftLoginButton({
   organizationId,
   organizationSlug,
-  invitationToken
+  invitationToken,
+  bulkInviteToken
 }: MicrosoftLoginButtonProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,6 +40,7 @@ export function MicrosoftLoginButton({
         organizationId,
         organizationSlug,
         invitationToken,
+        bulkInviteToken,
       });
     } catch (error: any) {
       if (error && typeof error === 'object' && 'digest' in error) return;

@@ -40,7 +40,7 @@ const EditUserModal = dynamic(() => import('@/features/business-panel/components
 const DeleteUserModal = dynamic(() => import('@/features/business-panel/components/BusinessDeleteUserModal').then(mod => ({ default: mod.BusinessDeleteUserModal })), { ssr: false })
 const ImportUsersModal = dynamic(() => import('@/features/business-panel/components/BusinessImportUsersModal').then(mod => ({ default: mod.BusinessImportUsersModal })), { ssr: false })
 const UserStatsModal = dynamic(() => import('@/features/business-panel/components/BusinessUserStatsModal').then((mod) => ({ default: mod.BusinessUserStatsModal })), { ssr: false })
-const InviteUserModal = dynamic(() => import('@/features/business-panel/components/BusinessInviteUserModal').then(mod => ({ default: mod.BusinessInviteUserModal })), { ssr: false })
+const UnifiedInviteModal = dynamic(() => import('@/features/business-panel/components/BusinessUnifiedInviteModal').then(mod => ({ default: mod.BusinessUnifiedInviteModal })), { ssr: false })
 
 // ============================================
 // COMPONENTE: StatCard Premium
@@ -498,7 +498,7 @@ export default function BusinessPanelUsersPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [statsUser, setStatsUser] = useState<BusinessUser | null>(null)
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+  const [isUnifiedInviteModalOpen, setIsUnifiedInviteModalOpen] = useState(false)
 
   // Theme Colors
   // Theme Colors
@@ -652,14 +652,14 @@ export default function BusinessPanelUsersPage() {
                 whileTap={{ scale: 0.98 }}
               >
                 <Upload className="w-4 h-4" />
-                {t('users.buttons.import')}
+                {t('users.buttons.import', 'Importar')}
               </motion.button>
 
               <motion.button
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5 }}
-                onClick={() => setIsInviteModalOpen(true)}
+                onClick={() => setIsUnifiedInviteModalOpen(true)}
                 className="px-4 py-2.5 rounded-xl font-medium text-sm border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-2"
                 style={{ color: '#FFFFFF', borderColor: 'rgba(255,255,255,0.3)' }}
                 whileHover={{ scale: 1.02 }}
@@ -956,10 +956,11 @@ export default function BusinessPanelUsersPage() {
       <DeleteUserModal user={deletingUser} isOpen={isDeleteModalOpen} onClose={() => { setIsDeleteModalOpen(false); setDeletingUser(null) }} onConfirm={async () => { if (deletingUser) await deleteUser(deletingUser.id) }} />
       <ImportUsersModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} onImportComplete={() => { refetch(); setIsImportModalOpen(false) }} />
       {statsUser && <UserStatsModal user={statsUser} isOpen={isStatsModalOpen} onClose={() => { setIsStatsModalOpen(false); setStatsUser(null) }} />}
-      <InviteUserModal
-        isOpen={isInviteModalOpen}
-        onClose={() => setIsInviteModalOpen(false)}
+      <UnifiedInviteModal
+        isOpen={isUnifiedInviteModalOpen}
+        onClose={() => setIsUnifiedInviteModalOpen(false)}
         onInviteSent={() => refetch()}
+        onLinkCreated={() => refetch()}
         organizationId={currentUser?.organization_id || undefined}
       />
     </div>

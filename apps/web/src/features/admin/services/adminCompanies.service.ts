@@ -511,5 +511,107 @@ export class AdminCompaniesService {
 
     return updatedCompany
   }
+
+  static async createCompany(data: {
+    name: string
+    slug?: string
+    description?: string
+    contact_email?: string
+    contact_phone?: string
+    website_url?: string
+    subscription_plan?: string
+    subscription_status?: string
+    max_users?: number
+    is_active?: boolean
+    // Branding
+    brand_logo_url?: string
+    brand_banner_url?: string
+    brand_favicon_url?: string
+    brand_color_primary?: string
+    brand_color_secondary?: string
+    brand_color_accent?: string
+    brand_font_family?: string
+    // Owner
+    owner_email?: string
+    owner_position?: string
+  }): Promise<AdminCompany> {
+    const supabase = await createClient()
+
+    // Generate slug if not provided
+    const slug = data.slug || data.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+
+    // Check if slug already exists
+    const { data: existingOrg } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle()
+
+    if (existingOrg) {
+      throw new Error('Ya existe una organización con este slug')
+    }
+
+    const insertData = {
+      name: data.name,
+      slug,
+      description: data.description || null,
+      contact_email: data.contact_email || null,
+      contact_phone: data.contact_phone || null,
+      website_url: data.website_url || null,
+      subscription_plan: data.subscription_plan || 'team',
+      subscription_status: data.subscription_status || 'active',
+      max_users: data.max_users || 10,
+      is_active: data.is_active !== false,
+      // Branding
+      brand_logo_url: data.brand_logo_url || null,
+      brand_banner_url: data.brand_banner_url || null,
+      brand_favicon_url: data.brand_favicon_url || null,
+      brand_color_primary: data.brand_color_primary || '#3b82f6',
+      brand_color_secondary: data.brand_color_secondary || '#10b981',
+      brand_color_accent: data.brand_color_accent || '#8b5cf6',
+      brand_font_family: data.brand_font_family || 'Inter'
+    }
+
+    const { data: newOrg, error } = await supabase
+      .from('organizations')
+      .insert(insertData)
+      .select('id')
+      .single()
+
+    if (error) {
+      logger.error('❌ Error creating organization:', error)
+      throw error
+    }
+
+    // Invite owner if email provided
+    if (data.owner_email) {
+      try {
+        const { inviteUserAction } = await import('@/features/auth/actions/invitation')
+        await inviteUserAction({
+          email: data.owner_email,
+          role: 'owner',
+          organizationId: newOrg.id,
+          position: data.owner_position || undefined
+        })
+        logger.info('✅ Owner invitation sent:', { email: data.owner_email, organizationId: newOrg.id })
+      } catch (inviteError) {
+        logger.error('Error inviting owner after company creation:', inviteError)
+        // No fallamos la creación de la empresa si falla la invitación, pero lo loggeamos
+      }
+    }
+
+    const createdCompany = await this.getCompanyById(newOrg.id)
+
+    if (!createdCompany) {
+      throw new Error('Error al obtener la organización creada')
+    }
+
+    return createdCompany
+  }
 }
 

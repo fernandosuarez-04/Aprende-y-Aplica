@@ -11,6 +11,7 @@ interface SocialLoginButtonsProps {
   organizationSlug?: string;
   organizationId?: string;
   invitationToken?: string;
+  bulkInviteToken?: string;
   showLoginLink?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function SocialLoginButtons({
   organizationSlug,
   organizationId,
   invitationToken,
+  bulkInviteToken,
   showLoginLink = false
 }: SocialLoginButtonsProps) {
   const hasAnyProvider = googleEnabled || microsoftEnabled;
@@ -53,6 +55,7 @@ export function SocialLoginButtons({
                 organizationId={organizationId}
                 organizationSlug={organizationSlug}
                 invitationToken={invitationToken}
+                bulkInviteToken={bulkInviteToken}
               />
             </motion.div>
           )}
@@ -67,6 +70,7 @@ export function SocialLoginButtons({
                 organizationId={organizationId}
                 organizationSlug={organizationSlug}
                 invitationToken={invitationToken}
+                bulkInviteToken={bulkInviteToken}
               />
             </motion.div>
           )}

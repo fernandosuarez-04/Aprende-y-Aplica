@@ -13,7 +13,7 @@ interface OrgLayoutProps {
  * Server-side organization layout that validates:
  * 1. Organization exists by slug
  * 2. User is authenticated
- * 3. User belongs to the organization
+ * 3. User belongs to the organization OR is a platform administrator
  *
  * If validation fails, redirects appropriately.
  */
@@ -48,6 +48,15 @@ export default async function OrganizationLayout({
     redirect(`/auth?redirect=/${orgSlug}/dashboard`);
   }
 
+  // Check if user is a platform administrator (cargo_rol = 'administrador')
+  const { data: userData } = await supabase
+    .from('users')
+    .select('cargo_rol')
+    .eq('id', authUser.id)
+    .single();
+
+  const isPlatformAdmin = userData?.cargo_rol?.toLowerCase().trim() === 'administrador';
+
   // Fetch organization by slug
   const { data: organization, error: orgError } = await supabase
     .from('organizations')
@@ -61,19 +70,24 @@ export default async function OrganizationLayout({
     notFound();
   }
 
-  // Check if user belongs to this organization
-  const { data: membership, error: membershipError } = await supabase
-    .from('organization_users')
-    .select('role, status')
-    .eq('organization_id', organization.id)
-    .eq('user_id', authUser.id)
-    .eq('status', 'active')
-    .single();
+  // Check if user belongs to this organization (skip for platform admins)
+  let userRole: 'owner' | 'admin' | 'member' = 'admin'; // Default for platform admins
 
-  // User not a member of this organization
-  if (membershipError || !membership) {
-    // Redirect to their default organization or dashboard
-    redirect('/dashboard?error=not_member');
+  if (!isPlatformAdmin) {
+    const { data: membership, error: membershipError } = await supabase
+      .from('organization_users')
+      .select('role, status')
+      .eq('organization_id', organization.id)
+      .eq('user_id', authUser.id)
+      .eq('status', 'active')
+      .single();
+
+    // User not a member of this organization and not a platform admin
+    if (membershipError || !membership) {
+      redirect('/dashboard?error=not_member');
+    }
+
+    userRole = membership.role as 'owner' | 'admin' | 'member';
   }
 
   // Organization data to pass to client
@@ -84,9 +98,10 @@ export default async function OrganizationLayout({
     logoUrl: organization.logo_url,
     brandLogoUrl: organization.brand_logo_url,
     brandColorPrimary: organization.brand_color_primary,
-    role: membership.role as 'owner' | 'admin' | 'member',
+    role: userRole,
     subscriptionPlan: organization.subscription_plan as 'team' | 'business' | 'enterprise' | undefined,
     subscriptionStatus: organization.subscription_status as 'active' | 'expired' | 'cancelled' | 'trial' | 'pending' | undefined,
+    isPlatformAdmin, // Pass this flag to client for UI adjustments if needed
   };
 
   return (

@@ -16,6 +16,7 @@ export interface Organization {
   role: 'owner' | 'admin' | 'member';
   subscriptionPlan?: 'team' | 'business' | 'enterprise';
   subscriptionStatus?: 'active' | 'expired' | 'cancelled' | 'trial' | 'pending';
+  isPlatformAdmin?: boolean; // True if accessing as platform administrator
 }
 
 interface OrganizationState {

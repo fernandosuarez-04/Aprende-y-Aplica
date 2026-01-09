@@ -26,14 +26,21 @@ interface InvitationData {
   role: string;
 }
 
+interface BulkInviteData {
+  token: string;
+  role: string;
+}
+
 export default function OrganizationRegisterPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const slug = params?.slug as string;
-  const token = searchParams?.get('token');
+  const token = searchParams?.get('token'); // Individual invitation token
+  const bulkToken = searchParams?.get('bulk_token'); // Bulk invite link token
 
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
+  const [bulkInvite, setBulkInvite] = useState<BulkInviteData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [orgError, setOrgError] = useState<string | null>(null); // Error de organización (crítico)
   const [invitationError, setInvitationError] = useState<string | null>(null); // Error de invitación (no crítico)
@@ -66,8 +73,25 @@ export default function OrganizationRegisterPage() {
 
         setOrganization(data.organization);
 
-        // 2. Si hay token de invitación, validarlo
-        if (token) {
+        // 2. Si hay bulk_token (enlace de invitación masiva), validarlo
+        if (bulkToken) {
+          const bulkResponse = await fetch(`/api/invite/${bulkToken}`);
+          const bulkData = await bulkResponse.json();
+
+          if (!bulkData.success || !bulkData.valid) {
+            setInvitationError(bulkData.error || 'Enlace de invitación inválido');
+          } else if (bulkData.organization?.slug?.toLowerCase() !== slug.toLowerCase()) {
+            setInvitationError('Este enlace de invitación no es para esta organización');
+          } else {
+            // Bulk invite válida
+            setBulkInvite({
+              token: bulkToken,
+              role: bulkData.invite?.role || 'member',
+            });
+          }
+        }
+        // 3. Si hay token de invitación individual, validarlo
+        else if (token) {
           const validation = await validateInvitationAction(token);
 
           if (!validation.valid) {
@@ -92,7 +116,7 @@ export default function OrganizationRegisterPage() {
     };
 
     fetchOrganizationAndValidateToken();
-  }, [slug, token]);
+  }, [slug, token, bulkToken]);
 
   if (isLoading) {
     return (
@@ -153,7 +177,8 @@ export default function OrganizationRegisterPage() {
           organizationSlug={organization.slug || slug}
           invitationToken={invitationError ? undefined : token}
           invitedEmail={invitation?.email}
-          invitedRole={invitation?.role}
+          invitedRole={invitation?.role || bulkInvite?.role}
+          bulkInviteToken={invitationError ? undefined : bulkInvite?.token}
           googleLoginEnabled={organization.google_login_enabled}
           microsoftLoginEnabled={organization.microsoft_login_enabled}
         />
