@@ -129,12 +129,18 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+      {/* Overlay transparente para cerrar al hacer clic fuera */}
+      <div
+        className="absolute inset-0"
+        onClick={onClose}
+      />
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white dark:bg-[#1E2329] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        className="relative bg-white dark:bg-[#1E2329] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">

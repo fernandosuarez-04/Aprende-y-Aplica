@@ -75,7 +75,6 @@ function mapNotificationToComponent(notification: NotificationDB): Notification 
 }
 
 export function AdminNotifications({ notifications = [] }: AdminNotificationsProps) {
-  const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [notificationsList, setNotificationsList] = useState<Notification[]>(notifications)
   const [isLoading, setIsLoading] = useState(true)
@@ -244,7 +243,6 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
   return (
     <Menu as="div" className="relative">
       <Menu.Button
-        onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors duration-200"
       >
         <BellIcon className="w-6 h-6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200" />
@@ -258,7 +256,6 @@ export function AdminNotifications({ notifications = [] }: AdminNotificationsPro
       </Menu.Button>
 
       <Transition
-        show={isOpen}
         enter="transition ease-out duration-100"
         enterFrom="transform opacity-0 scale-95"
         enterTo="transform opacity-100 scale-100"

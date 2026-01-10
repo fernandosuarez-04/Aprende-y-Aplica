@@ -13,10 +13,11 @@ interface AdminHeaderProps {
   title: string
   isCollapsed?: boolean
   isPinned?: boolean
+  isHovered?: boolean
   onToggleCollapse?: () => void
 }
 
-export function AdminHeader({ onMenuClick, title, isCollapsed, isPinned, onToggleCollapse }: AdminHeaderProps) {
+export function AdminHeader({ onMenuClick, title, isCollapsed, isPinned, isHovered, onToggleCollapse }: AdminHeaderProps) {
   const { user, isLoading } = useAdminUser()
   
   // Obtener tema del usuario (light/dark)
@@ -34,9 +35,9 @@ export function AdminHeader({ onMenuClick, title, isCollapsed, isPinned, onToggl
   }
 
   // Calcular el left del header basado en el estado del sidebar
-  // Si el sidebar está colapsado Y no está fijado, usar left-16 (64px)
+  // Si el sidebar está colapsado Y no está fijado Y no está en hover, usar left-16 (64px)
   // De lo contrario, usar left-64 (256px)
-  const sidebarWidth = isCollapsed && !isPinned ? 'lg:left-16' : 'lg:left-64'
+  const sidebarWidth = (isCollapsed && !isPinned && !isHovered) ? 'lg:left-16' : 'lg:left-64'
 
   return (
     <motion.header

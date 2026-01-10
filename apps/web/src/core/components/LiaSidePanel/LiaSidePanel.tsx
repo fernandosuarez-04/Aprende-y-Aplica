@@ -1045,7 +1045,7 @@ function LiaSidePanelContent() {
             borderLeft: `1px solid ${themeColors.borderColor}`,
             borderBottomLeftRadius: '30px',
             overflow: 'hidden',
-            zIndex: 100,
+            zIndex: 130,
             display: 'flex',
             flexDirection: 'column',
             boxShadow: isLightTheme ? '-4px 0 24px rgba(0, 0, 0, 0.08)' : '-4px 0 32px rgba(0, 0, 0, 0.4)',

@@ -26,3 +26,4 @@ END $$;
 COMMENT ON COLUMN public.lia_personalization_settings.conversation_pagination_enabled IS NULL;
 
 
+

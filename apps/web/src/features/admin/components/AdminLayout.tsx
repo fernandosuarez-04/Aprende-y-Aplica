@@ -57,6 +57,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     }
     return false
   })
+  const [sidebarHovered, setSidebarHovered] = useState(false)
 
   // Asegurar que isLoading sea siempre un booleano, por defecto true si es undefined
   const isLoading = typeof authLoading === 'boolean' ? authLoading : true;
@@ -153,12 +154,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         isPinned={sidebarPinned}
         onTogglePin={() => setSidebarPinned(!sidebarPinned)}
+        onHoverChange={setSidebarHovered}
       />
 
       {/* Main Content Area - Solo el sidebar izquierdo afecta el margin-left */}
       <div 
         className={`min-h-screen transition-all duration-300 ease-in-out ${
-          sidebarCollapsed && !sidebarPinned ? 'lg:ml-16' : 'lg:ml-64'
+          (sidebarCollapsed && !sidebarPinned && !sidebarHovered) ? 'lg:ml-16' : 'lg:ml-64'
         }`}
         style={{ backgroundColor: themeColors.background }}
       >
@@ -168,6 +170,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           title="Panel de Administración"
           isCollapsed={sidebarCollapsed}
           isPinned={sidebarPinned}
+          isHovered={sidebarHovered}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 

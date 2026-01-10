@@ -36,7 +36,6 @@ interface AdminUserDropdownProps {
 }
 
 export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false)
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false)
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false)
   const router = useRouter()
@@ -128,62 +127,62 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
 
   return (
     <Menu as="div" className="relative">
-      <Menu.Button
-        id="tour-user-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300 group outline-none"
-      >
-        {/* Avatar */}
-        <div className="relative">
-          {user.profile_picture_url ? (
-            <motion.img
-              src={user.profile_picture_url}
-              alt={getDisplayName()}
-              className="w-9 h-9 rounded-full object-cover ring-2 ring-[#E9ECEF] dark:ring-[#334155] group-hover:ring-[#00D4B3] transition-all duration-300"
-              whileHover={{ scale: 1.05 }}
-            />
-          ) : (
-            <motion.div 
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-[#0A2540]/20"
-              whileHover={{ scale: 1.05 }}
+      {({ open }) => (
+        <>
+          <Menu.Button
+            id="tour-user-dropdown-trigger"
+            className="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300 group outline-none"
+          >
+            {/* Avatar */}
+            <div className="relative">
+              {user.profile_picture_url ? (
+                <motion.img
+                  src={user.profile_picture_url}
+                  alt={getDisplayName()}
+                  className="w-9 h-9 rounded-full object-cover ring-2 ring-[#E9ECEF] dark:ring-[#334155] group-hover:ring-[#00D4B3] transition-all duration-300"
+                  whileHover={{ scale: 1.05 }}
+                />
+              ) : (
+                <motion.div 
+                  className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-[#0A2540]/20"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  {getInitials()}
+                </motion.div>
+              )}
+              {/* Status Indicator */}
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10B981] border-2 border-white dark:border-[#0F1419] rounded-full"></div>
+            </div>
+
+            {/* User Info - Desktop */}
+            <div className="hidden md:block text-left mr-1">
+              <p className="text-sm font-bold text-[#0A2540] dark:text-white leading-none mb-1">
+                {getDisplayName()}
+              </p>
+              <p className="text-[11px] font-medium text-[#00D4B3] uppercase tracking-wider leading-none">
+                {user.cargo_rol}
+              </p>
+            </div>
+
+            {/* Chevron */}
+            <motion.div
+              animate={{ rotate: open ? 180 : 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
             >
-              {getInitials()}
+              <ChevronDownIcon 
+                className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" 
+              />
             </motion.div>
-          )}
-          {/* Status Indicator */}
-          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10B981] border-2 border-white dark:border-[#0F1419] rounded-full"></div>
-        </div>
+          </Menu.Button>
 
-        {/* User Info - Desktop */}
-        <div className="hidden md:block text-left mr-1">
-          <p className="text-sm font-bold text-[#0A2540] dark:text-white leading-none mb-1">
-            {getDisplayName()}
-          </p>
-          <p className="text-[11px] font-medium text-[#00D4B3] uppercase tracking-wider leading-none">
-            {user.cargo_rol}
-          </p>
-        </div>
-
-        {/* Chevron */}
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-        >
-          <ChevronDownIcon 
-            className="w-4 h-4 text-[#6C757D] dark:text-gray-400 group-hover:text-[#0A2540] dark:group-hover:text-white transition-colors" 
-          />
-        </motion.div>
-      </Menu.Button>
-
-      <Transition
-        show={isOpen}
-        enter="transition ease-out duration-200"
-        enterFrom="transform opacity-0 scale-95 translate-y-2"
-        enterTo="transform opacity-100 scale-100 translate-y-0"
-        leave="transition ease-in duration-150"
-        leaveFrom="transform opacity-100 scale-100 translate-y-0"
-        leaveTo="transform opacity-0 scale-95 translate-y-2"
-      >
+          <Transition
+            enter="transition ease-out duration-200"
+            enterFrom="transform opacity-0 scale-95 translate-y-2"
+            enterTo="transform opacity-100 scale-100 translate-y-0"
+            leave="transition ease-in duration-150"
+            leaveFrom="transform opacity-100 scale-100 translate-y-0"
+            leaveTo="transform opacity-0 scale-95 translate-y-2"
+          >
         <Menu.Items className="absolute right-0 mt-3 w-[260px] origin-top-right bg-white dark:bg-[#1E2329] rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/40 border border-[#E9ECEF] dark:border-[#334155] focus:outline-none overflow-hidden z-[120]">
           
           {/* Header del Dropdown */}
@@ -219,7 +218,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
             {user.cargo_rol?.toLowerCase() === 'administrador' && (
               <Menu.Item>
                 {({ active }) => (
-                  <Link href="/admin/dashboard" onClick={() => setIsOpen(false)}>
+                  <Link href="/admin/dashboard">
                     <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                       active 
                         ? 'bg-[#00D4B3]/5 text-[#00D4B3]' 
@@ -236,7 +235,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
             {/* Crear Plan de Estudio */}
             <Menu.Item>
               {({ active }) => (
-                <Link href="/study-planner/create" onClick={() => setIsOpen(false)}>
+                <Link href="/study-planner/create">
                   <div id="tour-dropdown-create-plan" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                     active 
                       ? 'bg-[#00D4B3]/5 text-[#00D4B3]' 
@@ -252,7 +251,7 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
             {/* Editar Perfil */}
             <Menu.Item>
               {({ active }) => (
-                <Link href="/profile" onClick={() => setIsOpen(false)}>
+                <Link href="/profile">
                   <div id="tour-dropdown-edit-profile" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                     active 
                       ? 'bg-[#00D4B3]/5 text-[#00D4B3]' 
@@ -410,6 +409,8 @@ export function AdminUserDropdown({ user }: AdminUserDropdownProps) {
           </div>
         </Menu.Items>
       </Transition>
+        </>
+      )}
     </Menu>
   )
 }

@@ -29,6 +29,7 @@ interface AdminSidebarProps {
   onToggleCollapse: () => void
   isPinned: boolean
   onTogglePin: () => void
+  onHoverChange?: (isHovered: boolean) => void
 }
 
 const navigation = [
@@ -41,7 +42,7 @@ const navigation = [
   { name: 'Reportes', href: '/admin/reportes', icon: DocumentTextIcon },
 ]
 
-export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, isCollapsed, onToggleCollapse, isPinned, onTogglePin }: AdminSidebarProps) {
+export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, isCollapsed, onToggleCollapse, isPinned, onTogglePin, onHoverChange }: AdminSidebarProps) {
   const pathname = usePathname()
   const [isHovered, setIsHovered] = useState(false)
   const [isClicking, setIsClicking] = useState(false)
@@ -147,20 +148,31 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
         animate={{
           width: isCollapsed && !shouldExpand ? 64 : 256,
         }}
-        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className={`fixed inset-y-0 left-0 z-50 shadow-xl transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:flex lg:flex-col border-r ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        transition={{ 
+          width: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
+        }}
+        className={`fixed inset-y-0 left-0 z-50 shadow-xl transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:flex lg:flex-col border-r overflow-hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        onAnimationStart={() => {
+          // Asegurar que el color de fondo esté presente desde el inicio
+          if (sidebarRef.current) {
+            sidebarRef.current.style.backgroundColor = themeColors.background
+          }
+        }}
         style={{ 
           backgroundColor: themeColors.background,
-          borderColor: themeColors.borderColor
+          borderColor: themeColors.borderColor,
+          willChange: 'width'
         }}
         onMouseEnter={() => {
           if (isCollapsed && !isPinned) {
             setIsHovered(true)
+            onHoverChange?.(true)
           }
         }}
         onMouseLeave={() => {
           if (isCollapsed && !isPinned) {
             setIsHovered(false)
+            onHoverChange?.(false)
           }
         }}
         onDoubleClick={(event) => {
@@ -181,23 +193,34 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
           }
         }}
       >
-        {/* Header */}
+        {/* Wrapper interno para garantizar color de fondo durante animación */}
         <div 
-          className="flex items-center justify-between h-16 px-4 border-b flex-shrink-0"
+          className="w-full h-full flex flex-col"
           style={{ 
             backgroundColor: themeColors.background,
-            borderColor: themeColors.borderColor
+            width: '100%',
+            minWidth: '256px'
+          }}
+        >
+        {/* Header */}
+        <div 
+          className="flex items-center justify-between h-16 border-b flex-shrink-0 overflow-hidden"
+          style={{ 
+            backgroundColor: themeColors.background,
+            borderColor: themeColors.borderColor,
+            paddingLeft: (!isCollapsed || shouldExpand) ? '1rem' : '0',
+            paddingRight: (!isCollapsed || shouldExpand) ? '1rem' : '0',
           }}
         >
           <AnimatePresence mode="wait">
             {(!isCollapsed || shouldExpand) ? (
               <motion.div
                 key="logo-expanded"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center gap-3"
+                initial={{ opacity: 0, x: -10, width: 0 }}
+                animate={{ opacity: 1, x: 0, width: 'auto' }}
+                exit={{ opacity: 0, x: -10, width: 0 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="flex items-center gap-3 min-w-0 flex-1"
               >
                 <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
                   <Image
@@ -208,7 +231,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                     className="object-contain"
                   />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold truncate" style={{ color: themeColors.textPrimary }}>Sofia</p>
                 </div>
               </motion.div>
@@ -218,8 +241,8 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center justify-center w-full"
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="flex items-center justify-center w-full flex-shrink-0"
               >
                 <div className="h-8 w-8 rounded-lg flex items-center justify-center relative overflow-hidden">
                   <Image
@@ -234,7 +257,12 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
             )}
           </AnimatePresence>
 
-          <div className="flex items-center gap-1">
+          <motion.div 
+            className="flex items-center gap-1 flex-shrink-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: (!isCollapsed || shouldExpand) ? 1 : 1 }}
+            transition={{ duration: 0.3 }}
+          >
             {/* Botón de fijar */}
             <motion.button
               onClick={(event) => {
@@ -283,7 +311,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
             >
               <XMarkIcon className="h-5 w-5" />
             </motion.button>
-          </div>
+          </motion.div>
         </div>
 
         {/* Indicadores de estado */}
@@ -296,7 +324,8 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               transition={{ duration: 0.2 }}
               className="px-4 py-1.5 bg-gradient-to-r to-transparent border-b"
               style={{ 
-                backgroundImage: `linear-gradient(to right, ${themeColors.accent}15, transparent)`,
+                backgroundColor: themeColors.background,
+                backgroundImage: `linear-gradient(to right, ${themeColors.accent}15, ${themeColors.background})`,
                 borderColor: `${themeColors.accent}30`
               }}
             >
@@ -315,7 +344,8 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               transition={{ duration: 0.2 }}
               className="px-4 py-1.5 bg-gradient-to-r to-transparent border-b"
               style={{ 
-                backgroundImage: `linear-gradient(to right, ${themeColors.accent}15, transparent)`,
+                backgroundColor: themeColors.background,
+                backgroundImage: `linear-gradient(to right, ${themeColors.accent}15, ${themeColors.background})`,
                 borderColor: `${themeColors.accent}30`
               }}
             >
@@ -333,6 +363,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
               className="px-4 py-1.5 bg-gradient-to-r from-[#10B981]/10 to-transparent border-b border-[#10B981]/20"
+              style={{ backgroundColor: themeColors.background }}
             >
               <p className="text-xs text-[#10B981] font-light flex items-center gap-1.5">
                 <MapPinIconSolid className="h-3 w-3" />
@@ -343,7 +374,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
         </AnimatePresence>
 
         {/* Navigation */}
-        <nav className="flex-1 px-2 py-4 overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 overflow-y-auto" style={{ backgroundColor: themeColors.background }}>
           <div className="space-y-1">
             {navigation.map((item, index) => {
               const isActive = pathname === item.href
@@ -427,7 +458,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
             })}
           </div>
         </nav>
-
+        </div>
       </motion.div>
     </>
   )
