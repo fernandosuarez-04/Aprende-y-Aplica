@@ -24,6 +24,7 @@ export interface OrganizationData {
   updated_at?: string
   google_login_enabled?: boolean
   microsoft_login_enabled?: boolean
+  show_navbar_name?: boolean
 }
 
 export interface SubscriptionData {

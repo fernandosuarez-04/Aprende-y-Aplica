@@ -4,29 +4,22 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
-  Users,
   Search,
-  Calendar,
-  CheckCircle,
-  XCircle,
-  UserCheck,
-  AlertCircle,
+  Check,
+  Clock,
   MessageSquare,
   BookOpen,
   Sparkles,
-  Check,
-  Clock,
-  Send,
+  UserCheck,
+  AlertCircle,
+  XCircle,
   User,
-  UsersRound
+  Users
 } from 'lucide-react'
 import { useBusinessUsers } from '../hooks/useBusinessUsers'
-import { useTeams } from '../hooks/useTeams'
 import Image from 'next/image'
 import { useOrganizationStylesContext } from '../contexts/OrganizationStylesContext'
 import { useThemeStore } from '@/core/stores/themeStore'
-import { PremiumDatePicker } from './PremiumDatePicker'
-import { LiaDeadlineSuggestionModal } from './LiaDeadlineSuggestionModal'
 import { useTranslation } from 'react-i18next'
 
 interface BusinessAssignCourseModalProps {
@@ -37,12 +30,9 @@ interface BusinessAssignCourseModalProps {
   onAssignComplete: () => void
 }
 
-type AssignMode = 'users' | 'teams'
-
 interface AssignedUserInfo {
   user_id: string
-  source: 'direct' | 'team'
-  team_name?: string
+  source: 'direct'
 }
 
 export function BusinessAssignCourseModal({
@@ -56,11 +46,8 @@ export function BusinessAssignCourseModal({
   const { styles } = useOrganizationStylesContext()
   const panelStyles = styles?.panel
   const { users, isLoading: loadingUsers, refetch: refetchUsers } = useBusinessUsers()
-  const { teams, isLoading: loadingTeams, refetch: refetchTeams } = useTeams()
 
-  const [assignMode, setAssignMode] = useState<AssignMode>('users')
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
-  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set())
   const [dueDate, setDueDate] = useState<string>('')
   const [startDate, setStartDate] = useState<string>('')
   const [approach, setApproach] = useState<string | null>(null)
@@ -70,7 +57,6 @@ export function BusinessAssignCourseModal({
   const [searchTerm, setSearchTerm] = useState('')
   const [alreadyAssignedUserIds, setAlreadyAssignedUserIds] = useState<Set<string>>(new Set())
   const [assignedUsersInfo, setAssignedUsersInfo] = useState<Map<string, AssignedUserInfo>>(new Map())
-  const [alreadyAssignedTeamIds, setAlreadyAssignedTeamIds] = useState<Set<string>>(new Set())
   const [showLiaModal, setShowLiaModal] = useState(false)
   const [isSuggesting, setIsSuggesting] = useState(false)
   const [suggestionReason, setSuggestionReason] = useState<string | null>(null)
@@ -89,9 +75,8 @@ export function BusinessAssignCourseModal({
   useEffect(() => {
     if (isOpen) {
       refetchUsers()
-      refetchTeams()
     }
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen]) 
 
   // Load already assigned users
   useEffect(() => {
@@ -129,27 +114,6 @@ export function BusinessAssignCourseModal({
     }
   }, [isOpen, courseId])
 
-  // Load already assigned teams
-  useEffect(() => {
-    if (isOpen && courseId) {
-      const fetchAssignedTeams = async () => {
-        try {
-          const response = await fetch(`/api/business/courses/${courseId}/assigned-teams`, {
-            credentials: 'include'
-          })
-          if (response.ok) {
-            const data = await response.json()
-            if (data.success && data.team_ids) {
-              setAlreadyAssignedTeamIds(new Set(data.team_ids))
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching assigned teams:', err)
-        }
-      }
-      fetchAssignedTeams()
-    }
-  }, [isOpen, courseId])
 
   // Filter users
   const availableUsers = users.filter(user => {
@@ -160,13 +124,6 @@ export function BusinessAssignCourseModal({
     return matchesSearch && (user.org_status === 'active' || !user.org_status)
   })
 
-  // Filter teams
-  const availableTeams = teams.filter(team => {
-    const matchesSearch = searchTerm === '' ||
-      team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (team.description || '').toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch && team.status === 'active'
-  })
 
   const toggleUser = (userId: string) => {
     if (alreadyAssignedUserIds.has(userId)) return
@@ -176,19 +133,6 @@ export function BusinessAssignCourseModal({
         next.delete(userId)
       } else {
         next.add(userId)
-      }
-      return next
-    })
-  }
-
-  const toggleTeam = (teamId: string) => {
-    if (alreadyAssignedTeamIds.has(teamId)) return
-    setSelectedTeamIds(prev => {
-      const next = new Set(prev)
-      if (next.has(teamId)) {
-        next.delete(teamId)
-      } else {
-        next.add(teamId)
       }
       return next
     })
@@ -210,29 +154,10 @@ export function BusinessAssignCourseModal({
     }
   }
 
-  const handleSelectAllTeams = () => {
-    const availableTeamIds = availableTeams
-      .filter(t => !alreadyAssignedTeamIds.has(t.team_id))
-      .map(t => t.team_id)
-
-    if (availableTeamIds.length === 0) return
-
-    const allSelected = availableTeamIds.every(id => selectedTeamIds.has(id))
-
-    if (allSelected) {
-      setSelectedTeamIds(new Set())
-    } else {
-      setSelectedTeamIds(new Set(availableTeamIds))
-    }
-  }
 
   const handleAssign = async () => {
-    if (assignMode === 'users' && selectedUserIds.size === 0) {
+    if (selectedUserIds.size === 0) {
       setError(t('assignCourse.errors.selectUser'))
-      return
-    }
-    if (assignMode === 'teams' && selectedTeamIds.size === 0) {
-      setError(t('assignCourse.errors.selectTeam'))
       return
     }
 
@@ -240,7 +165,6 @@ export function BusinessAssignCourseModal({
     setError(null)
 
     try {
-      if (assignMode === 'users') {
         // Assign to individual users
         const response = await fetch(`/api/business/courses/${courseId}/assign`, {
           method: 'POST',
@@ -259,39 +183,8 @@ export function BusinessAssignCourseModal({
         if (!response.ok) {
           throw new Error(data.error || t('assignCourse.errors.assignFailed'))
         }
-      } else {
-        // Assign to teams
-        const teamIds = Array.from(selectedTeamIds)
-        let successCount = 0
-        let errorMessage = ''
-
-        for (const teamId of teamIds) {
-          const response = await fetch(`/api/business/teams/${teamId}/assign-course`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              course_id: courseId,
-              due_date: dueDate || null,
-              message: customMessage.trim() || null
-            })
-          })
-
-          const data = await response.json()
-          if (response.ok) {
-            successCount++
-          } else {
-            errorMessage = data.error || 'Error al asignar a equipo'
-          }
-        }
-
-        if (successCount === 0) {
-          throw new Error(errorMessage || t('assignCourse.errors.assignFailed'))
-        }
-      }
-
+      
       setSelectedUserIds(new Set())
-      setSelectedTeamIds(new Set())
       setDueDate('')
       setCustomMessage('')
       onAssignComplete()
@@ -364,14 +257,12 @@ export function BusinessAssignCourseModal({
 
   const handleClose = () => {
     setSelectedUserIds(new Set())
-    setSelectedTeamIds(new Set())
     setDueDate('')
     setStartDate('')
     setApproach(null)
     setCustomMessage('')
     setError(null)
     setSearchTerm('')
-    setAssignMode('users')
     setShowLiaModal(false)
     onClose()
   }
@@ -380,13 +271,10 @@ export function BusinessAssignCourseModal({
 
   const availableUserCount = availableUsers.filter(u => !alreadyAssignedUserIds.has(u.id)).length
   const selectedUserCount = Array.from(selectedUserIds).filter(id => !alreadyAssignedUserIds.has(id)).length
-  const availableTeamCount = availableTeams.filter(t => !alreadyAssignedTeamIds.has(t.team_id)).length
-  const selectedTeamCount = Array.from(selectedTeamIds).filter(id => !alreadyAssignedTeamIds.has(id)).length
   const selectedUsers = users.filter(u => selectedUserIds.has(u.id))
-  const selectedTeams = teams.filter(t => selectedTeamIds.has(t.team_id))
 
-  const currentSelectedCount = assignMode === 'users' ? selectedUserCount : selectedTeamCount
-  const currentAvailableCount = assignMode === 'users' ? availableUserCount : availableTeamCount
+  const currentSelectedCount = selectedUserCount
+  const currentAvailableCount = availableUserCount
 
   return (
     <>
@@ -462,13 +350,9 @@ export function BusinessAssignCourseModal({
                 style={{ backgroundColor: `${cardBackground}80` }}
               >
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  {assignMode === 'users' ? (
                     <User className="w-4 h-4" style={{ color: primaryColor }} />
-                  ) : (
-                    <UsersRound className="w-4 h-4" style={{ color: primaryColor }} />
-                  )}
                   <span className="text-sm font-medium" style={{ color: textColor }}>
-                    {assignMode === 'users' ? t('assignCourse.modes.individual') : t('assignCourse.modes.workTeams')}
+                    {t('assignCourse.modes.individual')}
                   </span>
                 </div>
               </div>
@@ -501,11 +385,10 @@ export function BusinessAssignCourseModal({
               {currentSelectedCount > 0 && (
                 <div className="flex-1 overflow-hidden">
                   <p className="text-xs font-medium mb-3" style={{ color: `${textColor}60` }}>
-                    {assignMode === 'users' ? t('assignCourse.stats.usersSelected') : t('assignCourse.stats.teamsSelected')}
+                    {t('assignCourse.stats.usersSelected')}
                   </p>
                   <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-                    {assignMode === 'users' ? (
-                      selectedUsers.slice(0, 8).map((user, index) => {
+                      {selectedUsers.slice(0, 8).map((user, index) => {
                         const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
                         return (
                           <motion.div
@@ -520,27 +403,13 @@ export function BusinessAssignCourseModal({
                             {displayName[0].toUpperCase()}
                           </motion.div>
                         )
-                      })
-                    ) : (
-                      selectedTeams.slice(0, 6).map((team, index) => (
-                        <motion.div
-                          key={team.team_id}
-                          initial={{ scale: 0, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium text-white border border-white/20"
-                          style={{ backgroundColor: `${primaryColor}80` }}
-                        >
-                          {team.name}
-                        </motion.div>
-                      ))
-                    )}
-                    {currentSelectedCount > (assignMode === 'users' ? 8 : 6) && (
+                      })}
+                    {currentSelectedCount > 8 && (
                       <div
                         className="px-2 py-1 rounded-lg text-xs font-bold border"
                         style={{ backgroundColor: `${primaryColor}30`, color: primaryColor, borderColor: primaryColor }}
                       >
-                        +{currentSelectedCount - (assignMode === 'users' ? 8 : 6)}
+                        +{currentSelectedCount - 8}
                       </div>
                     )}
                   </div>
@@ -595,34 +464,6 @@ export function BusinessAssignCourseModal({
                 </motion.button>
               </div>
 
-              {/* Mode Tabs */}
-              <div className="p-3 sm:p-4 border-b border-white/10">
-                <div className="flex gap-1 sm:gap-2 p-1 rounded-xl" style={{ backgroundColor: `${cardBackground}80` }}>
-                  <button
-                    onClick={() => { setAssignMode('users'); setSearchTerm('') }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium text-xs sm:text-sm transition-all`}
-                    style={{
-                      backgroundColor: assignMode === 'users' ? primaryColor : 'transparent',
-                      color: assignMode === 'users' ? '#FFFFFF' : `${textColor}70`
-                    }}
-                  >
-                    <User className="w-4 h-4" />
-                    <span className="hidden xs:inline">{t('assignCourse.modes.users')}</span> ({availableUserCount})
-                  </button>
-                  <button
-                    onClick={() => { setAssignMode('teams'); setSearchTerm('') }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium text-xs sm:text-sm transition-all`}
-                    style={{
-                      backgroundColor: assignMode === 'teams' ? primaryColor : 'transparent',
-                      color: assignMode === 'teams' ? '#FFFFFF' : `${textColor}70`
-                    }}
-                  >
-                    <UsersRound className="w-4 h-4" />
-                    <span className="hidden xs:inline">{t('assignCourse.modes.teams')}</span> ({availableTeamCount})
-                  </button>
-                </div>
-              </div>
-
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
                 {/* Error */}
@@ -646,7 +487,7 @@ export function BusinessAssignCourseModal({
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: `${textColor}40` }} />
                   <input
                     type="text"
-                    placeholder={assignMode === 'users' ? t('assignCourse.search.users') : t('assignCourse.search.teams')}
+                    placeholder={t('assignCourse.search.users')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-white/10 focus:outline-none focus:border-white/20 transition-colors"
@@ -654,8 +495,6 @@ export function BusinessAssignCourseModal({
                   />
                 </div>
 
-                {/* Users Mode */}
-                {assignMode === 'users' && (
                   <>
                     {/* Select All Users */}
                     {availableUserCount > 0 && (
@@ -744,17 +583,10 @@ export function BusinessAssignCourseModal({
                                   <span className="font-medium truncate" style={{ color: textColor }}>{displayName}</span>
                                   {isAlreadyAssigned && (
                                     <span
-                                      className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${assignmentInfo?.source === 'team'
-                                        ? 'bg-blue-500/20 text-blue-400'
-                                        : 'bg-yellow-500/20 text-yellow-400'
-                                        }`}
-                                      title={assignmentInfo?.source === 'team' && assignmentInfo?.team_name
-                                        ? `Asignado vía equipo: ${assignmentInfo.team_name}`
-                                        : 'Asignación directa'}
+                                      className="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 bg-yellow-500/20 text-yellow-400"
+                                      title='Asignación directa'
                                     >
-                                      {assignmentInfo?.source === 'team'
-                                        ? `${t('assignCourse.labels.viaTeam')} ${assignmentInfo?.team_name || 'equipo'}`
-                                        : t('assignCourse.labels.alreadyAssigned')}
+                                      {t('assignCourse.labels.alreadyAssigned')}
                                     </span>
                                   )}
                                 </div>
@@ -766,258 +598,31 @@ export function BusinessAssignCourseModal({
                       )}
                     </div>
                   </>
-                )}
 
-                {/* Teams Mode */}
-                {assignMode === 'teams' && (
-                  <>
-                    {/* Select All Teams */}
-                    {availableTeamCount > 0 && (
-                      <motion.button
-                        onClick={handleSelectAllTeams}
-                        className="flex items-center gap-3 w-full p-4 rounded-xl border transition-all hover:bg-white/5"
-                        style={{ borderColor: selectedTeamCount === availableTeamCount ? primaryColor : 'rgba(255,255,255,0.1)' }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div
-                          className="w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-colors"
-                          style={{
-                            backgroundColor: selectedTeamCount === availableTeamCount ? primaryColor : 'transparent',
-                            borderColor: selectedTeamCount === availableTeamCount ? primaryColor : 'rgba(255,255,255,0.3)'
-                          }}
-                        >
-                          {selectedTeamCount === availableTeamCount && <Check className="w-4 h-4 text-white" />}
-                        </div>
-                        <span className="font-medium" style={{ color: textColor }}>
-                          {t('assignCourse.selectAll')} ({availableTeamCount} {t('assignCourse.stats.available')})
-                        </span>
-                      </motion.button>
-                    )}
-
-                    {/* Teams List */}
-                    <div className="space-y-2">
-                      {loadingTeams ? (
-                        <div className="text-center py-12">
-                          <div className="w-10 h-10 border-3 rounded-full animate-spin mx-auto mb-4"
-                            style={{ borderColor: `${primaryColor}30`, borderTopColor: primaryColor }} />
-                          <p style={{ color: `${textColor}50` }}>{t('assignCourse.loading.teams')}</p>
-                        </div>
-                      ) : availableTeams.length === 0 ? (
-                        <div className="text-center py-12">
-                          <UsersRound className="w-16 h-16 mx-auto mb-4" style={{ color: `${textColor}20` }} />
-                          <p style={{ color: `${textColor}50` }}>No hay equipos disponibles</p>
-                          <p className="text-xs mt-2" style={{ color: `${textColor}30` }}>
-                            Crea equipos desde la sección de Equipos
-                          </p>
-                        </div>
-                      ) : (
-                        availableTeams.map((team, index) => {
-                          const isAlreadyAssigned = alreadyAssignedTeamIds.has(team.team_id)
-                          const isSelected = selectedTeamIds.has(team.team_id)
-
-                          return (
-                            <motion.button
-                              key={team.team_id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.02 }}
-                              onClick={() => !isAlreadyAssigned && toggleTeam(team.team_id)}
-                              disabled={isAlreadyAssigned}
-                              className={`w-full p-4 rounded-xl border flex items-center gap-4 transition-all text-left ${isAlreadyAssigned ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/5 cursor-pointer'
-                                }`}
-                              style={{
-                                backgroundColor: isSelected ? `${primaryColor}15` : 'transparent',
-                                borderColor: isSelected ? primaryColor : borderColor
-                              }}
-                            >
-                              <div
-                                className="w-6 h-6 rounded-lg flex items-center justify-center border-2 flex-shrink-0 transition-colors"
-                                style={{
-                                  backgroundColor: isSelected ? primaryColor : isAlreadyAssigned ? 'rgba(255,255,255,0.1)' : 'transparent',
-                                  borderColor: isSelected ? primaryColor : isAlreadyAssigned ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.3)'
-                                }}
-                              >
-                                {isSelected && <Check className="w-4 h-4 !text-white" color="#FFFFFF" />}
-                                {isAlreadyAssigned && <XCircle className="w-4 h-4" style={{ color: `${textColor}40` }} />}
-                              </div>
-
-                              {team.image_url ? (
-                                <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
-                                  <Image src={team.image_url} alt={team.name} fill className="object-cover" />
-                                </div>
-                              ) : (
-                                <div
-                                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                                  style={{ backgroundColor: primaryColor }}
-                                >
-                                  <UsersRound className="w-6 h-6 !text-white" color="#FFFFFF" />
-                                </div>
-                              )}
-
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium truncate" style={{ color: textColor }}>{team.name}</span>
-                                  {isAlreadyAssigned && (
-                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 flex-shrink-0">
-                                      Ya asignado
-                                    </span>
-                                  )}
-                                </div>
-                                {team.description && (
-                                  <p className="text-sm truncate" style={{ color: `${textColor}50` }}>{team.description}</p>
-                                )}
-                                <p className="text-xs mt-1" style={{ color: `${textColor}40` }}>
-                                  {team.member_count || 0} miembro{(team.member_count || 0) !== 1 ? 's' : ''}
-                                </p>
-                              </div>
-                            </motion.button>
-                          )
-                        })
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {/* Options Section */}
-                <div className="pt-5 border-t border-white/10 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Due Date & LIA */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="flex items-center gap-2 text-sm font-medium" style={{ color: `${textColor}80` }}>
-                          <Calendar className="w-4 h-4" />
-                          <span>Planificación del Curso</span>
-                        </label>
-                      </div>
-                      
-                      {!dueDate ? (
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setShowLiaModal(true)}
-                          className="w-full p-4 rounded-xl border border-dashed flex flex-col items-center justify-center gap-2 transition-all group"
-                          style={{ 
-                            borderColor: `${primaryColor}40`,
-                            backgroundColor: `${primaryColor}05`
-                          }}
-                        >
-                          <div className="p-2 rounded-full mb-1 transition-colors group-hover:scale-110" style={{ backgroundColor: `${primaryColor}15` }}>
-                            <Sparkles className="w-6 h-6" style={{ color: primaryColor }} />
-                          </div>
-                          <span className="font-medium text-sm" style={{ color: textColor }}>
-                            Definir fechas con LIA
-                          </span>
-                          <span className="text-xs text-center px-4" style={{ color: `${textColor}50` }}>
-                            La IA analizará el curso para sugerir el mejor calendario
-                          </span>
-                        </motion.button>
-                      ) : (
-                        <div 
-                          className="p-3 rounded-xl border relative group"
-                          style={{ 
-                            backgroundColor: `${cardBackground}80`,
-                            borderColor: `${primaryColor}30`
-                          }}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-3">
-                              <div className="p-2 rounded-lg mt-0.5" style={{ backgroundColor: `${primaryColor}15` }}>
-                                <Calendar className="w-5 h-5" style={{ color: primaryColor }} />
-                              </div>
-                              <div>
-                                <p className="text-xs font-medium mb-0.5" style={{ color: `${textColor}50` }}>Fecha límite sugerida</p>
-                                <p className="font-bold text-lg" style={{ color: textColor }}>
-                                  {new Date(dueDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                </p>
-                                {approach && (
-                                  <div className="flex items-center gap-1.5 mt-1.5">
-                                    <span className="text-xs px-2 py-0.5 rounded-md bg-white/5 border border-white/10" style={{ color: `${textColor}70` }}>
-                                      Enfoque: {t(`liaSuggestion.approaches.${approach}.title`, approach)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => setShowLiaModal(true)}
-                              className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
-                              title="Cambiar planificación"
-                            >
-                              <Sparkles className="w-4 h-4" style={{ color: accentColor }} />
-                            </motion.button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Message */}
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: `${textColor}80` }}>
-                        <MessageSquare className="w-4 h-4" />
-                        Mensaje (opcional)
-                      </label>
-                      <textarea
-                        value={customMessage}
-                        onChange={(e) => setCustomMessage(e.target.value)}
-                        placeholder="Escribe un mensaje..."
-                        rows={2}
-                        maxLength={200}
-                        className="w-full px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-white/20 transition-colors resize-none"
-                        style={{ backgroundColor: `${cardBackground}80`, color: textColor }}
-                      />
-                      <p className="text-xs text-right mt-1" style={{ color: `${textColor}40` }}>
-                        {customMessage.length}/200
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Footer */}
-              <div className="p-4 sm:p-6 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
-                <div className="text-sm xl:hidden text-center sm:text-left" style={{ color: `${textColor}60` }}>
-                  {currentSelectedCount} seleccionado{currentSelectedCount !== 1 ? 's' : ''}
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-auto">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleClose}
-                    disabled={isAssigning}
-                    className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition-colors hover:bg-white/5 disabled:opacity-50 text-sm sm:text-base"
-                    style={{ color: textColor }}
-                  >
-                    Cancelar
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleAssign}
-                    disabled={isAssigning || currentSelectedCount === 0}
-                    className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base"
-                    style={{
-                      backgroundColor: primaryColor,
-                      color: '#FFFFFF',
-                      boxShadow: currentSelectedCount > 0 ? `0 8px 25px ${primaryColor}40` : 'none'
-                    }}
-                  >
-                    {isAssigning ? (
-                      <>
-                        <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span className="hidden sm:inline">Asignando...</span>
-                        <span className="sm:hidden">...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 sm:w-5 sm:h-5 !text-white" color="#FFFFFF" />
-                        <span className="!text-white" style={{ color: '#FFFFFF' }}>Asignar ({currentSelectedCount})</span>
-                      </>
-                    )}
-                  </motion.button>
-                </div>
+              <div className="p-4 sm:p-6 border-t border-white/10 space-y-4" style={{ backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : '#F1F5F9' }}>
+                <button
+                  onClick={handleAssign}
+                  disabled={isAssigning || selectedUserIds.size === 0}
+                  className="w-full py-4 rounded-xl font-bold text-white transition-all transform active:scale-95 disabled:opacity-50 disabled:active:scale-100 shadow-lg hover:shadow-xl"
+                  style={{
+                    backgroundColor: primaryColor,
+                    boxShadow: `0 4px 15px ${primaryColor}40`
+                  }}
+                >
+                  {isAssigning ? (
+                    <div className="flex items-center justify-center gap-2">
+                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>{t('assignCourse.buttons.assigning')}</span>
+                    </div>
+                  ) : (
+                    <span>
+                      {t('assignCourse.buttons.confirmAssign')} ({selectedUserIds.size})
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -1025,15 +630,6 @@ export function BusinessAssignCourseModal({
       </div>
       )}
     </AnimatePresence>
-
-    {/* LIA Deadline Suggestion Modal - Outside main AnimatePresence */}
-    <LiaDeadlineSuggestionModal
-      isOpen={showLiaModal}
-      onClose={() => setShowLiaModal(false)}
-      courseId={courseId}
-      courseTitle={courseTitle}
-      onSelectDeadline={handleLiaSelection}
-    />
-  </>
+    </>
   )
 }

@@ -361,7 +361,8 @@ function OrganizationTab({
     contact_phone: organization?.contact_phone || '',
     website_url: organization?.website_url || '',
     logo_url: organization?.logo_url || '',
-    max_users: organization?.max_users?.toString() || '10'
+    max_users: organization?.max_users?.toString() || '10',
+    show_navbar_name: organization?.show_navbar_name ?? true
   })
   const [isSaving, setIsSaving] = useState(false)
   const [copiedFields, setCopiedFields] = useState<Record<string, boolean>>({})
@@ -375,7 +376,8 @@ function OrganizationTab({
         contact_phone: organization.contact_phone || '',
         website_url: organization.website_url || '',
         logo_url: organization.logo_url || '',
-        max_users: organization.max_users?.toString() || '10'
+        max_users: organization.max_users?.toString() || '10',
+        show_navbar_name: organization.show_navbar_name ?? true
       })
     }
   }, [organization])
@@ -403,7 +405,8 @@ function OrganizationTab({
         contact_phone: formData.contact_phone.trim() || null,
         website_url: formData.website_url.trim() || null,
         logo_url: formData.logo_url.trim() || null,
-        max_users: parseInt(formData.max_users)
+        max_users: parseInt(formData.max_users),
+        show_navbar_name: formData.show_navbar_name
       }
 
       const success = await updateOrganization(updateData)
@@ -530,6 +533,37 @@ function OrganizationTab({
                   placeholder="Nombre de tu empresa"
                 />
               </div>
+            </div>
+
+            {/* Switch Show Name */}
+             <div className="flex items-center justify-between p-3 rounded-xl border transition-all duration-300 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-blue-500/30">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                         <Type className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div>
+                         <p className="text-sm font-semibold text-gray-900 dark:text-white">Mostrar nombre en navbar</p>
+                         <p className="text-xs text-gray-500 dark:text-gray-400">Ocultar si el logo ya incluye el nombre</p>
+                    </div>
+                </div>
+                <motion.button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, show_navbar_name: !prev.show_navbar_name }))}
+                    whileTap={{ scale: 0.95 }}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none"
+                    style={{
+                        backgroundColor: formData.show_navbar_name ? '#3b82f6' : 'rgba(156, 163, 175, 0.3)'
+                    }}
+                >
+                    <motion.span
+                        layout
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ml-1"
+                        style={{
+                            translateX: formData.show_navbar_name ? 20 : 0
+                        }}
+                    />
+                </motion.button>
             </div>
 
             <div className="group/input">

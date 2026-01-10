@@ -140,13 +140,16 @@ LIA (Learning Intelligence Assistant) es el asistente de IA integrado en toda la
 
 ### Características Principales
 
-| Característica        | Descripción                                                     |
-| --------------------- | --------------------------------------------------------------- |
-| **Chat Contextual**   | Ayuda adaptativa según la sección donde se encuentre el usuario |
-| **Multilingüe**       | Soporte completo para Español, Inglés y Portugués               |
-| **Tono Profesional**  | Respuestas claras y concisas sin uso de emojis                  |
-| **Panel Lateral**     | Interfaz slide-over desde la derecha, siempre accesible         |
-| **Historial de Chat** | Persistencia de conversaciones por contexto                     |
+| Característica             | Descripción                                                        |
+| -------------------------- | ------------------------------------------------------------------ |
+| **Chat Contextual**        | Ayuda adaptativa según la sección donde se encuentre el usuario    |
+| **Multilingüe**            | Soporte completo para Español, Inglés y Portugués                  |
+| **Tono Profesional**       | Respuestas claras y concisas sin uso de emojis                     |
+| **Panel Lateral**          | Interfaz slide-over desde la derecha, siempre accesible            |
+| **Historial de Chat**      | Persistencia de conversaciones por contexto con edición de títulos |
+| **Contexto Separado**      | Historial independiente entre General, Study Planner y Curso       |
+| **Renderizado de Enlaces** | Soporte para links markdown clickeables en respuestas              |
+| **Dark Mode Optimizado**   | Legibilidad perfecta en modo oscuro                                |
 
 ### Contextos de LIA
 
@@ -157,6 +160,7 @@ LIA se adapta según el contexto del usuario:
 📅 Study Planner     → Gestiona sesiones, detecta atrasos, propone reprogramaciones
 🏠 Dashboard         → Orientación general, navegación, sugerencias
 ⚙️ Configuración     → Ayuda con ajustes de cuenta y preferencias
+🔍 General           → Asistencia general de la plataforma (historial persistente)
 ```
 
 ### Uso en el Código
@@ -379,13 +383,13 @@ const { theme, toggleTheme } = useTheme();
 
 | Tecnología        | Versión  | Uso                            |
 | ----------------- | -------- | ------------------------------ |
-| **Next.js**       | 15.5.4   | Framework React con App Router |
-| **React**         | 19.1.0   | Biblioteca UI                  |
+| **Next.js**       | 14.2.15  | Framework React con App Router |
+| **React**         | 18.3.1   | Biblioteca UI                  |
 | **TypeScript**    | 5.9.3    | Tipado estático                |
 | **Tailwind CSS**  | 3.4.18   | Estilos utility-first          |
-| **Framer Motion** | 12.23.24 | Animaciones                    |
+| **Framer Motion** | 12.23.26 | Animaciones                    |
 | **Zustand**       | 5.0.2    | Estado global                  |
-| **SWR**           | 2.2.0    | Data fetching                  |
+| **Recharts**      | 3.5.0    | Visualización de datos         |
 | **FullCalendar**  | 6.x      | Calendario del Study Planner   |
 | **Radix UI**      | Latest   | Componentes accesibles         |
 | **Headless UI**   | Latest   | Componentes sin estilos        |
@@ -415,40 +419,82 @@ const { theme, toggleTheme } = useTheme();
 ```
 Aprende-y-Aplica/
 ├── apps/
-│   └── web/                          # Aplicación Next.js
-│       ├── src/
-│       │   ├── app/                  # App Router (páginas)
-│       │   ├── components/           # Componentes globales
-│       │   ├── core/                 # Núcleo de la aplicación
-│       │   │   ├── components/       # Componentes core (Header, Sidebar, LIA)
-│       │   │   ├── hooks/            # Hooks personalizados
-│       │   │   ├── i18n/             # Configuración de internacionalización
-│       │   │   ├── providers/        # Context providers
-│       │   │   └── stores/           # Estado global (Zustand)
-│       │   ├── features/             # Features por dominio
-│       │   │   ├── admin/            # Gestión de plataforma
-│       │   │   ├── auth/             # Autenticación
-│       │   │   ├── business-panel/   # Panel empresarial
-│       │   │   ├── courses/          # Sistema de cursos
-│       │   │   ├── lia/              # Asistente virtual LIA
-│       │   │   └── study-planner/    # Planificador de estudios
-│       │   └── lib/                  # Utilidades y configuración
-│       │       ├── lia/              # Configuración de LIA
-│       │       ├── openai/           # Cliente OpenAI
-│       │       └── supabase/         # Cliente Supabase
-│       └── public/
-│           └── locales/              # Archivos de traducción (es, en, pt)
+│   ├── web/                          # Frontend (Next.js)
+│   │   └── src/
+│   │       ├── app/                  # Next.js App Router (Server Components)
+│   │       ├── core/                 # Lógica transversal
+│   │       │   ├── components/       # Componentes core (Header, Sidebar, LIA)
+│   │       │   ├── hooks/            # Hooks personalizados
+│   │       │   ├── i18n/             # Configuración de internacionalización
+│   │       │   ├── providers/        # Context providers
+│   │       │   ├── services/         # API client (Axios), servicios
+│   │       │   └── stores/           # Estado global (Zustand)
+│   │       ├── features/             # Features por dominio (19 módulos)
+│   │       │   ├── admin/            # Gestión de plataforma y empresas
+│   │       │   ├── ai-directory/     # Directorio de aplicaciones IA
+│   │       │   ├── auth/             # Autenticación y SSO
+│   │       │   ├── business-panel/   # Panel empresarial (admin org)
+│   │       │   ├── business-user/    # Dashboard empleado
+│   │       │   ├── communities/      # Gestión de comunidades
+│   │       │   ├── courses/          # Sistema de cursos
+│   │       │   ├── instructor/       # Features de instructor
+│   │       │   ├── landing/          # Landing page
+│   │       │   ├── news/             # Artículos y noticias
+│   │       │   ├── notifications/    # Sistema de notificaciones
+│   │       │   ├── profile/          # Perfil de usuario
+│   │       │   ├── reels/            # Contenido de video corto
+│   │       │   ├── scorm/            # Integración SCORM para e-learning
+│   │       │   ├── skills/           # Gestión de habilidades
+│   │       │   ├── study-planner/    # Planificador de estudios con IA
+│   │       │   ├── subscriptions/    # Gestión de suscripciones
+│   │       │   └── tours/            # Tours guiados de onboarding
+│   │       ├── lib/                  # Infraestructura y utilidades
+│   │       │   ├── supabase/         # Cliente Supabase y types
+│   │       │   ├── openai/           # Cliente OpenAI
+│   │       │   ├── lia/              # Configuración de LIA
+│   │       │   ├── scorm/            # Utilidades SCORM
+│   │       │   ├── oauth/            # Configuración OAuth
+│   │       │   ├── schemas/          # Esquemas de validación Zod
+│   │       │   └── rrweb/            # Session recording
+│   │       └── shared/               # Componentes y utils genéricos
+│   │           ├── hooks/            # Hooks reutilizables
+│   │           └── utils/            # Funciones utilitarias
+│   │   └── public/
+│   │       └── locales/              # Archivos de traducción (es, en, pt)
+│   │
+│   └── api/                          # Backend (Express) - Placeholders
+│       └── src/
+│           ├── features/             # Endpoints por dominio
+│           └── core/                 # Middleware y config
+│
+├── packages/
+│   ├── shared/                       # Tipos y utilidades compartidas
+│   └── ui/                           # Componentes UI compartidos
 │
 ├── netlify/
 │   └── functions/                    # Funciones serverless (cron jobs)
 │
-├── packages/
-│   └── shared/                       # Tipos y utilidades compartidas
+├── supabase/                         # Migraciones y configuración
 │
-├── docs/                             # Documentación del proyecto
-│
-└── scripts/
-    └── supabase/                     # Migraciones SQL
+└── docs/                             # Documentación del proyecto
+```
+
+### Organización del Frontend (apps/web/src/)
+
+| Directorio  | Propósito                                                        |
+| ----------- | ---------------------------------------------------------------- |
+| `app/`      | Next.js App Router (Server Components por defecto)               |
+| `features/` | Features de dominio (auto-contenidos, screaming architecture)    |
+| `core/`     | Lógica transversal: stores (Zustand), providers, services/api.ts |
+| `lib/`      | Infraestructura: supabase/, openai/, lia/, schemas/, oauth/      |
+| `shared/`   | Infraestructura pura: hooks genéricos (useDebounce), utilidades  |
+
+### Reglas de Dependencia
+
+```
+features/  → Puede importar de core/ y shared/
+core/      → Puede importar de shared/
+shared/    → No importa de ningún lado (infraestructura pura)
 ```
 
 ---
@@ -671,61 +717,122 @@ function LanguageSelector() {
 
 ```bash
 # Desarrollo
-npm run dev              # Frontend en http://localhost:3000
+npm run dev              # Frontend (:3000) y Backend (:4000) concurrentes
+npm run dev:web          # Solo frontend
+npm run dev:api          # Solo backend
 
 # Build
-npm run build            # Build de producción
+npm run build            # Build de todos los workspaces
+npm run build:web        # Solo frontend
+npm run build:packages   # Solo paquetes compartidos
 
-# Type checking
+# Calidad de Código
 npm run type-check       # Verificar tipos TypeScript
-
-# Linting
 npm run lint             # Ejecutar ESLint
+
+# Operaciones por Workspace
+npm install <pkg> --workspace=apps/web   # Instalar en web
+npm run <cmd> --workspace=apps/web       # Ejecutar comando específico
 ```
 
 ### Convenciones de Código
 
-- ✅ TypeScript estricto
+- ✅ TypeScript estricto (`strict: true`)
 - ✅ Componentes funcionales con hooks
 - ✅ Feature-based arquitectura (Screaming Architecture)
-- ✅ Tailwind CSS para estilos
+- ✅ Tailwind CSS para estilos (mobile-first)
 - ✅ Framer Motion para animaciones
-- ✅ Path aliases (`@/features/*`, `@/core/*`, `@/lib/*`)
+- ✅ Server Components por defecto, `'use client'` solo cuando necesario
 
 ### Path Aliases
 
 ```typescript
+@/*           → apps/web/src/*
 @/features/*  → apps/web/src/features/*
 @/core/*      → apps/web/src/core/*
-@/app/*       → apps/web/src/app/*
 @/lib/*       → apps/web/src/lib/*
+@/components/*→ apps/web/src/shared/components/*
 @/utils/*     → apps/web/src/shared/utils/*
 @/hooks/*     → apps/web/src/shared/hooks/*
+@shared/*     → packages/shared/src/*
 ```
 
 ---
 
+## 📚 Documentación Técnica
+
+El proyecto incluye documentación en el directorio `docs/`:
+
+| Documento                     | Descripción                                        |
+| ----------------------------- | -------------------------------------------------- |
+| `SOFIA_DESIGN_SYSTEM.md`      | Sistema de diseño SOFIA con patrones y componentes |
+| `AGENTES_LIA.md`              | Documentación de los agentes de LIA                |
+| `SCORM-IMPLEMENTACION.md`     | Guía de implementación SCORM                       |
+| `STUDY-PLANNER-FLOW.md`       | Flujo completo del planificador de estudios        |
+| `LIA_ANALYTICS_PANEL.md`      | Documentación del panel de analytics de LIA        |
+| `GUIA-RAPIDA-TRADUCCIONES.md` | Guía rápida de internacionalización                |
+| `BUGS-SISTEMA.md`             | Bugs conocidos y soluciones del sistema            |
+
+> **Importante**: La guía principal de desarrollo está en `CLAUDE.md` en la raíz del proyecto. Este archivo contiene las instrucciones actualizadas para trabajar con el código.
+
 ## 📊 Base de Datos (Tablas Principales)
 
-| Tabla                   | Descripción                               |
-| ----------------------- | ----------------------------------------- |
-| `usuarios`              | Perfiles de usuario                       |
-| `organizations`         | Organizaciones/empresas                   |
-| `cursos`                | Catálogo de cursos                        |
-| `user_lesson_progress`  | Progreso por lección                      |
-| `study_plans`           | Planes de estudio creados                 |
-| `study_sessions`        | Sesiones individuales programadas         |
-| `study_preferences`     | Preferencias de estudio del usuario       |
-| `lesson_tracking`       | Tracking en tiempo real de lección activa |
-| `calendar_integrations` | Conexión con Google/Microsoft Calendar    |
-| `lia_conversations`     | Historial de chat con LIA                 |
-| `certificates`          | Certificados generados                    |
+| Tabla                      | Descripción                                        |
+| -------------------------- | -------------------------------------------------- |
+| `usuarios`                 | Perfiles de usuario (auth linking)                 |
+| `organizations`            | Organizaciones/empresas con branding               |
+| `organization_users`       | Relación usuarios-organizaciones (multi-org)       |
+| `organization_invitations` | Invitaciones pendientes a organizaciones           |
+| `cursos`                   | Catálogo de cursos con módulos y lecciones         |
+| `user_lesson_progress`     | Progreso por lección                               |
+| `study_plans`              | Planes de estudio creados con IA                   |
+| `study_sessions`           | Sesiones individuales programadas                  |
+| `study_preferences`        | Preferencias de estudio del usuario                |
+| `lesson_tracking`          | Tracking en tiempo real de lección activa          |
+| `calendar_integrations`    | Conexión con Google/Microsoft Calendar             |
+| `lia_conversations`        | Historial de conversaciones con LIA                |
+| `lia_messages`             | Mensajes individuales de cada conversación con LIA |
+| `certificates`             | Certificados generados con hash blockchain         |
+| `comunidades`              | Comunidades de aprendizaje                         |
+| `comunidad_posts`          | Posts en comunidades                               |
+| `skills`                   | Catálogo de habilidades                            |
+| `user_skills`              | Habilidades adquiridas por usuario                 |
 
 ---
 
 ## 📝 Historial de Cambios
 
 ### Enero 2026 (v2.2.0)
+
+#### 🤖 LIA - Nuevas Funcionalidades
+
+- ✅ **Historial de Conversaciones**: Persistencia de conversaciones de LIA con capacidad de cargar chats anteriores
+- ✅ **Edición de Títulos**: Los usuarios pueden renombrar sus conversaciones pasadas
+- ✅ **Contexto Separado**: Historial independiente por contexto (general, Study Planner, curso)
+- ✅ **Visibilidad de Enlaces en Dark Mode**: Links de redirección de LIA ahora son claramente legibles en modo oscuro
+
+#### 🏢 Panel de Administración Mejorado
+
+- ✅ **AdminEditCompanyModal**: Nuevo componente rediseñado siguiendo el patrón "Split Panel Modal" del SOFIA Design System
+  - Panel izquierdo con preview animado y avatar con gradiente
+  - Panel derecho con inputs premium y formularios organizados
+  - Navegación integrada con tabs especializados
+- ✅ **Gestión de Empresas**: Limpieza completa del modal de creación de organizaciones
+- ✅ **LIA Analytics Panel**: Métricas de uso del asistente virtual con widgets especializados
+
+#### 🔐 Autenticación y Usuarios
+
+- ✅ **Flujo SSO Corregido**: Registro via Google/Microsoft ahora procesa correctamente invitaciones y asigna organizaciones/roles
+- ✅ **Sistema de Invitaciones**: Corrección del flujo completo de invitación con:
+  - Asignación correcta de `cargo_rol` (Business/Business User)
+  - Guardado del campo "Position" desde el formulario de invitación
+  - Asociación correcta en tabla `organization_users`
+  - Redirección apropiada post-registro y post-login
+- ✅ **Eliminación en Cascada**: Sistema completo de eliminación de usuarios que limpia automáticamente:
+  - Posts y comentarios de comunidad
+  - Reacciones y enrollments
+  - Sesiones y favoritos
+  - Progreso de lecciones y todas las referencias relacionadas
 
 #### 🎨 Rediseño de Headers del Business Panel
 
@@ -735,12 +842,26 @@ npm run lint             # Ejecutar ESLint
 - ✅ **Business User Dashboard Hero**: Actualizado con imagen de fondo y esquema de colores oscuros premium
 - ✅ Eliminación de títulos/subtítulos redundantes sobre los headers en páginas de Reports, Analytics y Settings
 
+#### 📱 Responsividad y UI
+
+- ✅ **LIA Side Panel**: Panel lateral totalmente responsive en diferentes tamaños de pantalla
+- ✅ **Course Detail Page**: Corrección de layout cuando el panel de LIA está abierto
+- ✅ **Tabs de Navegación**: Adaptación correcta de elementos en modo responsive
+- ✅ **Course Cards**: Prevención de overflow de contenido en pantallas pequeñas
+- ✅ **Botones SOFIA**: Corrección de colores de botones primarios (fondo azul, texto blanco)
+
 #### 🌓 Mejoras de Modo Claro/Oscuro
 
 - ✅ **BusinessSettings.tsx**: Tarjetas, formularios y tabs ahora soportan correctamente modo claro y oscuro
 - ✅ **BusinessAnalytics.tsx**: KPIs de equipos, gráficos de progreso y tarjetas de equipos con soporte dual de temas
 - ✅ Gradientes y colores de botones actualizados a `#0A2540` → `#1e3a5f` para consistencia de marca
 - ✅ Inputs y labels con clases `dark:` para adaptarse automáticamente al tema
+- ✅ Mejora de legibilidad de texto en modo oscuro
+
+#### 🎬 Procesamiento de Video
+
+- ✅ **Auto-procesamiento**: Transcripción y generación de resumen se inician automáticamente después de subir un video
+- ✅ **Pipeline Mejorado**: Reducción de pasos manuales para una mejor experiencia de usuario
 
 #### 🔐 Mejoras de Autenticación Organizacional
 
@@ -752,6 +873,8 @@ npm run lint             # Ejecutar ESLint
 - ✅ Importación de `next/image` en componentes que usan `teams-header.png`
 - ✅ Estilos inline con colores hexadecimales explícitos para evitar problemas de herencia de temas
 - ✅ Grid patterns sutiles (`radial-gradient`) añadidos a los headers premium
+- ✅ Corrección de recarga continua en página de Business Settings
+- ✅ Corrección de visualización de actividades en página de aprendizaje de cursos
 
 ### Diciembre 2025 (v2.1.0)
 
@@ -802,6 +925,19 @@ npm run lint             # Ejecutar ESLint
 
 ---
 
-**Última actualización**: Enero 2026  
-**Versión**: 2.2.0 (B2B)  
+## ⚠️ Reglas Críticas
+
+| Regla                          | Descripción                                                |
+| ------------------------------ | ---------------------------------------------------------- |
+| **NO webhooks**                | Siempre usar endpoints REST API                            |
+| **Responsive design**          | Mobile-first para todos los componentes                    |
+| **Screaming Architecture**     | Organizar por features, no por capas técnicas              |
+| **Monorepo workspaces**        | Usar `--workspace=apps/web` para operaciones de paquetes   |
+| **Traducciones sincronizadas** | Mantener archivos es/en/pt sincronizados                   |
+| **Server Components**          | Usar por defecto; `'use client'` solo cuando sea necesario |
+
+---
+
+**Última actualización**: 9 de Enero 2026  
+**Versión**: 2.2.1 (B2B)  
 **Mantenedores**: Equipo Aprende y Aplica

@@ -161,11 +161,11 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
               <div className="relative flex items-center justify-center">
                 {(organization?.brand_favicon_url || organization?.favicon_url) ? (
                   <Image
-                    src={organization?.brand_favicon_url || organization?.favicon_url || '/icono.png'}
+                    src={organization?.brand_logo_url || organization?.logo_url || organization?.brand_favicon_url || organization?.favicon_url || '/icono.png'}
                     alt={organization?.name || 'Organización'}
-                    width={40}
-                    height={40}
-                    className="object-contain h-10 w-auto"
+                    width={64}
+                    height={64}
+                    className="object-contain h-16 w-auto"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/icono.png';
                     }}
@@ -183,14 +183,16 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
               </div>
 
               {/* Nombre de la Organización */}
-              <h1
-                className="hidden sm:block text-sm font-semibold truncate max-w-[200px]"
-                style={{
-                  color: navbarStyle.color || 'rgba(255, 255, 255, 0.95)'
-                }}
-              >
-                {organization?.name || t('business:header.myOrganization')}
-              </h1>
+              {organization?.show_navbar_name !== false && (
+                <h1
+                  className="hidden sm:block text-sm font-semibold truncate max-w-[200px]"
+                  style={{
+                    color: navbarStyle.color || 'rgba(255, 255, 255, 0.95)'
+                  }}
+                >
+                  {organization?.name || t('business:header.myOrganization')}
+                </h1>
+              )}
             </div>
           </div>
 

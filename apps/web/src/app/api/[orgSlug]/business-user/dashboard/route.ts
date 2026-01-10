@@ -23,7 +23,7 @@ interface AssignedCourse {
   due_date?: string
   completed_at?: string
   has_certificate?: boolean
-  source?: 'direct' | 'team'
+  source?: 'direct'
 }
 
 interface RouteContext {
@@ -89,20 +89,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // 🚀 OPTIMIZACIÓN: FASE 1 - Consultas paralelas iniciales
     // =====================================================
     const [
-      { data: userTeamMemberships, error: teamMembershipsError },
       { data: directAssignments, error: directAssignmentsError },
       { data: certificates, error: certificatesError }
     ] = await Promise.all([
-      // PASO 1: Obtener los equipos a los que pertenece el usuario
-      // 🔒 SEGURIDAD: Filtrar equipos que pertenecen a la organización actual
-      supabase
-        .from('work_team_members')
-        .select('team_id, status, work_teams!inner(organization_id)')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .eq('work_teams.organization_id', organizationId),
-
-      // PASO 2: Obtener asignaciones directas al usuario (límite 100)
+      // PASO 1: Obtener asignaciones directas al usuario (límite 100)
       // 🔒 SEGURIDAD: Filtrar por organization_id
       supabase
         .from('organization_course_assignments')
@@ -128,7 +118,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         .order('assigned_at', { ascending: false })
         .limit(100),
 
-      // PASO 3: Obtener certificados (en paralelo, límite 100)
+      // PASO 2: Obtener certificados (en paralelo, límite 100)
       supabase
         .from('user_course_certificates')
         .select('certificate_id, course_id')
@@ -136,9 +126,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
         .limit(100)
     ])
 
-    if (teamMembershipsError) {
-      logger.error('Error fetching team memberships:', teamMembershipsError)
-    }
     if (directAssignmentsError) {
       logger.error('❌ Error fetching direct assignments:', directAssignmentsError)
     }
@@ -146,77 +133,16 @@ export async function GET(request: NextRequest, context: RouteContext) {
       logger.error('❌ Error fetching certificates:', certificatesError)
     }
 
-    const userTeamIds = userTeamMemberships?.map(m => m.team_id) || []
-
-    // Debug log para verificar que los equipos son correctos
-    logger.debug('Teams found for org:', organizationId, 'teams:', userTeamIds)
-
-    // =====================================================
-    // 🚀 OPTIMIZACIÓN: FASE 2 - Consultas dependientes en paralelo
-    // =====================================================
-    let teamCourseAssignments: any[] = []
     let enrollmentsMap = new Map<string, any>()
     const instructorMap = new Map()
 
     // Preparar IDs de cursos de asignaciones directas
     const directCourseIds = new Set<string>()
+    const combinedAssignments: any[] = []
+
     for (const assignment of (directAssignments || [])) {
       if (assignment.courses) {
         directCourseIds.add(assignment.course_id)
-      }
-    }
-
-    // Solo hacer query de equipos si hay equipos
-    const teamAssignmentsPromise = userTeamIds.length > 0
-      ? supabase
-          .from('work_team_course_assignments')
-          .select(`
-            id,
-            team_id,
-            course_id,
-            status,
-            assigned_at,
-            due_date,
-            message,
-            courses (
-              id,
-              title,
-              slug,
-              thumbnail_url,
-              instructor_id
-            )
-          `)
-          .in('team_id', userTeamIds)
-          .in('status', ['assigned', 'in_progress', 'completed'])
-          .order('assigned_at', { ascending: false })
-          .limit(100)
-      : Promise.resolve({ data: [], error: null })
-
-    const { data: teamAssignments, error: teamAssignmentsError } = await teamAssignmentsPromise
-
-    if (teamAssignmentsError) {
-      logger.error('Error fetching team assignments:', teamAssignmentsError)
-    }
-
-    teamCourseAssignments = teamAssignments || []
-
-    // Agregar course_ids de asignaciones de equipo
-    for (const teamAssignment of teamCourseAssignments) {
-      if (teamAssignment.courses) {
-        directCourseIds.add(teamAssignment.course_id)
-      }
-    }
-
-    // =====================================================
-    // Combinar ambas fuentes evitando duplicados
-    // =====================================================
-    const courseIdSet = new Set<string>()
-    const combinedAssignments: any[] = []
-
-    // Primero agregar asignaciones directas
-    for (const assignment of (directAssignments || [])) {
-      if (assignment.courses && !courseIdSet.has(assignment.course_id)) {
-        courseIdSet.add(assignment.course_id)
         combinedAssignments.push({
           ...assignment,
           source: 'direct'
@@ -224,25 +150,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       }
     }
 
-    // Luego agregar asignaciones de equipo que no estén duplicadas
-    for (const teamAssignment of teamCourseAssignments) {
-      if (teamAssignment.courses && !courseIdSet.has(teamAssignment.course_id)) {
-        courseIdSet.add(teamAssignment.course_id)
-        combinedAssignments.push({
-          id: teamAssignment.id,
-          course_id: teamAssignment.course_id,
-          status: teamAssignment.status,
-          completion_percentage: 0,
-          assigned_at: teamAssignment.assigned_at,
-          due_date: teamAssignment.due_date,
-          completed_at: null,
-          courses: teamAssignment.courses,
-          source: 'team'
-        })
-      }
-    }
-
-    const courseIds = Array.from(courseIdSet)
+    const courseIds = Array.from(directCourseIds)
 
     // =====================================================
     // 🚀 OPTIMIZACIÓN: FASE 3 - Enrollments e instructores en paralelo
@@ -406,3 +314,4 @@ export async function GET(request: NextRequest, context: RouteContext) {
     )
   }
 }
+

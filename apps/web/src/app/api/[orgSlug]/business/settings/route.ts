@@ -124,7 +124,8 @@ export async function PUT(
       max_users,
       slug: newSlug,
       google_login_enabled,
-      microsoft_login_enabled
+      microsoft_login_enabled,
+      show_navbar_name
     } = body
 
     // Validar campos requeridos
@@ -193,6 +194,7 @@ export async function PUT(
     }
     if (google_login_enabled !== undefined) updateData.google_login_enabled = google_login_enabled
     if (microsoft_login_enabled !== undefined) updateData.microsoft_login_enabled = microsoft_login_enabled
+    if (show_navbar_name !== undefined) updateData.show_navbar_name = show_navbar_name
 
     const { data: updatedOrganization, error: updateError } = await supabase
       .from('organizations')

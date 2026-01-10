@@ -30,3 +30,55 @@ export async function GET() {
   }
 }
 
+export async function POST(request: Request) {
+  const auth = await requireAdmin()
+  if (auth instanceof NextResponse) return auth
+
+  try {
+    const body = await request.json()
+
+    if (!body.name) {
+      return NextResponse.json(
+        { success: false, error: 'El nombre es requerido' },
+        { status: 400 }
+      )
+    }
+
+    const company = await AdminCompaniesService.createCompany({
+      name: body.name,
+      slug: body.slug,
+      description: body.description,
+      contact_email: body.contact_email,
+      contact_phone: body.contact_phone,
+      website_url: body.website_url,
+      subscription_plan: body.subscription_plan,
+      subscription_status: body.subscription_status,
+      max_users: body.max_users,
+      is_active: body.is_active,
+      // Branding
+      brand_logo_url: body.brand_logo_url,
+      brand_banner_url: body.brand_banner_url,
+      brand_favicon_url: body.brand_favicon_url,
+      brand_color_primary: body.brand_color_primary,
+      brand_color_secondary: body.brand_color_secondary,
+      brand_color_accent: body.brand_color_accent,
+      brand_font_family: body.brand_font_family,
+      // Owner
+      owner_email: body.owner_email,
+      owner_position: body.owner_position
+    })
+
+    return NextResponse.json({
+      success: true,
+      company
+    })
+  } catch (error) {
+    logger.error('💥 Error in POST /api/admin/companies:', error)
+    const message = error instanceof Error ? error.message : 'Error al crear organización'
+    return NextResponse.json(
+      { success: false, error: message },
+      { status: 500 }
+    )
+  }
+}
+
