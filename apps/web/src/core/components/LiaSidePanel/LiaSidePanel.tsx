@@ -9,7 +9,7 @@ import { useLiaPanel } from '../../contexts/LiaPanelContext';
 import { useLiaGeneralChat } from '../../hooks/useLiaGeneralChat';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { useOrganizationStylesContext } from '../../../features/business-panel/contexts/OrganizationStylesContext';
-import { useThemeStore } from '@/core/stores/themeStore';
+import { useThemeStore } from '../../../core/stores/themeStore';
 import { useTranslation } from 'react-i18next';
 import { LiaPersonalizationSettings } from '../../../features/lia/components/LiaPersonalizationSettings';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -198,6 +198,7 @@ function LiaSidePanelContent() {
   const isDictatingRef = useRef<boolean>(false); // Ref para verificar estado actual en callbacks
   const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Timeout para detectar silencio
   const lastTranscriptTimeRef = useRef<number>(0); // Timestamp del último texto detectado
+  const dictationTextToApplyRef = useRef<string>(''); // Ref para almacenar texto a aplicar al finalizar dictado
   const [currentTip, setCurrentTip] = useState('');
   const [isAvatarExpanded, setIsAvatarExpanded] = useState(false);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
@@ -708,39 +709,24 @@ function LiaSidePanelContent() {
 
   // 🎙️ Función para detener dictado y limpiar recursos
   const stopDictation = useCallback(() => {
-    // IMPORTANTE: Aplicar texto antes de limpiar estados
-    // Obtener el texto actual antes de limpiar (usando función de estado para obtener valores actuales)
+    // IMPORTANTE: Capturar el texto ANTES de cambiar isDictating y limpiar estados
+    // Esto evita que el input muestre el texto duplicado
     setFinalTranscript(currentFinal => {
       setInterimTranscript(currentInterim => {
+        // Guardar el texto en el ref antes de limpiar
         const fullText = (currentFinal + ' ' + currentInterim).trim();
+        dictationTextToApplyRef.current = fullText;
         
-        if (fullText) {
-          // Aplicar al input
-          setInputValue(prev => {
-            const newValue = prev + (prev ? ' ' : '') + fullText;
-            return newValue;
-          });
-          
-          // Enfocar el input
-          setTimeout(() => {
-            inputRef.current?.focus();
-            // Mover cursor al final
-            if (inputRef.current) {
-              inputRef.current.setSelectionRange(
-                inputRef.current.value.length,
-                inputRef.current.value.length
-              );
-            }
-          }, 100);
-        }
-        
-        // Limpiar estado intermedio
+        // Limpiar estados INMEDIATAMENTE para evitar duplicación en el render
         return '';
       });
-      
-      // Limpiar estado final
       return '';
     });
+
+    // Cambiar isDictating a false ANTES de agregar el texto al input
+    // Esto asegura que el input no muestre finalTranscript/interimTranscript cuando agregamos el texto
+    setIsDictating(false);
+    isDictatingRef.current = false;
 
     // Limpiar timeout de silencio
     if (silenceTimeoutRef.current) {
@@ -758,9 +744,37 @@ function LiaSidePanelContent() {
       recognitionRef.current = null;
     }
 
-    // Limpiar estados finales
-    setIsDictating(false);
-    isDictatingRef.current = false;
+    // Agregar el texto capturado al input DESPUÉS de limpiar estados y cambiar isDictating
+    const textToApply = dictationTextToApplyRef.current;
+    if (textToApply) {
+      // Usar setTimeout para asegurar que los estados se hayan actualizado y React haya re-renderizado
+      setTimeout(() => {
+        setInputValue(prev => {
+          const newValue = prev + (prev ? ' ' : '') + textToApply;
+          return newValue;
+        });
+        
+        // Limpiar el ref
+        dictationTextToApplyRef.current = '';
+        
+        // Enfocar el input
+        setTimeout(() => {
+          inputRef.current?.focus();
+          // Mover cursor al final
+          if (inputRef.current) {
+            inputRef.current.setSelectionRange(
+              inputRef.current.value.length,
+              inputRef.current.value.length
+            );
+          }
+        }, 50);
+      }, 0);
+    } else {
+      // Limpiar el ref si no hay texto
+      dictationTextToApplyRef.current = '';
+    }
+
+    // Limpiar timestamp
     lastTranscriptTimeRef.current = 0;
   }, []);
 

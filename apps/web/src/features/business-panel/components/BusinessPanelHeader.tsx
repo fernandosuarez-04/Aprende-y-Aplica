@@ -137,7 +137,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="sticky top-0 z-50 w-full border-b backdrop-blur-xl"
+      className="sticky top-0 z-[999] w-full border-b backdrop-blur-xl"
       style={{
         backgroundColor: navbarStyle.backgroundColor,
         borderColor: navbarStyle.borderColor,
@@ -236,6 +236,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="fixed inset-0 z-[998] bg-black/20 backdrop-blur-sm"
+                    style={{ top: '56px' }}
                     onClick={() => {
                       setUserDropdownOpen(false)
                       setActiveSubmenu(null)
@@ -246,7 +247,7 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 w-56 rounded-xl border backdrop-blur-xl shadow-xl z-[999] overflow-hidden"
+                    className="absolute right-0 mt-2 w-56 rounded-xl border backdrop-blur-xl shadow-xl z-[1000] overflow-hidden"
                     style={{
                       backgroundColor: navbarStyle.backgroundColor,
                       borderColor: navbarStyle.borderColor,

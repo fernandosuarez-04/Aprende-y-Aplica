@@ -39,6 +39,7 @@ import type { NanoBananaSchema, NanoBananaDomain, OutputFormat } from '../../../
 import { LiaPersonalizationSettings } from '../../../features/lia/components/LiaPersonalizationSettings';
 import { useThemeStore } from '../../stores/themeStore';
 import { useLiaPersonalization } from '../../hooks/useLiaPersonalization';
+import { getElevenLabsVoiceSettings, getWebSpeechVoiceSettings } from '../../utils/tts-voice-settings';
 
 interface Message {
   id: string;
@@ -784,15 +785,19 @@ export function AIChatAgent({
       const voiceId = process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || 'ay4iqk10DLwc8KGSrf2t';
       const modelId = 'eleven_turbo_v2_5';
 
+      // 🎙️ Obtener parámetros de voz según la personalización de tono
+      const webSpeechSettings = getWebSpeechVoiceSettings(liaSettings);
+      const elevenLabsSettings = getElevenLabsVoiceSettings(liaSettings);
+
       if (!apiKey || !voiceId) {
         console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
         
-        // Fallback a Web Speech API
+        // Fallback a Web Speech API con parámetros de tono
         const utterance = new SpeechSynthesisUtterance(cleanedText);
         utterance.lang = speechLanguageMap[language] || 'es-ES';
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        utterance.volume = 0.8;
+        utterance.rate = webSpeechSettings.rate;
+        utterance.pitch = webSpeechSettings.pitch;
+        utterance.volume = webSpeechSettings.volume;
         
         utterance.onend = () => {
           setIsSpeaking(false);
@@ -825,12 +830,7 @@ export function AIChatAgent({
           body: JSON.stringify({
             text: cleanedText,
             model_id: modelId,
-            voice_settings: {
-              stability: 0.4,
-              similarity_boost: 0.65,
-              style: 0.3,
-              use_speaker_boost: false
-            },
+            voice_settings: elevenLabsSettings,
             optimize_streaming_latency: 4,
             output_format: 'mp3_22050_32'
           }),
@@ -885,7 +885,7 @@ export function AIChatAgent({
       }
       setIsSpeaking(false);
     }
-  }, [isVoiceEnabled, language, stopAllAudio, cleanTextForTTS]);
+  }, [isVoiceEnabled, language, stopAllAudio, cleanTextForTTS, liaSettings]);
 
   // Limpiar audio al desmontar
   useEffect(() => {
@@ -1952,6 +1952,9 @@ export function AIChatAgent({
       setIsRecording(false);
     } else {
       try {
+        // 🎙️ Detener cualquier audio de LIA que esté reproduciéndose antes de iniciar el reconocimiento
+        stopAllAudio();
+        
         // Solicitar permisos del micrófono primero
         await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -1969,7 +1972,7 @@ export function AIChatAgent({
         }
       }
     }
-  }, [isRecording, language, tCommon]);
+  }, [isRecording, language, tCommon, stopAllAudio]);
 
   // Función para solicitar ayuda contextual
   // Permite pasar contenido de página directamente para evitar problemas de sincronización
