@@ -157,15 +157,14 @@ export function BusinessPanelHeader({ onMenuClick }: BusinessPanelHeaderProps) {
 
             <div className="flex items-center gap-2.5">
               {/* Logo */}
-              {/* Logo */}
               <div className="relative flex items-center justify-center">
                 {(organization?.brand_favicon_url || organization?.favicon_url) ? (
                   <Image
                     src={organization?.brand_logo_url || organization?.logo_url || organization?.brand_favicon_url || organization?.favicon_url || '/icono.png'}
                     alt={organization?.name || 'Organización'}
-                    width={64}
-                    height={64}
-                    className="object-contain h-16 w-auto"
+                    width={36}
+                    height={36}
+                    className="object-contain h-9 w-9 rounded-lg"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/icono.png';
                     }}

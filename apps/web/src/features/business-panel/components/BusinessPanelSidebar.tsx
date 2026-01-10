@@ -22,7 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  MapPin
+  MapPin,
+  Network
 } from 'lucide-react'
 
 interface BusinessPanelSidebarProps {
@@ -69,7 +70,7 @@ export function BusinessPanelSidebar({
     { name: t('sidebar.dashboard'), href: `/${orgSlug}/business-panel/dashboard`, icon: LayoutDashboard },
     { name: t('sidebar.users'), href: `/${orgSlug}/business-panel/users`, icon: Users },
     { name: t('sidebar.courses'), href: `/${orgSlug}/business-panel/courses`, icon: BookOpen },
-
+    { name: t('sidebar.hierarchy', 'Estructura'), href: `/${orgSlug}/business-panel/hierarchy`, icon: Network },
     { name: t('sidebar.reports'), href: `/${orgSlug}/business-panel/reports`, icon: FileText },
     { name: t('sidebar.analytics'), href: `/${orgSlug}/business-panel/analytics`, icon: BarChart3 },
     { name: t('sidebar.settings'), href: `/${orgSlug}/business-panel/settings`, icon: Settings },

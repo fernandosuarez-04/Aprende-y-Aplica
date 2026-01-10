@@ -1,35 +1,6 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
-CREATE TABLE public.admin_dashboard_layouts (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  name character varying NOT NULL,
-  layout_config jsonb NOT NULL DEFAULT '{}'::jsonb,
-  is_default boolean DEFAULT false,
-  created_at timestamp without time zone DEFAULT now(),
-  updated_at timestamp without time zone DEFAULT now(),
-  CONSTRAINT admin_dashboard_layouts_pkey PRIMARY KEY (id),
-  CONSTRAINT admin_dashboard_layouts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.admin_dashboard_preferences (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL UNIQUE,
-  activity_period character varying DEFAULT '24h'::character varying,
-  growth_chart_metrics jsonb DEFAULT '["users"]'::jsonb,
-  created_at timestamp without time zone DEFAULT now(),
-  updated_at timestamp without time zone DEFAULT now(),
-  CONSTRAINT admin_dashboard_preferences_pkey PRIMARY KEY (id),
-  CONSTRAINT admin_dashboard_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.adopcion_genai (
-  id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
-  pais text,
-  indice_aipi numeric,
-  fuente text,
-  fecha_fuente text,
-  CONSTRAINT adopcion_genai_pkey PRIMARY KEY (id)
-);
 CREATE TABLE public.ai_moderation_config (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   config_key text NOT NULL UNIQUE,
@@ -59,12 +30,6 @@ CREATE TABLE public.ai_moderation_logs (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT ai_moderation_logs_pkey PRIMARY KEY (log_id),
   CONSTRAINT ai_moderation_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.areas (
-  id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
-  slug text NOT NULL UNIQUE,
-  nombre text NOT NULL,
-  CONSTRAINT areas_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.audit_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -813,6 +778,39 @@ CREATE TABLE public.organization_notification_preferences (
   CONSTRAINT organization_notification_preferences_pkey PRIMARY KEY (preference_id),
   CONSTRAINT organization_notification_preferences_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );
+CREATE TABLE public.organization_regions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  code character varying,
+  is_active boolean DEFAULT true,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_regions_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_regions_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT organization_regions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.organization_teams (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  zone_id uuid NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  code character varying,
+  max_members integer CHECK (max_members IS NULL OR max_members > 0),
+  is_active boolean DEFAULT true,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_teams_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_teams_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT organization_teams_zone_id_fkey FOREIGN KEY (zone_id) REFERENCES public.organization_zones(id),
+  CONSTRAINT organization_teams_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.organization_users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL,
@@ -825,10 +823,34 @@ CREATE TABLE public.organization_users (
   created_at timestamp without time zone DEFAULT now(),
   updated_at timestamp without time zone DEFAULT now(),
   job_title text,
+  team_id uuid,
+  zone_id uuid,
+  region_id uuid,
+  hierarchy_scope character varying DEFAULT NULL::character varying CHECK (hierarchy_scope IS NULL OR (hierarchy_scope::text = ANY (ARRAY['organization'::text, 'region'::text, 'zone'::text, 'team'::text]))),
   CONSTRAINT organization_users_pkey PRIMARY KEY (id),
   CONSTRAINT organization_users_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.users(id),
   CONSTRAINT organization_users_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
-  CONSTRAINT organization_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT organization_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT organization_users_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.organization_teams(id),
+  CONSTRAINT organization_users_zone_id_fkey FOREIGN KEY (zone_id) REFERENCES public.organization_zones(id),
+  CONSTRAINT organization_users_region_id_fkey FOREIGN KEY (region_id) REFERENCES public.organization_regions(id)
+);
+CREATE TABLE public.organization_zones (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  region_id uuid NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  code character varying,
+  is_active boolean DEFAULT true,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_zones_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_zones_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT organization_zones_region_id_fkey FOREIGN KEY (region_id) REFERENCES public.organization_regions(id),
+  CONSTRAINT organization_zones_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.organizations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -862,6 +884,8 @@ CREATE TABLE public.organizations (
   google_login_enabled boolean DEFAULT false,
   microsoft_login_enabled boolean DEFAULT false,
   show_navbar_name boolean DEFAULT true,
+  hierarchy_enabled boolean DEFAULT false,
+  hierarchy_config jsonb DEFAULT '{}'::jsonb,
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.password_reset_tokens (
@@ -908,7 +932,6 @@ CREATE TABLE public.preguntas (
   exclusivo_nivel_id integer,
   dificultad integer CHECK (dificultad IS NULL OR dificultad >= 1 AND dificultad <= 5),
   CONSTRAINT preguntas_pkey PRIMARY KEY (id),
-  CONSTRAINT preguntas_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id),
   CONSTRAINT preguntas_exclusivo_nivel_id_fkey FOREIGN KEY (exclusivo_nivel_id) REFERENCES public.niveles(id),
   CONSTRAINT preguntas_exclusivo_rol_id_fkey FOREIGN KEY (exclusivo_rol_id) REFERENCES public.roles(id)
 );
@@ -963,30 +986,12 @@ CREATE TABLE public.reportes_problemas (
   CONSTRAINT reportes_problemas_admin_asignado_fkey FOREIGN KEY (admin_asignado) REFERENCES public.users(id),
   CONSTRAINT reportes_problemas_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-CREATE TABLE public.respuestas (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  pregunta_id bigint NOT NULL,
-  valor jsonb,
-  respondido_en timestamp with time zone NOT NULL DEFAULT now(),
-  user_perfil_id uuid NOT NULL,
-  CONSTRAINT respuestas_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_respuestas_user_perfil_id FOREIGN KEY (user_perfil_id) REFERENCES public.user_perfil(id),
-  CONSTRAINT respuestas_pregunta_id_fkey FOREIGN KEY (pregunta_id) REFERENCES public.preguntas(id)
-);
-CREATE TABLE public.role_synonyms (
-  id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
-  role_id integer,
-  alias text NOT NULL UNIQUE,
-  CONSTRAINT role_synonyms_pkey PRIMARY KEY (id),
-  CONSTRAINT role_synonyms_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id)
-);
 CREATE TABLE public.roles (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
   slug text NOT NULL UNIQUE,
   nombre text NOT NULL,
   area_id integer,
-  CONSTRAINT roles_pkey PRIMARY KEY (id),
-  CONSTRAINT roles_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id)
+  CONSTRAINT roles_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.scorm_attempts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -1180,14 +1185,6 @@ CREATE TABLE public.subscriptions (
   CONSTRAINT subscriptions_pkey PRIMARY KEY (subscription_id),
   CONSTRAINT subscriptions_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
   CONSTRAINT subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.tamanos_empresa (
-  id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
-  slug text NOT NULL UNIQUE,
-  nombre text NOT NULL,
-  min_empleados integer,
-  max_empleados integer,
-  CONSTRAINT tamanos_empresa_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.transactions (
   transaction_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -1393,12 +1390,10 @@ CREATE TABLE public.user_perfil (
   dificultad_id integer CHECK (dificultad_id IS NULL OR dificultad_id >= 1 AND dificultad_id <= 5),
   uso_ia_respuesta text,
   CONSTRAINT user_perfil_pkey PRIMARY KEY (id),
-  CONSTRAINT user_perfil_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id),
   CONSTRAINT user_perfil_nivel_id_fkey FOREIGN KEY (nivel_id) REFERENCES public.niveles(id),
   CONSTRAINT user_perfil_relacion_id_fkey FOREIGN KEY (relacion_id) REFERENCES public.relaciones(id),
   CONSTRAINT user_perfil_rol_id_fkey FOREIGN KEY (rol_id) REFERENCES public.roles(id),
   CONSTRAINT user_perfil_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES public.sectores(id),
-  CONSTRAINT user_perfil_tamano_id_fkey FOREIGN KEY (tamano_id) REFERENCES public.tamanos_empresa(id),
   CONSTRAINT user_perfil_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.user_quiz_submissions (
