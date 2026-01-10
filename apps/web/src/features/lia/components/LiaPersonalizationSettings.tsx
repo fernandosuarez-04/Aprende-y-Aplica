@@ -19,7 +19,6 @@ import {
 import { useLiaPersonalization } from '@/core/hooks/useLiaPersonalization';
 import type {
   BaseStyle,
-  EmojiLevel,
   LiaPersonalizationSettingsInput,
 } from '@/core/types/lia-personalization.types';
 
@@ -36,12 +35,6 @@ const BASE_STYLES: { value: BaseStyle; label: string; description: string }[] = 
   { value: 'formal', label: 'Formal', description: 'Lenguaje estructurado y respetuoso' },
 ];
 
-const EMOJI_LEVELS: { value: EmojiLevel; label: string; description: string }[] = [
-  { value: 'none', label: 'Ninguno', description: 'No usar emojis' },
-  { value: 'less', label: 'Menos', description: 'Solo en saludos o despedidas' },
-  { value: 'normal', label: 'Normal', description: 'Uso estratégico de emojis' },
-  { value: 'more', label: 'Más', description: 'Emojis más frecuentes para mayor expresividad' },
-];
 
 export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizationSettingsProps) {
   const { settings, loading, error, updateSettings, resetSettings } = useLiaPersonalization();
@@ -50,14 +43,10 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
     base_style: 'professional',
     is_friendly: true,
     is_enthusiastic: true,
-    emoji_level: 'normal',
     custom_instructions: null,
     nickname: null,
-    recording_history_enabled: true,
     voice_enabled: true,
     dictation_enabled: false,
-    conversation_pagination_enabled: true,
-    connector_search_enabled: false,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -77,14 +66,10 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
         base_style: settings.base_style,
         is_friendly: settings.is_friendly,
         is_enthusiastic: settings.is_enthusiastic,
-        emoji_level: settings.emoji_level,
         custom_instructions: settings.custom_instructions,
         nickname: settings.nickname,
-        recording_history_enabled: settings.recording_history_enabled,
         voice_enabled: settings.voice_enabled,
         dictation_enabled: settings.dictation_enabled,
-        conversation_pagination_enabled: settings.conversation_pagination_enabled,
-        connector_search_enabled: settings.connector_search_enabled,
       });
     }
   }, [isOpen, settings]);
@@ -125,14 +110,10 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
         base_style: 'professional',
         is_friendly: true,
         is_enthusiastic: true,
-        emoji_level: 'normal',
         custom_instructions: null,
         nickname: null,
-        recording_history_enabled: true,
         voice_enabled: true,
         dictation_enabled: false,
-        conversation_pagination_enabled: true,
-        connector_search_enabled: false,
       });
       setSaveMessage({ type: 'success', text: 'Configuración restablecida' });
       setTimeout(() => {
@@ -246,25 +227,6 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
                     checked={formData.is_enthusiastic ?? true}
                     onChange={(checked) => setFormData({ ...formData, is_enthusiastic: checked })}
                   />
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-[#0A2540] dark:text-white">
-                      Emoji
-                    </label>
-                    <select
-                      value={formData.emoji_level}
-                      onChange={(e) => setFormData({ ...formData, emoji_level: e.target.value as EmojiLevel })}
-                      className="w-full px-4 py-3 rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#0F1419] text-[#0A2540] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-[#00D4B3]"
-                    >
-                      {EMOJI_LEVELS.map((level) => (
-                        <option key={level.value} value={level.value}>
-                          {level.label}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-[#6C757D] dark:text-gray-400 mt-2">
-                      {EMOJI_LEVELS.find(l => l.value === formData.emoji_level)?.description}
-                    </p>
-                  </div>
                 </div>
               </Section>
 
@@ -329,12 +291,6 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
               >
                 <div className="space-y-4">
                   <ToggleField
-                    label="Modo de Grabación"
-                    description="Permite que LIA consulte todas las transcripciones y notas de grabaciones anteriores al responder"
-                    checked={formData.recording_history_enabled ?? true}
-                    onChange={(checked) => setFormData({ ...formData, recording_history_enabled: checked })}
-                  />
-                  <ToggleField
                     label="Voz"
                     description="Habilitar respuestas por voz"
                     checked={formData.voice_enabled ?? true}
@@ -345,18 +301,6 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
                     description="Permite dictar mensajes usando reconocimiento de voz"
                     checked={formData.dictation_enabled ?? false}
                     onChange={(checked) => setFormData({ ...formData, dictation_enabled: checked })}
-                  />
-                  <ToggleField
-                    label="Paginación de Conversaciones"
-                    description="Navegar entre conversaciones anteriores con paginación"
-                    checked={formData.conversation_pagination_enabled ?? true}
-                    onChange={(checked) => setFormData({ ...formData, conversation_pagination_enabled: checked })}
-                  />
-                  <ToggleField
-                    label="Búsqueda del Conector"
-                    description="Dejar que LIA busque automáticamente las respuestas en las fuentes conectadas"
-                    checked={formData.connector_search_enabled ?? false}
-                    onChange={(checked) => setFormData({ ...formData, connector_search_enabled: checked })}
                   />
                 </div>
               </Section>

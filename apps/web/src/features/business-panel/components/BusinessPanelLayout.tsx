@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Joyride from 'react-joyride'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -52,12 +52,17 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
 
   // Obtener estado del panel de LIA para desplazar contenido (solo el main, no el sidebar)
   let isLiaPanelOpen = false;
+  let liaPanel = null;
   try {
-    const liaPanel = useLiaPanel();
+    liaPanel = useLiaPanel();
     isLiaPanelOpen = liaPanel.isOpen;
   } catch {
     // Si no está dentro del LiaPanelProvider, ignorar
   }
+
+  // Refs para rastrear el estado previo y evitar loops
+  const prevLiaPanelOpen = useRef(isLiaPanelOpen);
+  const prevSidebarOpen = useRef(sidebarOpen);
 
   // Memorizar estilos personalizados ANTES de cualquier return (Regla de Hooks)
   // Usar estilos efectivos si existen (Light/Dark mode) o fallback a estilos base
@@ -131,6 +136,22 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
     }
   }, [sidebarPinned])
 
+  // Cerrar sidebar cuando se abre LIA (solo cuando LIA cambia de cerrado a abierto)
+  useEffect(() => {
+    if (liaPanel && !prevLiaPanelOpen.current && isLiaPanelOpen && sidebarOpen) {
+      setSidebarOpen(false)
+    }
+    prevLiaPanelOpen.current = isLiaPanelOpen
+  }, [isLiaPanelOpen, sidebarOpen, liaPanel])
+
+  // Cerrar LIA cuando se abre el sidebar (solo cuando el sidebar cambia de cerrado a abierto)
+  useEffect(() => {
+    if (liaPanel && !prevSidebarOpen.current && sidebarOpen && isLiaPanelOpen) {
+      liaPanel.closePanel()
+    }
+    prevSidebarOpen.current = sidebarOpen
+  }, [sidebarOpen, isLiaPanelOpen, liaPanel])
+
   // Estabilizar funciones de callbacks
   const handleMenuClick = useCallback(() => {
     setSidebarOpen(true)
@@ -151,6 +172,13 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   const handleSectionChange = useCallback((section: string) => {
     setActiveSection(section)
   }, [])
+
+  // Callback para cuando el sidebar se expande por hover
+  const handleSidebarHoverExpand = useCallback(() => {
+    if (liaPanel && isLiaPanelOpen) {
+      liaPanel.closePanel()
+    }
+  }, [liaPanel, isLiaPanelOpen])
 
   // Mostrar loading spinner si isLoading es true
   if (isLoading) {
@@ -206,6 +234,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
             onToggleCollapse={handleToggleCollapse}
             isPinned={sidebarPinned}
             onTogglePin={handleTogglePin}
+            onHoverExpand={handleSidebarHoverExpand}
           />
 
           {/* Main Content Area */}

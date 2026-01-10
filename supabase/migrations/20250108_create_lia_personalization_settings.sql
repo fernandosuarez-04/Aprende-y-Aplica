@@ -24,10 +24,8 @@ CREATE TABLE IF NOT EXISTS public.lia_personalization_settings (
   nickname text,
   
   -- Funciones Avanzadas
-  recording_history_enabled boolean DEFAULT true,
   voice_enabled boolean DEFAULT true,
   dictation_enabled boolean DEFAULT false,
-  conversation_pagination_enabled boolean DEFAULT true,
   connector_search_enabled boolean DEFAULT false,
   
   created_at timestamp with time zone DEFAULT now(),
@@ -61,10 +59,8 @@ COMMENT ON COLUMN public.lia_personalization_settings.is_enthusiastic IS 'Enable
 COMMENT ON COLUMN public.lia_personalization_settings.emoji_level IS 'Emoji usage level: none, less, normal, or more';
 COMMENT ON COLUMN public.lia_personalization_settings.custom_instructions IS 'Custom instructions for LIA behavior and preferences';
 COMMENT ON COLUMN public.lia_personalization_settings.nickname IS 'User preferred nickname (optional)';
-COMMENT ON COLUMN public.lia_personalization_settings.recording_history_enabled IS 'Allow LIA to consult conversation history';
 COMMENT ON COLUMN public.lia_personalization_settings.voice_enabled IS 'Enable voice responses';
 COMMENT ON COLUMN public.lia_personalization_settings.dictation_enabled IS 'Enable dictation mode for input';
-COMMENT ON COLUMN public.lia_personalization_settings.conversation_pagination_enabled IS 'Enable pagination for conversations';
 COMMENT ON COLUMN public.lia_personalization_settings.connector_search_enabled IS 'Enable search in connected services';
 
 -- Enable Row Level Security

@@ -2225,7 +2225,7 @@ PROHIBIDO ABSOLUTAMENTE USAR CUALQUIER SÍMBOLO DE MARKDOWN (EXCEPTO ENLACES):
 
 ✅ FORMATO CORRECTO PERMITIDO:
 - SOLO texto plano, sin símbolos de formato (excepto enlaces)
-- Emojis están permitidos y recomendados para hacer respuestas amigables
+- PROHIBIDO ABSOLUTAMENTE usar emojis. NUNCA uses emojis, símbolos emotivos, o caracteres especiales de este tipo. Mantén un tono estrictamente profesional y serio.
 - Guiones simples (-) para listas
 - Números (1, 2, 3) para listas numeradas
 - Saltos de línea normales

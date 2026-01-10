@@ -46,14 +46,10 @@ export async function GET(request: NextRequest) {
  *   base_style?: 'professional' | 'casual' | 'technical' | 'friendly' | 'formal',
  *   is_friendly?: boolean,
  *   is_enthusiastic?: boolean,
- *   emoji_level?: 'none' | 'less' | 'normal' | 'more',
  *   custom_instructions?: string | null,
  *   nickname?: string | null,
- *   recording_history_enabled?: boolean,
  *   voice_enabled?: boolean,
- *   dictation_enabled?: boolean,
- *   conversation_pagination_enabled?: boolean,
- *   connector_search_enabled?: boolean
+ *   dictation_enabled?: boolean
  * }
  */
 export async function POST(request: NextRequest) {
@@ -71,14 +67,10 @@ export async function POST(request: NextRequest) {
       base_style: body.base_style,
       is_friendly: body.is_friendly,
       is_enthusiastic: body.is_enthusiastic,
-      emoji_level: body.emoji_level,
       custom_instructions: body.custom_instructions || null,
       nickname: body.nickname || null,
-      recording_history_enabled: body.recording_history_enabled,
       voice_enabled: body.voice_enabled,
       dictation_enabled: body.dictation_enabled,
-      conversation_pagination_enabled: body.conversation_pagination_enabled,
-      connector_search_enabled: body.connector_search_enabled,
     };
 
     // Validar que al menos un campo esté presente

@@ -38,6 +38,7 @@ import { NanoBananaPreviewPanel } from './NanoBananaPreviewPanel';
 import type { NanoBananaSchema, NanoBananaDomain, OutputFormat } from '../../../lib/nanobana/templates';
 import { LiaPersonalizationSettings } from '../../../features/lia/components/LiaPersonalizationSettings';
 import { useThemeStore } from '../../stores/themeStore';
+import { useLiaPersonalization } from '../../hooks/useLiaPersonalization';
 
 interface Message {
   id: string;
@@ -651,6 +652,26 @@ export function AIChatAgent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const { user } = useAuth();
+  
+  // 🎙️ Configuración de personalización de LIA para voz
+  const { settings: liaSettings, loading: liaSettingsLoading } = useLiaPersonalization();
+  const isVoiceEnabled = liaSettings?.voice_enabled ?? true; // Por defecto activado
+  
+  // Debug: Log de configuración de voz
+  useEffect(() => {
+    console.log('🔊 [TTS Config] Configuración de voz:', {
+      hasSettings: !!liaSettings,
+      voiceEnabled: isVoiceEnabled,
+      loading: liaSettingsLoading,
+      settings: liaSettings
+    });
+  }, [liaSettings, isVoiceEnabled, liaSettingsLoading]);
+  
+  // 🎙️ Estados y refs para síntesis de voz
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ttsAbortRef = useRef<AbortController | null>(null);
 
   // 🎙️ Mapeo de idiomas para reconocimiento de voz
   const speechLanguageMap: Record<string, string> = {
@@ -661,6 +682,217 @@ export function AIChatAgent({
   const prevPathnameRef = useRef<string>('');
   const hasOpenedRef = useRef<boolean>(false);
   const router = useRouter();
+
+  // 🎙️ Función para detener todo audio/voz en reproducción
+  const stopAllAudio = useCallback(() => {
+    try {
+      // Abort any in-flight TTS fetch
+      if (ttsAbortRef.current) {
+        try { ttsAbortRef.current.abort(); } catch (e) { /* ignore */ }
+        ttsAbortRef.current = null;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        // Cancelar cualquier utterance en curso
+        window.speechSynthesis.cancel();
+        utteranceRef.current = null;
+      }
+
+      setIsSpeaking(false);
+    } catch (err) {
+      console.warn('Error deteniendo audio:', err);
+    }
+  }, []);
+
+  // 🎙️ Función para limpiar texto antes de leerlo (eliminar markdown, enlaces, etc.)
+  const cleanTextForTTS = useCallback((text: string): string => {
+    if (!text) return text;
+
+    let cleaned = text;
+
+    // Eliminar bloques de código (```código```)
+    cleaned = cleaned.replace(/```[\w]*\n?[\s\S]*?```/g, '');
+    
+    // Eliminar títulos Markdown (# ## ###)
+    cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+    
+    // Eliminar negritas (**texto** o __texto__)
+    cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
+    cleaned = cleaned.replace(/__([^_]+)__/g, '$1');
+    
+    // Eliminar cursivas (*texto* o _texto_)
+    cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*([^*\n])/g, '$1$2$3');
+    cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_([^_\n])/g, '$1$2$3');
+    
+    // Eliminar código en línea (`código`)
+    cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
+    
+    // Eliminar enlaces [texto](url) - reemplazar solo con el texto
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+    
+    // Eliminar imágenes ![alt](url)
+    cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
+    
+    // Eliminar bloques de citas (>)
+    cleaned = cleaned.replace(/^>\s+/gm, '');
+    
+    // Eliminar líneas horizontales (--- o ***)
+    cleaned = cleaned.replace(/^[-*]{3,}$/gm, '');
+    
+    // Limpiar espacios múltiples y saltos de línea excesivos
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+    cleaned = cleaned.replace(/[ \t]+/g, ' ');
+    
+    // Limpiar espacios al inicio y final
+    cleaned = cleaned.trim();
+    
+    return cleaned;
+  }, []);
+
+  // 🎙️ Función para síntesis de voz con ElevenLabs
+  const speakText = useCallback(async (text: string) => {
+    if (!isVoiceEnabled || typeof window === 'undefined') {
+      console.log('🔇 [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
+      return;
+    }
+
+    // Limpiar el texto antes de leerlo
+    const cleanedText = cleanTextForTTS(text);
+    
+    if (!cleanedText || cleanedText.trim().length === 0) {
+      console.log('🔇 [TTS] Texto vacío después de limpiar');
+      return;
+    }
+
+    console.log('🔊 [TTS] Iniciando lectura de texto:', { 
+      originalLength: text.length, 
+      cleanedLength: cleanedText.length,
+      preview: cleanedText.substring(0, 100) + '...'
+    });
+
+    // Asegurar que no haya audio superpuesto
+    stopAllAudio();
+
+    try {
+      setIsSpeaking(true);
+
+      const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
+      const voiceId = process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || 'ay4iqk10DLwc8KGSrf2t';
+      const modelId = 'eleven_turbo_v2_5';
+
+      if (!apiKey || !voiceId) {
+        console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
+        
+        // Fallback a Web Speech API
+        const utterance = new SpeechSynthesisUtterance(cleanedText);
+        utterance.lang = speechLanguageMap[language] || 'es-ES';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 0.8;
+        
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          utteranceRef.current = null;
+        };
+        utterance.onerror = () => {
+          setIsSpeaking(false);
+          utteranceRef.current = null;
+        };
+        
+        utteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+        return;
+      }
+
+      // Setup abort controller so we can cancel in-flight TTS requests
+      const controller = new AbortController();
+      ttsAbortRef.current = controller;
+
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          signal: controller.signal,
+          method: 'POST',
+          headers: {
+            'Accept': 'audio/mpeg',
+            'Content-Type': 'application/json',
+            'xi-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            text: cleanedText,
+            model_id: modelId,
+            voice_settings: {
+              stability: 0.4,
+              similarity_boost: 0.65,
+              style: 0.3,
+              use_speaker_boost: false
+            },
+            optimize_streaming_latency: 4,
+            output_format: 'mp3_22050_32'
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`ElevenLabs API error: ${response.status}`);
+      }
+
+      const audioBlob = await response.blob();
+      // If the request was aborted, do not proceed
+      if (ttsAbortRef.current && ttsAbortRef.current.signal.aborted) {
+        ttsAbortRef.current = null;
+        return;
+      }
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      const audio = new Audio(audioUrl);
+      audio.volume = 0.8;
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        if (audioRef.current === audio) audioRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        if (audioRef.current === audio) audioRef.current = null;
+      };
+
+      // Intentar reproducir el audio
+      try {
+        await audio.play();
+        console.log('✅ [TTS] Audio reproducido exitosamente');
+        // Playback started successfully; clear abort controller
+        if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
+      } catch (playError: any) {
+        // Autoplay bloqueado por el navegador - esto es normal y esperado
+        console.warn('⚠️ [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
+        setIsSpeaking(false);
+      }
+    } catch (error: any) {
+      // Si la petición fue abortada, lo manejamos como info
+      if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
+        // Silenciar errores de abort
+      } else {
+        console.error('Error en síntesis de voz con ElevenLabs:', error);
+      }
+      setIsSpeaking(false);
+    }
+  }, [isVoiceEnabled, language, stopAllAudio, cleanTextForTTS]);
+
+  // Limpiar audio al desmontar
+  useEffect(() => {
+    return () => {
+      stopAllAudio();
+    };
+  }, [stopAllAudio]);
 
   // 💾 FUNCIÓN DE GUARDADO DE PROMPTS
   const handleSavePrompt = useCallback(async (draft: PromptDraft) => {
@@ -1105,6 +1337,9 @@ export function AIChatAgent({
   const handleSendMessage = useCallback(async () => {
     if (!inputMessage.trim() || isTyping) return;
 
+    // 🎙️ Detener audio cuando se envía un nuevo mensaje
+    stopAllAudio();
+
     // 🔍 DETECCIÓN BIDIRECCIONAL DE INTENCIONES
     let shouldActivatePromptMode = false;
     let shouldDeactivatePromptMode = false;
@@ -1442,6 +1677,24 @@ export function AIChatAgent({
         }
 
         setNanoBananaMessages(prev => [...prev, assistantMessage]);
+
+        // 🎙️ Leer el mensaje en voz alta si el modo voz está activado
+        console.log('🔊 [TTS Check] Verificando si debe leer mensaje NanoBanana:', {
+          isVoiceEnabled,
+          hasContent: !!assistantMessage.content,
+          contentLength: assistantMessage.content?.length || 0
+        });
+        
+        if (isVoiceEnabled && assistantMessage.content) {
+          console.log('✅ [TTS] Llamando speakText para mensaje NanoBanana');
+          speakText(assistantMessage.content);
+        } else {
+          console.log('❌ [TTS] No se leerá el mensaje NanoBanana', { 
+            isVoiceEnabled, 
+            hasContent: !!assistantMessage.content,
+            reason: !isVoiceEnabled ? 'voice disabled' : 'no content'
+          });
+        }
       }
       // Si está en modo prompt efectivo (activado o recién activado, y no desactivándose)
       else if (effectivePromptMode) {
@@ -1492,6 +1745,24 @@ export function AIChatAgent({
         }
 
         setPromptMessages(prev => [...prev, assistantMessage]);
+
+        // 🎙️ Leer el mensaje en voz alta si el modo voz está activado
+        console.log('🔊 [TTS Check] Verificando si debe leer mensaje prompt:', {
+          isVoiceEnabled,
+          hasContent: !!assistantMessage.content,
+          contentLength: assistantMessage.content?.length || 0
+        });
+        
+        if (isVoiceEnabled && assistantMessage.content) {
+          console.log('✅ [TTS] Llamando speakText para mensaje prompt');
+          speakText(assistantMessage.content);
+        } else {
+          console.log('❌ [TTS] No se leerá el mensaje prompt', { 
+            isVoiceEnabled, 
+            hasContent: !!assistantMessage.content,
+            reason: !isVoiceEnabled ? 'voice disabled' : 'no content'
+          });
+        }
       } else {
         // Modo normal de chat
         const response = await fetch('/api/ai-chat', {
@@ -1561,6 +1832,25 @@ export function AIChatAgent({
         };
 
         setNormalMessages(prev => [...prev, assistantMessage]);
+
+        // 🎙️ Leer el mensaje en voz alta si el modo voz está activado
+        console.log('🔊 [TTS Check] Verificando si debe leer mensaje normal:', {
+          isVoiceEnabled,
+          hasContent: !!assistantMessage.content,
+          contentLength: assistantMessage.content?.length || 0,
+          contentPreview: assistantMessage.content?.substring(0, 50) || 'N/A'
+        });
+        
+        if (isVoiceEnabled && assistantMessage.content) {
+          console.log('✅ [TTS] Llamando speakText para mensaje normal');
+          speakText(assistantMessage.content);
+        } else {
+          console.log('❌ [TTS] No se leerá el mensaje normal', { 
+            isVoiceEnabled, 
+            hasContent: !!assistantMessage.content,
+            reason: !isVoiceEnabled ? 'voice disabled' : 'no content'
+          });
+        }
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -1583,10 +1873,15 @@ export function AIChatAgent({
       } else {
         setNormalMessages(prev => [...prev, errorMessage]);
       }
+
+      // 🎙️ Leer el mensaje de error en voz alta si el modo voz está activado
+      if (isVoiceEnabled && errorMessage.content) {
+        speakText(errorMessage.content);
+      }
     } finally {
       setIsTyping(false);
     }
-  }, [inputMessage, isTyping, normalMessages, promptMessages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric, isPromptMode, pageContent, availableLinks]);
+  }, [inputMessage, isTyping, normalMessages, promptMessages, activeContext, pathname, pageContextInfo, detectedContext, user, language, responseFallback, errorGeneric, isPromptMode, pageContent, availableLinks, isVoiceEnabled, speakText]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1853,6 +2148,8 @@ export function AIChatAgent({
     setAreButtonsExpanded(false);
     // Resetear el flag cuando se cierra para que se ejecute la ayuda al abrir de nuevo
     hasOpenedRef.current = false;
+    // 🎙️ Detener audio cuando se cierra el chat
+    stopAllAudio();
   };
 
   const handleOpenPromptMode = () => {
@@ -2428,9 +2725,9 @@ Fecha: ${new Date().toLocaleString()}
                   <div className="flex items-center gap-1">
                     {/* Menú de opciones (3 puntos) */}
                     <div className="relative" ref={optionsMenuRef}>
-                      <button
+                    <button
                         onClick={() => setIsOptionsMenuOpen(!isOptionsMenuOpen)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
                         aria-label="Opciones"
                         title="Opciones"
                       >
@@ -2492,10 +2789,10 @@ Fecha: ${new Date().toLocaleString()}
                                 onMouseLeave={(e) => {
                                   e.currentTarget.style.backgroundColor = 'transparent';
                                 }}
-                              >
-                                <Trash2 className="w-4 h-4" />
+                    >
+                      <Trash2 className="w-4 h-4" />
                                 <span>{clearConversationLabel}</span>
-                              </button>
+                    </button>
                             </div>
                           </motion.div>
                         )}

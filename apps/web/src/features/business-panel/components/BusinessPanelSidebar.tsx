@@ -34,6 +34,7 @@ interface BusinessPanelSidebarProps {
   onToggleCollapse: () => void
   isPinned: boolean
   onTogglePin: () => void
+  onHoverExpand?: () => void
 }
 
 import { useTranslation } from 'react-i18next'
@@ -48,7 +49,8 @@ export function BusinessPanelSidebar({
   isCollapsed,
   onToggleCollapse,
   isPinned,
-  onTogglePin
+  onTogglePin,
+  onHoverExpand
 }: BusinessPanelSidebarProps) {
   const pathname = usePathname()
   const { styles, effectiveStyles } = useOrganizationStylesContext()
@@ -120,6 +122,13 @@ export function BusinessPanelSidebar({
       setIsHovered(false)
     }
   }, [isCollapsed])
+
+  // Notificar cuando el sidebar se expande por hover y cerrar LIA si está abierto
+  useEffect(() => {
+    if (isHovered && isCollapsed && !isPinned && !isMobile && onHoverExpand) {
+      onHoverExpand()
+    }
+  }, [isHovered, isCollapsed, isPinned, isMobile, onHoverExpand])
 
   // Calcular estilos dinámicos para el fondo
   const sidebarStyle: React.CSSProperties = useMemo(() => {

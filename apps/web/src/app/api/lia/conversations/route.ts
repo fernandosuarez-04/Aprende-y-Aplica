@@ -41,7 +41,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Construir query base
+    // Construir query base para contar total (necesario para paginación)
+    let countQuery = supabase
+      .from('lia_conversations')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    // Construir query base para obtener conversaciones
     // IMPORTANTE: Filtrar por context_type='course' cuando se especifica courseSlug
     // Esto separa las conversaciones de talleres de las conversaciones generales
     let query = supabase
@@ -72,10 +78,21 @@ export async function GET(request: NextRequest) {
       query = query
         .eq('context_type', 'course')
         .or(`course_id.eq.${courseId},course_id.is.null`);
+      countQuery = countQuery
+        .eq('context_type', 'course')
+        .or(`course_id.eq.${courseId},course_id.is.null`);
     } else {
       // Si no hay courseSlug, solo mostrar conversaciones del chat general
       // IMPORTANTE: Usar filtrado positivo para evitar mezclar con otros contextos
       query = query.eq('context_type', 'general');
+      countQuery = countQuery.eq('context_type', 'general');
+    }
+
+    // Obtener total de conversaciones para paginación
+    let totalCount = 0;
+    const { count, error: countError } = await countQuery;
+    if (!countError) {
+      totalCount = count || 0;
     }
 
     const { data: conversations, error } = await query;
@@ -140,7 +157,15 @@ export async function GET(request: NextRequest) {
           } : null
         }));
 
-        return NextResponse.json({ conversations: formattedConversations });
+        return NextResponse.json({ 
+          conversations: formattedConversations,
+          pagination: {
+            total: totalCount,
+            limit,
+            offset,
+            hasMore: offset + limit < totalCount
+          }
+        });
       }
 
       return NextResponse.json(
@@ -166,7 +191,15 @@ export async function GET(request: NextRequest) {
       } : null
     }));
 
-    return NextResponse.json({ conversations: formattedConversations });
+    return NextResponse.json({ 
+      conversations: formattedConversations,
+      pagination: {
+        total: totalCount,
+        limit,
+        offset,
+        hasMore: offset + limit < totalCount
+      }
+    });
   } catch (error) {
     console.error('Error en API de conversaciones:', error);
     return NextResponse.json(

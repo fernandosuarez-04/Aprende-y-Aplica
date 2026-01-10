@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Sparkles, MessageSquare, Lightbulb, HelpCircle, Trash2, Clock, Edit2, Check, MoreVertical, Settings } from 'lucide-react';
+import { X, Send, Sparkles, MessageSquare, Lightbulb, HelpCircle, Trash2, Clock, Edit2, Check, MoreVertical, Settings, Mic, MicOff, Loader2 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLiaPanel } from '../../contexts/LiaPanelContext';
 import { useLiaGeneralChat } from '../../hooks/useLiaGeneralChat';
@@ -12,6 +12,9 @@ import { useOrganizationStylesContext } from '../../../features/business-panel/c
 import { useThemeStore } from '@/core/stores/themeStore';
 import { useTranslation } from 'react-i18next';
 import { LiaPersonalizationSettings } from '../../../features/lia/components/LiaPersonalizationSettings';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLiaPersonalization } from '../../hooks/useLiaPersonalization';
+import { useLanguage } from '../../providers/I18nProvider';
 
 // Función para parsear Markdown completo y convertirlo a elementos React
 function parseMarkdownContent(text: string, onLinkClick: (url: string) => void, isDarkMode: boolean = false): React.ReactNode {
@@ -159,41 +162,130 @@ function LiaSidePanelContent() {
     accentColor: '#00D4B3', // Siempre usar Aqua para identidad de LIA
   };
   
-  const { messages, isLoading, sendMessage, clearHistory, loadConversation } = useLiaGeneralChat();
+  const { messages, isLoading, sendMessage, clearHistory, loadConversation, currentConversationId } = useLiaGeneralChat();
+  
+  // 🎙️ Configuración de personalización de LIA para voz
+  const { settings: liaSettings } = useLiaPersonalization();
+  const isVoiceEnabled = liaSettings?.voice_enabled ?? true; // Por defecto activado
+  const isDictationEnabled = liaSettings?.dictation_enabled ?? false; // Por defecto desactivado
+  const { language } = useLanguage();
+  
+  // 🎙️ Estados y refs para síntesis de voz
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ttsAbortRef = useRef<AbortController | null>(null);
+  const lastReadMessageIdRef = useRef<string | null>(null);
+  
+  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  const speechLanguageMap: Record<string, string> = {
+    'es': 'es-ES',
+    'en': 'en-US',
+    'pt': 'pt-BR'
+  };
   
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  
+  // 🎙️ Estados para dictado
+  const [isDictating, setIsDictating] = useState(false);
+  const [isProcessingDictation, setIsProcessingDictation] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState(''); // Texto temporal mientras se habla
+  const [finalTranscript, setFinalTranscript] = useState(''); // Texto final confirmado
+  const recognitionRef = useRef<any>(null); // Web Speech API Recognition
+  const isDictatingRef = useRef<boolean>(false); // Ref para verificar estado actual en callbacks
+  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Timeout para detectar silencio
+  const lastTranscriptTimeRef = useRef<number>(0); // Timestamp del último texto detectado
   const [currentTip, setCurrentTip] = useState('');
   const [isAvatarExpanded, setIsAvatarExpanded] = useState(false);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const [isPersonalizationOpen, setIsPersonalizationOpen] = useState(false);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
-  
+
+  // Cerrar menú de opciones al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
+        setIsOptionsMenuOpen(false);
+      }
+    };
+
+    if (isOptionsMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOptionsMenuOpen]);
+
   // History State
   const [showHistory, setShowHistory] = useState(false);
   const [historyList, setHistoryList] = useState<any[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalConversations, setTotalConversations] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const limit = 20;
+
+  const loadHistory = useCallback(async (page: number = 0) => {
+    setIsHistoryLoading(true);
+    try {
+      const offset = page * limit;
+      const response = await fetch(`/api/lia/conversations?limit=${limit}&offset=${offset}`);
+      const data = await response.json();
+      
+      if (data.conversations) {
+        setHistoryList(data.conversations);
+        if (data.pagination) {
+          setTotalConversations(data.pagination.total || 0);
+          setHasMore(data.pagination.hasMore || false);
+        } else {
+          // Si no hay información de paginación, asumir que no hay más
+          setTotalConversations(data.conversations.length);
+          setHasMore(false);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching history:', err);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, [limit]);
 
   useEffect(() => {
     if (showHistory) {
-      setIsHistoryLoading(true);
-      fetch('/api/lia/conversations?limit=20')
-        .then(res => res.json())
-        .then(data => {
-            setHistoryList(data.conversations || []);
-        })
-        .catch(err => console.error('Error fetching history:', err))
-        .finally(() => setIsHistoryLoading(false));
+      loadHistory(currentPage);
     }
-  }, [showHistory]);
+  }, [showHistory, currentPage, loadHistory]);
+
+  const handleNextPage = () => {
+    if (hasMore) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const closeHistory = useCallback(() => {
+    setShowHistory(false);
+    setCurrentPage(0); // Resetear página al cerrar historial
+  }, []);
 
   const handleSelectConversation = async (conversationId: string) => {
     await loadConversation(conversationId);
-    setShowHistory(false);
+    closeHistory();
   };
 
   const handleStartEdit = (conv: any, e: React.MouseEvent) => {
@@ -227,6 +319,53 @@ function LiaSidePanelContent() {
   const handleCancelEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingConversationId(null);
+  };
+
+  const handleDeleteClick = (conv: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConversationToDelete({
+      id: conv.conversation_id,
+      title: conv.conversation_title || new Date(conv.started_at).toLocaleDateString()
+    });
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!conversationToDelete) return;
+
+    setDeletingConversationId(conversationToDelete.id);
+    setShowDeleteConfirm(false);
+
+    try {
+      const response = await fetch(`/api/lia/conversations/${conversationToDelete.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        // Remover de la lista local
+        setHistoryList(prev => prev.filter(c => c.conversation_id !== conversationToDelete.id));
+        
+        // Si la conversación eliminada es la actual, limpiar el chat
+        if (currentConversationId === conversationToDelete.id) {
+          clearHistory();
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        alert('Error al eliminar conversación: ' + (errorData.error || 'Error desconocido'));
+      }
+    } catch (err) {
+      console.error('Error eliminando conversación:', err);
+      alert('Error al eliminar conversación');
+    } finally {
+      setDeletingConversationId(null);
+      setConversationToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setConversationToDelete(null);
   };
 
   const quickActions: QuickAction[] = [
@@ -326,6 +465,533 @@ function LiaSidePanelContent() {
       }, 300);
     }
   }, [isOpen]);
+
+  // 🎙️ Función para limpiar texto antes de leerlo (eliminar markdown, enlaces, etc.)
+  const cleanTextForTTS = useCallback((text: string): string => {
+    if (!text) return text;
+
+    let cleaned = text;
+
+    // Eliminar bloques de código (```código```)
+    cleaned = cleaned.replace(/```[\w]*\n?[\s\S]*?```/g, '');
+    
+    // Eliminar títulos Markdown (# ## ###)
+    cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+    
+    // Eliminar negritas (**texto** o __texto__)
+    cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
+    cleaned = cleaned.replace(/__([^_]+)__/g, '$1');
+    
+    // Eliminar cursivas (*texto* o _texto_)
+    cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*([^*\n])/g, '$1$2$3');
+    cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_([^_\n])/g, '$1$2$3');
+    
+    // Eliminar código en línea (`código`)
+    cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
+    
+    // Eliminar enlaces [texto](url) - reemplazar solo con el texto
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+    
+    // Eliminar imágenes ![alt](url)
+    cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
+    
+    // Eliminar bloques de citas (>)
+    cleaned = cleaned.replace(/^>\s+/gm, '');
+    
+    // Eliminar líneas horizontales (--- o ***)
+    cleaned = cleaned.replace(/^[-*]{3,}$/gm, '');
+    
+    // Limpiar espacios múltiples y saltos de línea excesivos
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+    cleaned = cleaned.replace(/[ \t]+/g, ' ');
+    
+    // Limpiar espacios al inicio y final
+    cleaned = cleaned.trim();
+    
+    return cleaned;
+  }, []);
+
+  // 🎙️ Función para detener todo audio/voz en reproducción
+  const stopAllAudio = useCallback(() => {
+    try {
+      // Abort any in-flight TTS fetch
+      if (ttsAbortRef.current) {
+        try { ttsAbortRef.current.abort(); } catch (e) { /* ignore */ }
+        ttsAbortRef.current = null;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        // Cancelar cualquier utterance en curso
+        window.speechSynthesis.cancel();
+        utteranceRef.current = null;
+      }
+
+      setIsSpeaking(false);
+    } catch (err) {
+      console.warn('Error deteniendo audio:', err);
+    }
+  }, []);
+
+  // 🎙️ Función para síntesis de voz con ElevenLabs
+  const speakText = useCallback(async (text: string) => {
+    if (!isVoiceEnabled || typeof window === 'undefined') {
+      console.log('🔇 [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
+      return;
+    }
+
+    // Limpiar el texto antes de leerlo
+    const cleanedText = cleanTextForTTS(text);
+    
+    if (!cleanedText || cleanedText.trim().length === 0) {
+      console.log('🔇 [TTS] Texto vacío después de limpiar');
+      return;
+    }
+
+    console.log('🔊 [TTS] Iniciando lectura de texto:', { 
+      originalLength: text.length, 
+      cleanedLength: cleanedText.length,
+      preview: cleanedText.substring(0, 100) + '...'
+    });
+
+    // Asegurar que no haya audio superpuesto
+    stopAllAudio();
+
+    try {
+      setIsSpeaking(true);
+
+      const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
+      const voiceId = process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || 'ay4iqk10DLwc8KGSrf2t';
+      const modelId = 'eleven_turbo_v2_5';
+
+      if (!apiKey || !voiceId) {
+        console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
+        
+        // Fallback a Web Speech API
+        const utterance = new SpeechSynthesisUtterance(cleanedText);
+        utterance.lang = speechLanguageMap[language] || 'es-ES';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 0.8;
+        
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          utteranceRef.current = null;
+        };
+        utterance.onerror = () => {
+          setIsSpeaking(false);
+          utteranceRef.current = null;
+        };
+        
+        utteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+        return;
+      }
+
+      // Setup abort controller so we can cancel in-flight TTS requests
+      const controller = new AbortController();
+      ttsAbortRef.current = controller;
+
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          signal: controller.signal,
+          method: 'POST',
+          headers: {
+            'Accept': 'audio/mpeg',
+            'Content-Type': 'application/json',
+            'xi-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            text: cleanedText,
+            model_id: modelId,
+            voice_settings: {
+              stability: 0.4,
+              similarity_boost: 0.65,
+              style: 0.3,
+              use_speaker_boost: false
+            },
+            optimize_streaming_latency: 4,
+            output_format: 'mp3_22050_32'
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`ElevenLabs API error: ${response.status}`);
+      }
+
+      const audioBlob = await response.blob();
+      // If the request was aborted, do not proceed
+      if (ttsAbortRef.current && ttsAbortRef.current.signal.aborted) {
+        ttsAbortRef.current = null;
+        return;
+      }
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      const audio = new Audio(audioUrl);
+      audio.volume = 0.8;
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        if (audioRef.current === audio) audioRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        if (audioRef.current === audio) audioRef.current = null;
+      };
+
+      // Intentar reproducir el audio
+      try {
+        await audio.play();
+        console.log('✅ [TTS] Audio reproducido exitosamente');
+        // Playback started successfully; clear abort controller
+        if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
+      } catch (playError: any) {
+        // Autoplay bloqueado por el navegador - esto es normal y esperado
+        console.warn('⚠️ [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
+        setIsSpeaking(false);
+      }
+    } catch (error: any) {
+      // Si la petición fue abortada, lo manejamos como info
+      if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
+        // Silenciar errores de abort
+      } else {
+        console.error('Error en síntesis de voz con ElevenLabs:', error);
+      }
+      setIsSpeaking(false);
+    }
+  }, [isVoiceEnabled, language, stopAllAudio, cleanTextForTTS]);
+
+  // 🎙️ Detectar cuando llega un nuevo mensaje del asistente y leerlo
+  useEffect(() => {
+    if (!isVoiceEnabled || messages.length === 0 || isLoading) return;
+
+    // Buscar el último mensaje del asistente que no haya sido leído
+    const lastAssistantMessage = [...messages].reverse().find(
+      msg => msg.role === 'assistant' && msg.id !== lastReadMessageIdRef.current && msg.content.trim().length > 0
+    );
+
+    if (lastAssistantMessage) {
+      // Esperar un poco para que el mensaje termine de renderizarse (especialmente si es streaming)
+      const timer = setTimeout(() => {
+        console.log('🔊 [TTS] Nuevo mensaje del asistente detectado, leyendo...', {
+          messageId: lastAssistantMessage.id,
+          contentLength: lastAssistantMessage.content.length,
+          preview: lastAssistantMessage.content.substring(0, 50) + '...'
+        });
+        
+        speakText(lastAssistantMessage.content);
+        lastReadMessageIdRef.current = lastAssistantMessage.id;
+      }, 1000); // Esperar 1 segundo para que termine el streaming
+
+      return () => clearTimeout(timer);
+    }
+  }, [messages, isVoiceEnabled, isLoading, speakText]);
+
+  // Limpiar audio al desmontar o cerrar el panel
+  useEffect(() => {
+    if (!isOpen) {
+      stopAllAudio();
+    }
+    return () => {
+      stopAllAudio();
+    };
+  }, [isOpen, stopAllAudio]);
+
+  // 🎙️ Función para detener dictado y limpiar recursos
+  const stopDictation = useCallback(() => {
+    // IMPORTANTE: Aplicar texto antes de limpiar estados
+    // Obtener el texto actual antes de limpiar (usando función de estado para obtener valores actuales)
+    setFinalTranscript(currentFinal => {
+      setInterimTranscript(currentInterim => {
+        const fullText = (currentFinal + ' ' + currentInterim).trim();
+        
+        if (fullText) {
+          // Aplicar al input
+          setInputValue(prev => {
+            const newValue = prev + (prev ? ' ' : '') + fullText;
+            return newValue;
+          });
+          
+          // Enfocar el input
+          setTimeout(() => {
+            inputRef.current?.focus();
+            // Mover cursor al final
+            if (inputRef.current) {
+              inputRef.current.setSelectionRange(
+                inputRef.current.value.length,
+                inputRef.current.value.length
+              );
+            }
+          }, 100);
+        }
+        
+        // Limpiar estado intermedio
+        return '';
+      });
+      
+      // Limpiar estado final
+      return '';
+    });
+
+    // Limpiar timeout de silencio
+    if (silenceTimeoutRef.current) {
+      clearTimeout(silenceTimeoutRef.current);
+      silenceTimeoutRef.current = null;
+    }
+
+    // Detener reconocimiento de voz
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Ignorar errores al detener
+      }
+      recognitionRef.current = null;
+    }
+
+    // Limpiar estados finales
+    setIsDictating(false);
+    isDictatingRef.current = false;
+    lastTranscriptTimeRef.current = 0;
+  }, []);
+
+  // 🎙️ Función para aplicar el texto transcrito al input
+  const applyTranscribedText = useCallback(() => {
+    const fullText = (finalTranscript + ' ' + interimTranscript).trim();
+    if (fullText) {
+      setInputValue(prev => {
+        const newValue = prev + (prev ? ' ' : '') + fullText;
+        return newValue;
+      });
+      // Enfocar el input
+      setTimeout(() => {
+        inputRef.current?.focus();
+        // Mover cursor al final
+        if (inputRef.current) {
+          inputRef.current.setSelectionRange(
+            inputRef.current.value.length,
+            inputRef.current.value.length
+          );
+        }
+      }, 100);
+    }
+    // Limpiar transcripciones
+    setInterimTranscript('');
+    setFinalTranscript('');
+  }, [finalTranscript, interimTranscript]);
+
+  // 🎙️ Función para iniciar/detener dictado usando Web Speech API
+  const toggleDictation = useCallback(async () => {
+    if (!isDictationEnabled) {
+      console.warn('Dictado no está habilitado en la configuración');
+      return;
+    }
+
+    // Verificar soporte del navegador
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      alert('Tu navegador no soporta reconocimiento de voz. Por favor, usa Chrome, Edge o Safari.');
+      return;
+    }
+
+    if (isDictating) {
+      // Detener manualmente
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignorar errores
+        }
+      }
+      // Detener dictado (aplicará el texto automáticamente)
+      stopDictation();
+      return;
+    }
+
+    // Iniciar reconocimiento de voz
+    try {
+      // Limpiar transcripciones anteriores
+      setInterimTranscript('');
+      setFinalTranscript('');
+
+      // Crear instancia de reconocimiento
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+
+      // Configuración
+      const langMap: Record<string, string> = {
+        'es': 'es-ES',
+        'en': 'en-US',
+        'pt': 'pt-BR',
+      };
+      recognition.lang = langMap[language || 'es'] || 'es-ES';
+      recognition.continuous = true; // Continuar escuchando
+      recognition.interimResults = true; // Mostrar resultados intermedios (tiempo real)
+      recognition.maxAlternatives = 1;
+
+      // Configuración de timeout para detección de silencio
+      const SILENCE_TIMEOUT_MS = 3000; // 3 segundos sin nuevas palabras = detener
+
+      // Función para reiniciar el timeout de silencio
+      const resetSilenceTimeout = () => {
+        // Limpiar timeout anterior
+        if (silenceTimeoutRef.current) {
+          clearTimeout(silenceTimeoutRef.current);
+          silenceTimeoutRef.current = null;
+        }
+
+        // Crear nuevo timeout
+        silenceTimeoutRef.current = setTimeout(() => {
+          console.log('🔇 No se detectaron nuevas palabras por 3 segundos, deteniendo dictado...');
+          
+          // Detener reconocimiento
+          if (recognitionRef.current) {
+            try {
+              recognitionRef.current.stop();
+            } catch (e) {
+              // Ignorar errores
+            }
+          }
+          
+          // Detener dictado (aplicará el texto automáticamente)
+          stopDictation();
+        }, SILENCE_TIMEOUT_MS);
+      };
+
+      // Evento: resultados intermedios (texto en tiempo real)
+      recognition.onresult = (event: any) => {
+        let interim = '';
+        let final = '';
+        let hasNewText = false;
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          
+          if (event.results[i].isFinal) {
+            // Resultado final (confirmado)
+            final += transcript + ' ';
+            hasNewText = true;
+          } else {
+            // Resultado intermedio (temporal, puede cambiar)
+            interim += transcript;
+            hasNewText = true;
+          }
+        }
+
+        // Si hay nuevo texto, actualizar timestamp y reiniciar timeout
+        if (hasNewText) {
+          lastTranscriptTimeRef.current = Date.now();
+          resetSilenceTimeout();
+          console.log('🔊 Nuevo texto detectado, reiniciando timeout de silencio');
+        }
+
+        // Actualizar estados
+        if (final) {
+          setFinalTranscript(prev => (prev + ' ' + final).trim());
+        }
+        setInterimTranscript(interim);
+
+        // Actualizar input en tiempo real
+        const currentFinal = finalTranscript + (finalTranscript ? ' ' : '') + final;
+        const displayText = (currentFinal + ' ' + interim).trim();
+        
+        // Mostrar en el input mientras se habla (solo visual, no se guarda hasta que termine)
+        if (inputRef.current && displayText) {
+          const currentValue = inputValue;
+          const newValue = currentValue + (currentValue ? ' ' : '') + displayText;
+          // No actualizamos el estado directamente para evitar conflictos
+          // Solo mostramos visualmente
+        }
+      };
+
+      // Evento: cuando termina el reconocimiento (silencio detectado automáticamente)
+      recognition.onend = () => {
+        console.log('🎙️ Reconocimiento de voz finalizado');
+        
+        // Limpiar timeout si existe
+        if (silenceTimeoutRef.current) {
+          clearTimeout(silenceTimeoutRef.current);
+          silenceTimeoutRef.current = null;
+        }
+        
+        // Detener dictado (aplicará el texto automáticamente)
+        stopDictation();
+      };
+
+      // Evento: errores
+      recognition.onerror = (event: any) => {
+        console.error('Error en reconocimiento de voz:', event.error);
+        
+        if (event.error === 'no-speech') {
+          // No se detectó habla, pero esto es normal, solo detener
+          console.log('No se detectó habla, deteniendo...');
+          stopDictation();
+        } else if (event.error === 'audio-capture') {
+          alert('No se pudo acceder al micrófono. Por favor, verifica los permisos.');
+          stopDictation();
+        } else if (event.error === 'not-allowed') {
+          alert('Permiso de micrófono denegado. Por favor, permite el acceso al micrófono.');
+          stopDictation();
+        } else {
+          // Otros errores, intentar continuar o detener según el caso
+          console.warn('Error de reconocimiento:', event.error);
+          if (event.error === 'network' || event.error === 'aborted') {
+            stopDictation();
+          }
+        }
+      };
+
+      // Evento: cuando comienza el reconocimiento
+      recognition.onstart = () => {
+        console.log('🎙️ Reconocimiento de voz iniciado');
+        setIsDictating(true);
+        isDictatingRef.current = true;
+        lastTranscriptTimeRef.current = Date.now();
+        
+        // Iniciar timeout de silencio (por si no se detecta nada al inicio)
+        resetSilenceTimeout();
+      };
+
+      // Iniciar reconocimiento
+      recognition.start();
+      console.log('🎙️ Dictado iniciado con transcripción en tiempo real');
+    } catch (error: any) {
+      console.error('Error iniciando dictado:', error);
+      setIsDictating(false);
+      
+      if (error?.name === 'NotAllowedError' || error?.message?.includes('not allowed')) {
+        alert('Se necesita permiso para usar el micrófono. Por favor, permite el acceso al micrófono en la configuración del navegador.');
+      } else if (error?.message?.includes('already started')) {
+        // Ya está iniciado, solo actualizar estado
+        setIsDictating(true);
+        isDictatingRef.current = true;
+      } else {
+        alert('Error al acceder al micrófono. Por favor, verifica que tu navegador soporte reconocimiento de voz.');
+      }
+    }
+  }, [isDictationEnabled, isDictating, language, stopDictation, applyTranscribedText, finalTranscript, inputValue]);
+
+  // Limpiar recursos de dictado al desmontar o cerrar
+  useEffect(() => {
+    if (!isOpen) {
+      stopDictation();
+    }
+    return () => {
+      stopDictation();
+    };
+  }, [isOpen, stopDictation]);
 
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -428,7 +1094,13 @@ function LiaSidePanelContent() {
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               {/* Botón de historial (mantener visible) */}
               <button
-                onClick={() => setShowHistory(!showHistory)}
+                onClick={() => {
+                  if (showHistory) {
+                    closeHistory();
+                  } else {
+                    setShowHistory(true);
+                  }
+                }}
                 title={showHistory ? "Volver al chat" : "Historial"}
                 style={{
                   width: '32px',
@@ -814,28 +1486,100 @@ function LiaSidePanelContent() {
             >
 
               
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder={t('lia.chat.inputPlaceholder')}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: themeColors.textPrimary,
-                  fontSize: '14px',
-                }}
-              />
+              <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue + (isDictating ? (inputValue ? ' ' : '') + finalTranscript + (finalTranscript && interimTranscript ? ' ' : '') + interimTranscript : '')}
+                  onChange={(e) => {
+                    // Solo permitir edición si no está dictando
+                    if (!isDictating) {
+                      setInputValue(e.target.value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      // Si está dictando, detener primero
+                      if (isDictating) {
+                        // Detener dictado (aplicará el texto automáticamente)
+                        stopDictation();
+                      }
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder={isDictating ? 'Escuchando...' : t('lia.chat.inputPlaceholder')}
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: themeColors.textPrimary,
+                    fontSize: '14px',
+                  }}
+                />
+                {/* Indicador visual de texto temporal (debajo del input) */}
+                {isDictating && interimTranscript && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '-18px',
+                      left: 0,
+                      fontSize: '11px',
+                      color: themeColors.accentColor,
+                      fontStyle: 'italic',
+                      pointerEvents: 'none',
+                      opacity: 0.7,
+                    }}
+                  >
+                    {interimTranscript}
+                  </div>
+                )}
+              </div>
+              
+              {/* 🎙️ Botón de dictado (solo si está habilitado) */}
+              {isDictationEnabled && (
+                <button
+                  onClick={toggleDictation}
+                  disabled={isProcessingDictation}
+                  title={isDictating ? 'Detener dictado' : 'Iniciar dictado'}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    backgroundColor: isDictating 
+                      ? '#EF4444' 
+                      : isProcessingDictation 
+                        ? (isLightTheme ? '#CBD5E1' : '#374151')
+                        : 'transparent',
+                    border: `1px solid ${isDictating ? '#EF4444' : themeColors.inputBorder}`,
+                    cursor: isProcessingDictation ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                    opacity: isProcessingDictation ? 0.5 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isProcessingDictation && !isDictating) {
+                      e.currentTarget.style.backgroundColor = isLightTheme ? '#E2E8F0' : '#1e2a35';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isDictating) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  {isProcessingDictation ? (
+                    <Loader2 style={{ width: '16px', height: '16px', color: themeColors.textSecondary }} className="animate-spin" />
+                  ) : isDictating ? (
+                    <MicOff style={{ width: '16px', height: '16px', color: '#FFFFFF' }} />
+                  ) : (
+                    <Mic style={{ width: '16px', height: '16px', color: themeColors.textSecondary }} />
+                  )}
+                </button>
+              )}
               
               <button
                 onClick={handleSendMessage}
@@ -904,7 +1648,7 @@ function LiaSidePanelContent() {
                         <div style={{textAlign:'center', padding:'60px 20px', color: themeColors.textSecondary}}>
                            <Clock size={48} style={{opacity:0.2, margin:'0 auto 16px', display:'block'}} />
                            <p>No hay conversaciones guardadas.</p>
-                           <button onClick={() => setShowHistory(false)} style={{marginTop:'12px', background:'transparent', border:`1px solid ${themeColors.borderColor}`, padding:'8px 16px', borderRadius:'8px', color: themeColors.textPrimary, cursor:'pointer'}}>Volver al chat</button>
+                           <button onClick={closeHistory} style={{marginTop:'12px', background:'transparent', border:`1px solid ${themeColors.borderColor}`, padding:'8px 16px', borderRadius:'8px', color: themeColors.textPrimary, cursor:'pointer'}}>Volver al chat</button>
                         </div>
                     ) : (
                         historyList.map((conv) => (
@@ -968,8 +1712,47 @@ function LiaSidePanelContent() {
                                                 style={{background:'none', border:'none', cursor:'pointer', color: themeColors.textSecondary, padding: 0, opacity: 0.6}}
                                                 onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
                                                 onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                                                title="Editar título"
                                             >
                                                 <Edit2 size={14} />
+                                            </button>
+                                            <button 
+                                                onClick={(e) => handleDeleteClick(conv, e)}
+                                                disabled={deletingConversationId === conv.conversation_id}
+                                                style={{
+                                                    background:'none', 
+                                                    border:'none', 
+                                                    cursor: deletingConversationId === conv.conversation_id ? 'wait' : 'pointer', 
+                                                    color: deletingConversationId === conv.conversation_id ? themeColors.textSecondary : '#ef4444', 
+                                                    padding: 0, 
+                                                    opacity: deletingConversationId === conv.conversation_id ? 0.5 : 0.6,
+                                                    display: 'flex',
+                                                    alignItems: 'center'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    if (deletingConversationId !== conv.conversation_id) {
+                                                        e.currentTarget.style.opacity = '1';
+                                                    }
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    if (deletingConversationId !== conv.conversation_id) {
+                                                        e.currentTarget.style.opacity = '0.6';
+                                                    }
+                                                }}
+                                                title="Eliminar conversación"
+                                            >
+                                                {deletingConversationId === conv.conversation_id ? (
+                                                    <div style={{
+                                                        width: '14px',
+                                                        height: '14px',
+                                                        border: `2px solid ${themeColors.textSecondary}`,
+                                                        borderTopColor: 'transparent',
+                                                        borderRadius: '50%',
+                                                        animation: 'spin 1s linear infinite'
+                                                    }}></div>
+                                                ) : (
+                                                    <Trash2 size={14} />
+                                                )}
                                             </button>
                                             <span style={{fontSize:'12px', color: themeColors.textSecondary}}>
                                                {new Date(conv.started_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
@@ -984,7 +1767,214 @@ function LiaSidePanelContent() {
                           </div>
                         ))
                     )}
+
+                    {/* Controles de Paginación */}
+                    {historyList.length > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '16px',
+                        borderTop: `1px solid ${themeColors.borderColor}`,
+                        marginTop: '12px'
+                      }}>
+                        <button
+                          onClick={handlePrevPage}
+                          disabled={currentPage === 0 || isHistoryLoading}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 16px',
+                            background: currentPage === 0 ? 'transparent' : themeColors.inputBg,
+                            border: `1px solid ${themeColors.borderColor}`,
+                            borderRadius: '8px',
+                            color: currentPage === 0 ? themeColors.textSecondary : themeColors.textPrimary,
+                            cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
+                            opacity: currentPage === 0 ? 0.5 : 1,
+                            fontSize: '14px',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (currentPage > 0) {
+                              e.currentTarget.style.borderColor = themeColors.accentColor;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = themeColors.borderColor;
+                          }}
+                        >
+                          <ChevronLeft size={16} />
+                          Anterior
+                        </button>
+
+                        <span style={{
+                          color: themeColors.textSecondary,
+                          fontSize: '13px'
+                        }}>
+                          Página {currentPage + 1} {totalConversations > 0 && `(${totalConversations} total)`}
+                        </span>
+
+                        <button
+                          onClick={handleNextPage}
+                          disabled={!hasMore || isHistoryLoading}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 16px',
+                            background: !hasMore ? 'transparent' : themeColors.inputBg,
+                            border: `1px solid ${themeColors.borderColor}`,
+                            borderRadius: '8px',
+                            color: !hasMore ? themeColors.textSecondary : themeColors.textPrimary,
+                            cursor: !hasMore ? 'not-allowed' : 'pointer',
+                            opacity: !hasMore ? 0.5 : 1,
+                            fontSize: '14px',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (hasMore) {
+                              e.currentTarget.style.borderColor = themeColors.accentColor;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = themeColors.borderColor;
+                          }}
+                        >
+                          Siguiente
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Modal de Confirmación de Eliminación */}
+          <AnimatePresence>
+            {showDeleteConfirm && conversationToDelete && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={handleCancelDelete}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  backdropFilter: 'blur(4px)',
+                  zIndex: 100000,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px'
+                }}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    backgroundColor: themeColors.panelBg,
+                    borderRadius: '16px',
+                    padding: '24px',
+                    maxWidth: '400px',
+                    width: '100%',
+                    border: `1px solid ${themeColors.borderColor}`,
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                  }}
+                >
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{
+                      color: themeColors.textPrimary,
+                      fontSize: '20px',
+                      fontWeight: 600,
+                      margin: '0 0 8px 0'
+                    }}>
+                      Eliminar conversación
+                    </h3>
+                    <p style={{
+                      color: themeColors.textSecondary,
+                      fontSize: '14px',
+                      margin: 0,
+                      lineHeight: '1.5'
+                    }}>
+                      ¿Estás seguro de que quieres eliminar la conversación "{conversationToDelete.title}"?
+                    </p>
+                    <p style={{
+                      color: '#ef4444',
+                      fontSize: '13px',
+                      margin: '8px 0 0 0',
+                      fontWeight: 500
+                    }}>
+                      Esta acción no se puede deshacer.
+                    </p>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    justifyContent: 'flex-end'
+                  }}>
+                    <button
+                      onClick={handleCancelDelete}
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        border: `1px solid ${themeColors.borderColor}`,
+                        background: 'transparent',
+                        color: themeColors.textPrimary,
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = themeColors.inputBg;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleConfirmDelete}
+                      disabled={deletingConversationId === conversationToDelete.id}
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: deletingConversationId === conversationToDelete.id 
+                          ? themeColors.textSecondary 
+                          : '#ef4444',
+                        color: 'white',
+                        cursor: deletingConversationId === conversationToDelete.id ? 'wait' : 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        transition: 'all 0.2s',
+                        opacity: deletingConversationId === conversationToDelete.id ? 0.7 : 1
+                      }}
+                      onMouseEnter={(e) => {
+                        if (deletingConversationId !== conversationToDelete.id) {
+                          e.currentTarget.style.backgroundColor = '#dc2626';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (deletingConversationId !== conversationToDelete.id) {
+                          e.currentTarget.style.backgroundColor = '#ef4444';
+                        }
+                      }}
+                    >
+                      {deletingConversationId === conversationToDelete.id ? 'Eliminando...' : 'Eliminar'}
+                    </button>
+                  </div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>

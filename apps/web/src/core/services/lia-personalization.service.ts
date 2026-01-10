@@ -11,7 +11,6 @@ import type {
   LiaPersonalizationSettings,
   LiaPersonalizationSettingsInput,
   BaseStyle,
-  EmojiLevel,
 } from '../types/lia-personalization.types';
 
 /**
@@ -91,14 +90,10 @@ export class LiaPersonalizationService {
       base_style: 'professional',
       is_friendly: true,
       is_enthusiastic: true,
-      emoji_level: 'normal',
       custom_instructions: null,
       nickname: null,
-      recording_history_enabled: true,
       voice_enabled: true,
       dictation_enabled: false,
-      conversation_pagination_enabled: true,
-      connector_search_enabled: false,
     };
 
     const { data, error } = await adminSupabase
@@ -230,15 +225,6 @@ export class LiaPersonalizationService {
     if (settings.is_enthusiastic) {
       prompt += '- Muestra entusiasmo y energía positiva en tus respuestas\n';
     }
-
-    // Nivel de emojis
-    const emojiInstructions: Record<EmojiLevel, string> = {
-      none: 'NO uses emojis en tus respuestas.',
-      less: 'Usa emojis mínimamente, solo en saludos o despedidas cuando sea apropiado.',
-      normal: 'Usa emojis estratégicamente para hacer las respuestas más amigables, pero sin excederte.',
-      more: 'Puedes usar emojis más frecuentemente para mayor expresividad y hacer las respuestas más visuales.',
-    };
-    prompt += `- ${emojiInstructions[settings.emoji_level]}\n`;
 
     // Apodo
     if (settings.nickname) {
