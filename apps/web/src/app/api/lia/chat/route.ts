@@ -3,6 +3,7 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/ge
 import { createClient } from '../../../../lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { DATABASE_SCHEMA_CONTEXT } from '../../../../lib/lia-context/database-schema';
+import { PageContextService } from '../../../../lib/lia-context/services/page-context.service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -808,6 +809,19 @@ function getLIASystemPrompt(context?: PlatformContext): string {
     prompt += 'TU TAREA: Lee la instrucción dentro del evento y EJECÚTALA dirigiéndote al usuario.\n';
     prompt += 'EJEMPLO: Si el evento dice "Inicia la actividad X", tú dices "¡Hola [Nombre]! Vamos a empezar con la actividad X..."\n';
     prompt += 'NO respondas al evento diciendo "Entendido" o "Procesando evento". Actúa natural, como si el usuario te hubiera pedido empezar.\n';
+
+    // ✅ CONTEXTO DINÁMICO DE PÁGINA (Sistema de Metadata)
+    // Proporciona información técnica sobre la página actual
+    if (context.currentPage) {
+      try {
+        const pageContext = PageContextService.buildPageContext(context.currentPage);
+        if (pageContext && !pageContext.includes('No hay metadata')) {
+          prompt += '\n\n' + pageContext;
+        }
+      } catch (error) {
+        console.warn('⚠️ Error obteniendo contexto de página:', error);
+      }
+    }
   }
 
   return prompt;
@@ -1001,6 +1015,22 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         // No fallar si hay error cargando personalización, solo loguear
         console.warn('⚠️ Error cargando personalización de LIA:', error);
+      }
+    }
+
+    // ✅ DETECCIÓN Y CONTEXTO PARA REPORTES DE BUGS
+    // Si el mensaje parece ser un reporte de bug, agregar contexto técnico adicional
+    const bugKeywords = /error|bug|falla|problema|no funciona|no carga|rompi|broken|crash|colgó|lento|cuelga|no responde|pantalla en blanco|500|404|timeout|se cayó/i;
+    const isBugReport = body.isBugReport || bugKeywords.test(lastMessage.content.toLowerCase());
+    
+    if (isBugReport && fullContext.currentPage) {
+      try {
+        const bugContext = PageContextService.buildBugReportContext(fullContext.currentPage);
+        if (bugContext && !bugContext.includes('No hay metadata')) {
+          systemPrompt += '\n\n---\n\n' + bugContext;
+        }
+      } catch (error) {
+        console.warn('⚠️ Error obteniendo contexto de bug:', error);
       }
     }
     
@@ -1222,7 +1252,19 @@ export async function POST(request: NextRequest) {
     // ==========================================
     // GUARDAR HISTORIAL DE CONVERSACIÓN (DB)
     // ==========================================
+    // Validar que conversationId sea un UUID válido (evita timestamps u otros formatos inválidos)
+    const isValidUUID = (id: string) => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      return uuidRegex.test(id);
+    };
+
     if (body.conversationId) {
+      if (!isValidUUID(body.conversationId)) {
+        console.warn(`⚠️ conversationId inválido recibido (no es UUID): "${body.conversationId}" - Skipping DB persistence`);
+      }
+    }
+
+    if (body.conversationId && isValidUUID(body.conversationId)) {
       try {
         const userId = requestContext?.userId || fullContext?.userId;
         
