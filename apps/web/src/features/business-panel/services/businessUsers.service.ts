@@ -20,6 +20,15 @@ export interface BusinessUser {
   org_role?: 'owner' | 'admin' | 'member'
   org_status?: 'active' | 'invited' | 'suspended' | 'removed'
   joined_at?: string
+  // Hierarchy fields
+  region_id?: string | null
+  zone_id?: string | null
+  team_id?: string | null
+  hierarchy_scope?: 'organization' | 'region' | 'zone' | 'team' | null
+  // Populated names for display
+  region_name?: string | null
+  zone_name?: string | null
+  team_name?: string | null
 }
 
 export interface BusinessUserStats {

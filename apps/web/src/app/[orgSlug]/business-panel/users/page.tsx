@@ -25,7 +25,14 @@ import {
   Activity,
   ChevronRight,
   MoreHorizontal,
-  Eye
+  Eye,
+  LayoutGrid,
+  List,
+  MapPin,
+  Building2,
+  Network,
+  Filter,
+  X
 } from 'lucide-react'
 import { ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
 import { useBusinessUsers } from '@/features/business-panel/hooks/useBusinessUsers'
@@ -50,7 +57,6 @@ interface StatCardProps {
   value: number
   icon: React.ReactNode
   gradient: string
-  delay: number
   delay: number
   trend?: number
   isDark?: boolean
@@ -476,6 +482,150 @@ function EmptyState({ onAddClick, primaryColor, secondaryColor }: { onAddClick: 
 }
 
 // ============================================
+// COMPONENTE: UserListRow (Vista compacta)
+// ============================================
+interface UserListRowProps {
+  user: BusinessUser
+  index: number
+  primaryColor: string
+  onEdit: () => void
+  onDelete: () => void
+  onStats: () => void
+  onResend?: () => void
+  onSuspend?: () => void
+  onActivate?: () => void
+}
+
+function UserListRow({ user, index, primaryColor, onEdit, onDelete, onStats, onResend, onSuspend, onActivate }: UserListRowProps) {
+  const { t } = useTranslation('business')
+  const { resolvedTheme } = useThemeStore()
+  const isDark = resolvedTheme === 'dark'
+  const displayName = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
+
+  const getRoleConfig = (role: string) => {
+    switch (role) {
+      case 'owner': return { label: t('users.roles.owner'), color: '#A855F7', bg: 'rgba(168,85,247,0.15)' }
+      case 'admin': return { label: t('users.roles.admin'), color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' }
+      default: return { label: t('users.roles.member'), color: '#10B981', bg: 'rgba(16,185,129,0.15)' }
+    }
+  }
+
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'active': return { label: t('users.status.active'), color: '#10B981', icon: CheckCircle }
+      case 'invited': return { label: t('users.status.invited'), color: '#F59E0B', icon: Mail }
+      case 'suspended': return { label: t('users.status.suspended'), color: '#EF4444', icon: XCircle }
+      default: return { label: t('users.status.removed'), color: '#6B7280', icon: AlertCircle }
+    }
+  }
+
+  const roleConfig = getRoleConfig(user.org_role || 'member')
+  const statusConfig = getStatusConfig(user.org_status || 'active')
+  const StatusIcon = statusConfig.icon
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.02 }}
+      className="flex items-center gap-4 p-4 rounded-xl border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all group"
+      style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+    >
+      {/* Avatar */}
+      {user.profile_picture_url ? (
+        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+          <Image src={user.profile_picture_url} alt={displayName} width={40} height={40} className="object-cover w-full h-full" />
+        </div>
+      ) : (
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
+          style={{ backgroundColor: `${primaryColor}30`, color: isDark ? '#FFFFFF' : primaryColor }}
+        >
+          {displayName.charAt(0).toUpperCase()}
+        </div>
+      )}
+
+      {/* Info */}
+      <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 items-center">
+        {/* Name & Email */}
+        <div className="min-w-0 col-span-1 sm:col-span-1 lg:col-span-2">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm truncate" style={{ color: isDark ? '#FFFFFF' : '#0F172A' }}>{displayName}</span>
+            {user.org_role === 'owner' && <Crown className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />}
+          </div>
+          <p className="text-xs opacity-50 truncate">{user.email}</p>
+        </div>
+
+        {/* Hierarchy Info */}
+        <div className="hidden lg:flex items-center gap-1 text-xs opacity-60 min-w-0">
+          {user.region_name && (
+            <span className="truncate flex items-center gap-1">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              {user.region_name}
+            </span>
+          )}
+          {user.zone_name && (
+            <span className="truncate flex items-center gap-1 ml-2">
+              <Building2 className="w-3 h-3 flex-shrink-0" />
+              {user.zone_name}
+            </span>
+          )}
+          {user.team_name && (
+            <span className="truncate flex items-center gap-1 ml-2">
+              <Network className="w-3 h-3 flex-shrink-0" />
+              {user.team_name}
+            </span>
+          )}
+          {!user.region_name && !user.zone_name && !user.team_name && (
+            <span className="text-xs opacity-40">—</span>
+          )}
+        </div>
+
+        {/* Role & Status */}
+        <div className="flex items-center gap-2">
+          <span
+            className="px-2 py-0.5 rounded-full text-xs font-medium"
+            style={{ backgroundColor: roleConfig.bg, color: roleConfig.color }}
+          >
+            {roleConfig.label}
+          </span>
+          <span
+            className="px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1"
+            style={{ backgroundColor: `${statusConfig.color}20`, color: statusConfig.color }}
+          >
+            <StatusIcon className="w-3 h-3" />
+            {statusConfig.label}
+          </span>
+        </div>
+
+        {/* Last Access */}
+        <div className="hidden sm:block text-xs opacity-50 text-right">
+          {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '—'}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <button onClick={onStats} className="p-1.5 rounded-lg hover:bg-blue-500/20 transition-colors" title="Ver estadísticas">
+          <BarChart3 className="w-4 h-4 text-blue-400" />
+        </button>
+        <button onClick={onEdit} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" title="Editar">
+          <Edit className="w-4 h-4 opacity-70" />
+        </button>
+        <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors" title="Eliminar">
+          <Trash className="w-4 h-4 text-red-400" />
+        </button>
+        {user.org_status === 'invited' && onResend && (
+          <button onClick={onResend} className="p-1.5 rounded-lg hover:bg-amber-500/20 transition-colors" title="Reenviar">
+            <Mail className="w-4 h-4 text-amber-400" />
+          </button>
+        )}
+      </div>
+    </motion.div>
+  )
+}
+
+// ============================================
 // PÁGINA PRINCIPAL: Users Management
 // ============================================
 export default function BusinessPanelUsersPage() {
@@ -485,11 +635,26 @@ export default function BusinessPanelUsersPage() {
   const { users, stats, isLoading, error, refetch, createUser, updateUser, deleteUser, resendInvitation, suspendUser, activateUser } = useBusinessUsers()
   const { user: currentUser } = useAuth()
 
+  // View mode state
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
+  
+  // Search and filters
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterRegion, setFilterRegion] = useState('all')
+  const [filterZone, setFilterZone] = useState('all')
+  const [filterTeam, setFilterTeam] = useState('all')
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  
+  // Dropdown states
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false)
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false)
+  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false)
+  const [isZoneDropdownOpen, setIsZoneDropdownOpen] = useState(false)
+  const [isTeamDropdownOpen, setIsTeamDropdownOpen] = useState(false)
+  
+  // Modal states
   const [editingUser, setEditingUser] = useState<BusinessUser | null>(null)
   const [deletingUser, setDeletingUser] = useState<BusinessUser | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -500,7 +665,14 @@ export default function BusinessPanelUsersPage() {
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false)
   const [isUnifiedInviteModalOpen, setIsUnifiedInviteModalOpen] = useState(false)
 
-  // Theme Colors
+  // Extract unique values for hierarchy filters
+  const uniqueRegions = [...new Set(users.filter(u => u.region_name).map(u => u.region_name))]
+  const uniqueZones = [...new Set(users.filter(u => u.zone_name).map(u => u.zone_name))]
+  const uniqueTeams = [...new Set(users.filter(u => u.team_name).map(u => u.team_name))]
+  
+  // Count active filters
+  const activeFiltersCount = [filterRole, filterStatus, filterRegion, filterZone, filterTeam].filter(f => f !== 'all').length
+
   // Theme Colors
   const primaryColor = panelStyles?.primary_button_color || '#0A2540'
   const secondaryColor = panelStyles?.secondary_button_color || '#1E2329' // Usando fondo secundario oscuro como secundario default
@@ -513,8 +685,21 @@ export default function BusinessPanelUsersPage() {
       user.username.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = filterRole === 'all' || user.org_role === filterRole
     const matchesStatus = filterStatus === 'all' || user.org_status === filterStatus
-    return matchesSearch && matchesRole && matchesStatus
+    const matchesRegion = filterRegion === 'all' || user.region_name === filterRegion
+    const matchesZone = filterZone === 'all' || user.zone_name === filterZone
+    const matchesTeam = filterTeam === 'all' || user.team_name === filterTeam
+    return matchesSearch && matchesRole && matchesStatus && matchesRegion && matchesZone && matchesTeam
   })
+
+  // Clear all filters helper
+  const clearAllFilters = () => {
+    setFilterRole('all')
+    setFilterStatus('all')
+    setFilterRegion('all')
+    setFilterZone('all')
+    setFilterTeam('all')
+    setSearchTerm('')
+  }
 
   // Theme Logic
   const { resolvedTheme } = useThemeStore()
@@ -751,171 +936,314 @@ export default function BusinessPanelUsersPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="flex flex-col lg:flex-row gap-4"
+        className="space-y-4"
       >
-        {/* Search Input */}
-        <div className="flex-1 relative group">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 opacity-40 group-focus-within:opacity-70 transition-opacity" />
-          <input
-            type="text"
-            placeholder={t('users.placeholders.search')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 focus:outline-none transition-all duration-300"
-            style={{
-              backgroundColor: 'var(--org-card-background, #1E2329)',
-              borderColor: 'rgba(255,255,255,0.1)',
-              color: 'var(--org-text-color, #FFFFFF)'
-            }}
-          />
-        </div>
+        {/* Main Filter Row */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search Input */}
+          <div className="flex-1 relative group">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 opacity-40 group-focus-within:opacity-70 transition-opacity" />
+            <input
+              type="text"
+              placeholder={t('users.placeholders.search')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 focus:outline-none transition-all duration-300"
+              style={{
+                backgroundColor: 'var(--org-card-background, #1E2329)',
+                borderColor: 'rgba(255,255,255,0.1)',
+                color: 'var(--org-text-color, #FFFFFF)'
+              }}
+            />
+          </div>
 
-        {/* Role Filter - Custom Dropdown */}
-        <div className="relative min-w-[160px]">
+          {/* Role Filter */}
+          <div className="relative min-w-[140px]">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRoleDropdownOpen(!isRoleDropdownOpen)
+                setIsStatusDropdownOpen(false)
+                setIsRegionDropdownOpen(false)
+                setIsZoneDropdownOpen(false)
+                setIsTeamDropdownOpen(false)
+              }}
+              className="w-full px-4 py-3.5 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300"
+              style={{
+                backgroundColor: 'var(--org-card-background, #1E2329)',
+                borderColor: filterRole !== 'all' ? primaryColor : 'rgba(255,255,255,0.1)',
+                color: 'var(--org-text-color, #FFFFFF)'
+              }}
+            >
+              <span className="text-sm truncate">
+                {filterRole === 'all' ? t('users.roles.all') :
+                  filterRole === 'owner' ? t('users.roles.owner') :
+                    filterRole === 'admin' ? t('users.roles.admin') : t('users.roles.member')}
+              </span>
+              <motion.svg animate={{ rotate: isRoleDropdownOpen ? 180 : 0 }} className="w-4 h-4 opacity-50 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </motion.svg>
+            </button>
+            <AnimatePresence>
+              {isRoleDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50"
+                  style={{ backgroundColor: 'var(--org-card-background, #1E2329)', borderColor: 'rgba(255,255,255,0.15)' }}
+                >
+                  {[
+                    { value: 'all', label: t('users.roles.all') },
+                    { value: 'owner', label: t('users.roles.owner') },
+                    { value: 'admin', label: t('users.roles.admin') },
+                    { value: 'member', label: t('users.roles.member') }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => { setFilterRole(option.value); setIsRoleDropdownOpen(false) }}
+                      className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-white/5"
+                      style={{ backgroundColor: filterRole === option.value ? `${primaryColor}20` : 'transparent', color: filterRole === option.value ? (isDark ? '#FFFFFF' : primaryColor) : (isDark ? 'rgba(255,255,255,0.7)' : '#374151') }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Status Filter */}
+          <div className="relative min-w-[140px]">
+            <button
+              type="button"
+              onClick={() => {
+                setIsStatusDropdownOpen(!isStatusDropdownOpen)
+                setIsRoleDropdownOpen(false)
+                setIsRegionDropdownOpen(false)
+                setIsZoneDropdownOpen(false)
+                setIsTeamDropdownOpen(false)
+              }}
+              className="w-full px-4 py-3.5 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300"
+              style={{
+                backgroundColor: 'var(--org-card-background, #1E2329)',
+                borderColor: filterStatus !== 'all' ? accentColor : 'rgba(255,255,255,0.1)',
+                color: 'var(--org-text-color, #FFFFFF)'
+              }}
+            >
+              <span className="text-sm truncate">
+                {filterStatus === 'all' ? t('users.status.all') :
+                  filterStatus === 'active' ? t('users.status.active') :
+                    filterStatus === 'invited' ? t('users.status.invited') : t('users.status.suspended')}
+              </span>
+              <motion.svg animate={{ rotate: isStatusDropdownOpen ? 180 : 0 }} className="w-4 h-4 opacity-50 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </motion.svg>
+            </button>
+            <AnimatePresence>
+              {isStatusDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50"
+                  style={{ backgroundColor: 'var(--org-card-background, #1E2329)', borderColor: 'rgba(255,255,255,0.15)' }}
+                >
+                  {[
+                    { value: 'all', label: t('users.status.all') },
+                    { value: 'active', label: t('users.status.active') },
+                    { value: 'invited', label: t('users.status.invited') },
+                    { value: 'suspended', label: t('users.status.suspended') }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => { setFilterStatus(option.value); setIsStatusDropdownOpen(false) }}
+                      className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-white/5"
+                      style={{ backgroundColor: filterStatus === option.value ? `${accentColor}20` : 'transparent', color: filterStatus === option.value ? (isDark ? '#FFFFFF' : accentColor) : (isDark ? 'rgba(255,255,255,0.7)' : '#374151') }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Advanced Filters Toggle */}
           <button
-            type="button"
-            onClick={() => {
-              setIsRoleDropdownOpen(!isRoleDropdownOpen)
-              setIsStatusDropdownOpen(false)
-            }}
-            className="w-full px-4 py-3.5 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`px-4 py-3.5 rounded-xl border-2 flex items-center gap-2 transition-all duration-300 ${showAdvancedFilters ? 'bg-white/10' : ''}`}
             style={{
-              backgroundColor: 'var(--org-card-background, #1E2329)',
-              borderColor: filterRole !== 'all' ? primaryColor : 'rgba(255,255,255,0.1)',
+              backgroundColor: showAdvancedFilters ? `${primaryColor}20` : 'var(--org-card-background, #1E2329)',
+              borderColor: showAdvancedFilters || activeFiltersCount > 0 ? primaryColor : 'rgba(255,255,255,0.1)',
               color: 'var(--org-text-color, #FFFFFF)'
             }}
           >
-            <span className="text-sm">
-              {filterRole === 'all' ? t('users.roles.all') :
-                filterRole === 'owner' ? t('users.roles.owner') :
-                  filterRole === 'admin' ? t('users.roles.admin') : t('users.roles.member')}
-            </span>
-            <motion.svg
-              animate={{ rotate: isRoleDropdownOpen ? 180 : 0 }}
-              className="w-4 h-4 opacity-50"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </motion.svg>
+            <Filter className="w-4 h-4" />
+            <span className="text-sm hidden sm:inline">{t('users.filters.advanced', 'Más filtros')}</span>
+            {activeFiltersCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}>
+                {activeFiltersCount}
+              </span>
+            )}
           </button>
-          <AnimatePresence>
-            {isRoleDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50"
-                style={{
-                  backgroundColor: 'var(--org-card-background, #1E2329)',
-                  borderColor: 'rgba(255,255,255,0.15)'
-                }}
-              >
-                {[
-                  { value: 'all', label: t('users.roles.all') },
-                  { value: 'owner', label: t('users.roles.owner') },
-                  { value: 'admin', label: t('users.roles.admin') },
-                  { value: 'member', label: t('users.roles.member') }
-                ].map((option) => (
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center rounded-xl border-2 overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'var(--org-card-background, #1E2329)' }}>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`p-3.5 transition-all ${viewMode === 'cards' ? 'bg-white/10' : ''}`}
+              style={{ backgroundColor: viewMode === 'cards' ? `${primaryColor}30` : 'transparent' }}
+              title={t('users.view.cards', 'Vista tarjetas')}
+            >
+              <LayoutGrid className="w-5 h-5" style={{ color: viewMode === 'cards' ? primaryColor : 'rgba(255,255,255,0.5)' }} />
+            </button>
+            <div className="w-px h-6" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} />
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-3.5 transition-all ${viewMode === 'list' ? 'bg-white/10' : ''}`}
+              style={{ backgroundColor: viewMode === 'list' ? `${primaryColor}30` : 'transparent' }}
+              title={t('users.view.list', 'Vista lista')}
+            >
+              <List className="w-5 h-5" style={{ color: viewMode === 'list' ? primaryColor : 'rgba(255,255,255,0.5)' }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Advanced Filters Row */}
+        <AnimatePresence>
+          {showAdvancedFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-wrap gap-3 items-center p-4 rounded-xl border border-white/10"
+              style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+            >
+              {/* Region Filter */}
+              {uniqueRegions.length > 0 && (
+                <div className="relative min-w-[150px]">
                   <button
-                    key={option.value}
                     type="button"
                     onClick={() => {
-                      setFilterRole(option.value)
+                      setIsRegionDropdownOpen(!isRegionDropdownOpen)
                       setIsRoleDropdownOpen(false)
+                      setIsStatusDropdownOpen(false)
+                      setIsZoneDropdownOpen(false)
+                      setIsTeamDropdownOpen(false)
                     }}
-                    className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-current/5"
-                    style={{
-                      backgroundColor: filterRole === option.value ? `${primaryColor}20` : 'transparent',
-                      color: filterRole === option.value 
-                        ? (isDark ? '#FFFFFF' : primaryColor)
-                        : (isDark ? 'rgba(255,255,255,0.7)' : '#374151')
-                    }}
+                    className="w-full px-3 py-2.5 rounded-lg border flex items-center justify-between gap-2 text-sm"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: filterRegion !== 'all' ? accentColor : 'rgba(255,255,255,0.1)' }}
                   >
-                    {option.label}
+                    <div className="flex items-center gap-2 truncate">
+                      <MapPin className="w-4 h-4 opacity-60 flex-shrink-0" />
+                      <span className="truncate">{filterRegion === 'all' ? t('users.filters.allRegions', 'Todas las regiones') : filterRegion}</span>
+                    </div>
                   </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                  <AnimatePresence>
+                    {isRegionDropdownOpen && (
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-1 rounded-lg border overflow-hidden shadow-xl z-50 max-h-48 overflow-y-auto" style={{ backgroundColor: 'var(--org-card-background, #1E2329)', borderColor: 'rgba(255,255,255,0.15)' }}>
+                        <button onClick={() => { setFilterRegion('all'); setIsRegionDropdownOpen(false) }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/5" style={{ backgroundColor: filterRegion === 'all' ? `${accentColor}20` : 'transparent' }}>{t('users.filters.allRegions', 'Todas las regiones')}</button>
+                        {uniqueRegions.map(region => (
+                          <button key={region} onClick={() => { setFilterRegion(region || ''); setIsRegionDropdownOpen(false) }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/5" style={{ backgroundColor: filterRegion === region ? `${accentColor}20` : 'transparent' }}>{region}</button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
-        {/* Status Filter - Custom Dropdown */}
-        <div className="relative min-w-[160px]">
-          <button
-            type="button"
-            onClick={() => {
-              setIsStatusDropdownOpen(!isStatusDropdownOpen)
-              setIsRoleDropdownOpen(false)
-            }}
-            className="w-full px-4 py-3.5 rounded-xl border-2 flex items-center justify-between gap-2 transition-all duration-300"
-            style={{
-              backgroundColor: 'var(--org-card-background, #1E2329)',
-              borderColor: filterStatus !== 'all' ? accentColor : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
-              color: 'var(--org-text-color, #FFFFFF)'
-            }}
-          >
-            <span className="text-sm">
-              {filterStatus === 'all' ? t('users.status.all') :
-                filterStatus === 'active' ? t('users.status.active') :
-                  filterStatus === 'invited' ? t('users.status.invited') : t('users.status.suspended')}
-            </span>
-            <motion.svg
-              animate={{ rotate: isStatusDropdownOpen ? 180 : 0 }}
-              className="w-4 h-4 opacity-50"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </motion.svg>
-          </button>
-          <AnimatePresence>
-            {isStatusDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute top-full left-0 right-0 mt-2 rounded-xl border overflow-hidden shadow-2xl z-50"
-                style={{
-                  backgroundColor: 'var(--org-card-background, #1E2329)',
-                  borderColor: 'rgba(255,255,255,0.15)'
-                }}
-              >
-                {[
-                  { value: 'all', label: t('users.status.all') },
-                  { value: 'active', label: t('users.status.active') },
-                  { value: 'invited', label: t('users.status.invited') },
-                  { value: 'suspended', label: t('users.status.suspended') }
-                ].map((option) => (
+              {/* Zone Filter */}
+              {uniqueZones.length > 0 && (
+                <div className="relative min-w-[150px]">
                   <button
-                    key={option.value}
                     type="button"
                     onClick={() => {
-                      setFilterStatus(option.value)
+                      setIsZoneDropdownOpen(!isZoneDropdownOpen)
+                      setIsRoleDropdownOpen(false)
                       setIsStatusDropdownOpen(false)
+                      setIsRegionDropdownOpen(false)
+                      setIsTeamDropdownOpen(false)
                     }}
-                    className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-current/5"
-                    style={{
-                      backgroundColor: filterStatus === option.value ? `${accentColor}20` : 'transparent',
-                      color: filterStatus === option.value 
-                        ? (isDark ? '#FFFFFF' : accentColor)
-                        : (isDark ? 'rgba(255,255,255,0.7)' : '#374151')
-                    }}
+                    className="w-full px-3 py-2.5 rounded-lg border flex items-center justify-between gap-2 text-sm"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: filterZone !== 'all' ? accentColor : 'rgba(255,255,255,0.1)' }}
                   >
-                    {option.label}
+                    <div className="flex items-center gap-2 truncate">
+                      <Building2 className="w-4 h-4 opacity-60 flex-shrink-0" />
+                      <span className="truncate">{filterZone === 'all' ? t('users.filters.allZones', 'Todas las zonas') : filterZone}</span>
+                    </div>
                   </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                  <AnimatePresence>
+                    {isZoneDropdownOpen && (
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-1 rounded-lg border overflow-hidden shadow-xl z-50 max-h-48 overflow-y-auto" style={{ backgroundColor: 'var(--org-card-background, #1E2329)', borderColor: 'rgba(255,255,255,0.15)' }}>
+                        <button onClick={() => { setFilterZone('all'); setIsZoneDropdownOpen(false) }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/5" style={{ backgroundColor: filterZone === 'all' ? `${accentColor}20` : 'transparent' }}>{t('users.filters.allZones', 'Todas las zonas')}</button>
+                        {uniqueZones.map(zone => (
+                          <button key={zone} onClick={() => { setFilterZone(zone || ''); setIsZoneDropdownOpen(false) }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/5" style={{ backgroundColor: filterZone === zone ? `${accentColor}20` : 'transparent' }}>{zone}</button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Team Filter */}
+              {uniqueTeams.length > 0 && (
+                <div className="relative min-w-[150px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTeamDropdownOpen(!isTeamDropdownOpen)
+                      setIsRoleDropdownOpen(false)
+                      setIsStatusDropdownOpen(false)
+                      setIsRegionDropdownOpen(false)
+                      setIsZoneDropdownOpen(false)
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg border flex items-center justify-between gap-2 text-sm"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: filterTeam !== 'all' ? accentColor : 'rgba(255,255,255,0.1)' }}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <Network className="w-4 h-4 opacity-60 flex-shrink-0" />
+                      <span className="truncate">{filterTeam === 'all' ? t('users.filters.allTeams', 'Todos los equipos') : filterTeam}</span>
+                    </div>
+                  </button>
+                  <AnimatePresence>
+                    {isTeamDropdownOpen && (
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-full left-0 right-0 mt-1 rounded-lg border overflow-hidden shadow-xl z-50 max-h-48 overflow-y-auto" style={{ backgroundColor: 'var(--org-card-background, #1E2329)', borderColor: 'rgba(255,255,255,0.15)' }}>
+                        <button onClick={() => { setFilterTeam('all'); setIsTeamDropdownOpen(false) }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/5" style={{ backgroundColor: filterTeam === 'all' ? `${accentColor}20` : 'transparent' }}>{t('users.filters.allTeams', 'Todos los equipos')}</button>
+                        {uniqueTeams.map(team => (
+                          <button key={team} onClick={() => { setFilterTeam(team || ''); setIsTeamDropdownOpen(false) }} className="w-full px-3 py-2 text-left text-sm hover:bg-white/5" style={{ backgroundColor: filterTeam === team ? `${accentColor}20` : 'transparent' }}>{team}</button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Clear Filters */}
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                  {t('users.filters.clear', 'Limpiar filtros')}
+                </button>
+              )}
+
+              {/* Results Count */}
+              <div className="ml-auto text-sm opacity-60">
+                {filteredUsers.length} {t('users.filters.results', 'resultados')}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
-      {/* Users Grid or Empty State */}
+      {/* Users Grid/List or Empty State */}
       <AnimatePresence mode="wait">
         {filteredUsers.length === 0 ? (
           <EmptyState
@@ -924,7 +1252,7 @@ export default function BusinessPanelUsersPage() {
             primaryColor={primaryColor}
             secondaryColor={secondaryColor}
           />
-        ) : (
+        ) : viewMode === 'cards' ? (
           <motion.div
             key="grid"
             initial={{ opacity: 0 }}
@@ -934,6 +1262,36 @@ export default function BusinessPanelUsersPage() {
           >
             {filteredUsers.map((user, index) => (
               <UserCard
+                key={user.id}
+                user={user}
+                index={index}
+                primaryColor={primaryColor}
+                onEdit={() => { setEditingUser(user); setIsEditModalOpen(true) }}
+                onDelete={() => { setDeletingUser(user); setIsDeleteModalOpen(true) }}
+                onStats={() => { setStatsUser(user); setIsStatsModalOpen(true) }}
+                onResend={user.org_status === 'invited' ? () => resendInvitation(user.id) : undefined}
+                onSuspend={user.org_status === 'active' ? () => suspendUser(user.id) : undefined}
+                onActivate={user.org_status === 'suspended' ? () => activateUser(user.id) : undefined}
+              />
+            ))}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="list"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-2"
+          >
+            {/* List Header */}
+            <div className="hidden lg:grid grid-cols-5 gap-4 px-4 py-2 text-xs font-medium opacity-50 uppercase tracking-wider">
+              <div className="col-span-2">{t('users.list.name', 'Nombre')}</div>
+              <div>{t('users.list.hierarchy', 'Ubicación')}</div>
+              <div>{t('users.list.role', 'Rol / Estado')}</div>
+              <div className="text-right">{t('users.list.lastAccess', 'Último acceso')}</div>
+            </div>
+            {filteredUsers.map((user, index) => (
+              <UserListRow
                 key={user.id}
                 user={user}
                 index={index}
