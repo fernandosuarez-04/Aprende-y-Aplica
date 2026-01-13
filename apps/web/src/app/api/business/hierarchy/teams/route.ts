@@ -184,7 +184,22 @@ export async function POST(request: Request) {
         code: body.code?.trim() || null,
         max_members: body.max_members || null,
         metadata: body.metadata || {},
-        created_by: auth.userId
+        created_by: auth.userId,
+        // Campos de ubicación
+        address: body.address?.trim() || null,
+        city: body.city?.trim() || null,
+        state: body.state?.trim() || null,
+        country: body.country?.trim() || null,
+        postal_code: body.postal_code?.trim() || null,
+        latitude: body.latitude !== null && body.latitude !== undefined && body.latitude !== '' ? parseFloat(body.latitude) : null,
+        longitude: body.longitude !== null && body.longitude !== undefined && body.longitude !== '' ? parseFloat(body.longitude) : null,
+        // Campos de contacto
+        phone: body.phone?.trim() || null,
+        email: body.email?.trim() || null,
+        // Líder y objetivos
+        leader_id: body.leader_id || null,
+        target_goal: body.target_goal?.trim() || null,
+        monthly_target: body.monthly_target || null
       })
       .select(`
         *,

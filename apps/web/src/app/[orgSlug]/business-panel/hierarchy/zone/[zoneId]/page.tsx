@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -36,19 +35,10 @@ import {
   DeleteConfirmModal
 } from '@/features/business-panel/components/hierarchy'
 import { CourseSelectorModal } from '@/features/business-panel/components/hierarchy/CourseSelectorModal'
+import { CourseAssignmentResultModal } from '@/features/business-panel/components/hierarchy/CourseAssignmentResultModal'
 import { BusinessUsersService } from '@/features/business-panel/services/businessUsers.service'
 
-const HierarchyMap = dynamic(
-  () => import('@/features/business-panel/components/hierarchy/HierarchyMap'),
-  { 
-    ssr: false, 
-    loading: () => (
-      <div className="h-[400px] w-full rounded-2xl bg-[#1E2329] border border-white/10 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-white/20 animate-spin" />
-      </div>
-    )
-  }
-)
+import HierarchyMapWrapper from '@/features/business-panel/components/hierarchy/HierarchyMapWrapper'
 
 export default function ZoneDetailPage() {
   const params = useParams()
@@ -79,16 +69,33 @@ export default function ZoneDetailPage() {
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false)
   const [availableManagers, setAvailableManagers] = useState<ManagerInfo[]>([])
 
+  // Course assignment result modal
+  const [assignmentResult, setAssignmentResult] = useState<{
+    isOpen: boolean
+    success: boolean
+    message: string
+    entityName: string
+    totalUsers: number
+    results: Array<{
+      course_id: string
+      course_title?: string
+      success: boolean
+      assigned_count?: number
+      already_assigned_count?: number
+      error?: string
+      message?: string
+    }>
+  } | null>(null)
+
   // Courses state
   const [courses, setCourses] = useState<HierarchyCourse[]>([])
-  const [assignedCourses, setAssignedCourses] = useState<any[]>([])
 
   useEffect(() => {
     const loadManagers = async () => {
       const users = await BusinessUsersService.getOrganizationUsers()
       const managers = users
-        .filter(u => u.org_status === 'active')
-        .map(u => ({
+        .filter((u: any) => u.org_status === 'active')
+        .map((u: any) => ({
           id: u.id,
           email: u.email,
           display_name: u.display_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username,
@@ -105,14 +112,28 @@ export default function ZoneDetailPage() {
     if (!zone) return
     try {
       setIsLoading(true)
+      console.log('💾 Guardando zona con datos:', {
+        ...data,
+        latitude: data.latitude,
+        longitude: data.longitude
+      })
       const result = await HierarchyService.updateZone(zone.id, data)
       if (result.success && result.data) {
+        console.log('✅ Zona actualizada:', {
+          name: result.data.name,
+          latitude: result.data.latitude,
+          longitude: result.data.longitude
+        })
         setZone(result.data)
         setIsEditOpen(false)
+        // Recargar datos para asegurar que todo esté actualizado
+        await loadData()
       } else {
+        console.error('❌ Error al actualizar zona:', result.error)
         alert('Error al actualizar: ' + result.error)
       }
     } catch (err) {
+      console.error('❌ Error en handleUpdateZone:', err)
       alert('Error al actualizar la zona')
     } finally {
       setIsLoading(false)
@@ -181,40 +202,92 @@ export default function ZoneDetailPage() {
     }
   }
 
-  const handleAssignCourses = (courseIds: string[]) => {
-    console.log('Assigning courses:', courseIds)
-    setAssignedCourses(prev => [...prev, ...courseIds.map(id => ({ id, title: 'Curso Asignado (Simulado)', progress: 0 }))])
-    alert(`Se asignaron ${courseIds.length} cursos a la zona (Simulación)`)
+  const handleAssignCourses = async (courseIds: string[]) => {
+    if (!zone) return
+    
+    try {
+      setIsLoading(true)
+      const result = await HierarchyService.assignCoursesToEntity('zone', zone.id, courseIds)
+      
+      if (result.success && result.data) {
+        // Recargar cursos para mostrar los nuevos desde la BD
+        await loadData()
+        
+        const totalAssigned = result.data.results.reduce((acc: number, r: any) => acc + (r.assigned_count || 0), 0)
+        const totalUsers = result.data.total_users
+        
+        // Mostrar modal de éxito
+        setAssignmentResult({
+          isOpen: true,
+          success: true,
+          message: `${totalAssigned} curso(s) asignado(s) exitosamente a ${totalUsers} usuario(s) en la zona ${result.data.entity_name}`,
+          entityName: result.data.entity_name,
+          totalUsers: result.data.total_users,
+          results: result.data.results
+        })
+      } else {
+        // Mostrar modal de error
+        setAssignmentResult({
+          isOpen: true,
+          success: false,
+          message: result.error || 'Error desconocido al asignar cursos',
+          entityName: zone.name,
+          totalUsers: 0,
+          results: []
+        })
+      }
+    } catch (error: any) {
+      console.error('Error asignando cursos:', error)
+      // Mostrar modal de error
+      setAssignmentResult({
+        isOpen: true,
+        success: false,
+        message: error.message || 'Error desconocido al asignar cursos',
+        entityName: zone.name,
+        totalUsers: 0,
+        results: []
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true)
+      const [zoneData, teamsData, analyticsData, coursesData] = await Promise.all([
+        HierarchyService.getZone(zoneId),
+        HierarchyService.getTeams({ zoneId, withCounts: true, withLeader: true }),
+        HierarchyService.getVisualAnalytics('zone', zoneId),
+        HierarchyService.getEntityCourses('zone', zoneId)
+      ])
+      setZone(zoneData)
+      setTeams(teamsData)
+      setAnalytics(analyticsData)
+      setCourses(coursesData)
+      
+      // Debug: Log zona cargada
+      console.log('📍 Zona cargada:', {
+        name: zoneData?.name,
+        latitude: zoneData?.latitude,
+        longitude: zoneData?.longitude,
+        hasCoords: zoneData?.latitude != null && zoneData?.longitude != null
+      })
+    } catch (err) {
+      console.error('❌ Error cargando datos:', err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true)
-        const [zoneData, teamsData, analyticsData, coursesData] = await Promise.all([
-          HierarchyService.getZone(zoneId),
-          HierarchyService.getTeams({ zoneId, withCounts: true, withLeader: true }),
-          HierarchyService.getVisualAnalytics('zone', zoneId),
-          HierarchyService.getEntityCourses('zone', zoneId)
-        ])
-        setZone(zoneData)
-        setTeams(teamsData)
-        setAnalytics(analyticsData)
-        setCourses(coursesData)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    
     if (zoneId) {
       loadData()
     }
   }, [zoneId])
 
   const mapPoints = teams
-    .filter(t => t.latitude && t.longitude)
+    .filter(t => t.latitude != null && t.longitude != null && !isNaN(Number(t.latitude)) && !isNaN(Number(t.longitude)))
     .map(t => ({
       id: t.id,
       name: t.name,
@@ -241,7 +314,7 @@ export default function ZoneDetailPage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-20">
       <button 
         onClick={() => router.back()}
-        className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm"
+        className="flex items-center gap-2 text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors text-sm"
       >
         <ArrowLeft className="w-4 h-4" />
         Volver
@@ -278,9 +351,9 @@ export default function ZoneDetailPage() {
                   />
                 ) : (
                   <div 
-                    className="w-full h-full rounded-2xl flex items-center justify-center bg-gradient-to-br from-white/10 to-white/5 border border-white/10"
+                    className="w-full h-full rounded-2xl flex items-center justify-center bg-gradient-to-br from-white/10 to-white/5 border border-white/10 dark:bg-gradient-to-br dark:from-white/10 dark:to-white/5 dark:border-white/10"
                   >
-                    <Building2 className="w-16 h-16 text-white/20" />
+                    <Building2 className="w-16 h-16 text-gray-400 dark:text-white/20" />
                   </div>
                 )}
                 
@@ -305,27 +378,27 @@ export default function ZoneDetailPage() {
             <div className="flex-1 min-w-0 pt-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="text-4xl font-bold text-white mb-2 leading-tight">
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 leading-tight">
                     {zone.name}
                   </h1>
-                  <div className="flex flex-wrap items-center gap-4 text-white/60">
+                  <div className="flex flex-wrap items-center gap-4 text-gray-600 dark:text-white/60">
                     {zone.code && (
-                      <span className="bg-white/5 px-2 py-1 rounded-md text-sm font-mono border border-white/5">
+                      <span className="bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-md text-sm font-mono border border-gray-200 dark:border-white/5 text-gray-700 dark:text-white">
                         {zone.code}
                       </span>
                     )}
                     <span 
                       className={`px-2 py-1 rounded-full text-xs font-medium border ${
                         zone.is_active 
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                          : 'bg-red-500/10 text-red-400 border-red-500/20'
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
+                          : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
                       }`}
                     >
                       {zone.is_active ? 'Activa' : 'Inactiva'}
                     </span>
                     {(zone.city || zone.country) && (
-                      <span className="flex items-center gap-1 text-sm">
-                        <Globe className="w-4 h-4 opacity-50" />
+                      <span className="flex items-center gap-1 text-sm text-gray-600 dark:text-white/60">
+                        <Globe className="w-4 h-4 text-gray-500 dark:opacity-50" />
                         {[zone.city, zone.state, zone.country].filter(Boolean).join(', ')}
                       </span>
                     )}
@@ -335,40 +408,40 @@ export default function ZoneDetailPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setIsEditOpen(true)}
-                    className="p-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors group"
+                    className="p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors group"
                     title="Editar Zona"
                   >
-                    <Edit className="w-5 h-5 text-white/60 group-hover:text-white" />
+                    <Edit className="w-5 h-5 text-gray-600 dark:text-white/60 group-hover:text-gray-900 dark:group-hover:text-white" />
                   </button>
                   <button
                     onClick={() => setIsDeleteOpen(true)}
-                    className="p-3 rounded-xl border border-white/10 bg-white/5 hover:bg-red-500/20 transition-colors group"
+                    className="p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors group"
                     title="Eliminar Zona"
                   >
-                    <Trash2 className="w-5 h-5 text-white/60 group-hover:text-red-400" />
+                    <Trash2 className="w-5 h-5 text-gray-600 dark:text-white/60 group-hover:text-red-600 dark:group-hover:text-red-400" />
                   </button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
-                <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
                     <Network className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">{teams.length}</p>
-                    <p className="text-xs text-white/50">Equipos</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{teams.length}</p>
+                    <p className="text-xs text-gray-600 dark:text-white/50">Equipos</p>
                   </div>
                 </div>
-                <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-violet-500/20 text-violet-400">
                     <Users className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
                       {analytics?.users_count || teams.reduce((acc, t) => acc + (t.members_count || 0), 0)}
                     </p>
-                    <p className="text-xs text-white/50">Usuarios</p>
+                    <p className="text-xs text-gray-600 dark:text-white/50">Usuarios</p>
                   </div>
                 </div>
               </div>
@@ -413,7 +486,7 @@ export default function ZoneDetailPage() {
               style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
             >
               <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                <User className="w-5 h-5 text-white/60" />
+                <User className="w-5 h-5 text-gray-500 dark:text-white/60" />
                 Gerente de Zona
               </h3>
               
@@ -421,15 +494,21 @@ export default function ZoneDetailPage() {
                 <div className="text-center">
                   <div className="relative w-24 h-24 mx-auto mb-4">
                     {zone.manager.profile_picture_url ? (
-                      <Image
-                        src={zone.manager.profile_picture_url}
-                        alt={zone.manager.display_name || ''}
-                        fill
-                        className="rounded-full object-cover border-4 border-white/5"
-                      />
+                      <>
+                        <Image
+                          src={zone.manager.profile_picture_url}
+                          alt={zone.manager.display_name || ''}
+                          fill
+                          className="rounded-full object-cover border-4 border-white/5"
+                        />
+                        {/* Círculo indicador */}
+                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-[#1E2329] dark:border-[#1E2329]"></div>
+                      </>
                     ) : (
-                      <div className="w-full h-full rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl font-bold text-white border-4 border-white/5">
-                        {zone.manager.display_name?.charAt(0)}
+                      <div className="w-full h-full rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center border-4 border-white/5 relative">
+                        <User className="w-12 h-12 text-white" />
+                        {/* Círculo indicador */}
+                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-[#1E2329] dark:border-[#1E2329]"></div>
                       </div>
                     )}
                   </div>
@@ -452,12 +531,12 @@ export default function ZoneDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-10 text-white/30">
-                  <User className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <div className="text-center py-10 text-gray-500 dark:text-white/30">
+                  <User className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:opacity-20" />
                   <p>Sin gerente asignado</p>
                   <button 
                     onClick={() => setIsEditOpen(true)}
-                    className="mt-4 text-sm text-blue-400 hover:text-blue-300"
+                    className="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                   >
                     Asignar en edición
                   </button>
@@ -470,7 +549,7 @@ export default function ZoneDetailPage() {
               style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
             >
               <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-white/60" />
+                <TrendingUp className="w-5 h-5 text-gray-500 dark:text-white/60" />
                 Métricas de Rendimiento (Tiempo Real)
               </h3>
 
@@ -511,12 +590,12 @@ export default function ZoneDetailPage() {
                  </div>
               )}
 
-              <div className="h-48 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center relative overflow-hidden group">
+              <div className="h-48 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 flex items-center justify-center relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                 <div className="text-center">
-                  <BarChart3 className="w-12 h-12 text-white/20 mx-auto mb-3" />
-                  <p className="text-white/40">Gráfico de actividad semanal</p>
-                  <p className="text-xs text-white/20 mt-1">(Datos en tiempo real)</p>
+                  <BarChart3 className="w-12 h-12 text-gray-400 dark:text-white/20 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-white/40">Gráfico de actividad semanal</p>
+                  <p className="text-xs text-gray-400 dark:text-white/20 mt-1">(Datos en tiempo real)</p>
                 </div>
               </div>
             </div>
@@ -532,13 +611,13 @@ export default function ZoneDetailPage() {
           >
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Network className="w-5 h-5 text-white/40" />
+                <Network className="w-5 h-5 text-gray-500 dark:text-white/40" />
                 Equipos y Distribución
               </h2>
               <button
                 onClick={() => setIsNewTeamOpen(true)}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-white shadow-lg cursor-pointer hover:shadow-xl hover:translate-y-[-1px] transition-all flex items-center gap-2"
-                style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-white shadow-lg cursor-pointer hover:shadow-xl hover:translate-y-[-1px] transition-all flex items-center gap-2 drop-shadow-md"
+                style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}
               >
                 <Plus className="w-4 h-4" />
                 Nuevo Equipo
@@ -548,56 +627,56 @@ export default function ZoneDetailPage() {
             {/* Map Section */}
             {mapPoints.length > 0 ? (
                <div className="p-1">
-                 <HierarchyMap points={mapPoints} />
-                 <div className="px-6 py-2 text-xs text-white/40 flex items-center gap-2">
+                 <HierarchyMapWrapper points={mapPoints} />
+                 <div className="px-6 py-2 text-xs text-gray-600 dark:text-white/40 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-blue-500"></span> Equipo Estándar
                     <span className="w-2 h-2 rounded-full bg-amber-500 ml-4"></span> Equipo Destacado (Top Performer)
                  </div>
                </div>
             ) : (
-               <div className="p-6 text-center text-white/40 border-b border-white/10">
-                 <Globe className="w-12 h-12 mx-auto mb-3 opacity-20" />
+               <div className="p-6 text-center text-gray-500 dark:text-white/40 border-b border-gray-200 dark:border-white/10">
+                 <Globe className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:opacity-20" />
                  <p>No hay ubicaciones geográficas registradas para los equipos.</p>
                  <p className="text-xs mt-1">Configura la ubicación en cada equipo para verlos en el mapa.</p>
                </div>
             )}
             
             <div className="p-6">
-               <h3 className="font-semibold text-white mb-4">Listado de Equipos ({teams.length})</h3>
+               <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Listado de Equipos ({teams.length})</h3>
                {teams.length === 0 ? (
-                 <div className="text-center py-10 text-white/40">
+                 <div className="text-center py-10 text-gray-500 dark:text-white/40">
                    <p>No hay equipos registrados</p>
                    <button
                     onClick={() => setIsNewTeamOpen(true)}
-                    className="mt-4 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-colors"
+                    className="mt-4 px-4 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-gray-700 dark:text-white transition-colors"
                    >
                      Crear primer equipo
                    </button>
                  </div>
                ) : (
-                 <div className="divide-y divide-white/5">
+                 <div className="divide-y divide-gray-200 dark:divide-white/5">
                    {teams.map((team) => (
-                     <div key={team.id} className="py-4 hover:bg-white/5 transition-colors px-4 -mx-4 rounded-xl group">
+                     <div key={team.id} className="py-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-4 -mx-4 rounded-xl group">
                        <div className="flex items-center justify-between">
                          <div className="flex items-center gap-4">
-                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-white/10 to-transparent border border-white/10 flex items-center justify-center shrink-0 relative">
-                             <Network className="w-6 h-6 text-white/40" />
+                           <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gradient-to-br dark:from-white/10 dark:to-transparent border border-gray-200 dark:border-white/10 flex items-center justify-center shrink-0 relative">
+                             <Network className="w-6 h-6 text-gray-400 dark:text-white/40" />
                              {analytics?.top_performer?.id === team.id && (
-                               <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border-2 border-[#1E2329]" title="Top Performer" />
+                               <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border-2 border-white dark:border-[#1E2329]" title="Top Performer" />
                              )}
                            </div>
                            <div>
-                             <Link href={`/${orgSlug}/business-panel/hierarchy/team/${team.id}`} className="block group-hover:text-blue-400 transition-colors flex items-center gap-2">
-                               <h4 className="font-semibold text-lg">{team.name}</h4>
+                             <Link href={`/${orgSlug}/business-panel/hierarchy/team/${team.id}`} className="block group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center gap-2">
+                               <h4 className="font-semibold text-lg text-gray-900 dark:text-white">{team.name}</h4>
                                {analytics?.top_performer?.id === team.id && (
-                                  <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full font-bold">Top</span>
+                                  <span className="text-xs bg-amber-500/20 text-amber-600 dark:text-amber-500 px-2 py-0.5 rounded-full font-bold">Top</span>
                                )}
                              </Link>
-                             <div className="flex items-center gap-3 text-sm text-white/50">
-                               {team.code && <span className="font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded">{team.code}</span>}
-                               <span>•</span>
+                             <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-white/50">
+                               {team.code && <span className="font-mono text-xs bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-gray-700 dark:text-white">{team.code}</span>}
+                               <span className="text-gray-400 dark:text-white/30">•</span>
                                <span>Líder: {team.leader ? team.leader.display_name : 'N/A'}</span>
-                               <span>•</span>
+                               <span className="text-gray-400 dark:text-white/30">•</span>
                                <span>{team.members_count || 0} miembros</span>
                              </div>
                            </div>
@@ -605,7 +684,7 @@ export default function ZoneDetailPage() {
                          
                          <Link 
                            href={`/${orgSlug}/business-panel/hierarchy/team/${team.id}`}
-                           className="p-2 rounded-full hover:bg-white/10 text-white/30 hover:text-white transition-colors"
+                           className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white transition-colors"
                          >
                            <ChevronRight className="w-5 h-5" />
                          </Link>
@@ -626,12 +705,13 @@ export default function ZoneDetailPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-white">Plan de Aprendizaje de Zona</h2>
-                <p className="text-white/50">Gestiona los cursos asignados a los equipos de esta zona.</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Plan de Aprendizaje de Zona</h2>
+                <p className="text-gray-600 dark:text-white/50">Gestiona los cursos asignados a los equipos de esta zona.</p>
               </div>
               <button
                 onClick={() => setIsCourseModalOpen(true)}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-white shadow-lg cursor-pointer hover:bg-blue-600/90 transition-all flex items-center gap-2 bg-blue-600"
+                className="px-4 py-2 rounded-xl text-sm font-medium text-white shadow-lg cursor-pointer hover:shadow-xl hover:translate-y-[-1px] transition-all flex items-center gap-2 drop-shadow-md"
+                style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}
               >
                 <Plus className="w-4 h-4" />
                 Asignar Cursos
@@ -651,30 +731,19 @@ export default function ZoneDetailPage() {
                   />
                 ))
               ) : (
-                 assignedCourses.length === 0 && (
-                   <div className="col-span-full py-12 text-center text-white/40 border border-white/5 rounded-2xl bg-white/5">
-                      <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                      <p>No hay cursos con actividad en esta zona.</p>
-                   </div>
-                 )
+                 <div className="col-span-full py-12 text-center text-gray-500 dark:text-white/40 border border-gray-200 dark:border-white/5 rounded-2xl bg-gray-100 dark:bg-white/5">
+                    <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:opacity-20" />
+                    <p>No hay cursos con actividad en esta zona.</p>
+                 </div>
               )}
-               {assignedCourses.map((course, idx) => (
-                <CourseCard 
-                  key={`optimistic-${idx}`}
-                  title={course.title || "Curso Asignado (Pendiente)"}
-                  category="Asignado Recientemente"
-                  students={0}
-                  progress={0}
-                />
-              ))}
               <button
                 onClick={() => setIsCourseModalOpen(true)} 
-                className="rounded-2xl border-2 border-dashed border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center p-8 text-center h-full min-h-[200px] group"
+                className="rounded-2xl border-2 border-dashed border-gray-300 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-all flex flex-col items-center justify-center p-8 text-center h-full min-h-[200px] group"
               >
-                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Plus className="w-6 h-6 text-white/40" />
+                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Plus className="w-6 h-6 text-gray-400 dark:text-white/40" />
                 </div>
-                <h3 className="font-medium text-white">Asignar Nuevo Curso</h3>
+                <h3 className="font-medium text-gray-700 dark:text-white">Asignar Nuevo Curso</h3>
               </button>
             </div>
           </motion.div>
@@ -712,6 +781,18 @@ export default function ZoneDetailPage() {
         title={`Asignar a Zona ${zone.name}`}
       />
 
+      {assignmentResult && (
+        <CourseAssignmentResultModal
+          isOpen={assignmentResult.isOpen}
+          onClose={() => setAssignmentResult(null)}
+          success={assignmentResult.success}
+          message={assignmentResult.message}
+          entityName={assignmentResult.entityName}
+          totalUsers={assignmentResult.totalUsers}
+          results={assignmentResult.results}
+        />
+      )}
+
       <DeleteConfirmModal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
@@ -734,7 +815,7 @@ function TabButton({ active, children, onClick, icon }: { active: boolean; child
         px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap
         ${active 
           ? 'border-blue-500 text-white' 
-          : 'border-transparent text-white/50 hover:text-white hover:border-white/20'}
+          : 'border-transparent text-gray-600 dark:text-white/80 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-white/30'}
       `}
     >
       {icon}
@@ -751,15 +832,15 @@ function MetricCard({ label, value, trend, trendUp, color }: any) {
   }
   
   return (
-    <div className="p-4 rounded-xl bg-white/5 border border-white/5 relative overflow-hidden">
+    <div className="p-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 relative overflow-hidden">
       <div className="flex justify-between items-start mb-2">
-        <p className="text-white/40 text-xs uppercase tracking-wider">{label}</p>
+        <p className="text-gray-600 dark:text-white/40 text-xs uppercase tracking-wider">{label}</p>
         <div className={`px-1.5 py-0.5 rounded text-xs font-medium flex items-center gap-1 ${trendUp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
           {trendUp ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
           {trend}
         </div>
       </div>
-      <p className="text-3xl font-bold text-white">{value}</p>
+      <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
       <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-2xl opacity-20 ${colors[color].split(' ')[0]}`} />
     </div>
   )
@@ -767,25 +848,25 @@ function MetricCard({ label, value, trend, trendUp, color }: any) {
 
 function CourseCard({ title, category, students, progress, image }: any) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#1E2329] overflow-hidden group hover:border-white/20 transition-all flex flex-col h-full">
-      <div className="h-40 bg-neutral-800 relative overflow-hidden">
+    <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1E2329] overflow-hidden group hover:border-gray-300 dark:hover:border-white/20 transition-all flex flex-col h-full shadow-sm">
+      <div className="h-40 bg-gray-200 dark:bg-neutral-800 relative overflow-hidden">
         {image ? (
           <img src={image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
-          <div className="flex items-center justify-center h-full bg-gradient-to-br from-blue-900 to-slate-900">
-             <BookOpen className="w-10 h-10 text-white/20" />
+          <div className="flex items-center justify-center h-full bg-gradient-to-br from-blue-100 to-slate-100 dark:from-blue-900 dark:to-slate-900">
+             <BookOpen className="w-10 h-10 text-gray-400 dark:text-white/20" />
           </div>
         )}
-        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-medium text-white border border-white/10">
+        <div className="absolute top-3 right-3 bg-white/90 dark:bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-medium text-gray-700 dark:text-white border border-gray-200 dark:border-white/10">
           En curso
         </div>
       </div>
-      <div className="p-5 flex-1 flex flex-col">
-        <div className="text-xs text-blue-400 font-medium mb-1">{category}</div>
-        <h3 className="font-bold text-white text-lg mb-2 line-clamp-2">{title}</h3>
+      <div className="p-5 flex-1 flex flex-col bg-white dark:bg-[#1E2329]">
+        <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">{category}</div>
+        <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-2 line-clamp-2">{title}</h3>
         
         <div className="mt-auto pt-4 space-y-3">
-          <div className="flex items-center justify-between text-sm text-white/60">
+          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-white/60">
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4" />
               <span>{students} inscritos</span>
@@ -793,11 +874,11 @@ function CourseCard({ title, category, students, progress, image }: any) {
           </div>
           
           <div className="space-y-1">
-            <div className="flex justify-between text-xs text-white/50">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-white/50">
               <span>Progreso promedio</span>
               <span>{progress}%</span>
             </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
               <div style={{ width: `${progress}%` }} className="h-full bg-blue-500 rounded-full" />
             </div>
           </div>

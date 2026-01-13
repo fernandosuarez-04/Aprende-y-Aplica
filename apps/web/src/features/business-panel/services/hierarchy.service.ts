@@ -161,6 +161,45 @@ export class HierarchyService {
     return result.success ? result.data?.courses ?? [] : [];
   }
 
+  /**
+   * Asigna cursos a todos los usuarios de una entidad de jerarquía
+   */
+  static async assignCoursesToEntity(
+    entityType: 'region' | 'zone' | 'team',
+    entityId: string,
+    courseIds: string[],
+    options?: {
+      start_date?: string
+      due_date?: string
+      approach?: 'fast' | 'balanced' | 'long' | 'custom'
+      message?: string
+    }
+  ): Promise<ApiResponse<{
+    entity_type: string
+    entity_id: string
+    entity_name: string
+    total_users: number
+    results: Array<{
+      course_id: string
+      course_title?: string
+      success: boolean
+      assigned_count?: number
+      already_assigned_count?: number
+      error?: string
+      message?: string
+    }>
+  }>> {
+    return fetchApi(`/courses/assign`, {
+      method: 'POST',
+      body: JSON.stringify({
+        entity_type: entityType,
+        entity_id: entityId,
+        course_ids: courseIds,
+        ...options
+      })
+    })
+  }
+
   // =============================================
   // REGIONES
   // =============================================

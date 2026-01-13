@@ -201,7 +201,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'negocios',
     keywords: ['business', 'empresa', 'dashboard', 'estadísticas', 'administración', 'panel empresarial'],
     availableActions: ['Ver estadísticas generales', 'Ver cursos asignados', 'Ver actividad reciente', 'Navegar a secciones'],
-    relatedPages: ['/business-panel/teams', '/business-panel/users', '/business-panel/courses', '/business-panel/analytics'],
+    relatedPages: ['/business-panel/hierarchy', '/business-panel/users', '/business-panel/courses', '/business-panel/analytics'],
     features: ['Estadísticas de cursos', 'Métricas de progreso', 'Widgets de actividad', 'Gráficos de rendimiento'],
     contentSections: ['Tarjetas de estadísticas', 'Cursos en catálogo', 'Actividad reciente'],
     isBusinessOnly: true,
@@ -214,22 +214,22 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'negocios',
     keywords: ['dashboard', 'métricas', 'empresa', 'estadísticas'],
     availableActions: ['Ver progreso general', 'Ver actividad', 'Acceder a reportes'],
-    relatedPages: ['/business-panel/teams', '/business-panel/users', '/business-panel/courses'],
+    relatedPages: ['/business-panel/hierarchy', '/business-panel/users', '/business-panel/courses'],
     features: ['Estadísticas en tiempo real', 'Rankings de aprendizaje', 'Gráficos interactivos'],
     isBusinessOnly: true,
     allowedRoles: ['business', 'administrador']
   },
-  '/business-panel/teams': {
-    path: '/business-panel/teams',
-    title: 'Gestión de Equipos',
-    description: 'Crear y gestionar departamentos o grupos de trabajo. Asignar líderes, ver progreso por equipo, configurar objetivos grupales.',
+  '/business-panel/hierarchy': {
+    path: '/business-panel/hierarchy',
+    title: 'Jerarquía Organizacional',
+    description: 'Gestionar la estructura jerárquica de la organización: Regiones, Zonas y Equipos. Crear, editar y organizar la estructura completa de la empresa.',
     category: 'negocios',
-    keywords: ['equipos', 'teams', 'departamentos', 'grupos', 'líder', 'manager'],
-    availableActions: ['Crear equipo', 'Editar equipo', 'Eliminar equipo', 'Asignar líder', 'Ver miembros', 'Ver progreso del equipo'],
+    keywords: ['jerarquía', 'hierarchy', 'regiones', 'zonas', 'equipos', 'estructura organizacional'],
+    availableActions: ['Crear región', 'Crear zona', 'Crear equipo', 'Editar estructura', 'Asignar usuarios', 'Ver árbol jerárquico'],
     relatedPages: ['/business-panel/users', '/business-panel/courses', '/business-panel/analytics'],
-    features: ['Modal: Crear/Editar Equipo', 'Pestañas: Analíticas, Objetivos, Cursos, Miembros, Chat, Feedback', 'Asignación de líder'],
-    contentSections: ['Lista de equipos', 'Detalle de equipo con pestañas', 'Estadísticas por equipo'],
-    specialNotes: 'Al hacer clic en un equipo se abre su detalle con múltiples pestañas: Analíticas, Objetivos, Cursos, Miembros, Chat y Feedback.',
+    features: ['Árbol de jerarquía visual', 'Gestión de regiones, zonas y equipos', 'Asignación de usuarios a equipos', 'Estadísticas por nivel'],
+    contentSections: ['Árbol de jerarquía', 'Lista de regiones', 'Lista de zonas', 'Lista de equipos', 'Estadísticas'],
+    specialNotes: 'La jerarquía organiza la empresa en tres niveles: Regiones (nivel superior), Zonas (nivel intermedio) y Equipos (nivel más bajo). Los usuarios se asignan a equipos.',
     isBusinessOnly: true,
     allowedRoles: ['business', 'administrador']
   },
@@ -240,7 +240,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'negocios',
     keywords: ['usuarios', 'empleados', 'invitar', 'importar', 'CSV', 'roles', 'estadísticas'],
     availableActions: ['Agregar usuario', 'Editar usuario', 'Eliminar usuario', 'Importar CSV', 'Ver estadísticas', 'Asignar a equipo', 'Cambiar rol'],
-    relatedPages: ['/business-panel/teams', '/business-panel/courses'],
+    relatedPages: ['/business-panel/hierarchy', '/business-panel/courses'],
     features: ['Modal: Agregar Usuario', 'Modal: Editar Usuario', 'Modal: Eliminar Usuario', 'Modal: Importar CSV', 'Modal: Estadísticas de Usuario', 'Tabla de usuarios con filtros'],
     contentSections: ['Tabla de usuarios', 'Filtros y búsqueda', 'Acciones en lote'],
     specialNotes: 'Roles disponibles: Administrador (acceso total), Manager (solo su equipo), Estudiante (solo sus cursos). La importación CSV permite cargar múltiples empleados de una vez.',
@@ -254,7 +254,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'negocios',
     keywords: ['cursos', 'asignar', 'catálogo', 'formación', 'capacitación', 'deadline', 'fecha límite'],
     availableActions: ['Ver catálogo', 'Asignar curso a usuario', 'Asignar curso a equipo', 'Configurar fecha límite', 'Usar sugerencias de LIA'],
-    relatedPages: ['/business-panel/teams', '/business-panel/users', '/business-panel/analytics'],
+    relatedPages: ['/business-panel/hierarchy', '/business-panel/users', '/business-panel/analytics'],
     features: ['Grid de cursos', 'Modal: Asignar Curso (con pestañas Usuarios/Equipos)', 'Modal: Sugerencias de Fecha LIA', 'Configuración de deadline'],
     contentSections: ['Catálogo de cursos', 'Filtros', 'Indicadores de progreso'],
     specialNotes: 'El botón "✨ Sugerir con IA" abre un modal donde LIA recomienda fechas límite según 3 enfoques: Rápido (⚡), Equilibrado (⚖️) o Largo (🌱).',
@@ -268,7 +268,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'negocios',
     keywords: ['analytics', 'métricas', 'reportes', 'engagement', 'progreso', 'gráficos'],
     availableActions: ['Ver gráficos de progreso', 'Analizar engagement', 'Comparar equipos', 'Exportar CSV/PDF', 'Filtrar por fecha/equipo/curso'],
-    relatedPages: ['/business-panel/reports', '/business-panel/teams'],
+    relatedPages: ['/business-panel/reports', '/business-panel/hierarchy'],
     features: ['Gráficos de línea', 'Métricas de engagement', 'Exportación de datos', 'Filtros avanzados'],
     isBusinessOnly: true,
     allowedRoles: ['business', 'administrador']
@@ -280,7 +280,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'negocios',
     keywords: ['reportes', 'informes', 'exportar', 'datos', 'análisis'],
     availableActions: ['Generar reporte', 'Exportar CSV', 'Exportar PDF', 'Filtrar datos'],
-    relatedPages: ['/business-panel/analytics', '/business-panel/teams'],
+    relatedPages: ['/business-panel/analytics', '/business-panel/hierarchy'],
     features: ['Tablas exportables', 'Múltiples tipos de reportes', 'Filtros por fecha y entidad'],
     isBusinessOnly: true,
     allowedRoles: ['business', 'administrador']
@@ -318,7 +318,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'negocios',
     keywords: ['progreso', 'equipos', 'avance', 'alertas'],
     availableActions: ['Ver progreso por equipo', 'Identificar rezagados', 'Ver tendencias'],
-    relatedPages: ['/business-panel/teams', '/business-panel/analytics'],
+    relatedPages: ['/business-panel/hierarchy', '/business-panel/analytics'],
     features: ['Métricas visuales', 'Alertas automáticas', 'Comparativas'],
     isBusinessOnly: true,
     allowedRoles: ['business', 'administrador']
@@ -333,25 +333,13 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     category: 'negocios',
     keywords: ['empleado', 'cursos asignados', 'progreso', 'deadline', 'certificados'],
     availableActions: ['Ver cursos asignados', 'Ver progreso', 'Ver fechas límite', 'Descargar certificados', 'Continuar aprendizaje'],
-    relatedPages: ['/business-user/teams'],
+    relatedPages: ['/business-user/dashboard'],
     features: ['Branding corporativo', 'Cursos obligatorios', 'Indicadores de deadline', 'Certificados'],
     contentSections: ['Mis cursos asignados', 'Progreso', 'Próximas fechas', 'Logros'],
     specialNotes: 'Esta vista tiene el branding (logo y colores) de la empresa configurado por el administrador.',
     isBusinessOnly: true,
     allowedRoles: ['business user', 'business', 'administrador']
   },
-  '/business-user/teams': {
-    path: '/business-user/teams',
-    title: 'Mi Equipo',
-    description: 'Ver el equipo al que perteneces, chat con compañeros, objetivos del equipo.',
-    category: 'negocios',
-    keywords: ['equipo', 'compañeros', 'chat', 'objetivos'],
-    availableActions: ['Ver equipo', 'Chatear con compañeros', 'Ver objetivos'],
-    relatedPages: ['/business-user/dashboard'],
-    features: ['Información del equipo', 'Chat grupal', 'Objetivos compartidos'],
-    isBusinessOnly: true,
-    allowedRoles: ['business user', 'business', 'administrador']
-  }
 };
 
 /**

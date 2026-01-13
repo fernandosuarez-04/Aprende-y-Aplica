@@ -193,3 +193,8 @@ if (bugContext.length > 1500) {
 console.log('─'.repeat(60));
 console.log(`\nTotal: ${bugContext.length} caracteres, ~${PageContextService.estimateTokens(bugContext)} tokens\n`);
 
+
+
+
+
+

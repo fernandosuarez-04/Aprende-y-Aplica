@@ -57,6 +57,18 @@ export async function GET(request: Request) {
       );
     }
 
+    // Debug: Log coordenadas de las zonas
+    if (zones && zones.length > 0) {
+      logger.info('📍 Zonas obtenidas con coordenadas:', zones.map(z => ({
+        id: z.id,
+        name: z.name,
+        latitude: z.latitude,
+        longitude: z.longitude,
+        latitudeType: typeof z.latitude,
+        longitudeType: typeof z.longitude
+      })));
+    }
+
     let zonesWithCounts = zones || [];
 
     if (withCounts && zones && zones.length > 0) {
@@ -176,7 +188,20 @@ export async function POST(request: Request) {
         description: body.description?.trim() || null,
         code: body.code?.trim() || null,
         metadata: body.metadata || {},
-        created_by: auth.userId
+        created_by: auth.userId,
+        // Campos de ubicación
+        address: body.address?.trim() || null,
+        city: body.city?.trim() || null,
+        state: body.state?.trim() || null,
+        country: body.country?.trim() || null,
+        postal_code: body.postal_code?.trim() || null,
+        latitude: body.latitude !== null && body.latitude !== undefined && body.latitude !== '' ? parseFloat(body.latitude) : null,
+        longitude: body.longitude !== null && body.longitude !== undefined && body.longitude !== '' ? parseFloat(body.longitude) : null,
+        // Campos de contacto
+        phone: body.phone?.trim() || null,
+        email: body.email?.trim() || null,
+        // Gerente
+        manager_id: body.manager_id || null
       })
       .select(`
         *,

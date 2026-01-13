@@ -257,3 +257,8 @@ console.log(`  - Hits: ${cacheStats.hits}`);
 console.log(`  - Misses: ${cacheStats.misses}`);
 console.log(`  - Hit Rate: ${cacheStats.hitRate}%\n`);
 
+
+
+
+
+

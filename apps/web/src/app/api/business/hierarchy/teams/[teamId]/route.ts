@@ -162,6 +162,24 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (body.max_members !== undefined) updateData.max_members = body.max_members;
     if (typeof body.is_active === 'boolean') updateData.is_active = body.is_active;
     if (body.metadata !== undefined) updateData.metadata = body.metadata;
+    
+    // Campos de ubicación
+    if (body.address !== undefined) updateData.address = body.address?.trim() || null;
+    if (body.city !== undefined) updateData.city = body.city?.trim() || null;
+    if (body.state !== undefined) updateData.state = body.state?.trim() || null;
+    if (body.country !== undefined) updateData.country = body.country?.trim() || null;
+    if (body.postal_code !== undefined) updateData.postal_code = body.postal_code?.trim() || null;
+    if (body.latitude !== undefined) updateData.latitude = body.latitude !== null && body.latitude !== '' ? parseFloat(body.latitude) : null;
+    if (body.longitude !== undefined) updateData.longitude = body.longitude !== null && body.longitude !== '' ? parseFloat(body.longitude) : null;
+    
+    // Campos de contacto
+    if (body.phone !== undefined) updateData.phone = body.phone?.trim() || null;
+    if (body.email !== undefined) updateData.email = body.email?.trim() || null;
+    
+    // Líder y objetivos
+    if (body.leader_id !== undefined) updateData.leader_id = body.leader_id || null;
+    if (body.target_goal !== undefined) updateData.target_goal = body.target_goal?.trim() || null;
+    if (body.monthly_target !== undefined) updateData.monthly_target = body.monthly_target;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(

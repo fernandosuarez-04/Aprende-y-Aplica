@@ -176,8 +176,8 @@ export async function POST(request: Request) {
         state: body.state?.trim() || null,
         country: body.country?.trim() || 'México',
         postal_code: body.postal_code?.trim() || null,
-        latitude: body.latitude || null,
-        longitude: body.longitude || null,
+        latitude: body.latitude !== null && body.latitude !== undefined && body.latitude !== '' ? parseFloat(body.latitude) : null,
+        longitude: body.longitude !== null && body.longitude !== undefined && body.longitude !== '' ? parseFloat(body.longitude) : null,
         // Contacto
         phone: body.phone?.trim() || null,
         email: body.email?.trim() || null,

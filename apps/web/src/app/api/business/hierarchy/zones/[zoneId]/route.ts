@@ -87,6 +87,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const body = await request.json();
     const supabase = await createClient();
 
+    // Debug: Log datos recibidos
+    logger.info('📝 PUT /zones/[zoneId] - Datos recibidos:', {
+      zoneId,
+      latitude: body.latitude,
+      longitude: body.longitude,
+      latitudeType: typeof body.latitude,
+      longitudeType: typeof body.longitude
+    });
+
     // Verificar que la zona existe
     const { data: existingZone, error: fetchError } = await supabase
       .from('organization_zones')
@@ -127,6 +136,48 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (body.code !== undefined) updateData.code = body.code?.trim() || null;
     if (typeof body.is_active === 'boolean') updateData.is_active = body.is_active;
     if (body.metadata !== undefined) updateData.metadata = body.metadata;
+    
+    // Campos de ubicación
+    if (body.address !== undefined) updateData.address = body.address?.trim() || null;
+    if (body.city !== undefined) updateData.city = body.city?.trim() || null;
+    if (body.state !== undefined) updateData.state = body.state?.trim() || null;
+    if (body.country !== undefined) updateData.country = body.country?.trim() || null;
+    if (body.postal_code !== undefined) updateData.postal_code = body.postal_code?.trim() || null;
+    
+    // Procesar coordenadas con mejor manejo
+    if (body.latitude !== undefined) {
+      if (body.latitude === null || body.latitude === '' || body.latitude === undefined) {
+        updateData.latitude = null;
+      } else {
+        const latNum = typeof body.latitude === 'string' ? parseFloat(body.latitude) : body.latitude;
+        updateData.latitude = !isNaN(latNum) ? latNum : null;
+      }
+    }
+    if (body.longitude !== undefined) {
+      if (body.longitude === null || body.longitude === '' || body.longitude === undefined) {
+        updateData.longitude = null;
+      } else {
+        const lngNum = typeof body.longitude === 'string' ? parseFloat(body.longitude) : body.longitude;
+        updateData.longitude = !isNaN(lngNum) ? lngNum : null;
+      }
+    }
+    
+    // Debug: Log datos que se van a guardar
+    if (body.latitude !== undefined || body.longitude !== undefined) {
+      logger.info('🗺️ Coordenadas a guardar:', {
+        latitude: updateData.latitude,
+        longitude: updateData.longitude,
+        latitudeType: typeof updateData.latitude,
+        longitudeType: typeof updateData.longitude
+      });
+    }
+    
+    // Campos de contacto
+    if (body.phone !== undefined) updateData.phone = body.phone?.trim() || null;
+    if (body.email !== undefined) updateData.email = body.email?.trim() || null;
+    
+    // Gerente
+    if (body.manager_id !== undefined) updateData.manager_id = body.manager_id || null;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
@@ -150,14 +201,22 @@ export async function PUT(request: Request, { params }: RouteParams) {
       .single();
 
     if (error) {
-      logger.error('Error actualizando zona:', error);
+      logger.error('❌ Error actualizando zona:', error);
       return NextResponse.json(
         { success: false, error: 'Error al actualizar la zona' },
         { status: 500 }
       );
     }
 
-    logger.info('Zona actualizada:', { zoneId, changes: Object.keys(updateData) });
+    // Debug: Verificar coordenadas guardadas
+    logger.info('✅ Zona actualizada:', { 
+      zoneId, 
+      changes: Object.keys(updateData),
+      savedLatitude: zone?.latitude,
+      savedLongitude: zone?.longitude,
+      latitudeType: typeof zone?.latitude,
+      longitudeType: typeof zone?.longitude
+    });
 
     return NextResponse.json({
       success: true,

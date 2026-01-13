@@ -272,3 +272,8 @@ export function useErrorCapture(options: UseErrorCaptureOptions = {}) {
 
 export default useErrorCapture;
 
+
+
+
+
+

@@ -130,8 +130,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (body.state !== undefined) updateData.state = body.state?.trim() || null;
     if (body.country !== undefined) updateData.country = body.country?.trim() || null;
     if (body.postal_code !== undefined) updateData.postal_code = body.postal_code?.trim() || null;
-    if (body.latitude !== undefined) updateData.latitude = body.latitude;
-    if (body.longitude !== undefined) updateData.longitude = body.longitude;
+    if (body.latitude !== undefined) updateData.latitude = body.latitude !== null && body.latitude !== '' ? parseFloat(body.latitude) : null;
+    if (body.longitude !== undefined) updateData.longitude = body.longitude !== null && body.longitude !== '' ? parseFloat(body.longitude) : null;
     // Contacto
     if (body.phone !== undefined) updateData.phone = body.phone?.trim() || null;
     if (body.email !== undefined) updateData.email = body.email?.trim() || null;

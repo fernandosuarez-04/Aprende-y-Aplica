@@ -180,3 +180,8 @@ demoRoutes.forEach(route => {
   console.log(context.substring(0, 1000) + (context.length > 1000 ? '\n...[truncado]' : ''));
 });
 
+
+
+
+
+

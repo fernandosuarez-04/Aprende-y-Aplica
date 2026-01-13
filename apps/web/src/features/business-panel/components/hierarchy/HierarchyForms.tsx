@@ -5,20 +5,51 @@ import { Loader2, MapPin } from 'lucide-react';
 import type { Region, Zone, Team, ManagerInfo } from '../../types/hierarchy.types';
 import { formatFullAddress, getManagerDisplayName } from '../../types/hierarchy.types';
 
-async function geocodeAddress(data: { address?: string, city?: string, state?: string, country?: string, postal_code?: string }) {
-  const parts = [data.address, data.city, data.state, data.postal_code, data.country].filter(p => p && p.trim());
-  if (parts.length === 0) return null;
+async function geocodeAddress(data: { address?: string, city?: string, state?: string, country?: string, postal_code?: string }): Promise<{ lat: string; lon: string } | null> {
+  const parts = [data.address, data.city, data.state, data.postal_code, data.country].filter(p => p && typeof p === 'string' && p.trim().length > 0);
+  if (parts.length === 0) {
+    console.warn('Geocoding: No hay datos suficientes para buscar coordenadas');
+    return null;
+  }
   
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(parts.join(', '))}&limit=1`, {
-      headers: { 'Accept-Language': 'es' }
+    console.log('🔍 Iniciando geocoding para:', parts.join(', '));
+    
+    const res = await fetch('/api/business/hierarchy/geocode', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        country: data.country,
+        postal_code: data.postal_code
+      })
     });
-    if (!res.ok) return null;
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
+      console.error('❌ Geocoding API error:', errorData);
+      throw new Error(errorData.error || `Error ${res.status}: ${res.statusText}`);
+    }
+    
     const json = await res.json();
-    return json[0] ? { lat: json[0].lat, lon: json[0].lon } : null;
-  } catch (e) {
-    console.error(e);
+    
+    if (json.success && json.coordinates) {
+      console.log('✅ Geocoding exitoso:', json.coordinates);
+      return { 
+        lat: json.coordinates.lat.toString(), 
+        lon: json.coordinates.lon.toString() 
+      };
+    }
+    
+    console.warn('⚠️ Geocoding: No se encontraron coordenadas');
     return null;
+  } catch (e) {
+    console.error('❌ Error en geocoding:', e);
+    throw e; // Re-lanzar para que handleAutoLocate pueda manejarlo
   }
 }
 
@@ -143,16 +174,42 @@ export function RegionForm({ region, isOpen, onClose, onSave, isLoading, availab
 
   const handleAutoLocate = async () => {
     setIsGeocoding(true);
+    setError(null);
+    
+    // Validar que hay al menos ciudad o dirección
+    if (!formData.city && !formData.address) {
+      setError('Por favor, ingresa al menos una ciudad o dirección.');
+      setIsGeocoding(false);
+      return;
+    }
+    
     try {
       const coords = await geocodeAddress(formData);
       if (coords) {
-        setFormData(prev => ({ ...prev, latitude: coords.lat, longitude: coords.lon }));
+        console.log('✅ Coordenadas calculadas:', coords);
+        console.log('📝 Actualizando formData con:', { 
+          latitude: coords.lat, 
+          longitude: coords.lon,
+          latitudeType: typeof coords.lat,
+          longitudeType: typeof coords.lon
+        });
+        
+        setFormData(prev => {
+          const updated = { ...prev, latitude: coords.lat, longitude: coords.lon };
+          console.log('✅ formData actualizado:', {
+            latitude: updated.latitude,
+            longitude: updated.longitude
+          });
+          return updated;
+        });
         setError(null);
       } else {
-        setError('No se pudo encontrar la ubicación. Verifica la dirección.');
+        setError('No se pudo encontrar la ubicación. Intenta con una dirección más específica o verifica la ortografía.');
       }
     } catch (e) {
-      setError('Error al buscar coordenadas.');
+      const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+      console.error('❌ Error en handleAutoLocate:', e);
+      setError(`Error al buscar coordenadas: ${errorMessage}. Por favor, intenta de nuevo.`);
     } finally {
       setIsGeocoding(false);
     }
@@ -214,8 +271,18 @@ export function RegionForm({ region, isOpen, onClose, onSave, isLoading, availab
         state: formData.state.trim() || undefined,
         country: formData.country.trim() || undefined,
         postal_code: formData.postal_code.trim() || undefined,
-        latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-        longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+        latitude: formData.latitude && formData.latitude.trim() !== '' 
+          ? (() => {
+              const parsed = parseFloat(formData.latitude);
+              return !isNaN(parsed) ? parsed : null;
+            })()
+          : null,
+        longitude: formData.longitude && formData.longitude.trim() !== '' 
+          ? (() => {
+              const parsed = parseFloat(formData.longitude);
+              return !isNaN(parsed) ? parsed : null;
+            })()
+          : null,
         phone: formData.phone.trim() || undefined,
         email: formData.email.trim() || undefined,
         manager_id: formData.manager_id || undefined
@@ -516,16 +583,42 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
 
   const handleAutoLocate = async () => {
     setIsGeocoding(true);
+    setError(null);
+    
+    // Validar que hay al menos ciudad o dirección
+    if (!formData.city && !formData.address) {
+      setError('Por favor, ingresa al menos una ciudad o dirección.');
+      setIsGeocoding(false);
+      return;
+    }
+    
     try {
       const coords = await geocodeAddress(formData);
       if (coords) {
-        setFormData(prev => ({ ...prev, latitude: coords.lat, longitude: coords.lon }));
+        console.log('✅ Coordenadas calculadas:', coords);
+        console.log('📝 Actualizando formData con:', { 
+          latitude: coords.lat, 
+          longitude: coords.lon,
+          latitudeType: typeof coords.lat,
+          longitudeType: typeof coords.lon
+        });
+        
+        setFormData(prev => {
+          const updated = { ...prev, latitude: coords.lat, longitude: coords.lon };
+          console.log('✅ formData actualizado:', {
+            latitude: updated.latitude,
+            longitude: updated.longitude
+          });
+          return updated;
+        });
         setError(null);
       } else {
-        setError('No se pudo encontrar la ubicación. Verifica la dirección.');
+        setError('No se pudo encontrar la ubicación. Intenta con una dirección más específica o verifica la ortografía.');
       }
     } catch (e) {
-      setError('Error al buscar coordenadas.');
+      const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+      console.error('❌ Error en handleAutoLocate:', e);
+      setError(`Error al buscar coordenadas: ${errorMessage}. Por favor, intenta de nuevo.`);
     } finally {
       setIsGeocoding(false);
     }
@@ -533,6 +626,23 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
 
   useEffect(() => {
     if (zone) {
+      const latitudeStr = zone.latitude != null && !isNaN(Number(zone.latitude)) 
+        ? Number(zone.latitude).toString() 
+        : '';
+      const longitudeStr = zone.longitude != null && !isNaN(Number(zone.longitude)) 
+        ? Number(zone.longitude).toString() 
+        : '';
+      
+      console.log('📥 ZoneForm - Cargando zona:', {
+        name: zone.name,
+        latitude: zone.latitude,
+        longitude: zone.longitude,
+        latitudeStr,
+        longitudeStr,
+        latitudeType: typeof zone.latitude,
+        longitudeType: typeof zone.longitude
+      });
+
       setFormData({
         region_id: zone.region_id || '',
         name: zone.name || '',
@@ -543,8 +653,8 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
         state: zone.state || '',
         country: zone.country || 'México',
         postal_code: zone.postal_code || '',
-        latitude: zone.latitude?.toString() || '',
-        longitude: zone.longitude?.toString() || '',
+        latitude: latitudeStr,
+        longitude: longitudeStr,
         phone: zone.phone || '',
         email: zone.email || '',
         manager_id: zone.manager_id || ''
@@ -584,7 +694,21 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
     }
 
     try {
-      await onSave({
+      const latitudeValue = formData.latitude && formData.latitude.trim() !== '' 
+        ? (() => {
+            const parsed = parseFloat(formData.latitude);
+            return !isNaN(parsed) ? parsed : null;
+          })()
+        : null;
+      
+      const longitudeValue = formData.longitude && formData.longitude.trim() !== '' 
+        ? (() => {
+            const parsed = parseFloat(formData.longitude);
+            return !isNaN(parsed) ? parsed : null;
+          })()
+        : null;
+
+      const saveData = {
         region_id: formData.region_id,
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
@@ -594,12 +718,22 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
         state: formData.state.trim() || undefined,
         country: formData.country.trim() || undefined,
         postal_code: formData.postal_code.trim() || undefined,
-        latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-        longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+        latitude: latitudeValue,
+        longitude: longitudeValue,
         phone: formData.phone.trim() || undefined,
         email: formData.email.trim() || undefined,
         manager_id: formData.manager_id || undefined
+      };
+
+      console.log('💾 ZoneForm - Enviando datos:', {
+        ...saveData,
+        latitude: saveData.latitude,
+        longitude: saveData.longitude,
+        latitudeType: typeof saveData.latitude,
+        longitudeType: typeof saveData.longitude
       });
+
+      await onSave(saveData);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
@@ -792,16 +926,42 @@ export function TeamForm({ team, zones, selectedZoneId, isOpen, onClose, onSave,
 
   const handleAutoLocate = async () => {
     setIsGeocoding(true);
+    setError(null);
+    
+    // Validar que hay al menos ciudad o dirección
+    if (!formData.city && !formData.address) {
+      setError('Por favor, ingresa al menos una ciudad o dirección.');
+      setIsGeocoding(false);
+      return;
+    }
+    
     try {
       const coords = await geocodeAddress(formData);
       if (coords) {
-        setFormData(prev => ({ ...prev, latitude: coords.lat, longitude: coords.lon }));
+        console.log('✅ Coordenadas calculadas:', coords);
+        console.log('📝 Actualizando formData con:', { 
+          latitude: coords.lat, 
+          longitude: coords.lon,
+          latitudeType: typeof coords.lat,
+          longitudeType: typeof coords.lon
+        });
+        
+        setFormData(prev => {
+          const updated = { ...prev, latitude: coords.lat, longitude: coords.lon };
+          console.log('✅ formData actualizado:', {
+            latitude: updated.latitude,
+            longitude: updated.longitude
+          });
+          return updated;
+        });
         setError(null);
       } else {
-        setError('No se pudo encontrar la ubicación. Verifica la dirección.');
+        setError('No se pudo encontrar la ubicación. Intenta con una dirección más específica o verifica la ortografía.');
       }
     } catch (e) {
-      setError('Error al buscar coordenadas.');
+      const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+      console.error('❌ Error en handleAutoLocate:', e);
+      setError(`Error al buscar coordenadas: ${errorMessage}. Por favor, intenta de nuevo.`);
     } finally {
       setIsGeocoding(false);
     }
@@ -879,8 +1039,18 @@ export function TeamForm({ team, zones, selectedZoneId, isOpen, onClose, onSave,
         state: formData.state.trim() || undefined,
         country: formData.country.trim() || undefined,
         postal_code: formData.postal_code.trim() || undefined,
-        latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-        longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+        latitude: formData.latitude && formData.latitude.trim() !== '' 
+          ? (() => {
+              const parsed = parseFloat(formData.latitude);
+              return !isNaN(parsed) ? parsed : null;
+            })()
+          : null,
+        longitude: formData.longitude && formData.longitude.trim() !== '' 
+          ? (() => {
+              const parsed = parseFloat(formData.longitude);
+              return !isNaN(parsed) ? parsed : null;
+            })()
+          : null,
         phone: formData.phone.trim() || undefined,
         email: formData.email.trim() || undefined,
         leader_id: formData.leader_id || undefined
