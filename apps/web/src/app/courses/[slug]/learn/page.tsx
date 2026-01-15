@@ -622,40 +622,120 @@ export default function CourseLearnPage() {
   // 🎬 Contexto del VideoPlayer para Picture-in-Picture automático
   const videoPlayerContext = useVideoPlayerOptional();
   
-  // 🎬 Función para manejar cambio de tab con PiP automático
-  const handleTabChange = useCallback((newTab: "video" | "transcript" | "summary" | "activities" | "questions") => {
+  // 🎬 Función para manejar cambio de tab con PiP automático (estilo YouTube)
+  const handleTabChange = useCallback(async (newTab: "video" | "transcript" | "summary" | "activities" | "questions") => {
     // Si estamos cambiando desde "video" a otra pestaña
     if (activeTab === "video" && newTab !== "video") {
-      // Verificar si el video está reproduciéndose (tanto por contexto como por DOM directo)
-      const videoElement = document.querySelector('video');
-      const isVideoCurrentlyPlaying = videoPlayerContext?.isVideoPlaying || (videoElement && !videoElement.paused);
-      const isPiPAlreadyActive = videoPlayerContext?.isPiPActive || document.pictureInPictureElement;
-      
-      if (isVideoCurrentlyPlaying && !isPiPAlreadyActive) {
-        // Activar Picture-in-Picture automáticamente
-        if (videoElement) {
-          videoElement.requestPictureInPicture().catch(err => {
-            console.log('No se pudo activar PiP automáticamente:', err);
+      // Buscar el video element - usar selector más específico
+      const videoElement = document.querySelector('.aspect-video video') as HTMLVideoElement | null;
+
+      if (videoElement) {
+        const isVideoCurrentlyPlaying = !videoElement.paused;
+        const isPiPAlreadyActive = !!document.pictureInPictureElement;
+        const isPiPSupported = document.pictureInPictureEnabled && 'requestPictureInPicture' in videoElement;
+
+        // Debug log
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[PiP] Tab change:', {
+            from: activeTab,
+            to: newTab,
+            isPlaying: isVideoCurrentlyPlaying,
+            isPiPActive: isPiPAlreadyActive,
+            isPiPSupported
           });
+        }
+
+        // Activar PiP si el video está reproduciéndose y PiP no está activo
+        if (isVideoCurrentlyPlaying && !isPiPAlreadyActive && isPiPSupported) {
+          try {
+            await videoElement.requestPictureInPicture();
+            videoPlayerContext?.setIsPiPActive(true);
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[PiP] Activated successfully');
+            }
+          } catch (err) {
+            console.log('[PiP] Could not activate:', err);
+          }
         }
       }
     }
-    
+
     // Si volvemos al tab de video, salir de PiP
     if (newTab === "video" && activeTab !== "video") {
       if (document.pictureInPictureElement) {
         // Guardar progreso del video en PiP antes de cerrarlo
         const pipVideo = document.pictureInPictureElement as HTMLVideoElement;
+        const currentTime = pipVideo.currentTime;
+        const wasPlaying = !pipVideo.paused;
+
         if (currentLesson && videoPlayerContext) {
-          videoPlayerContext.saveVideoProgress(currentLesson.lesson_id, pipVideo.currentTime);
+          videoPlayerContext.saveVideoProgress(currentLesson.lesson_id, currentTime);
         }
 
-        document.exitPictureInPicture().catch(err => {
-          console.log('No se pudo desactivar PiP:', err);
-        });
+        // 🔧 CRITICAL: Pause the PiP video BEFORE exiting PiP
+        // This prevents audio continuing after PiP closes
+        pipVideo.pause();
+
+        try {
+          await document.exitPictureInPicture();
+          videoPlayerContext?.setIsPiPActive(false);
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[PiP] Exited, saved time:', currentTime, 'wasPlaying:', wasPlaying);
+          }
+        } catch (err) {
+          console.log('[PiP] Could not exit:', err);
+        }
+
+        // 🔧 FIX: Set flag to auto-play when VideoContent mounts
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[handleTabChange] About to set shouldAutoPlay:', { wasPlaying, hasContext: !!videoPlayerContext });
+        }
+
+        if (wasPlaying) {
+          // Set the flag regardless of context - use ref directly
+          if (videoPlayerContext) {
+            videoPlayerContext.setShouldAutoPlay(true);
+          }
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[handleTabChange] Set shouldAutoPlay to true');
+          }
+        }
+
+        // Change tab - VideoContent will handle auto-play based on shouldAutoPlay flag
+        setActiveTab(newTab);
+
+        // 🔧 FALLBACK: Try directly after a delay - this is the main mechanism now
+        if (wasPlaying) {
+          setTimeout(() => {
+            const mainVideo = document.querySelector('.aspect-video video') as HTMLVideoElement | null;
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[handleTabChange] Fallback check:', {
+                hasVideo: !!mainVideo,
+                isPaused: mainVideo?.paused,
+                readyState: mainVideo?.readyState
+              });
+            }
+            if (mainVideo && mainVideo.paused) {
+              mainVideo.currentTime = currentTime;
+              mainVideo.play().then(() => {
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[handleTabChange] Fallback play SUCCESS');
+                }
+              }).catch((err) => {
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[handleTabChange] Fallback play failed:', err);
+                }
+              });
+              videoPlayerContext?.setShouldAutoPlay(false);
+            }
+          }, 500);
+        }
+
+        return; // Exit early since we already called setActiveTab
       }
     }
-    
+
     setActiveTab(newTab);
   }, [activeTab, videoPlayerContext, currentLesson]);
 
@@ -717,8 +797,10 @@ export default function CourseLearnPage() {
       Array<{
         activity_id: string;
         activity_title: string;
+        activity_description?: string;
         activity_type: string;
         is_required: boolean;
+        is_completed?: boolean;
       }>
     >
   >({});
@@ -961,6 +1043,9 @@ export default function CourseLearnPage() {
         return;
       }
 
+      // 🔧 FIX: Pause all videos before changing lesson to prevent double audio
+      videoPlayerContext?.pauseAllVideos();
+
       // Si no hay lección actual, cambiar directamente
       if (!currentLesson) {
         setCurrentLesson(lesson);
@@ -1076,7 +1161,7 @@ export default function CourseLearnPage() {
         lessonTitle: lesson.lesson_title,
       });
     },
-    [currentLesson, lessonsActivities, trackUserAction]
+    [currentLesson, lessonsActivities, trackUserAction, videoPlayerContext]
   );
 
   // Limpiar prompts cuando se cambia de tab
@@ -1597,7 +1682,7 @@ export default function CourseLearnPage() {
         lessonTitle: currentLesson.lesson_title,
         lessonDescription: currentLesson.lesson_description,
         durationSeconds: currentLesson.duration_seconds,
-        userRole: user?.type_rol || undefined,
+        userRole: user?.job_title || undefined,
       };
     }
 
@@ -1612,7 +1697,7 @@ export default function CourseLearnPage() {
       lessonTitle: currentLesson.lesson_title,
       lessonDescription: currentLesson.lesson_description,
       durationSeconds: currentLesson.duration_seconds,
-      userRole: user?.type_rol || undefined,
+      userRole: user?.job_title || undefined,
       // transcriptContent y summaryContent se cargan bajo demanda desde sus respectivos endpoints
     };
   };
@@ -1895,7 +1980,7 @@ export default function CourseLearnPage() {
                         durationSeconds: l.durationSeconds,
                       })),
                     })),
-                    userRole: user?.type_rol || undefined,
+                    userRole: user?.job_title || undefined,
                   };
                   setWorkshopMetadata(workshopContext);
                 }
@@ -2730,6 +2815,9 @@ export default function CourseLearnPage() {
   const navigateToPreviousLesson = () => {
     const previousLesson = getPreviousLesson();
     if (previousLesson) {
+      // 🔧 FIX: Pause all videos before changing lesson to prevent double audio
+      videoPlayerContext?.pauseAllVideos();
+
       setCurrentLesson(previousLesson);
       // Cambiar al tab de video cuando navegas
       setActiveTab("video");
@@ -2742,6 +2830,9 @@ export default function CourseLearnPage() {
   const navigateToNextLesson = async () => {
     const nextLesson = getNextLesson();
     if (nextLesson && currentLesson) {
+      // 🔧 FIX: Pause all videos before changing lesson to prevent double audio
+      videoPlayerContext?.pauseAllVideos();
+
       // Guardar la lección anterior antes de cambiar
       const previousLesson = currentLesson;
 
@@ -2935,11 +3026,11 @@ export default function CourseLearnPage() {
           ? {
               ...workshopMetadata,
               moduleTitle: modules.find((m) =>
-                m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
+                m.lessons.some((l) => l.lesson_id === currentLesson?.lesson_id)
               )?.module_title,
-              lessonTitle: currentLesson.lesson_title,
-              lessonDescription: currentLesson.lesson_description,
-              durationSeconds: currentLesson.duration_seconds,
+              lessonTitle: currentLesson?.lesson_title,
+              lessonDescription: currentLesson?.lesson_description,
+              durationSeconds: currentLesson?.duration_seconds,
             }
           : currentLesson && course
             ? {
@@ -2961,7 +3052,7 @@ export default function CourseLearnPage() {
         const enrichedLessonContext = baseContext
           ? {
               ...baseContext,
-              userRole: user?.type_rol || undefined,
+              userRole: user?.job_title || undefined,
               // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
               activitiesContext: {
                 totalActivities: currentActivities.length,
@@ -4256,8 +4347,8 @@ export default function CourseLearnPage() {
                           style={{
                             fontFamily: "Inter, sans-serif",
                             fontWeight: isActive ? 600 : 500,
+                            scrollSnapAlign: "start",
                           }}
-                          style={{ scrollSnapAlign: "start" }}
                         >
                           <Icon className="w-4 h-4 shrink-0" />
                           <span
@@ -4327,7 +4418,7 @@ export default function CourseLearnPage() {
                           lesson={currentLesson}
                           slug={slug}
                           onPromptsChange={handlePromptsChange}
-                          userRole={user?.type_rol}
+                          userRole={user?.job_title}
                           onNavigateNext={navigateToNextLesson}
                           hasNextLesson={!!getNextLesson()}
                           selectedLang={selectedLang}
@@ -4679,6 +4770,8 @@ export default function CourseLearnPage() {
                       );
 
                       if (lessonToShow) {
+                        // 🔧 FIX: Pause all videos before changing lesson
+                        videoPlayerContext?.pauseAllVideos();
                         // Cambiar a la lección correspondiente
                         setCurrentLesson(lessonToShow.lesson);
                         // Cambiar al tab de actividades
@@ -4791,95 +4884,180 @@ function VideoContent({
   const isLastLesson = !hasNextLesson;
 
   // 🎬 Efecto para detectar play/pause del elemento video nativo y eventos de PiP
+  // 🔧 FIXED: Race condition and proper cleanup to prevent double audio
   useEffect(() => {
     let cleanupFn: (() => void) | undefined;
-    
+    let isSetup = false;
+    let retryTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    let currentVideoElement: HTMLVideoElement | null = null;
+
+    // 🔧 FIX: Capture context functions at effect start to avoid stale closures
+    // and prevent infinite loops from context changes
+    const ctx = videoPlayerContext;
+
+    // 🔧 FIX: Use a more specific selector with a unique identifier
+    const findVideoElement = (): HTMLVideoElement | null => {
+      const videoContainer = document.querySelector('.aspect-video video');
+      return videoContainer as HTMLVideoElement | null;
+    };
+
     // Función para configurar listeners del video
-    const setupVideoListeners = () => {
-      const videoElement = document.querySelector('video');
-      if (videoElement) {
-        // 🔄 RESTAURAR TIEMPO: Si hay un tiempo guardado, restaurarlo
-        if (videoPlayerContext && lesson.lesson_id) {
-          const savedTime = videoPlayerContext.getVideoProgress(lesson.lesson_id);
+    const setupVideoListeners = (): boolean => {
+      if (isSetup) return true;
+
+      const videoElement = findVideoElement();
+      if (!videoElement) return false;
+
+      currentVideoElement = videoElement;
+      isSetup = true;
+
+      // 🔄 RESTAURAR TIEMPO Y AUTO-PLAY: Si hay un tiempo guardado, restaurarlo
+      // También auto-reproducir si venimos de PiP (shouldAutoPlay flag)
+      if (ctx && lesson.lesson_id) {
+        const savedTime = ctx.getVideoProgress(lesson.lesson_id);
+        // Use ref for immediate reading (not affected by React state batching)
+        const shouldAutoPlayVideo = ctx.shouldAutoPlayRef?.current || false;
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[VideoContent] Setup:', { savedTime, shouldAutoPlayVideo, readyState: videoElement.readyState });
+        }
+
+        const restoreAndPlay = () => {
+          // Re-check the ref at execution time (might have changed)
+          const shouldPlay = ctx.shouldAutoPlayRef?.current || false;
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[VideoContent] restoreAndPlay called:', { readyState: videoElement.readyState, shouldPlay, savedTime });
+          }
+
           if (savedTime > 0) {
-            // Pequeño hack para asegurar que el video esté listo
-            if (videoElement.readyState >= 1) {
-              videoElement.currentTime = savedTime;
-            } else {
-              videoElement.addEventListener('loadedmetadata', () => {
-                videoElement.currentTime = savedTime;
-              }, { once: true });
+            videoElement.currentTime = savedTime;
+          }
+          // Auto-play if coming back from PiP
+          if (shouldPlay) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[VideoContent] Attempting auto-play...');
             }
-          }
-        }
-
-        const onPlay = () => {
-          videoPlayerContext?.setIsVideoPlaying(true);
-        };
-        const onPause = () => {
-          videoPlayerContext?.setIsVideoPlaying(false);
-        };
-        const onEnded = () => {
-          videoPlayerContext?.setIsVideoPlaying(false);
-        };
-        const onEnterPiP = () => {
-          videoPlayerContext?.setIsPiPActive(true);
-        };
-        const onLeavePiP = () => {
-          videoPlayerContext?.setIsPiPActive(false);
-        };
-        const onTimeUpdate = () => {
-          currentTimeRef.current = videoElement.currentTime;
-        };
-
-        // Añadir listeners
-        videoElement.addEventListener('play', onPlay);
-        videoElement.addEventListener('pause', onPause);
-        videoElement.addEventListener('ended', onEnded);
-        videoElement.addEventListener('enterpictureinpicture', onEnterPiP);
-        videoElement.addEventListener('leavepictureinpicture', onLeavePiP);
-        videoElement.addEventListener('timeupdate', onTimeUpdate);
-
-        // Actualizar estado inicial si el video ya está reproduciéndose
-        if (!videoElement.paused) {
-          videoPlayerContext?.setIsVideoPlaying(true);
-        }
-
-        cleanupFn = () => {
-          videoElement.removeEventListener('play', onPlay);
-          videoElement.removeEventListener('pause', onPause);
-          videoElement.removeEventListener('ended', onEnded);
-          videoElement.removeEventListener('enterpictureinpicture', onEnterPiP);
-          videoElement.removeEventListener('leavepictureinpicture', onLeavePiP);
-          videoElement.removeEventListener('timeupdate', onTimeUpdate);
-
-          // Guardar progreso al desmontar (si no hay PiP activo, o como backup)
-          if (videoPlayerContext && lesson.lesson_id) {
-            videoPlayerContext.saveVideoProgress(lesson.lesson_id, currentTimeRef.current);
+            videoElement.play().then(() => {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[VideoContent] Auto-play successful');
+              }
+            }).catch((err) => {
+              // Autoplay may be blocked by browser
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[VideoContent] Autoplay blocked:', err);
+              }
+            });
+            // Clear the flag immediately (both ref and state)
+            ctx.setShouldAutoPlay(false);
           }
         };
-        
-        return true;
+
+        // Try multiple approaches to ensure video plays
+        if (videoElement.readyState >= 3) {
+          // HAVE_FUTURE_DATA or more - video is ready to play
+          restoreAndPlay();
+        } else if (videoElement.readyState >= 1) {
+          // HAVE_METADATA - metadata loaded but not enough data
+          // Wait for canplay event
+          videoElement.addEventListener('canplay', restoreAndPlay, { once: true });
+        } else {
+          // Not loaded yet - wait for loadedmetadata then canplay
+          videoElement.addEventListener('loadedmetadata', () => {
+            if (videoElement.readyState >= 3) {
+              restoreAndPlay();
+            } else {
+              videoElement.addEventListener('canplay', restoreAndPlay, { once: true });
+            }
+          }, { once: true });
+        }
       }
-      return false;
+
+      const onPlay = () => {
+        ctx?.setIsVideoPlaying(true);
+      };
+      const onPause = () => {
+        ctx?.setIsVideoPlaying(false);
+      };
+      const onEnded = () => {
+        ctx?.setIsVideoPlaying(false);
+      };
+      const onEnterPiP = () => {
+        ctx?.setIsPiPActive(true);
+      };
+      const onLeavePiP = () => {
+        ctx?.setIsPiPActive(false);
+      };
+      const onTimeUpdate = () => {
+        currentTimeRef.current = videoElement.currentTime;
+      };
+
+      videoElement.addEventListener('play', onPlay);
+      videoElement.addEventListener('pause', onPause);
+      videoElement.addEventListener('ended', onEnded);
+      videoElement.addEventListener('enterpictureinpicture', onEnterPiP);
+      videoElement.addEventListener('leavepictureinpicture', onLeavePiP);
+      videoElement.addEventListener('timeupdate', onTimeUpdate);
+
+      if (!videoElement.paused) {
+        ctx?.setIsVideoPlaying(true);
+      }
+
+      cleanupFn = () => {
+        videoElement.removeEventListener('play', onPlay);
+        videoElement.removeEventListener('pause', onPause);
+        videoElement.removeEventListener('ended', onEnded);
+        videoElement.removeEventListener('enterpictureinpicture', onEnterPiP);
+        videoElement.removeEventListener('leavepictureinpicture', onLeavePiP);
+        videoElement.removeEventListener('timeupdate', onTimeUpdate);
+
+        // 🔧 CRITICAL FIX: Pause video on cleanup to prevent double audio
+        // BUT: If video is in PiP mode, let it continue playing (YouTube-style behavior)
+        const isInPiP = document.pictureInPictureElement === videoElement;
+        if (!videoElement.paused && !isInPiP) {
+          videoElement.pause();
+        }
+      };
+
+      return true;
     };
 
-    // Intentar encontrar el video inmediatamente
     const found = setupVideoListeners();
-    
-    // Si no se encontró, intentar después de un delay (el video puede tardar en cargarse)
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
     if (!found) {
-      timeoutId = setTimeout(() => {
-        setupVideoListeners();
-      }, 1000);
+      retryTimeoutId = setTimeout(() => {
+        if (!isSetup) {
+          setupVideoListeners();
+        }
+      }, 500);
+
+      const fallbackTimeoutId = setTimeout(() => {
+        if (!isSetup) {
+          setupVideoListeners();
+        }
+      }, 1500);
+
+      const originalCleanup = cleanupFn;
+      cleanupFn = () => {
+        clearTimeout(fallbackTimeoutId);
+        originalCleanup?.();
+      };
     }
-    
+
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (retryTimeoutId) clearTimeout(retryTimeoutId);
       if (cleanupFn) cleanupFn();
+
+      // 🔧 FIX: Don't pause if video is in PiP mode (YouTube-style behavior)
+      const isInPiP = currentVideoElement && document.pictureInPictureElement === currentVideoElement;
+      if (currentVideoElement && !currentVideoElement.paused && !isInPiP) {
+        currentVideoElement.pause();
+      }
     };
-  }, [lesson.lesson_id, videoPlayerContext]);
+    // 🔧 FIX: Only depend on lesson.lesson_id, not videoPlayerContext
+    // to prevent infinite update loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lesson.lesson_id]);
 
   return (
     <div className="space-y-6 pb-16 md:pb-6">
@@ -5308,49 +5486,49 @@ function TranscriptContent({
             <div className="relative p-8 prose prose-slate dark:prose-invert max-w-none">
               <ReactMarkdown
                 components={{
-                  h1: ({ node, ...props }) => (
+                  h1: ({ node, ref, ...props }) => (
                     <h1
                       className="text-2xl font-bold text-gray-900 dark:text-white mb-6 mt-8 flex items-center gap-2 not-prose"
                       {...props}
                     />
                   ),
-                  h2: ({ node, ...props }) => (
+                  h2: ({ node, ref, ...props }) => (
                     <h2
                       className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-8 pb-2 border-b border-gray-200 dark:border-white/5 not-prose"
                       {...props}
                     />
                   ),
-                  h3: ({ node, ...props }) => (
+                  h3: ({ node, ref, ...props }) => (
                     <h3
                       className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose"
                       {...props}
                     />
                   ),
-                  strong: ({ node, ...props }) => (
+                  strong: ({ node, ref, ...props }) => (
                     <strong className="font-bold text-gray-900 dark:text-white" {...props} />
                   ),
-                  p: ({ node, ...props }) => (
+                  p: ({ node, ref, ...props }) => (
                     <p
                       className="mb-4 text-gray-700 dark:text-white/80 leading-relaxed font-light tracking-wide text-base"
                       {...props}
                     />
                   ),
-                  ul: ({ node, ...props }) => (
+                  ul: ({ node, ref, ...props }) => (
                     <ul
                       className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]"
                       {...props}
                     />
                   ),
-                  ol: ({ node, ...props }) => (
+                  ol: ({ node, ref, ...props }) => (
                     <ol
                       className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-gray-700 dark:text-white/80"
                       {...props}
                     />
                   ),
-                  li: ({ node, ...props }) => (
+                  li: ({ node, ref, ...props }) => (
                     <li className="pl-1 leading-relaxed" {...props} />
                   ),
-                  blockquote: ({ node, ...props }) => (
+                  blockquote: ({ node, ref, ...props }) => (
                     <blockquote
                       className="border-l-4 border-[#00D4B3] pl-4 italic text-gray-600 dark:text-white/60 my-6 bg-gray-50 dark:bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
                       {...props}
@@ -5572,55 +5750,55 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
         <div className="relative p-8 prose prose-slate dark:prose-invert max-w-none">
           <ReactMarkdown
             components={{
-              h1: ({ node, ...props }) => (
+              h1: ({ node, ref, ...props }) => (
                 <h1
                   className="text-2xl font-bold text-gray-900 dark:text-white mb-6 mt-8 flex items-center gap-2 not-prose"
                   {...props}
                 />
               ),
-              h2: ({ node, ...props }) => (
+              h2: ({ node, ref, ...props }) => (
                 <h2
                   className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-8 pb-2 border-b border-gray-200 dark:border-white/5 not-prose"
                   {...props}
                 />
               ),
-              h3: ({ node, ...props }) => (
+              h3: ({ node, ref, ...props }) => (
                 <h3
                   className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose"
                   {...props}
                 />
               ),
-              strong: ({ node, ...props }) => (
+              strong: ({ node, ref, ...props }) => (
                 <strong className="font-bold text-gray-900 dark:text-white" {...props} />
               ),
-              p: ({ node, ...props }) => (
+              p: ({ node, ref, ...props }) => (
                 <p
                   className="mb-4 text-gray-700 dark:text-white/80 leading-relaxed font-light tracking-wide text-base"
                   {...props}
                 />
               ),
-              ul: ({ node, ...props }) => (
+              ul: ({ node, ref, ...props }) => (
                 <ul
                   className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]"
                   {...props}
                 />
               ),
-              ol: ({ node, ...props }) => (
+              ol: ({ node, ref, ...props }) => (
                 <ol
                   className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-gray-700 dark:text-white/80"
                   {...props}
                 />
               ),
-              li: ({ node, ...props }) => (
+              li: ({ node, ref, ...props }) => (
                 <li className="pl-1 leading-relaxed" {...props} />
               ),
-              blockquote: ({ node, ...props }) => (
+              blockquote: ({ node, ref, ...props }) => (
                 <blockquote
                   className="border-l-4 border-[#00D4B3] pl-4 italic text-gray-600 dark:text-white/60 my-6 bg-gray-50 dark:bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
                   {...props}
                 />
               ),
-              code: ({ node, ...props }) => (
+              code: ({ node, ref, ...props }) => (
                 <code
                   className="bg-gray-100 dark:bg-black/30 px-1.5 py-0.5 rounded text-sm font-mono text-teal-600 dark:text-[#00D4B3]"
                   {...props}
@@ -5944,12 +6122,13 @@ function QuizRenderer({
   return (
     <div className="space-y-5">
       {/* Instrucciones - Minimalista */}
-      <div className="px-4 py-3 border-l-2 border-white/20">
-        <p className="text-white/60 text-xs mb-1">
+      {/* Instrucciones - Minimalista */}
+      <div className="px-4 py-3 border-l-2 border-gray-300 dark:border-white/20">
+        <p className="text-gray-600 dark:text-white/60 text-xs mb-1">
           Responde las {totalQuestions} pregunta
           {totalQuestions !== 1 ? "s" : ""} para completar este quiz.
         </p>
-        <div className="flex items-center gap-4 text-[10px] text-white/40">
+        <div className="flex items-center gap-4 text-[10px] text-gray-400 dark:text-white/40">
           {totalPoints !== undefined && <span>{totalPoints} puntos</span>}
           <span>Umbral: {passingThreshold}%</span>
           <span>
@@ -5976,21 +6155,21 @@ function QuizRenderer({
                   ? isCorrect
                     ? "border-emerald-500/30 bg-emerald-500/5"
                     : "border-red-500/30 bg-red-500/5"
-                  : "border-white/10 bg-white/[0.02]"
+                  : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02]"
               }`}
             >
               {/* Header de pregunta */}
-              <div className="px-4 py-3 border-b border-white/5 flex items-start justify-between gap-3">
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-white/5 flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 flex-1">
-                  <span className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-xs font-medium text-white/50 flex-shrink-0">
+                  <span className="w-6 h-6 rounded-md bg-gray-200 dark:bg-white/5 flex items-center justify-center text-xs font-medium text-gray-500 dark:text-white/50 flex-shrink-0">
                     {index + 1}
                   </span>
-                  <p className="text-sm text-white leading-relaxed flex-1">
+                  <p className="text-sm text-gray-900 dark:text-white leading-relaxed flex-1">
                     {question.question}
                   </p>
                 </div>
                 {question.points && (
-                  <span className="text-[10px] text-white/30 px-2 py-0.5 bg-white/5 rounded flex-shrink-0">
+                  <span className="text-[10px] text-gray-400 dark:text-white/30 px-2 py-0.5 bg-gray-100 dark:bg-white/5 rounded flex-shrink-0">
                     {question.points} pt{question.points > 1 ? "s" : ""}
                   </span>
                 )}
@@ -6028,33 +6207,33 @@ function QuizRenderer({
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-all ${
                         showResults
                           ? isCorrectOption
-                            ? "bg-emerald-500/10 text-emerald-400"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                             : isSelected && !isCorrectOption
-                              ? "bg-red-500/10 text-red-400"
-                              : "bg-transparent text-white/50"
+                              ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                              : "bg-transparent text-gray-400 dark:text-white/50"
                           : isSelected
-                            ? "bg-white/10 text-white"
-                            : "bg-transparent text-white/60 hover:bg-white/5 hover:text-white/80"
+                            ? "bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white"
+                            : "bg-transparent text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white/80"
                       }`}
                     >
                       <div
                         className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                           showResults
                             ? isCorrectOption
-                              ? "border-emerald-400 bg-emerald-400"
+                              ? "border-emerald-500 dark:border-emerald-400 bg-emerald-500 dark:bg-emerald-400"
                               : isSelected && !isCorrectOption
-                                ? "border-red-400 bg-red-400"
-                                : "border-white/20"
+                                ? "border-red-500 dark:border-red-400 bg-red-500 dark:bg-red-400"
+                                : "border-gray-300 dark:border-white/20"
                             : isSelected
-                              ? "border-white bg-white"
-                              : "border-white/20"
+                              ? "border-gray-900 dark:border-white bg-gray-900 dark:bg-white"
+                              : "border-gray-300 dark:border-white/20"
                         }`}
                       >
                         {((showResults &&
                           (isCorrectOption ||
                             (isSelected && !isCorrectOption))) ||
                           (!showResults && isSelected)) && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-black" />
                         )}
                       </div>
                       <input
@@ -7289,7 +7468,13 @@ function ActivitiesContent({
             if (!isMounted) return []; // Salir si el componente se desmontó
 
             try {
-              const adaptedPrompts = await generateRoleBasedPromptsRef.current(
+              // Verificar que la función existe antes de invocarla
+              const generateFn = generateRoleBasedPromptsRef.current;
+              if (!generateFn) {
+                return activityData.prompts;
+              }
+              
+              const adaptedPrompts = await generateFn(
                 activityData.prompts,
                 activityData.content,
                 activityData.title,

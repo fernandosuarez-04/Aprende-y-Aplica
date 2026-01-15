@@ -63,6 +63,39 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
   const [isDraggingVolume, setIsDraggingVolume] = useState(false);
   const [isPiP, setIsPiP] = useState(false);
 
+  // 🔧 CRITICAL FIX: Cleanup effect to pause video on component unmount
+  // This prevents the "double audio" bug when navigating away from the video
+  // BUT: If video is in PiP mode, let it continue playing (YouTube-style behavior)
+  useEffect(() => {
+    const video = videoRef.current;
+
+    return () => {
+      if (video) {
+        // Check if video is currently in Picture-in-Picture mode
+        const isInPiP = document.pictureInPictureElement === video;
+
+        // If video is in PiP, DON'T pause or exit - let it continue playing
+        // This enables YouTube-style behavior where PiP continues when switching tabs
+        if (!isInPiP) {
+          video.pause();
+        }
+        // Note: We no longer exit PiP on unmount - the video should keep playing in PiP
+      }
+    };
+  }, []);
+
+  // 🔧 FIX: Pause video when src changes (lesson change)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      // Reset states when source changes
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setIsLoading(true);
+      setIsBuffering(false);
+    }
+  }, [src]);
+
   // Exponer métodos al componente padre mediante useImperativeHandle
   useImperativeHandle(ref, () => ({
     requestPiP: async () => {
@@ -106,6 +139,27 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
     const handleLeavePiP = () => {
       setIsPiP(false);
       onPiPChange?.(false);
+
+      // 🔧 CRITICAL FIX: When PiP closes (by any means - user clicking X, expand button, etc.)
+      // We need to handle this properly:
+      // 1. If the video element is still in the DOM and visible, sync the playing state
+      // 2. If the video element is NOT visible (user is on another tab), pause it to prevent audio leak
+
+      // Check if the video container is visible in the viewport
+      const videoContainer = video.closest('.aspect-video');
+      const isVideoVisible = videoContainer && videoContainer.getBoundingClientRect().height > 0;
+
+      if (!isVideoVisible && !video.paused) {
+        // Video is not visible but still playing - this causes the audio leak bug
+        // Pause it immediately
+        video.pause();
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[CustomVideoPlayer] PiP closed while video not visible, pausing to prevent audio leak');
+        }
+      } else {
+        // Video is visible, sync the isPlaying state with actual video state
+        setIsPlaying(!video.paused);
+      }
     };
 
     video.addEventListener('enterpictureinpicture', handleEnterPiP);
@@ -139,6 +193,10 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
     const video = videoRef.current;
     if (!video) return;
 
+    // 🔧 FIX: Debounce buffering state to prevent flickering
+    let bufferingTimeout: ReturnType<typeof setTimeout> | null = null;
+    const BUFFERING_DELAY = 300; // Only show buffering indicator after 300ms
+
     const updateTime = () => {
       setCurrentTime(video.currentTime);
       if (onProgress && duration > 0) {
@@ -158,12 +216,42 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
     };
 
     const handleWaiting = () => {
-      setIsBuffering(true);
+      // Clear any pending timeout
+      if (bufferingTimeout) {
+        clearTimeout(bufferingTimeout);
+      }
+      // Only show buffering after a delay to avoid flickering
+      bufferingTimeout = setTimeout(() => {
+        setIsBuffering(true);
+      }, BUFFERING_DELAY);
     };
 
     const handleCanPlay = () => {
+      // Clear pending buffering timeout
+      if (bufferingTimeout) {
+        clearTimeout(bufferingTimeout);
+        bufferingTimeout = null;
+      }
       setIsBuffering(false);
       setIsLoading(false);
+    };
+
+    const handlePlaying = () => {
+      // Clear pending buffering timeout
+      if (bufferingTimeout) {
+        clearTimeout(bufferingTimeout);
+        bufferingTimeout = null;
+      }
+      setIsBuffering(false);
+    };
+
+    // 🔧 FIX: Sync isPlaying state with native video events
+    const handleNativePlay = () => {
+      setIsPlaying(true);
+    };
+
+    const handleNativePause = () => {
+      setIsPlaying(false);
     };
 
     video.addEventListener('timeupdate', updateTime);
@@ -171,38 +259,69 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
     video.addEventListener('ended', handleEnded);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('playing', () => setIsBuffering(false));
+    video.addEventListener('playing', handlePlaying);
+    video.addEventListener('play', handleNativePlay);
+    video.addEventListener('pause', handleNativePause);
 
     return () => {
+      // Clear any pending buffering timeout
+      if (bufferingTimeout) {
+        clearTimeout(bufferingTimeout);
+      }
       video.removeEventListener('timeupdate', updateTime);
       video.removeEventListener('loadedmetadata', updateDuration);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('playing', () => setIsBuffering(false));
+      video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('play', handleNativePlay);
+      video.removeEventListener('pause', handleNativePause);
     };
   }, [duration, onProgress, onComplete]);
 
   // Manejar fullscreen
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isNowFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isNowFullscreen);
+
+      // 🔧 FIX: Ensure video continues playing after fullscreen change
+      const video = videoRef.current;
+      if (video && isPlaying && video.paused) {
+        video.play().catch(() => {
+          // Autoplay may be blocked, user needs to click play
+        });
+      }
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+    // Also handle webkit prefix for Safari
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
-  const togglePlay = () => {
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, [isPlaying]);
+
+  const togglePlay = async () => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (isPlaying) {
-      video.pause();
-    } else {
-      video.play();
+    try {
+      if (isPlaying) {
+        video.pause();
+        setIsPlaying(false);
+      } else {
+        // 🔧 FIX: Handle play promise properly
+        await video.play();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      // Play was interrupted or blocked
+      console.warn('Play interrupted:', error);
+      setIsPlaying(false);
     }
-    setIsPlaying(!isPlaying);
     setShowControls(true);
   };
 
@@ -370,14 +489,37 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
     setShowControls(true);
   };
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
     const container = containerRef.current;
     if (!container) return;
 
-    if (!isFullscreen) {
-      container.requestFullscreen();
-    } else {
-      document.exitFullscreen();
+    try {
+      if (!isFullscreen) {
+        // Request fullscreen with error handling
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else {
+          // Safari fallback
+          const webkitContainer = container as unknown as { webkitRequestFullscreen?: () => Promise<void> };
+          if (webkitContainer.webkitRequestFullscreen) {
+            await webkitContainer.webkitRequestFullscreen();
+          }
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else {
+          // Safari fallback
+          const webkitDocument = document as unknown as { webkitExitFullscreen?: () => Promise<void> };
+          if (webkitDocument.webkitExitFullscreen) {
+            await webkitDocument.webkitExitFullscreen();
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling fullscreen:', error);
+      // Force sync the fullscreen state with actual state
+      setIsFullscreen(!!document.fullscreenElement);
     }
     setShowControls(true);
   };
@@ -440,7 +582,19 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
         src={src}
         className="w-full h-full object-contain"
         playsInline
+        preload="auto"
         onClick={togglePlay}
+        onError={(e) => {
+          console.error('Video error:', e);
+          setIsLoading(false);
+          setIsBuffering(false);
+        }}
+        onLoadStart={() => {
+          setIsLoading(true);
+        }}
+        onLoadedData={() => {
+          setIsLoading(false);
+        }}
       />
 
       {/* Loading Indicator */}

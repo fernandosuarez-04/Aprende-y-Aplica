@@ -11,6 +11,7 @@ interface User {
   last_name?: string
   display_name?: string
   cargo_rol?: string
+  job_title?: string // Cargo/puesto del usuario en la organización (viene de organization_users)
   // type_rol?: string // DEPRECATED: Eliminado por migración - usar organization_users.job_title
   profile_picture_url?: string
   organization_id?: string | null
