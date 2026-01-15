@@ -177,6 +177,359 @@
       "inputPlaceholder": "Type a message to LIA...",
       "cleanHistory": "Clear conversation"
     }
+  },
+  "landing": {
+    "nav": {
+      "platform": "Platform",
+      "capabilities": "Capabilities",
+      "useCases": "Use Cases",
+      "integrations": "Integrations",
+      "security": "Security",
+      "faq": "FAQ",
+      "clientAccess": "Client Access",
+      "scheduleDemo": "Schedule Demo"
+    },
+    "hero": {
+      "tag": "B2B AI Training Platform",
+      "title": "AI Training with",
+      "highlight": "measurable impact",
+      "titleEnd": "for your organization",
+      "description": "SOFIA is the corporate training platform that combines artificial intelligence, smart planning, and verifiable certifications to develop your team's competencies.",
+      "ctaPrimary": "Schedule Executive Demo",
+      "ctaSecondary": "Request Assessment",
+      "benefits": {
+        "aiPowered": "AI-Powered",
+        "measurable": "Measurable Results",
+        "scalable": "Scalable"
+      }
+    },
+    "logoWall": {
+      "title": "Organizations that trust SOFIA"
+    },
+    "trust": {
+      "title": "Enterprise-ready from day one",
+      "subtitle": "Designed to meet the most demanding corporate training standards",
+      "badges": {
+        "multilingual": {
+          "title": "Multilingual",
+          "description": "ES, EN, PT"
+        },
+        "scorm": {
+          "title": "SCORM",
+          "description": "Compatible"
+        },
+        "certificates": {
+          "title": "Certificates",
+          "description": "Verifiable"
+        },
+        "roles": {
+          "title": "Roles",
+          "description": "Customizable"
+        },
+        "analytics": {
+          "title": "Analytics",
+          "description": "Real-time"
+        },
+        "security": {
+          "title": "Security",
+          "description": "Enterprise"
+        }
+      },
+      "stats": {
+        "languages": "Languages",
+        "compatible": "Compatible",
+        "lia": "LIA Assistant",
+        "hash": "Certificates"
+      }
+    },
+    "platform": {
+      "tag": "The Platform",
+      "title": "Corporate training powered by artificial intelligence",
+      "description": "SOFIA combines cutting-edge technology with user-centered design to deliver a learning experience that generates measurable results for your organization.",
+      "features": {
+        "aiTraining": {
+          "title": "AI Training",
+          "description": "Specialized artificial intelligence courses for corporate teams"
+        },
+        "liaAssistant": {
+          "title": "LIA Assistant",
+          "description": "24/7 contextual AI that adapts to each user and lesson"
+        },
+        "studyPlanner": {
+          "title": "Study Planner",
+          "description": "Automatic sync with Google Calendar and Microsoft Outlook"
+        },
+        "analytics": {
+          "title": "Executive Analytics",
+          "description": "Dashboards and reports to measure ROI and make decisions"
+        },
+        "certificates": {
+          "title": "Verifiable Certificates",
+          "description": "SHA-256 hash + QR for instant validation"
+        }
+      }
+    },
+    "capabilities": {
+      "tag": "Capabilities",
+      "title": "Everything you need to train your team",
+      "subtitle": "Every feature is designed to generate measurable impact in your organization",
+      "items": {
+        "lia": {
+          "title": "LIA - AI Assistant",
+          "benefit": "24/7 contextual help in ES, EN and PT",
+          "result": "Reduces HR inquiries"
+        },
+        "studyPlanner": {
+          "title": "Study Planner",
+          "benefit": "Sync with corporate calendars",
+          "result": "Frictionless adoption"
+        },
+        "analytics": {
+          "title": "Analytics & Reports",
+          "benefit": "Dashboards for C-level and managers",
+          "result": "ROI visibility"
+        },
+        "teams": {
+          "title": "Team Management",
+          "benefit": "Region/zone/team hierarchies",
+          "result": "Granular control"
+        },
+        "certificates": {
+          "title": "Certificates",
+          "benefit": "Publicly verifiable hash + QR",
+          "result": "Trusted credentials"
+        },
+        "whiteLabel": {
+          "title": "White-label",
+          "benefit": "Complete corporate branding",
+          "result": "Brand experience"
+        },
+        "scorm": {
+          "title": "SCORM",
+          "benefit": "E-learning standard compatibility",
+          "result": "Frictionless migration"
+        },
+        "community": {
+          "title": "Community",
+          "benefit": "Forums and employee collaboration",
+          "result": "Learning culture"
+        }
+      }
+    },
+    "useCases": {
+      "tag": "Use Cases",
+      "title": "Use cases that drive results",
+      "subtitle": "Each solution is designed to solve specific challenges in your organization",
+      "labels": {
+        "pain": "Challenge",
+        "solution": "Solution",
+        "result": "Result"
+      },
+      "items": {
+        "upskilling": {
+          "title": "AI Upskilling at Scale",
+          "pain": "Teams lacking artificial intelligence skills",
+          "solution": "Structured learning paths with certification",
+          "result": "Standardized training across the organization"
+        },
+        "onboarding": {
+          "title": "Accelerated Onboarding",
+          "pain": "Too long time-to-productivity",
+          "solution": "Onboarding paths + LIA as guide",
+          "result": "Reduced ramp-up time"
+        },
+        "salesEnablement": {
+          "title": "Sales Enablement",
+          "pain": "Outdated sales teams",
+          "solution": "Continuous training + certifications",
+          "result": "Improved conversion rates"
+        },
+        "partnerTraining": {
+          "title": "Partner Training",
+          "pain": "Partners lacking product knowledge",
+          "solution": "White-label portal for channels",
+          "result": "More productive partners"
+        },
+        "customerTraining": {
+          "title": "Customer Training",
+          "pain": "Low product adoption",
+          "solution": "Academy for customers and users",
+          "result": "Higher retention and NPS"
+        },
+        "compliance": {
+          "title": "Compliance & Standardization",
+          "pain": "Lack of training traceability",
+          "solution": "Verifiable certificates + reports",
+          "result": "Auditable compliance"
+        }
+      }
+    },
+    "roi": {
+      "tag": "Measurable Impact",
+      "title": "ROI that speaks for itself",
+      "subtitle": "Real results from organizations that transformed their training with SOFIA",
+      "metrics": {
+        "onboarding": "Onboarding time reduction",
+        "savings": "Estimated annual savings",
+        "completion": "Course completion rate",
+        "productivity": "Productivity increase"
+      },
+      "disclaimer": "* Metrics based on average client results. Results may vary depending on implementation."
+    },
+    "integrations": {
+      "tag": "Integrations",
+      "title": "Integrates with your corporate stack",
+      "description": "Connect SOFIA with your existing tools for a frictionless experience. Agile deployment with calendar sync, e-learning compatibility and options for custom integrations.",
+      "features": {
+        "calendar": "Sync with Google Calendar and Microsoft Outlook",
+        "elearning": "Compatible with SCORM",
+        "api": "Connectivity for CRM, HRIS and internal systems",
+        "deploy": "Implementation in weeks, not months"
+      },
+      "cta": "More information"
+    },
+    "security": {
+      "tag": "Enterprise Security",
+      "title": "Governance and control your organization needs",
+      "subtitle": "Designed to meet the most demanding security and traceability standards",
+      "features": {
+        "roles": {
+          "title": "Roles & Permissions",
+          "description": "Granular access control by role and hierarchy",
+          "check1": "Customizable permissions",
+          "check2": "Data segregation"
+        },
+        "hierarchy": {
+          "title": "Hierarchical Management",
+          "description": "Organize by region, zone, department and team",
+          "check1": "Flexible multi-level",
+          "check2": "Reports by unit"
+        },
+        "audit": {
+          "title": "Audit & Logs",
+          "description": "Complete traceability of actions and events",
+          "check1": "Full history",
+          "check2": "Exportable for audits"
+        },
+        "visibility": {
+          "title": "Executive Visibility",
+          "description": "Dashboards and reports for leadership",
+          "check1": "Real-time KPIs",
+          "check2": "Configurable alerts"
+        },
+        "encryption": {
+          "title": "Encryption",
+          "description": "Data protected in transit and at rest",
+          "check1": "TLS 1.3",
+          "check2": "AES-256 encryption"
+        },
+        "sso": {
+          "title": "SSO / SAML",
+          "description": "Integration with identity providers",
+          "check1": "Azure AD, Okta, Google",
+          "check2": "Coming soon"
+        }
+      },
+      "badge": "Enterprise-ready from day one"
+    },
+    "faq": {
+      "tag": "Frequently Asked Questions",
+      "title": "Answers to the questions that matter",
+      "subtitle": "Everything you need to know to make an informed decision.",
+      "help": {
+        "title": "Have more questions?",
+        "description": "Schedule a demo and we'll answer all your questions."
+      },
+      "items": {
+        "roi": {
+          "question": "How is training ROI measured?",
+          "answer": "SOFIA provides dashboards with key metrics: completion rate, training time, earned certifications, and correlation with business indicators. You can export reports to justify the investment to leadership."
+        },
+        "implementation": {
+          "question": "What is the implementation timeline?",
+          "answer": "Typical implementation takes 2-4 weeks, depending on the complexity of your organizational structure and required integrations. We offer complete support throughout the process."
+        },
+        "integration": {
+          "question": "How does it integrate with existing systems?",
+          "answer": "SOFIA offers native integration with Google Calendar and Microsoft Outlook. For CRM, HRIS and other systems, we provide documented integration for synchronization."
+        },
+        "governance": {
+          "question": "How is access and traceability governed?",
+          "answer": "The system includes customizable roles and permissions, management by organizational hierarchies, and complete audit logs. Everything is exportable to comply with compliance requirements."
+        },
+        "multilingual": {
+          "question": "How does it support multiple languages?",
+          "answer": "SOFIA is available in Spanish, English and Portuguese. LIA automatically detects the user's language and responds in that language. Content can be available in multiple languages."
+        },
+        "certificates": {
+          "question": "How does verifiable certification work?",
+          "answer": "Each certificate has a unique SHA-256 hash and a QR code. Anyone can verify the certificate's authenticity on our public verification page without creating an account."
+        },
+        "whitelabel": {
+          "question": "What does white-label include?",
+          "answer": "The Enterprise plan includes complete customization: logo, colors, typography, custom domain and certificates with corporate branding. Your team will see the platform as if it were their own."
+        },
+        "adoption": {
+          "question": "How is change and adoption managed?",
+          "answer": "LIA acts as a guide throughout the process, helping users navigate the platform. Additionally, we offer onboarding materials, suggested internal communication and real-time adoption metrics."
+        }
+      }
+    },
+    "cta": {
+      "tag": "Start Today",
+      "title": "Transform your organization's training",
+      "subtitle": "Schedule an executive demo and discover how SOFIA can boost your team's development with measurable results.",
+      "form": {
+        "name": "Your name",
+        "email": "you@company.com",
+        "company": "Your company name",
+        "submit": "Request Executive Demo",
+        "alternative": "Prefer to contact us directly?"
+      },
+      "success": {
+        "title": "Message received!",
+        "description": "Our team will contact you soon to schedule your demo."
+      },
+      "trust": {
+        "noCommitment": "No commitment",
+        "demo": "Personalized demo",
+        "response": "Response in 24h"
+      }
+    },
+    "footer": {
+      "description": "Corporate AI training platform that transforms talent development with artificial intelligence, smart planning and verifiable certifications.",
+      "sections": {
+        "platform": "Platform",
+        "solutions": "Solutions",
+        "resources": "Resources",
+        "company": "Company"
+      },
+      "links": {
+        "features": "Features",
+        "lia": "LIA Assistant",
+        "studyPlanner": "Study Planner",
+        "analytics": "Analytics",
+        "certificates": "Certificates",
+        "upskilling": "AI Upskilling",
+        "onboarding": "Onboarding",
+        "sales": "Sales",
+        "partners": "Partners",
+        "customers": "Customers",
+        "documentation": "Documentation",
+        "integrations": "Integrations",
+        "security": "Security",
+        "faq": "FAQ",
+        "about": "About Us",
+        "contact": "Contact",
+        "blog": "Blog"
+      },
+      "legal": {
+        "privacy": "Privacy",
+        "terms": "Terms",
+        "contact": "Contact"
+      }
+    }
   }
 }
+
 

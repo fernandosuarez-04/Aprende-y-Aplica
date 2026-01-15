@@ -177,6 +177,418 @@
       "inputPlaceholder": "Escribe un mensaje a LIA...",
       "cleanHistory": "Limpiar conversación"
     }
+  },
+  "landing": {
+    "nav": {
+      "platform": "Plataforma",
+      "capabilities": "Capacidades",
+      "useCases": "Casos de Uso",
+      "integrations": "Integraciones",
+      "lia": "LIA",
+      "security": "Seguridad",
+      "faq": "FAQ",
+      "clientAccess": "Acceso clientes",
+      "scheduleDemo": "Agendar demo"
+    },
+    "hero": {
+      "tag": "Plataforma B2B de Capacitación en IA",
+      "title": "Capacitación en IA con",
+      "highlight": "impacto medible",
+      "titleEnd": "para tu organización",
+      "description": "SOFIA es la plataforma de capacitación corporativa que combina inteligencia artificial, planificación inteligente y certificaciones verificables para desarrollar las competencias de tu equipo.",
+      "ctaPrimary": "Agendar demo ejecutiva",
+      "ctaSecondary": "Solicitar diagnóstico",
+      "benefits": {
+        "aiPowered": "Potenciado por IA",
+        "measurable": "Resultados medibles",
+        "scalable": "Escalable"
+      }
+    },
+    "logoWall": {
+      "title": "Organizaciones que confían en SOFIA"
+    },
+    "lia": {
+      "badge": "Inteligencia Artificial",
+      "tag": "Tu asistente personal",
+      "title": "Conoce a",
+      "description": "Tu asistente de aprendizaje con inteligencia artificial que te guía, responde tus dudas y personaliza tu experiencia de capacitación en tiempo real.",
+      "features": {
+        "chat": "Chat Inteligente",
+        "chatDesc": "Respuestas instant en ES, EN, PT",
+        "adaptive": "Aprendizaje Adaptativo",
+        "adaptiveDesc": "Se adapta a tu ritmo y estilo",
+        "personalized": "Personalizado",
+        "personalizedDesc": "Recomendaciones a tu medida",
+        "instant": "Soporte 24/7",
+        "instantDesc": "Disponible cuando lo necesites"
+      }
+    },
+    "trust": {
+      "title": "Enterprise-ready desde el día uno",
+      "subtitle": "Diseñada para cumplir con los estándares más exigentes de capacitación corporativa",
+      "badges": {
+        "multilingual": {
+          "title": "Multilingüe",
+          "description": "ES, EN, PT"
+        },
+        "scorm": {
+          "title": "SCORM",
+          "description": "Compatible"
+        },
+        "certificates": {
+          "title": "Certificados",
+          "description": "Verificables"
+        },
+        "roles": {
+          "title": "Roles",
+          "description": "Personalizables"
+        },
+        "analytics": {
+          "title": "Analytics",
+          "description": "En tiempo real"
+        },
+        "security": {
+          "title": "Seguridad",
+          "description": "Enterprise"
+        }
+      },
+      "stats": {
+        "languages": "Idiomas",
+        "compatible": "Compatible",
+        "lia": "Asistente LIA",
+        "hash": "Certificados"
+      }
+    },
+    "platform": {
+      "tag": "La Plataforma",
+      "title": "Capacitación corporativa potenciada por inteligencia artificial",
+      "description": "SOFIA combina tecnología de punta con diseño centrado en el usuario para ofrecer una experiencia de aprendizaje que genera resultados medibles para tu organización.",
+      "features": {
+        "aiTraining": {
+          "title": "Capacitación en IA",
+          "description": "Cursos especializados en inteligencia artificial para equipos corporativos"
+        },
+        "liaAssistant": {
+          "title": "Asistente LIA",
+          "description": "IA contextual 24/7 que se adapta a cada usuario y lección"
+        },
+        "studyPlanner": {
+          "title": "Planificador de Estudios",
+          "description": "Sincronización automática con Google Calendar y Microsoft Outlook"
+        },
+        "analytics": {
+          "title": "Analytics Ejecutivos",
+          "description": "Dashboards y reportes para medir ROI y tomar decisiones"
+        },
+        "certificates": {
+          "title": "Certificados Verificables",
+          "description": "Hash SHA-256 + QR para validación instantánea"
+        }
+      }
+    },
+    "capabilities": {
+      "tag": "Capacidades",
+      "title": "Todo lo que necesitas para capacitar a tu equipo",
+      "subtitle": "Cada funcionalidad está diseñada para generar impacto medible en tu organización",
+      "items": {
+        "lia": {
+          "title": "LIA - Asistente IA",
+          "benefit": "Ayuda contextual 24/7 en ES, EN y PT",
+          "result": "Reduce consultas a RRHH"
+        },
+        "studyPlanner": {
+          "title": "Study Planner",
+          "benefit": "Sincronización con calendarios corporativos",
+          "result": "Adopción sin fricción"
+        },
+        "analytics": {
+          "title": "Analytics y Reportes",
+          "benefit": "Dashboards para C-level y gerentes",
+          "result": "Visibilidad de ROI"
+        },
+        "teams": {
+          "title": "Gestión por Equipos",
+          "benefit": "Jerarquías región/zona/equipo",
+          "result": "Control granular"
+        },
+        "certificates": {
+          "title": "Certificados",
+          "benefit": "Hash + QR verificable públicamente",
+          "result": "Credenciales confiables"
+        },
+        "whiteLabel": {
+          "title": "White-label",
+          "benefit": "Branding corporativo completo",
+          "result": "Experiencia de marca"
+        },
+        "scorm": {
+          "title": "SCORM",
+          "benefit": "Compatibilidad con estándares e-learning",
+          "result": "Migración sin fricciones"
+        },
+        "community": {
+          "title": "Comunidad",
+          "benefit": "Foros y colaboración entre empleados",
+          "result": "Cultura de aprendizaje"
+        }
+      }
+    },
+    "useCases": {
+      "tag": "Casos de Uso",
+      "title": "Casos de uso que impulsan resultados",
+      "subtitle": "Cada solución está diseñada para resolver desafíos específicos de tu organización",
+      "labels": {
+        "pain": "Desafío",
+        "solution": "Solución",
+        "result": "Resultado"
+      },
+      "items": {
+        "upskilling": {
+          "title": "Upskilling en IA a Escala",
+          "pain": "Equipos sin competencias en inteligencia artificial",
+          "solution": "Rutas de aprendizaje estructuradas con certificación",
+          "result": "Capacitación estandarizada en toda la organización"
+        },
+        "onboarding": {
+          "title": "Onboarding Acelerado",
+          "pain": "Tiempo de productividad demasiado largo",
+          "solution": "Rutas de inducción + LIA como guía",
+          "result": "Reducción de tiempo de ramp-up"
+        },
+        "salesEnablement": {
+          "title": "Enablement Comercial",
+          "pain": "Equipos de ventas desactualizados",
+          "solution": "Capacitación continua + certificaciones",
+          "result": "Mejora en tasas de conversión"
+        },
+        "partnerTraining": {
+          "title": "Capacitación a Partners",
+          "pain": "Partners sin conocimiento de producto",
+          "solution": "Portal white-label para canales",
+          "result": "Partners más productivos"
+        },
+        "customerTraining": {
+          "title": "Capacitación a Clientes",
+          "pain": "Baja adopción de producto",
+          "solution": "Academy para clientes y usuarios",
+          "result": "Mayor retención y NPS"
+        },
+        "compliance": {
+          "title": "Compliance y Estandarización",
+          "pain": "Falta de trazabilidad en capacitación",
+          "solution": "Certificados verificables + reportes",
+          "result": "Cumplimiento auditable"
+        }
+      }
+    },
+    "roi": {
+      "tag": "Impacto Medible",
+      "title": "ROI que habla por sí mismo",
+      "subtitle": "Resultados reales de organizaciones que transformaron su capacitación con SOFIA",
+      "metrics": {
+        "onboarding": "Reducción tiempo de onboarding",
+        "savings": "Ahorro anual estimado",
+        "completion": "Tasa de completitud de cursos",
+        "productivity": "Incremento en productividad"
+      },
+      "disclaimer": "* Métricas basadas en resultados promedio de clientes. Los resultados pueden variar según la implementación."
+    },
+    "integrations": {
+      "tag": "Integraciones",
+      "title": "Se integra con tu stack corporativo",
+      "description": "Conecta SOFIA con tus herramientas existentes para una experiencia sin fricciones. Despliegue ágil con sincronización de calendarios, compatibilidad e-learning y opciones para integraciones personalizadas.",
+      "features": {
+        "calendar": "Sincronización con Google Calendar y Microsoft Outlook",
+        "elearning": "Compatible con SCORM",
+        "api": "Conectividad para CRM, HRIS y sistemas internos",
+        "deploy": "Implementación en semanas, no meses"
+      },
+      "cta": "Más información"
+    },
+    "liaSection": {
+      "tag": "Asistente de IA",
+      "title": "¿Qué puede hacer",
+      "titleEnd": "por ti?",
+      "description": "LIA es tu asistente de aprendizaje con inteligencia artificial, disponible 24/7 para ayudarte en cada paso de tu capacitación.",
+      "capabilitiesTitle": "Capacidades de LIA",
+      "actionsTitle": "LIA puede ayudarte a:",
+      "capabilities": {
+        "conversation": "Conversación Natural",
+        "conversationDesc": "Comunícate como si hablaras con un tutor personal",
+        "context": "Contexto Inteligente",
+        "contextDesc": "Entiende en qué lección estás y te ayuda específicamente",
+        "studyPlanner": "Planificador Proactivo",
+        "studyPlannerDesc": "Crea y gestiona tu plan de estudios, detecta atrasos y reprograma",
+        "rolePersonalization": "Según tu Rol",
+        "rolePersonalizationDesc": "Personaliza la experiencia según tu cargo y nivel en la empresa",
+        "anywhere": "Donde Estés",
+        "anywhereDesc": "Te ayuda en cualquier sección de la plataforma",
+        "multilingual": "Multilingüe",
+        "multilingualDesc": "Responde en español, inglés y portugués",
+        "recommendations": "Recomendaciones",
+        "recommendationsDesc": "Sugiere cursos y recursos según tus intereses",
+        "support": "Soporte Continuo",
+        "supportDesc": "Disponible 24/7 para resolver tus dudas"
+      },
+      "actions": {
+        "0": "Responder dudas sobre cualquier contenido del curso",
+        "1": "Explicar conceptos complejos de manera simple",
+        "2": "Crear y gestionar tu plan de estudios proactivamente",
+        "3": "Detectar sesiones atrasadas y proponer reprogramaciones",
+        "4": "Personalizar recomendaciones según tu rol y nivel",
+        "5": "Ayudarte en cualquier sección de la plataforma",
+        "6": "Guiarte por la plataforma paso a paso",
+        "7": "Generar resúmenes de lecciones"
+      },
+      "preview": {
+        "online": "En línea",
+        "message": "¡Hola! 👋 Soy LIA, tu asistente de aprendizaje. Estoy aquí para ayudarte a alcanzar tus metas de capacitación. ¿En qué puedo ayudarte hoy?",
+        "placeholder": "Escribe tu pregunta..."
+      }
+    },
+    "security": {
+      "tag": "Seguridad Enterprise",
+      "title": "Gobierno y control que tu organización necesita",
+      "subtitle": "Diseñada para cumplir con los estándares de seguridad y trazabilidad más exigentes",
+      "features": {
+        "roles": {
+          "title": "Roles y Permisos",
+          "description": "Control granular de acceso por rol y jerarquía",
+          "check1": "Permisos personalizables",
+          "check2": "Segregación de datos"
+        },
+        "hierarchy": {
+          "title": "Gestión Jerárquica",
+          "description": "Organiza por región, zona, departamento y equipo",
+          "check1": "Multinivel flexible",
+          "check2": "Reportes por unidad"
+        },
+        "audit": {
+          "title": "Auditoría y Logs",
+          "description": "Trazabilidad completa de acciones y eventos",
+          "check1": "Historial completo",
+          "check2": "Exportable para auditorías"
+        },
+        "visibility": {
+          "title": "Visibilidad Ejecutiva",
+          "description": "Dashboards y reportes para la dirección",
+          "check1": "KPIs en tiempo real",
+          "check2": "Alertas configurables"
+        },
+        "encryption": {
+          "title": "Encriptación",
+          "description": "Datos protegidos en tránsito y en reposo",
+          "check1": "TLS 1.3",
+          "check2": "Encriptación AES-256"
+        },
+        "sso": {
+          "title": "SSO / SAML",
+          "description": "Integración con proveedores de identidad",
+          "check1": "Azure AD, Okta, Google",
+          "check2": "Próximamente disponible"
+        }
+      },
+      "badge": "Enterprise-ready desde el día uno"
+    },
+    "faq": {
+      "tag": "Preguntas Frecuentes",
+      "title": "Respuestas a las preguntas que importan",
+      "subtitle": "Todo lo que necesitas saber para tomar una decisión informada.",
+      "help": {
+        "title": "¿Tienes más preguntas?",
+        "description": "Agenda una demo y resolvemos todas tus dudas."
+      },
+      "items": {
+        "roi": {
+          "question": "¿Cómo se mide el ROI de la capacitación?",
+          "answer": "SOFIA proporciona dashboards con métricas clave: tasa de completitud, tiempo de capacitación, certificaciones obtenidas y correlación con indicadores de negocio. Puedes exportar reportes para justificar la inversión ante dirección."
+        },
+        "implementation": {
+          "question": "¿Cuál es el tiempo de implementación?",
+          "answer": "La implementación típica toma 2-4 semanas, dependiendo de la complejidad de tu estructura organizacional y las integraciones requeridas. Ofrecemos acompañamiento completo durante el proceso."
+        },
+        "integration": {
+          "question": "¿Cómo se integra con sistemas existentes?",
+          "answer": "SOFIA ofrece integración nativa con Google Calendar y Microsoft Outlook. Para CRM, HRIS y otros sistemas, proporcionamos integración documentada para sincronización."
+        },
+        "governance": {
+          "question": "¿Cómo se gobierna el acceso y la trazabilidad?",
+          "answer": "El sistema incluye roles y permisos personalizables, gestión por jerarquías organizacionales, y logs de auditoría completos. Todo es exportable para cumplir con requerimientos de compliance."
+        },
+        "multilingual": {
+          "question": "¿Cómo soporta multi-idioma?",
+          "answer": "SOFIA está disponible en español, inglés y portugués. LIA detecta automáticamente el idioma del usuario y responde en ese idioma. El contenido puede estar disponible en múltiples idiomas."
+        },
+        "certificates": {
+          "question": "¿Cómo funciona la certificación verificable?",
+          "answer": "Cada certificado tiene un hash SHA-256 único y un código QR. Cualquiera puede verificar la autenticidad del certificado en nuestra página pública de verificación sin necesidad de crear cuenta."
+        },
+        "whitelabel": {
+          "question": "¿Qué incluye el white-label?",
+          "answer": "El plan Enterprise incluye personalización completa: logo, colores, tipografía, dominio personalizado y certificados con branding corporativo. Tu equipo verá la plataforma como si fuera propia."
+        },
+        "adoption": {
+          "question": "¿Cómo se gestiona el cambio y adopción?",
+          "answer": "LIA actúa como guía durante todo el proceso, ayudando a los usuarios a navegar la plataforma. Además, ofrecemos materiales de onboarding, comunicación interna sugerida y métricas de adopción en tiempo real."
+        }
+      }
+    },
+    "cta": {
+      "tag": "Comienza Hoy",
+      "title": "Transforma la capacitación de tu organización",
+      "subtitle": "Agenda una demo ejecutiva y descubre cómo SOFIA puede impulsar el desarrollo de tu equipo con resultados medibles.",
+      "form": {
+        "name": "Tu nombre",
+        "email": "tu@empresa.com",
+        "company": "Nombre de tu empresa",
+        "submit": "Solicitar demo ejecutiva",
+        "alternative": "¿Prefieres contactarnos directamente?"
+      },
+      "success": {
+        "title": "¡Mensaje recibido!",
+        "description": "Nuestro equipo se pondrá en contacto contigo pronto para agendar tu demo."
+      },
+      "trust": {
+        "noCommitment": "Sin compromiso",
+        "demo": "Demo personalizada",
+        "response": "Respuesta en 24h"
+      }
+    },
+    "footer": {
+      "description": "Plataforma de capacitación corporativa en IA que transforma el desarrollo de talento con inteligencia artificial, planificación inteligente y certificaciones verificables.",
+      "sections": {
+        "platform": "Plataforma",
+        "solutions": "Soluciones",
+        "resources": "Recursos",
+        "company": "Compañía"
+      },
+      "links": {
+        "features": "Características",
+        "lia": "Asistente LIA",
+        "studyPlanner": "Study Planner",
+        "analytics": "Analytics",
+        "certificates": "Certificados",
+        "upskilling": "Upskilling IA",
+        "onboarding": "Onboarding",
+        "sales": "Ventas",
+        "partners": "Partners",
+        "customers": "Clientes",
+        "documentation": "Documentación",
+        "integrations": "Integraciones",
+        "liaLink": "LIA",
+        "security": "Seguridad",
+        "faq": "FAQ",
+        "about": "Nosotros",
+        "contact": "Contacto",
+        "blog": "Blog"
+      },
+      "legal": {
+        "privacy": "Privacidad",
+        "terms": "Términos",
+        "contact": "Contacto"
+      }
+    }
   }
 }
+
 
