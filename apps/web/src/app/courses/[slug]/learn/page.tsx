@@ -624,1554 +624,1668 @@ export default function CourseLearnPage() {
 
   // 🎬 Función para manejar cambio de tab con PiP automático
   const handleTabChange = useCallback((newTab: "video" | "transcript" | "summary" | "activities" | "questions") => {
-    // Si estamos cambiando desde "video" a otra pestaña
-    if (activeTab === "video" && newTab !== "video") {
-      // Verificar si el video está reproduciéndose (tanto por contexto como por DOM directo)
-      const videoElement = document.querySelector('video');
-      const isVideoCurrentlyPlaying = videoPlayerContext?.isVideoPlaying || (videoElement && !videoElement.paused);
-      const isPiPAlreadyActive = videoPlayerContext?.isPiPActive || document.pictureInPictureElement;
 
-      if (isVideoCurrentlyPlaying && !isPiPAlreadyActive) {
-        // Activar Picture-in-Picture automáticamente
-        if (videoElement) {
-          videoElement.requestPictureInPicture().catch(err => {
-            console.log('No se pudo activar PiP automáticamente:', err);
-          });
-        }
-      }
-    }
+    // 🎬 Función para manejar cambio de tab con PiP automático (estilo YouTube)
+    const handleTabChange = useCallback(async (newTab: "video" | "transcript" | "summary" | "activities" | "questions") => {
+      // Si estamos cambiando desde "video" a otra pestaña
+      if (activeTab === "video" && newTab !== "video") {
+        // Verificar si el video está reproduciéndose (tanto por contexto como por DOM directo)
+        const videoElement = document.querySelector('video');
+        const isVideoCurrentlyPlaying = videoPlayerContext?.isVideoPlaying || (videoElement && !videoElement.paused);
+        const isPiPAlreadyActive = videoPlayerContext?.isPiPActive || document.pictureInPictureElement;
 
-    // Si volvemos al tab de video, salir de PiP
-    if (newTab === "video" && activeTab !== "video") {
-      if (document.pictureInPictureElement) {
-        // Guardar progreso del video en PiP antes de cerrarlo
-        const pipVideo = document.pictureInPictureElement as HTMLVideoElement;
-        if (currentLesson && videoPlayerContext) {
-          videoPlayerContext.saveVideoProgress(currentLesson.lesson_id, pipVideo.currentTime);
-        }
+        if (isVideoCurrentlyPlaying && !isPiPAlreadyActive) {
+          // Activar Picture-in-Picture automáticamente
+          if (videoElement) {
+            videoElement.requestPictureInPicture().catch(err => {
+              console.log('No se pudo activar PiP automáticamente:', err);
+            });
+            // Buscar el video element - usar selector más específico
+            const videoElement = document.querySelector('.aspect-video video') as HTMLVideoElement | null;
 
-        document.exitPictureInPicture().catch(err => {
-          console.log('No se pudo desactivar PiP:', err);
-        });
-      }
-    }
+            if (videoElement) {
+              const isVideoCurrentlyPlaying = !videoElement.paused;
+              const isPiPAlreadyActive = !!document.pictureInPictureElement;
+              const isPiPSupported = document.pictureInPictureEnabled && 'requestPictureInPicture' in videoElement;
 
-    setActiveTab(newTab);
-  }, [activeTab, videoPlayerContext, currentLesson]);
+              // Debug log
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[PiP] Tab change:', {
+                  from: activeTab,
+                  to: newTab,
+                  isPlaying: isVideoCurrentlyPlaying,
+                  isPiPActive: isPiPAlreadyActive,
+                  isPiPSupported
+                });
+              }
 
-  // Estado para detectar si estamos en móvil
-  const [isMobile, setIsMobile] = useState(false);
-  // Estado para la altura de la pantalla (para adaptar padding en diferentes dispositivos)
-  const [screenHeight, setScreenHeight] = useState(0);
-  // Estado para la altura del visualViewport (para manejar el teclado en móvil)
-  const [visualViewportHeight, setVisualViewportHeight] = useState<
-    number | null
-  >(null);
-
-  // Inicializar paneles cerrados en móviles, abiertos en desktop
-  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
-  // const [isRightPanelOpen, setIsRightPanelOpen] = useState(false); // Removed LIA
-
-  // 🎯 Tour del curso - con acciones interactivas
-  const { joyrideProps } = useCourseLearnTour({
-    enabled: true,
-    onOpenLia: openLia,
-    onSwitchTab: (tab) => setActiveTab(tab),
-    onOpenNotes: (shouldScroll = true) => {
-      setIsLeftPanelOpen(true);
-      setIsNotesCollapsed(false);
-      // Dar tiempo para que se expanda antes de que el tour busque el elemento
-      if (shouldScroll) {
-        setTimeout(() => {
-          const element = document.getElementById("tour-notes-section");
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 100);
-      }
-    },
-  });
-
-  // Estado para renderizar Joyride solo en cliente
-  const [isJoyrideMounted, setIsJoyrideMounted] = useState(false);
-  useEffect(() => {
-    setIsJoyrideMounted(true);
-  }, []);
-
-  // const [isLiaExpanded, setIsLiaExpanded] = useState(false);
-  const [currentActivityPrompts, setCurrentActivityPrompts] = useState<
-    string[]
-  >([]);
-  const [isPromptsCollapsed, setIsPromptsCollapsed] = useState(false);
-  const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
-  const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
-  const [expandedLessons, setExpandedLessons] = useState<Set<string>>(
-    new Set()
-  );
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(
-    new Set()
-  );
-  const [lessonsActivities, setLessonsActivities] = useState<
-    Record<
-      string,
-      Array<{
-        activity_id: string;
-        activity_title: string;
-        activity_type: string;
-        is_required: boolean;
-      }>
-    >
-  >({});
-  const [lessonsMaterials, setLessonsMaterials] = useState<
-    Record<
-      string,
-      Array<{
-        material_id: string;
-        material_title: string;
-        material_type: string;
-        is_required?: boolean;
-      }>
-    >
-  >({});
-  const [lessonsQuizStatus, setLessonsQuizStatus] = useState<
-    Record<
-      string,
-      {
-        hasRequiredQuizzes: boolean;
-        totalRequiredQuizzes: number;
-        completedQuizzes: number;
-        passedQuizzes: number;
-        allQuizzesPassed: boolean;
-        quizzes: Array<{
-          id: string;
-          title: string;
-          type: string;
-          isCompleted: boolean;
-          isPassed: boolean;
-          percentage: number;
-        }>;
-      } | null
-    >
-  >({});
-  // const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen;
-  const mobileContentPaddingBottom = isMobileBottomNavVisible
-    ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`
-    : `calc(env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`;
-  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<{
-    id: string;
-    title: string;
-    content: string;
-    tags: string[];
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [courseProgress, setCourseProgress] = useState(6);
-
-  // Hook de LIA sin mensaje inicial
-  // Hook de LIA sin mensaje inicial - Removed
-  // const {
-  //   messages: liaMessages,
-  //   isLoading: isLiaLoading,
-  //   sendMessage: sendLiaMessage,
-  //   clearHistory: clearLiaHistory,
-  //   loadConversation,
-  //   currentConversationId,
-  //   // ✨ Nuevas propiedades para modos
-  //   currentMode,
-  //   setMode,
-  //   generatedPrompt,
-  //   clearPrompt,
-  //   // 🎨 Nuevas propiedades para NanoBanana
-  //   generatedNanoBanana,
-  //   clearNanoBanana,
-  //   isNanoBananaMode
-  // } = useLiaChat(null);
-
-  // Estado local para el input del mensaje (Removed)
-  // const [liaMessage, setLiaMessage] = useState('');
-  // const [isLiaRecording, setIsLiaRecording] = useState(false);
-  // Ref para hacer scroll automático al final de los mensajes de LIA
-  // const liaMessagesEndRef = useRef<HTMLDivElement>(null);
-  // const liaPanelRef = useRef<HTMLDivElement>(null);
-  // Ref para el textarea de LIA
-  // const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
-  // 🎙️ Ref para el reconocimiento de voz
-  // const recognitionRef = useRef<any>(null);
-
-  // 🎙️ Obtener idioma actual para reconocimiento de voz
-  // const { language } = useLanguage();
-
-  // 🎙️ Mapeo de idiomas para reconocimiento de voz
-  // const speechLanguageMap: Record<string, string> = {
-  //   'es': 'es-ES',
-  //   'en': 'en-US',
-  //   'pt': 'pt-BR'
-  // };
-  // ✨ Estados para guardado de prompts
-  // const [isSavingPrompt, setIsSavingPrompt] = useState(false);
-  // const [showPromptPreview, setShowPromptPreview] = useState(false);
-  // 🎨 Estados para NanoBanana
-  // const [showNanoBananaPreview, setShowNanoBananaPreview] = useState(false);
-  // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
-  const prevPromptsLengthRef = useRef<number>(0);
-  // Ref para el botón del menú de Lia
-  // const liaMenuButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Estados para historial de conversaciones (Removed)
-  // const [showHistory, setShowHistory] = useState(false);
-  // const [conversations, setConversations] = useState<Array<{
-  //   conversation_id: string;
-  //   conversation_title: string | null;
-  //   started_at: string;
-  //   total_messages: number;
-  //   context_type: string;
-  //   course_id: string | null;
-  //   lesson_id: string | null;
-  //   course: {
-  //     slug: string;
-  //     title: string;
-  //   } | null;
-  // }>>([]);
-  // const [loadingConversations, setLoadingConversations] = useState(false);
-  // const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
-  // const [editingTitle, setEditingTitle] = useState<string>('');
-  // const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
-  // const [showLiaMenu, setShowLiaMenu] = useState(false);
-  // const [liaMenuPosition, setLiaMenuPosition] = useState<{ top: number; right: number } | null>(null);
-
-  // Calcular posición del menú cuando se abre
-  // useEffect(() => {
-  //   if (showLiaMenu && liaMenuButtonRef.current) {
-  //     const buttonRect = liaMenuButtonRef.current.getBoundingClientRect();
-  //     setLiaMenuPosition({
-  //       top: buttonRect.bottom + 8, // 8px de margen (mt-2)
-  //       right: window.innerWidth - buttonRect.right
-  //     });
-  //   } else {
-  //     setLiaMenuPosition(null);
-  //   }
-  // }, [showLiaMenu]);
-
-  // 🎯 SISTEMA DE TRACKING AVANZADO DE COMPORTAMIENTO DEL USUARIO
-  const [userBehaviorLog, setUserBehaviorLog] = useState<
-    Array<{
-      action: string;
-      timestamp: number;
-      lessonId?: string;
-      lessonTitle?: string;
-      hasCompletedActivities?: boolean;
-      activityDetails?: string;
-      metadata?: any;
-    }>
-  >([]);
-
-  // Función para registrar acciones del usuario
-  const trackUserAction = useCallback(
-    (action: string, metadata?: any) => {
-      const logEntry = {
-        action,
-        timestamp: Date.now(),
-        lessonId: currentLesson?.lesson_id,
-        lessonTitle: currentLesson?.lesson_title,
-        metadata,
-      };
-
-      setUserBehaviorLog((prev) => {
-        const newLog = [...prev, logEntry];
-        // Mantener solo las últimas 50 acciones para no sobrecargar memoria
-        return newLog.slice(-50);
-      });
-    },
-    [currentLesson]
-  );
-
-  // Función para analizar el comportamiento y generar contexto detallado
-  const analyzeUserBehavior = useCallback((): string => {
-    const recentActions = userBehaviorLog.slice(-10); // Últimas 10 acciones
-    const now = Date.now();
-    const last5Minutes = recentActions.filter(
-      (a) => now - a.timestamp < 300000
-    );
-
-    let behaviorContext = "";
-
-    // Detectar intentos de cambiar de lección sin completar
-    const lessonChangeAttempts = last5Minutes.filter(
-      (a) => a.action === "attempted_lesson_change_without_completion"
-    );
-    if (lessonChangeAttempts.length > 0) {
-      const attemptDetails =
-        lessonChangeAttempts[lessonChangeAttempts.length - 1];
-      behaviorContext += `El usuario ha intentado ${lessonChangeAttempts.length} veces cambiar a otra lección sin completar las actividades requeridas. `;
-      behaviorContext += `Actividades pendientes: ${attemptDetails.metadata?.pendingActivities || "desconocidas"}. `;
-    }
-
-    // Detectar clics repetidos en lecciones bloqueadas
-    const blockedAttempts = last5Minutes.filter(
-      (a) => a.action === "attempted_locked_lesson"
-    );
-    if (blockedAttempts.length > 0) {
-      behaviorContext += `Ha intentado ${blockedAttempts.length} veces acceder a lecciones bloqueadas. `;
-    }
-
-    // Detectar expansión/colapso frecuente de materiales
-    const expandCollapseActions = last5Minutes.filter(
-      (a) =>
-        a.action === "expand_lesson_materials" ||
-        a.action === "collapse_lesson_materials"
-    );
-    if (expandCollapseActions.length > 3) {
-      behaviorContext += `Está explorando los materiales de forma repetitiva (${expandCollapseActions.length} veces en 5 min). `;
-    }
-
-    // Detectar cambios frecuentes de tabs
-    const tabChanges = last5Minutes.filter((a) => a.action === "tab_change");
-    if (tabChanges.length > 5) {
-      const tabs = tabChanges.map((a) => a.metadata?.tab).filter(Boolean);
-      behaviorContext += `Ha cambiado de sección ${tabChanges.length} veces (${tabs.join(" → ")}), parece estar buscando algo específico. `;
-    }
-
-    // Detectar tiempo sin interacciones (último registro)
-    if (recentActions.length > 0) {
-      const lastAction = recentActions[recentActions.length - 1];
-      const timeSinceLastAction = (now - lastAction.timestamp) / 1000; // en segundos
-      if (timeSinceLastAction > 120) {
-        // más de 2 minutos
-        behaviorContext += `Lleva ${Math.floor(timeSinceLastAction / 60)} minutos en la misma acción sin interactuar. `;
-      }
-    }
-
-    // Detectar intentos fallidos de actividades
-    const failedAttempts = last5Minutes.filter(
-      (a) => a.action === "activity_failed_attempt"
-    );
-    if (failedAttempts.length > 0) {
-      behaviorContext += `Ha fallado ${failedAttempts.length} intentos en actividades. `;
-    }
-
-    return behaviorContext.trim();
-  }, [userBehaviorLog, currentLesson]);
-
-  // Función mejorada para manejar cambio de lección con tracking
-  const handleLessonChange = useCallback(
-    async (lesson: Lesson) => {
-      // Si es la misma lección, no hacer nada
-      if (currentLesson?.lesson_id === lesson.lesson_id) {
-        return;
-      }
-
-      // Si no hay lección actual, cambiar directamente
-      if (!currentLesson) {
-        setCurrentLesson(lesson);
-        setActiveTab("video");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        trackUserAction("lesson_opened", {
-          lessonId: lesson.lesson_id,
-          lessonTitle: lesson.lesson_title,
-        });
-        return;
-      }
-
-      // Verificar si hay actividades requeridas sin completar en la lección actual
-      const currentActivities =
-        lessonsActivities[currentLesson.lesson_id] || [];
-      const requiredActivities = currentActivities.filter((a) => a.is_required);
-      const pendingRequired = requiredActivities.filter((a) => !a.is_completed);
-
-      if (pendingRequired.length > 0) {
-        const pendingTitles = pendingRequired
-          .map((a) => a.activity_title)
-          .join(", ");
-        trackUserAction("attempted_lesson_change_without_completion", {
-          currentLessonId: currentLesson.lesson_id,
-          currentLessonTitle: currentLesson.lesson_title,
-          targetLessonId: lesson.lesson_id,
-          targetLessonTitle: lesson.lesson_title,
-          pendingActivities: pendingTitles,
-          pendingCount: pendingRequired.length,
-        });
-
-        console.warn(
-          "⚠️ Usuario intenta cambiar de lección con actividades pendientes:",
-          {
-            current: currentLesson.lesson_title,
-            target: lesson.lesson_title,
-            pending: pendingTitles,
-          }
-        );
-      } else {
-        trackUserAction("lesson_change", {
-          from: currentLesson.lesson_title,
-          to: lesson.lesson_title,
-        });
-      }
-
-      // Verificar si está avanzando o retrocediendo
-      const allLessons = getAllLessonsOrdered();
-      const currentIndex = allLessons.findIndex(
-        (item) => item.lesson.lesson_id === currentLesson.lesson_id
-      );
-      const selectedIndex = allLessons.findIndex(
-        (item) => item.lesson.lesson_id === lesson.lesson_id
-      );
-
-      // 🚀 OPTIMISTIC UPDATE: Cambiar INMEDIATAMENTE (antes de validar)
-      if (selectedIndex > currentIndex) {
-        // Guardar lección previa para poder revertir si falla
-        const previousLesson = currentLesson;
-
-        // CAMBIO INSTANTÁNEO (UI no se bloquea)
-        setCurrentLesson(lesson);
-        setActiveTab("video");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        trackUserAction("lesson_opened", {
-          lessonId: lesson.lesson_id,
-          lessonTitle: lesson.lesson_title,
-        });
-
-        // VALIDAR en segundo plano (async, no bloquea UI)
-        // Usar AbortController para poder cancelar si el usuario cambia de lección rápidamente
-        const abortController = new AbortController();
-
-        markLessonAsCompleted(previousLesson.lesson_id, abortController.signal)
-          .then((canComplete) => {
-            // Si falla la validación, REVERTIR cambio
-            if (!canComplete) {
-              console.warn(
-                "❌ Validación falló, revirtiendo a lección anterior"
-              );
-              setCurrentLesson(previousLesson);
-              setActiveTab("video");
-              window.scrollTo({ top: 0, behavior: "smooth" });
-
-              trackUserAction("attempted_locked_lesson", {
-                targetLessonId: lesson.lesson_id,
-                targetLessonTitle: lesson.lesson_title,
-                reason: "previous_lesson_not_completed",
-              });
+              // Activar PiP si el video está reproduciéndose y PiP no está activo
+              if (isVideoCurrentlyPlaying && !isPiPAlreadyActive && isPiPSupported) {
+                try {
+                  await videoElement.requestPictureInPicture();
+                  videoPlayerContext?.setIsPiPActive(true);
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('[PiP] Activated successfully');
+                  }
+                } catch (err) {
+                  console.log('[PiP] Could not activate:', err);
+                }
+              }
             }
-          })
-          .catch((error) => {
-            // Ignorar errores de cancelación
-            if (
-              error?.name !== "AbortError" &&
-              process.env.NODE_ENV === "development"
-            ) {
-              console.warn("Error en validación de lección (ignorado):", error);
+          }
+
+          // Si volvemos al tab de video, salir de PiP
+          if (newTab === "video" && activeTab !== "video") {
+            if (document.pictureInPictureElement) {
+              // Guardar progreso del video en PiP antes de cerrarlo
+              const pipVideo = document.pictureInPictureElement as HTMLVideoElement;
+              const currentTime = pipVideo.currentTime;
+              const wasPlaying = !pipVideo.paused;
+
+              if (currentLesson && videoPlayerContext) {
+                videoPlayerContext.saveVideoProgress(currentLesson.lesson_id, currentTime);
+              }
+
+              // 🔧 CRITICAL: Pause the PiP video BEFORE exiting PiP
+              // This prevents audio continuing after PiP closes
+              pipVideo.pause();
+
+              try {
+                await document.exitPictureInPicture();
+                videoPlayerContext?.setIsPiPActive(false);
+
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[PiP] Exited, saved time:', currentTime, 'wasPlaying:', wasPlaying);
+                }
+              } catch (err) {
+                console.log('[PiP] Could not exit:', err);
+              }
+
+              // 🔧 FIX: Set flag to auto-play when VideoContent mounts
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[handleTabChange] About to set shouldAutoPlay:', { wasPlaying, hasContext: !!videoPlayerContext });
+              }
+
+              if (wasPlaying) {
+                // Set the flag regardless of context - use ref directly
+                if (videoPlayerContext) {
+                  videoPlayerContext.setShouldAutoPlay(true);
+                }
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[handleTabChange] Set shouldAutoPlay to true');
+                }
+              }
+
+              // Change tab - VideoContent will handle auto-play based on shouldAutoPlay flag
+              setActiveTab(newTab);
+
+              // 🔧 FALLBACK: Try directly after a delay - this is the main mechanism now
+              if (wasPlaying) {
+                setTimeout(() => {
+                  const mainVideo = document.querySelector('.aspect-video video') as HTMLVideoElement | null;
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('[handleTabChange] Fallback check:', {
+                      hasVideo: !!mainVideo,
+                      isPaused: mainVideo?.paused,
+                      readyState: mainVideo?.readyState
+                    });
+                  }
+                  if (mainVideo && mainVideo.paused) {
+                    mainVideo.currentTime = currentTime;
+                    mainVideo.play().then(() => {
+                      if (process.env.NODE_ENV === 'development') {
+                        console.log('[handleTabChange] Fallback play SUCCESS');
+                      }
+                    }).catch((err) => {
+                      if (process.env.NODE_ENV === 'development') {
+                        console.log('[handleTabChange] Fallback play failed:', err);
+                      }
+                    });
+                    videoPlayerContext?.setShouldAutoPlay(false);
+                  }
+                }, 500);
+              }
+
+              return; // Exit early since we already called setActiveTab
             }
-          });
+          }
 
-        // Limpiar el abort controller cuando se cambie de lección
-        // Esto se manejará en un useEffect que limpie cuando currentLesson cambie
-        return;
-      }
+          setActiveTab(newTab);
+        }, [activeTab, videoPlayerContext, currentLesson]);
 
-      // Si se está retrocediendo, cambiar directamente (sin validación)
-      setCurrentLesson(lesson);
-      setActiveTab("video");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      trackUserAction("lesson_opened", {
-        lessonId: lesson.lesson_id,
-        lessonTitle: lesson.lesson_title,
-      });
-    },
-    [currentLesson, lessonsActivities, trackUserAction]
-  );
+    // Estado para detectar si estamos en móvil
+    const [isMobile, setIsMobile] = useState(false);
+    // Estado para la altura de la pantalla (para adaptar padding en diferentes dispositivos)
+    const [screenHeight, setScreenHeight] = useState(0);
+    // Estado para la altura del visualViewport (para manejar el teclado en móvil)
+    const [visualViewportHeight, setVisualViewportHeight] = useState<
+      number | null
+    >(null);
 
-  // Limpiar prompts cuando se cambia de tab
-  useEffect(() => {
-    if (activeTab !== "activities") {
-      setCurrentActivityPrompts([]);
-      setIsPromptsCollapsed(false);
-      prevPromptsLengthRef.current = 0;
-    }
-  }, [activeTab]);
+    // Inicializar paneles cerrados en móviles, abiertos en desktop
+    const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
+    // const [isRightPanelOpen, setIsRightPanelOpen] = useState(false); // Removed LIA
 
-  // Resetear estado de colapsado cuando se establecen nuevos prompts (solo si cambió de 0 a >0)
-  useEffect(() => {
-    const prevLength = prevPromptsLengthRef.current;
-    const currentLength = currentActivityPrompts.length;
-
-    // Solo resetear si cambió de 0 a tener prompts (nuevos prompts)
-    if (prevLength === 0 && currentLength > 0) {
-      setIsPromptsCollapsed(false);
-    }
-
-    prevPromptsLengthRef.current = currentLength;
-  }, [currentActivityPrompts.length]);
-
-  // Callback memoizado para evitar loops infinitos
-  const handlePromptsChange = useCallback((prompts: string[]) => {
-    setCurrentActivityPrompts(prompts);
-  }, []);
-
-  // Detectar tamaño de pantalla y ajustar estado inicial de paneles
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768; // md breakpoint
-      setIsMobile(mobile);
-      setScreenHeight(window.innerHeight);
-    };
-
-    // Verificar al montar
-    checkMobile();
-
-    // Escuchar cambios de tamaño de ventana
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []); // Solo ejecutar al montar
-
-  // Detectar cambios en visualViewport para manejar el teclado en móvil
-  // Similar a la implementación de LIA general
-  useEffect(() => {
-    if (!isMobile) {
-      setVisualViewportHeight(null);
-      return;
-    }
-
-    // Verificar si visualViewport está disponible
-    if (typeof window !== "undefined" && window.visualViewport) {
-      const updateViewportHeight = () => {
-        setVisualViewportHeight(window.visualViewport?.height || null);
-      };
-
-      // Establecer valor inicial
-      updateViewportHeight();
-
-      // Escuchar cambios en el visualViewport (cuando se abre/cierra el teclado)
-      window.visualViewport.addEventListener("resize", updateViewportHeight);
-      window.visualViewport.addEventListener("scroll", updateViewportHeight);
-
-      return () => {
-        window.visualViewport?.removeEventListener(
-          "resize",
-          updateViewportHeight
-        );
-        window.visualViewport?.removeEventListener(
-          "scroll",
-          updateViewportHeight
-        );
-      };
-    } else {
-      // Fallback: usar window.innerHeight si visualViewport no está disponible
-      const handleResize = () => {
-        setVisualViewportHeight(window.innerHeight);
-      };
-
-      handleResize();
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }
-  }, [isMobile]);
-
-  // Calcular altura máxima disponible para el panel de contenido dinámicamente
-  // Ahora incluye soporte para visualViewport cuando el teclado está abierto
-  const calculateLiaMaxHeight = useMemo(() => {
-    if (isMobile) {
-      // En móvil, usar visualViewport height si está disponible (cuando el teclado está abierto)
-      if (visualViewportHeight !== null) {
-        // Calcular altura disponible: visualViewport height menos el header
-        // El safe-area-inset-bottom se maneja en el padding del área de entrada
-        const headerHeight = 56; // Altura del header
-        const bottomNavHeight = isMobileBottomNavVisible
-          ? MOBILE_BOTTOM_NAV_HEIGHT_PX
-          : 0;
-
-        // Usar calc() para incluir safe-area-inset-bottom en el cálculo CSS
-        return `calc(${visualViewportHeight - headerHeight - bottomNavHeight}px - env(safe-area-inset-bottom, 0px))`;
-      }
-      // Si no hay visualViewport, no retornar height para que se ajuste automáticamente
-      return undefined;
-    }
-
-    return "calc(100vh - 3rem)";
-  }, [isMobile, isMobileBottomNavVisible, visualViewportHeight]);
-
-  // Calcular padding dinámico para el área de entrada según altura de pantalla
-  const getInputAreaPadding = (): string => {
-    if (!isMobile) return "1rem";
-
-    // Para pantallas muy pequeñas (menos de 600px de altura), usar padding mínimo
-    if (screenHeight < 600) {
-      return `calc(0.75rem + max(env(safe-area-inset-bottom, 0px), 4px))`;
-    }
-
-    // Para pantallas pequeñas (600-800px), usar padding moderado
-    if (screenHeight < 800) {
-      return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
-    }
-
-    // Para pantallas normales y grandes, usar padding estándar
-    return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
-  };
-
-  // Ajustar paneles cuando cambia isMobile
-  useEffect(() => {
-    if (isMobile) {
-      // En móvil, cerrar panel izquierdo si está abierto al iniciar
-      if (isLeftPanelOpen) {
-        setIsLeftPanelOpen(false);
-      }
-    } else {
-      // En desktop, abrir panel izquierdo si está cerrado
-      if (!isLeftPanelOpen) {
+    // 🎯 Tour del curso - con acciones interactivas
+    const { joyrideProps } = useCourseLearnTour({
+      enabled: true,
+      onOpenLia: openLia,
+      onSwitchTab: (tab) => setActiveTab(tab),
+      onOpenNotes: (shouldScroll = true) => {
         setIsLeftPanelOpen(true);
-      }
-    }
-  }, [isMobile]); // Solo cuando cambia isMobile
+        setIsNotesCollapsed(false);
+        // Dar tiempo para que se expanda antes de que el tour busque el elemento
+        if (shouldScroll) {
+          setTimeout(() => {
+            const element = document.getElementById("tour-notes-section");
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 100);
+        }
+      },
+    });
 
-  // Hook para detectar gestos de swipe en móvil
-  // Solo funciona cuando el panel izquierdo está cerrado para evitar conflictos
-  const swipeRef = useSwipe({
-    onSwipeRight: () => {
-      // Swipe de izquierda a derecha → abrir panel izquierdo
-      if (isMobile && !isLeftPanelOpen) {
-        setIsLeftPanelOpen(true);
-      }
-    },
-    // Eliminado soporte para swipe izquierda (panel derecho eliminado)
-    onSwipeLeft: () => { },
-    threshold: 50, // Mínimo 50px de desplazamiento
-    velocity: 0.3, // Mínimo 0.3px/ms de velocidad
-    enabled: isMobile && !isLeftPanelOpen, // Solo habilitado en móvil cuando panel izquierdo está cerrado
-  });
-  const [savedNotes, setSavedNotes] = useState<
-    Array<{
+    // Estado para renderizar Joyride solo en cliente
+    const [isJoyrideMounted, setIsJoyrideMounted] = useState(false);
+    useEffect(() => {
+      setIsJoyrideMounted(true);
+    }, []);
+
+    // const [isLiaExpanded, setIsLiaExpanded] = useState(false);
+    const [currentActivityPrompts, setCurrentActivityPrompts] = useState<
+      string[]
+    >([]);
+    const [isPromptsCollapsed, setIsPromptsCollapsed] = useState(false);
+    const [isMaterialCollapsed, setIsMaterialCollapsed] = useState(false);
+    const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
+    const [expandedLessons, setExpandedLessons] = useState<Set<string>>(
+      new Set()
+    );
+    const [expandedModules, setExpandedModules] = useState<Set<string>>(
+      new Set()
+    );
+    const [lessonsActivities, setLessonsActivities] = useState<
+      Record<
+        string,
+        Array<{
+          activity_id: string;
+          activity_title: string;
+          activity_description?: string;
+          activity_type: string;
+          is_required: boolean;
+          is_completed?: boolean;
+        }>
+      >
+    >({});
+    const [lessonsMaterials, setLessonsMaterials] = useState<
+      Record<
+        string,
+        Array<{
+          material_id: string;
+          material_title: string;
+          material_type: string;
+          is_required?: boolean;
+        }>
+      >
+    >({});
+    const [lessonsQuizStatus, setLessonsQuizStatus] = useState<
+      Record<
+        string,
+        {
+          hasRequiredQuizzes: boolean;
+          totalRequiredQuizzes: number;
+          completedQuizzes: number;
+          passedQuizzes: number;
+          allQuizzesPassed: boolean;
+          quizzes: Array<{
+            id: string;
+            title: string;
+            type: string;
+            isCompleted: boolean;
+            isPassed: boolean;
+            percentage: number;
+          }>;
+        } | null
+      >
+    >({});
+    // const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+    const isMobileBottomNavVisible = isMobile && !isLeftPanelOpen;
+    const mobileContentPaddingBottom = isMobileBottomNavVisible
+      ? `calc(${MOBILE_BOTTOM_NAV_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`
+      : `calc(env(safe-area-inset-bottom, 0px) + ${CONTENT_BOTTOM_PADDING_MOBILE}px)`;
+    const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+    const [editingNote, setEditingNote] = useState<{
       id: string;
       title: string;
       content: string;
-      timestamp: string;
-      lessonId: string;
-      fullContent?: string;
-      tags?: string[];
-    }>
-  >([]);
-  const [notesStats, setNotesStats] = useState({
-    totalNotes: 0,
-    lessonsWithNotes: "0/0",
-    lastUpdate: "-",
-  });
-  const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] =
-    useState(false);
-  const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] =
-    useState(false);
-  const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
-  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
-  const [hasUserRated, setHasUserRated] = useState(false);
-  const [validationModal, setValidationModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    details?: string;
-    type: "activity" | "video" | "quiz";
-    lessonId?: string; // ID de la lección que se intentó completar
-  }>({
-    isOpen: false,
-    title: "",
-    message: "",
-    type: "activity",
-    lessonId: undefined,
-  });
+      tags: string[];
+    } | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [courseProgress, setCourseProgress] = useState(6);
 
-  // Función para convertir HTML a texto plano con formato mejorado
-  const htmlToPlainText = (
-    html: string,
-    addLineBreaks: boolean = true
-  ): string => {
-    if (!html) return "";
+    // Hook de LIA sin mensaje inicial
+    // Hook de LIA sin mensaje inicial - Removed
+    // const {
+    //   messages: liaMessages,
+    //   isLoading: isLiaLoading,
+    //   sendMessage: sendLiaMessage,
+    //   clearHistory: clearLiaHistory,
+    //   loadConversation,
+    //   currentConversationId,
+    //   // ✨ Nuevas propiedades para modos
+    //   currentMode,
+    //   setMode,
+    //   generatedPrompt,
+    //   clearPrompt,
+    //   // 🎨 Nuevas propiedades para NanoBanana
+    //   generatedNanoBanana,
+    //   clearNanoBanana,
+    //   isNanoBananaMode
+    // } = useLiaChat(null);
 
-    // Verificar que estamos en el cliente
-    if (typeof document === "undefined") {
-      // Fallback simple para SSR: eliminar etiquetas HTML básicas
-      return html
-        .replace(/<[^>]*>/g, "") // Eliminar todas las etiquetas HTML
-        .replace(/&nbsp;/g, " ")
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&quot;/g, '"')
-        .trim();
-    }
+    // Estado local para el input del mensaje (Removed)
+    // const [liaMessage, setLiaMessage] = useState('');
+    // const [isLiaRecording, setIsLiaRecording] = useState(false);
+    // Ref para hacer scroll automático al final de los mensajes de LIA
+    // const liaMessagesEndRef = useRef<HTMLDivElement>(null);
+    // const liaPanelRef = useRef<HTMLDivElement>(null);
+    // Ref para el textarea de LIA
+    // const liaTextareaRef = useRef<HTMLTextAreaElement>(null);
+    // 🎙️ Ref para el reconocimiento de voz
+    // const recognitionRef = useRef<any>(null);
 
-    // Crear un elemento temporal para parsear el HTML
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
+    // 🎙️ Obtener idioma actual para reconocimiento de voz
+    // const { language } = useLanguage();
 
-    // Convertir listas a texto legible con saltos de línea
-    const lists = tempDiv.querySelectorAll("ul, ol");
-    lists.forEach((list) => {
-      const items = list.querySelectorAll("li");
-      items.forEach((li, index) => {
-        const listType = list.tagName.toLowerCase();
-        const prefix = listType === "ol" ? `${index + 1}. ` : "• ";
-        const text = li.textContent?.trim() || "";
-        // Agregar prefijo y salto de línea si está habilitado
-        if (addLineBreaks) {
-          li.textContent = prefix + text + "\n";
-        } else {
-          li.textContent = prefix + text;
+    // 🎙️ Mapeo de idiomas para reconocimiento de voz
+    // const speechLanguageMap: Record<string, string> = {
+    //   'es': 'es-ES',
+    //   'en': 'en-US',
+    //   'pt': 'pt-BR'
+    // };
+    // ✨ Estados para guardado de prompts
+    // const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+    // const [showPromptPreview, setShowPromptPreview] = useState(false);
+    // 🎨 Estados para NanoBanana
+    // const [showNanoBananaPreview, setShowNanoBananaPreview] = useState(false);
+    // Ref para rastrear si los prompts cambiaron desde fuera (no por colapso manual)
+    const prevPromptsLengthRef = useRef<number>(0);
+    // Ref para el botón del menú de Lia
+    // const liaMenuButtonRef = useRef<HTMLButtonElement>(null);
+
+    // Estados para historial de conversaciones (Removed)
+    // const [showHistory, setShowHistory] = useState(false);
+    // const [conversations, setConversations] = useState<Array<{
+    //   conversation_id: string;
+    //   conversation_title: string | null;
+    //   started_at: string;
+    //   total_messages: number;
+    //   context_type: string;
+    //   course_id: string | null;
+    //   lesson_id: string | null;
+    //   course: {
+    //     slug: string;
+    //     title: string;
+    //   } | null;
+    // }>>([]);
+    // const [loadingConversations, setLoadingConversations] = useState(false);
+    // const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+    // const [editingTitle, setEditingTitle] = useState<string>('');
+    // const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
+    // const [showLiaMenu, setShowLiaMenu] = useState(false);
+    // const [liaMenuPosition, setLiaMenuPosition] = useState<{ top: number; right: number } | null>(null);
+
+    // Calcular posición del menú cuando se abre
+    // useEffect(() => {
+    //   if (showLiaMenu && liaMenuButtonRef.current) {
+    //     const buttonRect = liaMenuButtonRef.current.getBoundingClientRect();
+    //     setLiaMenuPosition({
+    //       top: buttonRect.bottom + 8, // 8px de margen (mt-2)
+    //       right: window.innerWidth - buttonRect.right
+    //     });
+    //   } else {
+    //     setLiaMenuPosition(null);
+    //   }
+    // }, [showLiaMenu]);
+
+    // 🎯 SISTEMA DE TRACKING AVANZADO DE COMPORTAMIENTO DEL USUARIO
+    const [userBehaviorLog, setUserBehaviorLog] = useState<
+      Array<{
+        action: string;
+        timestamp: number;
+        lessonId?: string;
+        lessonTitle?: string;
+        hasCompletedActivities?: boolean;
+        activityDetails?: string;
+        metadata?: any;
+      }>
+    >([]);
+
+    // Función para registrar acciones del usuario
+    const trackUserAction = useCallback(
+      (action: string, metadata?: any) => {
+        const logEntry = {
+          action,
+          timestamp: Date.now(),
+          lessonId: currentLesson?.lesson_id,
+          lessonTitle: currentLesson?.lesson_title,
+          metadata,
+        };
+
+        setUserBehaviorLog((prev) => {
+          const newLog = [...prev, logEntry];
+          // Mantener solo las últimas 50 acciones para no sobrecargar memoria
+          return newLog.slice(-50);
+        });
+      },
+      [currentLesson]
+    );
+
+    // Función para analizar el comportamiento y generar contexto detallado
+    const analyzeUserBehavior = useCallback((): string => {
+      const recentActions = userBehaviorLog.slice(-10); // Últimas 10 acciones
+      const now = Date.now();
+      const last5Minutes = recentActions.filter(
+        (a) => now - a.timestamp < 300000
+      );
+
+      let behaviorContext = "";
+
+      // Detectar intentos de cambiar de lección sin completar
+      const lessonChangeAttempts = last5Minutes.filter(
+        (a) => a.action === "attempted_lesson_change_without_completion"
+      );
+      if (lessonChangeAttempts.length > 0) {
+        const attemptDetails =
+          lessonChangeAttempts[lessonChangeAttempts.length - 1];
+        behaviorContext += `El usuario ha intentado ${lessonChangeAttempts.length} veces cambiar a otra lección sin completar las actividades requeridas. `;
+        behaviorContext += `Actividades pendientes: ${attemptDetails.metadata?.pendingActivities || "desconocidas"}. `;
+      }
+
+      // Detectar clics repetidos en lecciones bloqueadas
+      const blockedAttempts = last5Minutes.filter(
+        (a) => a.action === "attempted_locked_lesson"
+      );
+      if (blockedAttempts.length > 0) {
+        behaviorContext += `Ha intentado ${blockedAttempts.length} veces acceder a lecciones bloqueadas. `;
+      }
+
+      // Detectar expansión/colapso frecuente de materiales
+      const expandCollapseActions = last5Minutes.filter(
+        (a) =>
+          a.action === "expand_lesson_materials" ||
+          a.action === "collapse_lesson_materials"
+      );
+      if (expandCollapseActions.length > 3) {
+        behaviorContext += `Está explorando los materiales de forma repetitiva (${expandCollapseActions.length} veces en 5 min). `;
+      }
+
+      // Detectar cambios frecuentes de tabs
+      const tabChanges = last5Minutes.filter((a) => a.action === "tab_change");
+      if (tabChanges.length > 5) {
+        const tabs = tabChanges.map((a) => a.metadata?.tab).filter(Boolean);
+        behaviorContext += `Ha cambiado de sección ${tabChanges.length} veces (${tabs.join(" → ")}), parece estar buscando algo específico. `;
+      }
+
+      // Detectar tiempo sin interacciones (último registro)
+      if (recentActions.length > 0) {
+        const lastAction = recentActions[recentActions.length - 1];
+        const timeSinceLastAction = (now - lastAction.timestamp) / 1000; // en segundos
+        if (timeSinceLastAction > 120) {
+          // más de 2 minutos
+          behaviorContext += `Lleva ${Math.floor(timeSinceLastAction / 60)} minutos en la misma acción sin interactuar. `;
         }
-      });
+      }
+
+      // Detectar intentos fallidos de actividades
+      const failedAttempts = last5Minutes.filter(
+        (a) => a.action === "activity_failed_attempt"
+      );
+      if (failedAttempts.length > 0) {
+        behaviorContext += `Ha fallado ${failedAttempts.length} intentos en actividades. `;
+      }
+
+      return behaviorContext.trim();
+    }, [userBehaviorLog, currentLesson]);
+
+    // Función mejorada para manejar cambio de lección con tracking
+    const handleLessonChange = useCallback(
+      async (lesson: Lesson) => {
+        // Si es la misma lección, no hacer nada
+        if (currentLesson?.lesson_id === lesson.lesson_id) {
+          return;
+        }
+
+        // 🔧 FIX: Pause all videos before changing lesson to prevent double audio
+        videoPlayerContext?.pauseAllVideos();
+
+        // Si no hay lección actual, cambiar directamente
+        if (!currentLesson) {
+          setCurrentLesson(lesson);
+          setActiveTab("video");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          trackUserAction("lesson_opened", {
+            lessonId: lesson.lesson_id,
+            lessonTitle: lesson.lesson_title,
+          });
+          return;
+        }
+
+        // Verificar si hay actividades requeridas sin completar en la lección actual
+        const currentActivities =
+          lessonsActivities[currentLesson.lesson_id] || [];
+        const requiredActivities = currentActivities.filter((a) => a.is_required);
+        const pendingRequired = requiredActivities.filter((a) => !a.is_completed);
+
+        if (pendingRequired.length > 0) {
+          const pendingTitles = pendingRequired
+            .map((a) => a.activity_title)
+            .join(", ");
+          trackUserAction("attempted_lesson_change_without_completion", {
+            currentLessonId: currentLesson.lesson_id,
+            currentLessonTitle: currentLesson.lesson_title,
+            targetLessonId: lesson.lesson_id,
+            targetLessonTitle: lesson.lesson_title,
+            pendingActivities: pendingTitles,
+            pendingCount: pendingRequired.length,
+          });
+
+          console.warn(
+            "⚠️ Usuario intenta cambiar de lección con actividades pendientes:",
+            {
+              current: currentLesson.lesson_title,
+              target: lesson.lesson_title,
+              pending: pendingTitles,
+            }
+          );
+        } else {
+          trackUserAction("lesson_change", {
+            from: currentLesson.lesson_title,
+            to: lesson.lesson_title,
+          });
+        }
+
+        // Verificar si está avanzando o retrocediendo
+        const allLessons = getAllLessonsOrdered();
+        const currentIndex = allLessons.findIndex(
+          (item) => item.lesson.lesson_id === currentLesson.lesson_id
+        );
+        const selectedIndex = allLessons.findIndex(
+          (item) => item.lesson.lesson_id === lesson.lesson_id
+        );
+
+        // 🚀 OPTIMISTIC UPDATE: Cambiar INMEDIATAMENTE (antes de validar)
+        if (selectedIndex > currentIndex) {
+          // Guardar lección previa para poder revertir si falla
+          const previousLesson = currentLesson;
+
+          // CAMBIO INSTANTÁNEO (UI no se bloquea)
+          setCurrentLesson(lesson);
+          setActiveTab("video");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          trackUserAction("lesson_opened", {
+            lessonId: lesson.lesson_id,
+            lessonTitle: lesson.lesson_title,
+          });
+
+          // VALIDAR en segundo plano (async, no bloquea UI)
+          // Usar AbortController para poder cancelar si el usuario cambia de lección rápidamente
+          const abortController = new AbortController();
+
+          markLessonAsCompleted(previousLesson.lesson_id, abortController.signal)
+            .then((canComplete) => {
+              // Si falla la validación, REVERTIR cambio
+              if (!canComplete) {
+                console.warn(
+                  "❌ Validación falló, revirtiendo a lección anterior"
+                );
+                setCurrentLesson(previousLesson);
+                setActiveTab("video");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+
+                trackUserAction("attempted_locked_lesson", {
+                  targetLessonId: lesson.lesson_id,
+                  targetLessonTitle: lesson.lesson_title,
+                  reason: "previous_lesson_not_completed",
+                });
+              }
+            })
+            .catch((error) => {
+              // Ignorar errores de cancelación
+              if (
+                error?.name !== "AbortError" &&
+                process.env.NODE_ENV === "development"
+              ) {
+                console.warn("Error en validación de lección (ignorado):", error);
+              }
+            });
+
+          // Limpiar el abort controller cuando se cambie de lección
+          // Esto se manejará en un useEffect que limpie cuando currentLesson cambie
+          return;
+        }
+
+        // Si se está retrocediendo, cambiar directamente (sin validación)
+        setCurrentLesson(lesson);
+        setActiveTab("video");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        trackUserAction("lesson_opened", {
+          lessonId: lesson.lesson_id,
+          lessonTitle: lesson.lesson_title,
+        });
+      },
+      [currentLesson, lessonsActivities, trackUserAction, videoPlayerContext]
+    );
+
+    // Limpiar prompts cuando se cambia de tab
+    useEffect(() => {
+      if (activeTab !== "activities") {
+        setCurrentActivityPrompts([]);
+        setIsPromptsCollapsed(false);
+        prevPromptsLengthRef.current = 0;
+      }
+    }, [activeTab]);
+
+    // Resetear estado de colapsado cuando se establecen nuevos prompts (solo si cambió de 0 a >0)
+    useEffect(() => {
+      const prevLength = prevPromptsLengthRef.current;
+      const currentLength = currentActivityPrompts.length;
+
+      // Solo resetear si cambió de 0 a tener prompts (nuevos prompts)
+      if (prevLength === 0 && currentLength > 0) {
+        setIsPromptsCollapsed(false);
+      }
+
+      prevPromptsLengthRef.current = currentLength;
+    }, [currentActivityPrompts.length]);
+
+    // Callback memoizado para evitar loops infinitos
+    const handlePromptsChange = useCallback((prompts: string[]) => {
+      setCurrentActivityPrompts(prompts);
+    }, []);
+
+    // Detectar tamaño de pantalla y ajustar estado inicial de paneles
+    useEffect(() => {
+      const checkMobile = () => {
+        const mobile = window.innerWidth < 768; // md breakpoint
+        setIsMobile(mobile);
+        setScreenHeight(window.innerHeight);
+      };
+
+      // Verificar al montar
+      checkMobile();
+
+      // Escuchar cambios de tamaño de ventana
+      window.addEventListener("resize", checkMobile);
+      return () => window.removeEventListener("resize", checkMobile);
+    }, []); // Solo ejecutar al montar
+
+    // Detectar cambios en visualViewport para manejar el teclado en móvil
+    // Similar a la implementación de LIA general
+    useEffect(() => {
+      if (!isMobile) {
+        setVisualViewportHeight(null);
+        return;
+      }
+
+      // Verificar si visualViewport está disponible
+      if (typeof window !== "undefined" && window.visualViewport) {
+        const updateViewportHeight = () => {
+          setVisualViewportHeight(window.visualViewport?.height || null);
+        };
+
+        // Establecer valor inicial
+        updateViewportHeight();
+
+        // Escuchar cambios en el visualViewport (cuando se abre/cierra el teclado)
+        window.visualViewport.addEventListener("resize", updateViewportHeight);
+        window.visualViewport.addEventListener("scroll", updateViewportHeight);
+
+        return () => {
+          window.visualViewport?.removeEventListener(
+            "resize",
+            updateViewportHeight
+          );
+          window.visualViewport?.removeEventListener(
+            "scroll",
+            updateViewportHeight
+          );
+        };
+      } else {
+        // Fallback: usar window.innerHeight si visualViewport no está disponible
+        const handleResize = () => {
+          setVisualViewportHeight(window.innerHeight);
+        };
+
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+      }
+    }, [isMobile]);
+
+    // Calcular altura máxima disponible para el panel de contenido dinámicamente
+    // Ahora incluye soporte para visualViewport cuando el teclado está abierto
+    const calculateLiaMaxHeight = useMemo(() => {
+      if (isMobile) {
+        // En móvil, usar visualViewport height si está disponible (cuando el teclado está abierto)
+        if (visualViewportHeight !== null) {
+          // Calcular altura disponible: visualViewport height menos el header
+          // El safe-area-inset-bottom se maneja en el padding del área de entrada
+          const headerHeight = 56; // Altura del header
+          const bottomNavHeight = isMobileBottomNavVisible
+            ? MOBILE_BOTTOM_NAV_HEIGHT_PX
+            : 0;
+
+          // Usar calc() para incluir safe-area-inset-bottom en el cálculo CSS
+          return `calc(${visualViewportHeight - headerHeight - bottomNavHeight}px - env(safe-area-inset-bottom, 0px))`;
+        }
+        // Si no hay visualViewport, no retornar height para que se ajuste automáticamente
+        return undefined;
+      }
+
+      return "calc(100vh - 3rem)";
+    }, [isMobile, isMobileBottomNavVisible, visualViewportHeight]);
+
+    // Calcular padding dinámico para el área de entrada según altura de pantalla
+    const getInputAreaPadding = (): string => {
+      if (!isMobile) return "1rem";
+
+      // Para pantallas muy pequeñas (menos de 600px de altura), usar padding mínimo
+      if (screenHeight < 600) {
+        return `calc(0.75rem + max(env(safe-area-inset-bottom, 0px), 4px))`;
+      }
+
+      // Para pantallas pequeñas (600-800px), usar padding moderado
+      if (screenHeight < 800) {
+        return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
+      }
+
+      // Para pantallas normales y grandes, usar padding estándar
+      return `calc(1rem + max(env(safe-area-inset-bottom, 0px), 8px))`;
+    };
+
+    // Ajustar paneles cuando cambia isMobile
+    useEffect(() => {
+      if (isMobile) {
+        // En móvil, cerrar panel izquierdo si está abierto al iniciar
+        if (isLeftPanelOpen) {
+          setIsLeftPanelOpen(false);
+        }
+      } else {
+        // En desktop, abrir panel izquierdo si está cerrado
+        if (!isLeftPanelOpen) {
+          setIsLeftPanelOpen(true);
+        }
+      }
+    }, [isMobile]); // Solo cuando cambia isMobile
+
+    // Hook para detectar gestos de swipe en móvil
+    // Solo funciona cuando el panel izquierdo está cerrado para evitar conflictos
+    const swipeRef = useSwipe({
+      onSwipeRight: () => {
+        // Swipe de izquierda a derecha → abrir panel izquierdo
+        if (isMobile && !isLeftPanelOpen) {
+          setIsLeftPanelOpen(true);
+        }
+      },
+      // Eliminado soporte para swipe izquierda (panel derecho eliminado)
+      onSwipeLeft: () => { },
+      threshold: 50, // Mínimo 50px de desplazamiento
+      velocity: 0.3, // Mínimo 0.3px/ms de velocidad
+      enabled: isMobile && !isLeftPanelOpen, // Solo habilitado en móvil cuando panel izquierdo está cerrado
+    });
+    const [savedNotes, setSavedNotes] = useState<
+      Array<{
+        id: string;
+        title: string;
+        content: string;
+        timestamp: string;
+        lessonId: string;
+        fullContent?: string;
+        tags?: string[];
+      }>
+    >([]);
+    const [notesStats, setNotesStats] = useState({
+      totalNotes: 0,
+      lessonsWithNotes: "0/0",
+      lastUpdate: "-",
+    });
+    const [isCourseCompletedModalOpen, setIsCourseCompletedModalOpen] =
+      useState(false);
+    const [isCannotCompleteModalOpen, setIsCannotCompleteModalOpen] =
+      useState(false);
+    const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
+    const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+    const [hasUserRated, setHasUserRated] = useState(false);
+    const [validationModal, setValidationModal] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      details?: string;
+      type: "activity" | "video" | "quiz";
+      lessonId?: string; // ID de la lección que se intentó completar
+    }>({
+      isOpen: false,
+      title: "",
+      message: "",
+      type: "activity",
+      lessonId: undefined,
     });
 
-    // Convertir <p> y <div> a saltos de línea si está habilitado
-    if (addLineBreaks) {
-      const paragraphs = tempDiv.querySelectorAll("p, div");
-      paragraphs.forEach((p) => {
-        if (p.textContent && !p.textContent.trim().endsWith("\n")) {
-          p.textContent = (p.textContent || "") + "\n";
-        }
+    // Función para convertir HTML a texto plano con formato mejorado
+    const htmlToPlainText = (
+      html: string,
+      addLineBreaks: boolean = true
+    ): string => {
+      if (!html) return "";
+
+      // Verificar que estamos en el cliente
+      if (typeof document === "undefined") {
+        // Fallback simple para SSR: eliminar etiquetas HTML básicas
+        return html
+          .replace(/<[^>]*>/g, "") // Eliminar todas las etiquetas HTML
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .trim();
+      }
+
+      // Crear un elemento temporal para parsear el HTML
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = html;
+
+      // Convertir listas a texto legible con saltos de línea
+      const lists = tempDiv.querySelectorAll("ul, ol");
+      lists.forEach((list) => {
+        const items = list.querySelectorAll("li");
+        items.forEach((li, index) => {
+          const listType = list.tagName.toLowerCase();
+          const prefix = listType === "ol" ? `${index + 1}. ` : "• ";
+          const text = li.textContent?.trim() || "";
+          // Agregar prefijo y salto de línea si está habilitado
+          if (addLineBreaks) {
+            li.textContent = prefix + text + "\n";
+          } else {
+            li.textContent = prefix + text;
+          }
+        });
       });
-    }
 
-    // Obtener el texto plano
-    let text = tempDiv.textContent || tempDiv.innerText || "";
+      // Convertir <p> y <div> a saltos de línea si está habilitado
+      if (addLineBreaks) {
+        const paragraphs = tempDiv.querySelectorAll("p, div");
+        paragraphs.forEach((p) => {
+          if (p.textContent && !p.textContent.trim().endsWith("\n")) {
+            p.textContent = (p.textContent || "") + "\n";
+          }
+        });
+      }
 
-    // Limpiar espacios múltiples y saltos de línea excesivos
-    if (addLineBreaks) {
-      text = text.replace(/\n{3,}/g, "\n\n"); // Máximo 2 saltos de línea consecutivos
-    }
+      // Obtener el texto plano
+      let text = tempDiv.textContent || tempDiv.innerText || "";
 
-    return text.trim();
-  };
+      // Limpiar espacios múltiples y saltos de línea excesivos
+      if (addLineBreaks) {
+        text = text.replace(/\n{3,}/g, "\n\n"); // Máximo 2 saltos de línea consecutivos
+      }
 
-  // Función para generar vista previa inteligente
-  const generateNotePreview = (
-    html: string,
-    maxLength: number = 50
-  ): string => {
-    if (!html) return "";
+      return text.trim();
+    };
 
-    // Verificar que estamos en el cliente
-    if (typeof document === "undefined") {
+    // Función para generar vista previa inteligente
+    const generateNotePreview = (
+      html: string,
+      maxLength: number = 50
+    ): string => {
+      if (!html) return "";
+
+      // Verificar que estamos en el cliente
+      if (typeof document === "undefined") {
+        const plainText = htmlToPlainText(html, false);
+        return (
+          plainText.substring(0, maxLength) +
+          (plainText.length > maxLength ? "..." : "")
+        );
+      }
+
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = html;
+
+      // Verificar si el primer elemento es una lista
+      const firstChild = tempDiv.firstElementChild;
+      if (
+        firstChild &&
+        (firstChild.tagName === "UL" || firstChild.tagName === "OL")
+      ) {
+        // Si es una lista, obtener solo el primer elemento
+        const firstItem = firstChild.querySelector("li");
+        if (firstItem) {
+          const listType = firstChild.tagName.toLowerCase();
+          const prefix = listType === "ol" ? "1. " : "• ";
+          const text = firstItem.textContent?.trim() || "";
+          const preview = prefix + text;
+          return preview.length > maxLength
+            ? preview.substring(0, maxLength) + "..."
+            : preview + "...";
+        }
+      }
+
+      // Si no es una lista o no tiene elementos, usar el método normal
       const plainText = htmlToPlainText(html, false);
       return (
         plainText.substring(0, maxLength) +
         (plainText.length > maxLength ? "..." : "")
       );
-    }
-
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
-
-    // Verificar si el primer elemento es una lista
-    const firstChild = tempDiv.firstElementChild;
-    if (
-      firstChild &&
-      (firstChild.tagName === "UL" || firstChild.tagName === "OL")
-    ) {
-      // Si es una lista, obtener solo el primer elemento
-      const firstItem = firstChild.querySelector("li");
-      if (firstItem) {
-        const listType = firstChild.tagName.toLowerCase();
-        const prefix = listType === "ol" ? "1. " : "• ";
-        const text = firstItem.textContent?.trim() || "";
-        const preview = prefix + text;
-        return preview.length > maxLength
-          ? preview.substring(0, maxLength) + "..."
-          : preview + "...";
-      }
-    }
-
-    // Si no es una lista o no tiene elementos, usar el método normal
-    const plainText = htmlToPlainText(html, false);
-    return (
-      plainText.substring(0, maxLength) +
-      (plainText.length > maxLength ? "..." : "")
-    );
-  };
-
-  // Función para formatear timestamp
-  const formatTimestamp = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "Ahora";
-    if (diffMins < 60)
-      return `Hace ${diffMins} minuto${diffMins > 1 ? "s" : ""}`;
-    if (diffHours < 24)
-      return `Hace ${diffHours} hora${diffHours > 1 ? "s" : ""}`;
-    if (diffDays === 1) return "Ayer";
-    if (diffDays < 7) return `Hace ${diffDays} días`;
-
-    return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-  };
-
-  // Función para cargar notas de una lección
-  const loadLessonNotes = async (lessonId: string, courseSlug: string) => {
-    try {
-      const response = await fetch(
-        `/api/courses/${courseSlug}/lessons/${lessonId}/notes`,
-        { credentials: 'include' }
-      );
-      if (response.ok) {
-        const notes = await response.json();
-        // Mapear notas de BD al formato del frontend
-        const mappedNotes = notes.map((note: any) => {
-          const preview = generateNotePreview(note.note_content, 50);
-
-          return {
-            id: note.note_id,
-            title: note.note_title,
-            content: preview,
-            timestamp: formatTimestamp(note.updated_at || note.created_at),
-            lessonId: note.lesson_id,
-            fullContent: note.note_content, // Guardar contenido completo
-            tags: note.note_tags || [],
-          };
-        });
-        setSavedNotes(mappedNotes);
-      } else if (response.status === 401) {
-        // Usuario no autenticado, dejar notas vacías
-        setSavedNotes([]);
-      }
-    } catch (error) {
-      // console.error('Error loading notes:', error);
-      setSavedNotes([]);
-    }
-  };
-
-  // Función para cargar estadísticas del curso
-  const loadNotesStats = async (courseSlug: string) => {
-    try {
-      const response = await fetch(`/api/courses/${courseSlug}/notes/stats`, {
-        credentials: "include",
-      });
-      if (response.ok) {
-        const stats = await response.json();
-        setNotesStats({
-          totalNotes: stats.totalNotes,
-          lessonsWithNotes: `${stats.lessonsWithNotes}/${stats.totalLessons}`,
-          lastUpdate: stats.lastUpdate
-            ? formatTimestamp(stats.lastUpdate)
-            : "-",
-        });
-      } else if (response.status === 401) {
-        // Usuario no autenticado - usar valores por defecto
-        const allLessons = modules.flatMap((m: Module) => m.lessons);
-        const totalLessons = allLessons.length;
-        setNotesStats({
-          totalNotes: 0,
-          lessonsWithNotes: `0/${totalLessons}`,
-          lastUpdate: "-",
-        });
-      } else if (response.status === 404) {
-        // Endpoint no encontrado - usar valores por defecto sin mostrar error
-        const allLessons = modules.flatMap((m: Module) => m.lessons);
-        const totalLessons = allLessons.length;
-        setNotesStats({
-          totalNotes: 0,
-          lessonsWithNotes: `0/${totalLessons}`,
-          lastUpdate: "-",
-        });
-      }
-    } catch (error) {
-      // Silenciar errores de stats, usar valores por defecto
-      const allLessons = modules.flatMap((m: Module) => m.lessons);
-      const totalLessons = allLessons.length;
-      setNotesStats({
-        totalNotes: 0,
-        lessonsWithNotes: `0/${totalLessons}`,
-        lastUpdate: "-",
-      });
-    }
-  };
-
-  // ⚡ OPTIMIZACIÓN: Función para actualizar estadísticas de manera optimizada
-  // Calcula las estadísticas localmente cuando es posible, evitando llamadas al servidor
-  const updateNotesStatsOptimized = async (
-    operation: "create" | "update" | "delete",
-    lessonId?: string
-  ) => {
-    if (!slug) return;
-
-    const allLessons = modules.flatMap((m: Module) => m.lessons);
-    const totalLessons = allLessons.length;
-
-    // Para operaciones de creación/eliminación, podemos actualizar optimistamente
-    if (operation === "create" || operation === "delete") {
-      // Actualizar total de notas optimistamente
-      setNotesStats((prev) => {
-        const currentTotal = prev.totalNotes || 0;
-        const newTotal =
-          operation === "create"
-            ? currentTotal + 1
-            : Math.max(0, currentTotal - 1);
-
-        // Para lecciones con notas, usar el valor anterior y ajustar optimistamente
-        // La recarga del servidor corregirá cualquier discrepancia
-        const prevLessonsWithNotes =
-          parseInt(prev.lessonsWithNotes.split("/")[0]) || 0;
-        let lessonsWithNotes = prevLessonsWithNotes;
-
-        if (lessonId && operation === "create") {
-          // Si creamos una nota, asumimos que la lección no tenía notas antes
-          // (será corregido por la recarga del servidor si es incorrecto)
-          lessonsWithNotes = Math.min(prevLessonsWithNotes + 1, totalLessons);
-        } else if (lessonId && operation === "delete") {
-          // Si eliminamos una nota, asumimos que era la última de la lección
-          // (será corregido por la recarga del servidor si es incorrecto)
-          lessonsWithNotes = Math.max(0, prevLessonsWithNotes - 1);
-        }
-
-        return {
-          ...prev,
-          totalNotes: newTotal,
-          lessonsWithNotes: `${lessonsWithNotes}/${totalLessons}`,
-          lastUpdate: "Ahora", // Actualizar timestamp inmediatamente
-        };
-      });
-
-      // Recargar estadísticas completas del servidor en background (sin bloquear UI)
-      // Usamos un pequeño delay para evitar múltiples llamadas si hay varias operaciones rápidas
-      // y para dar tiempo a que el estado local se actualice
-      setTimeout(async () => {
-        await loadNotesStats(slug);
-      }, 500);
-    } else {
-      // Para actualizaciones, solo actualizar el timestamp y recargar en background
-      setNotesStats((prev) => ({
-        ...prev,
-        lastUpdate: "Ahora",
-      }));
-
-      setTimeout(async () => {
-        await loadNotesStats(slug);
-      }, 500);
-    }
-  };
-
-  // ⚡ OPTIMIZACIÓN: Función para agregar una nota al estado local inmediatamente
-  const addNoteToLocalState = (noteData: any, lessonId: string) => {
-    const preview = generateNotePreview(
-      noteData.note_content || noteData.noteContent,
-      50
-    );
-    const newNote = {
-      id: noteData.note_id || noteData.id,
-      title: noteData.note_title || noteData.title,
-      content: preview,
-      timestamp: "Ahora",
-      lessonId: lessonId,
-      fullContent: noteData.note_content || noteData.content,
-      tags: noteData.note_tags || noteData.tags || [],
     };
 
-    setSavedNotes((prev) => {
-      // Si la nota ya existe (por ID), reemplazarla; si no, agregarla al inicio
-      const existingIndex = prev.findIndex((n) => n.id === newNote.id);
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex] = newNote;
-        return updated;
-      } else {
-        return [newNote, ...prev];
+    // Función para formatear timestamp
+    const formatTimestamp = (dateString: string): string => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return "Ahora";
+      if (diffMins < 60)
+        return `Hace ${diffMins} minuto${diffMins > 1 ? "s" : ""}`;
+      if (diffHours < 24)
+        return `Hace ${diffHours} hora${diffHours > 1 ? "s" : ""}`;
+      if (diffDays === 1) return "Ayer";
+      if (diffDays < 7) return `Hace ${diffDays} días`;
+
+      return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+    };
+
+    // Función para cargar notas de una lección
+    const loadLessonNotes = async (lessonId: string, courseSlug: string) => {
+      try {
+        const response = await fetch(
+          `/api/courses/${courseSlug}/lessons/${lessonId}/notes`,
+          { credentials: 'include' }
+        );
+        if (response.ok) {
+          const notes = await response.json();
+          // Mapear notas de BD al formato del frontend
+          const mappedNotes = notes.map((note: any) => {
+            const preview = generateNotePreview(note.note_content, 50);
+
+            return {
+              id: note.note_id,
+              title: note.note_title,
+              content: preview,
+              timestamp: formatTimestamp(note.updated_at || note.created_at),
+              lessonId: note.lesson_id,
+              fullContent: note.note_content, // Guardar contenido completo
+              tags: note.note_tags || [],
+            };
+          });
+          setSavedNotes(mappedNotes);
+        } else if (response.status === 401) {
+          // Usuario no autenticado, dejar notas vacías
+          setSavedNotes([]);
+        }
+      } catch (error) {
+        // console.error('Error loading notes:', error);
+        setSavedNotes([]);
       }
-    });
-  };
+    };
 
-  // ⚡ OPTIMIZACIÓN: Función para eliminar una nota del estado local inmediatamente
-  const removeNoteFromLocalState = (noteId: string) => {
-    setSavedNotes((prev) => prev.filter((note) => note.id !== noteId));
-  };
+    // Función para cargar estadísticas del curso
+    const loadNotesStats = async (courseSlug: string) => {
+      try {
+        const response = await fetch(`/api/courses/${courseSlug}/notes/stats`, {
+          credentials: "include",
+        });
+        if (response.ok) {
+          const stats = await response.json();
+          setNotesStats({
+            totalNotes: stats.totalNotes,
+            lessonsWithNotes: `${stats.lessonsWithNotes}/${stats.totalLessons}`,
+            lastUpdate: stats.lastUpdate
+              ? formatTimestamp(stats.lastUpdate)
+              : "-",
+          });
+        } else if (response.status === 401) {
+          // Usuario no autenticado - usar valores por defecto
+          const allLessons = modules.flatMap((m: Module) => m.lessons);
+          const totalLessons = allLessons.length;
+          setNotesStats({
+            totalNotes: 0,
+            lessonsWithNotes: `0/${totalLessons}`,
+            lastUpdate: "-",
+          });
+        } else if (response.status === 404) {
+          // Endpoint no encontrado - usar valores por defecto sin mostrar error
+          const allLessons = modules.flatMap((m: Module) => m.lessons);
+          const totalLessons = allLessons.length;
+          setNotesStats({
+            totalNotes: 0,
+            lessonsWithNotes: `0/${totalLessons}`,
+            lastUpdate: "-",
+          });
+        }
+      } catch (error) {
+        // Silenciar errores de stats, usar valores por defecto
+        const allLessons = modules.flatMap((m: Module) => m.lessons);
+        const totalLessons = allLessons.length;
+        setNotesStats({
+          totalNotes: 0,
+          lessonsWithNotes: `0/${totalLessons}`,
+          lastUpdate: "-",
+        });
+      }
+    };
 
-  // Función para construir el contexto de la lección actual
-  const getLessonContext = (): CourseLessonContext | undefined => {
-    if (!currentLesson || !course) return undefined;
+    // ⚡ OPTIMIZACIÓN: Función para actualizar estadísticas de manera optimizada
+    // Calcula las estadísticas localmente cuando es posible, evitando llamadas al servidor
+    const updateNotesStatsOptimized = async (
+      operation: "create" | "update" | "delete",
+      lessonId?: string
+    ) => {
+      if (!slug) return;
 
-    // Encontrar el módulo actual
-    const currentModule = modules.find((m) =>
-      m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
-    );
+      const allLessons = modules.flatMap((m: Module) => m.lessons);
+      const totalLessons = allLessons.length;
 
-    // ✅ Si tenemos metadatos del taller, usarlos (incluye allModules)
-    if (workshopMetadata) {
+      // Para operaciones de creación/eliminación, podemos actualizar optimistamente
+      if (operation === "create" || operation === "delete") {
+        // Actualizar total de notas optimistamente
+        setNotesStats((prev) => {
+          const currentTotal = prev.totalNotes || 0;
+          const newTotal =
+            operation === "create"
+              ? currentTotal + 1
+              : Math.max(0, currentTotal - 1);
+
+          // Para lecciones con notas, usar el valor anterior y ajustar optimistamente
+          // La recarga del servidor corregirá cualquier discrepancia
+          const prevLessonsWithNotes =
+            parseInt(prev.lessonsWithNotes.split("/")[0]) || 0;
+          let lessonsWithNotes = prevLessonsWithNotes;
+
+          if (lessonId && operation === "create") {
+            // Si creamos una nota, asumimos que la lección no tenía notas antes
+            // (será corregido por la recarga del servidor si es incorrecto)
+            lessonsWithNotes = Math.min(prevLessonsWithNotes + 1, totalLessons);
+          } else if (lessonId && operation === "delete") {
+            // Si eliminamos una nota, asumimos que era la última de la lección
+            // (será corregido por la recarga del servidor si es incorrecto)
+            lessonsWithNotes = Math.max(0, prevLessonsWithNotes - 1);
+          }
+
+          return {
+            ...prev,
+            totalNotes: newTotal,
+            lessonsWithNotes: `${lessonsWithNotes}/${totalLessons}`,
+            lastUpdate: "Ahora", // Actualizar timestamp inmediatamente
+          };
+        });
+
+        // Recargar estadísticas completas del servidor en background (sin bloquear UI)
+        // Usamos un pequeño delay para evitar múltiples llamadas si hay varias operaciones rápidas
+        // y para dar tiempo a que el estado local se actualice
+        setTimeout(async () => {
+          await loadNotesStats(slug);
+        }, 500);
+      } else {
+        // Para actualizaciones, solo actualizar el timestamp y recargar en background
+        setNotesStats((prev) => ({
+          ...prev,
+          lastUpdate: "Ahora",
+        }));
+
+        setTimeout(async () => {
+          await loadNotesStats(slug);
+        }, 500);
+      }
+    };
+
+    // ⚡ OPTIMIZACIÓN: Función para agregar una nota al estado local inmediatamente
+    const addNoteToLocalState = (noteData: any, lessonId: string) => {
+      const preview = generateNotePreview(
+        noteData.note_content || noteData.noteContent,
+        50
+      );
+      const newNote = {
+        id: noteData.note_id || noteData.id,
+        title: noteData.note_title || noteData.title,
+        content: preview,
+        timestamp: "Ahora",
+        lessonId: lessonId,
+        fullContent: noteData.note_content || noteData.content,
+        tags: noteData.note_tags || noteData.tags || [],
+      };
+
+      setSavedNotes((prev) => {
+        // Si la nota ya existe (por ID), reemplazarla; si no, agregarla al inicio
+        const existingIndex = prev.findIndex((n) => n.id === newNote.id);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = newNote;
+          return updated;
+        } else {
+          return [newNote, ...prev];
+        }
+      });
+    };
+
+    // ⚡ OPTIMIZACIÓN: Función para eliminar una nota del estado local inmediatamente
+    const removeNoteFromLocalState = (noteId: string) => {
+      setSavedNotes((prev) => prev.filter((note) => note.id !== noteId));
+    };
+
+    // Función para construir el contexto de la lección actual
+    const getLessonContext = (): CourseLessonContext | undefined => {
+      if (!currentLesson || !course) return undefined;
+
+      // Encontrar el módulo actual
+      const currentModule = modules.find((m) =>
+        m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
+      );
+
+      // ✅ Si tenemos metadatos del taller, usarlos (incluye allModules)
+      if (workshopMetadata) {
+        return {
+          ...workshopMetadata,
+          moduleTitle: currentModule?.module_title,
+          lessonTitle: currentLesson.lesson_title,
+          lessonDescription: currentLesson.lesson_description,
+          durationSeconds: currentLesson.duration_seconds,
+          userRole: user?.job_title || undefined,
+        };
+      }
+
+      // Fallback: contexto básico sin metadatos completos
       return {
-        ...workshopMetadata,
+        contextType: "course", // Por defecto es curso, pero puede ser workshop
+        courseId: course.id || course.course_id || undefined,
+        courseSlug: slug || undefined,
+        courseTitle: course.title || course.course_title,
+        courseDescription: course.description || course.course_description,
         moduleTitle: currentModule?.module_title,
         lessonTitle: currentLesson.lesson_title,
         lessonDescription: currentLesson.lesson_description,
         durationSeconds: currentLesson.duration_seconds,
-        userRole: user?.type_rol || undefined,
+        userRole: user?.job_title || undefined,
+        // transcriptContent y summaryContent se cargan bajo demanda desde sus respectivos endpoints
       };
-    }
-
-    // Fallback: contexto básico sin metadatos completos
-    return {
-      contextType: "course", // Por defecto es curso, pero puede ser workshop
-      courseId: course.id || course.course_id || undefined,
-      courseSlug: slug || undefined,
-      courseTitle: course.title || course.course_title,
-      courseDescription: course.description || course.course_description,
-      moduleTitle: currentModule?.module_title,
-      lessonTitle: currentLesson.lesson_title,
-      lessonDescription: currentLesson.lesson_description,
-      durationSeconds: currentLesson.duration_seconds,
-      userRole: user?.type_rol || undefined,
-      // transcriptContent y summaryContent se cargan bajo demanda desde sus respectivos endpoints
     };
-  };
 
-  // ✨ Función para convertir enlaces Markdown [texto](url) en hipervínculos HTML
-  const parseMarkdownLinks = useCallback((text: string) => {
-    if (!text) return text;
+    // ✨ Función para convertir enlaces Markdown [texto](url) en hipervínculos HTML
+    const parseMarkdownLinks = useCallback((text: string) => {
+      if (!text) return text;
 
-    // Expresión regular para detectar enlaces Markdown: [texto](url)
-    const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+      // Expresión regular para detectar enlaces Markdown: [texto](url)
+      const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
 
-    // Dividir el texto en partes: enlaces y texto normal
-    const parts = [];
-    let lastIndex = 0;
-    let match;
+      // Dividir el texto en partes: enlaces y texto normal
+      const parts = [];
+      let lastIndex = 0;
+      let match;
 
-    while ((match = markdownLinkRegex.exec(text)) !== null) {
-      // Agregar texto antes del enlace
-      if (match.index > lastIndex) {
+      while ((match = markdownLinkRegex.exec(text)) !== null) {
+        // Agregar texto antes del enlace
+        if (match.index > lastIndex) {
+          parts.push({
+            type: "text",
+            content: text.substring(lastIndex, match.index),
+          });
+        }
+
+        // Agregar el enlace
+        parts.push({
+          type: "link",
+          text: match[1], // El texto del enlace
+          url: match[2], // La URL
+        });
+
+        lastIndex = match.index + match[0].length;
+      }
+
+      // Agregar el texto restante después del último enlace
+      if (lastIndex < text.length) {
         parts.push({
           type: "text",
-          content: text.substring(lastIndex, match.index),
+          content: text.substring(lastIndex),
         });
       }
 
-      // Agregar el enlace
-      parts.push({
-        type: "link",
-        text: match[1], // El texto del enlace
-        url: match[2], // La URL
+      return parts.length > 0 ? parts : [{ type: "text", content: text }];
+    }, []);
+
+    // Función para adaptar contenido de actividad según el rol
+
+    // Función para abrir modal de nueva nota
+    const openNewNoteModal = () => {
+      setEditingNote(null);
+      setIsNotesModalOpen(true);
+    };
+
+    // Función para abrir modal de editar nota
+    const openEditNoteModal = (note: any) => {
+      setEditingNote({
+        id: note.id,
+        title: note.title,
+        content: note.fullContent || note.content,
+        tags: note.tags || [],
       });
+      setIsNotesModalOpen(true);
+    };
 
-      lastIndex = match.index + match[0].length;
-    }
+    // ⚡ OPTIMIZADO: Función para guardar nota (nueva o editada) con actualización optimista
+    const handleSaveNote = async (noteData: {
+      title: string;
+      content: string;
+      tags: string[];
+    }) => {
+      try {
+        if (!currentLesson?.lesson_id || !slug) {
+          alert("Debe seleccionar una lección para guardar la nota");
+          return;
+        }
+        // Preparar payload según el formato que espera la API REST
+        const notePayload = {
+          note_title: noteData.title.trim(),
+          note_content: noteData.content.trim(),
+          note_tags: noteData.tags || [],
+          source_type: "manual", // Siempre manual desde el modal
+        };
 
-    // Agregar el texto restante después del último enlace
-    if (lastIndex < text.length) {
-      parts.push({
-        type: "text",
-        content: text.substring(lastIndex),
-      });
-    }
+        if (editingNote && editingNote.id && editingNote.id.trim() !== "") {
+          // Editar nota existente
+          const response = await fetch(
+            `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${editingNote.id}`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(notePayload),
+            }
+          );
 
-    return parts.length > 0 ? parts : [{ type: "text", content: text }];
-  }, []);
+          if (!response.ok) {
+            const errorData = await response
+              .json()
+              .catch(() => ({ error: "Error desconocido" }));
+            alert(
+              `Error al actualizar la nota: ${errorData.error || "Error desconocido"}`
+            );
+            return;
+          }
 
-  // Función para adaptar contenido de actividad según el rol
+          // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
+          const updatedNote = await response.json();
+          if (updatedNote && updatedNote.note_id) {
+            addNoteToLocalState(updatedNote, currentLesson.lesson_id);
 
-  // Función para abrir modal de nueva nota
-  const openNewNoteModal = () => {
-    setEditingNote(null);
-    setIsNotesModalOpen(true);
-  };
+            // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
+            await updateNotesStatsOptimized("update", currentLesson.lesson_id);
 
-  // Función para abrir modal de editar nota
-  const openEditNoteModal = (note: any) => {
-    setEditingNote({
-      id: note.id,
-      title: note.title,
-      content: note.fullContent || note.content,
-      tags: note.tags || [],
-    });
-    setIsNotesModalOpen(true);
-  };
+            // Cerrar modal solo después de que todo se haya guardado correctamente
+            setIsNotesModalOpen(false);
+            setEditingNote(null);
+          } else {
+            throw new Error(
+              "La respuesta del servidor no contiene los datos esperados de la nota"
+            );
+          }
+        } else {
+          // Crear nueva nota
+          const response = await fetch(
+            `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(notePayload),
+            }
+          );
 
-  // ⚡ OPTIMIZADO: Función para guardar nota (nueva o editada) con actualización optimista
-  const handleSaveNote = async (noteData: {
-    title: string;
-    content: string;
-    tags: string[];
-  }) => {
-    try {
-      if (!currentLesson?.lesson_id || !slug) {
-        alert("Debe seleccionar una lección para guardar la nota");
-        return;
+          if (!response.ok) {
+            const errorData = await response
+              .json()
+              .catch(() => ({ error: "Error desconocido" }));
+            const errorMessage =
+              errorData.error || errorData.message || "Error desconocido";
+            alert(`Error al guardar la nota: ${errorMessage}`);
+            throw new Error(errorMessage);
+          }
+
+          // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
+          const newNote = await response.json();
+          if (newNote && newNote.note_id) {
+            addNoteToLocalState(newNote, currentLesson.lesson_id);
+
+            // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
+            await updateNotesStatsOptimized("create", currentLesson.lesson_id);
+
+            // Cerrar modal solo después de que todo se haya guardado correctamente
+            setIsNotesModalOpen(false);
+            setEditingNote(null);
+          } else {
+            throw new Error(
+              "La respuesta del servidor no contiene los datos esperados de la nota"
+            );
+          }
+        }
+      } catch (error) {
+        // console.error('Error al guardar nota:', error);
+        // En caso de error, recargar desde el servidor para asegurar consistencia
+        if (currentLesson?.lesson_id && slug) {
+          await loadLessonNotes(currentLesson.lesson_id, slug);
+          await loadNotesStats(slug);
+        }
       }
-      // Preparar payload según el formato que espera la API REST
-      const notePayload = {
-        note_title: noteData.title.trim(),
-        note_content: noteData.content.trim(),
-        note_tags: noteData.tags || [],
-        source_type: "manual", // Siempre manual desde el modal
-      };
+    };
 
-      if (editingNote && editingNote.id && editingNote.id.trim() !== "") {
-        // Editar nota existente
+    // ⚡ OPTIMIZADO: Función para eliminar nota con actualización optimista
+    const handleDeleteNote = async (noteId: string) => {
+      if (!confirm("¿Estás seguro de que quieres eliminar esta nota?")) return;
+
+      try {
+        if (!currentLesson?.lesson_id || !slug) {
+          alert("No se puede eliminar la nota: lección no seleccionada");
+          return;
+        }
+
+        // ⚡ OPTIMIZACIÓN: Eliminar del estado local inmediatamente (actualización optimista)
+        removeNoteFromLocalState(noteId);
+
+        // ⚡ OPTIMIZACIÓN: Actualizar estadísticas optimistamente
+        await updateNotesStatsOptimized("delete", currentLesson.lesson_id);
+
         const response = await fetch(
-          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${editingNote.id}`,
+          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${noteId}`,
           {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(notePayload),
+            method: "DELETE",
           }
         );
 
         if (!response.ok) {
+          // Si falla, recargar desde el servidor para revertir el cambio optimista
+          await loadLessonNotes(currentLesson.lesson_id, slug);
+          await loadNotesStats(slug);
+
           const errorData = await response
             .json()
             .catch(() => ({ error: "Error desconocido" }));
           alert(
-            `Error al actualizar la nota: ${errorData.error || "Error desconocido"}`
-          );
-          return;
-        }
-
-        // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
-        const updatedNote = await response.json();
-        if (updatedNote && updatedNote.note_id) {
-          addNoteToLocalState(updatedNote, currentLesson.lesson_id);
-
-          // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
-          await updateNotesStatsOptimized("update", currentLesson.lesson_id);
-
-          // Cerrar modal solo después de que todo se haya guardado correctamente
-          setIsNotesModalOpen(false);
-          setEditingNote(null);
-        } else {
-          throw new Error(
-            "La respuesta del servidor no contiene los datos esperados de la nota"
+            `Error al eliminar la nota: ${errorData.error || "Error desconocido"}`
           );
         }
-      } else {
-        // Crear nueva nota
-        const response = await fetch(
-          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(notePayload),
+        // Si tiene éxito, el estado ya fue actualizado optimistamente
+      } catch (error) {
+        // console.error('Error al eliminar nota:', error);
+        // En caso de error, recargar desde el servidor para revertir el cambio optimista
+        if (currentLesson?.lesson_id && slug) {
+          await loadLessonNotes(currentLesson.lesson_id, slug);
+          await loadNotesStats(slug);
+        }
+        alert("Error al eliminar la nota. Por favor, intenta de nuevo.");
+      }
+    };
+
+    // Función para actualizar estadísticas de notas desde el servidor
+    // ⚡ DEPRECATED: Usar updateNotesStatsOptimized en su lugar
+    const updateNotesStats = async () => {
+      if (!slug) return;
+      await loadNotesStats(slug);
+    };
+
+    useEffect(() => {
+      async function loadCourse() {
+        try {
+          setLoading(true);
+
+          // ⚡ OPTIMIZACIÓN CRÍTICA: Usar endpoint unificado para reducir de 7 requests a 1
+          // Determinar lessonId para incluir datos de lección actual (opcional)
+          const lessonId =
+            currentLesson?.lesson_id || modules[0]?.lessons[0]?.lesson_id;
+          // Pasar el idioma para obtener transcript y summary desde la tabla correcta
+          const queryParams = new URLSearchParams();
+          if (lessonId) {
+            queryParams.append("lessonId", lessonId);
           }
-        );
+          queryParams.append("language", selectedLang);
+          const queryString = queryParams.toString();
+          const fullQuery = queryString ? `?${queryString}` : "";
 
-        if (!response.ok) {
-          const errorData = await response
-            .json()
-            .catch(() => ({ error: "Error desconocido" }));
-          const errorMessage =
-            errorData.error || errorData.message || "Error desconocido";
-          alert(`Error al guardar la nota: ${errorMessage}`);
-          throw new Error(errorMessage);
-        }
-
-        // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
-        const newNote = await response.json();
-        if (newNote && newNote.note_id) {
-          addNoteToLocalState(newNote, currentLesson.lesson_id);
-
-          // ⚡ OPTIMIZACIÓN: Actualizar estadísticas de manera optimizada
-          await updateNotesStatsOptimized("create", currentLesson.lesson_id);
-
-          // Cerrar modal solo después de que todo se haya guardado correctamente
-          setIsNotesModalOpen(false);
-          setEditingNote(null);
-        } else {
-          throw new Error(
-            "La respuesta del servidor no contiene los datos esperados de la nota"
+          const learnData = await dedupedFetch(
+            `/api/courses/${slug}/learn-data${fullQuery}`,
+            { credentials: 'include' }
           );
-        }
-      }
-    } catch (error) {
-      // console.error('Error al guardar nota:', error);
-      // En caso de error, recargar desde el servidor para asegurar consistencia
-      if (currentLesson?.lesson_id && slug) {
-        await loadLessonNotes(currentLesson.lesson_id, slug);
-        await loadNotesStats(slug);
-      }
-    }
-  };
 
-  // ⚡ OPTIMIZADO: Función para eliminar nota con actualización optimista
-  const handleDeleteNote = async (noteId: string) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta nota?")) return;
+          // Extraer datos del response unificado
+          if (learnData.course) {
+            setCourse(learnData.course);
 
-    try {
-      if (!currentLesson?.lesson_id || !slug) {
-        alert("No se puede eliminar la nota: lección no seleccionada");
-        return;
-      }
-
-      // ⚡ OPTIMIZACIÓN: Eliminar del estado local inmediatamente (actualización optimista)
-      removeNoteFromLocalState(noteId);
-
-      // ⚡ OPTIMIZACIÓN: Actualizar estadísticas optimistamente
-      await updateNotesStatsOptimized("delete", currentLesson.lesson_id);
-
-      const response = await fetch(
-        `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/notes/${noteId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        // Si falla, recargar desde el servidor para revertir el cambio optimista
-        await loadLessonNotes(currentLesson.lesson_id, slug);
-        await loadNotesStats(slug);
-
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Error desconocido" }));
-        alert(
-          `Error al eliminar la nota: ${errorData.error || "Error desconocido"}`
-        );
-      }
-      // Si tiene éxito, el estado ya fue actualizado optimistamente
-    } catch (error) {
-      // console.error('Error al eliminar nota:', error);
-      // En caso de error, recargar desde el servidor para revertir el cambio optimista
-      if (currentLesson?.lesson_id && slug) {
-        await loadLessonNotes(currentLesson.lesson_id, slug);
-        await loadNotesStats(slug);
-      }
-      alert("Error al eliminar la nota. Por favor, intenta de nuevo.");
-    }
-  };
-
-  // Función para actualizar estadísticas de notas desde el servidor
-  // ⚡ DEPRECATED: Usar updateNotesStatsOptimized en su lugar
-  const updateNotesStats = async () => {
-    if (!slug) return;
-    await loadNotesStats(slug);
-  };
-
-  useEffect(() => {
-    async function loadCourse() {
-      try {
-        setLoading(true);
-
-        // ⚡ OPTIMIZACIÓN CRÍTICA: Usar endpoint unificado para reducir de 7 requests a 1
-        // Determinar lessonId para incluir datos de lección actual (opcional)
-        const lessonId =
-          currentLesson?.lesson_id || modules[0]?.lessons[0]?.lesson_id;
-        // Pasar el idioma para obtener transcript y summary desde la tabla correcta
-        const queryParams = new URLSearchParams();
-        if (lessonId) {
-          queryParams.append("lessonId", lessonId);
-        }
-        queryParams.append("language", selectedLang);
-        const queryString = queryParams.toString();
-        const fullQuery = queryString ? `?${queryString}` : "";
-
-        const learnData = await dedupedFetch(
-          `/api/courses/${slug}/learn-data${fullQuery}`,
-          { credentials: 'include' }
-        );
-
-        // Extraer datos del response unificado
-        if (learnData.course) {
-          setCourse(learnData.course);
-
-          // ✅ Cargar metadatos del taller (módulos y lecciones completos) para LIA
-          // Esto permite que LIA tenga acceso a TODOS los módulos y lecciones
-          if (learnData.course.id || learnData.course.course_id) {
-            const courseId = learnData.course.id || learnData.course.course_id;
-            try {
-              const metadataResponse = await fetch(
-                `/api/workshops/${courseId}/metadata`
-              );
-              if (metadataResponse.ok) {
-                const metadataData = await metadataResponse.json();
-                if (metadataData.success && metadataData.metadata) {
-                  // Construir el contexto con todos los metadatos
-                  const workshopContext: CourseLessonContext = {
-                    contextType: "workshop",
-                    courseId: metadataData.metadata.workshopId,
-                    courseSlug: slug,
-                    courseTitle: metadataData.metadata.workshopTitle,
-                    courseDescription:
-                      metadataData.metadata.workshopDescription,
-                    allModules: metadataData.metadata.modules.map((m: any) => ({
-                      moduleId: m.moduleId,
-                      moduleTitle: m.moduleTitle,
-                      moduleDescription: m.moduleDescription,
-                      moduleOrderIndex: m.moduleOrderIndex,
-                      lessons: m.lessons.map((l: any) => ({
-                        lessonId: l.lessonId,
-                        lessonTitle: l.lessonTitle,
-                        lessonDescription: l.lessonDescription,
-                        lessonOrderIndex: l.lessonOrderIndex,
-                        durationSeconds: l.durationSeconds,
+            // ✅ Cargar metadatos del taller (módulos y lecciones completos) para LIA
+            // Esto permite que LIA tenga acceso a TODOS los módulos y lecciones
+            if (learnData.course.id || learnData.course.course_id) {
+              const courseId = learnData.course.id || learnData.course.course_id;
+              try {
+                const metadataResponse = await fetch(
+                  `/api/workshops/${courseId}/metadata`
+                );
+                if (metadataResponse.ok) {
+                  const metadataData = await metadataResponse.json();
+                  if (metadataData.success && metadataData.metadata) {
+                    // Construir el contexto con todos los metadatos
+                    const workshopContext: CourseLessonContext = {
+                      contextType: "workshop",
+                      courseId: metadataData.metadata.workshopId,
+                      courseSlug: slug,
+                      courseTitle: metadataData.metadata.workshopTitle,
+                      courseDescription:
+                        metadataData.metadata.workshopDescription,
+                      allModules: metadataData.metadata.modules.map((m: any) => ({
+                        moduleId: m.moduleId,
+                        moduleTitle: m.moduleTitle,
+                        moduleDescription: m.moduleDescription,
+                        moduleOrderIndex: m.moduleOrderIndex,
+                        lessons: m.lessons.map((l: any) => ({
+                          lessonId: l.lessonId,
+                          lessonTitle: l.lessonTitle,
+                          lessonDescription: l.lessonDescription,
+                          lessonOrderIndex: l.lessonOrderIndex,
+                          durationSeconds: l.durationSeconds,
+                        })),
                       })),
-                    })),
-                    userRole: user?.type_rol || undefined,
-                  };
-                  setWorkshopMetadata(workshopContext);
+                      userRole: user?.job_title || undefined,
+                    };
+                    setWorkshopMetadata(workshopContext);
+                  }
                 }
+              } catch (error) {
+                // Silenciar errores - no es crítico si no se pueden cargar los metadatos
+                console.warn(
+                  "No se pudieron cargar metadatos del taller para LIA:",
+                  error
+                );
               }
-            } catch (error) {
-              // Silenciar errores - no es crítico si no se pueden cargar los metadatos
-              console.warn(
-                "No se pudieron cargar metadatos del taller para LIA:",
-                error
-              );
             }
           }
-        }
 
-        if (learnData.modules) {
-          // IMPORTANTE: Las traducciones ya se aplicaron en el servidor (endpoint learn-data)
-          // Solo necesitamos usar los datos tal como vienen del servidor
-          // El servidor ya aplicó traducciones usando ContentTranslationService
-          console.log(
-            "[learn/page] Módulos recibidos del servidor (ya traducidos):",
-            learnData.modules.length
-          );
-          setModules(learnData.modules);
-
-          // Calcular progreso
-          const allLessons = learnData.modules.flatMap(
-            (m: Module) => m.lessons
-          );
-          const completedLessons = allLessons.filter(
-            (l: Lesson) => l.is_completed
-          );
-          const totalProgress =
-            allLessons.length > 0
-              ? Math.round((completedLessons.length / allLessons.length) * 100)
-              : 0;
-          setCourseProgress(totalProgress);
-
-          // ⚡ OPTIMIZACIÓN: Cargar automáticamente el último video visto
-          if (learnData.lastWatchedLessonId && allLessons.length > 0) {
-            const lastWatchedLesson = allLessons.find(
-              (l: Lesson) => l.lesson_id === learnData.lastWatchedLessonId
+          if (learnData.modules) {
+            // IMPORTANTE: Las traducciones ya se aplicaron en el servidor (endpoint learn-data)
+            // Solo necesitamos usar los datos tal como vienen del servidor
+            // El servidor ya aplicó traducciones usando ContentTranslationService
+            console.log(
+              "[learn/page] Módulos recibidos del servidor (ya traducidos):",
+              learnData.modules.length
             );
-            if (lastWatchedLesson) {
-              setCurrentLesson(lastWatchedLesson);
-            } else {
-              // Fallback: primera lección no completada o primera lección
+            setModules(learnData.modules);
+
+            // Calcular progreso
+            const allLessons = learnData.modules.flatMap(
+              (m: Module) => m.lessons
+            );
+            const completedLessons = allLessons.filter(
+              (l: Lesson) => l.is_completed
+            );
+            const totalProgress =
+              allLessons.length > 0
+                ? Math.round((completedLessons.length / allLessons.length) * 100)
+                : 0;
+            setCourseProgress(totalProgress);
+
+            // ⚡ OPTIMIZACIÓN: Cargar automáticamente el último video visto
+            if (learnData.lastWatchedLessonId && allLessons.length > 0) {
+              const lastWatchedLesson = allLessons.find(
+                (l: Lesson) => l.lesson_id === learnData.lastWatchedLessonId
+              );
+              if (lastWatchedLesson) {
+                setCurrentLesson(lastWatchedLesson);
+              } else {
+                // Fallback: primera lección no completada o primera lección
+                const nextIncomplete = allLessons.find(
+                  (l: Lesson) => !l.is_completed
+                );
+                setCurrentLesson(nextIncomplete || allLessons[0]);
+              }
+            } else if (allLessons.length > 0) {
+              // Si no hay último video visto, cargar primera lección no completada o primera lección
               const nextIncomplete = allLessons.find(
                 (l: Lesson) => !l.is_completed
               );
               setCurrentLesson(nextIncomplete || allLessons[0]);
             }
-          } else if (allLessons.length > 0) {
-            // Si no hay último video visto, cargar primera lección no completada o primera lección
-            const nextIncomplete = allLessons.find(
-              (l: Lesson) => !l.is_completed
-            );
-            setCurrentLesson(nextIncomplete || allLessons[0]);
           }
-        }
 
-        if (learnData.notesStats) {
-          setNotesStats(learnData.notesStats);
-        }
+          if (learnData.notesStats) {
+            setNotesStats(learnData.notesStats);
+          }
 
-        // Si se incluyó lessonId y hay datos de lección, cachearlos
-        if (learnData.currentLesson && lessonId) {
-          // Los datos ya están cacheados en el navegador por el fetch
-          // Cuando los tabs los soliciten, vendrán del cache
-        }
+          // Si se incluyó lessonId y hay datos de lección, cachearlos
+          if (learnData.currentLesson && lessonId) {
+            // Los datos ya están cacheados en el navegador por el fetch
+            // Cuando los tabs los soliciten, vendrán del cache
+          }
 
-        // ⚡ OPTIMIZACIÓN: Si hay último video visto, precargar sus datos en paralelo
-        if (learnData.lastWatchedLessonId && !lessonId && learnData.modules) {
-          // Precargar datos de la lección en segundo plano para acelerar cuando el usuario la vea
-          dedupedFetch(
-            `/api/courses/${slug}/learn-data?lessonId=${learnData.lastWatchedLessonId}`,
+          // ⚡ OPTIMIZACIÓN: Si hay último video visto, precargar sus datos en paralelo
+          if (learnData.lastWatchedLessonId && !lessonId && learnData.modules) {
+            // Precargar datos de la lección en segundo plano para acelerar cuando el usuario la vea
+            dedupedFetch(
+              `/api/courses/${slug}/learn-data?lessonId=${learnData.lastWatchedLessonId}`,
+              { credentials: 'include' }
+            ).catch(() => null); // Ignorar errores, es solo precarga
+          }
+        } catch (error) {
+          // Error manejado silenciosamente
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      if (slug) {
+        loadCourse();
+      }
+    }, [slug, i18n.language]);
+
+    // ⚡ Cargar contexto adicional para LIA (transcript y summary) en background
+    useEffect(() => {
+      // Resetear estados al cambiar de lección
+      setLiaTranscript(null);
+      setLiaSummary(null);
+
+      if (!currentLesson?.lesson_id || !slug) return;
+
+      // Función para cargar datos
+      const loadLiaContext = async () => {
+        // Cargar transcript en background
+        try {
+          const tRes = await fetch(
+            `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/transcript?language=${selectedLang}`,
             { credentials: 'include' }
-          ).catch(() => null); // Ignorar errores, es solo precarga
+          );
+          if (tRes.ok) {
+            const tData = await tRes.json();
+            if (tData.transcript_content)
+              setLiaTranscript(tData.transcript_content);
+          }
+        } catch (error) {
+          // Silently fail or log in dev
+          if (process.env.NODE_ENV === "development")
+            console.warn("Error loading transcript for LIA:", error);
         }
-      } catch (error) {
-        // Error manejado silenciosamente
-      } finally {
-        setLoading(false);
+
+        // Cargar summary en background
+        try {
+          const sRes = await fetch(
+            `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/summary?language=${selectedLang}`,
+            { credentials: 'include' }
+          );
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            if (sData.summary_content) setLiaSummary(sData.summary_content);
+          }
+        } catch (error) {
+          // Silently fail
+          if (process.env.NODE_ENV === "development")
+            console.warn("Error loading summary for LIA:", error);
+        }
+      };
+
+      // Pequeño delay para no competir con la carga inicial crítica
+      const timer = setTimeout(loadLiaContext, 1000);
+      return () => clearTimeout(timer);
+    }, [currentLesson?.lesson_id, slug, selectedLang]);
+
+    // 🚀 LAZY LOADING: Las notas se cargan SOLO cuando el usuario abre el panel de notas
+    // (Eliminado useEffect que cargaba notas automáticamente al cambiar de lección)
+
+    // ⚡ FIRE-AND-FORGET: Actualizar last_accessed_at en segundo plano (no bloquea UI)
+    useEffect(() => {
+      if (currentLesson && slug) {
+        // Fire-and-forget: No esperar respuesta, no manejar errores
+        fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/access`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }).catch(() => null); // Ignorar errores silenciosamente
       }
-    }
+    }, [currentLesson?.lesson_id, slug]);
 
-    if (slug) {
-      loadCourse();
-    }
-  }, [slug, i18n.language]);
-
-  // ⚡ Cargar contexto adicional para LIA (transcript y summary) en background
-  useEffect(() => {
-    // Resetear estados al cambiar de lección
-    setLiaTranscript(null);
-    setLiaSummary(null);
-
-    if (!currentLesson?.lesson_id || !slug) return;
-
-    // Función para cargar datos
-    const loadLiaContext = async () => {
-      // Cargar transcript en background
-      try {
-        const tRes = await fetch(
-          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/transcript?language=${selectedLang}`,
-          { credentials: 'include' }
-        );
-        if (tRes.ok) {
-          const tData = await tRes.json();
-          if (tData.transcript_content)
-            setLiaTranscript(tData.transcript_content);
-        }
-      } catch (error) {
-        // Silently fail or log in dev
-        if (process.env.NODE_ENV === "development")
-          console.warn("Error loading transcript for LIA:", error);
+    // 🚀 LAZY LOADING: Cargar notas SOLO cuando el usuario expande el panel de notas
+    useEffect(() => {
+      if (!isNotesCollapsed && currentLesson && slug && savedNotes.length === 0) {
+        // Solo cargar si el panel está expandido, hay lección actual y no hay notas cargadas
+        loadLessonNotes(currentLesson.lesson_id, slug);
       }
+    }, [isNotesCollapsed, currentLesson?.lesson_id, slug]);
 
-      // Cargar summary en background
+    // ⚡ OPTIMIZACIÓN: Eliminado prefetch waterfall - datos ya vienen del endpoint unificado
+    // El endpoint /learn-data ya incluye transcript, summary, activities, materials y questions
+
+    const loadModules = async (courseSlug: string) => {
       try {
-        const sRes = await fetch(
-          `/api/courses/${slug}/lessons/${currentLesson.lesson_id}/summary?language=${selectedLang}`,
-          { credentials: 'include' }
+        // ⚡ OPTIMIZACIÓN: Usar dedupedFetch para evitar requests duplicados
+        const data = await dedupedFetch(`/api/courses/${courseSlug}/modules`, {
+          credentials: "include",
+        });
+        const modulesResponse: Module[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.modules)
+            ? data.modules
+            : [];
+
+        setModules(modulesResponse);
+
+        const allLessons = modulesResponse.flatMap((module) => module.lessons);
+        const completedLessons = allLessons.filter(
+          (lesson) => lesson.is_completed
         );
-        if (sRes.ok) {
-          const sData = await sRes.json();
-          if (sData.summary_content) setLiaSummary(sData.summary_content);
+        const fallbackProgress =
+          allLessons.length > 0
+            ? Math.round((completedLessons.length / allLessons.length) * 100)
+            : 0;
+
+        const serverProgress =
+          !Array.isArray(data) && data?.overall_progress_percentage !== undefined
+            ? Math.round(Number(data.overall_progress_percentage))
+            : null;
+
+        if (serverProgress !== null && !Number.isNaN(serverProgress)) {
+          setCourseProgress(serverProgress);
+        } else {
+          setCourseProgress(fallbackProgress);
+        }
+
+        const totalLessons = allLessons.length;
+        setNotesStats((prev) => ({
+          ...prev,
+          lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : "0/0",
+        }));
+
+        // Esta función ya no se usa frecuentemente, pero mantenemos la lógica por compatibilidad
+        if (modulesResponse.length > 0 && modulesResponse[0].lessons.length > 0) {
+          const nextIncomplete = allLessons.find(
+            (lesson) => !lesson.is_completed
+          );
+          const selectedLesson = nextIncomplete || modulesResponse[0].lessons[0];
+          setCurrentLesson(selectedLesson);
         }
       } catch (error) {
-        // Silently fail
-        if (process.env.NODE_ENV === "development")
-          console.warn("Error loading summary for LIA:", error);
+        // console.error('Error loading modules:', error);
       }
     };
 
-    // Pequeño delay para no competir con la carga inicial crítica
-    const timer = setTimeout(loadLiaContext, 1000);
-    return () => clearTimeout(timer);
-  }, [currentLesson?.lesson_id, slug, selectedLang]);
+    const formatDuration = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    };
 
-  // 🚀 LAZY LOADING: Las notas se cargan SOLO cuando el usuario abre el panel de notas
-  // (Eliminado useEffect que cargaba notas automáticamente al cambiar de lección)
+    // 🚀 FUNCIÓN OPTIMIZADA: Cargar actividades y materiales de una lección
+    // Ahora usa el endpoint unificado /sidebar-data (3 requests → 1 request)
+    const loadLessonActivitiesAndMaterials = async (lessonId: string) => {
+      if (!slug) return;
 
-  // ⚡ FIRE-AND-FORGET: Actualizar last_accessed_at en segundo plano (no bloquea UI)
-  useEffect(() => {
-    if (currentLesson && slug) {
-      // Fire-and-forget: No esperar respuesta, no manejar errores
-      fetch(`/api/courses/${slug}/lessons/${currentLesson.lesson_id}/access`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      }).catch(() => null); // Ignorar errores silenciosamente
-    }
-  }, [currentLesson?.lesson_id, slug]);
-
-  // 🚀 LAZY LOADING: Cargar notas SOLO cuando el usuario expande el panel de notas
-  useEffect(() => {
-    if (!isNotesCollapsed && currentLesson && slug && savedNotes.length === 0) {
-      // Solo cargar si el panel está expandido, hay lección actual y no hay notas cargadas
-      loadLessonNotes(currentLesson.lesson_id, slug);
-    }
-  }, [isNotesCollapsed, currentLesson?.lesson_id, slug]);
-
-  // ⚡ OPTIMIZACIÓN: Eliminado prefetch waterfall - datos ya vienen del endpoint unificado
-  // El endpoint /learn-data ya incluye transcript, summary, activities, materials y questions
-
-  const loadModules = async (courseSlug: string) => {
-    try {
-      // ⚡ OPTIMIZACIÓN: Usar dedupedFetch para evitar requests duplicados
-      const data = await dedupedFetch(`/api/courses/${courseSlug}/modules`, {
-        credentials: "include",
-      });
-      const modulesResponse: Module[] = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.modules)
-          ? data.modules
-          : [];
-
-      setModules(modulesResponse);
-
-      const allLessons = modulesResponse.flatMap((module) => module.lessons);
-      const completedLessons = allLessons.filter(
-        (lesson) => lesson.is_completed
-      );
-      const fallbackProgress =
-        allLessons.length > 0
-          ? Math.round((completedLessons.length / allLessons.length) * 100)
-          : 0;
-
-      const serverProgress =
-        !Array.isArray(data) && data?.overall_progress_percentage !== undefined
-          ? Math.round(Number(data.overall_progress_percentage))
-          : null;
-
-      if (serverProgress !== null && !Number.isNaN(serverProgress)) {
-        setCourseProgress(serverProgress);
-      } else {
-        setCourseProgress(fallbackProgress);
+      // Solo cargar si no están ya cargados
+      if (
+        lessonsActivities[lessonId] !== undefined &&
+        lessonsMaterials[lessonId] !== undefined
+      ) {
+        return; // Ya están cargados
       }
 
-      const totalLessons = allLessons.length;
-      setNotesStats((prev) => ({
-        ...prev,
-        lessonsWithNotes: totalLessons > 0 ? `0/${totalLessons}` : "0/0",
-      }));
-
-      // Esta función ya no se usa frecuentemente, pero mantenemos la lógica por compatibilidad
-      if (modulesResponse.length > 0 && modulesResponse[0].lessons.length > 0) {
-        const nextIncomplete = allLessons.find(
-          (lesson) => !lesson.is_completed
+      try {
+        // ⚡ OPTIMIZACIÓN: Una sola petición en lugar de 3
+        const response = await fetch(
+          `/api/courses/${slug}/lessons/${lessonId}/sidebar-data`,
+          { credentials: 'include' }
         );
-        const selectedLesson = nextIncomplete || modulesResponse[0].lessons[0];
-        setCurrentLesson(selectedLesson);
-      }
-    } catch (error) {
-      // console.error('Error loading modules:', error);
-    }
-  };
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
+        if (response.ok) {
+          const data = await response.json();
 
-  // 🚀 FUNCIÓN OPTIMIZADA: Cargar actividades y materiales de una lección
-  // Ahora usa el endpoint unificado /sidebar-data (3 requests → 1 request)
-  const loadLessonActivitiesAndMaterials = async (lessonId: string) => {
-    if (!slug) return;
+          // Procesar actividades
+          setLessonsActivities((prev) => ({
+            ...prev,
+            [lessonId]: (data.activities || []).map((a: any) => ({
+              activity_id: a.activity_id,
+              activity_title: a.activity_title,
+              activity_type: a.activity_type,
+              is_required: a.is_required,
+            })),
+          }));
 
-    // Solo cargar si no están ya cargados
-    if (
-      lessonsActivities[lessonId] !== undefined &&
-      lessonsMaterials[lessonId] !== undefined
-    ) {
-      return; // Ya están cargados
-    }
+          // Procesar materiales
+          setLessonsMaterials((prev) => ({
+            ...prev,
+            [lessonId]: (data.materials || []).map((m: any) => ({
+              material_id: m.material_id,
+              material_title: m.material_title,
+              material_type: m.material_type,
+              is_required: m.is_required || m.material_type === "quiz", // Los quizzes son requeridos por defecto
+            })),
+          }));
 
-    try {
-      // ⚡ OPTIMIZACIÓN: Una sola petición en lugar de 3
-      const response = await fetch(
-        `/api/courses/${slug}/lessons/${lessonId}/sidebar-data`,
-        { credentials: 'include' }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Procesar actividades
-        setLessonsActivities((prev) => ({
-          ...prev,
-          [lessonId]: (data.activities || []).map((a: any) => ({
-            activity_id: a.activity_id,
-            activity_title: a.activity_title,
-            activity_type: a.activity_type,
-            is_required: a.is_required,
-          })),
-        }));
-
-        // Procesar materiales
-        setLessonsMaterials((prev) => ({
-          ...prev,
-          [lessonId]: (data.materials || []).map((m: any) => ({
-            material_id: m.material_id,
-            material_title: m.material_title,
-            material_type: m.material_type,
-            is_required: m.is_required || m.material_type === "quiz", // Los quizzes son requeridos por defecto
-          })),
-        }));
-
-        // Procesar estado de quizzes
-        setLessonsQuizStatus((prev) => ({
-          ...prev,
-          [lessonId]: data.quizStatus,
-        }));
-      } else {
-        // Si falla, establecer como arrays vacíos para no intentar cargar de nuevo
+          // Procesar estado de quizzes
+          setLessonsQuizStatus((prev) => ({
+            ...prev,
+            [lessonId]: data.quizStatus,
+          }));
+        } else {
+          // Si falla, establecer como arrays vacíos para no intentar cargar de nuevo
+          setLessonsActivities((prev) => ({
+            ...prev,
+            [lessonId]: [],
+          }));
+          setLessonsMaterials((prev) => ({
+            ...prev,
+            [lessonId]: [],
+          }));
+          setLessonsQuizStatus((prev) => ({
+            ...prev,
+            [lessonId]: null,
+          }));
+        }
+      } catch (error) {
+        // En caso de error, establecer como arrays vacíos
         setLessonsActivities((prev) => ({
           ...prev,
           [lessonId]: [],
@@ -2185,450 +2299,320 @@ export default function CourseLearnPage() {
           [lessonId]: null,
         }));
       }
-    } catch (error) {
-      // En caso de error, establecer como arrays vacíos
-      setLessonsActivities((prev) => ({
-        ...prev,
-        [lessonId]: [],
-      }));
-      setLessonsMaterials((prev) => ({
-        ...prev,
-        [lessonId]: [],
-      }));
-      setLessonsQuizStatus((prev) => ({
-        ...prev,
-        [lessonId]: null,
-      }));
-    }
-  };
+    };
 
-  // Función para toggle de expandir/colapsar lección
-  const toggleLessonExpand = async (lessonId: string) => {
-    const isExpanded = expandedLessons.has(lessonId);
+    // Función para toggle de expandir/colapsar lección
+    const toggleLessonExpand = async (lessonId: string) => {
+      const isExpanded = expandedLessons.has(lessonId);
 
-    if (!isExpanded) {
-      // Si se está expandiendo, cargar actividades y materiales
-      await loadLessonActivitiesAndMaterials(lessonId);
-    }
-
-    setExpandedLessons((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(lessonId)) {
-        newSet.delete(lessonId);
-      } else {
-        newSet.add(lessonId);
+      if (!isExpanded) {
+        // Si se está expandiendo, cargar actividades y materiales
+        await loadLessonActivitiesAndMaterials(lessonId);
       }
-      return newSet;
-    });
-  };
 
-  // Función para toggle de expandir/colapsar módulo
-  const toggleModuleExpand = (moduleId: string) => {
-    setExpandedModules((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(moduleId)) {
-        newSet.delete(moduleId);
-      } else {
-        newSet.add(moduleId);
+      setExpandedLessons((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(lessonId)) {
+          newSet.delete(lessonId);
+        } else {
+          newSet.add(lessonId);
+        }
+        return newSet;
+      });
+    };
+
+    // Función para toggle de expandir/colapsar módulo
+    const toggleModuleExpand = (moduleId: string) => {
+      setExpandedModules((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(moduleId)) {
+          newSet.delete(moduleId);
+        } else {
+          newSet.add(moduleId);
+        }
+        return newSet;
+      });
+    };
+
+    // Expandir automáticamente el módulo que contiene la lección actual
+    useEffect(() => {
+      if (currentLesson && modules.length > 0) {
+        const moduleWithCurrentLesson = modules.find((module) =>
+          module.lessons.some(
+            (lesson) => lesson.lesson_id === currentLesson.lesson_id
+          )
+        );
+
+        if (moduleWithCurrentLesson) {
+          setExpandedModules((prev) => {
+            const newSet = new Set(prev);
+            newSet.add(moduleWithCurrentLesson.module_id);
+            return newSet;
+          });
+        }
       }
-      return newSet;
-    });
-  };
+    }, [currentLesson, modules]);
 
-  // Expandir automáticamente el módulo que contiene la lección actual
-  useEffect(() => {
-    if (currentLesson && modules.length > 0) {
-      const moduleWithCurrentLesson = modules.find((module) =>
+    // 🚀 PRECARGA INTELIGENTE: Precargar actividades/materiales del módulo actual
+    useEffect(() => {
+      if (!currentLesson || !slug || modules.length === 0) return;
+
+      // Encontrar el módulo de la lección actual
+      const currentModule = modules.find((module) =>
         module.lessons.some(
           (lesson) => lesson.lesson_id === currentLesson.lesson_id
         )
       );
 
-      if (moduleWithCurrentLesson) {
-        setExpandedModules((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(moduleWithCurrentLesson.module_id);
-          return newSet;
+      if (!currentModule) return;
+
+      // Precargar en segundo plano las lecciones del módulo actual (excepto la actual)
+      const prefetchLessons = async () => {
+        const lessonsToPreload = currentModule.lessons
+          .filter((lesson) => lesson.lesson_id !== currentLesson.lesson_id)
+          .filter((lesson) => {
+            // Solo precargar si no está ya cargado
+            return (
+              lessonsActivities[lesson.lesson_id] === undefined ||
+              lessonsMaterials[lesson.lesson_id] === undefined
+            );
+          });
+
+        // Limitar a máximo 3 lecciones para no sobrecargar
+        const limitedLessons = lessonsToPreload.slice(0, 3);
+
+        // Precargar en paralelo pero sin esperar (fire and forget)
+        limitedLessons.forEach((lesson) => {
+          loadLessonActivitiesAndMaterials(lesson.lesson_id).catch(() => {
+            // Ignorar errores en precarga
+          });
         });
-      }
-    }
-  }, [currentLesson, modules]);
+      };
 
-  // 🚀 PRECARGA INTELIGENTE: Precargar actividades/materiales del módulo actual
-  useEffect(() => {
-    if (!currentLesson || !slug || modules.length === 0) return;
+      // Ejecutar precarga después de un pequeño delay para no interferir con la carga principal
+      const timeoutId = setTimeout(prefetchLessons, 500);
 
-    // Encontrar el módulo de la lección actual
-    const currentModule = modules.find((module) =>
-      module.lessons.some(
-        (lesson) => lesson.lesson_id === currentLesson.lesson_id
-      )
-    );
+      return () => clearTimeout(timeoutId);
+    }, [currentLesson, modules, slug, lessonsActivities, lessonsMaterials]);
 
-    if (!currentModule) return;
+    // Función para encontrar todas las lecciones ordenadas en una lista plana
+    const getAllLessonsOrdered = (): Array<{
+      lesson: Lesson;
+      module: Module;
+    }> => {
+      const allLessons: Array<{ lesson: Lesson; module: Module }> = [];
 
-    // Precargar en segundo plano las lecciones del módulo actual (excepto la actual)
-    const prefetchLessons = async () => {
-      const lessonsToPreload = currentModule.lessons
-        .filter((lesson) => lesson.lesson_id !== currentLesson.lesson_id)
-        .filter((lesson) => {
-          // Solo precargar si no está ya cargado
-          return (
-            lessonsActivities[lesson.lesson_id] === undefined ||
-            lessonsMaterials[lesson.lesson_id] === undefined
-          );
-        });
+      // Ordenar módulos por module_order_index
+      const sortedModules = [...modules].sort(
+        (a, b) => a.module_order_index - b.module_order_index
+      );
 
-      // Limitar a máximo 3 lecciones para no sobrecargar
-      const limitedLessons = lessonsToPreload.slice(0, 3);
-
-      // Precargar en paralelo pero sin esperar (fire and forget)
-      limitedLessons.forEach((lesson) => {
-        loadLessonActivitiesAndMaterials(lesson.lesson_id).catch(() => {
-          // Ignorar errores en precarga
+      sortedModules.forEach((module) => {
+        // Ordenar lecciones por lesson_order_index dentro de cada módulo
+        const sortedLessons = [...module.lessons].sort(
+          (a, b) => a.lesson_order_index - b.lesson_order_index
+        );
+        sortedLessons.forEach((lesson) => {
+          allLessons.push({ lesson, module });
         });
       });
+
+      return allLessons;
     };
 
-    // Ejecutar precarga después de un pequeño delay para no interferir con la carga principal
-    const timeoutId = setTimeout(prefetchLessons, 500);
+    // Función para encontrar la lección anterior
+    const getPreviousLesson = (): Lesson | null => {
+      if (!currentLesson || modules.length === 0) return null;
 
-    return () => clearTimeout(timeoutId);
-  }, [currentLesson, modules, slug, lessonsActivities, lessonsMaterials]);
-
-  // Función para encontrar todas las lecciones ordenadas en una lista plana
-  const getAllLessonsOrdered = (): Array<{
-    lesson: Lesson;
-    module: Module;
-  }> => {
-    const allLessons: Array<{ lesson: Lesson; module: Module }> = [];
-
-    // Ordenar módulos por module_order_index
-    const sortedModules = [...modules].sort(
-      (a, b) => a.module_order_index - b.module_order_index
-    );
-
-    sortedModules.forEach((module) => {
-      // Ordenar lecciones por lesson_order_index dentro de cada módulo
-      const sortedLessons = [...module.lessons].sort(
-        (a, b) => a.lesson_order_index - b.lesson_order_index
-      );
-      sortedLessons.forEach((lesson) => {
-        allLessons.push({ lesson, module });
-      });
-    });
-
-    return allLessons;
-  };
-
-  // Función para encontrar la lección anterior
-  const getPreviousLesson = (): Lesson | null => {
-    if (!currentLesson || modules.length === 0) return null;
-
-    const allLessons = getAllLessonsOrdered();
-    const currentIndex = allLessons.findIndex(
-      (item) => item.lesson.lesson_id === currentLesson.lesson_id
-    );
-
-    if (currentIndex === -1 || currentIndex === 0) return null;
-
-    return allLessons[currentIndex - 1].lesson;
-  };
-
-  // Función para encontrar la lección siguiente
-  const getNextLesson = (): Lesson | null => {
-    if (!currentLesson || modules.length === 0) return null;
-
-    const allLessons = getAllLessonsOrdered();
-    const currentIndex = allLessons.findIndex(
-      (item) => item.lesson.lesson_id === currentLesson.lesson_id
-    );
-
-    if (currentIndex === -1 || currentIndex === allLessons.length - 1)
-      return null;
-
-    return allLessons[currentIndex + 1].lesson;
-  };
-
-  // Función para verificar si una lección puede ser completada
-  const canCompleteLesson = (lessonId: string): boolean => {
-    if (!lessonId || modules.length === 0) return false;
-
-    const allLessons = getAllLessonsOrdered();
-    const lessonIndex = allLessons.findIndex(
-      (item) => item.lesson.lesson_id === lessonId
-    );
-
-    // Si es la primera lección del curso, puede ser completada
-    if (lessonIndex === 0) return true;
-
-    // Si no es la primera, verificar que la anterior esté completada
-    const previousLesson = allLessons[lessonIndex - 1].lesson;
-    return previousLesson.is_completed;
-  };
-
-  // Función para verificar el estado de los quizzes obligatorios
-  const checkQuizStatus = async (
-    lessonId: string,
-    signal?: AbortSignal
-  ): Promise<{ canComplete: boolean; error?: string; details?: any }> => {
-    try {
-      const response = await fetch(
-        `/api/courses/${params.slug}/lessons/${lessonId}/quiz/status`,
-        {
-          signal, // Pasar el signal para poder cancelar la petición
-        }
+      const allLessons = getAllLessonsOrdered();
+      const currentIndex = allLessons.findIndex(
+        (item) => item.lesson.lesson_id === currentLesson.lesson_id
       );
 
-      // Si la petición fue cancelada, retornar sin error
-      if (signal?.aborted) {
-        return { canComplete: true };
-      }
+      if (currentIndex === -1 || currentIndex === 0) return null;
 
-      if (!response.ok) {
-        // Si hay error HTTP, permitir completar (retrocompatibilidad)
-        // No loguear errores 404/401 ya que pueden ser normales
-        if (response.status !== 404 && response.status !== 401) {
-          console.warn(
-            "Error verificando estado de quizzes:",
-            response.status,
-            response.statusText
-          );
-        }
-        return { canComplete: true };
-      }
+      return allLessons[currentIndex - 1].lesson;
+    };
 
-      const data = await response.json();
+    // Función para encontrar la lección siguiente
+    const getNextLesson = (): Lesson | null => {
+      if (!currentLesson || modules.length === 0) return null;
 
-      if (!data.hasRequiredQuizzes) {
-        return { canComplete: true }; // No hay quizzes obligatorios
-      }
-
-      if (data.allQuizzesPassed) {
-        return { canComplete: true };
-      }
-
-      return {
-        canComplete: false,
-        error: "Hace falta realizar actividad",
-        details: {
-          totalRequired: data.totalRequiredQuizzes,
-          passed: data.passedQuizzes,
-          message: `Debes completar y aprobar todos los quizzes obligatorios (${data.passedQuizzes}/${data.totalRequiredQuizzes} completados)`,
-        },
-      };
-    } catch (error: any) {
-      // Ignorar errores de cancelación (AbortError)
-      if (error?.name === "AbortError" || signal?.aborted) {
-        return { canComplete: true };
-      }
-
-      // Ignorar errores de red (Failed to fetch) - pueden ocurrir si la página se está desmontando
-      // o si hay problemas de conectividad temporales
-      if (
-        error?.message?.includes("Failed to fetch") ||
-        error?.message?.includes("NetworkError")
-      ) {
-        // No loguear en producción para evitar ruido
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            "Error de red verificando estado de quizzes (ignorado):",
-            error.message
-          );
-        }
-        return { canComplete: true }; // En caso de error de red, permitir completar
-      }
-
-      // Para otros errores, loguear pero permitir completar
-      if (process.env.NODE_ENV === "development") {
-        console.error("Error verificando estado de quizzes:", error);
-      }
-      return { canComplete: true }; // En caso de error, permitir completar
-    }
-  };
-
-  // ⚡ OPTIMIZADO: Marcar lección como completada con validaciones en paralelo
-  const markLessonAsCompleted = async (
-    lessonId: string,
-    signal?: AbortSignal
-  ): Promise<boolean> => {
-    if (!canCompleteLesson(lessonId)) {
-      return false;
-    }
-
-    // ⚡ OPTIMIZACIÓN: Actualizar estado local INMEDIATAMENTE (optimistic update)
-    setModules((prevModules) => {
-      return prevModules.map((module) => ({
-        ...module,
-        lessons: module.lessons.map((lesson) =>
-          lesson.lesson_id === lessonId
-            ? { ...lesson, is_completed: true }
-            : lesson
-        ),
-      }));
-    });
-
-    if (currentLesson?.lesson_id === lessonId) {
-      setCurrentLesson((prev) =>
-        prev ? { ...prev, is_completed: true } : null
+      const allLessons = getAllLessonsOrdered();
+      const currentIndex = allLessons.findIndex(
+        (item) => item.lesson.lesson_id === currentLesson.lesson_id
       );
-    }
 
-    // 🚀 PARALLELIZAR: Verificar quizzes Y guardar en BD al mismo tiempo
-    try {
-      const [quizStatus, saveResponse] = await Promise.all([
-        checkQuizStatus(lessonId, signal),
-        fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          signal, // Pasar el signal para poder cancelar
-        }).catch((fetchError: any) => {
-          // Si el fetch falla (red, cancelación, etc.), retornar una respuesta simulada
-          // que permita continuar sin errores
-          if (fetchError?.name === "AbortError" || signal?.aborted) {
-            // Crear una respuesta simulada para cancelación
-            return new Response(null, { status: 200, statusText: "Cancelled" });
+      if (currentIndex === -1 || currentIndex === allLessons.length - 1)
+        return null;
+
+      return allLessons[currentIndex + 1].lesson;
+    };
+
+    // Función para verificar si una lección puede ser completada
+    const canCompleteLesson = (lessonId: string): boolean => {
+      if (!lessonId || modules.length === 0) return false;
+
+      const allLessons = getAllLessonsOrdered();
+      const lessonIndex = allLessons.findIndex(
+        (item) => item.lesson.lesson_id === lessonId
+      );
+
+      // Si es la primera lección del curso, puede ser completada
+      if (lessonIndex === 0) return true;
+
+      // Si no es la primera, verificar que la anterior esté completada
+      const previousLesson = allLessons[lessonIndex - 1].lesson;
+      return previousLesson.is_completed;
+    };
+
+    // Función para verificar el estado de los quizzes obligatorios
+    const checkQuizStatus = async (
+      lessonId: string,
+      signal?: AbortSignal
+    ): Promise<{ canComplete: boolean; error?: string; details?: any }> => {
+      try {
+        const response = await fetch(
+          `/api/courses/${params.slug}/lessons/${lessonId}/quiz/status`,
+          {
+            signal, // Pasar el signal para poder cancelar la petición
           }
-          // Para otros errores de red, crear una respuesta simulada
-          // El estado local ya se actualizó, así que permitir continuar
-          if (process.env.NODE_ENV === "development") {
+        );
+
+        // Si la petición fue cancelada, retornar sin error
+        if (signal?.aborted) {
+          return { canComplete: true };
+        }
+
+        if (!response.ok) {
+          // Si hay error HTTP, permitir completar (retrocompatibilidad)
+          // No loguear errores 404/401 ya que pueden ser normales
+          if (response.status !== 404 && response.status !== 401) {
             console.warn(
-              "Error de red guardando progreso (ignorado):",
-              fetchError.message
+              "Error verificando estado de quizzes:",
+              response.status,
+              response.statusText
             );
           }
-          return new Response(null, {
-            status: 200,
-            statusText: "Network Error (ignored)",
-          });
-        }),
-      ]);
-
-      // Si la petición fue cancelada, retornar true (el estado local ya se actualizó)
-      if (signal?.aborted) {
-        return true;
-      }
-
-      // Verificar si falló validación de quizzes
-      if (!quizStatus.canComplete) {
-        // REVERTIR estado local
-        setModules((prevModules) => {
-          return prevModules.map((module) => ({
-            ...module,
-            lessons: module.lessons.map((lesson) =>
-              lesson.lesson_id === lessonId
-                ? { ...lesson, is_completed: false }
-                : lesson
-            ),
-          }));
-        });
-
-        if (currentLesson?.lesson_id === lessonId) {
-          setCurrentLesson((prev) =>
-            prev ? { ...prev, is_completed: false } : null
-          );
+          return { canComplete: true };
         }
 
-        // Mostrar modal de validación
-        setValidationModal({
-          isOpen: true,
-          title: "Hace falta realizar actividad",
-          message:
-            quizStatus.details?.message ||
-            quizStatus.error ||
-            "Debes completar y aprobar todos los quizzes obligatorios para continuar.",
-          details: quizStatus.details
-            ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
-            : undefined,
-          type: "activity",
-          lessonId: lessonId,
-        });
+        const data = await response.json();
+
+        if (!data.hasRequiredQuizzes) {
+          return { canComplete: true }; // No hay quizzes obligatorios
+        }
+
+        if (data.allQuizzesPassed) {
+          return { canComplete: true };
+        }
+
+        return {
+          canComplete: false,
+          error: "Hace falta realizar actividad",
+          details: {
+            totalRequired: data.totalRequiredQuizzes,
+            passed: data.passedQuizzes,
+            message: `Debes completar y aprobar todos los quizzes obligatorios (${data.passedQuizzes}/${data.totalRequiredQuizzes} completados)`,
+          },
+        };
+      } catch (error: any) {
+        // Ignorar errores de cancelación (AbortError)
+        if (error?.name === "AbortError" || signal?.aborted) {
+          return { canComplete: true };
+        }
+
+        // Ignorar errores de red (Failed to fetch) - pueden ocurrir si la página se está desmontando
+        // o si hay problemas de conectividad temporales
+        if (
+          error?.message?.includes("Failed to fetch") ||
+          error?.message?.includes("NetworkError")
+        ) {
+          // No loguear en producción para evitar ruido
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "Error de red verificando estado de quizzes (ignorado):",
+              error.message
+            );
+          }
+          return { canComplete: true }; // En caso de error de red, permitir completar
+        }
+
+        // Para otros errores, loguear pero permitir completar
+        if (process.env.NODE_ENV === "development") {
+          console.error("Error verificando estado de quizzes:", error);
+        }
+        return { canComplete: true }; // En caso de error, permitir completar
+      }
+    };
+
+    // ⚡ OPTIMIZADO: Marcar lección como completada con validaciones en paralelo
+    const markLessonAsCompleted = async (
+      lessonId: string,
+      signal?: AbortSignal
+    ): Promise<boolean> => {
+      if (!canCompleteLesson(lessonId)) {
         return false;
       }
 
-      // Verificar si guardado en BD falló
-      const response = saveResponse;
+      // ⚡ OPTIMIZACIÓN: Actualizar estado local INMEDIATAMENTE (optimistic update)
+      setModules((prevModules) => {
+        return prevModules.map((module) => ({
+          ...module,
+          lessons: module.lessons.map((lesson) =>
+            lesson.lesson_id === lessonId
+              ? { ...lesson, is_completed: true }
+              : lesson
+          ),
+        }));
+      });
 
-      // Si la respuesta no es OK, puede ser un error o una cancelación
-      if (!response.ok) {
-        // Si es un error 404/401, puede ser normal (no inscrito, etc.)
-        // Si es otro error, loguear pero permitir continuar
-        if (
-          response.status !== 404 &&
-          response.status !== 401 &&
-          process.env.NODE_ENV === "development"
-        ) {
-          console.warn(
-            "Error guardando progreso de lección:",
-            response.status,
-            response.statusText
-          );
-        }
-        // Retornar true porque el estado local ya se actualizó
-        return true;
+      if (currentLesson?.lesson_id === lessonId) {
+        setCurrentLesson((prev) =>
+          prev ? { ...prev, is_completed: true } : null
+        );
       }
 
-      // Intentar parsear la respuesta primero (puede ser éxito o error)
-      let responseData: any;
+      // 🚀 PARALLELIZAR: Verificar quizzes Y guardar en BD al mismo tiempo
       try {
-        responseData = await response.json();
-      } catch (jsonError) {
-        // Si no es JSON válido, manejar como éxito (el estado local ya se actualizó)
-        // No loguear en producción para evitar ruido
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            "Respuesta no es JSON válido - Status:",
-            response.status
-          );
-        }
-        // Retornar true porque el estado local se actualizó
-        return true;
-      }
+        const [quizStatus, saveResponse] = await Promise.all([
+          checkQuizStatus(lessonId, signal),
+          fetch(`/api/courses/${slug}/lessons/${lessonId}/progress`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            signal, // Pasar el signal para poder cancelar
+          }).catch((fetchError: any) => {
+            // Si el fetch falla (red, cancelación, etc.), retornar una respuesta simulada
+            // que permita continuar sin errores
+            if (fetchError?.name === "AbortError" || signal?.aborted) {
+              // Crear una respuesta simulada para cancelación
+              return new Response(null, { status: 200, statusText: "Cancelled" });
+            }
+            // Para otros errores de red, crear una respuesta simulada
+            // El estado local ya se actualizó, así que permitir continuar
+            if (process.env.NODE_ENV === "development") {
+              console.warn(
+                "Error de red guardando progreso (ignorado):",
+                fetchError.message
+              );
+            }
+            return new Response(null, {
+              status: 200,
+              statusText: "Network Error (ignored)",
+            });
+          }),
+        ]);
 
-      if (!response.ok) {
-        // Si el error es que la lección anterior no está completada, revertir el estado local
-        if (responseData?.code === "PREVIOUS_LESSON_NOT_COMPLETED") {
-          // Revertir el estado local
-          setModules((prevModules) => {
-            const updatedModules = prevModules.map((module) => ({
-              ...module,
-              lessons: module.lessons.map((lesson) =>
-                lesson.lesson_id === lessonId
-                  ? { ...lesson, is_completed: false }
-                  : lesson
-              ),
-            }));
-
-            const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
-            const completedLessons = allLessons.filter(
-              (l: Lesson) => l.is_completed
-            );
-            const totalProgress =
-              allLessons.length > 0
-                ? Math.round(
-                  (completedLessons.length / allLessons.length) * 100
-                )
-                : 0;
-
-            setCourseProgress(totalProgress);
-            return updatedModules;
-          });
-
-          if (currentLesson?.lesson_id === lessonId) {
-            setCurrentLesson((prev) =>
-              prev ? { ...prev, is_completed: false } : null
-            );
-          }
-
-          // console.error('Error del servidor:', responseData?.error || responseData);
-          return false;
+        // Si la petición fue cancelada, retornar true (el estado local ya se actualizó)
+        if (signal?.aborted) {
+          return true;
         }
 
-        // Si el error es que falta realizar actividad (quiz obligatorio)
-        if (responseData?.code === "REQUIRED_QUIZ_NOT_PASSED") {
-          // Revertir el estado local (solo el estado de la lección, NO el progreso)
+        // Verificar si falló validación de quizzes
+        if (!quizStatus.canComplete) {
+          // REVERTIR estado local
           setModules((prevModules) => {
             return prevModules.map((module) => ({
               ...module,
@@ -2646,313 +2630,419 @@ export default function CourseLearnPage() {
             );
           }
 
-          // Mostrar modal de validación según el tipo de error
-          if (responseData?.code === "REQUIRED_QUIZ_NOT_PASSED") {
-            setValidationModal({
-              isOpen: true,
-              title: "Hace falta realizar actividad",
-              message:
-                responseData?.details?.message ||
-                responseData?.error ||
-                "Debes completar y aprobar todos los quizzes obligatorios para continuar.",
-              details: responseData?.details
-                ? `Completados: ${responseData.details.passed} de ${responseData.details.totalRequired}`
-                : undefined,
-              type: "activity",
-              lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
-            });
-          } else {
-            setValidationModal({
-              isOpen: true,
-              title: "No se puede completar",
-              message:
-                responseData?.details?.message ||
-                responseData?.error ||
-                "No se puede completar la lección en este momento.",
-              type: "activity",
-              lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
-            });
-          }
+          // Mostrar modal de validación
+          setValidationModal({
+            isOpen: true,
+            title: "Hace falta realizar actividad",
+            message:
+              quizStatus.details?.message ||
+              quizStatus.error ||
+              "Debes completar y aprobar todos los quizzes obligatorios para continuar.",
+            details: quizStatus.details
+              ? `Completados: ${quizStatus.details.passed} de ${quizStatus.details.totalRequired}`
+              : undefined,
+            type: "activity",
+            lessonId: lessonId,
+          });
           return false;
         }
 
-        // Para otros errores, solo loguear si hay un mensaje de error claro
-        if (responseData?.error) {
-          // console.warn('Advertencia al guardar progreso en BD:', responseData.error);
-        } else if (response.status >= 500) {
-          // Solo loguear errores del servidor (500+), no errores del cliente
-          // console.warn('Error del servidor al guardar progreso - Status:', response.status);
+        // Verificar si guardado en BD falló
+        const response = saveResponse;
+
+        // Si la respuesta no es OK, puede ser un error o una cancelación
+        if (!response.ok) {
+          // Si es un error 404/401, puede ser normal (no inscrito, etc.)
+          // Si es otro error, loguear pero permitir continuar
+          if (
+            response.status !== 404 &&
+            response.status !== 401 &&
+            process.env.NODE_ENV === "development"
+          ) {
+            console.warn(
+              "Error guardando progreso de lección:",
+              response.status,
+              response.statusText
+            );
+          }
+          // Retornar true porque el estado local ya se actualizó
+          return true;
         }
-        // Retornar true porque el estado local se actualizó y los datos pueden haberse guardado
-        return true;
-      }
 
-      // Si la respuesta es exitosa, procesar el resultado
-      const result = responseData;
-
-      // Actualizar progreso con el valor del servidor si está disponible
-      if (result.progress?.overall_progress !== undefined) {
-        setCourseProgress(Math.round(result.progress.overall_progress));
-      }
-
-      return true;
-    } catch (error: any) {
-      // Si el error es de cancelación, retornar true (el estado local ya se actualizó)
-      if (error?.name === "AbortError" || signal?.aborted) {
-        return true;
-      }
-
-      // Para errores de red, también permitir continuar
-      if (
-        error?.message?.includes("Failed to fetch") ||
-        error?.message?.includes("NetworkError")
-      ) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            "Error de red marcando lección como completada (ignorado):",
-            error.message
-          );
+        // Intentar parsear la respuesta primero (puede ser éxito o error)
+        let responseData: any;
+        try {
+          responseData = await response.json();
+        } catch (jsonError) {
+          // Si no es JSON válido, manejar como éxito (el estado local ya se actualizó)
+          // No loguear en producción para evitar ruido
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "Respuesta no es JSON válido - Status:",
+              response.status
+            );
+          }
+          // Retornar true porque el estado local se actualizó
+          return true;
         }
-        // El estado local ya se actualizó, así que permitir continuar
-        return true;
-      }
 
-      // Para otros errores, loguear pero permitir continuar
-      if (process.env.NODE_ENV === "development") {
-        console.warn("Error al guardar progreso en BD (ignorado):", error);
-      }
-      // Mantener el estado local aunque falle la BD
-      return true;
-    }
-  };
+        if (!response.ok) {
+          // Si el error es que la lección anterior no está completada, revertir el estado local
+          if (responseData?.code === "PREVIOUS_LESSON_NOT_COMPLETED") {
+            // Revertir el estado local
+            setModules((prevModules) => {
+              const updatedModules = prevModules.map((module) => ({
+                ...module,
+                lessons: module.lessons.map((lesson) =>
+                  lesson.lesson_id === lessonId
+                    ? { ...lesson, is_completed: false }
+                    : lesson
+                ),
+              }));
 
-  // Función para navegar a la lección anterior
-  const navigateToPreviousLesson = () => {
-    const previousLesson = getPreviousLesson();
-    if (previousLesson) {
-      setCurrentLesson(previousLesson);
-      // Cambiar al tab de video cuando navegas
-      setActiveTab("video");
-      // Hacer scroll hacia arriba
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  // Función para navegar a la lección siguiente
-  const navigateToNextLesson = async () => {
-    const nextLesson = getNextLesson();
-    if (nextLesson && currentLesson) {
-      // Guardar la lección anterior antes de cambiar
-      const previousLesson = currentLesson;
-
-      // Intentar marcar la lección anterior como completada ANTES de cambiar
-      const canComplete = await markLessonAsCompleted(previousLesson.lesson_id);
-
-      // Solo cambiar de lección si se pudo completar la anterior
-      if (canComplete) {
-        setCurrentLesson(nextLesson);
-        setActiveTab("video");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-      // Si no se pudo completar, el modal ya se mostró y no cambiamos de lección
-    }
-  };
-
-  const tabs = [
-    { id: "video" as const, label: t("tabs.video"), icon: Play },
-    {
-      id: "transcript" as const,
-      label: t("tabs.transcript"),
-      icon: ScrollText,
-    },
-    { id: "summary" as const, label: t("tabs.summary"), icon: FileText },
-    { id: "activities" as const, label: t("tabs.activities"), icon: Activity },
-    {
-      id: "questions" as const,
-      label: t("tabs.questions"),
-      icon: MessageCircle,
-    },
-  ];
-
-  // Mostrar loading mientras i18n no esté listo o mientras se cargan los datos
-  if (!ready || loading) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full animate-spin mx-auto mb-4" />
-          <p
-            className="text-[#0A2540] dark:text-white text-lg"
-            style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-          >
-            {mounted && ready ? t("loading.general") : "Cargando..."}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!course) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
-        <div className="text-center">
-          <h1
-            className="text-3xl font-bold text-[#0A2540] dark:text-white mb-4"
-            style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
-          >
-            {t("errors.courseNotFound")}
-          </h1>
-          <p
-            className="text-[#6C757D] dark:text-white/80 mb-8"
-            style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-          >
-            {t("errors.courseNotFoundMessage")}
-          </p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-colors"
-          >
-            {t("navigation.backToCourses")}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <LessonTrackingProvider
-      lessonId={currentLesson?.lesson_id || null}
-      planId={searchParams.get('planId') || undefined}
-    >
-      <VideoPlayerProvider>
-        <WorkshopLearningProvider
-          workshopId={course?.id || course?.course_id || slug}
-          activityId={currentLesson?.lesson_id || "no-lesson"}
-          enabled={!!course && !!currentLesson}
-          checkInterval={15000}
-          assistantPosition="bottom-right"
-          assistantCompact={false}
-          onDifficultyDetected={(analysis) => { }}
-          onHelpAccepted={async (analysis) => {
-            // Abrir el panel de LIA (panel derecho)
-            openLia();
-
-            // Generar mensaje personalizado basado en los patrones detectados
-            const generatePersonalizedMessage = (patterns: any[]) => {
-              // Priorizar patrones por severidad
-              const highSeverityPatterns = patterns.filter(
-                (p) => p.severity === "high"
+              const allLessons = updatedModules.flatMap((m: Module) => m.lessons);
+              const completedLessons = allLessons.filter(
+                (l: Lesson) => l.is_completed
               );
-              const mediumSeverityPatterns = patterns.filter(
-                (p) => p.severity === "medium"
+              const totalProgress =
+                allLessons.length > 0
+                  ? Math.round(
+                    (completedLessons.length / allLessons.length) * 100
+                  )
+                  : 0;
+
+              setCourseProgress(totalProgress);
+              return updatedModules;
+            });
+
+            if (currentLesson?.lesson_id === lessonId) {
+              setCurrentLesson((prev) =>
+                prev ? { ...prev, is_completed: false } : null
               );
-
-              // Usar el patrón de mayor severidad primero
-              const primaryPattern =
-                highSeverityPatterns[0] || mediumSeverityPatterns[0] || patterns[0];
-
-              if (!primaryPattern) {
-                return "Necesito ayuda con esta lección";
-              }
-
-              // Mensajes específicos por tipo de patrón
-              const messageMap: Record<string, string> = {
-                inactivity:
-                  "Llevo varios minutos sin poder avanzar en esta lección",
-                excessive_scroll:
-                  "Estoy buscando información en la lección pero no encuentro lo que necesito",
-                failed_attempts:
-                  "He intentado completar la actividad varias veces pero no lo logro",
-                frequent_deletion:
-                  "Estoy teniendo problemas para escribir la respuesta correcta",
-                repetitive_cycles:
-                  "Estoy confundido y no sé cómo continuar con esta lección",
-                erroneous_clicks:
-                  "He intentado varias opciones pero no consigo avanzar",
-                back_navigation:
-                  "Necesito revisar contenido anterior porque no entiendo esta parte",
-              };
-
-              // Si hay múltiples patrones de alta severidad, combinarlos
-              if (highSeverityPatterns.length > 1) {
-                const mainIssue =
-                  messageMap[primaryPattern.type] ||
-                  "Estoy teniendo dificultades con esta lección";
-                return `${mainIssue} y estoy un poco bloqueado`;
-              }
-
-              return (
-                messageMap[primaryPattern.type] || "Necesito ayuda con esta lección"
-              );
-            };
-
-            // Construir mensaje visible personalizado para el usuario
-            const visibleUserMessage = generatePersonalizedMessage(
-              analysis.patterns
-            );
-
-            // 🎯 ANÁLISIS PROFUNDO DEL COMPORTAMIENTO DEL USUARIO
-            const behaviorAnalysis = analyzeUserBehavior();
-
-            // Obtener información sobre actividades pendientes
-            const currentActivities = currentLesson
-              ? lessonsActivities[currentLesson.lesson_id] || []
-              : [];
-            const requiredActivities = currentActivities.filter(
-              (a) => a.is_required
-            );
-            const pendingRequired = requiredActivities.filter(
-              (a) => !a.is_completed
-            );
-            const completedActivities = currentActivities.filter(
-              (a) => a.is_completed
-            );
-
-            // 🎯 ANÁLISIS INTELIGENTE: Detectar la actividad actual en la que está trabajando
-            // Basado en el tab activo y el scroll/interacciones recientes
-            let currentActivityFocus = null;
-            if (activeTab === "activities" && pendingRequired.length > 0) {
-              // Si está en la pestaña de actividades y hay pendientes, asumir que está en la primera pendiente
-              currentActivityFocus = pendingRequired[0];
-            } else if (pendingRequired.length > 0) {
-              // Si no está en actividades pero hay pendientes, mencionar que tiene actividades sin completar
-              currentActivityFocus = null;
             }
 
-            // 🎯 Detectar patrones temporales y de progreso
-            const totalLessonsInCourse = modules.reduce(
-              (total, module) => total + module.lessons.length,
-              0
-            );
-            const currentLessonIndex = getAllLessonsOrdered().findIndex(
-              (item) => item.lesson.lesson_id === currentLesson?.lesson_id
-            );
-            const progressPercentage =
-              totalLessonsInCourse > 0
-                ? Math.round(
-                  ((currentLessonIndex + 1) / totalLessonsInCourse) * 100
-                )
-                : 0;
+            // console.error('Error del servidor:', responseData?.error || responseData);
+            return false;
+          }
 
-            // Construir contexto enriquecido de la lección con información de la dificultad detectada
-            // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
-            const baseContext = workshopMetadata
-              ? {
-                ...workshopMetadata,
-                moduleTitle: modules.find((m) =>
-                  m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
-                )?.module_title,
-                lessonTitle: currentLesson.lesson_title,
-                lessonDescription: currentLesson.lesson_description,
-                durationSeconds: currentLesson.duration_seconds,
+          // Si el error es que falta realizar actividad (quiz obligatorio)
+          if (responseData?.code === "REQUIRED_QUIZ_NOT_PASSED") {
+            // Revertir el estado local (solo el estado de la lección, NO el progreso)
+            setModules((prevModules) => {
+              return prevModules.map((module) => ({
+                ...module,
+                lessons: module.lessons.map((lesson) =>
+                  lesson.lesson_id === lessonId
+                    ? { ...lesson, is_completed: false }
+                    : lesson
+                ),
+              }));
+            });
+
+            if (currentLesson?.lesson_id === lessonId) {
+              setCurrentLesson((prev) =>
+                prev ? { ...prev, is_completed: false } : null
+              );
+            }
+
+            // Mostrar modal de validación según el tipo de error
+            if (responseData?.code === "REQUIRED_QUIZ_NOT_PASSED") {
+              setValidationModal({
+                isOpen: true,
+                title: "Hace falta realizar actividad",
+                message:
+                  responseData?.details?.message ||
+                  responseData?.error ||
+                  "Debes completar y aprobar todos los quizzes obligatorios para continuar.",
+                details: responseData?.details
+                  ? `Completados: ${responseData.details.passed} de ${responseData.details.totalRequired}`
+                  : undefined,
+                type: "activity",
+                lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
+              });
+            } else {
+              setValidationModal({
+                isOpen: true,
+                title: "No se puede completar",
+                message:
+                  responseData?.details?.message ||
+                  responseData?.error ||
+                  "No se puede completar la lección en este momento.",
+                type: "activity",
+                lessonId: lessonId, // Guardar el ID de la lección que se intentó completar
+              });
+            }
+            return false;
+          }
+
+          // Para otros errores, solo loguear si hay un mensaje de error claro
+          if (responseData?.error) {
+            // console.warn('Advertencia al guardar progreso en BD:', responseData.error);
+          } else if (response.status >= 500) {
+            // Solo loguear errores del servidor (500+), no errores del cliente
+            // console.warn('Error del servidor al guardar progreso - Status:', response.status);
+          }
+          // Retornar true porque el estado local se actualizó y los datos pueden haberse guardado
+          return true;
+        }
+
+        // Si la respuesta es exitosa, procesar el resultado
+        const result = responseData;
+
+        // Actualizar progreso con el valor del servidor si está disponible
+        if (result.progress?.overall_progress !== undefined) {
+          setCourseProgress(Math.round(result.progress.overall_progress));
+        }
+
+        return true;
+      } catch (error: any) {
+        // Si el error es de cancelación, retornar true (el estado local ya se actualizó)
+        if (error?.name === "AbortError" || signal?.aborted) {
+          return true;
+        }
+
+        // Para errores de red, también permitir continuar
+        if (
+          error?.message?.includes("Failed to fetch") ||
+          error?.message?.includes("NetworkError")
+        ) {
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "Error de red marcando lección como completada (ignorado):",
+              error.message
+            );
+          }
+          // El estado local ya se actualizó, así que permitir continuar
+          return true;
+        }
+
+        // Para otros errores, loguear pero permitir continuar
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Error al guardar progreso en BD (ignorado):", error);
+        }
+        // Mantener el estado local aunque falle la BD
+        return true;
+      }
+    };
+
+    // Función para navegar a la lección anterior
+    const navigateToPreviousLesson = () => {
+      const previousLesson = getPreviousLesson();
+      if (previousLesson) {
+        // 🔧 FIX: Pause all videos before changing lesson to prevent double audio
+        videoPlayerContext?.pauseAllVideos();
+
+        setCurrentLesson(previousLesson);
+        // Cambiar al tab de video cuando navegas
+        setActiveTab("video");
+        // Hacer scroll hacia arriba
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+
+    // Función para navegar a la lección siguiente
+    const navigateToNextLesson = async () => {
+      const nextLesson = getNextLesson();
+      if (nextLesson && currentLesson) {
+        // 🔧 FIX: Pause all videos before changing lesson to prevent double audio
+        videoPlayerContext?.pauseAllVideos();
+
+        // Guardar la lección anterior antes de cambiar
+        const previousLesson = currentLesson;
+
+        // Intentar marcar la lección anterior como completada ANTES de cambiar
+        const canComplete = await markLessonAsCompleted(previousLesson.lesson_id);
+
+        // Solo cambiar de lección si se pudo completar la anterior
+        if (canComplete) {
+          setCurrentLesson(nextLesson);
+          setActiveTab("video");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        // Si no se pudo completar, el modal ya se mostró y no cambiamos de lección
+      }
+    };
+
+    const tabs = [
+      { id: "video" as const, label: t("tabs.video"), icon: Play },
+      {
+        id: "transcript" as const,
+        label: t("tabs.transcript"),
+        icon: ScrollText,
+      },
+      { id: "summary" as const, label: t("tabs.summary"), icon: FileText },
+      { id: "activities" as const, label: t("tabs.activities"), icon: Activity },
+      {
+        id: "questions" as const,
+        label: t("tabs.questions"),
+        icon: MessageCircle,
+      },
+    ];
+
+    // Mostrar loading mientras i18n no esté listo o mientras se cargan los datos
+    if (!ready || loading) {
+      return (
+        <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full animate-spin mx-auto mb-4" />
+            <p
+              className="text-[#0A2540] dark:text-white text-lg"
+              style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+            >
+              {mounted && ready ? t("loading.general") : "Cargando..."}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (!course) {
+      return (
+        <div className="min-h-screen bg-white dark:bg-[#0F1419] flex items-center justify-center">
+          <div className="text-center">
+            <h1
+              className="text-3xl font-bold text-[#0A2540] dark:text-white mb-4"
+              style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+            >
+              {t("errors.courseNotFound")}
+            </h1>
+            <p
+              className="text-[#6C757D] dark:text-white/80 mb-8"
+              style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+            >
+              {t("errors.courseNotFoundMessage")}
+            </p>
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white rounded-lg transition-colors"
+            >
+              {t("navigation.backToCourses")}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <LessonTrackingProvider
+        lessonId={currentLesson?.lesson_id || null}
+        planId={searchParams.get('planId') || undefined}
+      >
+        <VideoPlayerProvider>
+          <WorkshopLearningProvider
+            workshopId={course?.id || course?.course_id || slug}
+            activityId={currentLesson?.lesson_id || "no-lesson"}
+            enabled={!!course && !!currentLesson}
+            checkInterval={15000}
+            assistantPosition="bottom-right"
+            assistantCompact={false}
+            onDifficultyDetected={(analysis) => { }}
+            onHelpAccepted={async (analysis) => {
+              // Abrir el panel de LIA (panel derecho)
+              openLia();
+
+              // Generar mensaje personalizado basado en los patrones detectados
+              const generatePersonalizedMessage = (patterns: any[]) => {
+                // Priorizar patrones por severidad
+                const highSeverityPatterns = patterns.filter(
+                  (p) => p.severity === "high"
+                );
+                const mediumSeverityPatterns = patterns.filter(
+                  (p) => p.severity === "medium"
+                );
+
+                // Usar el patrón de mayor severidad primero
+                const primaryPattern =
+                  highSeverityPatterns[0] || mediumSeverityPatterns[0] || patterns[0];
+
+                if (!primaryPattern) {
+                  return "Necesito ayuda con esta lección";
+                }
+
+                // Mensajes específicos por tipo de patrón
+                const messageMap: Record<string, string> = {
+                  inactivity:
+                    "Llevo varios minutos sin poder avanzar en esta lección",
+                  excessive_scroll:
+                    "Estoy buscando información en la lección pero no encuentro lo que necesito",
+                  failed_attempts:
+                    "He intentado completar la actividad varias veces pero no lo logro",
+                  frequent_deletion:
+                    "Estoy teniendo problemas para escribir la respuesta correcta",
+                  repetitive_cycles:
+                    "Estoy confundido y no sé cómo continuar con esta lección",
+                  erroneous_clicks:
+                    "He intentado varias opciones pero no consigo avanzar",
+                  back_navigation:
+                    "Necesito revisar contenido anterior porque no entiendo esta parte",
+                };
+
+                // Si hay múltiples patrones de alta severidad, combinarlos
+                if (highSeverityPatterns.length > 1) {
+                  const mainIssue =
+                    messageMap[primaryPattern.type] ||
+                    "Estoy teniendo dificultades con esta lección";
+                  return `${mainIssue} y estoy un poco bloqueado`;
+                }
+
+                return (
+                  messageMap[primaryPattern.type] || "Necesito ayuda con esta lección"
+                );
+              };
+
+              // Construir mensaje visible personalizado para el usuario
+              const visibleUserMessage = generatePersonalizedMessage(
+                analysis.patterns
+              );
+
+              // 🎯 ANÁLISIS PROFUNDO DEL COMPORTAMIENTO DEL USUARIO
+              const behaviorAnalysis = analyzeUserBehavior();
+
+              // Obtener información sobre actividades pendientes
+              const currentActivities = currentLesson
+                ? lessonsActivities[currentLesson.lesson_id] || []
+                : [];
+              const requiredActivities = currentActivities.filter(
+                (a) => a.is_required
+              );
+              const pendingRequired = requiredActivities.filter(
+                (a) => !a.is_completed
+              );
+              const completedActivities = currentActivities.filter(
+                (a) => a.is_completed
+              );
+
+              // 🎯 ANÁLISIS INTELIGENTE: Detectar la actividad actual en la que está trabajando
+              // Basado en el tab activo y el scroll/interacciones recientes
+              let currentActivityFocus = null;
+              if (activeTab === "activities" && pendingRequired.length > 0) {
+                // Si está en la pestaña de actividades y hay pendientes, asumir que está en la primera pendiente
+                currentActivityFocus = pendingRequired[0];
+              } else if (pendingRequired.length > 0) {
+                // Si no está en actividades pero hay pendientes, mencionar que tiene actividades sin completar
+                currentActivityFocus = null;
               }
-              : currentLesson && course
+
+              // 🎯 Detectar patrones temporales y de progreso
+              const totalLessonsInCourse = modules.reduce(
+                (total, module) => total + module.lessons.length,
+                0
+              );
+              const currentLessonIndex = getAllLessonsOrdered().findIndex(
+                (item) => item.lesson.lesson_id === currentLesson?.lesson_id
+              );
+              const progressPercentage =
+                totalLessonsInCourse > 0
+                  ? Math.round(
+                    ((currentLessonIndex + 1) / totalLessonsInCourse) * 100
+                  )
+                  : 0;
+
+              // Construir contexto enriquecido de la lección con información de la dificultad detectada
+              // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
+              const baseContext = workshopMetadata
                 ? {
-                  contextType: "course" as const,
-                  courseId: course.id || course.course_id || undefined,
-                  courseSlug: slug || undefined,
-                  courseTitle: course.title || course.course_title,
-                  courseDescription:
-                    course.description || course.course_description,
+                  ...workshopMetadata,
                   moduleTitle: modules.find((m) =>
                     m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
                   )?.module_title,
@@ -2960,130 +3050,195 @@ export default function CourseLearnPage() {
                   lessonDescription: currentLesson.lesson_description,
                   durationSeconds: currentLesson.duration_seconds,
                 }
-                : undefined;
+                : currentLesson && course
+                  ? {
+                    contextType: "course" as const,
+                    courseId: course.id || course.course_id || undefined,
+                    courseSlug: slug || undefined,
+                    courseTitle: course.title || course.course_title,
+                    courseDescription:
+                      course.description || course.course_description,
+                    moduleTitle: modules.find((m) =>
+                      m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
+                    )?.module_title,
+                    lessonTitle: currentLesson.lesson_title,
+                    lessonDescription: currentLesson.lesson_description,
+                    durationSeconds: currentLesson.duration_seconds,
+                  }
+                  : undefined;
+              // Construir contexto enriquecido de la lección con información de la dificultad detectada
+              // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
+              const baseContext = workshopMetadata
+                ? {
+                  ...workshopMetadata,
+                  moduleTitle: modules.find((m) =>
+                    m.lessons.some((l) => l.lesson_id === currentLesson?.lesson_id)
+                  )?.module_title,
+                  lessonTitle: currentLesson?.lesson_title,
+                  lessonDescription: currentLesson?.lesson_description,
+                  durationSeconds: currentLesson?.duration_seconds,
+                }
+                : currentLesson && course
+                  ? {
+                    contextType: "course" as const,
+                    courseId: course.id || course.course_id || undefined,
+                    courseSlug: slug || undefined,
+                    courseTitle: course.title || course.course_title,
+                    courseDescription:
+                      course.description || course.course_description,
+                    moduleTitle: modules.find((m) =>
+                      m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
+                    )?.module_title,
+                    lessonTitle: currentLesson.lesson_title,
+                    lessonDescription: currentLesson.lesson_description,
+                    durationSeconds: currentLesson.duration_seconds,
+                  }
+                  : undefined;
 
-            const enrichedLessonContext = baseContext
-              ? {
-                ...baseContext,
-                userRole: user?.type_rol || undefined,
-                // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
-                activitiesContext: {
-                  totalActivities: currentActivities.length,
-                  requiredActivities: requiredActivities.length,
-                  completedActivities: completedActivities.length,
-                  pendingRequiredCount: pendingRequired.length,
-                  pendingRequiredTitles: pendingRequired
-                    .map((a) => a.activity_title)
-                    .join(", "),
-                  activityTypes: currentActivities.map((a) => ({
-                    title: a.activity_title,
-                    type: a.activity_type,
-                    isRequired: a.is_required,
-                    isCompleted: a.is_completed,
-                  })),
-                  // 🎯 NUEVO: Actividad actual en foco
-                  currentActivityFocus: currentActivityFocus
-                    ? {
-                      title: currentActivityFocus.activity_title,
-                      type: currentActivityFocus.activity_type,
-                      isRequired: currentActivityFocus.is_required,
-                      description:
-                        currentActivityFocus.activity_description ||
-                        "Sin descripción",
-                    }
-                    : null,
-                },
-                // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
-                userBehaviorContext: behaviorAnalysis,
-                // 🎯 NUEVO: Contexto de progreso del usuario
-                learningProgressContext: {
-                  currentLessonNumber: currentLessonIndex + 1,
-                  totalLessons: totalLessonsInCourse,
-                  progressPercentage: progressPercentage,
-                  currentTab: activeTab, // video, transcript, summary, activities
-                  timeInCurrentLesson: currentLesson?.duration_seconds
-                    ? `${Math.round(currentLesson.duration_seconds / 60)} minutos`
-                    : "Desconocido",
-                },
-                // Agregar información de la dificultad detectada al contexto
-                difficultyDetected: {
-                  patterns: analysis.patterns.map((p) => ({
-                    type: p.type,
-                    severity: p.severity,
-                    description: (() => {
-                      switch (p.type) {
-                        case "inactivity":
-                          return `Ha estado ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : "varios"} minutos sin avanzar`;
-                        case "excessive_scroll":
-                          return "Ha estado haciendo scroll repetidamente buscando información";
-                        case "failed_attempts":
-                          return "Ha intentado completar la actividad varias veces sin éxito";
-                        case "frequent_deletion":
-                          return "Ha estado escribiendo y borrando varias veces";
-                        case "repetitive_cycles":
-                          return "Ha estado yendo y viniendo entre diferentes secciones";
-                        case "erroneous_clicks":
-                          return "Ha hecho varios clicks sin resultado";
-                        default:
-                          return "Está teniendo dificultades para avanzar";
-                      }
-                    })(),
-                  })),
-                  overallScore: analysis.overallScore,
-                  shouldIntervene: analysis.shouldIntervene,
-                  // 🎯 NUEVO: Sugerencia de tipo de ayuda basada en patrones
-                  suggestedHelpType: (() => {
-                    const primaryPattern = analysis.patterns[0];
-                    if (!primaryPattern) return "general";
+              const enrichedLessonContext = baseContext
+                ? {
+                  ...baseContext,
+                  userRole: user?.type_rol || undefined,
+                  // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
+                  activitiesContext: {
+                    totalActivities: currentActivities.length,
+                    requiredActivities: requiredActivities.length,
+                    completedActivities: completedActivities.length,
+                    pendingRequiredCount: pendingRequired.length,
+                    pendingRequiredTitles: pendingRequired
+                      .map((a) => a.activity_title)
+                      .join(", "),
+                    activityTypes: currentActivities.map((a) => ({
+                      title: a.activity_title,
+                      type: a.activity_type,
+                      isRequired: a.is_required,
+                      isCompleted: a.is_completed,
+                    })),
+                    // 🎯 NUEVO: Actividad actual en foco
+                    currentActivityFocus: currentActivityFocus
+                      ? {
+                        const enrichedLessonContext = baseContext
+                          ? {
+                            ...baseContext,
+                            userRole: user?.job_title || undefined,
+                            // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
+                            activitiesContext: {
+                              totalActivities: currentActivities.length,
+                              requiredActivities: requiredActivities.length,
+                              completedActivities: completedActivities.length,
+                              pendingRequiredCount: pendingRequired.length,
+                              pendingRequiredTitles: pendingRequired
+                                .map((a) => a.activity_title)
+                                .join(", "),
+                              activityTypes: currentActivities.map((a) => ({
+                                title: a.activity_title,
+                                type: a.activity_type,
+                                isRequired: a.is_required,
+                                isCompleted: a.is_completed,
+                              })),
+                              // 🎯 NUEVO: Actividad actual en foco
+                              currentActivityFocus: currentActivityFocus
+                                ? {
+                                  title: currentActivityFocus.activity_title,
+                                  type: currentActivityFocus.activity_type,
+                                  isRequired: currentActivityFocus.is_required,
+                                  description:
+                                    currentActivityFocus.activity_description ||
+                                    "Sin descripción",
+                                }
+                                : null,
+                            },
+                            // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
+                            userBehaviorContext: behaviorAnalysis,
+                            // 🎯 NUEVO: Contexto de progreso del usuario
+                            learningProgressContext: {
+                              currentLessonNumber: currentLessonIndex + 1,
+                              totalLessons: totalLessonsInCourse,
+                              progressPercentage: progressPercentage,
+                              currentTab: activeTab, // video, transcript, summary, activities
+                              timeInCurrentLesson: currentLesson?.duration_seconds
+                                ? `${Math.round(currentLesson.duration_seconds / 60)} minutos`
+                                : "Desconocido",
+                            },
+                            // Agregar información de la dificultad detectada al contexto
+                            difficultyDetected: {
+                              patterns: analysis.patterns.map((p) => ({
+                                type: p.type,
+                                severity: p.severity,
+                                description: (() => {
+                                  switch (p.type) {
+                                    case "inactivity":
+                                      return `Ha estado ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : "varios"} minutos sin avanzar`;
+                                    case "excessive_scroll":
+                                      return "Ha estado haciendo scroll repetidamente buscando información";
+                                    case "failed_attempts":
+                                      return "Ha intentado completar la actividad varias veces sin éxito";
+                                    case "frequent_deletion":
+                                      return "Ha estado escribiendo y borrando varias veces";
+                                    case "repetitive_cycles":
+                                      return "Ha estado yendo y viniendo entre diferentes secciones";
+                                    case "erroneous_clicks":
+                                      return "Ha hecho varios clicks sin resultado";
+                                    default:
+                                      return "Está teniendo dificultades para avanzar";
+                                  }
+                                })(),
+                              })),
+                              overallScore: analysis.overallScore,
+                              shouldIntervene: analysis.shouldIntervene,
+                              // 🎯 NUEVO: Sugerencia de tipo de ayuda basada en patrones
+                              suggestedHelpType: (() => {
+                                const primaryPattern = analysis.patterns[0];
+                                if (!primaryPattern) return "general";
 
-                    switch (primaryPattern.type) {
-                      case "inactivity":
-                        return activeTab === "activities"
-                          ? "activity_guidance"
-                          : "content_explanation";
-                      case "excessive_scroll":
-                        return "content_navigation";
-                      case "failed_attempts":
-                        return "activity_hints";
-                      case "frequent_deletion":
-                        return "activity_structure";
-                      case "repetitive_cycles":
-                        return "concept_clarification";
-                      case "erroneous_clicks":
-                        return "interface_guidance";
-                      default:
-                        return "general";
-                    }
-                  })(),
-                },
-              }
-              : getLessonContext();
+                                switch (primaryPattern.type) {
+                                  case "inactivity":
+                                    return activeTab === "activities"
+                                      ? "activity_guidance"
+                                      : "content_explanation";
+                                  case "excessive_scroll":
+                                    return "content_navigation";
+                                  case "failed_attempts":
+                                    return "activity_hints";
+                                  case "frequent_deletion":
+                                    return "activity_structure";
+                                  case "repetitive_cycles":
+                                    return "concept_clarification";
+                                  case "erroneous_clicks":
+                                    return "interface_guidance";
+                                  default:
+                                    return "general";
+                                }
+                              })(),
+                            },
+                          }
+                          : getLessonContext();
 
-            try {
-              // Enviar mensaje con contexto enriquecido en segundo plano
-              // ✅ isSystemMessage=true: El mensaje NO se mostrará en el chat como mensaje del usuario
-              // pero SÍ se enviará al API para que LIA responda con ayuda contextual
-              // ✅ Si es un taller, enviar como workshopContext
-              if (
-                workshopMetadata &&
-                enrichedLessonContext?.contextType === "workshop"
+                        try {
+                          // Enviar mensaje con contexto enriquecido en segundo plano
+                          // ✅ isSystemMessage=true: El mensaje NO se mostrará en el chat como mensaje del usuario
+                          // pero SÍ se enviará al API para que LIA responda con ayuda contextual
+                          // ✅ Si es un taller, enviar como workshopContext
+                          if(
+                            workshopMetadata &&
+                          enrichedLessonContext?.contextType === "workshop"
               ) {
-                await sendLiaMessage(
-                  visibleUserMessage,
-                  undefined,
-                  enrichedLessonContext as CourseLessonContext,
-                  true
-                );
+            await sendLiaMessage(
+              visibleUserMessage,
+              undefined,
+              enrichedLessonContext as CourseLessonContext,
+              true
+            );
               } else {
-                await sendLiaMessage(
-                  visibleUserMessage,
-                  enrichedLessonContext as CourseLessonContext,
-                  undefined,
-                  true
-                );
+            await sendLiaMessage(
+              visibleUserMessage,
+              enrichedLessonContext as CourseLessonContext,
+              undefined,
+              true
+            );
               }
             } catch (error) {
-              console.error("❌ Error enviando mensaje proactivo a LIA:", error);
+            console.error("❌ Error enviando mensaje proactivo a LIA:", error);
             }
           }}
         >
@@ -4246,8 +4401,8 @@ export default function CourseLearnPage() {
                               id={`tour-tab-${tab.id}`}
                               onClick={() => handleTabChange(tab.id)}
                               className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${shouldHideText
-                                ? "px-2 py-2 hover:px-3 hover:gap-2"
-                                : "px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit"
+                                  ? "px-2 py-2 hover:px-3 hover:gap-2"
+                                  : "px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit"
                                 } ${isActive
                                   ? "bg-[#0A2540] text-white shadow-lg shadow-[#0A2540]/25"
                                   : "text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
@@ -4255,14 +4410,14 @@ export default function CourseLearnPage() {
                               style={{
                                 fontFamily: "Inter, sans-serif",
                                 fontWeight: isActive ? 600 : 500,
+                                scrollSnapAlign: "start",
                               }}
-                              style={{ scrollSnapAlign: "start" }}
                             >
                               <Icon className="w-4 h-4 shrink-0" />
                               <span
                                 className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${shouldHideText
-                                  ? "max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100"
-                                  : ""
+                                    ? "max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100"
+                                    : ""
                                   }`}
                               >
                                 {tab.label}
@@ -4358,381 +4513,487 @@ export default function CourseLearnPage() {
                   </div>
                 )}
               </div>
-
-              {/* Panel Derecho - Solo LIA - REMOVED */}
-            </div>
-
-            {/* Barra de navegación inferior flotante para móviles */}
-            {isMobileBottomNavVisible && (
-              <motion.div
-                initial={{ y: 100, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-lg border-t border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl"
+              {/* Contenido del tab activo */}
+              <div
+                className="flex-1 min-h-0 overflow-y-auto md:pb-0"
                 style={{
-                  paddingBottom: "max(env(safe-area-inset-bottom), 8px)",
-                  height: "calc(70px + max(env(safe-area-inset-bottom), 8px))",
+                  paddingBottom: isMobile
+                    ? mobileContentPaddingBottom
+                    : undefined,
                 }}
               >
-                <div className="flex items-center justify-around px-4 py-3">
-                  {/* Botón Material del Curso */}
-                  <button
-                    onClick={() => {
-                      setIsLeftPanelOpen(true);
-                    }}
-                    className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${isLeftPanelOpen
-                      ? "bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]"
-                      : "text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="h-auto p-3 md:p-6 flex flex-col gap-4"
+                  >
+                    {activeTab === "video" && (
+                      <VideoContent
+                        lesson={currentLesson}
+                        modules={modules}
+                        onNavigatePrevious={navigateToPreviousLesson}
+                        onNavigateNext={navigateToNextLesson}
+                        getPreviousLesson={getPreviousLesson}
+                        getNextLesson={getNextLesson}
+                        markLessonAsCompleted={markLessonAsCompleted}
+                        canCompleteLesson={canCompleteLesson}
+                        onCourseCompleted={() =>
+                          setIsCourseCompletedModalOpen(true)
+                        }
+                        onCannotComplete={() =>
+                          setIsCannotCompleteModalOpen(true)
+                        }
+                      />
+                    )}
+                    {activeTab === "transcript" && (
+                      <TranscriptContent
+                        lesson={currentLesson}
+                        slug={slug}
+                        onNoteCreated={addNoteToLocalState}
+                        onStatsUpdate={updateNotesStatsOptimized}
+                      />
+                    )}
+                    {activeTab === "summary" && currentLesson && (
+                      <SummaryContent lesson={currentLesson} slug={slug} />
+                    )}
+                    {activeTab === "activities" && (
+                      <ActivitiesContent
+                        lesson={currentLesson}
+                        slug={slug}
+                        onPromptsChange={handlePromptsChange}
+                        userRole={user?.job_title}
+                        onNavigateNext={navigateToNextLesson}
+                        hasNextLesson={!!getNextLesson()}
+                        selectedLang={selectedLang}
+                        colors={colors}
+                      />
+                    )}
+                    {activeTab === "questions" && (
+                      <QuestionsContent
+                        slug={slug}
+                        courseTitle={
+                          course?.title || course?.course_title || "Curso"
+                        }
+                      />
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </>
+            ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
+                <p
+                  className="text-[#6C757D] dark:text-white/60"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                >
+                  {t("loading.lesson")}
+                </p>
+              </div>
+            </div>
+            )}
+          </div>
+
+          {/* Panel Derecho - Solo LIA - REMOVED */}
+        </div>
+
+        {/* Barra de navegación inferior flotante para móviles */}
+        {isMobileBottomNavVisible && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-lg border-t border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl"
+            style={{
+              paddingBottom: "max(env(safe-area-inset-bottom), 8px)",
+              height: "calc(70px + max(env(safe-area-inset-bottom), 8px))",
+            }}
+          >
+            <div className="flex items-center justify-around px-4 py-3">
+              {/* Botón Material del Curso */}
+              <button
+                onClick={() => {
+                  setIsLeftPanelOpen(true);
+                }}
+                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${isLeftPanelOpen
+                  ? "bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]"
+                  : "text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
+                  }`}
+              >
+                <BookOpen className="w-5 h-5" />
+                <span className="text-xs font-medium">Material</span>
+              </button>
+
+              {/* Botón Lección Anterior */}
+              {getPreviousLesson() && (
+                <button
+                  onClick={navigateToPreviousLesson}
+                  className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="text-xs font-medium">Anterior</span>
+                </button>
+              )}
+
+              {/* Botón Lección Siguiente */}
+              {getNextLesson() && (
+                <button
+                  onClick={navigateToNextLesson}
+                  className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                  <span className="text-xs font-medium">Siguiente</span>
+                </button>
+              )}
+
+              {/* Botón LIA - Integrado en la barra inferior móvil */}
+              <LiaMobileButton />
+            </div>
+          </motion.div>
+        )}
+
+        <NotesModal
+          isOpen={isNotesModalOpen}
+          onClose={() => {
+            setIsNotesModalOpen(false);
+            setEditingNote(null);
+          }}
+          onSave={handleSaveNote}
+          initialNote={editingNote}
+          isEditing={!!editingNote}
+        />
+
+        {/* Modal de Curso Completado */}
+        <AnimatePresence>
+          {isCourseCompletedModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={() => setIsCourseCompletedModalOpen(false)}
+            >
+              {/* Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+              >
+                {/* Icono de éxito */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
+                    <CheckCircle2 className="w-10 h-10 text-white" />
+                  </div>
+                </div>
+
+                {/* Título */}
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+                  ¡Felicidades!
+                </h3>
+
+                {/* Mensaje */}
+                <p className="text-gray-600 dark:text-slate-300 text-center mb-4">
+                  Has completado el curso exitosamente. ¡Buen trabajo!
+                </p>
+
+                {/* Mensaje informativo sobre certificado */}
+                <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-3 mb-6">
+                  <p
+                    className="text-[#0A2540] dark:text-white text-center text-sm"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                  >
+                    📜 A continuación, completa una breve encuesta para acceder
+                    a tu certificado
+                  </p>
+                </div>
+
+                {/* Botón de cerrar */}
+                <button
+                  onClick={async () => {
+                    setIsCourseCompletedModalOpen(false);
+                    // Verificar si el usuario ya calificó después de cerrar el modal de completado
+                    if (!hasUserRated && slug) {
+                      try {
+                        const ratingCheck =
+                          await CourseRatingService.checkUserRating(slug);
+                        if (!ratingCheck.hasRating) {
+                          // Mostrar modal de rating después de un breve delay
+                          setTimeout(() => {
+                            setIsRatingModalOpen(true);
+                          }, 500);
+                        } else {
+                          setHasUserRated(true);
+                        }
+                      } catch (error) {
+                        // Si hay error, no mostrar el modal
+                        console.error("Error checking rating:", error);
+                      }
+                    }
+                  }}
+                  className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+                >
+                  Aceptar
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Modal de No Puede Completar */}
+        <AnimatePresence>
+          {isCannotCompleteModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={() => setIsCannotCompleteModalOpen(false)}
+            >
+              {/* Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+              >
+                {/* Icono de advertencia */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] flex items-center justify-center shadow-lg shadow-[#F59E0B]/25">
+                    <HelpCircle className="w-10 h-10 text-white" />
+                  </div>
+                </div>
+
+                {/* Título */}
+                <h3
+                  className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                >
+                  No puedes completar esta lección
+                </h3>
+
+                {/* Mensaje */}
+                <p
+                  className="text-[#6C757D] dark:text-white/80 text-center mb-6"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                >
+                  Tienes lecciones pendientes que debes completar antes de
+                  terminar el curso. Completa todas las lecciones anteriores en
+                  orden.
+                </p>
+
+                {/* Botón de cerrar */}
+                <button
+                  onClick={() => setIsCannotCompleteModalOpen(false)}
+                  className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+                >
+                  Entendido
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Modal de Validación (Actividades/Video/Quiz) */}
+        <AnimatePresence>
+          {validationModal.isOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={() =>
+                setValidationModal({ ...validationModal, isOpen: false })
+              }
+            >
+              {/* Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+              >
+                {/* Icono según el tipo de validación */}
+                <div className="flex justify-center mb-4">
+                  <div
+                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${validationModal.type === "activity" ||
+                      validationModal.type === "quiz"
+                      ? "bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/25"
+                      : validationModal.type === "video"
+                        ? "bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-[#0A2540]/25"
+                        : "bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] shadow-[#F59E0B]/25"
                       }`}
                   >
-                    <BookOpen className="w-5 h-5" />
-                    <span className="text-xs font-medium">Material</span>
-                  </button>
-
-                  {/* Botón Lección Anterior */}
-                  {getPreviousLesson() && (
-                    <button
-                      onClick={navigateToPreviousLesson}
-                      className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                      <span className="text-xs font-medium">Anterior</span>
-                    </button>
-                  )}
-
-                  {/* Botón Lección Siguiente */}
-                  {getNextLesson() && (
-                    <button
-                      onClick={navigateToNextLesson}
-                      className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                      <span className="text-xs font-medium">Siguiente</span>
-                    </button>
-                  )}
-
-                  {/* Botón LIA - Integrado en la barra inferior móvil */}
-                  <LiaMobileButton />
-                </div>
-              </motion.div>
-            )}
-
-            <NotesModal
-              isOpen={isNotesModalOpen}
-              onClose={() => {
-                setIsNotesModalOpen(false);
-                setEditingNote(null);
-              }}
-              onSave={handleSaveNote}
-              initialNote={editingNote}
-              isEditing={!!editingNote}
-            />
-
-            {/* Modal de Curso Completado */}
-            <AnimatePresence>
-              {isCourseCompletedModalOpen && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                  onClick={() => setIsCourseCompletedModalOpen(false)}
-                >
-                  {/* Overlay */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                  />
-
-                  {/* Modal Content */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
-                  >
-                    {/* Icono de éxito */}
-                    <div className="flex justify-center mb-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
-                        <CheckCircle2 className="w-10 h-10 text-white" />
-                      </div>
-                    </div>
-
-                    {/* Título */}
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                      ¡Felicidades!
-                    </h3>
-
-                    {/* Mensaje */}
-                    <p className="text-gray-600 dark:text-slate-300 text-center mb-4">
-                      Has completado el curso exitosamente. ¡Buen trabajo!
-                    </p>
-
-                    {/* Mensaje informativo sobre certificado */}
-                    <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-3 mb-6">
-                      <p
-                        className="text-[#0A2540] dark:text-white text-center text-sm"
-                        style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-                      >
-                        📜 A continuación, completa una breve encuesta para acceder
-                        a tu certificado
-                      </p>
-                    </div>
-
-                    {/* Botón de cerrar */}
-                    <button
-                      onClick={async () => {
-                        setIsCourseCompletedModalOpen(false);
-                        // Verificar si el usuario ya calificó después de cerrar el modal de completado
-                        if (!hasUserRated && slug) {
-                          try {
-                            const ratingCheck =
-                              await CourseRatingService.checkUserRating(slug);
-                            if (!ratingCheck.hasRating) {
-                              // Mostrar modal de rating después de un breve delay
-                              setTimeout(() => {
-                                setIsRatingModalOpen(true);
-                              }, 500);
-                            } else {
-                              setHasUserRated(true);
-                            }
-                          } catch (error) {
-                            // Si hay error, no mostrar el modal
-                            console.error("Error checking rating:", error);
-                          }
-                        }
-                      }}
-                      className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
-                    >
-                      Aceptar
-                    </button>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Modal de No Puede Completar */}
-            <AnimatePresence>
-              {isCannotCompleteModalOpen && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                  onClick={() => setIsCannotCompleteModalOpen(false)}
-                >
-                  {/* Overlay */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                  />
-
-                  {/* Modal Content */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
-                  >
-                    {/* Icono de advertencia */}
-                    <div className="flex justify-center mb-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] flex items-center justify-center shadow-lg shadow-[#F59E0B]/25">
-                        <HelpCircle className="w-10 h-10 text-white" />
-                      </div>
-                    </div>
-
-                    {/* Título */}
-                    <h3
-                      className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
-                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
-                    >
-                      No puedes completar esta lección
-                    </h3>
-
-                    {/* Mensaje */}
-                    <p
-                      className="text-[#6C757D] dark:text-white/80 text-center mb-6"
-                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-                    >
-                      Tienes lecciones pendientes que debes completar antes de
-                      terminar el curso. Completa todas las lecciones anteriores en
-                      orden.
-                    </p>
-
-                    {/* Botón de cerrar */}
-                    <button
-                      onClick={() => setIsCannotCompleteModalOpen(false)}
-                      className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
-                    >
-                      Entendido
-                    </button>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Modal de Validación (Actividades/Video/Quiz) */}
-            <AnimatePresence>
-              {validationModal.isOpen && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                  onClick={() =>
-                    setValidationModal({ ...validationModal, isOpen: false })
-                  }
-                >
-                  {/* Overlay */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                  />
-
-                  {/* Modal Content */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
-                  >
-                    {/* Icono según el tipo de validación */}
-                    <div className="flex justify-center mb-4">
-                      <div
-                        className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${validationModal.type === "activity" ||
-                          validationModal.type === "quiz"
-                          ? "bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/25"
-                          : validationModal.type === "video"
-                            ? "bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-[#0A2540]/25"
-                            : "bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] shadow-[#F59E0B]/25"
-                          }`}
-                      >
-                        {validationModal.type === "activity" ||
-                          validationModal.type === "quiz" ? (
-                          <AlertCircle className="w-10 h-10 text-white" />
-                        ) : validationModal.type === "video" ? (
-                          <Info className="w-10 h-10 text-white" />
-                        ) : (
-                          <XCircle className="w-10 h-10 text-white" />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Título */}
-                    <h3
-                      className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
-                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
-                    >
-                      {validationModal.title}
-                    </h3>
-
-                    {/* Mensaje */}
-                    <p
-                      className="text-[#6C757D] dark:text-white/80 text-center mb-4"
-                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-                    >
-                      {validationModal.message}
-                    </p>
-
-                    {/* Detalles adicionales si existen */}
-                    {validationModal.details && (
-                      <div className="mb-6 p-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
-                        <p
-                          className="text-[#0A2540] dark:text-white text-sm text-center font-medium"
-                          style={{
-                            fontFamily: "Inter, sans-serif",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {validationModal.details}
-                        </p>
-                      </div>
+                    {validationModal.type === "activity" ||
+                      validationModal.type === "quiz" ? (
+                      <AlertCircle className="w-10 h-10 text-white" />
+                    ) : validationModal.type === "video" ? (
+                      <Info className="w-10 h-10 text-white" />
+                    ) : (
+                      <XCircle className="w-10 h-10 text-white" />
                     )}
+                  </div>
+                </div>
 
-                    {/* Botón de cerrar */}
-                    <button
-                      onClick={() => {
-                        // Cerrar el modal
-                        const lessonIdToShow = validationModal.lessonId;
-                        setValidationModal({ ...validationModal, isOpen: false });
+                {/* Título */}
+                <h3
+                  className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                >
+                  {validationModal.title}
+                </h3>
 
-                        // Si hay una lección guardada, cambiar a esa lección y abrir actividades
-                        if (lessonIdToShow) {
-                          // Buscar la lección en todos los módulos
-                          const allLessons = getAllLessonsOrdered();
-                          const lessonToShow = allLessons.find(
-                            (item) => item.lesson.lesson_id === lessonIdToShow
-                          );
+                {/* Mensaje */}
+                <p
+                  className="text-[#6C757D] dark:text-white/80 text-center mb-4"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                >
+                  {validationModal.message}
+                </p>
 
-                          if (lessonToShow) {
-                            // Cambiar a la lección correspondiente
-                            setCurrentLesson(lessonToShow.lesson);
-                            // Cambiar al tab de actividades
-                            setActiveTab("activities");
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }
-                        }
+                {/* Detalles adicionales si existen */}
+                {validationModal.details && (
+                  <div className="mb-6 p-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                    <p
+                      className="text-[#0A2540] dark:text-white text-sm text-center font-medium"
+                      style={{
+                        fontFamily: "Inter, sans-serif",
+                        fontWeight: 500,
                       }}
-                      className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
                     >
-                      Entendido
-                    </button>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      {validationModal.details}
+                    </p>
+                  </div>
+                )}
 
-            {/* Modal de Rating */}
-            <CourseRatingModal
-              isOpen={isRatingModalOpen}
-              onClose={() => setIsRatingModalOpen(false)}
-              courseSlug={slug}
-              courseTitle={course?.title || course?.course_title}
-              onRatingSubmitted={() => {
-                setHasUserRated(true);
-                setIsRatingModalOpen(false);
-                // Redirigir a la página de certificados después de completar la encuesta
-                router.push("/certificates");
-              }}
+                {/* Botón de cerrar */}
+                <button
+                  onClick={() => {
+                    // Cerrar el modal
+                    const lessonIdToShow = validationModal.lessonId;
+                    setValidationModal({ ...validationModal, isOpen: false });
+
+                    // Si hay una lección guardada, cambiar a esa lección y abrir actividades
+                    if (lessonIdToShow) {
+                      // Buscar la lección en todos los módulos
+                      const allLessons = getAllLessonsOrdered();
+                      const lessonToShow = allLessons.find(
+                        (item) => item.lesson.lesson_id === lessonIdToShow
+                      );
+
+                      if (lessonToShow) {
+                        // Cambiar a la lección correspondiente
+                        setCurrentLesson(lessonToShow.lesson);
+                        // Cambiar al tab de actividades
+                        setActiveTab("activities");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }
+                    }
+                  }}
+                  className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+                >
+                  Entendido
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        if (lessonToShow) {
+          // 🔧 FIX: Pause all videos before changing lesson
+          videoPlayerContext?.pauseAllVideos();
+        // Cambiar a la lección correspondiente
+        setCurrentLesson(lessonToShow.lesson);
+        // Cambiar al tab de actividades
+        setActiveTab("activities");
+        window.scrollTo({top: 0, behavior: "smooth" });
+                      }
+                    }
+                  }}
+        className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+        style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+                >
+        Entendido
+      </button>
+              </motion.div >
+            </motion.div >
+          )
+}
+        </AnimatePresence >
+
+  {/* Modal de Rating */ }
+  < CourseRatingModal
+isOpen = { isRatingModalOpen }
+onClose = {() => setIsRatingModalOpen(false)}
+courseSlug = { slug }
+courseTitle = { course?.title || course?.course_title}
+onRatingSubmitted = {() => {
+  setHasUserRated(true);
+  setIsRatingModalOpen(false);
+  // Redirigir a la página de certificados después de completar la encuesta
+  router.push("/certificates");
+}}
             />
 
-            {/* LIA In-Context Chat for Courses */}
-            <CourseLia
-              lessonId={currentLesson?.lesson_id}
-              lessonTitle={currentLesson?.lesson_title}
-              courseSlug={slug}
-              transcriptContent={liaTranscript}
-              summaryContent={liaSummary}
-              lessonContent={currentLesson?.lesson_description}
-              customColors={{
-                panelBg: colors.bgSecondary,
-                borderColor: "rgba(255,255,255,0.1)",
-                accentColor: colors.accent,
-                textPrimary: "#FFFFFF",
-                textSecondary: "rgba(255,255,255,0.6)",
-              }}
-              onSaveNote={handleSaveLiaNote}
-            />
+{/* LIA In-Context Chat for Courses */ }
+<CourseLia
+  lessonId={currentLesson?.lesson_id}
+  lessonTitle={currentLesson?.lesson_title}
+  courseSlug={slug}
+  transcriptContent={liaTranscript}
+  summaryContent={liaSummary}
+  lessonContent={currentLesson?.lesson_description}
+  customColors={{
+    panelBg: colors.bgSecondary,
+    borderColor: "rgba(255,255,255,0.1)",
+    accentColor: colors.accent,
+    textPrimary: "#FFFFFF",
+    textSecondary: "rgba(255,255,255,0.6)",
+  }}
+  onSaveNote={handleSaveLiaNote}
+/>
 
-            {/* Tour de voz contextual para la página de aprendizaje */}
+{/* Tour de voz contextual para la página de aprendizaje */ }
 
-            {/* Joyride Tour */}
-            {isJoyrideMounted && <Joyride {...joyrideProps} />}
-          </div>
-        </WorkshopLearningProvider>
-      </VideoPlayerProvider>
-    </LessonTrackingProvider>
+{/* Joyride Tour */ }
+{ isJoyrideMounted && <Joyride {...joyrideProps} /> }
+          </div >
+        </WorkshopLearningProvider >
+      </VideoPlayerProvider >
+    </LessonTrackingProvider >
   );
 }
 
@@ -4790,95 +5051,181 @@ function VideoContent({
   const isLastLesson = !hasNextLesson;
 
   // 🎬 Efecto para detectar play/pause del elemento video nativo y eventos de PiP
+  // 🔧 FIXED: Race condition and proper cleanup to prevent double audio
   useEffect(() => {
     let cleanupFn: (() => void) | undefined;
 
-    // Función para configurar listeners del video
-    const setupVideoListeners = () => {
-      const videoElement = document.querySelector('video');
-      if (videoElement) {
-        // 🔄 RESTAURAR TIEMPO: Si hay un tiempo guardado, restaurarlo
-        if (videoPlayerContext && lesson.lesson_id) {
-          const savedTime = videoPlayerContext.getVideoProgress(lesson.lesson_id);
-          if (savedTime > 0) {
-            // Pequeño hack para asegurar que el video esté listo
-            if (videoElement.readyState >= 1) {
-              videoElement.currentTime = savedTime;
-            } else {
-              videoElement.addEventListener('loadedmetadata', () => {
-                videoElement.currentTime = savedTime;
-              }, { once: true });
-            }
-          }
-        }
+    let isSetup = false;
+    let retryTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    let currentVideoElement: HTMLVideoElement | null = null;
 
-        const onPlay = () => {
-          videoPlayerContext?.setIsVideoPlaying(true);
-        };
-        const onPause = () => {
-          videoPlayerContext?.setIsVideoPlaying(false);
-        };
-        const onEnded = () => {
-          videoPlayerContext?.setIsVideoPlaying(false);
-        };
-        const onEnterPiP = () => {
-          videoPlayerContext?.setIsPiPActive(true);
-        };
-        const onLeavePiP = () => {
-          videoPlayerContext?.setIsPiPActive(false);
-        };
-        const onTimeUpdate = () => {
-          currentTimeRef.current = videoElement.currentTime;
-        };
+    // 🔧 FIX: Capture context functions at effect start to avoid stale closures
+    // and prevent infinite loops from context changes
+    const ctx = videoPlayerContext;
 
-        // Añadir listeners
-        videoElement.addEventListener('play', onPlay);
-        videoElement.addEventListener('pause', onPause);
-        videoElement.addEventListener('ended', onEnded);
-        videoElement.addEventListener('enterpictureinpicture', onEnterPiP);
-        videoElement.addEventListener('leavepictureinpicture', onLeavePiP);
-        videoElement.addEventListener('timeupdate', onTimeUpdate);
-
-        // Actualizar estado inicial si el video ya está reproduciéndose
-        if (!videoElement.paused) {
-          videoPlayerContext?.setIsVideoPlaying(true);
-        }
-
-        cleanupFn = () => {
-          videoElement.removeEventListener('play', onPlay);
-          videoElement.removeEventListener('pause', onPause);
-          videoElement.removeEventListener('ended', onEnded);
-          videoElement.removeEventListener('enterpictureinpicture', onEnterPiP);
-          videoElement.removeEventListener('leavepictureinpicture', onLeavePiP);
-          videoElement.removeEventListener('timeupdate', onTimeUpdate);
-
-          // Guardar progreso al desmontar (si no hay PiP activo, o como backup)
-          if (videoPlayerContext && lesson.lesson_id) {
-            videoPlayerContext.saveVideoProgress(lesson.lesson_id, currentTimeRef.current);
-          }
-        };
-
-        return true;
-      }
-      return false;
+    // 🔧 FIX: Use a more specific selector with a unique identifier
+    const findVideoElement = (): HTMLVideoElement | null => {
+      const videoContainer = document.querySelector('.aspect-video video');
+      return videoContainer as HTMLVideoElement | null;
     };
 
-    // Intentar encontrar el video inmediatamente
+    // Función para configurar listeners del video
+    const setupVideoListeners = (): boolean => {
+      if (isSetup) return true;
+
+      const videoElement = findVideoElement();
+      if (!videoElement) return false;
+
+      currentVideoElement = videoElement;
+      isSetup = true;
+
+      // 🔄 RESTAURAR TIEMPO Y AUTO-PLAY: Si hay un tiempo guardado, restaurarlo
+      // También auto-reproducir si venimos de PiP (shouldAutoPlay flag)
+      if (ctx && lesson.lesson_id) {
+        const savedTime = ctx.getVideoProgress(lesson.lesson_id);
+        // Use ref for immediate reading (not affected by React state batching)
+        const shouldAutoPlayVideo = ctx.shouldAutoPlayRef?.current || false;
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[VideoContent] Setup:', { savedTime, shouldAutoPlayVideo, readyState: videoElement.readyState });
+        }
+
+        const restoreAndPlay = () => {
+          // Re-check the ref at execution time (might have changed)
+          const shouldPlay = ctx.shouldAutoPlayRef?.current || false;
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[VideoContent] restoreAndPlay called:', { readyState: videoElement.readyState, shouldPlay, savedTime });
+          }
+
+          if (savedTime > 0) {
+            videoElement.currentTime = savedTime;
+          }
+          // Auto-play if coming back from PiP
+          if (shouldPlay) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[VideoContent] Attempting auto-play...');
+            }
+            videoElement.play().then(() => {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[VideoContent] Auto-play successful');
+              }
+            }).catch((err) => {
+              // Autoplay may be blocked by browser
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[VideoContent] Autoplay blocked:', err);
+              }
+            });
+            // Clear the flag immediately (both ref and state)
+            ctx.setShouldAutoPlay(false);
+          }
+        };
+
+        // Try multiple approaches to ensure video plays
+        if (videoElement.readyState >= 3) {
+          // HAVE_FUTURE_DATA or more - video is ready to play
+          restoreAndPlay();
+        } else if (videoElement.readyState >= 1) {
+          // HAVE_METADATA - metadata loaded but not enough data
+          // Wait for canplay event
+          videoElement.addEventListener('canplay', restoreAndPlay, { once: true });
+        } else {
+          // Not loaded yet - wait for loadedmetadata then canplay
+          videoElement.addEventListener('loadedmetadata', () => {
+            if (videoElement.readyState >= 3) {
+              restoreAndPlay();
+            } else {
+              videoElement.addEventListener('canplay', restoreAndPlay, { once: true });
+            }
+          }, { once: true });
+        }
+      }
+
+      const onPlay = () => {
+        ctx?.setIsVideoPlaying(true);
+      };
+      const onPause = () => {
+        ctx?.setIsVideoPlaying(false);
+      };
+      const onEnded = () => {
+        ctx?.setIsVideoPlaying(false);
+      };
+      const onEnterPiP = () => {
+        ctx?.setIsPiPActive(true);
+      };
+      const onLeavePiP = () => {
+        ctx?.setIsPiPActive(false);
+      };
+      const onTimeUpdate = () => {
+        currentTimeRef.current = videoElement.currentTime;
+      };
+
+      videoElement.addEventListener('play', onPlay);
+      videoElement.addEventListener('pause', onPause);
+      videoElement.addEventListener('ended', onEnded);
+      videoElement.addEventListener('enterpictureinpicture', onEnterPiP);
+      videoElement.addEventListener('leavepictureinpicture', onLeavePiP);
+      videoElement.addEventListener('timeupdate', onTimeUpdate);
+
+      if (!videoElement.paused) {
+        ctx?.setIsVideoPlaying(true);
+      }
+
+      cleanupFn = () => {
+        videoElement.removeEventListener('play', onPlay);
+        videoElement.removeEventListener('pause', onPause);
+        videoElement.removeEventListener('ended', onEnded);
+        videoElement.removeEventListener('enterpictureinpicture', onEnterPiP);
+        videoElement.removeEventListener('leavepictureinpicture', onLeavePiP);
+        videoElement.removeEventListener('timeupdate', onTimeUpdate);
+
+        // 🔧 CRITICAL FIX: Pause video on cleanup to prevent double audio
+        // BUT: If video is in PiP mode, let it continue playing (YouTube-style behavior)
+        const isInPiP = document.pictureInPictureElement === videoElement;
+        if (!videoElement.paused && !isInPiP) {
+          videoElement.pause();
+        }
+      };
+
+      return true;
+    };
+
     const found = setupVideoListeners();
 
-    // Si no se encontró, intentar después de un delay (el video puede tardar en cargarse)
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     if (!found) {
-      timeoutId = setTimeout(() => {
-        setupVideoListeners();
-      }, 1000);
+      retryTimeoutId = setTimeout(() => {
+        if (!isSetup) {
+          setupVideoListeners();
+        }
+      }, 500);
+
+      const fallbackTimeoutId = setTimeout(() => {
+        if (!isSetup) {
+          setupVideoListeners();
+        }
+      }, 1500);
+
+      const originalCleanup = cleanupFn;
+      cleanupFn = () => {
+        clearTimeout(fallbackTimeoutId);
+        originalCleanup?.();
+      };
     }
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (retryTimeoutId) clearTimeout(retryTimeoutId);
       if (cleanupFn) cleanupFn();
+
+      // 🔧 FIX: Don't pause if video is in PiP mode (YouTube-style behavior)
+      const isInPiP = currentVideoElement && document.pictureInPictureElement === currentVideoElement;
+      if (currentVideoElement && !currentVideoElement.paused && !isInPiP) {
+        currentVideoElement.pause();
+      }
     };
-  }, [lesson.lesson_id, videoPlayerContext]);
+    // 🔧 FIX: Only depend on lesson.lesson_id, not videoPlayerContext
+    // to prevent infinite update loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lesson.lesson_id]);
 
   return (
     <div className="space-y-6 pb-16 md:pb-6">
@@ -4890,9 +5237,6 @@ function VideoContent({
               videoProviderId={lesson.video_provider_id!}
               title={lesson.lesson_title}
               className="w-full h-full"
-              onProgress={lessonTracking?.trackProgress}
-              initialTime={lessonTracking?.initialCheckpoint}
-              initialPlaybackRate={lessonTracking?.initialPlaybackRate}
             />
 
             {/* Botones de navegación - Centrados verticalmente */}
@@ -5308,49 +5652,49 @@ function TranscriptContent({
             <div className="relative p-8 prose prose-slate dark:prose-invert max-w-none">
               <ReactMarkdown
                 components={{
-                  h1: ({ node, ...props }) => (
+                  h1: ({ node, ref, ...props }) => (
                     <h1
                       className="text-2xl font-bold text-gray-900 dark:text-white mb-6 mt-8 flex items-center gap-2 not-prose"
                       {...props}
                     />
                   ),
-                  h2: ({ node, ...props }) => (
+                  h2: ({ node, ref, ...props }) => (
                     <h2
                       className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-8 pb-2 border-b border-gray-200 dark:border-white/5 not-prose"
                       {...props}
                     />
                   ),
-                  h3: ({ node, ...props }) => (
+                  h3: ({ node, ref, ...props }) => (
                     <h3
                       className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose"
                       {...props}
                     />
                   ),
-                  strong: ({ node, ...props }) => (
+                  strong: ({ node, ref, ...props }) => (
                     <strong className="font-bold text-gray-900 dark:text-white" {...props} />
                   ),
-                  p: ({ node, ...props }) => (
+                  p: ({ node, ref, ...props }) => (
                     <p
                       className="mb-4 text-gray-700 dark:text-white/80 leading-relaxed font-light tracking-wide text-base"
                       {...props}
                     />
                   ),
-                  ul: ({ node, ...props }) => (
+                  ul: ({ node, ref, ...props }) => (
                     <ul
                       className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]"
                       {...props}
                     />
                   ),
-                  ol: ({ node, ...props }) => (
+                  ol: ({ node, ref, ...props }) => (
                     <ol
                       className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-gray-700 dark:text-white/80"
                       {...props}
                     />
                   ),
-                  li: ({ node, ...props }) => (
+                  li: ({ node, ref, ...props }) => (
                     <li className="pl-1 leading-relaxed" {...props} />
                   ),
-                  blockquote: ({ node, ...props }) => (
+                  blockquote: ({ node, ref, ...props }) => (
                     <blockquote
                       className="border-l-4 border-[#00D4B3] pl-4 italic text-gray-600 dark:text-white/60 my-6 bg-gray-50 dark:bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
                       {...props}
@@ -5572,55 +5916,55 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
         <div className="relative p-8 prose prose-slate dark:prose-invert max-w-none">
           <ReactMarkdown
             components={{
-              h1: ({ node, ...props }) => (
+              h1: ({ node, ref, ...props }) => (
                 <h1
                   className="text-2xl font-bold text-gray-900 dark:text-white mb-6 mt-8 flex items-center gap-2 not-prose"
                   {...props}
                 />
               ),
-              h2: ({ node, ...props }) => (
+              h2: ({ node, ref, ...props }) => (
                 <h2
                   className="text-xl font-bold text-gray-900 dark:text-white mb-4 mt-8 pb-2 border-b border-gray-200 dark:border-white/5 not-prose"
                   {...props}
                 />
               ),
-              h3: ({ node, ...props }) => (
+              h3: ({ node, ref, ...props }) => (
                 <h3
                   className="text-lg font-semibold text-[#00D4B3] mb-3 mt-6 not-prose"
                   {...props}
                 />
               ),
-              strong: ({ node, ...props }) => (
+              strong: ({ node, ref, ...props }) => (
                 <strong className="font-bold text-gray-900 dark:text-white" {...props} />
               ),
-              p: ({ node, ...props }) => (
+              p: ({ node, ref, ...props }) => (
                 <p
                   className="mb-4 text-gray-700 dark:text-white/80 leading-relaxed font-light tracking-wide text-base"
                   {...props}
                 />
               ),
-              ul: ({ node, ...props }) => (
+              ul: ({ node, ref, ...props }) => (
                 <ul
                   className="list-disc pl-5 space-y-2 mb-6 marker:text-[#00D4B3]"
                   {...props}
                 />
               ),
-              ol: ({ node, ...props }) => (
+              ol: ({ node, ref, ...props }) => (
                 <ol
                   className="list-decimal pl-5 space-y-2 mb-6 marker:text-[#00D4B3] marker:font-bold text-gray-700 dark:text-white/80"
                   {...props}
                 />
               ),
-              li: ({ node, ...props }) => (
+              li: ({ node, ref, ...props }) => (
                 <li className="pl-1 leading-relaxed" {...props} />
               ),
-              blockquote: ({ node, ...props }) => (
+              blockquote: ({ node, ref, ...props }) => (
                 <blockquote
                   className="border-l-4 border-[#00D4B3] pl-4 italic text-gray-600 dark:text-white/60 my-6 bg-gray-50 dark:bg-white/5 py-2 pr-4 rounded-r-lg not-prose"
                   {...props}
                 />
               ),
-              code: ({ node, ...props }) => (
+              code: ({ node, ref, ...props }) => (
                 <code
                   className="bg-gray-100 dark:bg-black/30 px-1.5 py-0.5 rounded text-sm font-mono text-teal-600 dark:text-[#00D4B3]"
                   {...props}
@@ -5944,12 +6288,13 @@ function QuizRenderer({
   return (
     <div className="space-y-5">
       {/* Instrucciones - Minimalista */}
-      <div className="px-4 py-3 border-l-2 border-white/20">
-        <p className="text-white/60 text-xs mb-1">
+      {/* Instrucciones - Minimalista */}
+      <div className="px-4 py-3 border-l-2 border-gray-300 dark:border-white/20">
+        <p className="text-gray-600 dark:text-white/60 text-xs mb-1">
           Responde las {totalQuestions} pregunta
           {totalQuestions !== 1 ? "s" : ""} para completar este quiz.
         </p>
-        <div className="flex items-center gap-4 text-[10px] text-white/40">
+        <div className="flex items-center gap-4 text-[10px] text-gray-400 dark:text-white/40">
           {totalPoints !== undefined && <span>{totalPoints} puntos</span>}
           <span>Umbral: {passingThreshold}%</span>
           <span>
@@ -5972,24 +6317,24 @@ function QuizRenderer({
             <div
               key={question.id}
               className={`relative rounded-lg border transition-colors ${showResults
-                ? isCorrect
-                  ? "border-emerald-500/30 bg-emerald-500/5"
-                  : "border-red-500/30 bg-red-500/5"
-                : "border-white/10 bg-white/[0.02]"
+                  ? isCorrect
+                    ? "border-emerald-500/30 bg-emerald-500/5"
+                    : "border-red-500/30 bg-red-500/5"
+                  : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02]"
                 }`}
             >
               {/* Header de pregunta */}
-              <div className="px-4 py-3 border-b border-white/5 flex items-start justify-between gap-3">
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-white/5 flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 flex-1">
-                  <span className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-xs font-medium text-white/50 flex-shrink-0">
+                  <span className="w-6 h-6 rounded-md bg-gray-200 dark:bg-white/5 flex items-center justify-center text-xs font-medium text-gray-500 dark:text-white/50 flex-shrink-0">
                     {index + 1}
                   </span>
-                  <p className="text-sm text-white leading-relaxed flex-1">
+                  <p className="text-sm text-gray-900 dark:text-white leading-relaxed flex-1">
                     {question.question}
                   </p>
                 </div>
                 {question.points && (
-                  <span className="text-[10px] text-white/30 px-2 py-0.5 bg-white/5 rounded flex-shrink-0">
+                  <span className="text-[10px] text-gray-400 dark:text-white/30 px-2 py-0.5 bg-gray-100 dark:bg-white/5 rounded flex-shrink-0">
                     {question.points} pt{question.points > 1 ? "s" : ""}
                   </span>
                 )}
@@ -6025,26 +6370,26 @@ function QuizRenderer({
                     <label
                       key={optIndex}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-all ${showResults
-                        ? isCorrectOption
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : isSelected && !isCorrectOption
-                            ? "bg-red-500/10 text-red-400"
-                            : "bg-transparent text-white/50"
-                        : isSelected
-                          ? "bg-white/10 text-white"
-                          : "bg-transparent text-white/60 hover:bg-white/5 hover:text-white/80"
+                          ? isCorrectOption
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : isSelected && !isCorrectOption
+                              ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                              : "bg-transparent text-gray-400 dark:text-white/50"
+                          : isSelected
+                            ? "bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white"
+                            : "bg-transparent text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white/80"
                         }`}
                     >
                       <div
                         className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${showResults
-                          ? isCorrectOption
-                            ? "border-emerald-400 bg-emerald-400"
-                            : isSelected && !isCorrectOption
-                              ? "border-red-400 bg-red-400"
-                              : "border-white/20"
-                          : isSelected
-                            ? "border-white bg-white"
-                            : "border-white/20"
+                            ? isCorrectOption
+                              ? "border-emerald-500 dark:border-emerald-400 bg-emerald-500 dark:bg-emerald-400"
+                              : isSelected && !isCorrectOption
+                                ? "border-red-500 dark:border-red-400 bg-red-500 dark:bg-red-400"
+                                : "border-gray-300 dark:border-white/20"
+                            : isSelected
+                              ? "border-gray-900 dark:border-white bg-gray-900 dark:bg-white"
+                              : "border-gray-300 dark:border-white/20"
                           }`}
                       >
                         {((showResults &&
@@ -6053,6 +6398,8 @@ function QuizRenderer({
                           (!showResults && isSelected)) && (
                             <div className="w-1.5 h-1.5 rounded-full bg-black" />
                           )}
+                        <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-black" />
+                        )}
                       </div>
                       <input
                         type="radio"
@@ -7282,7 +7629,13 @@ function ActivitiesContent({
             if (!isMounted) return []; // Salir si el componente se desmontó
 
             try {
-              const adaptedPrompts = await generateRoleBasedPromptsRef.current(
+              // Verificar que la función existe antes de invocarla
+              const generateFn = generateRoleBasedPromptsRef.current;
+              if (!generateFn) {
+                return activityData.prompts;
+              }
+
+              const adaptedPrompts = await generateFn(
                 activityData.prompts,
                 activityData.content,
                 activityData.title,

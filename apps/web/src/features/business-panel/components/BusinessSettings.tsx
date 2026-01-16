@@ -2824,16 +2824,18 @@ function BrandingTab() {
               boxShadow: `0 8px 30px ${localBranding.color_primary}25`
             }}
           >
-            <span className="text-white font-bold text-sm tracking-wide">Tu Marca</span>
+            <span className="font-bold text-sm tracking-wide" style={{ color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>Tu Marca</span>
           </div>
 
           {/* Button Previews */}
           <div className="flex flex-wrap gap-3">
             <motion.div
               whileHover={{ scale: 1.03 }}
-              className="px-4 py-2 rounded-lg font-medium text-sm text-white shadow-md"
+              className="px-4 py-2 rounded-lg font-medium text-sm shadow-md"
               style={{
                 background: `linear-gradient(135deg, ${localBranding.color_primary}, ${localBranding.color_secondary})`,
+                color: '#ffffff',
+                textShadow: '0 1px 2px rgba(0,0,0,0.1)'
               }}
             >
               Primario
@@ -2851,8 +2853,12 @@ function BrandingTab() {
             </motion.div>
             <motion.div
               whileHover={{ scale: 1.03 }}
-              className="px-4 py-2 rounded-lg font-medium text-sm text-white"
-              style={{ backgroundColor: localBranding.color_accent }}
+              className="px-4 py-2 rounded-lg font-medium text-sm"
+              style={{ 
+                backgroundColor: localBranding.color_accent,
+                color: '#ffffff',
+                textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+              }}
             >
               Acento
             </motion.div>
@@ -2901,10 +2907,12 @@ function BrandingTab() {
             disabled={isSaving}
             whileHover={{ scale: isSaving ? 1 : 1.02 }}
             whileTap={{ scale: isSaving ? 1 : 0.98 }}
-            className="relative overflow-hidden px-8 py-3.5 text-white rounded-xl font-semibold text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5"
+            className="relative overflow-hidden px-8 py-3.5 rounded-xl font-semibold text-sm text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5"
             style={{
               background: `linear-gradient(135deg, ${localBranding.color_primary}, ${localBranding.color_secondary})`,
-              boxShadow: `0 8px 30px ${localBranding.color_primary}40`
+              boxShadow: `0 8px 30px ${localBranding.color_primary}40`,
+              color: '#ffffff',
+              textShadow: '0 1px 2px rgba(0,0,0,0.2)'
             }}
           >
             {/* Shine effect */}

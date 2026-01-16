@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
-import { TooltipRenderProps } from 'react-joyride';
+import type { TooltipRenderProps } from 'react-joyride';
 import { X, ChevronRight, ChevronLeft, CheckCircle, Sparkles } from 'lucide-react';
 
 /**
  * Custom Joyride tooltip component with responsive light/dark mode styling.
+ * Note: Using function declaration instead of React.FC to avoid React 18/19 type incompatibility
+ * with react-joyride library.
  */
-export const JoyrideTooltip: React.FC<TooltipRenderProps> = ({
+export function JoyrideTooltip({
   backProps,
   closeProps,
   continuous,
@@ -18,7 +20,7 @@ export const JoyrideTooltip: React.FC<TooltipRenderProps> = ({
   step,
   tooltipProps,
   size,
-}) => {
+}: TooltipRenderProps): React.ReactNode {
   // Extract onClick handlers to ensure they are called properly
   const handleClose = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

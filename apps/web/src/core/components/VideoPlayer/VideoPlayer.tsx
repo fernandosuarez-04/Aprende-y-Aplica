@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Settings, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useMemo } from 'react';
+import { Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { CustomVideoPlayer, type CustomVideoPlayerRef } from '../CustomVideoPlayer/CustomVideoPlayer';
 
@@ -20,6 +20,87 @@ interface VideoPlayerProps {
 // Re-export the interface for external use
 export type { CustomVideoPlayerRef as VideoPlayerRef };
 
+// 🔧 OPTIMIZATION: Create Supabase client once, outside component
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+const getSupabaseClient = () => {
+  if (!supabaseClient) {
+    supabaseClient = createClient();
+  }
+  return supabaseClient;
+};
+
+// 🔧 OPTIMIZATION: Cache for video URLs to avoid repeated computations
+const videoUrlCache = new Map<string, string>();
+
+// 🔧 OPTIMIZATION: Helper function to generate video URL (memoizable)
+const generateVideoUrl = (videoProvider: string, videoProviderId: string): string => {
+  const cacheKey = `${videoProvider}:${videoProviderId}`;
+
+  // Return cached URL if available
+  if (videoUrlCache.has(cacheKey)) {
+    return videoUrlCache.get(cacheKey)!;
+  }
+
+  let url = '';
+
+  switch (videoProvider) {
+    case 'youtube': {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      url = `https://www.youtube.com/embed/${videoProviderId}?enablejsapi=1${origin ? `&origin=${origin}` : ''}`;
+      break;
+    }
+    case 'vimeo':
+      url = `https://player.vimeo.com/video/${videoProviderId}`;
+      break;
+    case 'direct':
+    case 'custom': {
+      url = videoProviderId;
+
+      // If URL is relative (doesn't start with http), reconstruct it
+      if (url && !url.startsWith('http')) {
+        let filePath = url;
+        if (!filePath.includes('/')) {
+          filePath = `videos/${filePath}`;
+        } else if (!filePath.startsWith('course-videos/') && !filePath.startsWith('videos/')) {
+          filePath = `videos/${filePath}`;
+        }
+
+        // 🔧 OPTIMIZATION: Use cached Supabase client
+        try {
+          const supabase = getSupabaseClient();
+          const { data: urlData } = supabase.storage
+            .from('course-videos')
+            .getPublicUrl(filePath);
+
+          if (urlData?.publicUrl) {
+            url = urlData.publicUrl;
+          } else {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+            if (supabaseUrl) {
+              url = `${supabaseUrl}/storage/v1/object/public/course-videos/${filePath}`;
+            }
+          }
+        } catch {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+          if (supabaseUrl) {
+            url = `${supabaseUrl}/storage/v1/object/public/course-videos/${filePath}`;
+          }
+        }
+      }
+      break;
+    }
+    default:
+      url = '';
+  }
+
+  // Cache the result
+  if (url) {
+    videoUrlCache.set(cacheKey, url);
+  }
+
+  return url;
+};
+
 export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
   videoProvider,
   videoProviderId,
@@ -33,9 +114,6 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
 }, ref) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [preloadStrategy, setPreloadStrategy] = useState<'none' | 'metadata' | 'auto'>('metadata'); // Cambiado a 'metadata' por defecto
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const customVideoRef = useRef<CustomVideoPlayerRef>(null);
 
   // Forward the ref to the CustomVideoPlayer
@@ -55,40 +133,19 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
     getVideoElement: () => customVideoRef.current?.getVideoElement() ?? null
   }), []);
 
-  // Detectar si estamos en móvil y ajustar estrategia de preload
-  useEffect(() => {
-    const checkMobile = () => {
-      return window.innerWidth < 768;
-    };
-
-    // En móviles, usar 'metadata' para que el video empiece a cargar inmediatamente
-    // Esto reduce el tiempo de espera cuando el usuario hace clic en play
-    if (checkMobile()) {
-      setPreloadStrategy('metadata');
-    } else {
-      setPreloadStrategy('metadata');
+  // 🔧 OPTIMIZATION: Memoize video URL to prevent recalculation on every render
+  const videoUrl = useMemo(() => {
+    if (!videoProvider || !videoProviderId) return '';
+    const url = generateVideoUrl(videoProvider, videoProviderId);
+    // Debug: Log the generated URL in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[VideoPlayer] Generated URL:', { videoProvider, videoProviderId, url });
     }
-  }, []);
+    return url;
+  }, [videoProvider, videoProviderId]);
 
-  // Timeout para ocultar el loader si el video tarda mucho en cargar
-  useEffect(() => {
-    if (isLoading) {
-      const timeout = setTimeout(() => {
-        setIsLoading(false);
-      }, 5000); // Ocultar loader después de 5 segundos máximo
-
-      return () => clearTimeout(timeout);
-    }
-  }, [isLoading]);
-
-  // Manejar interacción del usuario
-  const handleUserInteraction = () => {
-    setHasUserInteracted(true);
-  };
-
-  // Debug logging
-  // Validar datos de entrada
-  const isValidVideoData = () => {
+  // 🔧 OPTIMIZATION: Memoize validation
+  const isValidVideoData = useMemo(() => {
     if (!videoProvider || !videoProviderId) {
       return false;
     }
@@ -102,76 +159,24 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
     }
 
     return true;
-  };
+  }, [videoProvider, videoProviderId]);
 
-  // Generar URL del video según el proveedor
-  const getVideoUrl = () => {
-    let url = '';
-    switch (videoProvider) {
-      case 'youtube':
-        // Verificar si window está disponible (solo en el navegador)
-        const origin = typeof window !== 'undefined' ? window.location.origin : '';
-        const startParam = initialTime > 0 ? `&start=${Math.floor(initialTime)}` : '';
-        url = `https://www.youtube.com/embed/${videoProviderId}?enablejsapi=1${origin ? `&origin=${origin}` : ''}${startParam}`;
-        break;
-      case 'vimeo':
-        const timeParam = initialTime > 0 ? `#t=${Math.floor(initialTime)}s` : '';
-        url = `https://player.vimeo.com/video/${videoProviderId}${timeParam}`;
-        break;
-      case 'direct':
-      case 'custom':
-        // Para videos directos de Supabase, reconstruir la URL completa si es necesario
-        url = videoProviderId;
+  // Timeout para ocultar el loader si el video tarda mucho en cargar
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        setIsLoading(false);
+      }, 5000);
 
-        // Si la URL es relativa (no empieza con http), reconstruirla
-        if (url && !url.startsWith('http')) {
-          try {
-            const supabase = createClient();
-            // Intentar obtener la URL pública usando Supabase client
-            // Si el path no incluye el bucket, asumir que está en 'course-videos/videos'
-            let filePath = url;
-            if (!filePath.includes('/')) {
-              filePath = `videos/${filePath}`;
-            } else if (!filePath.startsWith('course-videos/')) {
-              // Si no empieza con 'course-videos/', agregarlo
-              if (!filePath.startsWith('videos/')) {
-                filePath = `videos/${filePath}`;
-              }
-            }
-
-            // Obtener la URL pública usando Supabase Storage
-            const { data: urlData } = supabase.storage
-              .from('course-videos')
-              .getPublicUrl(filePath);
-
-            if (urlData?.publicUrl) {
-              url = urlData.publicUrl;
-            } else {
-              // Fallback: usar NEXT_PUBLIC_SUPABASE_URL directamente
-              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-              if (supabaseUrl) {
-                url = `${supabaseUrl}/storage/v1/object/public/course-videos/${filePath}`;
-              }
-            }
-          } catch (error) {
-            // Fallback: usar NEXT_PUBLIC_SUPABASE_URL directamente
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-            if (supabaseUrl) {
-              let filePath = url;
-              if (!filePath.includes('/')) {
-                filePath = `videos/${filePath}`;
-              }
-              url = `${supabaseUrl}/storage/v1/object/public/course-videos/${filePath}`;
-            }
-          }
-        }
-        break;
-      default:
-        url = '';
+      return () => clearTimeout(timeout);
     }
+  }, [isLoading]);
 
-    return url;
-  };
+  // Reset loading state when video changes
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+  }, [videoProviderId]);
 
   // Manejar carga del iframe
   const handleIframeLoad = () => {
@@ -202,8 +207,8 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
       );
     }
 
-    // Validar datos antes de generar URL
-    if (!isValidVideoData()) {
+    // Validar datos antes de generar URL (usando valor memoizado)
+    if (!isValidVideoData) {
       return (
         <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
           <div className="text-center">
@@ -217,8 +222,7 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
       );
     }
 
-    const videoUrl = getVideoUrl();
-
+    // Usar URL memoizada
     if (!videoUrl) {
       return (
         <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
