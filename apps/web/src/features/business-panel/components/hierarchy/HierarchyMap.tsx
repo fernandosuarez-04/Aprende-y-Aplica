@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap, ScaleControl } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
@@ -38,6 +38,7 @@ interface HierarchyMapProps {
   points: MapPoint[]
   center?: [number, number]
   zoom?: number
+  enableScrollWheelZoom?: boolean // Toggle para zoom con rueda
 }
 
 // Componente interno para cambiar la vista del mapa
@@ -53,6 +54,100 @@ function MapViewController({ center, zoom }: { center: [number, number], zoom: n
   
   return null
 }
+
+// Componente para controlar el zoom con rueda del mouse
+function ScrollWheelZoomController({ enabled }: { enabled: boolean }) {
+  const map = useMap()
+  
+  useEffect(() => {
+    if (enabled) {
+      map.scrollWheelZoom.enable()
+    } else {
+      map.scrollWheelZoom.disable()
+    }
+  }, [enabled, map])
+  
+  return null
+}
+
+// Componente para control de pantalla completa
+function FullscreenControl() {
+  const map = useMap()
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  
+  const toggleFullscreen = () => {
+    const mapContainer = map.getContainer()
+    
+    if (!document.fullscreenElement) {
+      mapContainer.requestFullscreen().then(() => {
+        setIsFullscreen(true)
+        // Ajustar el tamaño del mapa cuando entra en pantalla completa
+        setTimeout(() => {
+          map.invalidateSize()
+        }, 100)
+      }).catch((err) => {
+        console.error('Error al entrar en pantalla completa:', err)
+      })
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false)
+        // Ajustar el tamaño del mapa cuando sale de pantalla completa
+        setTimeout(() => {
+          map.invalidateSize()
+        }, 100)
+      }).catch((err) => {
+        console.error('Error al salir de pantalla completa:', err)
+      })
+    }
+  }
+  
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+      setTimeout(() => {
+        map.invalidateSize()
+      }, 100)
+    }
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }
+  }, [map])
+  
+  return (
+    <div 
+      className="leaflet-top leaflet-right" 
+      style={{ zIndex: 1000, marginTop: '10px', marginRight: '10px' }}
+    >
+      <div className="leaflet-control">
+        <button
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+          style={{
+            width: '34px',
+            height: '34px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            background: '#1E2329',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '4px',
+            color: 'white',
+            fontSize: '18px',
+            padding: 0,
+            margin: 0
+          }}
+          type="button"
+        >
+          {isFullscreen ? '⤓' : '⤢'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 
 // Componente para renderizar los marcadores
 function MapMarkers({ 
@@ -114,8 +209,9 @@ const MapLoadingState = ({ message = 'Cargando mapa...' }: { message?: string })
   </div>
 )
 
-function HierarchyMap({ points, center = [23.6345, -102.5528], zoom = 5 }: HierarchyMapProps) {
+function HierarchyMap({ points, center = [23.6345, -102.5528], zoom = 5, enableScrollWheelZoom = false }: HierarchyMapProps) {
   const [isReady, setIsReady] = useState(false)
+  const [scrollWheelEnabled, setScrollWheelEnabled] = useState(enableScrollWheelZoom)
 
   // Inicializar iconos de Leaflet y marcar como listo
   useEffect(() => {
@@ -181,15 +277,18 @@ function HierarchyMap({ points, center = [23.6345, -102.5528], zoom = 5 }: Hiera
   }
 
   return (
-    <div className="h-[400px] w-full rounded-2xl overflow-hidden border border-white/10 relative z-0">
+    <div className="h-[400px] w-full rounded-2xl overflow-hidden border border-white/10 relative">
       <MapContainer 
         key={`hierarchy-map-${derivedCenter[0].toFixed(4)}-${derivedCenter[1].toFixed(4)}`}
         center={derivedCenter} 
         zoom={zoom} 
         style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom={false}
+        scrollWheelZoom={scrollWheelEnabled}
       >
         <MapViewController center={derivedCenter} zoom={zoom} />
+        
+        {/* Control de zoom con rueda del mouse */}
+        <ScrollWheelZoomController enabled={scrollWheelEnabled} />
         
         {/* Dark Matter Layer for stylish look */}
         <TileLayer
@@ -202,7 +301,32 @@ function HierarchyMap({ points, center = [23.6345, -102.5528], zoom = 5 }: Hiera
           goldIcon={goldIcon} 
           defaultIcon={defaultIcon} 
         />
+        
+        {/* Control de Escala */}
+        <ScaleControl 
+          imperial={false}
+          position="bottomleft"
+        />
+        
+        {/* Control de Pantalla Completa */}
+        <FullscreenControl />
       </MapContainer>
+      
+      {/* Toggle para habilitar/deshabilitar zoom con rueda */}
+      <div 
+        className="absolute bottom-2 right-2 z-[1000] bg-[#1E2329] border border-white/20 rounded-lg p-2 flex items-center gap-2"
+        style={{ pointerEvents: 'auto' }}
+      >
+        <label className="flex items-center gap-2 cursor-pointer text-white text-sm">
+          <input
+            type="checkbox"
+            checked={scrollWheelEnabled}
+            onChange={(e) => setScrollWheelEnabled(e.target.checked)}
+            className="w-4 h-4 rounded border-white/20 bg-[#2A2F35] text-blue-500 focus:ring-2 focus:ring-blue-500"
+          />
+          <span>Zoom con rueda</span>
+        </label>
+      </div>
     </div>
   )
 }

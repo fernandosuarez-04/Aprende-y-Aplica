@@ -176,19 +176,67 @@ const { language, changeLanguage } = useLanguage(); // 'es' | 'en' | 'pt'
 
 ## Styling & Design System
 
-### Design Tokens
+### SOFIA Color Palette (CSS Variables in globals.css)
+
+**CRITICAL:** Always use Tailwind classes or CSS variables. NEVER hardcode hex colors like `#0F1419` or `#1E2329`.
+
 ```css
---primary-600: #1F5AF6    /* Primary blue */
---neutral-900: #0A1633    /* Dark background */
---accent-orange: #FF7A45  /* Accent color */
+/* Primary Colors */
+--color-primary: #0A2540      /* Azul Profundo - Technology + trust */
+--color-accent: #00D4B3       /* Aqua - Learning + Living AI */
+--color-bg-dark: #0F1419      /* Dark mode background */
+--color-bg-light: #FFFFFF     /* Light mode background */
+
+/* Secondary Colors */
+--color-success: #10B981      /* Green - Achievement */
+--color-warning: #F59E0B      /* Amber - Alert */
+--color-error: #ef4444        /* Red - Error */
+
+/* Gray Scale (Neutral) */
+--color-gray-50: #f8fafc
+--color-gray-100: #f1f5f9
+--color-gray-200: #E9ECEF     /* Light gray - Structure */
+--color-gray-500: #6C757D     /* Dark gray - Typography */
+--color-gray-800: #1E2329     /* Dark gray with blue tint */
+--color-gray-900: #0F1419     /* Main dark background */
 ```
 
+### Tailwind Class Mapping
+
+**Light Mode:**
+- Background: `bg-white`, `bg-gray-50`, `bg-gray-100`
+- Text: `text-gray-900` (primary), `text-gray-600` (secondary)
+- Borders: `border-gray-200`
+
+**Dark Mode:**
+- Background: `bg-gray-900`, `bg-gray-800`
+- Text: `text-white` (primary), `text-gray-400` (secondary)
+- Borders: `border-white/10`
+
+**Dynamic Colors (from OrganizationStylesContext):**
+- Use `primaryColor` and `accentColor` for branded elements
+- Apply via inline styles: `style={{ backgroundColor: primaryColor }}`
+- Use for gradients: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`
+
 ### Component Patterns
+
+**Architecture:**
 - Mobile-first responsive design (sm: 640px, md: 768px, lg: 1024px, xl: 1280px)
+- Component modularity: Break large components (>300 lines) into smaller pieces
+- Extract business logic into custom hooks (`use[Feature]Logic.ts`)
+- One component = one responsibility
+
+**Styling Best Practices:**
 - Use `cn()` from `shared/utils/cn.ts` for className merging
+- Prefer Tailwind classes over inline styles
+- Only use inline styles for dynamic colors (primaryColor, accentColor)
 - Framer Motion for animations
 - Radix UI and Headless UI for accessible components
-- Light/dark theme via `useTheme` from `@/core/stores/themeStore`
+
+**Theme Management:**
+- Access theme via `useThemeStore()` from `@/core/stores/themeStore`
+- `resolvedTheme` returns 'light' or 'dark'
+- Components should support both themes
 
 ### Data Visualization
 - **Nivo** (@nivo/*): Complex, customizable visualizations
@@ -209,9 +257,36 @@ Full schema types in `lib/supabase/types.ts`.
 - Define interfaces for all props and data structures
 
 ### Component Guidelines
+
+**General Rules:**
 - Use Server Components by default, add `'use client'` only when needed
 - Client Components required for: event handlers, browser APIs, React hooks, context consumers
 - One component = one responsibility
+- Break components >300 lines into smaller, focused components
+
+**Modular Component Architecture (Example: HierarchyChat):**
+```
+features/business-panel/components/hierarchy/HierarchyChat/
+├── index.ts                    # Barrel exports
+├── types.ts                    # Shared types and constants
+├── HierarchyChat.tsx          # Main component (orchestrator)
+├── ChatHeader.tsx             # Sub-component: Header
+├── ChatMessages.tsx           # Sub-component: Messages list
+├── ChatMessage.tsx            # Sub-component: Individual message
+├── ChatInput.tsx              # Sub-component: Input area
+├── EmojiPicker.tsx            # Sub-component: Emoji selector
+├── FilePreview.tsx            # Sub-component: File preview
+├── ImageModal.tsx             # Sub-component: Image modal
+└── hooks/
+    └── useChatLogic.ts        # Custom hook with business logic
+```
+
+**Benefits of this structure:**
+- **Maintainability**: Easy to locate and modify specific features
+- **Reusability**: Sub-components can be used independently
+- **Testing**: Smaller components are easier to test
+- **Performance**: Easier to optimize with React.memo
+- **Collaboration**: Multiple developers can work on different sub-components
 
 ### Naming Conventions
 - Files: kebab-case (`user-profile.tsx`)
@@ -280,11 +355,93 @@ import { useLIAChat } from '@/features/lia/hooks/useLIAChat';
 const { sendMessage, messages, isLoading } = useLIAChat({ context: 'course_lesson' });
 ```
 
+## Component Refactoring Guidelines
+
+### When to Refactor a Component
+
+**Size indicators:**
+- Component exceeds 300 lines
+- Multiple responsibilities in one file
+- Difficulty understanding component flow
+- Hard to test or maintain
+
+**Refactoring steps:**
+1. **Extract business logic** → Create custom hook (`use[Feature]Logic.ts`)
+2. **Identify sub-components** → Split by UI sections (Header, Body, Footer, etc.)
+3. **Create types file** → Move shared types and constants to `types.ts`
+4. **Add barrel export** → Create `index.ts` for clean imports
+5. **Update imports** → Change from file import to folder import
+
+**Example: Before refactoring**
+```typescript
+// ❌ Single monolithic file (1000+ lines)
+import { HierarchyChat } from './HierarchyChat.tsx'
+```
+
+**Example: After refactoring**
+```typescript
+// ✅ Modular structure
+import { HierarchyChat } from './HierarchyChat' // imports from index.ts
+```
+
+### Custom Hooks Pattern
+
+**Extract logic when:**
+- Complex state management (5+ useState)
+- Multiple useEffect hooks
+- Business logic mixed with UI
+
+**Structure:**
+```typescript
+// hooks/useFeatureLogic.ts
+export const useFeatureLogic = (props) => {
+  // All state, refs, effects
+  const [state, setState] = useState()
+
+  // All business logic functions
+  const handleAction = () => { /* ... */ }
+
+  // Return only what components need
+  return {
+    state,
+    handleAction,
+    // ... other exposed values/functions
+  }
+}
+```
+
 ## Critical Rules
 
-- **NO webhooks** - Always use REST API endpoints
-- **Responsive design** - Mobile-first for all components
+### Architecture & Structure
 - **Screaming Architecture** - Organize by features, not technical layers
 - **Monorepo workspaces** - Use `--workspace=apps/web` for package operations
+- **Component size** - Refactor components over 300 lines into modular structure
+
+### Styling & Colors (CRITICAL)
+- **NO hardcoded colors** - NEVER use `#0F1419`, `#1E2329`, etc. in code
+- **Use Tailwind classes** - `bg-gray-900`, `text-white`, `border-white/10`, etc.
+- **CSS Variables** - Use `--color-primary`, `--color-accent` for dynamic colors
+- **Theme support** - All components must support light AND dark mode
+- **Organization colors** - Use `primaryColor` and `accentColor` from context for branded elements
+
+### API & Data
+- **NO webhooks** - Always use REST API endpoints
+- **Supabase direct** - Most backend logic via Supabase, not Express API
+
+### Code Quality
+- **Responsive design** - Mobile-first for all components
 - **Translations** - Keep es/en/pt files in sync
+- **TypeScript strict** - No `any` types, prefer `unknown` if needed
 - **Builds** - Ignore TypeScript/ESLint errors (configured for speed)
+
+---
+
+## Claude Code Commands
+
+**Memory & Context:**
+- `/remember` - Save information for future conversations (stores in Claude's memory)
+- `/clear` - Clear conversation history
+
+**To update this CLAUDE.md file:**
+- Just ask Claude to update it directly (e.g., "Update CLAUDE.md with X information")
+- Or edit manually: `code CLAUDE.md`

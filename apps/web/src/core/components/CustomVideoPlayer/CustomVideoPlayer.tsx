@@ -2,12 +2,12 @@
 
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Play, 
-  Pause, 
-  Volume2, 
-  VolumeX, 
-  Maximize, 
+import {
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize,
   Minimize,
   Settings,
   PictureInPicture,
@@ -22,6 +22,8 @@ interface CustomVideoPlayerProps {
   onProgress?: (progress: number) => void;
   onComplete?: () => void;
   onPiPChange?: (isPiP: boolean) => void;
+  initialTime?: number;
+  initialPlaybackRate?: number;
 }
 
 // Interfaz para exponer métodos del reproductor
@@ -39,22 +41,24 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
   className = '',
   onProgress,
   onComplete,
-  onPiPChange
+  onPiPChange,
+  initialTime = 0,
+  initialPlaybackRate = 1
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const volumeBarRef = useRef<HTMLDivElement>(null);
-  
+
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(initialTime);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
+  const [playbackRate, setPlaybackRate] = useState(initialPlaybackRate);
   const [showSettings, setShowSettings] = useState(false);
   const [showVolumeControl, setShowVolumeControl] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,13 +66,14 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
   const [isDraggingProgress, setIsDraggingProgress] = useState(false);
   const [isDraggingVolume, setIsDraggingVolume] = useState(false);
   const [isPiP, setIsPiP] = useState(false);
+  const [hasInitialTimeSet, setHasInitialTimeSet] = useState(false);
 
   // Exponer métodos al componente padre mediante useImperativeHandle
   useImperativeHandle(ref, () => ({
     requestPiP: async () => {
       const video = videoRef.current;
       if (!video || document.pictureInPictureElement) return;
-      
+
       try {
         await video.requestPictureInPicture();
         setIsPiP(true);
@@ -164,10 +169,35 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
     const handleCanPlay = () => {
       setIsBuffering(false);
       setIsLoading(false);
+
+      // Aplicar tiempo inicial si no se ha aplicado aún
+      if (!hasInitialTimeSet && initialTime > 0) {
+        video.currentTime = initialTime;
+        setHasInitialTimeSet(true);
+      }
+
+      // Aplicar velocidad inicial
+      if (Math.abs(video.playbackRate - initialPlaybackRate) > 0.01) {
+        video.playbackRate = initialPlaybackRate;
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      updateDuration();
+      // Aplicar tiempo inicial también en loadedmetadata por si acaso
+      if (!hasInitialTimeSet && initialTime > 0) {
+        video.currentTime = initialTime;
+        setHasInitialTimeSet(true);
+      }
+
+      // Aplicar velocidad inicial
+      if (Math.abs(video.playbackRate - initialPlaybackRate) > 0.01) {
+        video.playbackRate = initialPlaybackRate;
+      }
     };
 
     video.addEventListener('timeupdate', updateTime);
-    video.addEventListener('loadedmetadata', updateDuration);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('ended', handleEnded);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('canplay', handleCanPlay);
@@ -175,13 +205,13 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
 
     return () => {
       video.removeEventListener('timeupdate', updateTime);
-      video.removeEventListener('loadedmetadata', updateDuration);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('playing', () => setIsBuffering(false));
     };
-  }, [duration, onProgress, onComplete]);
+  }, [duration, onProgress, onComplete, initialTime, initialPlaybackRate, hasInitialTimeSet]);
 
   // Manejar fullscreen
   useEffect(() => {
@@ -519,9 +549,8 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
                 onTouchStart={handleProgressTouchStart}
                 onTouchMove={handleProgressTouchMove}
                 onTouchEnd={handleProgressTouchEnd}
-                className={`w-full h-1 sm:h-1.5 bg-white/20 rounded-full mb-2 sm:mb-3 md:mb-4 cursor-pointer group/progress hover:h-2 transition-all duration-200 ${
-                  isDraggingProgress ? 'h-2' : ''
-                }`}
+                className={`w-full h-1 sm:h-1.5 bg-white/20 rounded-full mb-2 sm:mb-3 md:mb-4 cursor-pointer group/progress hover:h-2 transition-all duration-200 ${isDraggingProgress ? 'h-2' : ''
+                  }`}
                 style={{ userSelect: 'none' }}
               >
                 <motion.div
@@ -529,9 +558,8 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
                   style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                   initial={false}
                 >
-                  <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full transition-opacity shadow-lg ${
-                    isDraggingProgress || isHovering ? 'opacity-100' : 'opacity-0 group-hover/progress:opacity-100'
-                  }`} />
+                  <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full transition-opacity shadow-lg ${isDraggingProgress || isHovering ? 'opacity-100' : 'opacity-0 group-hover/progress:opacity-100'
+                    }`} />
                 </motion.div>
               </div>
 
@@ -638,11 +666,10 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
                                 <button
                                   key={rate}
                                   onClick={() => changePlaybackRate(rate)}
-                                  className={`w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-200 ${
-                                    playbackRate === rate
+                                  className={`w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-200 ${playbackRate === rate
                                       ? 'bg-[#00D4B3]/20 text-[#00D4B3] font-medium'
                                       : 'text-white/80 hover:bg-white/10'
-                                  }`}
+                                    }`}
                                 >
                                   {rate === 1 ? 'Normal' : `${rate}x`}
                                 </button>

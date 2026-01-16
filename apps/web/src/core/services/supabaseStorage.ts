@@ -82,8 +82,12 @@ class SupabaseStorageService {
   /**
    * Determina el bucket correcto según el tipo de archivo
    */
-  getBucketForType(type: string): string {
-    // Todos los archivos van al bucket Community-thinks
+  getBucketForType(type: string, context?: string): string {
+    // Si el contexto es para chats jerárquicos, usar bucket específico
+    if (context === 'hierarchy-chats') {
+      return 'hierarchy-chats';
+    }
+    // Por defecto, usar Community-thinks para compatibilidad con otros módulos
     return 'Community-thinks';
   }
 

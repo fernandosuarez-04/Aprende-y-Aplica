@@ -551,9 +551,132 @@ function buildHierarchyFilter(user: HierarchyContext): SqlFilter;
 
 ---
 
+## Sistema de Asignaciones Jerárquicas de Cursos
+
+### Descripción
+
+El sistema de asignaciones jerárquicas permite asignar cursos a nivel de Región, Zona o Equipo, rastreando qué cursos fueron asignados a qué entidad jerárquica. Esto permite:
+
+- Consultar asignaciones por entidad
+- Mostrar historial de asignaciones
+- Gestionar asignaciones masivas
+- Reportes y analíticas
+
+### Estructura de Base de Datos
+
+#### Tabla Base: `hierarchy_course_assignments`
+
+Contiene todos los datos comunes de las asignaciones:
+
+```sql
+CREATE TABLE hierarchy_course_assignments (
+  id UUID PRIMARY KEY,
+  organization_id UUID REFERENCES organizations(id),
+  course_id UUID REFERENCES courses(id),
+  assigned_by UUID REFERENCES users(id),
+  assigned_at TIMESTAMPTZ,
+  due_date TIMESTAMPTZ,
+  start_date TIMESTAMPTZ,
+  approach VARCHAR(20), -- 'fast', 'balanced', 'long', 'custom'
+  message TEXT,
+  status VARCHAR(20), -- 'active', 'completed', 'cancelled'
+  total_users INTEGER,
+  assigned_users_count INTEGER,
+  completed_users_count INTEGER,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+);
+```
+
+#### Tablas Auxiliares
+
+Cada tabla auxiliar vincula una asignación con una entidad jerárquica específica:
+
+- `region_course_assignments`: Vincula asignaciones con regiones
+- `zone_course_assignments`: Vincula asignaciones con zonas
+- `team_course_assignments`: Vincula asignaciones con equipos
+
+**Arquitectura**: Tabla base + tablas auxiliares permite:
+- FKs explícitas y válidas en la base de datos
+- Separación conceptual clara
+- Consultas específicas eficientes con JOIN directo
+- Mejor integridad referencial
+
+#### Relación con Asignaciones de Usuarios
+
+- `hierarchy_course_assignments`: Registro de asignación masiva a entidad jerárquica
+- `organization_course_assignments`: Asignaciones individuales a usuarios (puede tener `hierarchy_assignment_id` para vincular)
+
+### API Endpoints
+
+#### Crear Asignación
+
+```
+POST /api/business/hierarchy/courses/assign
+```
+
+Crea una asignación jerárquica y asigna el curso a todos los usuarios de la entidad.
+
+**Body:**
+```json
+{
+  "entity_type": "region" | "zone" | "team",
+  "entity_id": "uuid",
+  "course_ids": ["uuid1", "uuid2"],
+  "start_date": "2026-01-15",
+  "due_date": "2026-02-15",
+  "approach": "balanced",
+  "message": "Mensaje opcional"
+}
+```
+
+#### Listar Asignaciones
+
+```
+GET /api/business/hierarchy/courses/assignments?entity_type=region&entity_id=uuid&status=active
+```
+
+#### Obtener Detalle
+
+```
+GET /api/business/hierarchy/courses/assignments/[id]
+```
+
+#### Actualizar Asignación
+
+```
+PUT /api/business/hierarchy/courses/assignments/[id]
+```
+
+#### Cancelar Asignación
+
+```
+DELETE /api/business/hierarchy/courses/assignments/[id]
+```
+
+### Funciones SQL Helper
+
+- `get_region_users(region_id)`: Obtiene usuarios de una región
+- `get_zone_users(zone_id)`: Obtiene usuarios de una zona
+- `get_team_users(team_id)`: Obtiene usuarios de un equipo
+- `get_assignment_entity_type(assignment_id)`: Determina tipo de entidad
+- `update_assignment_stats(assignment_id)`: Actualiza estadísticas
+
+### Componentes Frontend
+
+- `CourseAssignments`: Lista asignaciones de una entidad
+- `CourseAssignmentForm`: Modal para crear/editar asignaciones
+
+### Migración de Datos
+
+El script `20260111_migrate_work_team_assignments.sql` migra datos de `work_team_course_assignments` (sistema antiguo) a la nueva estructura jerárquica.
+
+---
+
 ## Historial de Cambios
 
 | Fecha      | Versión | Cambios                                            |
 | ---------- | ------- | -------------------------------------------------- |
 | 2026-01-09 | v1.0    | Estructura base (tablas, APIs de región)           |
 | 2026-01-09 | v2.0    | Campos adicionales (ubicación, contacto, gerentes) |
+| 2026-01-11 | v3.0    | Sistema de asignaciones jerárquicas de cursos       |

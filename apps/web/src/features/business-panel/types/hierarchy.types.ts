@@ -270,17 +270,75 @@ export interface HierarchyStats {
  * Estadísticas detalladas de rendimiento (Analytics)
  */
 export interface HierarchyAnalytics {
+  // Estadísticas básicas
   users_count: number;
   active_learners: number;
+  inactive_users?: number;
+  
+  // Métricas de aprendizaje
   total_hours: number;
+  avg_hours_per_member?: number;
   avg_completion: number;
+  courses_completed?: number;
+  courses_in_progress?: number;
+  courses_not_started?: number;
+  lessons_completed?: number;
+  avg_session_duration?: number;
+  
+  // Métricas de asignaciones
+  courses_assigned?: number;
+  assignment_completion_rate?: number;
+  assignments_overdue?: number;
+  assignments_due_soon?: number;
+  
+  // Métricas de engagement
+  participation_rate?: number;
+  avg_active_days?: number;
+  avg_streak?: number;
+  longest_streak?: number;
+  sessions_completed?: number;
+  sessions_missed?: number;
+  last_activity?: string;
+  
+  // Top Performer
   top_performer: {
     id: string;
     name: string;
     value: number;
     label: string;
     avatar?: string;
+    courses_completed?: number;
+    completion_rate?: number;
   } | null;
+  
+  // Para Zona y Región: métricas agregadas
+  total_teams?: number;
+  active_teams?: number;
+  inactive_teams?: number;
+  avg_hours_per_team?: number;
+  
+  // Para Región: métricas adicionales
+  total_zones?: number;
+  active_zones?: number;
+  inactive_zones?: number;
+  avg_hours_per_zone?: number;
+  
+  // Rankings (para Zona y Región)
+  team_ranking?: Array<{
+    id: string;
+    name: string;
+    hours: number;
+    completion_rate: number;
+    participation_rate: number;
+  }>;
+  
+  zone_ranking?: Array<{
+    id: string;
+    name: string;
+    hours: number;
+    completion_rate: number;
+    participation_rate: number;
+  }>;
 }
 
 /**
@@ -740,4 +798,161 @@ export function getManagerDisplayName(manager: ManagerInfo | null | undefined): 
     return [manager.first_name, manager.last_name].filter(Boolean).join(' ');
   }
   return manager.email;
+}
+
+// ===========================================
+// CHATS JERÁRQUICOS
+// ===========================================
+
+/**
+ * Tipo de chat jerárquico
+ */
+export type HierarchyChatType = 'horizontal' | 'vertical';
+
+/**
+ * Tipo de mensaje en el chat
+ */
+export type ChatMessageType = 'text' | 'system' | 'file';
+
+/**
+ * Chat jerárquico (horizontal o vertical)
+ */
+export interface HierarchyChat {
+  id: string;
+  organization_id: string;
+  chat_type: HierarchyChatType;
+  entity_type: 'region' | 'zone' | 'team';
+  entity_id: string;
+  level_role?: string | null;
+  name?: string | null;
+  description?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  last_message_at?: string | null;
+  // Campos calculados
+  participants_count?: number;
+  unread_count?: number;
+}
+
+/**
+ * Mensaje en un chat jerárquico
+ */
+export interface HierarchyChatMessage {
+  id: string;
+  chat_id: string;
+  organization_id: string;
+  sender_id: string;
+  content: string;
+  message_type: ChatMessageType;
+  metadata?: Record<string, unknown>;
+  is_edited: boolean;
+  is_deleted: boolean;
+  edited_at?: string | null;
+  deleted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  // Datos del remitente (desde join)
+  sender?: {
+    id: string;
+    display_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    email: string;
+    profile_picture_url?: string | null;
+  };
+}
+
+/**
+ * Participante en un chat jerárquico
+ */
+export interface HierarchyChatParticipant {
+  id: string;
+  chat_id: string;
+  user_id: string;
+  organization_id: string;
+  is_active: boolean;
+  joined_at: string;
+  left_at?: string | null;
+  last_read_at?: string | null;
+  unread_count: number;
+  created_at: string;
+  updated_at: string;
+  // Datos del usuario (desde join)
+  user?: {
+    id: string;
+    display_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    email: string;
+    profile_picture_url?: string | null;
+    role?: HierarchyRole;
+  };
+}
+
+/**
+ * Request para crear un chat jerárquico
+ */
+export interface CreateHierarchyChatRequest {
+  entity_type: 'region' | 'zone' | 'team';
+  entity_id: string;
+  chat_type: HierarchyChatType;
+  name?: string;
+  description?: string;
+}
+
+/**
+ * Request para enviar un mensaje
+ */
+export interface SendChatMessageRequest {
+  chat_id: string;
+  content: string;
+  message_type?: ChatMessageType;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Request para actualizar un mensaje
+ */
+export interface UpdateChatMessageRequest {
+  message_id: string;
+  content: string;
+}
+
+/**
+ * Request para marcar mensajes como leídos
+ */
+export interface MarkMessagesReadRequest {
+  chat_id: string;
+  last_read_at?: string; // Si no se proporciona, usa la fecha actual
+}
+
+/**
+ * Response de lista de chats
+ */
+export interface HierarchyChatsResponse {
+  success: boolean;
+  chats: HierarchyChat[];
+  error?: string;
+}
+
+/**
+ * Response de un chat con mensajes
+ */
+export interface HierarchyChatWithMessagesResponse {
+  success: boolean;
+  chat: HierarchyChat;
+  messages: HierarchyChatMessage[];
+  participants: HierarchyChatParticipant[];
+  has_more?: boolean;
+  error?: string;
+}
+
+/**
+ * Response de un mensaje
+ */
+export interface ChatMessageResponse {
+  success: boolean;
+  message?: HierarchyChatMessage;
+  error?: string;
 }

@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { dedupedFetch } from "../../../../lib/supabase/request-deduplication";
 import { createClient } from "../../../../lib/supabase/client";
@@ -153,11 +153,10 @@ function LiaMobileButton() {
   return (
     <button
       onClick={toggleLia}
-      className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all relative ${
-        isOpen
-          ? "bg-[#00D4B3]/20 text-[#00D4B3]"
-          : "text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
-      }`}
+      className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all relative ${isOpen
+        ? "bg-[#00D4B3]/20 text-[#00D4B3]"
+        : "text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
+        }`}
     >
       <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-current">
         <img
@@ -176,6 +175,7 @@ function LiaMobileButton() {
 export default function CourseLearnPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
   const { isOpen: isLiaOpen, openLia, liaChat } = useLiaCourse();
   // Hook para enviar mensajes a LIA (usando instancia compartida del Sidebar)
@@ -239,7 +239,7 @@ export default function CourseLearnPage() {
     const DEFAULT_BG_SECONDARY = "#1E2329"; // Para paneles laterales
 
     const dashboardStyles = effectiveStyles?.userDashboard;
-    
+
     // Si no hay estilos, usar defaults oscuros
     if (!dashboardStyles) {
       return {
@@ -257,9 +257,9 @@ export default function CourseLearnPage() {
 
     // Detectar modo claro
     const cardBgCheck = card_background || DEFAULT_BG_SECONDARY;
-    const isLightMode = cardBgCheck.toLowerCase() === '#ffffff' || 
-                        cardBgCheck.toLowerCase() === '#f8fafc' ||
-                        cardBgCheck.toLowerCase().includes('255, 255, 255');
+    const isLightMode = cardBgCheck.toLowerCase() === '#ffffff' ||
+      cardBgCheck.toLowerCase() === '#f8fafc' ||
+      cardBgCheck.toLowerCase().includes('255, 255, 255');
 
     // Determinar fondo principal (body)
     let bgPrimary = background_value || (isLightMode ? '#F1F5F9' : DEFAULT_BG_PRIMARY);
@@ -268,12 +268,12 @@ export default function CourseLearnPage() {
     // En modo claro, el sidebar suele ser blanco
     const sidebarBg = panelStyles?.sidebar_background || (isLightMode ? '#FFFFFF' : DEFAULT_BG_SECONDARY);
     const bgSecondary = sidebarBg && sidebarBg.startsWith("#") ? sidebarBg : (isLightMode ? '#FFFFFF' : DEFAULT_BG_SECONDARY);
-    
+
     // Forzar corrección si modo claro pero colores oscuros detectados
     if (isLightMode) {
-       if (bgPrimary.toLowerCase() === '#0f1419' || bgPrimary.toLowerCase() === '#000000') {
-           bgPrimary = '#F1F5F9';
-       }
+      if (bgPrimary.toLowerCase() === '#0f1419' || bgPrimary.toLowerCase() === '#000000') {
+        bgPrimary = '#F1F5F9';
+      }
     }
 
     return {
@@ -618,10 +618,10 @@ export default function CourseLearnPage() {
   const [activeTab, setActiveTab] = useState<
     "video" | "transcript" | "summary" | "activities" | "questions"
   >("video");
-  
+
   // 🎬 Contexto del VideoPlayer para Picture-in-Picture automático
   const videoPlayerContext = useVideoPlayerOptional();
-  
+
   // 🎬 Función para manejar cambio de tab con PiP automático
   const handleTabChange = useCallback((newTab: "video" | "transcript" | "summary" | "activities" | "questions") => {
     // Si estamos cambiando desde "video" a otra pestaña
@@ -630,7 +630,7 @@ export default function CourseLearnPage() {
       const videoElement = document.querySelector('video');
       const isVideoCurrentlyPlaying = videoPlayerContext?.isVideoPlaying || (videoElement && !videoElement.paused);
       const isPiPAlreadyActive = videoPlayerContext?.isPiPActive || document.pictureInPictureElement;
-      
+
       if (isVideoCurrentlyPlaying && !isPiPAlreadyActive) {
         // Activar Picture-in-Picture automáticamente
         if (videoElement) {
@@ -640,7 +640,7 @@ export default function CourseLearnPage() {
         }
       }
     }
-    
+
     // Si volvemos al tab de video, salir de PiP
     if (newTab === "video" && activeTab !== "video") {
       if (document.pictureInPictureElement) {
@@ -655,7 +655,7 @@ export default function CourseLearnPage() {
         });
       }
     }
-    
+
     setActiveTab(newTab);
   }, [activeTab, videoPlayerContext, currentLesson]);
 
@@ -1231,7 +1231,7 @@ export default function CourseLearnPage() {
       }
     },
     // Eliminado soporte para swipe izquierda (panel derecho eliminado)
-    onSwipeLeft: () => {},
+    onSwipeLeft: () => { },
     threshold: 50, // Mínimo 50px de desplazamiento
     velocity: 0.3, // Mínimo 0.3px/ms de velocidad
     enabled: isMobile && !isLeftPanelOpen, // Solo habilitado en móvil cuando panel izquierdo está cerrado
@@ -2608,8 +2608,8 @@ export default function CourseLearnPage() {
             const totalProgress =
               allLessons.length > 0
                 ? Math.round(
-                    (completedLessons.length / allLessons.length) * 100
-                  )
+                  (completedLessons.length / allLessons.length) * 100
+                )
                 : 0;
 
             setCourseProgress(totalProgress);
@@ -2819,136 +2819,125 @@ export default function CourseLearnPage() {
   }
 
   return (
-    <VideoPlayerProvider>
-    <WorkshopLearningProvider
-      workshopId={course?.id || course?.course_id || slug}
-      activityId={currentLesson?.lesson_id || "no-lesson"}
-      enabled={!!course && !!currentLesson}
-      checkInterval={15000}
-      assistantPosition="bottom-right"
-      assistantCompact={false}
-      onDifficultyDetected={(analysis) => {}}
-      onHelpAccepted={async (analysis) => {
-        // Abrir el panel de LIA (panel derecho)
-        openLia();
+    <LessonTrackingProvider
+      lessonId={currentLesson?.lesson_id || null}
+      planId={searchParams.get('planId') || undefined}
+    >
+      <VideoPlayerProvider>
+        <WorkshopLearningProvider
+          workshopId={course?.id || course?.course_id || slug}
+          activityId={currentLesson?.lesson_id || "no-lesson"}
+          enabled={!!course && !!currentLesson}
+          checkInterval={15000}
+          assistantPosition="bottom-right"
+          assistantCompact={false}
+          onDifficultyDetected={(analysis) => { }}
+          onHelpAccepted={async (analysis) => {
+            // Abrir el panel de LIA (panel derecho)
+            openLia();
 
-        // Generar mensaje personalizado basado en los patrones detectados
-        const generatePersonalizedMessage = (patterns: any[]) => {
-          // Priorizar patrones por severidad
-          const highSeverityPatterns = patterns.filter(
-            (p) => p.severity === "high"
-          );
-          const mediumSeverityPatterns = patterns.filter(
-            (p) => p.severity === "medium"
-          );
+            // Generar mensaje personalizado basado en los patrones detectados
+            const generatePersonalizedMessage = (patterns: any[]) => {
+              // Priorizar patrones por severidad
+              const highSeverityPatterns = patterns.filter(
+                (p) => p.severity === "high"
+              );
+              const mediumSeverityPatterns = patterns.filter(
+                (p) => p.severity === "medium"
+              );
 
-          // Usar el patrón de mayor severidad primero
-          const primaryPattern =
-            highSeverityPatterns[0] || mediumSeverityPatterns[0] || patterns[0];
+              // Usar el patrón de mayor severidad primero
+              const primaryPattern =
+                highSeverityPatterns[0] || mediumSeverityPatterns[0] || patterns[0];
 
-          if (!primaryPattern) {
-            return "Necesito ayuda con esta lección";
-          }
+              if (!primaryPattern) {
+                return "Necesito ayuda con esta lección";
+              }
 
-          // Mensajes específicos por tipo de patrón
-          const messageMap: Record<string, string> = {
-            inactivity:
-              "Llevo varios minutos sin poder avanzar en esta lección",
-            excessive_scroll:
-              "Estoy buscando información en la lección pero no encuentro lo que necesito",
-            failed_attempts:
-              "He intentado completar la actividad varias veces pero no lo logro",
-            frequent_deletion:
-              "Estoy teniendo problemas para escribir la respuesta correcta",
-            repetitive_cycles:
-              "Estoy confundido y no sé cómo continuar con esta lección",
-            erroneous_clicks:
-              "He intentado varias opciones pero no consigo avanzar",
-            back_navigation:
-              "Necesito revisar contenido anterior porque no entiendo esta parte",
-          };
+              // Mensajes específicos por tipo de patrón
+              const messageMap: Record<string, string> = {
+                inactivity:
+                  "Llevo varios minutos sin poder avanzar en esta lección",
+                excessive_scroll:
+                  "Estoy buscando información en la lección pero no encuentro lo que necesito",
+                failed_attempts:
+                  "He intentado completar la actividad varias veces pero no lo logro",
+                frequent_deletion:
+                  "Estoy teniendo problemas para escribir la respuesta correcta",
+                repetitive_cycles:
+                  "Estoy confundido y no sé cómo continuar con esta lección",
+                erroneous_clicks:
+                  "He intentado varias opciones pero no consigo avanzar",
+                back_navigation:
+                  "Necesito revisar contenido anterior porque no entiendo esta parte",
+              };
 
-          // Si hay múltiples patrones de alta severidad, combinarlos
-          if (highSeverityPatterns.length > 1) {
-            const mainIssue =
-              messageMap[primaryPattern.type] ||
-              "Estoy teniendo dificultades con esta lección";
-            return `${mainIssue} y estoy un poco bloqueado`;
-          }
+              // Si hay múltiples patrones de alta severidad, combinarlos
+              if (highSeverityPatterns.length > 1) {
+                const mainIssue =
+                  messageMap[primaryPattern.type] ||
+                  "Estoy teniendo dificultades con esta lección";
+                return `${mainIssue} y estoy un poco bloqueado`;
+              }
 
-          return (
-            messageMap[primaryPattern.type] || "Necesito ayuda con esta lección"
-          );
-        };
+              return (
+                messageMap[primaryPattern.type] || "Necesito ayuda con esta lección"
+              );
+            };
 
-        // Construir mensaje visible personalizado para el usuario
-        const visibleUserMessage = generatePersonalizedMessage(
-          analysis.patterns
-        );
+            // Construir mensaje visible personalizado para el usuario
+            const visibleUserMessage = generatePersonalizedMessage(
+              analysis.patterns
+            );
 
-        // 🎯 ANÁLISIS PROFUNDO DEL COMPORTAMIENTO DEL USUARIO
-        const behaviorAnalysis = analyzeUserBehavior();
+            // 🎯 ANÁLISIS PROFUNDO DEL COMPORTAMIENTO DEL USUARIO
+            const behaviorAnalysis = analyzeUserBehavior();
 
-        // Obtener información sobre actividades pendientes
-        const currentActivities = currentLesson
-          ? lessonsActivities[currentLesson.lesson_id] || []
-          : [];
-        const requiredActivities = currentActivities.filter(
-          (a) => a.is_required
-        );
-        const pendingRequired = requiredActivities.filter(
-          (a) => !a.is_completed
-        );
-        const completedActivities = currentActivities.filter(
-          (a) => a.is_completed
-        );
+            // Obtener información sobre actividades pendientes
+            const currentActivities = currentLesson
+              ? lessonsActivities[currentLesson.lesson_id] || []
+              : [];
+            const requiredActivities = currentActivities.filter(
+              (a) => a.is_required
+            );
+            const pendingRequired = requiredActivities.filter(
+              (a) => !a.is_completed
+            );
+            const completedActivities = currentActivities.filter(
+              (a) => a.is_completed
+            );
 
-        // 🎯 ANÁLISIS INTELIGENTE: Detectar la actividad actual en la que está trabajando
-        // Basado en el tab activo y el scroll/interacciones recientes
-        let currentActivityFocus = null;
-        if (activeTab === "activities" && pendingRequired.length > 0) {
-          // Si está en la pestaña de actividades y hay pendientes, asumir que está en la primera pendiente
-          currentActivityFocus = pendingRequired[0];
-        } else if (pendingRequired.length > 0) {
-          // Si no está en actividades pero hay pendientes, mencionar que tiene actividades sin completar
-          currentActivityFocus = null;
-        }
-
-        // 🎯 Detectar patrones temporales y de progreso
-        const totalLessonsInCourse = modules.reduce(
-          (total, module) => total + module.lessons.length,
-          0
-        );
-        const currentLessonIndex = getAllLessonsOrdered().findIndex(
-          (item) => item.lesson.lesson_id === currentLesson?.lesson_id
-        );
-        const progressPercentage =
-          totalLessonsInCourse > 0
-            ? Math.round(
-                ((currentLessonIndex + 1) / totalLessonsInCourse) * 100
-              )
-            : 0;
-
-        // Construir contexto enriquecido de la lección con información de la dificultad detectada
-        // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
-        const baseContext = workshopMetadata
-          ? {
-              ...workshopMetadata,
-              moduleTitle: modules.find((m) =>
-                m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
-              )?.module_title,
-              lessonTitle: currentLesson.lesson_title,
-              lessonDescription: currentLesson.lesson_description,
-              durationSeconds: currentLesson.duration_seconds,
+            // 🎯 ANÁLISIS INTELIGENTE: Detectar la actividad actual en la que está trabajando
+            // Basado en el tab activo y el scroll/interacciones recientes
+            let currentActivityFocus = null;
+            if (activeTab === "activities" && pendingRequired.length > 0) {
+              // Si está en la pestaña de actividades y hay pendientes, asumir que está en la primera pendiente
+              currentActivityFocus = pendingRequired[0];
+            } else if (pendingRequired.length > 0) {
+              // Si no está en actividades pero hay pendientes, mencionar que tiene actividades sin completar
+              currentActivityFocus = null;
             }
-          : currentLesson && course
-            ? {
-                contextType: "course" as const,
-                courseId: course.id || course.course_id || undefined,
-                courseSlug: slug || undefined,
-                courseTitle: course.title || course.course_title,
-                courseDescription:
-                  course.description || course.course_description,
+
+            // 🎯 Detectar patrones temporales y de progreso
+            const totalLessonsInCourse = modules.reduce(
+              (total, module) => total + module.lessons.length,
+              0
+            );
+            const currentLessonIndex = getAllLessonsOrdered().findIndex(
+              (item) => item.lesson.lesson_id === currentLesson?.lesson_id
+            );
+            const progressPercentage =
+              totalLessonsInCourse > 0
+                ? Math.round(
+                  ((currentLessonIndex + 1) / totalLessonsInCourse) * 100
+                )
+                : 0;
+
+            // Construir contexto enriquecido de la lección con información de la dificultad detectada
+            // ✅ Si tenemos metadatos del taller, usarlos como base (incluye allModules)
+            const baseContext = workshopMetadata
+              ? {
+                ...workshopMetadata,
                 moduleTitle: modules.find((m) =>
                   m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
                 )?.module_title,
@@ -2956,30 +2945,45 @@ export default function CourseLearnPage() {
                 lessonDescription: currentLesson.lesson_description,
                 durationSeconds: currentLesson.duration_seconds,
               }
-            : undefined;
+              : currentLesson && course
+                ? {
+                  contextType: "course" as const,
+                  courseId: course.id || course.course_id || undefined,
+                  courseSlug: slug || undefined,
+                  courseTitle: course.title || course.course_title,
+                  courseDescription:
+                    course.description || course.course_description,
+                  moduleTitle: modules.find((m) =>
+                    m.lessons.some((l) => l.lesson_id === currentLesson.lesson_id)
+                  )?.module_title,
+                  lessonTitle: currentLesson.lesson_title,
+                  lessonDescription: currentLesson.lesson_description,
+                  durationSeconds: currentLesson.duration_seconds,
+                }
+                : undefined;
 
-        const enrichedLessonContext = baseContext
-          ? {
-              ...baseContext,
-              userRole: user?.type_rol || undefined,
-              // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
-              activitiesContext: {
-                totalActivities: currentActivities.length,
-                requiredActivities: requiredActivities.length,
-                completedActivities: completedActivities.length,
-                pendingRequiredCount: pendingRequired.length,
-                pendingRequiredTitles: pendingRequired
-                  .map((a) => a.activity_title)
-                  .join(", "),
-                activityTypes: currentActivities.map((a) => ({
-                  title: a.activity_title,
-                  type: a.activity_type,
-                  isRequired: a.is_required,
-                  isCompleted: a.is_completed,
-                })),
-                // 🎯 NUEVO: Actividad actual en foco
-                currentActivityFocus: currentActivityFocus
-                  ? {
+            const enrichedLessonContext = baseContext
+              ? {
+                ...baseContext,
+                userRole: user?.type_rol || undefined,
+                // 🎯 INFORMACIÓN DETALLADA DE ACTIVIDADES
+                activitiesContext: {
+                  totalActivities: currentActivities.length,
+                  requiredActivities: requiredActivities.length,
+                  completedActivities: completedActivities.length,
+                  pendingRequiredCount: pendingRequired.length,
+                  pendingRequiredTitles: pendingRequired
+                    .map((a) => a.activity_title)
+                    .join(", "),
+                  activityTypes: currentActivities.map((a) => ({
+                    title: a.activity_title,
+                    type: a.activity_type,
+                    isRequired: a.is_required,
+                    isCompleted: a.is_completed,
+                  })),
+                  // 🎯 NUEVO: Actividad actual en foco
+                  currentActivityFocus: currentActivityFocus
+                    ? {
                       title: currentActivityFocus.activity_title,
                       type: currentActivityFocus.activity_type,
                       isRequired: currentActivityFocus.is_required,
@@ -2987,1755 +2991,1748 @@ export default function CourseLearnPage() {
                         currentActivityFocus.activity_description ||
                         "Sin descripción",
                     }
-                  : null,
-              },
-              // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
-              userBehaviorContext: behaviorAnalysis,
-              // 🎯 NUEVO: Contexto de progreso del usuario
-              learningProgressContext: {
-                currentLessonNumber: currentLessonIndex + 1,
-                totalLessons: totalLessonsInCourse,
-                progressPercentage: progressPercentage,
-                currentTab: activeTab, // video, transcript, summary, activities
-                timeInCurrentLesson: currentLesson?.duration_seconds
-                  ? `${Math.round(currentLesson.duration_seconds / 60)} minutos`
-                  : "Desconocido",
-              },
-              // Agregar información de la dificultad detectada al contexto
-              difficultyDetected: {
-                patterns: analysis.patterns.map((p) => ({
-                  type: p.type,
-                  severity: p.severity,
-                  description: (() => {
-                    switch (p.type) {
+                    : null,
+                },
+                // 🎯 ANÁLISIS DE COMPORTAMIENTO DEL USUARIO
+                userBehaviorContext: behaviorAnalysis,
+                // 🎯 NUEVO: Contexto de progreso del usuario
+                learningProgressContext: {
+                  currentLessonNumber: currentLessonIndex + 1,
+                  totalLessons: totalLessonsInCourse,
+                  progressPercentage: progressPercentage,
+                  currentTab: activeTab, // video, transcript, summary, activities
+                  timeInCurrentLesson: currentLesson?.duration_seconds
+                    ? `${Math.round(currentLesson.duration_seconds / 60)} minutos`
+                    : "Desconocido",
+                },
+                // Agregar información de la dificultad detectada al contexto
+                difficultyDetected: {
+                  patterns: analysis.patterns.map((p) => ({
+                    type: p.type,
+                    severity: p.severity,
+                    description: (() => {
+                      switch (p.type) {
+                        case "inactivity":
+                          return `Ha estado ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : "varios"} minutos sin avanzar`;
+                        case "excessive_scroll":
+                          return "Ha estado haciendo scroll repetidamente buscando información";
+                        case "failed_attempts":
+                          return "Ha intentado completar la actividad varias veces sin éxito";
+                        case "frequent_deletion":
+                          return "Ha estado escribiendo y borrando varias veces";
+                        case "repetitive_cycles":
+                          return "Ha estado yendo y viniendo entre diferentes secciones";
+                        case "erroneous_clicks":
+                          return "Ha hecho varios clicks sin resultado";
+                        default:
+                          return "Está teniendo dificultades para avanzar";
+                      }
+                    })(),
+                  })),
+                  overallScore: analysis.overallScore,
+                  shouldIntervene: analysis.shouldIntervene,
+                  // 🎯 NUEVO: Sugerencia de tipo de ayuda basada en patrones
+                  suggestedHelpType: (() => {
+                    const primaryPattern = analysis.patterns[0];
+                    if (!primaryPattern) return "general";
+
+                    switch (primaryPattern.type) {
                       case "inactivity":
-                        return `Ha estado ${p.metadata?.inactivityDuration ? Math.floor(p.metadata.inactivityDuration / 60000) : "varios"} minutos sin avanzar`;
+                        return activeTab === "activities"
+                          ? "activity_guidance"
+                          : "content_explanation";
                       case "excessive_scroll":
-                        return "Ha estado haciendo scroll repetidamente buscando información";
+                        return "content_navigation";
                       case "failed_attempts":
-                        return "Ha intentado completar la actividad varias veces sin éxito";
+                        return "activity_hints";
                       case "frequent_deletion":
-                        return "Ha estado escribiendo y borrando varias veces";
+                        return "activity_structure";
                       case "repetitive_cycles":
-                        return "Ha estado yendo y viniendo entre diferentes secciones";
+                        return "concept_clarification";
                       case "erroneous_clicks":
-                        return "Ha hecho varios clicks sin resultado";
+                        return "interface_guidance";
                       default:
-                        return "Está teniendo dificultades para avanzar";
+                        return "general";
                     }
                   })(),
-                })),
-                overallScore: analysis.overallScore,
-                shouldIntervene: analysis.shouldIntervene,
-                // 🎯 NUEVO: Sugerencia de tipo de ayuda basada en patrones
-                suggestedHelpType: (() => {
-                  const primaryPattern = analysis.patterns[0];
-                  if (!primaryPattern) return "general";
+                },
+              }
+              : getLessonContext();
 
-                  switch (primaryPattern.type) {
-                    case "inactivity":
-                      return activeTab === "activities"
-                        ? "activity_guidance"
-                        : "content_explanation";
-                    case "excessive_scroll":
-                      return "content_navigation";
-                    case "failed_attempts":
-                      return "activity_hints";
-                    case "frequent_deletion":
-                      return "activity_structure";
-                    case "repetitive_cycles":
-                      return "concept_clarification";
-                    case "erroneous_clicks":
-                      return "interface_guidance";
-                    default:
-                      return "general";
-                  }
-                })(),
-              },
+            try {
+              // Enviar mensaje con contexto enriquecido en segundo plano
+              // ✅ isSystemMessage=true: El mensaje NO se mostrará en el chat como mensaje del usuario
+              // pero SÍ se enviará al API para que LIA responda con ayuda contextual
+              // ✅ Si es un taller, enviar como workshopContext
+              if (
+                workshopMetadata &&
+                enrichedLessonContext?.contextType === "workshop"
+              ) {
+                await sendLiaMessage(
+                  visibleUserMessage,
+                  undefined,
+                  enrichedLessonContext as CourseLessonContext,
+                  true
+                );
+              } else {
+                await sendLiaMessage(
+                  visibleUserMessage,
+                  enrichedLessonContext as CourseLessonContext,
+                  undefined,
+                  true
+                );
+              }
+            } catch (error) {
+              console.error("❌ Error enviando mensaje proactivo a LIA:", error);
             }
-          : getLessonContext();
-
-        try {
-          // Enviar mensaje con contexto enriquecido en segundo plano
-          // ✅ isSystemMessage=true: El mensaje NO se mostrará en el chat como mensaje del usuario
-          // pero SÍ se enviará al API para que LIA responda con ayuda contextual
-          // ✅ Si es un taller, enviar como workshopContext
-          if (
-            workshopMetadata &&
-            enrichedLessonContext?.contextType === "workshop"
-          ) {
-            await sendLiaMessage(
-              visibleUserMessage,
-              undefined,
-              enrichedLessonContext as CourseLessonContext,
-              true
-            );
-          } else {
-            await sendLiaMessage(
-              visibleUserMessage,
-              enrichedLessonContext as CourseLessonContext,
-              undefined,
-              true
-            );
-          }
-        } catch (error) {
-          console.error("❌ Error enviando mensaje proactivo a LIA:", error);
-        }
-      }}
-    >
-      <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 overflow-hidden">
-        {/* Header superior con nueva estructura - Responsive */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
-        >
-          <div className="flex items-center justify-between w-full gap-2">
-            {/* Sección izquierda: Botón regresar | Nombre del taller */}
-            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-              {/* Botón de regreso */}
-              <button
-                onClick={() => router.back()}
-                className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
-                aria-label={t("header.backButton")}
-                title={t("header.backButton")}
-              >
-                <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
-              </button>
-
-              {/* Nombre del taller */}
-              <div className="min-w-0 flex-1">
-                <h1
-                  className="text-sm md:text-base font-bold text-[#0A2540] dark:text-white truncate"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
-                >
-                  {course.title || course.course_title}
-                </h1>
-                <p
-                  className="hidden md:block text-xs text-[#6C757D] dark:text-white/60"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-                >
-                  {t("header.workshop")}
-                </p>
-              </div>
-            </div>
-
-            {/* Sección central: Progreso - Solo porcentaje compacto en móviles */}
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Barra de progreso - Oculto en móviles */}
-              <div className="hidden md:flex items-center gap-2">
-                <div className="w-32 lg:w-40 h-1.5 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${courseProgress}%` }}
-                    transition={{ duration: 1 }}
-                    className="h-full bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] rounded-full shadow-lg"
-                  />
-                </div>
-              </div>
-              {/* Porcentaje compacto - Visible siempre */}
-              <span
-                className="text-xs text-[#0A2540] dark:text-white font-medium bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0"
-                style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
-              >
-                {courseProgress}%
-              </span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Contenido principal - 3 paneles - Responsive */}
-        <div
-          ref={swipeRef}
-          className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white dark:bg-[#0F1419] relative z-10"
-          style={{
-            marginRight: isLiaOpen && !isMobile ? "420px" : 0,
-            transition: "margin-right 0.3s ease-in-out",
           }}
         >
-          {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
-          <AnimatePresence>
-            {isLeftPanelOpen && (
-              <>
-                {/* Overlay oscuro en móvil */}
-                {isMobile && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setIsLeftPanelOpen(false)}
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
-                  />
-                )}
+          <div className="fixed inset-0 h-screen flex flex-col bg-gradient-to-br from-gray-50 via-gray-50 to-gray-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 overflow-hidden">
+            {/* Header superior con nueva estructura - Responsive */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 md:px-4 py-1.5 md:py-2 shrink-0 relative z-40"
+            >
+              <div className="flex items-center justify-between w-full gap-2">
+                {/* Sección izquierda: Botón regresar | Nombre del taller */}
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                  {/* Botón de regreso */}
+                  <button
+                    onClick={() => router.back()}
+                    className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors shrink-0"
+                    aria-label={t("header.backButton")}
+                    title={t("header.backButton")}
+                  >
+                    <ArrowLeft className="w-4 h-4 text-gray-900 dark:text-white" />
+                  </button>
 
-                <motion.div
-                  id="tour-course-sidebar"
-                  initial={isMobile ? { x: "-100%" } : { width: 0, opacity: 0 }}
-                  animate={isMobile ? { x: 0 } : { width: 320, opacity: 1 }}
-                  exit={isMobile ? { x: "-100%" } : { width: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className={`
-                  ${
-                    isMobile
-                      ? "fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none"
-                      : "relative h-full"
-                  }
+                  {/* Nombre del taller */}
+                  <div className="min-w-0 flex-1">
+                    <h1
+                      className="text-sm md:text-base font-bold text-[#0A2540] dark:text-white truncate"
+                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                    >
+                      {course.title || course.course_title}
+                    </h1>
+                    <p
+                      className="hidden md:block text-xs text-[#6C757D] dark:text-white/60"
+                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                    >
+                      {t("header.workshop")}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Sección central: Progreso - Solo porcentaje compacto en móviles */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Barra de progreso - Oculto en móviles */}
+                  <div className="hidden md:flex items-center gap-2">
+                    <div className="w-32 lg:w-40 h-1.5 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${courseProgress}%` }}
+                        transition={{ duration: 1 }}
+                        className="h-full bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] rounded-full shadow-lg"
+                      />
+                    </div>
+                  </div>
+                  {/* Porcentaje compacto - Visible siempre */}
+                  <span
+                    className="text-xs text-[#0A2540] dark:text-white font-medium bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center shrink-0"
+                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+                  >
+                    {courseProgress}%
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Contenido principal - 3 paneles - Responsive */}
+            <div
+              ref={swipeRef}
+              className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white dark:bg-[#0F1419] relative z-10"
+              style={{
+                marginRight: isLiaOpen && !isMobile ? "420px" : 0,
+                transition: "margin-right 0.3s ease-in-out",
+              }}
+            >
+              {/* Panel Izquierdo - Material del Curso - Drawer en móvil */}
+              <AnimatePresence>
+                {isLeftPanelOpen && (
+                  <>
+                    {/* Overlay oscuro en móvil */}
+                    {isMobile && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsLeftPanelOpen(false)}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+                      />
+                    )}
+
+                    <motion.div
+                      id="tour-course-sidebar"
+                      initial={isMobile ? { x: "-100%" } : { width: 0, opacity: 0 }}
+                      animate={isMobile ? { x: 0 } : { width: 320, opacity: 1 }}
+                      exit={isMobile ? { x: "-100%" } : { width: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className={`
+                  ${isMobile
+                          ? "fixed inset-y-0 left-0 w-full max-w-sm z-50 md:relative md:inset-auto md:w-auto md:max-w-none"
+                          : "relative h-full"
+                        }
                   bg-white dark:bg-[#0F1419] flex flex-col overflow-hidden border-r border-gray-200 dark:border-white/5
                   ${isMobile ? "my-0 ml-0" : "h-full"}
                 `}
-                >
-                  {/* Header con línea separadora alineada con panel central */}
-                  <div className="bg-white dark:bg-[#0F1419] border-b border-gray-200 dark:border-white/5 flex items-center justify-between p-4 shrink-0 h-[60px]">
-                    <h2
-                      className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2"
-                      style={{ fontFamily: "Inter, sans-serif" }}
                     >
-                      <BookOpen className="w-4 h-4 text-[#00D4B3]" />
-                      TEMARIO
-                    </h2>
-                    <button
-                      onClick={() => setIsLeftPanelOpen(false)}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-                    >
-                      {isMobile ? (
-                        <X className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
-                      ) : (
-                        <ChevronLeft className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Contenido con scroll */}
-                  <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
-                    {/* Sección de Material del Curso */}
-                    <div className="mb-8">
-                      {/* Header de Contenido con botón de colapsar */}
-                      <div className="flex items-center justify-between mb-4">
-                        <h3
-                          className="text-xs font-bold text-gray-500 dark:text-white/40 uppercase tracking-widest flex items-center gap-2"
+                      {/* Header con línea separadora alineada con panel central */}
+                      <div className="bg-white dark:bg-[#0F1419] border-b border-gray-200 dark:border-white/5 flex items-center justify-between p-4 shrink-0 h-[60px]">
+                        <h2
+                          className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2"
                           style={{ fontFamily: "Inter, sans-serif" }}
                         >
-                          <Layers className="w-3 h-3 text-[#00D4B3]" />
-                          {t("leftPanel.content")}
-                        </h3>
+                          <BookOpen className="w-4 h-4 text-[#00D4B3]" />
+                          TEMARIO
+                        </h2>
                         <button
-                          onClick={() =>
-                            setIsMaterialCollapsed(!isMaterialCollapsed)
-                          }
-                          className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                          title={
-                            isMaterialCollapsed
-                              ? t("leftPanel.expandContent")
-                              : t("leftPanel.collapseContent")
-                          }
+                          onClick={() => setIsLeftPanelOpen(false)}
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
                         >
-                          {isMaterialCollapsed ? (
-                            <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
+                          {isMobile ? (
+                            <X className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                           ) : (
-                            <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
+                            <ChevronLeft className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
                           )}
                         </button>
                       </div>
 
-                      {/* Contenido de Material del Curso - Colapsable */}
-                      <AnimatePresence>
-                        {!isMaterialCollapsed && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="overflow-hidden"
-                          >
-                            {[...modules]
-                              .sort((a, b) => {
-                                // Función para extraer número del módulo del título
-                                const extractModuleNumber = (
-                                  title: string
-                                ): number => {
-                                  const match = title.match(/Módulo\s*(\d+)/i);
-                                  return match ? parseInt(match[1], 10) : 999;
-                                };
+                      {/* Contenido con scroll */}
+                      <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
+                        {/* Sección de Material del Curso */}
+                        <div className="mb-8">
+                          {/* Header de Contenido con botón de colapsar */}
+                          <div className="flex items-center justify-between mb-4">
+                            <h3
+                              className="text-xs font-bold text-gray-500 dark:text-white/40 uppercase tracking-widest flex items-center gap-2"
+                              style={{ fontFamily: "Inter, sans-serif" }}
+                            >
+                              <Layers className="w-3 h-3 text-[#00D4B3]" />
+                              {t("leftPanel.content")}
+                            </h3>
+                            <button
+                              onClick={() =>
+                                setIsMaterialCollapsed(!isMaterialCollapsed)
+                              }
+                              className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                              title={
+                                isMaterialCollapsed
+                                  ? t("leftPanel.expandContent")
+                                  : t("leftPanel.collapseContent")
+                              }
+                            >
+                              {isMaterialCollapsed ? (
+                                <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
+                              ) : (
+                                <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/70" />
+                              )}
+                            </button>
+                          </div>
 
-                                const aNumber = extractModuleNumber(
-                                  a.module_title
-                                );
-                                const bNumber = extractModuleNumber(
-                                  b.module_title
-                                );
+                          {/* Contenido de Material del Curso - Colapsable */}
+                          <AnimatePresence>
+                            {!isMaterialCollapsed && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="overflow-hidden"
+                              >
+                                {[...modules]
+                                  .sort((a, b) => {
+                                    // Función para extraer número del módulo del título
+                                    const extractModuleNumber = (
+                                      title: string
+                                    ): number => {
+                                      const match = title.match(/Módulo\s*(\d+)/i);
+                                      return match ? parseInt(match[1], 10) : 999;
+                                    };
 
-                                // Si ambos tienen número en el título, priorizar ese número
-                                if (aNumber !== 999 && bNumber !== 999) {
-                                  return aNumber - bNumber;
-                                }
+                                    const aNumber = extractModuleNumber(
+                                      a.module_title
+                                    );
+                                    const bNumber = extractModuleNumber(
+                                      b.module_title
+                                    );
 
-                                // Si solo uno tiene número, priorizarlo
-                                if (aNumber !== 999 && bNumber === 999)
-                                  return -1;
-                                if (aNumber === 999 && bNumber !== 999)
-                                  return 1;
+                                    // Si ambos tienen número en el título, priorizar ese número
+                                    if (aNumber !== 999 && bNumber !== 999) {
+                                      return aNumber - bNumber;
+                                    }
 
-                                // Si ninguno tiene número o ambos tienen, usar module_order_index
-                                const orderDiff =
-                                  (a.module_order_index || 0) -
-                                  (b.module_order_index || 0);
-                                if (orderDiff !== 0) return orderDiff;
+                                    // Si solo uno tiene número, priorizarlo
+                                    if (aNumber !== 999 && bNumber === 999)
+                                      return -1;
+                                    if (aNumber === 999 && bNumber !== 999)
+                                      return 1;
 
-                                // Último recurso: ordenar por título alfabéticamente
-                                return a.module_title.localeCompare(
-                                  b.module_title
-                                );
-                              })
-                              .map((module, moduleIndex) => {
-                                const isModuleExpanded = expandedModules.has(
-                                  module.module_id
-                                );
+                                    // Si ninguno tiene número o ambos tienen, usar module_order_index
+                                    const orderDiff =
+                                      (a.module_order_index || 0) -
+                                      (b.module_order_index || 0);
+                                    if (orderDiff !== 0) return orderDiff;
 
-                                // Ordenar lecciones dentro del módulo por lesson_order_index
-                                const sortedLessons = [
-                                  ...(module.lessons || []),
-                                ].sort(
-                                  (a, b) =>
-                                    (a.lesson_order_index || 0) -
-                                    (b.lesson_order_index || 0)
-                                );
+                                    // Último recurso: ordenar por título alfabéticamente
+                                    return a.module_title.localeCompare(
+                                      b.module_title
+                                    );
+                                  })
+                                  .map((module, moduleIndex) => {
+                                    const isModuleExpanded = expandedModules.has(
+                                      module.module_id
+                                    );
 
-                                // Calcular estadísticas del módulo
-                                const completedLessons = sortedLessons.filter(
-                                  (l) => l.is_completed
-                                ).length;
-                                const totalLessons = sortedLessons.length;
-                                const completionPercentage =
-                                  totalLessons > 0
-                                    ? Math.round(
-                                        (completedLessons / totalLessons) * 100
-                                      )
-                                    : 0;
+                                    // Ordenar lecciones dentro del módulo por lesson_order_index
+                                    const sortedLessons = [
+                                      ...(module.lessons || []),
+                                    ].sort(
+                                      (a, b) =>
+                                        (a.lesson_order_index || 0) -
+                                        (b.lesson_order_index || 0)
+                                    );
 
-                                return (
-                                  <div key={module.module_id} className="mb-6">
-                                    <div className="flex items-start justify-between mb-2 mt-4 px-2 group-hover:bg-white/[0.02] rounded-lg transition-colors p-2">
-                                      <div className="flex flex-col gap-1 flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-[10px] font-bold text-[#00D4B3] uppercase tracking-widest">
-                                            Módulo {moduleIndex + 1}
-                                          </span>
-                                          <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/10" />
+                                    // Calcular estadísticas del módulo
+                                    const completedLessons = sortedLessons.filter(
+                                      (l) => l.is_completed
+                                    ).length;
+                                    const totalLessons = sortedLessons.length;
+                                    const completionPercentage =
+                                      totalLessons > 0
+                                        ? Math.round(
+                                          (completedLessons / totalLessons) * 100
+                                        )
+                                        : 0;
+
+                                    return (
+                                      <div key={module.module_id} className="mb-6">
+                                        <div className="flex items-start justify-between mb-2 mt-4 px-2 group-hover:bg-white/[0.02] rounded-lg transition-colors p-2">
+                                          <div className="flex flex-col gap-1 flex-1">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-[10px] font-bold text-[#00D4B3] uppercase tracking-widest">
+                                                Módulo {moduleIndex + 1}
+                                              </span>
+                                              <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/10" />
+                                            </div>
+                                            <h3
+                                              className="font-semibold text-gray-900 dark:text-white/90 text-sm leading-tight pr-4"
+                                              style={{
+                                                fontFamily: "Inter, sans-serif",
+                                              }}
+                                            >
+                                              {module.module_title}
+                                            </h3>
+                                          </div>
+                                          <button
+                                            onClick={() =>
+                                              toggleModuleExpand(module.module_id)
+                                            }
+                                            className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
+                                            title={
+                                              isModuleExpanded
+                                                ? t("leftPanel.collapseModule")
+                                                : t("leftPanel.expandModule")
+                                            }
+                                          >
+                                            {isModuleExpanded ? (
+                                              <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                            ) : (
+                                              <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                            )}
+                                          </button>
                                         </div>
-                                        <h3
-                                          className="font-semibold text-gray-900 dark:text-white/90 text-sm leading-tight pr-4"
+
+                                        {/* Contenido del módulo - Colapsable */}
+                                        <AnimatePresence>
+                                          {isModuleExpanded && (
+                                            <motion.div
+                                              initial={{ height: 0, opacity: 0 }}
+                                              animate={{
+                                                height: "auto",
+                                                opacity: 1,
+                                              }}
+                                              exit={{ height: 0, opacity: 0 }}
+                                              transition={{ duration: 0.2 }}
+                                              className="overflow-hidden"
+                                            >
+                                              {/* Estadísticas del módulo mejoradas */}
+                                              <div className="flex gap-3 mb-4">
+                                                <span
+                                                  className="px-3 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] text-xs rounded-full border border-[#10B981]/30 font-medium"
+                                                  style={{
+                                                    fontFamily: "Inter, sans-serif",
+                                                    fontWeight: 500,
+                                                  }}
+                                                >
+                                                  {completedLessons}/{totalLessons}{" "}
+                                                  {t("leftPanel.completed")}
+                                                </span>
+                                                <span className="px-3 py-1 bg-[#00D4B3]/20 text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 font-medium">
+                                                  {completionPercentage}%{" "}
+                                                  {t(
+                                                    "leftPanel.completedPercentage"
+                                                  )}
+                                                </span>
+                                              </div>
+
+                                              {/* Lista de lecciones mejorada - Estilo Minimalista */}
+                                              <div className="space-y-2">
+                                                {sortedLessons.length > 0 ? (
+                                                  sortedLessons.map(
+                                                    (lesson, lessonIndex) => {
+                                                      const isActive =
+                                                        currentLesson?.lesson_id ===
+                                                        lesson.lesson_id;
+                                                      const isCompleted =
+                                                        lesson.is_completed;
+                                                      const isExpanded =
+                                                        expandedLessons.has(
+                                                          lesson.lesson_id
+                                                        );
+                                                      const activities =
+                                                        lessonsActivities[
+                                                        lesson.lesson_id
+                                                        ] || [];
+                                                      const materials =
+                                                        lessonsMaterials[
+                                                        lesson.lesson_id
+                                                        ] || [];
+                                                      const hasContent =
+                                                        activities.length > 0 ||
+                                                        materials.length > 0;
+                                                      const isContentLoaded =
+                                                        lessonsActivities[
+                                                        lesson.lesson_id
+                                                        ] !== undefined &&
+                                                        lessonsMaterials[
+                                                        lesson.lesson_id
+                                                        ] !== undefined;
+
+                                                      return (
+                                                        <div
+                                                          key={lesson.lesson_id}
+                                                          className="w-full"
+                                                        >
+                                                          <div className="flex items-start gap-2">
+                                                            <motion.button
+                                                              whileHover={{ x: 4 }}
+                                                              onClick={() =>
+                                                                handleLessonChange(
+                                                                  lesson
+                                                                )
+                                                              }
+                                                              className={`flex-1 flex items-center gap-3 py-2 px-3 transition-all duration-200 group relative overflow-hidden rounded-r-lg ${isActive
+                                                                ? "bg-[#00D4B3]/10 border-l-2 border-[#00D4B3]"
+                                                                : "border-l-2 border-transparent hover:bg-gray-50 dark:hover:bg-white/5"
+                                                                }`}
+                                                            >
+                                                              <div
+                                                                className={`flex items-center justify-center flex-shrink-0 ${isCompleted
+                                                                  ? "text-[#00D4B3]"
+                                                                  : isActive
+                                                                    ? "text-[#00D4B3]"
+                                                                    : "text-gray-400 dark:text-white/20 group-hover:text-gray-600 dark:group-hover:text-white/40"
+                                                                  }`}
+                                                              >
+                                                                {isCompleted ? (
+                                                                  <CheckCircle2 className="w-4 h-4" />
+                                                                ) : (
+                                                                  <div
+                                                                    className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#00D4B3] animate-pulse" : "bg-current"}`}
+                                                                  />
+                                                                )}
+                                                              </div>
+
+                                                              <div className="flex-1 text-left min-w-0 z-10">
+                                                                <p
+                                                                  className={`text-sm leading-snug line-clamp-2 ${isActive ? "text-[#0A2540] dark:text-white font-medium" : "text-gray-600 dark:text-white/60 group-hover:text-gray-900 dark:group-hover:text-white/90 font-normal"}`}
+                                                                  style={{
+                                                                    fontFamily:
+                                                                      "Inter, sans-serif",
+                                                                  }}
+                                                                >
+                                                                  {
+                                                                    lesson.lesson_title
+                                                                  }
+                                                                </p>
+                                                                {isActive && (
+                                                                  <span className="text-[10px] text-[#00D4B3]/80 mt-1 block font-medium">
+                                                                    En curso •{" "}
+                                                                    {formatDuration(
+                                                                      lesson.duration_seconds
+                                                                    )}
+                                                                  </span>
+                                                                )}
+                                                              </div>
+                                                            </motion.button>
+
+                                                            {/* Botón para expandir/colapsar actividades y materiales */}
+                                                            <button
+                                                              onClick={async (
+                                                                e
+                                                              ) => {
+                                                                e.stopPropagation();
+                                                                // Si no se han cargado las actividades y materiales, cargarlas primero
+                                                                if (
+                                                                  !isContentLoaded
+                                                                ) {
+                                                                  await loadLessonActivitiesAndMaterials(
+                                                                    lesson.lesson_id
+                                                                  );
+                                                                }
+                                                                toggleLessonExpand(
+                                                                  lesson.lesson_id
+                                                                );
+                                                              }}
+                                                              className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
+                                                              title={
+                                                                isExpanded
+                                                                  ? t(
+                                                                    "activities.collapse"
+                                                                  )
+                                                                  : t(
+                                                                    "activities.expandCollapse"
+                                                                  )
+                                                              }
+                                                            >
+                                                              {isExpanded ? (
+                                                                <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                                              ) : (
+                                                                <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
+                                                              )}
+                                                            </button>
+                                                          </div>
+
+                                                          {/* Actividades y Materiales desplegables */}
+                                                          <AnimatePresence>
+                                                            {/* 🚀 SKELETON LOADING - Mientras carga el contenido */}
+                                                            {isExpanded &&
+                                                              !isContentLoaded && (
+                                                                <motion.div
+                                                                  initial={{
+                                                                    height: 0,
+                                                                    opacity: 0,
+                                                                  }}
+                                                                  animate={{
+                                                                    height: "auto",
+                                                                    opacity: 1,
+                                                                  }}
+                                                                  exit={{
+                                                                    height: 0,
+                                                                    opacity: 0,
+                                                                  }}
+                                                                  transition={{
+                                                                    duration: 0.2,
+                                                                  }}
+                                                                  className="overflow-hidden"
+                                                                >
+                                                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
+                                                                    {/* Skeleton items */}
+                                                                    {[1, 2].map(
+                                                                      (i) => (
+                                                                        <div
+                                                                          key={i}
+                                                                          className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-3 animate-pulse"
+                                                                        >
+                                                                          <div className="flex items-start gap-3">
+                                                                            <div className="w-8 h-8 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg flex-shrink-0"></div>
+                                                                            <div className="flex-1 space-y-2">
+                                                                              <div className="h-4 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-3/4"></div>
+                                                                              <div className="h-3 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-1/4"></div>
+                                                                            </div>
+                                                                          </div>
+                                                                        </div>
+                                                                      )
+                                                                    )}
+                                                                  </div>
+                                                                </motion.div>
+                                                              )}
+
+                                                            {/* Contenido cargado */}
+                                                            {isExpanded &&
+                                                              isContentLoaded &&
+                                                              hasContent && (
+                                                                <motion.div
+                                                                  initial={{
+                                                                    height: 0,
+                                                                    opacity: 0,
+                                                                  }}
+                                                                  animate={{
+                                                                    height: "auto",
+                                                                    opacity: 1,
+                                                                  }}
+                                                                  exit={{
+                                                                    height: 0,
+                                                                    opacity: 0,
+                                                                  }}
+                                                                  transition={{
+                                                                    duration: 0.2,
+                                                                  }}
+                                                                  className="overflow-hidden"
+                                                                >
+                                                                  <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
+                                                                    {/* Actividades */}
+                                                                    {activities.length >
+                                                                      0 && (
+                                                                        <div className="space-y-2">
+                                                                          {activities.map(
+                                                                            (
+                                                                              activity
+                                                                            ) => {
+                                                                              const isQuiz =
+                                                                                activity.activity_type ===
+                                                                                "quiz";
+                                                                              const isRequired =
+                                                                                activity.is_required;
+
+                                                                              return (
+                                                                                <div
+                                                                                  key={
+                                                                                    activity.activity_id
+                                                                                  }
+                                                                                  className="group relative hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
+                                                                                >
+                                                                                  <div className="flex items-start gap-4">
+                                                                                    <div
+                                                                                      className={`w-10 h-10 rounded-2xl bg-gray-100 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-gray-300 dark:group-hover:border-white/20 transition-colors shadow-sm`}
+                                                                                    >
+                                                                                      {isQuiz ? (
+                                                                                        <FileText className="w-5 h-5 text-[#00D4B3]" />
+                                                                                      ) : (
+                                                                                        <Activity className="w-5 h-5 text-[#00D4B3]" />
+                                                                                      )}
+                                                                                    </div>
+
+                                                                                    {/* Contenido principal */}
+                                                                                    <div className="flex-1 min-w-0 pt-0.5">
+                                                                                      <p className="text-sm font-medium text-gray-900 dark:text-white mb-2 leading-tight">
+                                                                                        {
+                                                                                          activity.activity_title
+                                                                                        }
+                                                                                      </p>
+
+                                                                                      {/* Badges estilo Pill */}
+                                                                                      <div className="flex flex-wrap items-center gap-2">
+                                                                                        {/* Badge de tipo */}
+                                                                                        <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-gray-50 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 text-[#00D4B3]">
+                                                                                          {
+                                                                                            activity.activity_type
+                                                                                          }
+                                                                                        </span>
+
+                                                                                        {/* Badge Requerida */}
+                                                                                        {isRequired && (
+                                                                                          <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400">
+                                                                                            {t(
+                                                                                              "activities.required"
+                                                                                            )}
+                                                                                          </span>
+                                                                                        )}
+                                                                                      </div>
+                                                                                    </div>
+                                                                                  </div>
+
+                                                                                  {/* Indicador de estado para quizzes (si está disponible) */}
+                                                                                  {isQuiz &&
+                                                                                    lessonsQuizStatus[
+                                                                                    lesson
+                                                                                      .lesson_id
+                                                                                    ] &&
+                                                                                    lessonsQuizStatus[
+                                                                                      lesson
+                                                                                        .lesson_id
+                                                                                    ]
+                                                                                      ?.quizzes &&
+                                                                                    (() => {
+                                                                                      const quizInfo =
+                                                                                        lessonsQuizStatus[
+                                                                                          lesson
+                                                                                            .lesson_id
+                                                                                        ]!.quizzes.find(
+                                                                                          (
+                                                                                            q: any
+                                                                                          ) =>
+                                                                                            q.id ===
+                                                                                            activity.activity_id &&
+                                                                                            q.type ===
+                                                                                            "activity"
+                                                                                        );
+                                                                                      if (
+                                                                                        quizInfo
+                                                                                      ) {
+                                                                                        return (
+                                                                                          <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
+                                                                                            {quizInfo.isPassed ? (
+                                                                                              <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                                                                <span className="font-medium">
+                                                                                                  Aprobado
+                                                                                                  (
+                                                                                                  {
+                                                                                                    quizInfo.percentage
+                                                                                                  }
+                                                                                                  %)
+                                                                                                </span>
+                                                                                              </div>
+                                                                                            ) : quizInfo.isCompleted ? (
+                                                                                              <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                                                                <X className="w-3.5 h-3.5" />
+                                                                                                <span className="font-medium">
+                                                                                                  Reprobado
+                                                                                                  (
+                                                                                                  {
+                                                                                                    quizInfo.percentage
+                                                                                                  }
+                                                                                                  %)
+                                                                                                </span>
+                                                                                              </div>
+                                                                                            ) : (
+                                                                                              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                                                                <Clock className="w-3.5 h-3.5" />
+                                                                                                <span>
+                                                                                                  Pendiente
+                                                                                                </span>
+                                                                                              </div>
+                                                                                            )}
+                                                                                          </div>
+                                                                                        );
+                                                                                      }
+                                                                                      return null;
+                                                                                    })()}
+                                                                                </div>
+                                                                              );
+                                                                            }
+                                                                          )}
+                                                                        </div>
+                                                                      )}
+
+                                                                    {/* Materiales */}
+                                                                    {materials.length >
+                                                                      0 && (
+                                                                        <div className="space-y-2">
+                                                                          {materials.map(
+                                                                            (
+                                                                              material
+                                                                            ) => {
+                                                                              const isQuiz =
+                                                                                material.material_type ===
+                                                                                "quiz";
+                                                                              const isReading =
+                                                                                material.material_type ===
+                                                                                "reading";
+                                                                              const isRequired =
+                                                                                material.is_required;
+
+                                                                              return (
+                                                                                <div
+                                                                                  key={
+                                                                                    material.material_id
+                                                                                  }
+                                                                                  className="group relative hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
+                                                                                >
+                                                                                  <div className="flex items-start gap-4">
+                                                                                    {/* Icono mejorado estilo imagen referencia */}
+                                                                                    <div
+                                                                                      className={`w-10 h-10 rounded-2xl bg-gray-100 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-gray-300 dark:group-hover:border-white/20 transition-colors shadow-sm`}
+                                                                                    >
+                                                                                      {isQuiz ? (
+                                                                                        <FileText className="w-5 h-5 text-[#00D4B3]" />
+                                                                                      ) : isReading ? (
+                                                                                        <BookOpen className="w-5 h-5 text-[#10B981]" />
+                                                                                      ) : (
+                                                                                        <FileText className="w-5 h-5 text-[#00D4B3]" />
+                                                                                      )}
+                                                                                    </div>
+
+                                                                                    {/* Contenido principal */}
+                                                                                    <div className="flex-1 min-w-0 pt-0.5">
+                                                                                      <p className="text-sm font-medium text-gray-900 dark:text-white mb-2 leading-tight">
+                                                                                        {
+                                                                                          material.material_title
+                                                                                        }
+                                                                                      </p>
+
+                                                                                      {/* Badges estilo Pill */}
+                                                                                      <div className="flex flex-wrap items-center gap-2">
+                                                                                        {/* Badge Requerida primero si aplica */}
+                                                                                        {isRequired && (
+                                                                                          <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400">
+                                                                                            Requerida
+                                                                                          </span>
+                                                                                        )}
+
+                                                                                        {/* Badge de tipo */}
+                                                                                        <span
+                                                                                          className={`px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-gray-50 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 ${isReading ? "text-[#10B981]" : "text-[#00D4B3]"}`}
+                                                                                        >
+                                                                                          {
+                                                                                            material.material_type
+                                                                                          }
+                                                                                        </span>
+                                                                                      </div>
+                                                                                    </div>
+                                                                                  </div>
+
+                                                                                  {/* Indicador de estado para quizzes (si está disponible) */}
+                                                                                  {isQuiz &&
+                                                                                    lessonsQuizStatus[
+                                                                                    lesson
+                                                                                      .lesson_id
+                                                                                    ] &&
+                                                                                    lessonsQuizStatus[
+                                                                                      lesson
+                                                                                        .lesson_id
+                                                                                    ]
+                                                                                      ?.quizzes &&
+                                                                                    (() => {
+                                                                                      const quizInfo =
+                                                                                        lessonsQuizStatus[
+                                                                                          lesson
+                                                                                            .lesson_id
+                                                                                        ]!.quizzes.find(
+                                                                                          (
+                                                                                            q: any
+                                                                                          ) =>
+                                                                                            q.id ===
+                                                                                            material.material_id &&
+                                                                                            q.type ===
+                                                                                            "material"
+                                                                                        );
+                                                                                      if (
+                                                                                        quizInfo
+                                                                                      ) {
+                                                                                        return (
+                                                                                          <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
+                                                                                            {quizInfo.isPassed ? (
+                                                                                              <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                                                                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                                                                <span className="font-medium">
+                                                                                                  Aprobado
+                                                                                                  (
+                                                                                                  {
+                                                                                                    quizInfo.percentage
+                                                                                                  }
+                                                                                                  %)
+                                                                                                </span>
+                                                                                              </div>
+                                                                                            ) : quizInfo.isCompleted ? (
+                                                                                              <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                                                                                                <X className="w-3.5 h-3.5" />
+                                                                                                <span className="font-medium">
+                                                                                                  Reprobado
+                                                                                                  (
+                                                                                                  {
+                                                                                                    quizInfo.percentage
+                                                                                                  }
+                                                                                                  %)
+                                                                                                </span>
+                                                                                              </div>
+                                                                                            ) : (
+                                                                                              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                                                                                <Clock className="w-3.5 h-3.5" />
+                                                                                                <span>
+                                                                                                  Pendiente
+                                                                                                </span>
+                                                                                              </div>
+                                                                                            )}
+                                                                                          </div>
+                                                                                        );
+                                                                                      }
+                                                                                      return null;
+                                                                                    })()}
+                                                                                </div>
+                                                                              );
+                                                                            }
+                                                                          )}
+                                                                        </div>
+                                                                      )}
+                                                                  </div>
+                                                                </motion.div>
+                                                              )}
+                                                          </AnimatePresence>
+                                                        </div>
+                                                      );
+                                                    }
+                                                  )
+                                                ) : (
+                                                  <div className="text-center py-4 text-gray-500 dark:text-slate-400 text-sm">
+                                                    Este módulo aún no tiene
+                                                    lecciones
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </motion.div>
+                                          )}
+                                        </AnimatePresence>
+                                      </div>
+                                    );
+                                  })}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Línea separadora entre Material y Notas */}
+                        <div className="border-b border-[#E9ECEF] dark:border-[#6C757D]/30 mb-6"></div>
+
+                        {/* Sección de Notas */}
+                        <div className="space-y-4" id="tour-notes-section">
+                          {/* Header de Notas con botones de colapsar y nueva nota */}
+                          <div className="flex items-center justify-between mb-4">
+                            <h3
+                              className="font-bold text-white/40 uppercase tracking-widest flex items-center gap-2 text-xs"
+                              style={{ fontFamily: "Inter, sans-serif" }}
+                            >
+                              <FileText className="w-3 h-3 text-[#00D4B3]" />
+                              {t("leftPanel.notesSection.myNotes")}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              {!isNotesCollapsed && (
+                                <button
+                                  id="tour-notes-button"
+                                  onClick={openNewNoteModal}
+                                  className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                                  title={t("leftPanel.notesSection.newNote")}
+                                >
+                                  <span className="text-sm font-bold text-gray-700 dark:text-white/70">
+                                    +
+                                  </span>
+                                </button>
+                              )}
+                              <button
+                                onClick={() =>
+                                  setIsNotesCollapsed(!isNotesCollapsed)
+                                }
+                                className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                                title={
+                                  isNotesCollapsed
+                                    ? t("leftPanel.notesSection.expandNotes")
+                                    : t("leftPanel.notesSection.collapseNotes")
+                                }
+                              >
+                                {isNotesCollapsed ? (
+                                  <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                                ) : (
+                                  <ChevronUp className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Contenido de Notas - Colapsable */}
+                          <AnimatePresence>
+                            {!isNotesCollapsed && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="overflow-hidden"
+                              >
+                                {/* Notas guardadas */}
+                                <div className="space-y-3 mb-6">
+                                  <h3
+                                    className="text-[#0A2540] dark:text-white font-semibold text-sm"
+                                    style={{
+                                      fontFamily: "Inter, sans-serif",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {t("leftPanel.notesSection.savedNotes")}
+                                  </h3>
+                                  <div className="space-y-2">
+                                    {savedNotes.length === 0 ? (
+                                      <div className="bg-white dark:bg-[#1E2329] rounded-xl p-4 border border-[#E9ECEF] dark:border-[#6C757D]/30 text-center">
+                                        <p
+                                          className="text-sm text-[#0A2540] dark:text-white"
                                           style={{
                                             fontFamily: "Inter, sans-serif",
+                                            fontWeight: 400,
                                           }}
                                         >
-                                          {module.module_title}
-                                        </h3>
+                                          {t("leftPanel.notesSection.noSavedNotes")}
+                                        </p>
+                                        <p
+                                          className="text-xs text-[#6C757D] dark:text-white/60 mt-1"
+                                          style={{
+                                            fontFamily: "Inter, sans-serif",
+                                            fontWeight: 400,
+                                          }}
+                                        >
+                                          {t(
+                                            "leftPanel.notesSection.saveFirstNote"
+                                          )}
+                                        </p>
                                       </div>
-                                      <button
-                                        onClick={() =>
-                                          toggleModuleExpand(module.module_id)
-                                        }
-                                        className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
-                                        title={
-                                          isModuleExpanded
-                                            ? t("leftPanel.collapseModule")
-                                            : t("leftPanel.expandModule")
-                                        }
-                                      >
-                                        {isModuleExpanded ? (
-                                          <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                        ) : (
-                                          <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                        )}
-                                      </button>
-                                    </div>
-
-                                    {/* Contenido del módulo - Colapsable */}
-                                    <AnimatePresence>
-                                      {isModuleExpanded && (
-                                        <motion.div
-                                          initial={{ height: 0, opacity: 0 }}
-                                          animate={{
-                                            height: "auto",
-                                            opacity: 1,
-                                          }}
-                                          exit={{ height: 0, opacity: 0 }}
-                                          transition={{ duration: 0.2 }}
-                                          className="overflow-hidden"
+                                    ) : (
+                                      savedNotes.map((note) => (
+                                        <div
+                                          key={note.id}
+                                          className="bg-white dark:bg-[#1E2329] rounded-xl p-3 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 transition-colors group"
                                         >
-                                          {/* Estadísticas del módulo mejoradas */}
-                                          <div className="flex gap-3 mb-4">
+                                          <div className="flex items-center justify-between mb-2">
                                             <span
-                                              className="px-3 py-1 bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981] text-xs rounded-full border border-[#10B981]/30 font-medium"
+                                              className="text-sm text-[#0A2540] dark:text-[#00D4B3] font-medium"
                                               style={{
                                                 fontFamily: "Inter, sans-serif",
                                                 fontWeight: 500,
                                               }}
                                             >
-                                              {completedLessons}/{totalLessons}{" "}
-                                              {t("leftPanel.completed")}
+                                              {note.title}
                                             </span>
-                                            <span className="px-3 py-1 bg-[#00D4B3]/20 text-[#00D4B3] text-xs rounded-full border border-[#00D4B3]/30 font-medium">
-                                              {completionPercentage}%{" "}
-                                              {t(
-                                                "leftPanel.completedPercentage"
-                                              )}
-                                            </span>
-                                          </div>
-
-                                          {/* Lista de lecciones mejorada - Estilo Minimalista */}
-                                          <div className="space-y-2">
-                                            {sortedLessons.length > 0 ? (
-                                              sortedLessons.map(
-                                                (lesson, lessonIndex) => {
-                                                  const isActive =
-                                                    currentLesson?.lesson_id ===
-                                                    lesson.lesson_id;
-                                                  const isCompleted =
-                                                    lesson.is_completed;
-                                                  const isExpanded =
-                                                    expandedLessons.has(
-                                                      lesson.lesson_id
-                                                    );
-                                                  const activities =
-                                                    lessonsActivities[
-                                                      lesson.lesson_id
-                                                    ] || [];
-                                                  const materials =
-                                                    lessonsMaterials[
-                                                      lesson.lesson_id
-                                                    ] || [];
-                                                  const hasContent =
-                                                    activities.length > 0 ||
-                                                    materials.length > 0;
-                                                  const isContentLoaded =
-                                                    lessonsActivities[
-                                                      lesson.lesson_id
-                                                    ] !== undefined &&
-                                                    lessonsMaterials[
-                                                      lesson.lesson_id
-                                                    ] !== undefined;
-
-                                                  return (
-                                                    <div
-                                                      key={lesson.lesson_id}
-                                                      className="w-full"
-                                                    >
-                                                      <div className="flex items-start gap-2">
-                                                        <motion.button
-                                                          whileHover={{ x: 4 }}
-                                                          onClick={() =>
-                                                            handleLessonChange(
-                                                              lesson
-                                                            )
-                                                          }
-                                                          className={`flex-1 flex items-center gap-3 py-2 px-3 transition-all duration-200 group relative overflow-hidden rounded-r-lg ${
-                                                            isActive
-                                                              ? "bg-[#00D4B3]/10 border-l-2 border-[#00D4B3]"
-                                                              : "border-l-2 border-transparent hover:bg-gray-50 dark:hover:bg-white/5"
-                                                          }`}
-                                                        >
-                                                          <div
-                                                            className={`flex items-center justify-center flex-shrink-0 ${
-                                                              isCompleted
-                                                                ? "text-[#00D4B3]"
-                                                                : isActive
-                                                                  ? "text-[#00D4B3]"
-                                                                  : "text-gray-400 dark:text-white/20 group-hover:text-gray-600 dark:group-hover:text-white/40"
-                                                            }`}
-                                                          >
-                                                            {isCompleted ? (
-                                                              <CheckCircle2 className="w-4 h-4" />
-                                                            ) : (
-                                                              <div
-                                                                className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#00D4B3] animate-pulse" : "bg-current"}`}
-                                                              />
-                                                            )}
-                                                          </div>
-
-                                                          <div className="flex-1 text-left min-w-0 z-10">
-                                                            <p
-                                                              className={`text-sm leading-snug line-clamp-2 ${isActive ? "text-[#0A2540] dark:text-white font-medium" : "text-gray-600 dark:text-white/60 group-hover:text-gray-900 dark:group-hover:text-white/90 font-normal"}`}
-                                                              style={{
-                                                                fontFamily:
-                                                                  "Inter, sans-serif",
-                                                              }}
-                                                            >
-                                                              {
-                                                                lesson.lesson_title
-                                                              }
-                                                            </p>
-                                                            {isActive && (
-                                                              <span className="text-[10px] text-[#00D4B3]/80 mt-1 block font-medium">
-                                                                En curso •{" "}
-                                                                {formatDuration(
-                                                                  lesson.duration_seconds
-                                                                )}
-                                                              </span>
-                                                            )}
-                                                          </div>
-                                                        </motion.button>
-
-                                                        {/* Botón para expandir/colapsar actividades y materiales */}
-                                                        <button
-                                                          onClick={async (
-                                                            e
-                                                          ) => {
-                                                            e.stopPropagation();
-                                                            // Si no se han cargado las actividades y materiales, cargarlas primero
-                                                            if (
-                                                              !isContentLoaded
-                                                            ) {
-                                                              await loadLessonActivitiesAndMaterials(
-                                                                lesson.lesson_id
-                                                              );
-                                                            }
-                                                            toggleLessonExpand(
-                                                              lesson.lesson_id
-                                                            );
-                                                          }}
-                                                          className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-md transition-colors flex-shrink-0"
-                                                          title={
-                                                            isExpanded
-                                                              ? t(
-                                                                  "activities.collapse"
-                                                                )
-                                                              : t(
-                                                                  "activities.expandCollapse"
-                                                                )
-                                                          }
-                                                        >
-                                                          {isExpanded ? (
-                                                            <ChevronUp className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                                          ) : (
-                                                            <ChevronDown className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
-                                                          )}
-                                                        </button>
-                                                      </div>
-
-                                                      {/* Actividades y Materiales desplegables */}
-                                                      <AnimatePresence>
-                                                        {/* 🚀 SKELETON LOADING - Mientras carga el contenido */}
-                                                        {isExpanded &&
-                                                          !isContentLoaded && (
-                                                            <motion.div
-                                                              initial={{
-                                                                height: 0,
-                                                                opacity: 0,
-                                                              }}
-                                                              animate={{
-                                                                height: "auto",
-                                                                opacity: 1,
-                                                              }}
-                                                              exit={{
-                                                                height: 0,
-                                                                opacity: 0,
-                                                              }}
-                                                              transition={{
-                                                                duration: 0.2,
-                                                              }}
-                                                              className="overflow-hidden"
-                                                            >
-                                                              <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
-                                                                {/* Skeleton items */}
-                                                                {[1, 2].map(
-                                                                  (i) => (
-                                                                    <div
-                                                                      key={i}
-                                                                      className="bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl p-3 animate-pulse"
-                                                                    >
-                                                                      <div className="flex items-start gap-3">
-                                                                        <div className="w-8 h-8 bg-[#E9ECEF] dark:bg-[#1E2329] rounded-lg flex-shrink-0"></div>
-                                                                        <div className="flex-1 space-y-2">
-                                                                          <div className="h-4 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-3/4"></div>
-                                                                          <div className="h-3 bg-[#E9ECEF] dark:bg-[#1E2329] rounded w-1/4"></div>
-                                                                        </div>
-                                                                      </div>
-                                                                    </div>
-                                                                  )
-                                                                )}
-                                                              </div>
-                                                            </motion.div>
-                                                          )}
-
-                                                        {/* Contenido cargado */}
-                                                        {isExpanded &&
-                                                          isContentLoaded &&
-                                                          hasContent && (
-                                                            <motion.div
-                                                              initial={{
-                                                                height: 0,
-                                                                opacity: 0,
-                                                              }}
-                                                              animate={{
-                                                                height: "auto",
-                                                                opacity: 1,
-                                                              }}
-                                                              exit={{
-                                                                height: 0,
-                                                                opacity: 0,
-                                                              }}
-                                                              transition={{
-                                                                duration: 0.2,
-                                                              }}
-                                                              className="overflow-hidden"
-                                                            >
-                                                              <div className="ml-9 mt-3 space-y-2.5 pl-4 border-l-2 border-[#00D4B3]/30 dark:border-[#00D4B3]/40">
-                                                                {/* Actividades */}
-                                                                {activities.length >
-                                                                  0 && (
-                                                                  <div className="space-y-2">
-                                                                    {activities.map(
-                                                                      (
-                                                                        activity
-                                                                      ) => {
-                                                                        const isQuiz =
-                                                                          activity.activity_type ===
-                                                                          "quiz";
-                                                                        const isRequired =
-                                                                          activity.is_required;
-
-                                                                        return (
-                                                                          <div
-                                                                            key={
-                                                                              activity.activity_id
-                                                                            }
-                                                                            className="group relative hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
-                                                                          >
-                                                                            <div className="flex items-start gap-4">
-                                                                              <div
-                                                                                className={`w-10 h-10 rounded-2xl bg-gray-100 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-gray-300 dark:group-hover:border-white/20 transition-colors shadow-sm`}
-                                                                              >
-                                                                                {isQuiz ? (
-                                                                                  <FileText className="w-5 h-5 text-[#00D4B3]" />
-                                                                                ) : (
-                                                                                  <Activity className="w-5 h-5 text-[#00D4B3]" />
-                                                                                )}
-                                                                              </div>
-
-                                                                              {/* Contenido principal */}
-                                                                              <div className="flex-1 min-w-0 pt-0.5">
-                                                                                <p className="text-sm font-medium text-gray-900 dark:text-white mb-2 leading-tight">
-                                                                                  {
-                                                                                    activity.activity_title
-                                                                                  }
-                                                                                </p>
-
-                                                                                {/* Badges estilo Pill */}
-                                                                                <div className="flex flex-wrap items-center gap-2">
-                                                                                  {/* Badge de tipo */}
-                                                                                  <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-gray-50 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 text-[#00D4B3]">
-                                                                                    {
-                                                                                      activity.activity_type
-                                                                                    }
-                                                                                  </span>
-
-                                                                                  {/* Badge Requerida */}
-                                                                                  {isRequired && (
-                                                                                    <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400">
-                                                                                      {t(
-                                                                                        "activities.required"
-                                                                                      )}
-                                                                                    </span>
-                                                                                  )}
-                                                                                </div>
-                                                                              </div>
-                                                                            </div>
-
-                                                                            {/* Indicador de estado para quizzes (si está disponible) */}
-                                                                            {isQuiz &&
-                                                                              lessonsQuizStatus[
-                                                                                lesson
-                                                                                  .lesson_id
-                                                                              ] &&
-                                                                              lessonsQuizStatus[
-                                                                                lesson
-                                                                                  .lesson_id
-                                                                              ]
-                                                                                ?.quizzes &&
-                                                                              (() => {
-                                                                                const quizInfo =
-                                                                                  lessonsQuizStatus[
-                                                                                    lesson
-                                                                                      .lesson_id
-                                                                                  ]!.quizzes.find(
-                                                                                    (
-                                                                                      q: any
-                                                                                    ) =>
-                                                                                      q.id ===
-                                                                                        activity.activity_id &&
-                                                                                      q.type ===
-                                                                                        "activity"
-                                                                                  );
-                                                                                if (
-                                                                                  quizInfo
-                                                                                ) {
-                                                                                  return (
-                                                                                    <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
-                                                                                      {quizInfo.isPassed ? (
-                                                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-                                                                                          <CheckCircle className="w-3.5 h-3.5" />
-                                                                                          <span className="font-medium">
-                                                                                            Aprobado
-                                                                                            (
-                                                                                            {
-                                                                                              quizInfo.percentage
-                                                                                            }
-                                                                                            %)
-                                                                                          </span>
-                                                                                        </div>
-                                                                                      ) : quizInfo.isCompleted ? (
-                                                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
-                                                                                          <X className="w-3.5 h-3.5" />
-                                                                                          <span className="font-medium">
-                                                                                            Reprobado
-                                                                                            (
-                                                                                            {
-                                                                                              quizInfo.percentage
-                                                                                            }
-                                                                                            %)
-                                                                                          </span>
-                                                                                        </div>
-                                                                                      ) : (
-                                                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
-                                                                                          <Clock className="w-3.5 h-3.5" />
-                                                                                          <span>
-                                                                                            Pendiente
-                                                                                          </span>
-                                                                                        </div>
-                                                                                      )}
-                                                                                    </div>
-                                                                                  );
-                                                                                }
-                                                                                return null;
-                                                                              })()}
-                                                                          </div>
-                                                                        );
-                                                                      }
-                                                                    )}
-                                                                  </div>
-                                                                )}
-
-                                                                {/* Materiales */}
-                                                                {materials.length >
-                                                                  0 && (
-                                                                  <div className="space-y-2">
-                                                                    {materials.map(
-                                                                      (
-                                                                        material
-                                                                      ) => {
-                                                                        const isQuiz =
-                                                                          material.material_type ===
-                                                                          "quiz";
-                                                                        const isReading =
-                                                                          material.material_type ===
-                                                                          "reading";
-                                                                        const isRequired =
-                                                                          material.is_required;
-
-                                                                        return (
-                                                                          <div
-                                                                            key={
-                                                                              material.material_id
-                                                                            }
-                                                                            className="group relative hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl p-3 transition-all duration-200"
-                                                                          >
-                                                                            <div className="flex items-start gap-4">
-                                                                              {/* Icono mejorado estilo imagen referencia */}
-                                                                              <div
-                                                                                className={`w-10 h-10 rounded-2xl bg-gray-100 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-gray-300 dark:group-hover:border-white/20 transition-colors shadow-sm`}
-                                                                              >
-                                                                                {isQuiz ? (
-                                                                                  <FileText className="w-5 h-5 text-[#00D4B3]" />
-                                                                                ) : isReading ? (
-                                                                                  <BookOpen className="w-5 h-5 text-[#10B981]" />
-                                                                                ) : (
-                                                                                  <FileText className="w-5 h-5 text-[#00D4B3]" />
-                                                                                )}
-                                                                              </div>
-
-                                                                              {/* Contenido principal */}
-                                                                              <div className="flex-1 min-w-0 pt-0.5">
-                                                                                <p className="text-sm font-medium text-gray-900 dark:text-white mb-2 leading-tight">
-                                                                                  {
-                                                                                    material.material_title
-                                                                                  }
-                                                                                </p>
-
-                                                                                {/* Badges estilo Pill */}
-                                                                                <div className="flex flex-wrap items-center gap-2">
-                                                                                  {/* Badge Requerida primero si aplica */}
-                                                                                  {isRequired && (
-                                                                                    <span className="px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400">
-                                                                                      Requerida
-                                                                                    </span>
-                                                                                  )}
-
-                                                                                  {/* Badge de tipo */}
-                                                                                  <span
-                                                                                    className={`px-3 py-0.5 text-[10px] uppercase tracking-wide rounded-full font-bold bg-gray-50 dark:bg-[#0F1419] border border-gray-200 dark:border-white/10 ${isReading ? "text-[#10B981]" : "text-[#00D4B3]"}`}
-                                                                                  >
-                                                                                    {
-                                                                                      material.material_type
-                                                                                    }
-                                                                                  </span>
-                                                                                </div>
-                                                                              </div>
-                                                                            </div>
-
-                                                                            {/* Indicador de estado para quizzes (si está disponible) */}
-                                                                            {isQuiz &&
-                                                                              lessonsQuizStatus[
-                                                                                lesson
-                                                                                  .lesson_id
-                                                                              ] &&
-                                                                              lessonsQuizStatus[
-                                                                                lesson
-                                                                                  .lesson_id
-                                                                              ]
-                                                                                ?.quizzes &&
-                                                                              (() => {
-                                                                                const quizInfo =
-                                                                                  lessonsQuizStatus[
-                                                                                    lesson
-                                                                                      .lesson_id
-                                                                                  ]!.quizzes.find(
-                                                                                    (
-                                                                                      q: any
-                                                                                    ) =>
-                                                                                      q.id ===
-                                                                                        material.material_id &&
-                                                                                      q.type ===
-                                                                                        "material"
-                                                                                  );
-                                                                                if (
-                                                                                  quizInfo
-                                                                                ) {
-                                                                                  return (
-                                                                                    <div className="mt-2 pt-2 border-t border-[#E9ECEF]/50 dark:border-[#6C757D]/30">
-                                                                                      {quizInfo.isPassed ? (
-                                                                                        <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-                                                                                          <CheckCircle className="w-3.5 h-3.5" />
-                                                                                          <span className="font-medium">
-                                                                                            Aprobado
-                                                                                            (
-                                                                                            {
-                                                                                              quizInfo.percentage
-                                                                                            }
-                                                                                            %)
-                                                                                          </span>
-                                                                                        </div>
-                                                                                      ) : quizInfo.isCompleted ? (
-                                                                                        <div className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
-                                                                                          <X className="w-3.5 h-3.5" />
-                                                                                          <span className="font-medium">
-                                                                                            Reprobado
-                                                                                            (
-                                                                                            {
-                                                                                              quizInfo.percentage
-                                                                                            }
-                                                                                            %)
-                                                                                          </span>
-                                                                                        </div>
-                                                                                      ) : (
-                                                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
-                                                                                          <Clock className="w-3.5 h-3.5" />
-                                                                                          <span>
-                                                                                            Pendiente
-                                                                                          </span>
-                                                                                        </div>
-                                                                                      )}
-                                                                                    </div>
-                                                                                  );
-                                                                                }
-                                                                                return null;
-                                                                              })()}
-                                                                          </div>
-                                                                        );
-                                                                      }
-                                                                    )}
-                                                                  </div>
-                                                                )}
-                                                              </div>
-                                                            </motion.div>
-                                                          )}
-                                                      </AnimatePresence>
-                                                    </div>
-                                                  );
-                                                }
-                                              )
-                                            ) : (
-                                              <div className="text-center py-4 text-gray-500 dark:text-slate-400 text-sm">
-                                                Este módulo aún no tiene
-                                                lecciones
+                                            <div className="flex items-center gap-2">
+                                              <span
+                                                className="text-xs text-[#6C757D] dark:text-white/60"
+                                                style={{
+                                                  fontFamily: "Inter, sans-serif",
+                                                  fontWeight: 400,
+                                                }}
+                                              >
+                                                {note.timestamp}
+                                              </span>
+                                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openEditNoteModal(note);
+                                                  }}
+                                                  className="p-1 hover:bg-[#00D4B3]/20 rounded text-[#00D4B3] hover:text-[#00D4B3] transition-colors"
+                                                  title={t(
+                                                    "leftPanel.notesSection.editNote"
+                                                  )}
+                                                >
+                                                  <svg
+                                                    className="w-3 h-3"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                    />
+                                                  </svg>
+                                                </button>
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteNote(note.id);
+                                                  }}
+                                                  className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
+                                                  title={t(
+                                                    "leftPanel.notesSection.deleteNote"
+                                                  )}
+                                                >
+                                                  <svg
+                                                    className="w-3 h-3"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                    />
+                                                  </svg>
+                                                </button>
                                               </div>
-                                            )}
+                                            </div>
                                           </div>
-                                        </motion.div>
-                                      )}
-                                    </AnimatePresence>
+                                          <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2 whitespace-pre-line">
+                                            {note.content ||
+                                              generateNotePreview(
+                                                note.fullContent || "",
+                                                50
+                                              )}
+                                          </p>
+                                          {note.tags && note.tags.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-2">
+                                              {note.tags.map((tag) => (
+                                                <span
+                                                  key={tag}
+                                                  className="inline-block px-2 py-0.5 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs rounded border border-[#00D4B3]/30"
+                                                >
+                                                  {tag}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))
+                                    )}
                                   </div>
-                                );
-                              })}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                                </div>
 
-                    {/* Línea separadora entre Material y Notas */}
-                    <div className="border-b border-[#E9ECEF] dark:border-[#6C757D]/30 mb-6"></div>
-
-                    {/* Sección de Notas */}
-                    <div className="space-y-4" id="tour-notes-section">
-                      {/* Header de Notas con botones de colapsar y nueva nota */}
-                      <div className="flex items-center justify-between mb-4">
-                        <h3
-                          className="font-bold text-white/40 uppercase tracking-widest flex items-center gap-2 text-xs"
-                          style={{ fontFamily: "Inter, sans-serif" }}
-                        >
-                          <FileText className="w-3 h-3 text-[#00D4B3]" />
-                          {t("leftPanel.notesSection.myNotes")}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          {!isNotesCollapsed && (
-                            <button
-                              id="tour-notes-button"
-                              onClick={openNewNoteModal}
-                              className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                              title={t("leftPanel.notesSection.newNote")}
-                            >
-                              <span className="text-sm font-bold text-gray-700 dark:text-white/70">
-                                +
-                              </span>
-                            </button>
-                          )}
-                          <button
-                            onClick={() =>
-                              setIsNotesCollapsed(!isNotesCollapsed)
-                            }
-                            className="p-1.5 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                            title={
-                              isNotesCollapsed
-                                ? t("leftPanel.notesSection.expandNotes")
-                                : t("leftPanel.notesSection.collapseNotes")
-                            }
-                          >
-                            {isNotesCollapsed ? (
-                              <ChevronDown className="w-4 h-4 text-gray-700 dark:text-white/70" />
-                            ) : (
-                              <ChevronUp className="w-4 h-4 text-gray-700 dark:text-white/70" />
+                                {/* Progreso de Notas */}
+                                <div className="bg-gradient-to-r from-[#10B981]/10 to-[#00D4B3]/10 border border-[#10B981]/30 rounded-xl p-4">
+                                  <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
+                                    <TrendingUp className="w-4 h-4 text-green-400" />
+                                    {t("leftPanel.notesSection.notesProgress")}
+                                  </h3>
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-gray-700 dark:text-white/70">
+                                        {t("leftPanel.notesSection.notesCreated")}
+                                      </span>
+                                      <span className="text-green-600 dark:text-green-400 font-medium">
+                                        {notesStats.totalNotes}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-gray-700 dark:text-white/70">
+                                        {t(
+                                          "leftPanel.notesSection.lessonsWithNotes"
+                                        )}
+                                      </span>
+                                      <span
+                                        className="text-[#00D4B3] dark:text-[#00D4B3] font-medium"
+                                        style={{
+                                          fontFamily: "Inter, sans-serif",
+                                          fontWeight: 500,
+                                        }}
+                                      >
+                                        {notesStats.lessonsWithNotes}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-gray-700 dark:text-white/70">
+                                        {t("leftPanel.notesSection.lastUpdate")}
+                                      </span>
+                                      <span
+                                        className="text-[#6C757D] dark:text-white/60"
+                                        style={{
+                                          fontFamily: "Inter, sans-serif",
+                                          fontWeight: 400,
+                                        }}
+                                      >
+                                        {notesStats.lastUpdate}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
                             )}
-                          </button>
+                          </AnimatePresence>
                         </div>
                       </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
 
-                      {/* Contenido de Notas - Colapsable */}
-                      <AnimatePresence>
-                        {!isNotesCollapsed && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="overflow-hidden"
-                          >
-                            {/* Notas guardadas */}
-                            <div className="space-y-3 mb-6">
-                              <h3
-                                className="text-[#0A2540] dark:text-white font-semibold text-sm"
-                                style={{
-                                  fontFamily: "Inter, sans-serif",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {t("leftPanel.notesSection.savedNotes")}
-                              </h3>
-                              <div className="space-y-2">
-                                {savedNotes.length === 0 ? (
-                                  <div className="bg-white dark:bg-[#1E2329] rounded-xl p-4 border border-[#E9ECEF] dark:border-[#6C757D]/30 text-center">
-                                    <p
-                                      className="text-sm text-[#0A2540] dark:text-white"
-                                      style={{
-                                        fontFamily: "Inter, sans-serif",
-                                        fontWeight: 400,
-                                      }}
-                                    >
-                                      {t("leftPanel.notesSection.noSavedNotes")}
-                                    </p>
-                                    <p
-                                      className="text-xs text-[#6C757D] dark:text-white/60 mt-1"
-                                      style={{
-                                        fontFamily: "Inter, sans-serif",
-                                        fontWeight: 400,
-                                      }}
-                                    >
-                                      {t(
-                                        "leftPanel.notesSection.saveFirstNote"
-                                      )}
-                                    </p>
-                                  </div>
-                                ) : (
-                                  savedNotes.map((note) => (
-                                    <div
-                                      key={note.id}
-                                      className="bg-white dark:bg-[#1E2329] rounded-xl p-3 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:bg-[#E9ECEF]/30 dark:hover:bg-[#0A2540]/30 transition-colors group"
-                                    >
-                                      <div className="flex items-center justify-between mb-2">
-                                        <span
-                                          className="text-sm text-[#0A2540] dark:text-[#00D4B3] font-medium"
-                                          style={{
-                                            fontFamily: "Inter, sans-serif",
-                                            fontWeight: 500,
-                                          }}
-                                        >
-                                          {note.title}
-                                        </span>
-                                        <div className="flex items-center gap-2">
-                                          <span
-                                            className="text-xs text-[#6C757D] dark:text-white/60"
-                                            style={{
-                                              fontFamily: "Inter, sans-serif",
-                                              fontWeight: 400,
-                                            }}
-                                          >
-                                            {note.timestamp}
-                                          </span>
-                                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                openEditNoteModal(note);
-                                              }}
-                                              className="p-1 hover:bg-[#00D4B3]/20 rounded text-[#00D4B3] hover:text-[#00D4B3] transition-colors"
-                                              title={t(
-                                                "leftPanel.notesSection.editNote"
-                                              )}
-                                            >
-                                              <svg
-                                                className="w-3 h-3"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                              >
-                                                <path
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                  strokeWidth={2}
-                                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                />
-                                              </svg>
-                                            </button>
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteNote(note.id);
-                                              }}
-                                              className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
-                                              title={t(
-                                                "leftPanel.notesSection.deleteNote"
-                                              )}
-                                            >
-                                              <svg
-                                                className="w-3 h-3"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                              >
-                                                <path
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                  strokeWidth={2}
-                                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                />
-                                              </svg>
-                                            </button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-gray-700 dark:text-white/70 line-clamp-2 mb-2 whitespace-pre-line">
-                                        {note.content ||
-                                          generateNotePreview(
-                                            note.fullContent || "",
-                                            50
-                                          )}
-                                      </p>
-                                      {note.tags && note.tags.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-2">
-                                          {note.tags.map((tag) => (
-                                            <span
-                                              key={tag}
-                                              className="inline-block px-2 py-0.5 bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 text-[#00D4B3] dark:text-[#00D4B3] text-xs rounded border border-[#00D4B3]/30"
-                                            >
-                                              {tag}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
+              {/* Barra vertical para abrir panel izquierdo - Oculto en móviles */}
+              {!isLeftPanelOpen && (
+                <div className="hidden md:flex w-12 bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 ml-2 z-10 border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                  <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
+                    <button
+                      onClick={() => {
+                        setIsLeftPanelOpen(true);
+                        setIsMaterialCollapsed(false);
+                        setIsNotesCollapsed(false);
+                        // Si LIA está abierto, ponerlo en tamaño pequeño
+                      }}
+                      className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
+                      title="Mostrar material del curso"
+                    >
+                      <ChevronRight className="w-5 h-5 text-[#6C757D] dark:text-white" />
+                    </button>
+                  </div>
 
-                            {/* Progreso de Notas */}
-                            <div className="bg-gradient-to-r from-[#10B981]/10 to-[#00D4B3]/10 border border-[#10B981]/30 rounded-xl p-4">
-                              <h3 className="text-gray-900 dark:text-white font-semibold mb-3 flex items-center gap-2 text-sm">
-                                <TrendingUp className="w-4 h-4 text-green-400" />
-                                {t("leftPanel.notesSection.notesProgress")}
-                              </h3>
-                              <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-700 dark:text-white/70">
-                                    {t("leftPanel.notesSection.notesCreated")}
-                                  </span>
-                                  <span className="text-green-600 dark:text-green-400 font-medium">
-                                    {notesStats.totalNotes}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-700 dark:text-white/70">
-                                    {t(
-                                      "leftPanel.notesSection.lessonsWithNotes"
-                                    )}
-                                  </span>
-                                  <span
-                                    className="text-[#00D4B3] dark:text-[#00D4B3] font-medium"
-                                    style={{
-                                      fontFamily: "Inter, sans-serif",
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    {notesStats.lessonsWithNotes}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-700 dark:text-white/70">
-                                    {t("leftPanel.notesSection.lastUpdate")}
-                                  </span>
-                                  <span
-                                    className="text-[#6C757D] dark:text-white/60"
-                                    style={{
-                                      fontFamily: "Inter, sans-serif",
-                                      fontWeight: 400,
-                                    }}
-                                  >
-                                    {notesStats.lastUpdate}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                  {/* Botones visibles solo cuando el panel está colapsado */}
+                  <div className="flex-1 flex flex-col items-center gap-2 p-2">
+                    {/* Abrir lecciones y cerrar notas */}
+                    <button
+                      onClick={() => {
+                        setIsLeftPanelOpen(true);
+                        setIsMaterialCollapsed(false);
+                        setIsNotesCollapsed(true);
+                        // Si LIA está abierto, ponerlo en tamaño pequeño
+                      }}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                      title="Ver lecciones"
+                    >
+                      <Layers className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
+                    </button>
+
+                    {/* Abrir notas y cerrar lecciones */}
+                    <button
+                      onClick={() => {
+                        setIsLeftPanelOpen(true);
+                        setIsMaterialCollapsed(true);
+                        setIsNotesCollapsed(false);
+                        // Si LIA está abierto, ponerlo en tamaño pequeño
+                      }}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
+                      title={t("leftPanel.notesSection.viewNotes")}
+                    >
+                      <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
+                    </button>
+
+                    {/* Abrir notas, cerrar lecciones y abrir modal de nueva nota */}
+                    <button
+                      onClick={() => {
+                        setIsLeftPanelOpen(true);
+                        setIsMaterialCollapsed(true);
+                        setIsNotesCollapsed(false);
+                        openNewNoteModal();
+                        // Si LIA está abierto, ponerlo en tamaño pequeño
+                      }}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-[#00D4B3] hover:bg-[#00b8a0] transition-colors shadow-lg shadow-[#00D4B3]/25"
+                      title={t("leftPanel.notesSection.newNote")}
+                    >
+                      <Plus className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Panel Central - Contenido del video */}
+              <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg shadow-xl my-0 md:my-2 mx-0 md:mx-2 border-2 border-[#E9ECEF] dark:border-[#6C757D]/30">
+                {modules.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4 border border-[#0A2540]/30">
+                        <BookOpen className="w-10 h-10 text-[#00D4B3]" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        Este curso aún no tiene contenido
+                      </h3>
+                      <p
+                        className="text-[#6C757D] dark:text-white/60"
+                        style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                      >
+                        Los módulos y lecciones se agregarán pronto
+                      </p>
                     </div>
                   </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-
-          {/* Barra vertical para abrir panel izquierdo - Oculto en móviles */}
-          {!isLeftPanelOpen && (
-            <div className="hidden md:flex w-12 bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg flex-col shadow-xl my-2 ml-2 z-10 border border-[#E9ECEF] dark:border-[#6C757D]/30">
-              <div className="bg-white dark:bg-[#1E2329] backdrop-blur-sm border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex items-center justify-center p-3 rounded-t-lg shrink-0 h-[56px]">
-                <button
-                  onClick={() => {
-                    setIsLeftPanelOpen(true);
-                    setIsMaterialCollapsed(false);
-                    setIsNotesCollapsed(false);
-                    // Si LIA está abierto, ponerlo en tamaño pequeño
-                  }}
-                  className="p-2 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 rounded-lg transition-colors"
-                  title="Mostrar material del curso"
-                >
-                  <ChevronRight className="w-5 h-5 text-[#6C757D] dark:text-white" />
-                </button>
-              </div>
-
-              {/* Botones visibles solo cuando el panel está colapsado */}
-              <div className="flex-1 flex flex-col items-center gap-2 p-2">
-                {/* Abrir lecciones y cerrar notas */}
-                <button
-                  onClick={() => {
-                    setIsLeftPanelOpen(true);
-                    setIsMaterialCollapsed(false);
-                    setIsNotesCollapsed(true);
-                    // Si LIA está abierto, ponerlo en tamaño pequeño
-                  }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
-                  title="Ver lecciones"
-                >
-                  <Layers className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
-                </button>
-
-                {/* Abrir notas y cerrar lecciones */}
-                <button
-                  onClick={() => {
-                    setIsLeftPanelOpen(true);
-                    setIsMaterialCollapsed(true);
-                    setIsNotesCollapsed(false);
-                    // Si LIA está abierto, ponerlo en tamaño pequeño
-                  }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-colors"
-                  title={t("leftPanel.notesSection.viewNotes")}
-                >
-                  <FileText className="w-4 h-4 text-[#6C757D] dark:text-white/80" />
-                </button>
-
-                {/* Abrir notas, cerrar lecciones y abrir modal de nueva nota */}
-                <button
-                  onClick={() => {
-                    setIsLeftPanelOpen(true);
-                    setIsMaterialCollapsed(true);
-                    setIsNotesCollapsed(false);
-                    openNewNoteModal();
-                    // Si LIA está abierto, ponerlo en tamaño pequeño
-                  }}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[#00D4B3] hover:bg-[#00b8a0] transition-colors shadow-lg shadow-[#00D4B3]/25"
-                  title={t("leftPanel.notesSection.newNote")}
-                >
-                  <Plus className="w-4 h-4 text-white" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Panel Central - Contenido del video */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#1E2329] backdrop-blur-sm rounded-lg shadow-xl my-0 md:my-2 mx-0 md:mx-2 border-2 border-[#E9ECEF] dark:border-[#6C757D]/30">
-            {modules.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0A2540]/20 to-[#00D4B3]/20 flex items-center justify-center mx-auto mb-4 border border-[#0A2540]/30">
-                    <BookOpen className="w-10 h-10 text-[#00D4B3]" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                    Este curso aún no tiene contenido
-                  </h3>
-                  <p
-                    className="text-[#6C757D] dark:text-white/60"
-                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-                  >
-                    Los módulos y lecciones se agregarán pronto
-                  </p>
-                </div>
-              </div>
-            ) : currentLesson ? (
-              <>
-                {/* Tabs mejorados - Responsive */}
-                <div
-                  id="tour-tabs-container"
-                  className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-xl h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth"
-                  style={{
-                    scrollPaddingLeft: "0.5rem",
-                    scrollPaddingRight: "0.5rem",
-                    scrollSnapType: "x mandatory",
-                    WebkitOverflowScrolling: "touch",
-                  }}
-                >
-                  <div className="flex gap-1 md:gap-2 items-center min-w-max">
-                    {tabs.map((tab) => {
-                      const Icon = tab.icon;
-                      const isActive = activeTab === tab.id;
-                      // En móvil: siempre encoger excepto el activo; En PC: encoger solo cuando LIA está expandido
-                      const shouldHideText = !isActive && isMobile;
-
-                      return (
-                        <button
-                          key={tab.id}
-                          id={`tour-tab-${tab.id}`}
-                          onClick={() => handleTabChange(tab.id)}
-                          className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${
-                            shouldHideText
-                              ? "px-2 py-2 hover:px-3 hover:gap-2"
-                              : "px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit"
-                          } ${
-                            isActive
-                              ? "bg-[#0A2540] text-white shadow-lg shadow-[#0A2540]/25"
-                              : "text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
-                          }`}
-                          style={{
-                            fontFamily: "Inter, sans-serif",
-                            fontWeight: isActive ? 600 : 500,
-                          }}
-                          style={{ scrollSnapAlign: "start" }}
-                        >
-                          <Icon className="w-4 h-4 shrink-0" />
-                          <span
-                            className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${
-                              shouldHideText
-                                ? "max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100"
-                                : ""
-                            }`}
-                          >
-                            {tab.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Contenido del tab activo */}
-                <div
-                  className="flex-1 min-h-0 overflow-y-auto md:pb-0"
-                  style={{
-                    paddingBottom: isMobile
-                      ? mobileContentPaddingBottom
-                      : undefined,
-                  }}
-                >
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={activeTab}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="h-auto p-3 md:p-6 flex flex-col gap-4"
-                    >
-                      {activeTab === "video" && (
-                        <VideoContent
-                          lesson={currentLesson}
-                          modules={modules}
-                          onNavigatePrevious={navigateToPreviousLesson}
-                          onNavigateNext={navigateToNextLesson}
-                          getPreviousLesson={getPreviousLesson}
-                          getNextLesson={getNextLesson}
-                          markLessonAsCompleted={markLessonAsCompleted}
-                          canCompleteLesson={canCompleteLesson}
-                          onCourseCompleted={() =>
-                            setIsCourseCompletedModalOpen(true)
-                          }
-                          onCannotComplete={() =>
-                            setIsCannotCompleteModalOpen(true)
-                          }
-                        />
-                      )}
-                      {activeTab === "transcript" && (
-                        <TranscriptContent
-                          lesson={currentLesson}
-                          slug={slug}
-                          onNoteCreated={addNoteToLocalState}
-                          onStatsUpdate={updateNotesStatsOptimized}
-                        />
-                      )}
-                      {activeTab === "summary" && currentLesson && (
-                        <SummaryContent lesson={currentLesson} slug={slug} />
-                      )}
-                      {activeTab === "activities" && (
-                        <ActivitiesContent
-                          lesson={currentLesson}
-                          slug={slug}
-                          onPromptsChange={handlePromptsChange}
-                          userRole={user?.type_rol}
-                          onNavigateNext={navigateToNextLesson}
-                          hasNextLesson={!!getNextLesson()}
-                          selectedLang={selectedLang}
-                          colors={colors}
-                        />
-                      )}
-                      {activeTab === "questions" && (
-                        <QuestionsContent
-                          slug={slug}
-                          courseTitle={
-                            course?.title || course?.course_title || "Curso"
-                          }
-                        />
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
-                  <p
-                    className="text-[#6C757D] dark:text-white/60"
-                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-                  >
-                    {t("loading.lesson")}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Panel Derecho - Solo LIA - REMOVED */}
-        </div>
-
-        {/* Barra de navegación inferior flotante para móviles */}
-        {isMobileBottomNavVisible && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-lg border-t border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl"
-            style={{
-              paddingBottom: "max(env(safe-area-inset-bottom), 8px)",
-              height: "calc(70px + max(env(safe-area-inset-bottom), 8px))",
-            }}
-          >
-            <div className="flex items-center justify-around px-4 py-3">
-              {/* Botón Material del Curso */}
-              <button
-                onClick={() => {
-                  setIsLeftPanelOpen(true);
-                }}
-                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
-                  isLeftPanelOpen
-                    ? "bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]"
-                    : "text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
-                }`}
-              >
-                <BookOpen className="w-5 h-5" />
-                <span className="text-xs font-medium">Material</span>
-              </button>
-
-              {/* Botón Lección Anterior */}
-              {getPreviousLesson() && (
-                <button
-                  onClick={navigateToPreviousLesson}
-                  className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                  <span className="text-xs font-medium">Anterior</span>
-                </button>
-              )}
-
-              {/* Botón Lección Siguiente */}
-              {getNextLesson() && (
-                <button
-                  onClick={navigateToNextLesson}
-                  className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                  <span className="text-xs font-medium">Siguiente</span>
-                </button>
-              )}
-
-              {/* Botón LIA - Integrado en la barra inferior móvil */}
-              <LiaMobileButton />
-            </div>
-          </motion.div>
-        )}
-
-        <NotesModal
-          isOpen={isNotesModalOpen}
-          onClose={() => {
-            setIsNotesModalOpen(false);
-            setEditingNote(null);
-          }}
-          onSave={handleSaveNote}
-          initialNote={editingNote}
-          isEditing={!!editingNote}
-        />
-
-        {/* Modal de Curso Completado */}
-        <AnimatePresence>
-          {isCourseCompletedModalOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              onClick={() => setIsCourseCompletedModalOpen(false)}
-            >
-              {/* Overlay */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              />
-
-              {/* Modal Content */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
-              >
-                {/* Icono de éxito */}
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
-                    <CheckCircle2 className="w-10 h-10 text-white" />
-                  </div>
-                </div>
-
-                {/* Título */}
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                  ¡Felicidades!
-                </h3>
-
-                {/* Mensaje */}
-                <p className="text-gray-600 dark:text-slate-300 text-center mb-4">
-                  Has completado el curso exitosamente. ¡Buen trabajo!
-                </p>
-
-                {/* Mensaje informativo sobre certificado */}
-                <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-3 mb-6">
-                  <p
-                    className="text-[#0A2540] dark:text-white text-center text-sm"
-                    style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-                  >
-                    📜 A continuación, completa una breve encuesta para acceder
-                    a tu certificado
-                  </p>
-                </div>
-
-                {/* Botón de cerrar */}
-                <button
-                  onClick={async () => {
-                    setIsCourseCompletedModalOpen(false);
-                    // Verificar si el usuario ya calificó después de cerrar el modal de completado
-                    if (!hasUserRated && slug) {
-                      try {
-                        const ratingCheck =
-                          await CourseRatingService.checkUserRating(slug);
-                        if (!ratingCheck.hasRating) {
-                          // Mostrar modal de rating después de un breve delay
-                          setTimeout(() => {
-                            setIsRatingModalOpen(true);
-                          }, 500);
-                        } else {
-                          setHasUserRated(true);
-                        }
-                      } catch (error) {
-                        // Si hay error, no mostrar el modal
-                        console.error("Error checking rating:", error);
-                      }
-                    }
-                  }}
-                  className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
-                >
-                  Aceptar
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Modal de No Puede Completar */}
-        <AnimatePresence>
-          {isCannotCompleteModalOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              onClick={() => setIsCannotCompleteModalOpen(false)}
-            >
-              {/* Overlay */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              />
-
-              {/* Modal Content */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
-              >
-                {/* Icono de advertencia */}
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] flex items-center justify-center shadow-lg shadow-[#F59E0B]/25">
-                    <HelpCircle className="w-10 h-10 text-white" />
-                  </div>
-                </div>
-
-                {/* Título */}
-                <h3
-                  className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
-                >
-                  No puedes completar esta lección
-                </h3>
-
-                {/* Mensaje */}
-                <p
-                  className="text-[#6C757D] dark:text-white/80 text-center mb-6"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-                >
-                  Tienes lecciones pendientes que debes completar antes de
-                  terminar el curso. Completa todas las lecciones anteriores en
-                  orden.
-                </p>
-
-                {/* Botón de cerrar */}
-                <button
-                  onClick={() => setIsCannotCompleteModalOpen(false)}
-                  className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
-                >
-                  Entendido
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Modal de Validación (Actividades/Video/Quiz) */}
-        <AnimatePresence>
-          {validationModal.isOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              onClick={() =>
-                setValidationModal({ ...validationModal, isOpen: false })
-              }
-            >
-              {/* Overlay */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              />
-
-              {/* Modal Content */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
-              >
-                {/* Icono según el tipo de validación */}
-                <div className="flex justify-center mb-4">
-                  <div
-                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
-                      validationModal.type === "activity" ||
-                      validationModal.type === "quiz"
-                        ? "bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/25"
-                        : validationModal.type === "video"
-                          ? "bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-[#0A2540]/25"
-                          : "bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] shadow-[#F59E0B]/25"
-                    }`}
-                  >
-                    {validationModal.type === "activity" ||
-                    validationModal.type === "quiz" ? (
-                      <AlertCircle className="w-10 h-10 text-white" />
-                    ) : validationModal.type === "video" ? (
-                      <Info className="w-10 h-10 text-white" />
-                    ) : (
-                      <XCircle className="w-10 h-10 text-white" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Título */}
-                <h3
-                  className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
-                >
-                  {validationModal.title}
-                </h3>
-
-                {/* Mensaje */}
-                <p
-                  className="text-[#6C757D] dark:text-white/80 text-center mb-4"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
-                >
-                  {validationModal.message}
-                </p>
-
-                {/* Detalles adicionales si existen */}
-                {validationModal.details && (
-                  <div className="mb-6 p-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
-                    <p
-                      className="text-[#0A2540] dark:text-white text-sm text-center font-medium"
+                ) : currentLesson ? (
+                  <>
+                    {/* Tabs mejorados - Responsive */}
+                    <div
+                      id="tour-tabs-container"
+                      className="bg-white dark:bg-[#1E2329] border-b border-[#E9ECEF] dark:border-[#6C757D]/30 flex gap-1 md:gap-2 p-2 md:p-3 rounded-t-xl h-[56px] items-center overflow-x-auto scrollbar-hide scroll-smooth"
                       style={{
-                        fontFamily: "Inter, sans-serif",
-                        fontWeight: 500,
+                        scrollPaddingLeft: "0.5rem",
+                        scrollPaddingRight: "0.5rem",
+                        scrollSnapType: "x mandatory",
+                        WebkitOverflowScrolling: "touch",
                       }}
                     >
-                      {validationModal.details}
-                    </p>
+                      <div className="flex gap-1 md:gap-2 items-center min-w-max">
+                        {tabs.map((tab) => {
+                          const Icon = tab.icon;
+                          const isActive = activeTab === tab.id;
+                          // En móvil: siempre encoger excepto el activo; En PC: encoger solo cuando LIA está expandido
+                          const shouldHideText = !isActive && isMobile;
+
+                          return (
+                            <button
+                              key={tab.id}
+                              id={`tour-tab-${tab.id}`}
+                              onClick={() => handleTabChange(tab.id)}
+                              className={`flex items-center rounded-xl transition-all duration-200 relative group shrink-0 ${shouldHideText
+                                ? "px-2 py-2 hover:px-3 hover:gap-2"
+                                : "px-3 md:px-4 py-2 gap-1 md:gap-2 min-w-fit"
+                                } ${isActive
+                                  ? "bg-[#0A2540] text-white shadow-lg shadow-[#0A2540]/25"
+                                  : "text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
+                                }`}
+                              style={{
+                                fontFamily: "Inter, sans-serif",
+                                fontWeight: isActive ? 600 : 500,
+                              }}
+                              style={{ scrollSnapAlign: "start" }}
+                            >
+                              <Icon className="w-4 h-4 shrink-0" />
+                              <span
+                                className={`text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out ${shouldHideText
+                                  ? "max-w-0 opacity-0 overflow-hidden group-hover:max-w-[200px] group-hover:opacity-100"
+                                  : ""
+                                  }`}
+                              >
+                                {tab.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Contenido del tab activo */}
+                    <div
+                      className="flex-1 min-h-0 overflow-y-auto md:pb-0"
+                      style={{
+                        paddingBottom: isMobile
+                          ? mobileContentPaddingBottom
+                          : undefined,
+                      }}
+                    >
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={activeTab}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.3 }}
+                          className="h-auto p-3 md:p-6 flex flex-col gap-4"
+                        >
+                          {activeTab === "video" && (
+                            <VideoContent
+                              lesson={currentLesson}
+                              modules={modules}
+                              onNavigatePrevious={navigateToPreviousLesson}
+                              onNavigateNext={navigateToNextLesson}
+                              getPreviousLesson={getPreviousLesson}
+                              getNextLesson={getNextLesson}
+                              markLessonAsCompleted={markLessonAsCompleted}
+                              canCompleteLesson={canCompleteLesson}
+                              onCourseCompleted={() =>
+                                setIsCourseCompletedModalOpen(true)
+                              }
+                              onCannotComplete={() =>
+                                setIsCannotCompleteModalOpen(true)
+                              }
+                            />
+                          )}
+                          {activeTab === "transcript" && (
+                            <TranscriptContent
+                              lesson={currentLesson}
+                              slug={slug}
+                              onNoteCreated={addNoteToLocalState}
+                              onStatsUpdate={updateNotesStatsOptimized}
+                            />
+                          )}
+                          {activeTab === "summary" && currentLesson && (
+                            <SummaryContent lesson={currentLesson} slug={slug} />
+                          )}
+                          {activeTab === "activities" && (
+                            <ActivitiesContent
+                              lesson={currentLesson}
+                              slug={slug}
+                              onPromptsChange={handlePromptsChange}
+                              userRole={user?.type_rol}
+                              onNavigateNext={navigateToNextLesson}
+                              hasNextLesson={!!getNextLesson()}
+                              selectedLang={selectedLang}
+                              colors={colors}
+                            />
+                          )}
+                          {activeTab === "questions" && (
+                            <QuestionsContent
+                              slug={slug}
+                              courseTitle={
+                                course?.title || course?.course_title || "Curso"
+                              }
+                            />
+                          )}
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-16 h-16 border-4 border-primary/30 dark:border-primary/50 border-t-primary dark:border-t-primary rounded-full animate-spin mx-auto mb-4" />
+                      <p
+                        className="text-[#6C757D] dark:text-white/60"
+                        style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                      >
+                        {t("loading.lesson")}
+                      </p>
+                    </div>
                   </div>
                 )}
+              </div>
 
-                {/* Botón de cerrar */}
-                <button
-                  onClick={() => {
-                    // Cerrar el modal
-                    const lessonIdToShow = validationModal.lessonId;
-                    setValidationModal({ ...validationModal, isOpen: false });
+              {/* Panel Derecho - Solo LIA - REMOVED */}
+            </div>
 
-                    // Si hay una lección guardada, cambiar a esa lección y abrir actividades
-                    if (lessonIdToShow) {
-                      // Buscar la lección en todos los módulos
-                      const allLessons = getAllLessonsOrdered();
-                      const lessonToShow = allLessons.find(
-                        (item) => item.lesson.lesson_id === lessonIdToShow
-                      );
+            {/* Barra de navegación inferior flotante para móviles */}
+            {isMobileBottomNavVisible && (
+              <motion.div
+                initial={{ y: 100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-[#1E2329]/95 backdrop-blur-lg border-t border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl"
+                style={{
+                  paddingBottom: "max(env(safe-area-inset-bottom), 8px)",
+                  height: "calc(70px + max(env(safe-area-inset-bottom), 8px))",
+                }}
+              >
+                <div className="flex items-center justify-around px-4 py-3">
+                  {/* Botón Material del Curso */}
+                  <button
+                    onClick={() => {
+                      setIsLeftPanelOpen(true);
+                    }}
+                    className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${isLeftPanelOpen
+                      ? "bg-[#0A2540]/10 dark:bg-[#0A2540]/20 text-[#0A2540] dark:text-[#00D4B3]"
+                      : "text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30"
+                      }`}
+                  >
+                    <BookOpen className="w-5 h-5" />
+                    <span className="text-xs font-medium">Material</span>
+                  </button>
 
-                      if (lessonToShow) {
-                        // Cambiar a la lección correspondiente
-                        setCurrentLesson(lessonToShow.lesson);
-                        // Cambiar al tab de actividades
-                        setActiveTab("activities");
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }
-                    }
-                  }}
-                  className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
-                  style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
-                >
-                  Entendido
-                </button>
+                  {/* Botón Lección Anterior */}
+                  {getPreviousLesson() && (
+                    <button
+                      onClick={navigateToPreviousLesson}
+                      className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                      <span className="text-xs font-medium">Anterior</span>
+                    </button>
+                  )}
+
+                  {/* Botón Lección Siguiente */}
+                  {getNextLesson() && (
+                    <button
+                      onClick={navigateToNextLesson}
+                      className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-[#6C757D] dark:text-white/60 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/30 transition-all"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                      <span className="text-xs font-medium">Siguiente</span>
+                    </button>
+                  )}
+
+                  {/* Botón LIA - Integrado en la barra inferior móvil */}
+                  <LiaMobileButton />
+                </div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
 
-        {/* Modal de Rating */}
-        <CourseRatingModal
-          isOpen={isRatingModalOpen}
-          onClose={() => setIsRatingModalOpen(false)}
-          courseSlug={slug}
-          courseTitle={course?.title || course?.course_title}
-          onRatingSubmitted={() => {
-            setHasUserRated(true);
-            setIsRatingModalOpen(false);
-            // Redirigir a la página de certificados después de completar la encuesta
-            router.push("/certificates");
-          }}
-        />
+            <NotesModal
+              isOpen={isNotesModalOpen}
+              onClose={() => {
+                setIsNotesModalOpen(false);
+                setEditingNote(null);
+              }}
+              onSave={handleSaveNote}
+              initialNote={editingNote}
+              isEditing={!!editingNote}
+            />
 
-        {/* LIA In-Context Chat for Courses */}
-        <CourseLia
-          lessonId={currentLesson?.lesson_id}
-          lessonTitle={currentLesson?.lesson_title}
-          courseSlug={slug}
-          transcriptContent={liaTranscript}
-          summaryContent={liaSummary}
-          lessonContent={currentLesson?.lesson_description}
-          customColors={{
-            panelBg: colors.bgSecondary,
-            borderColor: "rgba(255,255,255,0.1)",
-            accentColor: colors.accent,
-            textPrimary: "#FFFFFF",
-            textSecondary: "rgba(255,255,255,0.6)",
-          }}
-          onSaveNote={handleSaveLiaNote}
-        />
+            {/* Modal de Curso Completado */}
+            <AnimatePresence>
+              {isCourseCompletedModalOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                  onClick={() => setIsCourseCompletedModalOpen(false)}
+                >
+                  {/* Overlay */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                  />
 
-        {/* Tour de voz contextual para la página de aprendizaje */}
-        
-        {/* Joyride Tour */}
-        {isJoyrideMounted && <Joyride {...joyrideProps} />}
-      </div>
-    </WorkshopLearningProvider>
-    </VideoPlayerProvider>
+                  {/* Modal Content */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+                  >
+                    {/* Icono de éxito */}
+                    <div className="flex justify-center mb-4">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
+                        <CheckCircle2 className="w-10 h-10 text-white" />
+                      </div>
+                    </div>
+
+                    {/* Título */}
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+                      ¡Felicidades!
+                    </h3>
+
+                    {/* Mensaje */}
+                    <p className="text-gray-600 dark:text-slate-300 text-center mb-4">
+                      Has completado el curso exitosamente. ¡Buen trabajo!
+                    </p>
+
+                    {/* Mensaje informativo sobre certificado */}
+                    <div className="bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-xl p-3 mb-6">
+                      <p
+                        className="text-[#0A2540] dark:text-white text-center text-sm"
+                        style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                      >
+                        📜 A continuación, completa una breve encuesta para acceder
+                        a tu certificado
+                      </p>
+                    </div>
+
+                    {/* Botón de cerrar */}
+                    <button
+                      onClick={async () => {
+                        setIsCourseCompletedModalOpen(false);
+                        // Verificar si el usuario ya calificó después de cerrar el modal de completado
+                        if (!hasUserRated && slug) {
+                          try {
+                            const ratingCheck =
+                              await CourseRatingService.checkUserRating(slug);
+                            if (!ratingCheck.hasRating) {
+                              // Mostrar modal de rating después de un breve delay
+                              setTimeout(() => {
+                                setIsRatingModalOpen(true);
+                              }, 500);
+                            } else {
+                              setHasUserRated(true);
+                            }
+                          } catch (error) {
+                            // Si hay error, no mostrar el modal
+                            console.error("Error checking rating:", error);
+                          }
+                        }
+                      }}
+                      className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+                    >
+                      Aceptar
+                    </button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Modal de No Puede Completar */}
+            <AnimatePresence>
+              {isCannotCompleteModalOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                  onClick={() => setIsCannotCompleteModalOpen(false)}
+                >
+                  {/* Overlay */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                  />
+
+                  {/* Modal Content */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+                  >
+                    {/* Icono de advertencia */}
+                    <div className="flex justify-center mb-4">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] flex items-center justify-center shadow-lg shadow-[#F59E0B]/25">
+                        <HelpCircle className="w-10 h-10 text-white" />
+                      </div>
+                    </div>
+
+                    {/* Título */}
+                    <h3
+                      className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
+                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                    >
+                      No puedes completar esta lección
+                    </h3>
+
+                    {/* Mensaje */}
+                    <p
+                      className="text-[#6C757D] dark:text-white/80 text-center mb-6"
+                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                    >
+                      Tienes lecciones pendientes que debes completar antes de
+                      terminar el curso. Completa todas las lecciones anteriores en
+                      orden.
+                    </p>
+
+                    {/* Botón de cerrar */}
+                    <button
+                      onClick={() => setIsCannotCompleteModalOpen(false)}
+                      className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+                    >
+                      Entendido
+                    </button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Modal de Validación (Actividades/Video/Quiz) */}
+            <AnimatePresence>
+              {validationModal.isOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                  onClick={() =>
+                    setValidationModal({ ...validationModal, isOpen: false })
+                  }
+                >
+                  {/* Overlay */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                  />
+
+                  {/* Modal Content */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="relative bg-white dark:bg-[#1E2329]/95 backdrop-blur-md rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 shadow-2xl max-w-md w-full p-6"
+                  >
+                    {/* Icono según el tipo de validación */}
+                    <div className="flex justify-center mb-4">
+                      <div
+                        className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${validationModal.type === "activity" ||
+                          validationModal.type === "quiz"
+                          ? "bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/25"
+                          : validationModal.type === "video"
+                            ? "bg-gradient-to-br from-[#0A2540] to-[#00D4B3] shadow-[#0A2540]/25"
+                            : "bg-gradient-to-br from-[#F59E0B] to-[#F59E0B] shadow-[#F59E0B]/25"
+                          }`}
+                      >
+                        {validationModal.type === "activity" ||
+                          validationModal.type === "quiz" ? (
+                          <AlertCircle className="w-10 h-10 text-white" />
+                        ) : validationModal.type === "video" ? (
+                          <Info className="w-10 h-10 text-white" />
+                        ) : (
+                          <XCircle className="w-10 h-10 text-white" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Título */}
+                    <h3
+                      className="text-2xl font-bold text-[#0A2540] dark:text-white text-center mb-2"
+                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 700 }}
+                    >
+                      {validationModal.title}
+                    </h3>
+
+                    {/* Mensaje */}
+                    <p
+                      className="text-[#6C757D] dark:text-white/80 text-center mb-4"
+                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 400 }}
+                    >
+                      {validationModal.message}
+                    </p>
+
+                    {/* Detalles adicionales si existen */}
+                    {validationModal.details && (
+                      <div className="mb-6 p-3 bg-[#E9ECEF]/30 dark:bg-[#0F1419] rounded-lg border border-[#E9ECEF] dark:border-[#6C757D]/30">
+                        <p
+                          className="text-[#0A2540] dark:text-white text-sm text-center font-medium"
+                          style={{
+                            fontFamily: "Inter, sans-serif",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {validationModal.details}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Botón de cerrar */}
+                    <button
+                      onClick={() => {
+                        // Cerrar el modal
+                        const lessonIdToShow = validationModal.lessonId;
+                        setValidationModal({ ...validationModal, isOpen: false });
+
+                        // Si hay una lección guardada, cambiar a esa lección y abrir actividades
+                        if (lessonIdToShow) {
+                          // Buscar la lección en todos los módulos
+                          const allLessons = getAllLessonsOrdered();
+                          const lessonToShow = allLessons.find(
+                            (item) => item.lesson.lesson_id === lessonIdToShow
+                          );
+
+                          if (lessonToShow) {
+                            // Cambiar a la lección correspondiente
+                            setCurrentLesson(lessonToShow.lesson);
+                            // Cambiar al tab de actividades
+                            setActiveTab("activities");
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }
+                        }
+                      }}
+                      className="w-full px-6 py-3 bg-[#0A2540] hover:bg-[#0d2f4d] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-[#0A2540]/25"
+                      style={{ fontFamily: "Inter, sans-serif", fontWeight: 500 }}
+                    >
+                      Entendido
+                    </button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Modal de Rating */}
+            <CourseRatingModal
+              isOpen={isRatingModalOpen}
+              onClose={() => setIsRatingModalOpen(false)}
+              courseSlug={slug}
+              courseTitle={course?.title || course?.course_title}
+              onRatingSubmitted={() => {
+                setHasUserRated(true);
+                setIsRatingModalOpen(false);
+                // Redirigir a la página de certificados después de completar la encuesta
+                router.push("/certificates");
+              }}
+            />
+
+            {/* LIA In-Context Chat for Courses */}
+            <CourseLia
+              lessonId={currentLesson?.lesson_id}
+              lessonTitle={currentLesson?.lesson_title}
+              courseSlug={slug}
+              transcriptContent={liaTranscript}
+              summaryContent={liaSummary}
+              lessonContent={currentLesson?.lesson_description}
+              customColors={{
+                panelBg: colors.bgSecondary,
+                borderColor: "rgba(255,255,255,0.1)",
+                accentColor: colors.accent,
+                textPrimary: "#FFFFFF",
+                textSecondary: "rgba(255,255,255,0.6)",
+              }}
+              onSaveNote={handleSaveLiaNote}
+            />
+
+            {/* Tour de voz contextual para la página de aprendizaje */}
+
+            {/* Joyride Tour */}
+            {isJoyrideMounted && <Joyride {...joyrideProps} />}
+          </div>
+        </WorkshopLearningProvider>
+      </VideoPlayerProvider>
+    </LessonTrackingProvider>
   );
 }
 
@@ -4765,9 +4762,11 @@ function VideoContent({
 }) {
   // 🎬 Obtener contexto del VideoPlayer para PiP automático
   const videoPlayerContext = useVideoPlayerOptional();
+  // 🎯 Obtener contexto de LessonTracking (opcional)
+  const lessonTracking = useLessonTrackingOptional();
   // Ref para guardar el tiempo actual sin re-renderizar
   const currentTimeRef = useRef(0);
-  
+
   // Verificar si la lección tiene video
   const hasVideo = lesson.video_provider && lesson.video_provider_id;
 
@@ -4793,7 +4792,7 @@ function VideoContent({
   // 🎬 Efecto para detectar play/pause del elemento video nativo y eventos de PiP
   useEffect(() => {
     let cleanupFn: (() => void) | undefined;
-    
+
     // Función para configurar listeners del video
     const setupVideoListeners = () => {
       const videoElement = document.querySelector('video');
@@ -4858,7 +4857,7 @@ function VideoContent({
             videoPlayerContext.saveVideoProgress(lesson.lesson_id, currentTimeRef.current);
           }
         };
-        
+
         return true;
       }
       return false;
@@ -4866,7 +4865,7 @@ function VideoContent({
 
     // Intentar encontrar el video inmediatamente
     const found = setupVideoListeners();
-    
+
     // Si no se encontró, intentar después de un delay (el video puede tardar en cargarse)
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     if (!found) {
@@ -4874,7 +4873,7 @@ function VideoContent({
         setupVideoListeners();
       }, 1000);
     }
-    
+
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
       if (cleanupFn) cleanupFn();
@@ -4891,6 +4890,9 @@ function VideoContent({
               videoProviderId={lesson.video_provider_id!}
               title={lesson.lesson_title}
               className="w-full h-full"
+              onProgress={lessonTracking?.trackProgress}
+              initialTime={lessonTracking?.initialCheckpoint}
+              initialPlaybackRate={lessonTracking?.initialPlaybackRate}
             />
 
             {/* Botones de navegación - Centrados verticalmente */}
@@ -4914,29 +4916,28 @@ function VideoContent({
                   onClick={
                     isLastLesson
                       ? async () => {
-                          // Verificar si se puede completar la lección
-                          if (lesson && canCompleteLesson(lesson.lesson_id)) {
-                            // Marcar la última lección como completada antes de terminar
-                            const success = await markLessonAsCompleted(
-                              lesson.lesson_id
-                            );
-                            if (success) {
-                              // Mostrar modal de curso completado
-                              onCourseCompleted();
-                            } else {
-                              // Mostrar modal de error si no se puede completar
-                              onCannotComplete();
-                            }
+                        // Verificar si se puede completar la lección
+                        if (lesson && canCompleteLesson(lesson.lesson_id)) {
+                          // Marcar la última lección como completada antes de terminar
+                          const success = await markLessonAsCompleted(
+                            lesson.lesson_id
+                          );
+                          if (success) {
+                            // Mostrar modal de curso completado
+                            onCourseCompleted();
                           } else {
                             // Mostrar modal de error si no se puede completar
                             onCannotComplete();
                           }
+                        } else {
+                          // Mostrar modal de error si no se puede completar
+                          onCannotComplete();
                         }
+                      }
                       : onNavigateNext
                   }
-                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
-                    isLastLesson ? "bg-[#10B981]/50 hover:bg-[#10B981]/70" : ""
-                  }`}
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${isLastLesson ? "bg-[#10B981]/50 hover:bg-[#10B981]/70" : ""
+                    }`}
                 >
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
                     {isLastLesson ? "Terminar" : "Siguiente"}
@@ -4983,29 +4984,28 @@ function VideoContent({
                   onClick={
                     isLastLesson
                       ? async () => {
-                          // Verificar si se puede completar la lección
-                          if (lesson && canCompleteLesson(lesson.lesson_id)) {
-                            // Marcar la última lección como completada antes de terminar
-                            const success = await markLessonAsCompleted(
-                              lesson.lesson_id
-                            );
-                            if (success) {
-                              // Mostrar modal de curso completado
-                              onCourseCompleted();
-                            } else {
-                              // Mostrar modal de error si no se puede completar
-                              onCannotComplete();
-                            }
+                        // Verificar si se puede completar la lección
+                        if (lesson && canCompleteLesson(lesson.lesson_id)) {
+                          // Marcar la última lección como completada antes de terminar
+                          const success = await markLessonAsCompleted(
+                            lesson.lesson_id
+                          );
+                          if (success) {
+                            // Mostrar modal de curso completado
+                            onCourseCompleted();
                           } else {
                             // Mostrar modal de error si no se puede completar
                             onCannotComplete();
                           }
+                        } else {
+                          // Mostrar modal de error si no se puede completar
+                          onCannotComplete();
                         }
+                      }
                       : onNavigateNext
                   }
-                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${
-                    isLastLesson ? "bg-[#10B981]/50 hover:bg-[#10B981]/70" : ""
-                  }`}
+                  className={`pointer-events-auto h-10 sm:h-12 rounded-full bg-[#0A2540]/50 hover:bg-[#0A2540]/70 text-white flex items-center justify-center hover:justify-end overflow-hidden transition-all duration-300 shadow-lg backdrop-blur-sm border border-[#0A2540]/30 group w-10 sm:w-12 md:hover:w-32 hover:pl-2 md:hover:pl-3 hover:pr-2 md:hover:pr-3 ${isLastLesson ? "bg-[#10B981]/50 hover:bg-[#10B981]/70" : ""
+                    }`}
                 >
                   <span className="hidden md:block text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-0 group-hover:w-auto overflow-hidden order-1">
                     {isLastLesson ? "Terminar" : "Siguiente"}
@@ -5971,13 +5971,12 @@ function QuizRenderer({
           return (
             <div
               key={question.id}
-              className={`relative rounded-lg border transition-colors ${
-                showResults
-                  ? isCorrect
-                    ? "border-emerald-500/30 bg-emerald-500/5"
-                    : "border-red-500/30 bg-red-500/5"
-                  : "border-white/10 bg-white/[0.02]"
-              }`}
+              className={`relative rounded-lg border transition-colors ${showResults
+                ? isCorrect
+                  ? "border-emerald-500/30 bg-emerald-500/5"
+                  : "border-red-500/30 bg-red-500/5"
+                : "border-white/10 bg-white/[0.02]"
+                }`}
             >
               {/* Header de pregunta */}
               <div className="px-4 py-3 border-b border-white/5 flex items-start justify-between gap-3">
@@ -6025,37 +6024,35 @@ function QuizRenderer({
                   return (
                     <label
                       key={optIndex}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-all ${
-                        showResults
-                          ? isCorrectOption
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : isSelected && !isCorrectOption
-                              ? "bg-red-500/10 text-red-400"
-                              : "bg-transparent text-white/50"
-                          : isSelected
-                            ? "bg-white/10 text-white"
-                            : "bg-transparent text-white/60 hover:bg-white/5 hover:text-white/80"
-                      }`}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-all ${showResults
+                        ? isCorrectOption
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : isSelected && !isCorrectOption
+                            ? "bg-red-500/10 text-red-400"
+                            : "bg-transparent text-white/50"
+                        : isSelected
+                          ? "bg-white/10 text-white"
+                          : "bg-transparent text-white/60 hover:bg-white/5 hover:text-white/80"
+                        }`}
                     >
                       <div
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                          showResults
-                            ? isCorrectOption
-                              ? "border-emerald-400 bg-emerald-400"
-                              : isSelected && !isCorrectOption
-                                ? "border-red-400 bg-red-400"
-                                : "border-white/20"
-                            : isSelected
-                              ? "border-white bg-white"
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${showResults
+                          ? isCorrectOption
+                            ? "border-emerald-400 bg-emerald-400"
+                            : isSelected && !isCorrectOption
+                              ? "border-red-400 bg-red-400"
                               : "border-white/20"
-                        }`}
+                          : isSelected
+                            ? "border-white bg-white"
+                            : "border-white/20"
+                          }`}
                       >
                         {((showResults &&
                           (isCorrectOption ||
                             (isSelected && !isCorrectOption))) ||
                           (!showResults && isSelected)) && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-black" />
-                        )}
+                            <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                          )}
                       </div>
                       <input
                         type="radio"
@@ -6086,11 +6083,10 @@ function QuizRenderer({
               {/* Explicación */}
               {showExplanation && question.explanation && (
                 <div
-                  className={`mx-3 mb-3 px-3 py-2 rounded-md text-xs ${
-                    isCorrect
-                      ? "bg-emerald-500/10 border border-emerald-500/20"
-                      : "bg-red-500/10 border border-red-500/20"
-                  }`}
+                  className={`mx-3 mb-3 px-3 py-2 rounded-md text-xs ${isCorrect
+                    ? "bg-emerald-500/10 border border-emerald-500/20"
+                    : "bg-red-500/10 border border-red-500/20"
+                    }`}
                 >
                   <span
                     className={`font-medium ${isCorrect ? "text-emerald-400" : "text-red-400"}`}
@@ -6140,11 +6136,10 @@ function QuizRenderer({
       {/* Resultados */}
       {showResults && (
         <div
-          className={`rounded-lg border p-5 ${
-            passed
-              ? "border-emerald-500/30 bg-emerald-500/5"
-              : "border-red-500/30 bg-red-500/5"
-          }`}
+          className={`rounded-lg border p-5 ${passed
+            ? "border-emerald-500/30 bg-emerald-500/5"
+            : "border-red-500/30 bg-red-500/5"
+            }`}
         >
           {/* Mensaje del servidor */}
           {serverMessage && (
@@ -6322,7 +6317,7 @@ function ReadingContentRenderer({ content }: { content: any }) {
           parsed.description ||
           readingContent;
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // Asegurar que es string
@@ -6529,10 +6524,9 @@ function ChecklistItem({
         onClick={handleToggle}
         className={`
           mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200
-          ${
-            checked
-              ? "bg-[#00D4B3] border-[#00D4B3] dark:bg-[#00D4B3] dark:border-[#00D4B3]"
-              : "bg-white dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]"
+          ${checked
+            ? "bg-[#00D4B3] border-[#00D4B3] dark:bg-[#00D4B3] dark:border-[#00D4B3]"
+            : "bg-white dark:bg-[#1E2329] border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3] dark:hover:border-[#00D4B3]"
           }
           focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:ring-offset-1
         `}
@@ -6563,10 +6557,9 @@ function ChecklistItem({
       <p
         className={`
           flex-1 text-base leading-relaxed cursor-pointer
-          ${
-            checked
-              ? "text-gray-600 dark:text-slate-400 line-through"
-              : "text-gray-800 dark:text-slate-200"
+          ${checked
+            ? "text-gray-600 dark:text-slate-400 line-through"
+            : "text-gray-800 dark:text-slate-200"
           }
         `}
         onClick={handleToggle}
@@ -6636,14 +6629,14 @@ function FormattedContentRenderer({
     .filter((line: string) => line.length > 0);
   const formattedContent: Array<{
     type:
-      | "main-title"
-      | "section-title"
-      | "subsection-title"
-      | "paragraph"
-      | "list"
-      | "example"
-      | "highlight"
-      | "checklist";
+    | "main-title"
+    | "section-title"
+    | "subsection-title"
+    | "paragraph"
+    | "list"
+    | "example"
+    | "highlight"
+    | "checklist";
     content: string;
     level?: number;
     checked?: boolean;
@@ -6980,11 +6973,11 @@ function ActivitiesContent({
       activity_title: string;
       activity_description?: string;
       activity_type:
-        | "reflection"
-        | "exercise"
-        | "quiz"
-        | "discussion"
-        | "ai_chat";
+      | "reflection"
+      | "exercise"
+      | "quiz"
+      | "discussion"
+      | "ai_chat";
       activity_content: string;
       ai_prompts?: string;
       activity_order_index: number;
@@ -6997,12 +6990,12 @@ function ActivitiesContent({
       material_title: string;
       material_description?: string;
       material_type:
-        | "pdf"
-        | "link"
-        | "document"
-        | "quiz"
-        | "exercise"
-        | "reading";
+      | "pdf"
+      | "link"
+      | "document"
+      | "quiz"
+      | "exercise"
+      | "reading";
       file_url?: string;
       external_url?: string;
       content_data?: any;
@@ -7511,9 +7504,8 @@ function ActivitiesContent({
                   >
                     {/* Icono simple */}
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        isAiChat ? "bg-indigo-50 dark:bg-white/10" : "bg-gray-100 dark:bg-white/5"
-                      }`}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isAiChat ? "bg-indigo-50 dark:bg-white/10" : "bg-gray-100 dark:bg-white/5"
+                        }`}
                     >
                       {isAiChat ? (
                         <MessageCircle className="w-4 h-4 text-indigo-500 dark:text-white/60" />
@@ -7678,13 +7670,13 @@ function ActivitiesContent({
                                       }}
                                     >
                                       {typeof activity.activity_content ===
-                                      "string"
+                                        "string"
                                         ? activity.activity_content
                                         : JSON.stringify(
-                                            activity.activity_content,
-                                            null,
-                                            2
-                                          )}
+                                          activity.activity_content,
+                                          null,
+                                          2
+                                        )}
                                     </pre>
                                   </details>
                                 </div>
@@ -7732,7 +7724,7 @@ function ActivitiesContent({
                                     const raw = activity.ai_prompts;
                                     parsedPrompts =
                                       typeof raw === "string" &&
-                                      raw.trim().startsWith("[")
+                                        raw.trim().startsWith("[")
                                         ? JSON.parse(raw)
                                         : [String(raw)];
                                   } catch (e) {
@@ -7900,77 +7892,77 @@ function ActivitiesContent({
                         {(material.content_data ||
                           (material.material_type === "reading" &&
                             material.material_description)) && (
-                          <div className="w-full">
-                            {material.material_type === "quiz" &&
-                              (() => {
-                                try {
-                                  let quizData = material.content_data;
-                                  if (typeof quizData === "string") {
-                                    try {
-                                      quizData = JSON.parse(quizData);
-                                    } catch (e) {
-                                      return null;
+                            <div className="w-full">
+                              {material.material_type === "quiz" &&
+                                (() => {
+                                  try {
+                                    let quizData = material.content_data;
+                                    if (typeof quizData === "string") {
+                                      try {
+                                        quizData = JSON.parse(quizData);
+                                      } catch (e) {
+                                        return null;
+                                      }
                                     }
-                                  }
-                                  let questionsArray = quizData;
-                                  let totalPoints = undefined;
-                                  if (
-                                    quizData &&
-                                    typeof quizData === "object" &&
-                                    !Array.isArray(quizData)
-                                  ) {
+                                    let questionsArray = quizData;
+                                    let totalPoints = undefined;
                                     if (
-                                      quizData.questions &&
-                                      Array.isArray(quizData.questions)
+                                      quizData &&
+                                      typeof quizData === "object" &&
+                                      !Array.isArray(quizData)
                                     ) {
-                                      questionsArray = quizData.questions;
-                                      totalPoints = quizData.totalPoints;
+                                      if (
+                                        quizData.questions &&
+                                        Array.isArray(quizData.questions)
+                                      ) {
+                                        questionsArray = quizData.questions;
+                                        totalPoints = quizData.totalPoints;
+                                      }
                                     }
-                                  }
-                                  if (
-                                    Array.isArray(questionsArray) &&
-                                    questionsArray.length > 0
-                                  ) {
-                                    const hasValidStructure =
-                                      questionsArray.every(
-                                        (q: any) =>
-                                          q &&
-                                          typeof q === "object" &&
-                                          (q.question || q.id)
-                                      );
-                                    if (hasValidStructure) {
-                                      return (
-                                        <QuizRenderer
-                                          quizData={questionsArray}
-                                          totalPoints={totalPoints}
-                                          lessonId={lesson.lesson_id}
-                                          slug={slug}
-                                          materialId={material.material_id}
-                                        />
-                                      );
+                                    if (
+                                      Array.isArray(questionsArray) &&
+                                      questionsArray.length > 0
+                                    ) {
+                                      const hasValidStructure =
+                                        questionsArray.every(
+                                          (q: any) =>
+                                            q &&
+                                            typeof q === "object" &&
+                                            (q.question || q.id)
+                                        );
+                                      if (hasValidStructure) {
+                                        return (
+                                          <QuizRenderer
+                                            quizData={questionsArray}
+                                            totalPoints={totalPoints}
+                                            lessonId={lesson.lesson_id}
+                                            slug={slug}
+                                            materialId={material.material_id}
+                                          />
+                                        );
+                                      }
                                     }
+                                  } catch (e) { }
+                                  return null;
+                                })()}
+                              {material.material_type === "reading" && (
+                                <ReadingContentRenderer
+                                  content={
+                                    material.content_data ||
+                                    material.material_description
                                   }
-                                } catch (e) {}
-                                return null;
-                              })()}
-                            {material.material_type === "reading" && (
-                              <ReadingContentRenderer
-                                content={
-                                  material.content_data ||
-                                  material.material_description
-                                }
-                              />
-                            )}
-                            {material.material_type !== "quiz" &&
-                              material.material_type !== "reading" &&
-                              material.content_data && (
-                                <FormattedContentRenderer
-                                  content={material.content_data}
-                                  activityId={material.material_id}
                                 />
                               )}
-                          </div>
-                        )}
+                              {material.material_type !== "quiz" &&
+                                material.material_type !== "reading" &&
+                                material.content_data && (
+                                  <FormattedContentRenderer
+                                    content={material.content_data}
+                                    activityId={material.material_id}
+                                  />
+                                )}
+                            </div>
+                          )}
 
                         {/* Enlaces */}
                         {(material.external_url || material.file_url) && (
@@ -8028,11 +8020,10 @@ function ActivitiesContent({
               <button
                 onClick={() => handleLessonFeedback("like")}
                 disabled={feedbackLoading}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  lessonFeedback === "like"
-                    ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white/70"
-                } ${feedbackLoading ? "opacity-50" : ""}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${lessonFeedback === "like"
+                  ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white/70"
+                  } ${feedbackLoading ? "opacity-50" : ""}`}
               >
                 <ThumbsUp
                   className={`w-3.5 h-3.5 ${lessonFeedback === "like" ? "fill-current" : ""}`}
@@ -8042,11 +8033,10 @@ function ActivitiesContent({
               <button
                 onClick={() => handleLessonFeedback("dislike")}
                 disabled={feedbackLoading}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  lessonFeedback === "dislike"
-                    ? "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400"
-                    : "text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white/70"
-                } ${feedbackLoading ? "opacity-50" : ""}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${lessonFeedback === "dislike"
+                  ? "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400"
+                  : "text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white/70"
+                  } ${feedbackLoading ? "opacity-50" : ""}`}
               >
                 <ThumbsDown
                   className={`w-3.5 h-3.5 ${lessonFeedback === "dislike" ? "fill-current" : ""}`}
@@ -8269,10 +8259,10 @@ function QuestionsContent({
             prev.map((q) =>
               q.id === payload.new.id
                 ? {
-                    ...q,
-                    ...payload.new,
-                    updated_at: payload.new.updated_at || q.updated_at,
-                  }
+                  ...q,
+                  ...payload.new,
+                  updated_at: payload.new.updated_at || q.updated_at,
+                }
                 : q
             )
           );
@@ -8329,9 +8319,9 @@ function QuestionsContent({
             prev.map((q) =>
               q.id === questionId
                 ? {
-                    ...q,
-                    response_count: Math.max(0, (q.response_count || 0) - 1),
-                  }
+                  ...q,
+                  response_count: Math.max(0, (q.response_count || 0) - 1),
+                }
                 : q
             )
           );
@@ -8383,9 +8373,9 @@ function QuestionsContent({
             prev.map((q) =>
               q.id === questionId
                 ? {
-                    ...q,
-                    reaction_count: Math.max(0, (q.reaction_count || 0) - 1),
-                  }
+                  ...q,
+                  reaction_count: Math.max(0, (q.reaction_count || 0) - 1),
+                }
                 : q
             )
           );
@@ -8603,9 +8593,9 @@ function QuestionsContent({
                     prev.map((q) =>
                       q.id === questionId
                         ? {
-                            ...q,
-                            reaction_count: updatedQuestion.reaction_count || 0,
-                          }
+                          ...q,
+                          reaction_count: updatedQuestion.reaction_count || 0,
+                        }
                         : q
                     )
                   );
@@ -8845,11 +8835,10 @@ function QuestionsContent({
                   <div className="flex items-center gap-4">
                     <button
                       onClick={(e) => handleReaction(question.id, e)}
-                      className={`flex items-center gap-1.5 text-xs transition-colors ${
-                        userReactions[question.id] === "like"
-                          ? "text-red-500"
-                          : "text-gray-400 hover:text-red-500"
-                      }`}
+                      className={`flex items-center gap-1.5 text-xs transition-colors ${userReactions[question.id] === "like"
+                        ? "text-red-500"
+                        : "text-gray-400 hover:text-red-500"
+                        }`}
                     >
                       <Heart
                         className={`w-3.5 h-3.5 ${userReactions[question.id] === "like" ? "fill-current" : ""}`}
@@ -9674,11 +9663,10 @@ function QuestionDetail({
                   <div className="flex items-center gap-4">
                     <button
                       onClick={(e) => handleResponseReaction(response.id, e)}
-                      className={`flex items-center gap-1.5 text-xs transition-colors ${
-                        responseReactions[response.id] === "like"
-                          ? "text-red-500"
-                          : "text-gray-400 hover:text-red-500"
-                      }`}
+                      className={`flex items-center gap-1.5 text-xs transition-colors ${responseReactions[response.id] === "like"
+                        ? "text-red-500"
+                        : "text-gray-400 hover:text-red-500"
+                        }`}
                     >
                       <Heart
                         className={`w-3.5 h-3.5 ${responseReactions[response.id] === "like" ? "fill-current" : ""}`}

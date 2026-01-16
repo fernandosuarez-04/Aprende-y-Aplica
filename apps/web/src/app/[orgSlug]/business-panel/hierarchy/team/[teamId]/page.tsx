@@ -24,20 +24,27 @@ import {
   BarChart3,
   Plus,
   Mail,
-  MoreVertical
+  MoreVertical,
+  MessageSquare
 } from 'lucide-react'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { useThemeStore } from '@/core/stores/themeStore'
 import { HierarchyService } from '@/features/business-panel/services/hierarchy.service'
 import { uploadTeamLogo } from '@/features/business-panel/services/hierarchyUpload.service'
 import { Team, UserWithHierarchy, ManagerInfo, HierarchyAnalytics, HierarchyCourse } from '@/features/business-panel/types/hierarchy.types'
+import { useHierarchyAnalytics } from '@/features/business-panel/hooks/useHierarchyAnalytics'
 import {
   TeamForm,
   DeleteConfirmModal
 } from '@/features/business-panel/components/hierarchy'
 import { CourseSelectorModal } from '@/features/business-panel/components/hierarchy/CourseSelectorModal'
 import { CourseAssignmentResultModal } from '@/features/business-panel/components/hierarchy/CourseAssignmentResultModal'
+import { CourseAssignments, CourseAssignmentForm } from '@/features/business-panel/components/hierarchy'
+import { HierarchyAssignmentsService } from '@/features/business-panel/services/hierarchy-assignments.service'
+import { TeamMembersModal } from '@/features/business-panel/components/hierarchy/TeamMembersModal'
 import { BusinessUsersService } from '@/features/business-panel/services/businessUsers.service'
+import { ToastNotification } from '@/core/components/ToastNotification/ToastNotification'
+import { HierarchyChat } from '@/features/business-panel/components/hierarchy/HierarchyChat'
 
 import HierarchyMapWrapper from '@/features/business-panel/components/hierarchy/HierarchyMapWrapper'
 
@@ -56,9 +63,11 @@ export default function TeamDetailPage() {
   
   const [team, setTeam] = useState<Team | null>(null)
   const [members, setMembers] = useState<UserWithHierarchy[]>([])
-  const [analytics, setAnalytics] = useState<HierarchyAnalytics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'courses'>('overview')
+  
+  // Hook para analíticas con actualización en tiempo real (polling cada 30s)
+  const { analytics, isLoading: isLoadingAnalytics, mutate: refreshAnalytics } = useHierarchyAnalytics('team', teamId)
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'courses' | 'chat-horizontal' | 'chat-vertical'>('overview')
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -67,6 +76,9 @@ export default function TeamDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false)
+  const [isAssignmentFormOpen, setIsAssignmentFormOpen] = useState(false)
+  const [editingAssignment, setEditingAssignment] = useState<any>(null)
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false)
   const [availableLeaders, setAvailableLeaders] = useState<ManagerInfo[]>([])
 
   // Course assignment result modal
@@ -89,6 +101,17 @@ export default function TeamDetailPage() {
 
   // Courses state
   const [courses, setCourses] = useState<HierarchyCourse[]>([])
+
+  // Toast notification state
+  const [toast, setToast] = useState<{
+    isOpen: boolean
+    message: string
+    type: 'success' | 'error' | 'info'
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'error'
+  })
 
   useEffect(() => {
     const loadLeaders = async () => {
@@ -116,11 +139,24 @@ export default function TeamDetailPage() {
       if (result.success && result.data) {
         setTeam(result.data)
         setIsEditOpen(false)
+        setToast({
+          isOpen: true,
+          message: 'Equipo actualizado exitosamente',
+          type: 'success'
+        })
       } else {
-        alert('Error al actualizar: ' + result.error)
+        setToast({
+          isOpen: true,
+          message: 'Error al actualizar: ' + (result.error || 'Error desconocido'),
+          type: 'error'
+        })
       }
     } catch (err) {
-      alert('Error al actualizar el equipo')
+      setToast({
+        isOpen: true,
+        message: 'Error al actualizar el equipo',
+        type: 'error'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -134,11 +170,19 @@ export default function TeamDetailPage() {
       if (result.success) {
         router.push(`/${orgSlug}/business-panel/hierarchy`)
       } else {
-        alert('Error al eliminar: ' + result.error)
+        setToast({
+          isOpen: true,
+          message: 'Error al eliminar: ' + (result.error || 'Error desconocido'),
+          type: 'error'
+        })
         setIsLoading(false)
       }
     } catch (err) {
-      alert('Error al eliminar el equipo')
+      setToast({
+        isOpen: true,
+        message: 'Error al eliminar el equipo',
+        type: 'error'
+      })
       setIsLoading(false)
     }
   }
@@ -160,14 +204,43 @@ export default function TeamDetailPage() {
         setTeam({ ...team, logo_url: result.url } as any)
       } else {
         console.error('Upload failed:', result.error)
-        alert('Error al subir la imagen')
+        setToast({
+          isOpen: true,
+          message: 'Error al subir la imagen: ' + (result.error || 'Error desconocido'),
+          type: 'error'
+        })
       }
     } catch (error) {
       console.error('Error uploading logo:', error)
-      alert('Error al subir la imagen')
+      setToast({
+        isOpen: true,
+        message: 'Error al subir la imagen',
+        type: 'error'
+      })
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true)
+      // Analytics se carga automáticamente con el hook useHierarchyAnalytics
+      const [teamData, membersData, coursesData] = await Promise.all([
+        HierarchyService.getTeam(teamId),
+        HierarchyService.getTeamMembers(teamId),
+        HierarchyService.getEntityCourses('team', teamId)
+      ])
+      setTeam(teamData)
+      setMembers(membersData)
+      setCourses(coursesData)
+      // Refrescar analytics manualmente después de cargar otros datos
+      refreshAnalytics()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -176,7 +249,11 @@ export default function TeamDetailPage() {
     
     try {
       setIsLoading(true)
-      const result = await HierarchyService.assignCoursesToEntity('team', team.id, courseIds)
+      const result = await HierarchyAssignmentsService.createAssignment({
+        entity_type: 'team',
+        entity_id: team.id,
+        course_ids: courseIds
+      })
       
       if (result.success && result.data) {
         // Recargar cursos para mostrar los nuevos desde la BD
@@ -194,6 +271,7 @@ export default function TeamDetailPage() {
           totalUsers: result.data.total_users,
           results: result.data.results
         })
+        setIsCourseModalOpen(false)
       } else {
         // Mostrar modal de error
         setAssignmentResult({
@@ -221,27 +299,23 @@ export default function TeamDetailPage() {
     }
   }
 
+  const handleOpenAssignmentForm = () => {
+    setEditingAssignment(null)
+    setIsAssignmentFormOpen(true)
+  }
+
+  const handleEditAssignment = (assignment: any) => {
+    setEditingAssignment(assignment)
+    setIsAssignmentFormOpen(true)
+  }
+
+  const handleAssignmentSuccess = async () => {
+    await loadData()
+    setIsAssignmentFormOpen(false)
+    setEditingAssignment(null)
+  }
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true)
-        const [teamData, membersData, analyticsData, coursesData] = await Promise.all([
-          HierarchyService.getTeam(teamId),
-          HierarchyService.getTeamMembers(teamId),
-          HierarchyService.getVisualAnalytics('team', teamId),
-          HierarchyService.getEntityCourses('team', teamId)
-        ])
-        setTeam(teamData)
-        setMembers(membersData)
-        setAnalytics(analyticsData)
-        setCourses(coursesData)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    
     if (teamId) {
       loadData()
     }
@@ -432,6 +506,20 @@ export default function TeamDetailPage() {
           >
             Cursos y Aprendizaje
           </TabButton>
+          <TabButton 
+            active={activeTab === 'chat-horizontal'} 
+            onClick={() => setActiveTab('chat-horizontal')}
+            icon={<Users className="w-4 h-4" />}
+          >
+            Chat entre Pares
+          </TabButton>
+          <TabButton 
+            active={activeTab === 'chat-vertical'} 
+            onClick={() => setActiveTab('chat-vertical')}
+            icon={<MessageSquare className="w-4 h-4" />}
+          >
+            Chat con Equipo
+          </TabButton>
         </div>
       </div>
 
@@ -523,42 +611,179 @@ export default function TeamDetailPage() {
                 Rendimiento del Equipo (Tiempo Real)
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <MetricCard 
-                  label="Tasa de Finalización"
-                  value={`${analytics?.avg_completion || 0}%`}
-                  trend="Promedio"
-                  trendUp={true}
-                  color="emerald"
-                />
-                <MetricCard 
-                  label="Horas de Aprendizaje"
-                  value={`${analytics?.total_hours || 0}h`}
-                  trend="Total ACUM"
-                  trendUp={true}
-                  color="blue"
-                />
-                <MetricCard 
-                  label="Usuarios Activos"
-                  value={analytics?.active_learners || 0}
-                  trend={`de ${members.length}`}
-                  trendUp={true}
-                  color="purple"
-                />
+              {/* Métricas Principales - Lista */}
+              <div className="mb-8">
+                <div className="space-y-2 p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Tasa de Finalización</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Promedio</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.avg_completion || 0}%</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Horas de Aprendizaje</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">Total ACUM</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.total_hours || 0}h</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Usuarios Activos</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400">de {analytics?.users_count || members.length}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.active_learners || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Tasa de Participación</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400">Activos</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.participation_rate || 0}%</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Cursos Completados</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Total</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.courses_completed || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Completitud Asignaciones</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400">Tasa</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.assignment_completion_rate || 0}%</span>
+                  </div>
+                </div>
               </div>
 
+              {/* Top Performer Mejorado */}
               {analytics?.top_performer && (
                  <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 flex items-center gap-4 mb-6">
                     <div className="p-3 bg-amber-500/20 rounded-full text-amber-500">
                        <User className="w-6 h-6" />
                     </div>
-                    <div>
-                      <p className="text-sm text-amber-400 font-medium">🏆 Empleado del mes</p>
+                    <div className="flex-1">
+                      <p className="text-sm text-amber-400 font-medium">🏆 Mejor Empleado del Equipo</p>
                       <p className="text-xl font-bold text-white">{analytics.top_performer.name}</p>
-                      <p className="text-xs text-white/50">{analytics.top_performer.value} horas de aprendizaje</p>
+                      <div className="flex items-center gap-4 mt-1 text-xs text-white/60">
+                        <span>⏱️ {analytics.top_performer.value} horas</span>
+                        {analytics.top_performer.courses_completed !== undefined && (
+                          <span>📚 {analytics.top_performer.courses_completed} cursos</span>
+                        )}
+                        {analytics.top_performer.completion_rate !== undefined && (
+                          <span>✅ {Math.round(analytics.top_performer.completion_rate)}% completitud</span>
+                        )}
+                      </div>
                     </div>
                  </div>
               )}
+
+              {/* Métricas Detalladas - Lista */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-gray-600 dark:text-white/60" />
+                  Métricas Detalladas
+                </h4>
+                <div className="space-y-2 p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Horas promedio por miembro</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">Promedio</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.avg_hours_per_member?.toFixed(1) || 0}h</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Lecciones completadas</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Total</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.lessons_completed || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Cursos en progreso</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">Activos</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.courses_in_progress || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Cursos no iniciados</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400">Pendientes</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.courses_not_started || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Asignaciones vencidas</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">Atención</span>
+                    </div>
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">{analytics?.assignments_overdue || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Próximas a vencer (7 días)</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">Próximas</span>
+                    </div>
+                    <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">{analytics?.assignments_due_soon || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Días activos promedio</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400">Últimos 30 días</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.avg_active_days?.toFixed(1) || 0} días</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Racha promedio</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400">Promedio</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.avg_streak?.toFixed(1) || 0} días</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Racha más larga</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400">Máximo</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.longest_streak || 0} días</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Sesiones completadas</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Total</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.sessions_completed || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Sesiones perdidas</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">Últimos 30 días</span>
+                    </div>
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">{analytics?.sessions_missed || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Tiempo promedio por sesión</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">Promedio</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.avg_session_duration?.toFixed(1) || 0} min</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gráfico de Actividad */}
+              <div className="h-48 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 flex items-center justify-center relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <div className="text-center">
+                  <BarChart3 className="w-12 h-12 text-gray-400 dark:text-white/20 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-white/40">Gráfico de actividad semanal</p>
+                  <p className="text-xs text-gray-400 dark:text-white/20 mt-1">(Datos en tiempo real)</p>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -577,7 +802,7 @@ export default function TeamDetailPage() {
               </h2>
               <button 
                 className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                onClick={() => router.push(`/${orgSlug}/business-panel/users`)}
+                onClick={() => setIsMembersModalOpen(true)}
               >
                 Gestionar Usuarios
               </button>
@@ -641,55 +866,52 @@ export default function TeamDetailPage() {
         )}
 
         {/* Courses Tab */}
-        {activeTab === 'courses' && (
+        {activeTab === 'courses' && team && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Plan de Aprendizaje del Equipo</h2>
-                <p className="text-gray-600 dark:text-white/50">Cursos específicos asignados a este equipo.</p>
-              </div>
-              <button
-                onClick={() => setIsCourseModalOpen(true)}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-white shadow-lg cursor-pointer hover:shadow-xl hover:translate-y-[-1px] transition-all flex items-center gap-2 drop-shadow-md"
-                style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}
-              >
-                <Plus className="w-4 h-4" />
-                Asignar Cursos
-              </button>
-            </div>
+            <CourseAssignments
+              entityType="team"
+              entityId={team.id}
+              entityName={team.name}
+              onAssign={handleOpenAssignmentForm}
+              onEdit={handleEditAssignment}
+              onCancel={handleAssignmentSuccess}
+            />
+          </motion.div>
+        )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {courses.length > 0 ? (
-                courses.map((course) => (
-                  <CourseCard 
-                    key={course.id}
-                    title={course.title}
-                    category={course.category}
-                    students={course.enrolled_count}
-                    progress={course.avg_progress}
-                    image={course.thumbnail_url}
-                  />
-                ))
-              ) : (
-                 <div className="col-span-full py-12 text-center text-gray-500 dark:text-white/40 border border-gray-200 dark:border-white/5 rounded-2xl bg-gray-100 dark:bg-white/5">
-                    <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:opacity-20" />
-                    <p>No hay cursos con actividad en este equipo.</p>
-                 </div>
-              )}
-              <button
-                onClick={() => setIsCourseModalOpen(true)} 
-                className="rounded-2xl border-2 border-dashed border-gray-300 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-all flex flex-col items-center justify-center p-8 text-center h-full min-h-[200px] group"
-              >
-                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Plus className="w-6 h-6 text-gray-400 dark:text-white/40" />
-                </div>
-                <h3 className="font-medium text-gray-700 dark:text-white">Asignar Nuevo Curso</h3>
-              </button>
-            </div>
+        {activeTab === 'chat-horizontal' && team && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-[600px] rounded-2xl border border-white/10 overflow-hidden"
+            style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+          >
+            <HierarchyChat
+              entityType="team"
+              entityId={team.id}
+              chatType="horizontal"
+              title="Chat entre Líderes de Equipo"
+            />
+          </motion.div>
+        )}
+
+        {activeTab === 'chat-vertical' && team && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-[600px] rounded-2xl border border-white/10 overflow-hidden"
+            style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+          >
+            <HierarchyChat
+              entityType="team"
+              entityId={team.id}
+              chatType="vertical"
+              title="Chat con Miembros del Equipo"
+            />
           </motion.div>
         )}
       </div>
@@ -706,12 +928,38 @@ export default function TeamDetailPage() {
         />
       )}
 
+      {team && (
+        <CourseAssignmentForm
+          isOpen={isAssignmentFormOpen}
+          onClose={() => {
+            setIsAssignmentFormOpen(false)
+            setEditingAssignment(null)
+          }}
+          entityType="team"
+          entityId={team.id}
+          entityName={team.name}
+          assignment={editingAssignment}
+          onSuccess={handleAssignmentSuccess}
+        />
+      )}
+
       <CourseSelectorModal 
         isOpen={isCourseModalOpen}
         onClose={() => setIsCourseModalOpen(false)}
         onSelect={handleAssignCourses}
         title={`Asignar a Equipo ${team.name}`}
       />
+
+      {team && (
+        <TeamMembersModal
+          isOpen={isMembersModalOpen}
+          onClose={() => setIsMembersModalOpen(false)}
+          teamId={team.id}
+          teamName={team.name}
+          currentMembers={members}
+          onMembersUpdated={loadData}
+        />
+      )}
 
       {assignmentResult && (
         <CourseAssignmentResultModal
@@ -734,6 +982,14 @@ export default function TeamDetailPage() {
         itemName={team.name}
         isLoading={isLoading}
       />
+
+      <ToastNotification
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.type === 'error' ? 6000 : 4000}
+      />
     </div>
   )
 }
@@ -746,7 +1002,7 @@ function TabButton({ active, children, onClick, icon }: { active: boolean; child
       className={`
         px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap
         ${active 
-          ? 'border-blue-500 text-white' 
+          ? 'border-blue-500 text-blue-600 dark:text-white' 
           : 'border-transparent text-gray-600 dark:text-white/80 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-white/30'}
       `}
     >
@@ -761,6 +1017,9 @@ function MetricCard({ label, value, trend, trendUp, color }: any) {
     emerald: 'bg-emerald-500/10 text-emerald-400',
     blue: 'bg-blue-500/10 text-blue-400',
     purple: 'bg-purple-500/10 text-purple-400',
+    cyan: 'bg-cyan-500/10 text-cyan-400',
+    green: 'bg-green-500/10 text-green-400',
+    orange: 'bg-orange-500/10 text-orange-400',
   }
   
   return (

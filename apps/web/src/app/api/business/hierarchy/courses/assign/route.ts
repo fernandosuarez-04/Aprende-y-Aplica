@@ -233,7 +233,74 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      // Crear asignaciones
+      // Crear registro en hierarchy_course_assignments (tabla base)
+      const { data: hierarchyAssignment, error: hierarchyError } = await supabase
+        .from('hierarchy_course_assignments')
+        .insert({
+          organization_id: organizationId,
+          course_id: courseId,
+          assigned_by: currentUser.id,
+          assigned_at: new Date().toISOString(),
+          due_date: due_date || null,
+          start_date: start_date || null,
+          approach: approach || null,
+          message: message && message.trim() ? message.trim() : null,
+          status: 'active',
+          total_users: user_ids.length,
+          assigned_users_count: 0, // Se actualizará después
+          completed_users_count: 0
+        })
+        .select()
+        .single()
+
+      if (hierarchyError || !hierarchyAssignment) {
+        logger.error(`Error creando asignación jerárquica para curso ${courseId}:`, hierarchyError)
+        results.push({
+          course_id: courseId,
+          course_title: course.title,
+          success: false,
+          error: hierarchyError?.message || 'Error al crear asignación jerárquica'
+        })
+        continue
+      }
+
+      // Crear registro en tabla auxiliar correspondiente
+      let auxiliaryTable = ''
+      let auxiliaryData: any = { hierarchy_assignment_id: hierarchyAssignment.id }
+      
+      if (entity_type === 'region') {
+        auxiliaryTable = 'region_course_assignments'
+        auxiliaryData.region_id = entity_id
+      } else if (entity_type === 'zone') {
+        auxiliaryTable = 'zone_course_assignments'
+        auxiliaryData.zone_id = entity_id
+      } else {
+        auxiliaryTable = 'team_course_assignments'
+        auxiliaryData.team_id = entity_id
+      }
+
+      const { error: auxiliaryError } = await supabase
+        .from(auxiliaryTable)
+        .insert(auxiliaryData)
+
+      if (auxiliaryError) {
+        logger.error(`Error creando registro auxiliar para curso ${courseId}:`, auxiliaryError)
+        // Eliminar la asignación jerárquica creada
+        await supabase
+          .from('hierarchy_course_assignments')
+          .delete()
+          .eq('id', hierarchyAssignment.id)
+        
+        results.push({
+          course_id: courseId,
+          course_title: course.title,
+          success: false,
+          error: auxiliaryError?.message || 'Error al crear registro auxiliar'
+        })
+        continue
+      }
+
+      // Crear asignaciones individuales vinculadas a la asignación jerárquica
       const assignments = newUserIds.map(userId => ({
         organization_id: organizationId,
         user_id: userId,
@@ -245,7 +312,8 @@ export async function POST(request: NextRequest) {
         approach: approach || null,
         message: message && message.trim() ? message.trim() : null,
         status: 'assigned',
-        completion_percentage: 0
+        completion_percentage: 0,
+        hierarchy_assignment_id: hierarchyAssignment.id
       }))
 
       const { data: createdAssignments, error: assignError } = await supabase
@@ -255,6 +323,10 @@ export async function POST(request: NextRequest) {
 
       if (assignError || !createdAssignments) {
         logger.error(`Error asignando curso ${courseId}:`, assignError)
+        // Eliminar la asignación jerárquica y auxiliar creadas
+        await supabase.from(auxiliaryTable).delete().eq('hierarchy_assignment_id', hierarchyAssignment.id)
+        await supabase.from('hierarchy_course_assignments').delete().eq('id', hierarchyAssignment.id)
+        
         results.push({
           course_id: courseId,
           course_title: course.title,
@@ -262,6 +334,16 @@ export async function POST(request: NextRequest) {
           error: assignError?.message || 'Error al asignar el curso'
         })
         continue
+      }
+
+      // Actualizar estadísticas de la asignación jerárquica
+      const { error: statsError } = await supabase.rpc('update_assignment_stats', {
+        p_assignment_id: hierarchyAssignment.id
+      })
+
+      if (statsError) {
+        logger.warn(`Error actualizando estadísticas para asignación ${hierarchyAssignment.id}:`, statsError)
+        // No fallamos, solo lo registramos
       }
 
       // Crear enrollments para usuarios que no tengan uno
@@ -304,7 +386,8 @@ export async function POST(request: NextRequest) {
         course_title: course.title,
         success: true,
         assigned_count: createdAssignments.length,
-        already_assigned_count: existingUserIds.length
+        already_assigned_count: existingUserIds.length,
+        hierarchy_assignment_id: hierarchyAssignment.id
       })
     }
 

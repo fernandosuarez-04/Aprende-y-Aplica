@@ -13,19 +13,23 @@ interface VideoPlayerProps {
   onProgress?: (progress: number) => void;
   onComplete?: () => void;
   onPiPChange?: (isPiP: boolean) => void;
+  initialTime?: number;
+  initialPlaybackRate?: number;
 }
 
 // Re-export the interface for external use
 export type { CustomVideoPlayerRef as VideoPlayerRef };
 
-export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({ 
-  videoProvider, 
-  videoProviderId, 
+export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
+  videoProvider,
+  videoProviderId,
   title,
   className = '',
   onProgress,
   onComplete,
-  onPiPChange
+  onPiPChange,
+  initialTime = 0,
+  initialPlaybackRate = 1
 }, ref) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +37,7 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const customVideoRef = useRef<CustomVideoPlayerRef>(null);
-  
+
   // Forward the ref to the CustomVideoPlayer
   useImperativeHandle(ref, () => ({
     requestPiP: async () => {
@@ -56,7 +60,7 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
     const checkMobile = () => {
       return window.innerWidth < 768;
     };
-    
+
     // En móviles, usar 'metadata' para que el video empiece a cargar inmediatamente
     // Esto reduce el tiempo de espera cuando el usuario hace clic en play
     if (checkMobile()) {
@@ -72,7 +76,7 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
       const timeout = setTimeout(() => {
         setIsLoading(false);
       }, 5000); // Ocultar loader después de 5 segundos máximo
-      
+
       return () => clearTimeout(timeout);
     }
   }, [isLoading]);
@@ -88,15 +92,15 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
     if (!videoProvider || !videoProviderId) {
       return false;
     }
-    
+
     if (videoProvider === 'youtube' && !videoProviderId.match(/^[a-zA-Z0-9_-]{11}$/)) {
       return false;
     }
-    
+
     if (videoProvider === 'vimeo' && !videoProviderId.match(/^\d+$/)) {
       return false;
     }
-    
+
     return true;
   };
 
@@ -107,16 +111,18 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
       case 'youtube':
         // Verificar si window está disponible (solo en el navegador)
         const origin = typeof window !== 'undefined' ? window.location.origin : '';
-        url = `https://www.youtube.com/embed/${videoProviderId}?enablejsapi=1${origin ? `&origin=${origin}` : ''}`;
+        const startParam = initialTime > 0 ? `&start=${Math.floor(initialTime)}` : '';
+        url = `https://www.youtube.com/embed/${videoProviderId}?enablejsapi=1${origin ? `&origin=${origin}` : ''}${startParam}`;
         break;
       case 'vimeo':
-        url = `https://player.vimeo.com/video/${videoProviderId}`;
+        const timeParam = initialTime > 0 ? `#t=${Math.floor(initialTime)}s` : '';
+        url = `https://player.vimeo.com/video/${videoProviderId}${timeParam}`;
         break;
       case 'direct':
       case 'custom':
         // Para videos directos de Supabase, reconstruir la URL completa si es necesario
         url = videoProviderId;
-        
+
         // Si la URL es relativa (no empieza con http), reconstruirla
         if (url && !url.startsWith('http')) {
           try {
@@ -132,12 +138,12 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
                 filePath = `videos/${filePath}`;
               }
             }
-            
+
             // Obtener la URL pública usando Supabase Storage
             const { data: urlData } = supabase.storage
               .from('course-videos')
               .getPublicUrl(filePath);
-            
+
             if (urlData?.publicUrl) {
               url = urlData.publicUrl;
             } else {
@@ -163,7 +169,7 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
       default:
         url = '';
     }
-    
+
     return url;
   };
 
@@ -212,7 +218,7 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
     }
 
     const videoUrl = getVideoUrl();
-    
+
     if (!videoUrl) {
       return (
         <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
@@ -235,6 +241,8 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
           onProgress={onProgress}
           onComplete={onComplete}
           onPiPChange={onPiPChange}
+          initialTime={initialTime}
+          initialPlaybackRate={initialPlaybackRate}
         />
       );
     }
@@ -247,7 +255,7 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
             <Loader2 className="w-8 h-8 animate-spin text-[#00D4B3]" />
           </div>
         )}
-        
+
         <iframe
           src={videoUrl}
           title={title || 'Video de la lección'}
@@ -272,18 +280,22 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
 VideoPlayer.displayName = 'VideoPlayer';
 
 // Componente específico para YouTube con controles personalizados
-export function YouTubePlayer({ 
-  videoId, 
+export function YouTubePlayer({
+  videoId,
   title,
   className = '',
   onProgress,
-  onComplete 
+  onComplete,
+  initialTime,
+  initialPlaybackRate
 }: {
   videoId: string;
   title?: string;
   className?: string;
   onProgress?: (progress: number) => void;
   onComplete?: () => void;
+  initialTime?: number;
+  initialPlaybackRate?: number;
 }) {
   return (
     <VideoPlayer
@@ -293,23 +305,29 @@ export function YouTubePlayer({
       className={className}
       onProgress={onProgress}
       onComplete={onComplete}
+      initialTime={initialTime}
+      initialPlaybackRate={initialPlaybackRate}
     />
   );
 }
 
 // Componente específico para Vimeo
-export function VimeoPlayer({ 
-  videoId, 
+export function VimeoPlayer({
+  videoId,
   title,
   className = '',
   onProgress,
-  onComplete 
+  onComplete,
+  initialTime,
+  initialPlaybackRate
 }: {
   videoId: string;
   title?: string;
   className?: string;
   onProgress?: (progress: number) => void;
   onComplete?: () => void;
+  initialTime?: number;
+  initialPlaybackRate?: number;
 }) {
   return (
     <VideoPlayer
@@ -319,23 +337,29 @@ export function VimeoPlayer({
       className={className}
       onProgress={onProgress}
       onComplete={onComplete}
+      initialTime={initialTime}
+      initialPlaybackRate={initialPlaybackRate}
     />
   );
 }
 
 // Componente para videos directos
-export function DirectVideoPlayer({ 
-  videoUrl, 
+export function DirectVideoPlayer({
+  videoUrl,
   title,
   className = '',
   onProgress,
-  onComplete 
+  onComplete,
+  initialTime,
+  initialPlaybackRate
 }: {
   videoUrl: string;
   title?: string;
   className?: string;
   onProgress?: (progress: number) => void;
   onComplete?: () => void;
+  initialTime?: number;
+  initialPlaybackRate?: number;
 }) {
   return (
     <VideoPlayer
@@ -345,6 +369,8 @@ export function DirectVideoPlayer({
       className={className}
       onProgress={onProgress}
       onComplete={onComplete}
+      initialTime={initialTime}
+      initialPlaybackRate={initialPlaybackRate}
     />
   );
 }

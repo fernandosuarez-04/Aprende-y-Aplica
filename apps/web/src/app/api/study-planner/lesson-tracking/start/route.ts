@@ -44,9 +44,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verificar autenticación
     const user = await SessionService.getCurrentUser();
-    
+
     if (!user) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'No autorizado',
         success: false
       }, { status: 401 });
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { lessonId, sessionId, planId, trigger = 'video_play', lessonTimeEstimates } = body;
 
     if (!lessonId) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'lessonId es requerido',
         success: false
       }, { status: 400 });
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Verificar si ya existe un tracking activo para esta lección y sesión
     const { data: existingTracking } = await supabase
       .from('lesson_tracking')
-      .select('id, status')
+      .select('id, status, video_checkpoint_seconds, video_playback_rate')
       .eq('user_id', user.id)
       .eq('lesson_id', lessonId)
       .eq('session_id', sessionId || null)
@@ -89,7 +89,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         success: true,
         message: 'Tracking ya activo, actividad actualizada',
         trackingId: existingTracking.id,
-        isNew: false
+        isNew: false,
+        initialCheckpoint: existingTracking.video_checkpoint_seconds || 0,
+        initialPlaybackRate: existingTracking.video_playback_rate || 1
       });
     }
 
@@ -98,8 +100,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (lessonTimeEstimates) {
       t_restante_minutes = Math.max(
         0,
-        lessonTimeEstimates.t_lesson_minutes - 
-        lessonTimeEstimates.t_video_minutes - 
+        lessonTimeEstimates.t_lesson_minutes -
+        lessonTimeEstimates.t_video_minutes -
         lessonTimeEstimates.t_materials_minutes
       );
     }
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (error) {
       console.error('Error creando lesson tracking:', error);
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: `Error al crear tracking: ${error.message}`,
         success: false
       }, { status: 500 });
@@ -156,7 +158,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   } catch (error: any) {
     console.error('Error en POST /api/study-planner/lesson-tracking/start:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: error.message || 'Error interno del servidor',
       success: false
     }, { status: 500 });

@@ -162,6 +162,14 @@ export class HierarchyService {
   }
 
   /**
+   * Obtiene las asignaciones de cursos de una entidad
+   */
+  static async getEntityAssignments(entityType: 'region' | 'zone' | 'team', entityId: string) {
+    const { HierarchyAssignmentsService } = await import('./hierarchy-assignments.service');
+    return HierarchyAssignmentsService.getEntityAssignments(entityType, entityId);
+  }
+
+  /**
    * Asigna cursos a todos los usuarios de una entidad de jerarquía
    */
   static async assignCoursesToEntity(

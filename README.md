@@ -2,6 +2,38 @@
 
 > Plataforma de capacitación empresarial B2B enfocada en inteligencia artificial, diseñada para organizaciones que buscan desarrollar las habilidades de sus equipos con cursos, certificaciones, planificación de estudios con IA y seguimiento de progreso personalizado.
 
+## 📌 Resumen Ejecutivo
+
+**Aprende y Aplica** es una plataforma educativa empresarial completa que combina inteligencia artificial, gestión de aprendizaje y herramientas de colaboración para ofrecer una experiencia de capacitación personalizada y escalable.
+
+### Propuesta de Valor
+
+- ✅ **Aprendizaje Personalizado con IA**: Asistente virtual LIA que se adapta al contexto y necesidades de cada usuario
+- ✅ **Gestión Empresarial Completa**: Sistema de jerarquías, equipos, analytics y reportes avanzados
+- ✅ **Planificación Inteligente**: Generación automática de planes de estudio con sincronización de calendarios
+- ✅ **White-Label**: Personalización completa de marca para organizaciones Enterprise
+- ✅ **Certificaciones Verificables**: Sistema de certificados con hash blockchain para verificación pública
+- ✅ **Comunidad Integrada**: Sistema de comunidades, chats jerárquicos y colaboración entre equipos
+- ✅ **Estándares de e-Learning**: Soporte SCORM para compatibilidad con contenido estándar
+- ✅ **Multilingüe**: Soporte nativo para Español, Inglés y Portugués
+
+### Tecnologías Principales
+
+- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
+- **Backend**: Node.js, Express, TypeScript
+- **Base de Datos**: Supabase (PostgreSQL)
+- **IA**: OpenAI GPT-4o-mini
+- **Arquitectura**: Monorepo con npm workspaces
+
+### Estadísticas del Proyecto
+
+- 📦 **19 módulos principales** de funcionalidades
+- 🧩 **800+ componentes** React
+- 🔌 **300+ endpoints** API
+- 🗄️ **40+ migraciones** de base de datos
+- 🌍 **3 idiomas** soportados
+- 📝 **150,000+ líneas** de código
+
 ---
 
 ## 🎯 Modelo de Negocio B2B
@@ -39,7 +71,10 @@
 - [Características Principales](#-características-principales)
 - [Asistente Virtual LIA](#-asistente-virtual-lia)
 - [Planificador de Estudios con IA](#-planificador-de-estudios-con-ia)
+- [Sistema de Jerarquías Organizacionales](#-sistema-de-jerarquías-organizacionales)
+- [Sistema de Chats Jerárquicos](#-sistema-de-chats-jerárquicos)
 - [Sistema de Diseño SOFIA](#-sistema-de-diseño-sofia)
+- [Integración SCORM](#-integración-scorm)
 - [Arquitectura del Proyecto](#-arquitectura-del-proyecto)
 - [Estructura de la Plataforma](#-estructura-de-la-plataforma)
 - [Stack Tecnológico](#-stack-tecnológico)
@@ -49,6 +84,7 @@
 - [Sistema de Autenticación](#-sistema-de-autenticación)
 - [Internacionalización](#-internacionalización)
 - [Desarrollo](#-desarrollo)
+- [Análisis del Proyecto](#-análisis-del-proyecto)
 
 ---
 
@@ -268,6 +304,146 @@ Integración con Google Calendar y Microsoft Outlook:
 - Creación automática de eventos en calendario secundario "Aprende y Aplica"
 - Sincronización bidireccional de cambios
 - Detección de conflictos con otros eventos
+
+---
+
+## 🏢 Sistema de Jerarquías Organizacionales
+
+Sistema opcional y retrocompatible que permite a las organizaciones estructurar sus equipos en una jerarquía de **Región > Zona > Equipo**.
+
+### Estructura Jerárquica
+
+```
+Organización (organization)
+└── Región (organization_regions)
+    └── Zona (organization_zones)
+        └── Equipo (organization_teams)
+            └── Usuarios (organization_users)
+```
+
+### Roles y Permisos
+
+| Rol                | Scope        | Descripción                                    | Acceso                              |
+| ------------------ | ------------ | ---------------------------------------------- | ----------------------------------- |
+| `owner`            | organization | Propietario, control total sin restricciones  | Toda la organización                |
+| `admin`            | organization | Administrador genérico, ámbito según asignación | Toda la organización                |
+| `regional_manager` | region       | Gerente Regional                                | Solo su región y sub-entidades      |
+| `zone_manager`     | zone         | Gerente de Zona                                | Solo su zona y equipos dentro       |
+| `team_leader`      | team         | Líder de Equipo                                | Solo su equipo                      |
+| `member`           | team         | Miembro básico                                 | Solo su equipo (vista limitada)     |
+
+### Características
+
+- **Opcional**: Las organizaciones pueden activar/desactivar la jerarquía
+- **Retrocompatible**: Organizaciones sin jerarquía funcionan normalmente
+- **Ubicación Geográfica**: Cada nivel puede tener dirección, ciudad, coordenadas GPS
+- **Gestión de Contactos**: Teléfono y email por nivel jerárquico
+- **Asignación de Gerentes**: Cada nivel puede tener un gerente/líder asignado
+- **Metadata Flexible**: Campos JSONB para configuración personalizada
+
+### Activación
+
+```sql
+-- Activar jerarquía para una organización
+UPDATE organizations 
+SET hierarchy_enabled = true,
+    hierarchy_config = '{"labels": {"region": "Sucursal", "zone": "Área"}}'::jsonb
+WHERE id = 'org-uuid';
+```
+
+### Uso en el Código
+
+```typescript
+import { getHierarchyContext } from "@/lib/auth/hierarchicalAccess";
+
+const context = await getHierarchyContext(userId, organizationId);
+// context.scope: 'organization' | 'region' | 'zone' | 'team'
+// context.role: HierarchyRole
+// context.accessibleTeamIds: string[] | null
+```
+
+---
+
+## 💬 Sistema de Chats Jerárquicos
+
+Sistema de comunicación interna que permite chats **horizontales** (mismo nivel) y **verticales** (jerárquicos) dentro de la estructura organizacional.
+
+### Tipos de Chat
+
+#### Chats Horizontales
+- Comunicación entre miembros del mismo nivel (todos los equipos de una zona, todas las zonas de una región)
+- Útiles para coordinación y colaboración entre pares
+
+#### Chats Verticales
+- Comunicación jerárquica (gerente con subordinados)
+- Permite comunicación directa entre niveles de la jerarquía
+
+### Estructura
+
+```typescript
+interface HierarchyChat {
+  id: string;
+  organization_id: string;
+  chat_type: 'horizontal' | 'vertical';
+  entity_type: 'region' | 'zone' | 'team';
+  entity_id: string;
+  level_role?: 'regional_manager' | 'zone_manager' | 'team_leader';
+  name?: string;
+  description?: string;
+  is_active: boolean;
+  last_message_at?: Date;
+}
+```
+
+### Características
+
+- **Archivos Adjuntos**: Bucket de storage dedicado (`hierarchy-chats`) con soporte para imágenes, documentos, videos
+- **Límite de Archivos**: 10MB por archivo
+- **Tipos Soportados**: JPEG, PNG, PDF, Office, videos, audio
+- **Políticas RLS**: Lectura pública, escritura desde backend con service role
+- **Mensajes Persistidos**: Historial completo de conversaciones
+
+### Storage Bucket
+
+El bucket `hierarchy-chats` almacena:
+- Imágenes: JPEG, PNG, WebP, GIF, SVG
+- Documentos: PDF, Word, Excel, PowerPoint
+- Videos: MP4, WebM, OGG
+- Audio: MPEG, WAV, OGG
+
+---
+
+## 📦 Integración SCORM
+
+La plataforma soporta contenido SCORM (Sharable Content Object Reference Model) para compatibilidad con estándares de e-learning.
+
+### Características
+
+- **Parser SCORM**: Análisis de paquetes SCORM 1.2 y 2004
+- **Session Cache**: Almacenamiento de progreso de sesión
+- **Sanitización**: Limpieza de contenido HTML/XML
+- **Tracking**: Seguimiento de progreso y completado
+- **API Compatible**: Endpoints para carga y gestión de contenido SCORM
+
+### Archivos Principales
+
+```
+apps/web/src/lib/scorm/
+├── index.ts              # Exportaciones principales
+├── parser.ts             # Parser de paquetes SCORM
+├── types.ts              # Tipos TypeScript
+├── session-cache.ts      # Cache de sesión
+└── sanitize.ts           # Sanitización de contenido
+```
+
+### Uso
+
+```typescript
+import { parseSCORMPackage } from "@/lib/scorm";
+
+const scormData = await parseSCORMPackage(file);
+// Procesa manifest, recursos y metadata
+```
 
 ---
 
@@ -777,26 +953,79 @@ El proyecto incluye documentación en el directorio `docs/`:
 
 ## 📊 Base de Datos (Tablas Principales)
 
+### Tablas de Usuarios y Organizaciones
+
 | Tabla                      | Descripción                                        |
 | -------------------------- | -------------------------------------------------- |
 | `usuarios`                 | Perfiles de usuario (auth linking)                 |
 | `organizations`            | Organizaciones/empresas con branding               |
 | `organization_users`       | Relación usuarios-organizaciones (multi-org)       |
 | `organization_invitations` | Invitaciones pendientes a organizaciones           |
+
+### Tablas de Jerarquía (Opcional)
+
+| Tabla                      | Descripción                                        |
+| -------------------------- | -------------------------------------------------- |
+| `organization_regions`     | Regiones de la organización (nivel 1)              |
+| `organization_zones`       | Zonas dentro de regiones (nivel 2)                  |
+| `organization_teams`       | Equipos dentro de zonas (nivel 3)                  |
+| `hierarchy_chats`          | Chats jerárquicos (horizontales y verticales)       |
+| `hierarchy_chat_messages`  | Mensajes de chats jerárquicos                      |
+
+### Tablas de Cursos y Aprendizaje
+
+| Tabla                      | Descripción                                        |
+| -------------------------- | -------------------------------------------------- |
 | `cursos`                   | Catálogo de cursos con módulos y lecciones         |
+| `modulos`                  | Módulos dentro de cursos                           |
+| `lecciones`                | Lecciones individuales con videos y actividades    |
+| `actividades`              | Actividades interactivas por lección               |
 | `user_lesson_progress`     | Progreso por lección                               |
+| `lesson_tracking`          | Tracking en tiempo real de lección activa          |
+
+### Tablas de Planificación de Estudios
+
+| Tabla                      | Descripción                                        |
+| -------------------------- | -------------------------------------------------- |
 | `study_plans`              | Planes de estudio creados con IA                   |
 | `study_sessions`           | Sesiones individuales programadas                  |
 | `study_preferences`        | Preferencias de estudio del usuario                |
-| `lesson_tracking`          | Tracking en tiempo real de lección activa          |
 | `calendar_integrations`    | Conexión con Google/Microsoft Calendar             |
+
+### Tablas de LIA (Asistente Virtual)
+
+| Tabla                      | Descripción                                        |
+| -------------------------- | -------------------------------------------------- |
 | `lia_conversations`        | Historial de conversaciones con LIA                |
 | `lia_messages`             | Mensajes individuales de cada conversación con LIA |
+| `lia_personalization`      | Configuración personalizada de LIA por usuario     |
+
+### Tablas de Certificados y Habilidades
+
+| Tabla                      | Descripción                                        |
+| -------------------------- | -------------------------------------------------- |
 | `certificates`             | Certificados generados con hash blockchain         |
-| `comunidades`              | Comunidades de aprendizaje                         |
-| `comunidad_posts`          | Posts en comunidades                               |
 | `skills`                   | Catálogo de habilidades                            |
 | `user_skills`              | Habilidades adquiridas por usuario                 |
+
+### Tablas de Comunidad y Contenido
+
+| Tabla                      | Descripción                                        |
+| -------------------------- | -------------------------------------------------- |
+| `comunidades`              | Comunidades de aprendizaje                         |
+| `comunidad_posts`          | Posts en comunidades                               |
+| `comunidad_comentarios`    | Comentarios en posts                               |
+| `news`                     | Artículos y noticias                               |
+| `reels`                    | Contenido de video corto                          |
+| `workshops`                | Talleres y eventos en vivo                         |
+
+### Tablas de Directorio de IA
+
+| Tabla                      | Descripción                                        |
+| -------------------------- | -------------------------------------------------- |
+| `ai_apps`                  | Aplicaciones de IA catalogadas                     |
+| `ai_prompts`               | Prompts de IA reutilizables                        |
+| `prompt_favorites`         | Prompts favoritos de usuarios                      |
 
 ---
 
@@ -938,6 +1167,126 @@ El proyecto incluye documentación en el directorio `docs/`:
 
 ---
 
-**Última actualización**: 9 de Enero 2026  
+---
+
+## 📈 Análisis del Proyecto
+
+### Estadísticas del Código
+
+- **Total de Features**: 19 módulos principales
+- **Componentes React**: 800+ componentes
+- **Endpoints API**: 300+ rutas
+- **Migraciones de BD**: 40+ migraciones
+- **Idiomas Soportados**: 3 (Español, Inglés, Portugués)
+- **Líneas de Código**: ~150,000+ líneas (estimado)
+
+### Arquitectura del Proyecto
+
+#### Frontend (apps/web)
+- **Framework**: Next.js 14.2.15 con App Router
+- **Componentes**: React 18.3.1 con TypeScript estricto
+- **Estado Global**: Zustand 5.0.2
+- **Estilos**: Tailwind CSS 3.4.18 (mobile-first)
+- **Animaciones**: Framer Motion 12.23.24
+- **Visualización**: Nivo Charts, Recharts, Tremor
+
+#### Backend (apps/api)
+- **Framework**: Express 4.18.2 con TypeScript
+- **Base de Datos**: Supabase (PostgreSQL)
+- **Autenticación**: Supabase Auth + JWT
+- **Seguridad**: Helmet, CORS, Rate Limiting
+
+#### Integraciones
+- **IA**: OpenAI GPT-4o-mini (LIA)
+- **Calendarios**: Google Calendar, Microsoft Outlook
+- **Storage**: Supabase Storage (buckets para archivos)
+- **Session Recording**: rrweb para análisis de UX
+
+### Módulos Principales
+
+1. **Admin** (153 archivos): Gestión completa de plataforma
+2. **Business Panel** (78 archivos): Panel empresarial
+3. **Auth** (59 archivos): Autenticación y SSO
+4. **Study Planner** (36 archivos): Planificación con IA
+5. **Communities** (45 archivos): Sistema de comunidades
+6. **Courses** (15 archivos): Gestión de cursos
+7. **SCORM** (6 archivos): Integración SCORM
+8. **AI Directory** (19 archivos): Directorio de IA
+9. **Notifications** (6 archivos): Sistema de notificaciones
+10. **Tours** (16 archivos): Onboarding guiado
+
+### Funcionalidades Clave
+
+#### 🎓 Sistema de Aprendizaje
+- Cursos estructurados con módulos y lecciones
+- Videos con tracking automático de progreso
+- Actividades interactivas y quizzes
+- Notas personales por lección
+- Certificados verificables con blockchain
+
+#### 🤖 Inteligencia Artificial
+- Asistente LIA contextual en toda la plataforma
+- Planificación de estudios con IA
+- Generación automática de planes personalizados
+- Detección proactiva de problemas
+- Análisis de progreso y recomendaciones
+
+#### 🏢 Gestión Empresarial
+- Sistema de jerarquías (Región > Zona > Equipo)
+- Chats jerárquicos (horizontales y verticales)
+- Branding personalizado (white-label)
+- Analytics y reportes avanzados
+- Gestión de equipos y asignaciones
+
+#### 📊 Analytics y Reportes
+- Dashboard empresarial con KPIs
+- Reportes de progreso por equipo/usuario
+- Analytics de uso de LIA
+- Estadísticas de completado de cursos
+- Métricas de engagement
+
+### Seguridad
+
+- **Autenticación**: Supabase Auth con SSO (Google, Microsoft)
+- **Autorización**: Sistema de roles jerárquico
+- **RLS (Row Level Security)**: Políticas en base de datos
+- **Validación**: Zod schemas en frontend y backend
+- **Sanitización**: DOMPurify para contenido HTML
+- **Rate Limiting**: Protección contra abuso de APIs
+
+### Performance
+
+- **Server Components**: Next.js App Router (default)
+- **Code Splitting**: Automático por ruta
+- **Image Optimization**: Next.js Image component
+- **Caching**: SWR para datos del cliente
+- **Lazy Loading**: Componentes y rutas bajo demanda
+
+### Escalabilidad
+
+- **Monorepo**: npm workspaces para organización
+- **Feature-based**: Arquitectura por dominio
+- **Microservicios Ready**: Backend separado
+- **Database**: PostgreSQL con índices optimizados
+- **Storage**: Supabase Storage escalable
+
+### Testing y Calidad
+
+- **TypeScript**: Tipado estricto en todo el proyecto
+- **ESLint**: Linting automático
+- **Prettier**: Formateo consistente
+- **Validación**: Zod para schemas de datos
+
+### Documentación
+
+- **README Principal**: Este documento
+- **Documentación Técnica**: 40+ documentos en `/docs`
+- **PRD Completo**: Product Requirements Document
+- **Guías de Arquitectura**: Documentación detallada
+- **Comentarios en Código**: TypeScript JSDoc
+
+---
+
+**Última actualización**: 10 de Enero 2026  
 **Versión**: 2.2.1 (B2B)  
 **Mantenedores**: Equipo Aprende y Aplica

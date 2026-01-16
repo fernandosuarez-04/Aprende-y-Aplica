@@ -427,24 +427,202 @@ export class UserContextService {
 
   /**
    * Obtiene los cursos asignados por equipos de trabajo (B2B)
+   * Actualizado para usar la nueva estructura jerárquica
    */
   static async getTeamCourseAssignments(userId: string): Promise<TeamCourseAssignment[]> {
     const supabase = await createClient();
 
-    // Primero obtener los equipos del usuario
+    // Obtener información jerárquica del usuario
+    const { data: orgUser, error: orgUserError } = await supabase
+      .from('organization_users')
+      .select('organization_id, team_id, zone_id, region_id, status')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .limit(1)
+      .single();
+
+    if (orgUserError || !orgUser || !orgUser.organization_id) {
+      // Si no está en organización, intentar con sistema antiguo como fallback
+      return this.getLegacyTeamCourseAssignments(userId);
+    }
+
+    // Determinar qué entidad jerárquica tiene el usuario
+    let entityType: 'region' | 'zone' | 'team' | null = null;
+    let entityId: string | null = null;
+
+    if (orgUser.team_id) {
+      entityType = 'team';
+      entityId = orgUser.team_id;
+    } else if (orgUser.zone_id) {
+      entityType = 'zone';
+      entityId = orgUser.zone_id;
+    } else if (orgUser.region_id) {
+      entityType = 'region';
+      entityId = orgUser.region_id;
+    }
+
+    if (!entityType || !entityId) {
+      return [];
+    }
+
+    // Obtener IDs de asignaciones para la entidad del usuario
+    let assignmentIds: string[] = [];
+    
+    if (entityType === 'team') {
+      const { data: teamAssignments } = await supabase
+        .from('team_course_assignments')
+        .select('hierarchy_assignment_id')
+        .eq('team_id', entityId);
+      assignmentIds = teamAssignments?.map(a => a.hierarchy_assignment_id) || [];
+    } else if (entityType === 'zone') {
+      const { data: zoneAssignments } = await supabase
+        .from('zone_course_assignments')
+        .select('hierarchy_assignment_id')
+        .eq('zone_id', entityId);
+      assignmentIds = zoneAssignments?.map(a => a.hierarchy_assignment_id) || [];
+    } else {
+      // region
+      const { data: regionAssignments } = await supabase
+        .from('region_course_assignments')
+        .select('hierarchy_assignment_id')
+        .eq('region_id', entityId);
+      assignmentIds = regionAssignments?.map(a => a.hierarchy_assignment_id) || [];
+    }
+
+    if (assignmentIds.length === 0) {
+      return [];
+    }
+
+    // Obtener asignaciones jerárquicas
+    const { data, error } = await supabase
+      .from('hierarchy_course_assignments')
+      .select(`
+        id,
+        course_id,
+        assigned_by,
+        assigned_at,
+        due_date,
+        status,
+        message,
+        courses:course_id (
+          id,
+          title,
+          description,
+          slug,
+          category,
+          level,
+          instructor_id,
+          thumbnail_url,
+          duration_total_minutes,
+          is_active,
+          price,
+          average_rating,
+          student_count
+        ),
+        assigner:assigned_by (
+          display_name,
+          first_name,
+          last_name
+        )
+      `)
+      .eq('organization_id', orgUser.organization_id)
+      .in('id', assignmentIds)
+      .in('status', ['active']);
+
+    if (error) {
+      console.error('Error obteniendo asignaciones jerárquicas:', error);
+      // Fallback al sistema antiguo
+      return this.getLegacyTeamCourseAssignments(userId);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Obtener información de entidades para mapear nombres
+    let entityName = '';
+    if (entityType === 'team') {
+      const { data: teamData } = await supabase
+        .from('organization_teams')
+        .select('name')
+        .eq('id', entityId)
+        .single();
+      entityName = teamData?.name || 'Equipo';
+    } else if (entityType === 'zone') {
+      const { data: zoneData } = await supabase
+        .from('organization_zones')
+        .select('name')
+        .eq('id', entityId)
+        .single();
+      entityName = zoneData?.name || 'Zona';
+    } else {
+      const { data: regionData } = await supabase
+        .from('organization_regions')
+        .select('name')
+        .eq('id', entityId)
+        .single();
+      entityName = regionData?.name || 'Región';
+    }
+
+    return data.map((item: any) => {
+
+      const course = item.courses as any;
+      const assigner = item.assigner as any;
+
+      return {
+        id: item.id,
+        teamId: entityId,
+        teamName: entityName,
+        courseId: item.course_id,
+        course: {
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          slug: course.slug,
+          category: course.category,
+          level: course.level as 'beginner' | 'intermediate' | 'advanced',
+          instructorId: course.instructor_id,
+          thumbnailUrl: course.thumbnail_url,
+          durationTotalMinutes: course.duration_total_minutes,
+          isActive: course.is_active,
+          price: course.price,
+          averageRating: course.average_rating,
+          studentCount: course.student_count,
+        },
+        assignedBy: item.assigned_by,
+        assignedByName: assigner?.display_name ||
+          (assigner?.first_name && assigner?.last_name
+            ? `${assigner.first_name} ${assigner.last_name}`
+            : undefined),
+        assignedAt: item.assigned_at,
+        dueDate: item.due_date,
+        status: (item.status === 'active' ? 'assigned' : item.status) as TeamCourseAssignment['status'],
+        message: item.message,
+      };
+    });
+  }
+
+  /**
+   * Método legacy para obtener asignaciones del sistema antiguo (fallback)
+   * @deprecated Usar getTeamCourseAssignments que ahora usa la nueva estructura
+   */
+  private static async getLegacyTeamCourseAssignments(userId: string): Promise<TeamCourseAssignment[]> {
+    const supabase = await createClient();
+
+    // Primero obtener los equipos del usuario (sistema antiguo)
     const { data: teams, error: teamsError } = await supabase
       .from('work_team_members')
       .select('team_id')
       .eq('user_id', userId)
       .eq('status', 'active');
 
-    if (teamsError || !teams.length) {
+    if (teamsError || !teams || teams.length === 0) {
       return [];
     }
 
     const teamIds = teams.map(t => t.team_id);
 
-    // Obtener asignaciones de cursos de esos equipos
+    // Obtener asignaciones de cursos de esos equipos (sistema antiguo)
     const { data, error } = await supabase
       .from('work_team_course_assignments')
       .select(`
@@ -484,7 +662,11 @@ export class UserContextService {
       .neq('status', 'completed');
 
     if (error) {
-      console.error('Error obteniendo asignaciones de equipos:', error);
+      console.error('Error obteniendo asignaciones de equipos (legacy):', error);
+      return [];
+    }
+
+    if (!data) {
       return [];
     }
 

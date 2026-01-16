@@ -12,3 +12,7 @@ export {
   DeleteConfirmModal,
   DetailsPanel
 } from './HierarchyForms';
+export { TeamMembersModal } from './TeamMembersModal';
+export { HierarchyChat } from './HierarchyChat';
+export { CourseAssignments } from './CourseAssignments';
+export { CourseAssignmentForm } from './CourseAssignmentForm';

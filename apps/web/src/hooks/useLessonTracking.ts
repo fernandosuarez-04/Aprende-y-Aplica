@@ -46,6 +46,12 @@ interface UseLessonTrackingReturn {
   trackActivity: () => Promise<void>;
   /** Completar tracking (quiz, navegación, etc.) */
   trackComplete: (endTrigger: 'quiz_submitted' | 'context_changed' | 'manual') => Promise<void>;
+  /** Registrar progreso de video */
+  trackProgress: (state: { currentTime: number; maxReached: number; totalDuration: number; playbackRate: number }) => Promise<void>;
+  /** Checkpoint inicial para reanudar */
+  initialCheckpoint: number;
+  /** Velocidad de reproducción inicial */
+  initialPlaybackRate: number;
   /** Estado de carga */
   isLoading: boolean;
   /** Error si ocurrió */
@@ -69,9 +75,15 @@ export function useLessonTracking(
   const [isTracking, setIsTracking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
+  // Estados para reanudar
+  const [initialCheckpoint, setInitialCheckpoint] = useState(0);
+  const [initialPlaybackRate, setInitialPlaybackRate] = useState(1);
+
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
   const hasStartedRef = useRef(false);
+  const lastProgressSaveRef = useRef<number>(0);
+  const PROGRESS_SAVE_INTERVAL = 5000; // 5 segundos
 
   // Limpiar heartbeat al desmontar
   useEffect(() => {
@@ -85,7 +97,7 @@ export function useLessonTracking(
   // Iniciar tracking (video_play)
   const trackStart = useCallback(async () => {
     if (hasStartedRef.current || !lessonId) return;
-    
+
     hasStartedRef.current = true;
     setIsLoading(true);
     setError(null);
@@ -109,6 +121,10 @@ export function useLessonTracking(
         setTrackingId(data.trackingId);
         setIsTracking(true);
 
+        // 🎯 Establecer valores iniciales para reanudar
+        if (data.initialCheckpoint) setInitialCheckpoint(data.initialCheckpoint);
+        if (data.initialPlaybackRate) setInitialPlaybackRate(Number(data.initialPlaybackRate));
+
         // Iniciar heartbeat
         if (enableHeartbeat) {
           heartbeatRef.current = setInterval(() => {
@@ -125,6 +141,37 @@ export function useLessonTracking(
       setIsLoading(false);
     }
   }, [lessonId, sessionId, planId, lessonTimeEstimates, enableHeartbeat, heartbeatIntervalSeconds]);
+
+  // Registrar progreso de video con debounce
+  const trackProgress = useCallback(async (state: { currentTime: number; maxReached: number; totalDuration: number; playbackRate: number }) => {
+    // Si no hay trackingId, intentar iniciarlo implícitamente o salir
+    if (!trackingId) return;
+
+    const now = Date.now();
+    // Debounce: solo guardar si pasaron X segundos
+    if (now - lastProgressSaveRef.current < PROGRESS_SAVE_INTERVAL) {
+      return;
+    }
+
+    lastProgressSaveRef.current = now;
+
+    try {
+      await fetch('/api/study-planner/lesson-tracking/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonId, // Enviamos lessonId por seguridad
+          trackingId,
+          checkpoint: Math.floor(state.currentTime),
+          maxReached: Math.floor(state.maxReached),
+          totalDuration: Math.floor(state.totalDuration),
+          playbackRate: state.playbackRate
+        })
+      });
+    } catch (err) {
+      console.error('Error guardando progreso:', err);
+    }
+  }, [trackingId, lessonId]);
 
   // Registrar evento
   const sendEvent = useCallback(async (eventType: string) => {
@@ -213,10 +260,13 @@ export function useLessonTracking(
     trackingId,
     isTracking,
     trackStart,
+    trackProgress,
     trackVideoEnded,
     trackLiaMessage,
     trackActivity,
     trackComplete,
+    initialCheckpoint,
+    initialPlaybackRate,
     isLoading,
     error
   };

@@ -22,13 +22,15 @@ import {
   Loader2,
   BookOpen,
   BarChart3,
-  Plus
+  Plus,
+  MessageSquare
 } from 'lucide-react'
 import { useOrganizationStylesContext } from '@/features/business-panel/contexts/OrganizationStylesContext'
 import { useThemeStore } from '@/core/stores/themeStore'
 import { HierarchyService } from '@/features/business-panel/services/hierarchy.service'
 import { uploadRegionLogo } from '@/features/business-panel/services/hierarchyUpload.service'
 import { Region, Zone, ManagerInfo, HierarchyAnalytics, HierarchyCourse } from '@/features/business-panel/types/hierarchy.types'
+import { useHierarchyAnalytics } from '@/features/business-panel/hooks/useHierarchyAnalytics'
 import {
   RegionForm,
   ZoneForm,
@@ -36,7 +38,11 @@ import {
 } from '@/features/business-panel/components/hierarchy'
 import { CourseSelectorModal } from '@/features/business-panel/components/hierarchy/CourseSelectorModal'
 import { CourseAssignmentResultModal } from '@/features/business-panel/components/hierarchy/CourseAssignmentResultModal'
+import { CourseAssignments, CourseAssignmentForm } from '@/features/business-panel/components/hierarchy'
+import { HierarchyAssignmentsService } from '@/features/business-panel/services/hierarchy-assignments.service'
 import { BusinessUsersService } from '@/features/business-panel/services/businessUsers.service'
+import { ToastNotification } from '@/core/components/ToastNotification/ToastNotification'
+import { HierarchyChat } from '@/features/business-panel/components/hierarchy/HierarchyChat'
 
 // Importar wrapper del mapa para evitar problemas de SSR con react-leaflet
 import HierarchyMapWrapper from '@/features/business-panel/components/hierarchy/HierarchyMapWrapper'
@@ -56,9 +62,11 @@ export default function RegionDetailPage() {
   
   const [region, setRegion] = useState<Region | null>(null)
   const [zones, setZones] = useState<Zone[]>([])
-  const [analytics, setAnalytics] = useState<HierarchyAnalytics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'structure' | 'courses'>('overview')
+  
+  // Hook para analíticas con actualización en tiempo real (polling cada 30s)
+  const { analytics, isLoading: isLoadingAnalytics, mutate: refreshAnalytics } = useHierarchyAnalytics('region', regionId)
+  const [activeTab, setActiveTab] = useState<'overview' | 'structure' | 'courses' | 'chat-horizontal' | 'chat-vertical'>('overview')
   
   // Logo upload state
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -69,6 +77,8 @@ export default function RegionDetailPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isNewZoneOpen, setIsNewZoneOpen] = useState(false)
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false)
+  const [isAssignmentFormOpen, setIsAssignmentFormOpen] = useState(false)
+  const [editingAssignment, setEditingAssignment] = useState<any>(null)
   const [availableManagers, setAvailableManagers] = useState<ManagerInfo[]>([])
 
   // Course assignment result modal
@@ -91,6 +101,17 @@ export default function RegionDetailPage() {
 
   // Courses state
   const [courses, setCourses] = useState<HierarchyCourse[]>([])
+
+  // Toast notification state
+  const [toast, setToast] = useState<{
+    isOpen: boolean
+    message: string
+    type: 'success' | 'error' | 'info'
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'error'
+  })
 
   // Load available managers
   useEffect(() => {
@@ -120,11 +141,24 @@ export default function RegionDetailPage() {
       if (result.success && result.data) {
         setRegion(result.data)
         setIsEditOpen(false)
+        setToast({
+          isOpen: true,
+          message: 'Región actualizada exitosamente',
+          type: 'success'
+        })
       } else {
-        alert('Error al actualizar: ' + result.error)
+        setToast({
+          isOpen: true,
+          message: 'Error al actualizar: ' + (result.error || 'Error desconocido'),
+          type: 'error'
+        })
       }
     } catch (err) {
-      alert('Error al actualizar la región')
+      setToast({
+        isOpen: true,
+        message: 'Error al actualizar la región',
+        type: 'error'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -138,11 +172,19 @@ export default function RegionDetailPage() {
       if (result.success) {
         router.push(`/${orgSlug}/business-panel/hierarchy`)
       } else {
-        alert('Error al eliminar: ' + result.error)
+        setToast({
+          isOpen: true,
+          message: 'Error al eliminar: ' + (result.error || 'Error desconocido'),
+          type: 'error'
+        })
         setIsLoading(false)
       }
     } catch (err) {
-      alert('Error al eliminar la región')
+      setToast({
+        isOpen: true,
+        message: 'Error al eliminar la región',
+        type: 'error'
+      })
       setIsLoading(false)
     }
   }
@@ -154,11 +196,24 @@ export default function RegionDetailPage() {
       if (result.success && result.data) {
         setZones([...zones, result.data])
         setIsNewZoneOpen(false)
+        setToast({
+          isOpen: true,
+          message: 'Zona creada exitosamente',
+          type: 'success'
+        })
       } else {
-        alert('Error al crear zona: ' + result.error)
+        setToast({
+          isOpen: true,
+          message: 'Error al crear zona: ' + (result.error || 'Error desconocido'),
+          type: 'error'
+        })
       }
     } catch (err) {
-      alert('Error al crear zona')
+      setToast({
+        isOpen: true,
+        message: 'Error al crear zona',
+        type: 'error'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -181,11 +236,19 @@ export default function RegionDetailPage() {
         setRegion({ ...region, logo_url: result.url } as any)
       } else {
         console.error('Upload failed:', result.error)
-        alert('Error al subir la imagen')
+        setToast({
+          isOpen: true,
+          message: 'Error al subir la imagen: ' + (result.error || 'Error desconocido'),
+          type: 'error'
+        })
       }
     } catch (error) {
       console.error('Error uploading logo:', error)
-      alert('Error al subir la imagen')
+      setToast({
+        isOpen: true,
+        message: 'Error al subir la imagen',
+        type: 'error'
+      })
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -197,7 +260,11 @@ export default function RegionDetailPage() {
     
     try {
       setIsLoading(true)
-      const result = await HierarchyService.assignCoursesToEntity('region', region.id, courseIds)
+      const result = await HierarchyAssignmentsService.createAssignment({
+        entity_type: 'region',
+        entity_id: region.id,
+        course_ids: courseIds
+      })
       
       if (result.success && result.data) {
         // Recargar cursos para mostrar los nuevos desde la BD
@@ -215,6 +282,7 @@ export default function RegionDetailPage() {
           totalUsers: result.data.total_users,
           results: result.data.results
         })
+        setIsCourseModalOpen(false)
       } else {
         // Mostrar modal de error
         setAssignmentResult({
@@ -242,19 +310,36 @@ export default function RegionDetailPage() {
     }
   }
 
+  const handleOpenAssignmentForm = () => {
+    setEditingAssignment(null)
+    setIsAssignmentFormOpen(true)
+  }
+
+  const handleEditAssignment = (assignment: any) => {
+    setEditingAssignment(assignment)
+    setIsAssignmentFormOpen(true)
+  }
+
+  const handleAssignmentSuccess = async () => {
+    await loadData()
+    setIsAssignmentFormOpen(false)
+    setEditingAssignment(null)
+  }
+
   const loadData = async () => {
     try {
       setIsLoading(true)
-      const [regionData, zonesData, analyticsData, coursesData] = await Promise.all([
+      // Analytics se carga automáticamente con el hook useHierarchyAnalytics
+      const [regionData, zonesData, coursesData] = await Promise.all([
         HierarchyService.getRegion(regionId),
         HierarchyService.getZones({ regionId, withCounts: true, withManager: true }),
-        HierarchyService.getVisualAnalytics('region', regionId),
         HierarchyService.getEntityCourses('region', regionId)
       ])
       setRegion(regionData)
       setZones(zonesData)
-      setAnalytics(analyticsData)
       setCourses(coursesData)
+      // Refrescar analytics manualmente después de cargar otros datos
+      refreshAnalytics()
       
       // Debug: Log zonas cargadas
       console.log('📍 Zonas cargadas:', zonesData.map(z => ({
@@ -489,7 +574,7 @@ export default function RegionDetailPage() {
           </div>
         </div>
       
-        <div className="flex items-center px-8 border-t border-white/10 overflow-x-auto">
+        <div className="flex items-center px-8 border-t border-white/10 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
           <TabButton 
             active={activeTab === 'overview'} 
             onClick={() => setActiveTab('overview')}
@@ -510,6 +595,20 @@ export default function RegionDetailPage() {
             icon={<BookOpen className="w-4 h-4" />}
           >
             Cursos y Aprendizaje
+          </TabButton>
+          <TabButton 
+            active={activeTab === 'chat-horizontal'} 
+            onClick={() => setActiveTab('chat-horizontal')}
+            icon={<Users className="w-4 h-4" />}
+          >
+            Chat entre Pares
+          </TabButton>
+          <TabButton 
+            active={activeTab === 'chat-vertical'} 
+            onClick={() => setActiveTab('chat-vertical')}
+            icon={<MessageSquare className="w-4 h-4" />}
+          >
+            Chat con Equipo
           </TabButton>
         </div>
       </div>
@@ -588,54 +687,162 @@ export default function RegionDetailPage() {
               className="lg:col-span-2 p-6 rounded-2xl border border-white/10"
               style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
             >
-              <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-gray-500 dark:text-white/60" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-gray-600 dark:text-white/60" />
                 Métricas de Rendimiento (Tiempo Real)
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <MetricCard 
-                  label="Tasa de Finalización"
-                  value={`${analytics?.avg_completion || 0}%`}
-                  trend="Promedio"
-                  trendUp={true}
-                  color="emerald"
-                />
-                <MetricCard 
-                  label="Horas de Aprendizaje"
-                  value={`${analytics?.total_hours || 0}h`}
-                  trend="Total ACUM"
-                  trendUp={true}
-                  color="blue"
-                />
-                <MetricCard 
-                  label="Usuarios Activos"
-                  value={analytics?.active_learners || 0}
-                  trend={`de ${analytics?.users_count || 0}`}
-                  trendUp={true}
-                  color="purple"
-                />
+              {/* Métricas Principales - Lista */}
+              <div className="mb-8">
+                <div className="space-y-2 p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Tasa de Finalización</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">Promedio</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.avg_completion || 0}%</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Horas de Aprendizaje</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">Total ACUM</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.total_hours || 0}h</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Usuarios Activos</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400">de {analytics?.users_count || 0}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.active_learners || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Zonas Activas</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400">de {analytics?.total_zones || 0}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.active_zones || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Equipos Activos</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">de {analytics?.total_teams || 0}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.active_teams || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Tasa de Participación</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400">General</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.participation_rate || 0}%</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700 dark:text-white/80">Completitud General</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-pink-100 dark:bg-pink-500/20 text-pink-700 dark:text-pink-400">Asignaciones</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.assignment_completion_rate || 0}%</span>
+                  </div>
+                </div>
               </div>
 
+              {/* Top Performer Mejorado */}
               {analytics?.top_performer && (
                  <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 flex items-center gap-4 mb-6">
                     <div className="p-3 bg-amber-500/20 rounded-full text-amber-500">
                       <TrendingUp className="w-6 h-6" />
                     </div>
-                    <div>
-                      <p className="text-sm text-amber-400 font-medium">✨ Zona con mayor impacto</p>
+                    <div className="flex-1">
+                      <p className="text-sm text-amber-400 font-medium">🏆 Mejor Zona de la Región</p>
                       <p className="text-xl font-bold text-white">{analytics.top_performer.name}</p>
                       <p className="text-xs text-white/50">{analytics.top_performer.value} horas registradas de aprendizaje</p>
                     </div>
                  </div>
               )}
 
+              {/* Métricas Detalladas - Lista */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-gray-600 dark:text-white/60" />
+                  Métricas Detalladas
+                </h4>
+                <div className="space-y-4">
+                  <div className="space-y-2 p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-700 dark:text-white/80">Horas promedio por zona</span>
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">Promedio</span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.avg_hours_per_zone?.toFixed(1) || 0}h</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-700 dark:text-white/80">Horas promedio por equipo</span>
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">Promedio</span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.avg_hours_per_team?.toFixed(1) || 0}h</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-700 dark:text-white/80">Horas promedio por miembro</span>
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">Promedio</span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.avg_hours_per_member?.toFixed(1) || 0}h</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-700 dark:text-white/80">Cursos completados totales</span>
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Total</span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{analytics?.courses_completed || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-700 dark:text-white/80">Asignaciones vencidas</span>
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">Atención</span>
+                      </div>
+                      <span className="text-sm font-semibold text-red-600 dark:text-red-400">{analytics?.assignments_overdue || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-700 dark:text-white/80">Zonas inactivas</span>
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">Inactivas</span>
+                      </div>
+                      <span className="text-sm font-semibold text-red-600 dark:text-red-400">{analytics?.inactive_zones || 0}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Ranking de Zonas */}
+                  {analytics?.zone_ranking && analytics.zone_ranking.length > 0 && (
+                    <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">📊 Ranking de Zonas (Top 5)</h4>
+                      <div className="space-y-2">
+                        {analytics.zone_ranking.map((zone: any, index: number) => (
+                          <div key={zone.id} className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-white/5 border-b border-gray-200 dark:border-white/5 last:border-b-0">
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg font-bold text-gray-500 dark:text-white/60">#{index + 1}</span>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{zone.name}</p>
+                                <p className="text-xs text-gray-600 dark:text-white/50">{zone.hours}h • {Math.round(zone.completion_rate)}% completitud</p>
+                              </div>
+                            </div>
+                            <span className="text-xs text-gray-600 dark:text-white/40">{Math.round(zone.participation_rate)}% participación</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Gráfico de Actividad */}
               <div className="h-48 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5 flex items-center justify-center relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                 <div className="text-center">
                   <BarChart3 className="w-12 h-12 text-gray-400 dark:text-white/20 mx-auto mb-3" />
                   <p className="text-gray-500 dark:text-white/40">Gráfico de actividad semanal</p>
-                  <p className="text-xs text-gray-400 dark:text-white/20 mt-1">(Datos en tiempo real)</p>
+                  <p className="text-xs text-gray-400 dark:text-white/20 mt-1">(Comparativa entre zonas)</p>
                 </div>
               </div>
             </div>
@@ -762,55 +969,53 @@ export default function RegionDetailPage() {
           </motion.div>
         )}
 
-        {/* Courses Tab (unchanged logic, just re-rendering) */}
-        {activeTab === 'courses' && (
+        {/* Courses Tab */}
+        {activeTab === 'courses' && region && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Plan de Aprendizaje Regional</h2>
-                <p className="text-gray-600 dark:text-white/50">Gestiona los cursos asignados a todos los miembros de esta región.</p>
-              </div>
-              <button
-                onClick={() => setIsCourseModalOpen(true)}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-white shadow-lg cursor-pointer hover:bg-blue-600/90 transition-all flex items-center gap-2 bg-blue-600"
-              >
-                <Plus className="w-4 h-4" />
-                Asignar Cursos
-              </button>
-            </div>
+            <CourseAssignments
+              entityType="region"
+              entityId={region.id}
+              entityName={region.name}
+              onAssign={handleOpenAssignmentForm}
+              onEdit={handleEditAssignment}
+              onCancel={handleAssignmentSuccess}
+            />
+          </motion.div>
+        )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {courses.length > 0 ? (
-                courses.map((course) => (
-                  <CourseCard 
-                    key={course.id}
-                    title={course.title}
-                    category={course.category}
-                    students={course.enrolled_count}
-                    progress={course.avg_progress}
-                    image={course.thumbnail_url}
-                  />
-                ))
-              ) : (
-                 <div className="col-span-full py-12 text-center text-gray-500 dark:text-white/40 border border-gray-200 dark:border-white/5 rounded-2xl bg-gray-100 dark:bg-white/5">
-                    <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:opacity-20" />
-                    <p>No hay cursos con actividad en esta región.</p>
-                 </div>
-              )}
-              <button
-                onClick={() => setIsCourseModalOpen(true)} 
-                className="rounded-2xl border-2 border-dashed border-gray-300 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-all flex flex-col items-center justify-center p-8 text-center h-full min-h-[200px] group"
-              >
-                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Plus className="w-6 h-6 text-gray-400 dark:text-white/40" />
-                </div>
-                <h3 className="font-medium text-gray-700 dark:text-white">Asignar Nuevo Curso</h3>
-              </button>
-            </div>
+        {activeTab === 'chat-horizontal' && region && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-[600px] rounded-2xl border border-white/10 overflow-hidden"
+            style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+          >
+            <HierarchyChat
+              entityType="region"
+              entityId={region.id}
+              chatType="horizontal"
+              title="Chat entre Gerentes Regionales"
+            />
+          </motion.div>
+        )}
+
+        {activeTab === 'chat-vertical' && region && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-[600px] rounded-2xl border border-white/10 overflow-hidden"
+            style={{ backgroundColor: 'var(--org-card-background, #1E2329)' }}
+          >
+            <HierarchyChat
+              entityType="region"
+              entityId={region.id}
+              chatType="vertical"
+              title="Chat con Gerentes de Zona"
+            />
           </motion.div>
         )}
       </div>
@@ -835,6 +1040,21 @@ export default function RegionDetailPage() {
           availableManagers={availableManagers}
           selectedRegionId={region.id}
           regions={[region]}
+        />
+      )}
+
+      {region && (
+        <CourseAssignmentForm
+          isOpen={isAssignmentFormOpen}
+          onClose={() => {
+            setIsAssignmentFormOpen(false)
+            setEditingAssignment(null)
+          }}
+          entityType="region"
+          entityId={region.id}
+          entityName={region.name}
+          assignment={editingAssignment}
+          onSuccess={handleAssignmentSuccess}
         />
       )}
 
@@ -866,6 +1086,14 @@ export default function RegionDetailPage() {
         itemName={region.name}
         isLoading={isLoading}
       />
+
+      <ToastNotification
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.type === 'error' ? 6000 : 4000}
+      />
     </div>
   )
 }
@@ -877,7 +1105,7 @@ function TabButton({ active, children, onClick, icon }: { active: boolean; child
       className={`
         px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap
         ${active 
-          ? 'border-blue-500 text-white' 
+          ? 'border-blue-500 text-blue-600 dark:text-white' 
           : 'border-transparent text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-white/30'}
       `}
     >
@@ -892,6 +1120,10 @@ function MetricCard({ label, value, trend, trendUp, color }: any) {
     emerald: 'bg-emerald-500/10 text-emerald-400',
     blue: 'bg-blue-500/10 text-blue-400',
     purple: 'bg-purple-500/10 text-purple-400',
+    cyan: 'bg-cyan-500/10 text-cyan-400',
+    green: 'bg-green-500/10 text-green-400',
+    orange: 'bg-orange-500/10 text-orange-400',
+    pink: 'bg-pink-500/10 text-pink-400',
   }
   
   return (

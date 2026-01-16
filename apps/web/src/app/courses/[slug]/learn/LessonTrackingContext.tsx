@@ -16,14 +16,19 @@ interface LessonTrackingContextType {
   // Tracking state
   trackingId: string | null;
   isTracking: boolean;
-  
+
   // Tracking functions
   trackVideoPlay: () => Promise<void>;
+  trackProgress: (state: { currentTime: number; maxReached: number; totalDuration: number; playbackRate: number }) => Promise<void>;
   trackVideoEnded: () => Promise<void>;
   trackLiaMessage: () => Promise<void>;
   trackQuizCompleted: () => Promise<void>;
   trackLessonChange: () => Promise<void>;
-  
+
+  // Initial state for resume
+  initialCheckpoint: number;
+  initialPlaybackRate: number;
+
   // Inactivity state
   isWarningShown: boolean;
   secondsUntilLogout: number;
@@ -70,9 +75,12 @@ export function LessonTrackingProvider({
     trackingId,
     isTracking,
     trackStart,
+    trackProgress: trackProgressInternal,
     trackVideoEnded: trackVideoEndedInternal,
     trackLiaMessage: trackLiaMessageInternal,
-    trackComplete
+    trackComplete,
+    initialCheckpoint,
+    initialPlaybackRate
   } = useLessonTracking({
     lessonId: lessonId || '',
     sessionId,
@@ -110,6 +118,11 @@ export function LessonTrackingProvider({
     await trackVideoEndedInternal();
   }, [trackVideoEndedInternal]);
 
+  const trackProgress = useCallback(async (state: { currentTime: number; maxReached: number; totalDuration: number; playbackRate: number }) => {
+    if (!lessonId || !hasStartedRef.current) return;
+    await trackProgressInternal(state);
+  }, [lessonId, trackProgressInternal]);
+
   const trackLiaMessage = useCallback(async () => {
     await trackLiaMessageInternal();
     resetTimer(); // Reset inactivity on LIA message
@@ -141,10 +154,13 @@ export function LessonTrackingProvider({
     trackingId,
     isTracking,
     trackVideoPlay,
+    trackProgress,
     trackVideoEnded,
     trackLiaMessage,
     trackQuizCompleted,
     trackLessonChange,
+    initialCheckpoint,
+    initialPlaybackRate,
     isWarningShown: isWarning,
     secondsUntilLogout: secondsRemaining,
     resetInactivityTimer: resetTimer
@@ -153,7 +169,7 @@ export function LessonTrackingProvider({
   return (
     <LessonTrackingContext.Provider value={value}>
       {children}
-      
+
       {/* Modal de advertencia de inactividad */}
       <InactivityWarningModal
         isOpen={isWarning}
@@ -162,7 +178,7 @@ export function LessonTrackingProvider({
         onContinue={resetTimer}
         onLogout={handleLogout}
       />
-      
+
       {/* Mensaje de sesión cerrada por inactividad */}
       <SessionClosedMessage
         isOpen={showSessionClosedMessage}

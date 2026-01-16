@@ -32,7 +32,7 @@ export async function getLessonTimeEstimates(
 ): Promise<LessonTimeEstimates | null> {
   try {
     const supabase = await createClient();
-    
+
     // Intentar obtener de lesson_time_estimates
     const { data: estimates } = await supabase
       .from('lesson_time_estimates')
@@ -101,7 +101,7 @@ export async function getLessonTimeEstimates(
 export async function lessonHasQuiz(lessonId: string): Promise<boolean> {
   try {
     const supabase = await createClient();
-    
+
     // Verificar en lesson_materials
     const { data: materials } = await supabase
       .from('lesson_materials')
@@ -133,7 +133,7 @@ export async function lessonHasQuiz(lessonId: string): Promise<boolean> {
 export async function lessonHasLiaActivity(lessonId: string): Promise<boolean> {
   try {
     const supabase = await createClient();
-    
+
     const { data: activities } = await supabase
       .from('lesson_activities')
       .select('activity_id')
@@ -181,7 +181,60 @@ export const LessonTrackingService = {
   lessonHasQuiz,
   lessonHasLiaActivity,
   determineLessonFlow,
-  calculateFirstAnalysisDelay
+  calculateFirstAnalysisDelay,
+  updateVideoProgress
 };
+
+/**
+ * Actualiza el progreso de video de una lección
+ */
+export async function updateVideoProgress(
+  lessonId: string,
+  checkpoint: number,
+  maxReached: number,
+  totalDuration: number,
+  playbackRate: number
+): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return false;
+
+    // Buscar tracking activo
+    const { data: tracking } = await supabase
+      .from('lesson_tracking')
+      .select('id, video_max_seconds')
+      .eq('user_id', user.id)
+      .eq('lesson_id', lessonId)
+      .eq('status', 'in_progress')
+      .order('last_activity_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!tracking) return false;
+
+    // Calcular nuevo máximo
+    const currentMax = tracking.video_max_seconds || 0;
+    const newMax = Math.max(currentMax, maxReached);
+
+    // Actualizar
+    const { error } = await supabase
+      .from('lesson_tracking')
+      .update({
+        video_checkpoint_seconds: checkpoint,
+        video_max_seconds: newMax,
+        video_total_duration_seconds: totalDuration,
+        video_playback_rate: playbackRate,
+        last_activity_at: new Date().toISOString()
+      })
+      .eq('id', tracking.id);
+
+    return !error;
+  } catch (error) {
+    console.error('Error actualizando progreso de video:', error);
+    return false;
+  }
+}
 
 export default LessonTrackingService;

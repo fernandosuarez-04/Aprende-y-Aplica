@@ -1096,20 +1096,32 @@ export default function BusinessPanelUsersPage() {
           <div className="flex items-center rounded-xl border-2 overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'var(--org-card-background, #1E2329)' }}>
             <button
               onClick={() => setViewMode('cards')}
-              className={`p-3.5 transition-all ${viewMode === 'cards' ? 'bg-white/10' : ''}`}
+              className={`p-3.5 transition-all hover:bg-white/5 ${viewMode === 'cards' ? 'bg-white/10' : ''}`}
               style={{ backgroundColor: viewMode === 'cards' ? `${primaryColor}30` : 'transparent' }}
               title={t('users.view.cards', 'Vista tarjetas')}
             >
-              <LayoutGrid className="w-5 h-5" style={{ color: viewMode === 'cards' ? primaryColor : 'rgba(255,255,255,0.5)' }} />
+              <LayoutGrid 
+                className="w-5 h-5" 
+                style={{ 
+                  color: viewMode === 'cards' ? primaryColor : 'rgba(255,255,255,0.7)',
+                  strokeWidth: viewMode === 'cards' ? 2.5 : 2
+                }} 
+              />
             </button>
             <div className="w-px h-6" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} />
             <button
               onClick={() => setViewMode('list')}
-              className={`p-3.5 transition-all ${viewMode === 'list' ? 'bg-white/10' : ''}`}
+              className={`p-3.5 transition-all hover:bg-white/5 ${viewMode === 'list' ? 'bg-white/10' : ''}`}
               style={{ backgroundColor: viewMode === 'list' ? `${primaryColor}30` : 'transparent' }}
               title={t('users.view.list', 'Vista lista')}
             >
-              <List className="w-5 h-5" style={{ color: viewMode === 'list' ? primaryColor : 'rgba(255,255,255,0.5)' }} />
+              <List 
+                className="w-5 h-5" 
+                style={{ 
+                  color: viewMode === 'list' ? primaryColor : 'rgba(255,255,255,0.7)',
+                  strokeWidth: viewMode === 'list' ? 2.5 : 2
+                }} 
+              />
             </button>
           </div>
         </div>
