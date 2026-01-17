@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { useVideoTracking } from '@/features/video-tracking';
 
 interface CustomVideoPlayerProps {
   src: string;
@@ -24,6 +25,10 @@ interface CustomVideoPlayerProps {
   onPiPChange?: (isPiP: boolean) => void;
   initialTime?: number;
   initialPlaybackRate?: number;
+  // Video tracking props
+  lessonId?: string;
+  trackingId?: string;
+  onTrackingError?: (error: Error) => void;
 }
 
 // Interfaz para exponer métodos del reproductor
@@ -43,8 +48,14 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
   onComplete,
   onPiPChange,
   initialTime = 0,
-  initialPlaybackRate = 1
+  initialPlaybackRate = 1,
+  lessonId,
+  trackingId,
+  onTrackingError
 }, ref) => {
+  // 🐛 DEBUG: SYNC log (runs immediately, before any hooks)
+  console.log('[CustomVideoPlayer] 🔄 RENDERING with:', { lessonId, trackingId, hasLessonId: !!lessonId });
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -67,6 +78,92 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
   const [isDraggingVolume, setIsDraggingVolume] = useState(false);
   const [isPiP, setIsPiP] = useState(false);
   const [hasInitialTimeSet, setHasInitialTimeSet] = useState(false);
+
+  // 🎯 Video Tracking Hook
+  const tracking = lessonId ? useVideoTracking({
+    lessonId,
+    trackingId,
+    onError: onTrackingError
+  }) : null;
+
+  // 🔧 Use ref to keep tracking handlers stable across renders
+  const trackingRef = useRef(tracking);
+  useEffect(() => {
+    trackingRef.current = tracking;
+  }, [tracking]);
+
+  // 🐛 DEBUG: Log tracking status
+  useEffect(() => {
+    if (lessonId) {
+      console.log('[CustomVideoPlayer] 🎯 Tracking ENABLED for lesson:', lessonId);
+    } else {
+      console.log('[CustomVideoPlayer] ⚠️ Tracking DISABLED - no lessonId provided');
+    }
+  }, [lessonId]);
+
+  // 🎯 Connect video events to tracking hook
+  useEffect(() => {
+    const video = videoRef.current;
+
+    // 🐛 DEBUG: Log event listener setup status
+    console.log('[CustomVideoPlayer] Event listener setup:', {
+      hasVideo: !!video,
+      hasTracking: !!trackingRef.current,
+      lessonId
+    });
+
+    if (!video || !lessonId) {
+      console.log('[CustomVideoPlayer] ⚠️ Skipping event listeners:', {
+        reason: !video ? 'No video element' : 'No lessonId'
+      });
+      return;
+    }
+
+    console.log('[CustomVideoPlayer] ✅ Attaching event listeners to video element');
+
+    const handlePlayEvent = () => {
+      trackingRef.current?.handlePlay(video.currentTime, video.duration, video.playbackRate);
+    };
+
+    const handlePauseEvent = () => {
+      trackingRef.current?.handlePause(video.currentTime, video.duration, video.playbackRate);
+    };
+
+    const handleEndedEvent = () => {
+      trackingRef.current?.handleEnded(video.currentTime, video.duration, video.playbackRate);
+    };
+
+    const handleSeekedEvent = () => {
+      trackingRef.current?.handleSeeked(video.currentTime, video.duration, video.playbackRate);
+    };
+
+    const handleTimeUpdateEvent = () => {
+      trackingRef.current?.handleTimeUpdate(video.currentTime, video.duration, video.playbackRate);
+    };
+
+    const handleRateChangeEvent = () => {
+      trackingRef.current?.handleRateChange(video.currentTime, video.duration, video.playbackRate);
+    };
+
+    // Add event listeners
+    video.addEventListener('play', handlePlayEvent);
+    video.addEventListener('pause', handlePauseEvent);
+    video.addEventListener('ended', handleEndedEvent);
+    video.addEventListener('seeked', handleSeekedEvent);
+    video.addEventListener('timeupdate', handleTimeUpdateEvent);
+    video.addEventListener('ratechange', handleRateChangeEvent);
+
+    // Cleanup on unmount
+    return () => {
+      trackingRef.current?.cleanup();
+      video.removeEventListener('play', handlePlayEvent);
+      video.removeEventListener('pause', handlePauseEvent);
+      video.removeEventListener('ended', handleEndedEvent);
+      video.removeEventListener('seeked', handleSeekedEvent);
+      video.removeEventListener('timeupdate', handleTimeUpdateEvent);
+      video.removeEventListener('ratechange', handleRateChangeEvent);
+    };
+  }, [lessonId]); // Use lessonId as stable dependency instead of tracking object
 
   // 🔧 CRITICAL FIX: Cleanup effect to pause video on component unmount
   // This prevents the "double audio" bug when navigating away from the video
@@ -821,8 +918,8 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
                                   key={rate}
                                   onClick={() => changePlaybackRate(rate)}
                                   className={`w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-200 ${playbackRate === rate
-                                      ? 'bg-[#00D4B3]/20 text-[#00D4B3] font-medium'
-                                      : 'text-white/80 hover:bg-white/10'
+                                    ? 'bg-[#00D4B3]/20 text-[#00D4B3] font-medium'
+                                    : 'text-white/80 hover:bg-white/10'
                                     }`}
                                 >
                                   {rate === 1 ? 'Normal' : `${rate}x`}

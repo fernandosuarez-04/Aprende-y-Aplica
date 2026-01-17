@@ -15,6 +15,9 @@ interface VideoPlayerProps {
   onPiPChange?: (isPiP: boolean) => void;
   initialTime?: number;
   initialPlaybackRate?: number;
+  // Video tracking props
+  lessonId?: string;
+  trackingId?: string;
 }
 
 // Re-export the interface for external use
@@ -110,8 +113,28 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
   onComplete,
   onPiPChange,
   initialTime = 0,
-  initialPlaybackRate = 1
+  initialPlaybackRate = 1,
+  lessonId,
+  trackingId
 }, ref) => {
+  // 🐛 DEBUG: SYNC log (runs immediately, before any hooks)
+  console.log('[VideoPlayer] 🔄 RENDERING with props:', {
+    videoProvider,
+    lessonId,
+    trackingId,
+    hasLessonId: !!lessonId
+  });
+
+  // 🐛 DEBUG: Log props received (async, after first render)
+  useEffect(() => {
+    console.log('[VideoPlayer] useEffect Props received:', {
+      videoProvider,
+      lessonId,
+      trackingId,
+      hasLessonId: !!lessonId
+    });
+  }, [videoProvider, lessonId, trackingId]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const customVideoRef = useRef<CustomVideoPlayerRef>(null);
@@ -247,11 +270,17 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
           onPiPChange={onPiPChange}
           initialTime={initialTime}
           initialPlaybackRate={initialPlaybackRate}
+          lessonId={lessonId}
+          trackingId={trackingId}
         />
       );
     }
 
     // Para YouTube y Vimeo, usar iframe
+    // ⚠️ NOTA: El tracking automático NO funciona con YouTube/Vimeo iframes
+    // Para tracking completo en estos providers, se requeriría usar sus APIs específicas:
+    // - YouTube IFrame API: https://developers.google.com/youtube/iframe_api_reference
+    // - Vimeo Player API: https://developer.vimeo.com/player/sdk
     return (
       <div className="relative w-full h-full">
         {isLoading && (

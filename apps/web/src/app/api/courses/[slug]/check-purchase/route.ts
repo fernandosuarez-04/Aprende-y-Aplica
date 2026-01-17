@@ -13,13 +13,13 @@ export async function GET(
 ) {
   try {
     const supabase = await createClient();
-    
+
     // Await params (requerido en Next.js 15)
     const { slug } = await params;
-    
+
     // Obtener usuario usando el sistema de sesiones
     const currentUser = await SessionService.getCurrentUser();
-    
+
     if (!currentUser) {
       return NextResponse.json({ isPurchased: false });
     }
@@ -41,7 +41,20 @@ export async function GET(
       course.id
     );
 
-    return NextResponse.json({ isPurchased });
+    if (isPurchased) {
+      return NextResponse.json({ isPurchased: true });
+    }
+
+    // Verificar si el usuario tiene el curso asignado por su organización
+    const { data: assignment } = await supabase
+      .from('organization_course_assignments')
+      .select('id')
+      .eq('user_id', currentUser.id)
+      .eq('course_id', course.id)
+      .in('status', ['assigned', 'in_progress', 'completed'])
+      .single();
+
+    return NextResponse.json({ isPurchased: !!assignment });
   } catch (error) {
     // console.error('Error in check-purchase API:', error);
     return NextResponse.json({ isPurchased: false });
