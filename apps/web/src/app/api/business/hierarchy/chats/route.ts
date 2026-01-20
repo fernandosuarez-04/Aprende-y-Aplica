@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const entityType = searchParams.get('entity_type') as 'region' | 'zone' | 'team' | null;
+    const entityType = searchParams.get('entity_type') as 'region' | 'zone' | 'team' | 'node' | null;
     const entityId = searchParams.get('entity_id');
     const chatType = searchParams.get('chat_type') as 'horizontal' | 'vertical' | null;
 
@@ -45,9 +45,9 @@ export async function GET(request: Request) {
       );
     }
 
-    if (!['region', 'zone', 'team'].includes(entityType)) {
+    if (!['region', 'zone', 'team', 'node'].includes(entityType)) {
       return NextResponse.json(
-        { success: false, error: 'entity_type debe ser region, zone o team' },
+        { success: false, error: 'entity_type debe ser region, zone, team o node' },
         { status: 400 }
       );
     }
@@ -78,22 +78,22 @@ export async function GET(request: Request) {
         hint: error.hint,
         code: error.code
       });
-      
+
       // Si la tabla no existe, dar mensaje más claro
       if (error.code === '42P01' || error.message?.includes('does not exist')) {
         return NextResponse.json(
-          { 
-            success: false, 
+          {
+            success: false,
             error: 'Las tablas de chat no están disponibles. Por favor, ejecuta la migración de base de datos.',
             details: error.message
           },
           { status: 500 }
         );
       }
-      
+
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Error al obtener chats',
           details: error.message || 'Error desconocido'
         },
@@ -113,7 +113,7 @@ export async function GET(request: Request) {
 
         const activeParticipants = participants || [];
         const userParticipant = activeParticipants.find((p: any) => p?.user_id === auth.userId);
-        
+
         return {
           ...chat,
           participants_count: activeParticipants.length,
@@ -134,8 +134,8 @@ export async function GET(request: Request) {
       name: error?.name
     });
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Error al obtener chats',
         details: error?.message || 'Error desconocido'
       },
@@ -170,9 +170,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!['region', 'zone', 'team'].includes(entity_type)) {
+    if (!['region', 'zone', 'team', 'node'].includes(entity_type)) {
       return NextResponse.json(
-        { success: false, error: 'entity_type debe ser region, zone o team' },
+        { success: false, error: 'entity_type debe ser region, zone, team o node' },
         { status: 400 }
       );
     }
@@ -213,6 +213,9 @@ export async function POST(request: Request) {
         .eq('organization_id', auth.organizationId)
         .single();
       entityExists = !!data;
+    } else if (entity_type === 'node') {
+      const { data } = await supabase.from('organization_nodes').select('id').eq('id', entity_id).eq('organization_id', auth.organizationId).single();
+      entityExists = !!data;
     }
 
     if (!entityExists) {
@@ -248,10 +251,12 @@ export async function POST(request: Request) {
       if (entity_type === 'region') levelRole = 'regional_manager';
       else if (entity_type === 'zone') levelRole = 'zone_manager';
       else if (entity_type === 'team') levelRole = 'team_leader';
+      // 'node' no tiene soporte horizontal por ahora (por user request)
     } else if (chat_type === 'vertical') {
       if (entity_type === 'region') levelRole = 'regional_manager';
       else if (entity_type === 'zone') levelRole = 'zone_manager';
       else if (entity_type === 'team') levelRole = 'team_leader';
+      else if (entity_type === 'node') levelRole = 'node_manager';
     }
 
     // Crear nuevo chat
@@ -278,22 +283,22 @@ export async function POST(request: Request) {
         hint: createError?.hint,
         code: createError?.code
       });
-      
+
       // Si la tabla no existe, dar mensaje más claro
       if (createError?.code === '42P01' || createError?.message?.includes('does not exist')) {
         return NextResponse.json(
-          { 
-            success: false, 
+          {
+            success: false,
             error: 'Las tablas de chat no están disponibles. Por favor, ejecuta la migración de base de datos.',
             details: createError?.message
           },
           { status: 500 }
         );
       }
-      
+
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Error al crear el chat',
           details: createError?.message || 'Error desconocido'
         },
@@ -304,74 +309,44 @@ export async function POST(request: Request) {
     // Obtener participantes según el tipo de chat
     let participants: any[] = [];
     try {
-      if (chat_type === 'horizontal') {
-        const { data, error: rpcError } = await supabase.rpc('get_horizontal_chat_participants', {
-          p_entity_type: entity_type,
-          p_entity_id: entity_id,
+      if (entity_type === 'node') {
+        // Usar nueva lógica para nodos
+        const { data, error: rpcError } = await supabase.rpc('get_node_chat_participants', {
+          p_node_id: entity_id,
           p_organization_id: auth.organizationId
         });
-        if (rpcError) {
-          logger.error('Error obteniendo participantes horizontales:', {
-            error: rpcError,
-            message: rpcError.message,
-            details: rpcError.details,
-            hint: rpcError.hint,
-            code: rpcError.code
-          });
-          // Si la función no existe, retornar error más descriptivo
-          if (rpcError.code === '42883' || rpcError.message?.includes('does not exist')) {
-            return NextResponse.json(
-              { 
-                success: false, 
-                error: 'Las funciones de chat no están disponibles. Por favor, ejecuta la migración de base de datos.',
-                details: rpcError.message
-              },
-              { status: 500 }
-            );
-          }
-          // Continuar sin participantes si hay otro error en RPC
-        } else {
-          participants = data || [];
-        }
+        if (rpcError) throw rpcError;
+        participants = data || [];
       } else {
-        const { data, error: rpcError } = await supabase.rpc('get_vertical_chat_participants', {
-          p_entity_type: entity_type,
-          p_entity_id: entity_id,
-          p_organization_id: auth.organizationId
-        });
-        if (rpcError) {
-          logger.error('Error obteniendo participantes verticales:', {
-            error: rpcError,
-            message: rpcError.message,
-            details: rpcError.details,
-            hint: rpcError.hint,
-            code: rpcError.code
+        // Lógica legacy para entidades antiguas
+        if (chat_type === 'horizontal') {
+          const { data, error: rpcError } = await supabase.rpc('get_horizontal_chat_participants', {
+            p_entity_type: entity_type,
+            p_entity_id: entity_id,
+            p_organization_id: auth.organizationId
           });
-          // Si la función no existe, retornar error más descriptivo
-          if (rpcError.code === '42883' || rpcError.message?.includes('does not exist')) {
-            return NextResponse.json(
-              { 
-                success: false, 
-                error: 'Las funciones de chat no están disponibles. Por favor, ejecuta la migración de base de datos.',
-                details: rpcError.message
-              },
-              { status: 500 }
-            );
-          }
-          // Continuar sin participantes si hay otro error en RPC
+          if (rpcError) throw rpcError;
+          participants = data || [];
         } else {
+          const { data, error: rpcError } = await supabase.rpc('get_vertical_chat_participants', {
+            p_entity_type: entity_type,
+            p_entity_id: entity_id,
+            p_organization_id: auth.organizationId
+          });
+          if (rpcError) throw rpcError;
           participants = data || [];
         }
       }
     } catch (rpcException: any) {
-      logger.error('Excepción al llamar funciones RPC:', rpcException);
-      // Continuar sin participantes
+      logger.error('Excepción al llamar funciones RPC de chat:', rpcException);
+      console.error(rpcException)
+      // Continuar sin participantes (solo el usuario actual será agregado abajo)
     }
 
     // Agregar participantes al chat
     // IMPORTANTE: Siempre agregar al usuario actual como participante, incluso si no hay otros participantes
     const participantUserIds = new Set(participants.map(p => p.user_id));
-    
+
     // Asegurar que el usuario actual esté incluido
     if (!participantUserIds.has(auth.userId)) {
       participantUserIds.add(auth.userId);
@@ -434,8 +409,8 @@ export async function POST(request: Request) {
       stack: error?.stack
     });
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Error al crear el chat',
         details: error?.message || 'Error desconocido'
       },

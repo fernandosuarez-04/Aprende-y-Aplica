@@ -39,7 +39,7 @@ export function ChatInput({
   primaryColor,
   isDark
 }: ChatInputProps) {
-  const canSend = (messageContent.trim() || hasFile) && !isSending
+  const canSend = (messageContent?.trim() || hasFile) && !isSending
 
   return (
     <div

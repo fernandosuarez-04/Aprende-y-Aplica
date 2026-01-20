@@ -1,18 +1,6 @@
-/**
- * Componentes de Jerarquía Organizacional
- */
-
-export { HierarchySettings } from './HierarchySettings';
-export { HierarchyTree } from './HierarchyTree';
-export {
-  Modal,
-  RegionForm,
-  ZoneForm,
-  TeamForm,
-  DeleteConfirmModal,
-  DetailsPanel
-} from './HierarchyForms';
-export { TeamMembersModal } from './TeamMembersModal';
-export { HierarchyChat } from './HierarchyChat';
-export { CourseAssignments } from './CourseAssignments';
-export { CourseAssignmentForm } from './CourseAssignmentForm';
+export * from './HierarchyTree';
+export * from './HierarchySettings';
+export * from './NodeItem';
+export * from './HierarchyForms';
+export * from './StructureForm'; // added
+export * from './NodeDashboard';

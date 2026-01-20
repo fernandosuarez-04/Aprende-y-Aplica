@@ -843,6 +843,70 @@ CREATE TABLE public.organization_course_purchases (
   CONSTRAINT organization_course_purchases_purchased_by_fkey FOREIGN KEY (purchased_by) REFERENCES public.users(id),
   CONSTRAINT organization_course_purchases_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(transaction_id)
 );
+CREATE TABLE public.organization_node_courses (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  node_id uuid NOT NULL,
+  course_id uuid NOT NULL,
+  assigned_by uuid,
+  status text DEFAULT 'active'::text,
+  assigned_at timestamp with time zone DEFAULT now(),
+  due_date timestamp with time zone,
+  message text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT organization_node_courses_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_node_courses_node_id_fkey FOREIGN KEY (node_id) REFERENCES public.organization_nodes(id),
+  CONSTRAINT organization_node_courses_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.organization_node_objectives (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  node_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  metric_type text NOT NULL,
+  target_value numeric NOT NULL,
+  current_value numeric DEFAULT 0,
+  status text DEFAULT 'pending'::text,
+  deadline timestamp with time zone,
+  course_id uuid,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_node_objectives_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_node_objectives_node_id_fkey FOREIGN KEY (node_id) REFERENCES public.organization_nodes(id)
+);
+CREATE TABLE public.organization_node_users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  node_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role text NOT NULL DEFAULT 'member'::text,
+  is_primary boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_node_users_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_node_users_node_id_fkey FOREIGN KEY (node_id) REFERENCES public.organization_nodes(id),
+  CONSTRAINT organization_node_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.organization_nodes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  structure_id uuid NOT NULL,
+  organization_id uuid NOT NULL,
+  parent_id uuid,
+  name text NOT NULL,
+  type text NOT NULL,
+  code text,
+  manager_id uuid,
+  properties jsonb DEFAULT '{}'::jsonb,
+  path USER-DEFINED,
+  depth integer DEFAULT 0,
+  position integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_nodes_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_nodes_structure_id_fkey FOREIGN KEY (structure_id) REFERENCES public.organization_structures(id),
+  CONSTRAINT organization_nodes_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT organization_nodes_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.organization_nodes(id),
+  CONSTRAINT organization_nodes_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.organization_notification_preferences (
   preference_id uuid NOT NULL DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL,
@@ -882,6 +946,16 @@ CREATE TABLE public.organization_regions (
   CONSTRAINT organization_regions_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
   CONSTRAINT organization_regions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
   CONSTRAINT organization_regions_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.organization_structures (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  name text NOT NULL,
+  is_default boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_structures_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_structures_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );
 CREATE TABLE public.organization_teams (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     }
 
     const supabase = await createClient()
-    
+
     // Validar que el ID sea un UUID válido
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
       logger.error(`ID inválido para ${type}: ${id}`)
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     }
 
     logger.info(`📊 Obteniendo analíticas para ${type} con ID: ${id}`)
-    
+
     // Call the RPC function
     const { data, error } = await supabase.rpc('get_hierarchy_analytics', {
       p_entity_type: type,
@@ -47,6 +47,7 @@ export async function GET(request: Request) {
     })
 
     if (error) {
+      console.error('CRITICAL RPC ERROR:', error); // Explicit log for terminal
       logger.error('❌ Error en RPC get_hierarchy_analytics:', {
         error: error.message,
         code: error.code,
@@ -55,22 +56,22 @@ export async function GET(request: Request) {
         type,
         id
       })
-      
+
       // Si la función no existe, dar un mensaje más claro
       if (error.code === '42883' || error.message?.includes('does not exist')) {
         return NextResponse.json(
-          { 
-            success: false, 
+          {
+            success: false,
             error: 'La función get_hierarchy_analytics no existe en la base de datos. Por favor ejecuta la migración SQL en Supabase.',
             hint: 'Ejecuta el archivo supabase/migrations/20260109_hierarchy_analytics.sql en el SQL Editor de Supabase'
           },
           { status: 500 }
         )
       }
-      
+
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: error.message || 'Error al obtener analíticas',
           code: error.code,
           hint: error.hint

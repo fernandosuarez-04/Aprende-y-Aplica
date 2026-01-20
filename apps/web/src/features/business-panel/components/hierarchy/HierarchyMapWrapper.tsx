@@ -39,7 +39,7 @@ const HierarchyMapComponent = dynamic(
   }
 )
 
-export default function HierarchyMapWrapper({ points, center, zoom }: HierarchyMapWrapperProps) {
+export function HierarchyMapWrapper({ points, center, zoom }: HierarchyMapWrapperProps) {
   const [isClient, setIsClient] = useState(false)
   const [hasError, setHasError] = useState(false)
 
@@ -59,7 +59,7 @@ export default function HierarchyMapWrapper({ points, center, zoom }: HierarchyM
       <div className="h-[400px] w-full rounded-2xl bg-[#1E2329] border border-white/10 flex items-center justify-center">
         <div className="text-center text-white/40">
           <p>No se pudo cargar el mapa</p>
-          <button 
+          <button
             onClick={() => {
               setHasError(false)
               setIsClient(false)

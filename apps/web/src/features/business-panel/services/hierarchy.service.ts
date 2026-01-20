@@ -472,10 +472,10 @@ export class HierarchyService {
   static async getAvailableManagers(role?: 'regional_manager' | 'zone_manager' | 'team_leader'): Promise<UserWithHierarchy[]> {
     const params = new URLSearchParams();
     if (role) params.set('role', role);
-    
+
     const queryString = params.toString();
     const endpoint = `/users/available-managers${queryString ? `?${queryString}` : ''}`;
-    
+
     const result = await fetchApi<{ users: UserWithHierarchy[] }>(endpoint);
     return result.success ? result.data?.users ?? [] : [];
   }
@@ -561,6 +561,66 @@ export class HierarchyService {
       `/teams/check-name?name=${encodeURIComponent(name)}&zoneId=${zoneId}`
     );
     return result.success ? result.data?.available ?? false : false;
+  }
+
+  // =============================================
+  // NODOS UNIFICADOS (V2)
+  // =============================================
+
+  /**
+   * Obtiene los detalles completos de un nodo (unificado)
+   */
+  static async getNodeDetails(nodeId: string): Promise<import('../types/dynamicHierarchy.types').NodeDetails | null> {
+    const result = await fetchApi<import('../types/dynamicHierarchy.types').NodeDetails>(`/nodes/${nodeId}`);
+    return result.success ? result.data ?? null : null;
+  }
+
+  /**
+   * Obtiene los miembros de un nodo
+   */
+  static async getNodeMembers(nodeId: string): Promise<import('../types/hierarchy.types').NodeMember[]> {
+    const result = await fetchApi<{ members: import('../types/hierarchy.types').NodeMember[] }>(`/nodes/${nodeId}/members`);
+    return result.success ? result.data?.members ?? [] : [];
+  }
+
+  /**
+   * Asigna un usuario a un nodo
+   */
+  static async assignUserToNode(nodeId: string, userId: string, role: string = 'member', isPrimary: boolean = false): Promise<ApiResponse<import('../types/hierarchy.types').NodeMember>> {
+    return fetchApi(`/nodes/${nodeId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ userId, role, isPrimary })
+    });
+  }
+
+  /**
+   * Remueve un usuario de un nodo
+   */
+  static async removeUserFromNode(nodeId: string, userId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/nodes/${nodeId}/members/${userId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  /**
+   * Busca usuarios disponibles para asignar a un nodo (que no sean miembros ya)
+   */
+  static async getAvailableUsersForNode(nodeId: string, query: string = ''): Promise<import('../types/hierarchy.types').UserWithHierarchy['user'][]> {
+    const params = new URLSearchParams();
+    if (query) params.set('query', query);
+
+    const result = await fetchApi<{ users: any[] }>(`/nodes/${nodeId}/members/available?${params.toString()}`);
+    return result.success ? result.data?.users ?? [] : [];
+  }
+  /**
+   * Busca usuarios en toda la organización
+   */
+  static async searchOrganizationUsers(query: string = ''): Promise<import('../types/hierarchy.types').UserWithHierarchy['user'][]> {
+    const params = new URLSearchParams();
+    if (query) params.set('query', query);
+
+    const result = await fetchApi<{ users: any[] }>(`/users/search?${params.toString()}`);
+    return result.success ? result.data?.users ?? [] : [];
   }
 }
 

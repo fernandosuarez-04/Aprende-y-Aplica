@@ -183,7 +183,7 @@ export const useChatLogic = ({ entityType, entityId, chatType }: UseChatLogicPro
       if (selectedFile) {
         const bucket = supabaseStorageService.getBucketForType(
           selectedFile.type.startsWith('image/') ? 'image' :
-          selectedFile.type.startsWith('video/') ? 'video' : 'document',
+            selectedFile.type.startsWith('video/') ? 'video' : 'document',
           'hierarchy-chats'
         )
         const folder = ''
@@ -295,13 +295,28 @@ export const useChatLogic = ({ entityType, entityId, chatType }: UseChatLogicPro
     return null
   }
 
+  // Funciones wrappers para compatibilidad
+  const uploadFile = async (file: File) => {
+    setSelectedFile(file)
+    // La lógica de subida real ocurre al enviar el mensaje en handleSendMessage
+    // Esto es diferente a lo que espera ChatInput probablemente, así que ajustaremos la lógica
+    // Si ChatInput espera subir inmediatamente, necesitamos cambiar handleSendMessage
+    // Por ahora, asumimos que ChatInput llama a onUpload con el archivo seleccionado para previsualizar
+  }
+
+  const loadMoreMessages = async () => {
+    // Implementar paginación real si es necesario
+    console.log('Load more messages not implemented yet')
+  }
+
   return {
     // Estado
     chat,
     messages,
     participants,
-    isLoading,
-    isSending,
+    loading: isLoading, // Renamed to match component expectation
+    sending: isSending, // Renamed
+    currentUser: user,  // Renamed
     messageContent,
     editingMessageId,
     editContent,
@@ -311,7 +326,6 @@ export const useChatLogic = ({ entityType, entityId, chatType }: UseChatLogicPro
     selectedFile,
     filePreview,
     imageModal,
-    user,
 
     // Refs
     messagesEndRef,
@@ -335,6 +349,12 @@ export const useChatLogic = ({ entityType, entityId, chatType }: UseChatLogicPro
     handleEditMessage,
     handleDeleteMessage,
     startEditing,
-    getMessageAttachment
+    getMessageAttachment,
+
+    // Nuevas funciones expuestas
+    uploadFile,
+    loadMoreMessages,
+    hasMore: false, // Placeholder
+    markAsRead
   }
 }

@@ -16,6 +16,7 @@ export type HierarchyRole =
   | 'regional_manager' // Gerente Regional - acceso a toda una región
   | 'zone_manager'     // Gerente de Zona - acceso a toda una zona
   | 'team_leader'      // Líder de Equipo - acceso solo a su equipo
+  | 'node_manager'     // Gerente de Nodo - acceso a un nodo específico
   | 'member';          // Miembro básico - acceso solo a su equipo
 
 /**
@@ -274,7 +275,7 @@ export interface HierarchyAnalytics {
   users_count: number;
   active_learners: number;
   inactive_users?: number;
-  
+
   // Métricas de aprendizaje
   total_hours: number;
   avg_hours_per_member?: number;
@@ -284,13 +285,13 @@ export interface HierarchyAnalytics {
   courses_not_started?: number;
   lessons_completed?: number;
   avg_session_duration?: number;
-  
+
   // Métricas de asignaciones
   courses_assigned?: number;
   assignment_completion_rate?: number;
   assignments_overdue?: number;
   assignments_due_soon?: number;
-  
+
   // Métricas de engagement
   participation_rate?: number;
   avg_active_days?: number;
@@ -299,7 +300,7 @@ export interface HierarchyAnalytics {
   sessions_completed?: number;
   sessions_missed?: number;
   last_activity?: string;
-  
+
   // Top Performer
   top_performer: {
     id: string;
@@ -310,19 +311,19 @@ export interface HierarchyAnalytics {
     courses_completed?: number;
     completion_rate?: number;
   } | null;
-  
+
   // Para Zona y Región: métricas agregadas
   total_teams?: number;
   active_teams?: number;
   inactive_teams?: number;
   avg_hours_per_team?: number;
-  
+
   // Para Región: métricas adicionales
   total_zones?: number;
   active_zones?: number;
   inactive_zones?: number;
   avg_hours_per_zone?: number;
-  
+
   // Rankings (para Zona y Región)
   team_ranking?: Array<{
     id: string;
@@ -331,7 +332,7 @@ export interface HierarchyAnalytics {
     completion_rate: number;
     participation_rate: number;
   }>;
-  
+
   zone_ranking?: Array<{
     id: string;
     name: string;
@@ -761,6 +762,7 @@ export const ROLE_LABELS: Record<HierarchyRole, string> = {
   regional_manager: 'Gerente Regional',
   zone_manager: 'Gerente de Zona',
   team_leader: 'Líder de Equipo',
+  node_manager: 'Gerente de Nodo',
   member: 'Miembro'
 };
 
@@ -955,4 +957,27 @@ export interface ChatMessageResponse {
   success: boolean;
   message?: HierarchyChatMessage;
   error?: string;
+}
+// ===========================================
+// MIEMBROS DE NODO (V2)
+// ===========================================
+
+/**
+ * Miembro asignado a un nodo (Unified Hierarchy)
+ */
+export interface NodeMember {
+  id: string;
+  user_id: string;
+  node_id: string;
+  role: string;
+  is_primary: boolean;
+  created_at: string;
+  users: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    profile_picture_url?: string | null;
+    username: string;
+  };
 }
