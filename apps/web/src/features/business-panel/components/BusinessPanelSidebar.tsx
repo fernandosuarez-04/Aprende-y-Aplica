@@ -23,7 +23,8 @@ import {
   ChevronRight,
   Sparkles,
   MapPin,
-  Network
+  Network,
+  ClipboardCheck
 } from 'lucide-react'
 
 interface BusinessPanelSidebarProps {
@@ -59,7 +60,7 @@ export function BusinessPanelSidebar({
   const { logout } = useAuth()
   const [imageError, setImageError] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
-  
+
   const { t } = useTranslation('business')
 
   /* New import for dynamic routing */
@@ -73,6 +74,7 @@ export function BusinessPanelSidebar({
     { name: t('sidebar.hierarchy', 'Estructura'), href: `/${orgSlug}/business-panel/hierarchy`, icon: Network },
     { name: t('sidebar.reports'), href: `/${orgSlug}/business-panel/reports`, icon: FileText },
     { name: t('sidebar.analytics'), href: `/${orgSlug}/business-panel/analytics`, icon: BarChart3 },
+    { name: t('sidebar.reviews', 'Revisiones'), href: `/${orgSlug}/business-panel/reviews`, icon: ClipboardCheck },
     { name: t('sidebar.settings'), href: `/${orgSlug}/business-panel/settings`, icon: Settings },
   ], [t, orgSlug])
 
@@ -162,7 +164,7 @@ export function BusinessPanelSidebar({
   // - Desktop (not mobile): Always 0 (visible)
   // - Mobile: 0 if Open, -100% if Closed
   const xPosition = isMobile ? (isOpen ? 0 : '-100%') : 0
-  
+
   // Calculate width
   const sidebarWidth = (isCollapsed && !shouldExpand && !isMobile) ? 80 : 280
 
@@ -187,7 +189,7 @@ export function BusinessPanelSidebar({
       <motion.div
         ref={sidebarRef}
         initial={false}
-        animate={{ 
+        animate={{
           width: sidebarWidth,
           x: xPosition
         }}
@@ -215,14 +217,14 @@ export function BusinessPanelSidebar({
           const target = event.target as HTMLElement
           // Avoid triggering pin when clicking specific interactive elements
           if (target.tagName !== 'A' && target.tagName !== 'BUTTON' && !target.closest('a') && !target.closest('button')) {
-             onTogglePin()
-             setShowPinFeedback(true)
-             setTimeout(() => setShowPinFeedback(false), 2000)
+            onTogglePin()
+            setShowPinFeedback(true)
+            setTimeout(() => setShowPinFeedback(false), 2000)
           }
         }}
       >
         {/* Decoracion de fondo sutil */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none opacity-20"
           style={{
             background: `radial-gradient(circle at 100% 0%, ${primaryColor}40 0%, transparent 20%), 
@@ -232,12 +234,12 @@ export function BusinessPanelSidebar({
 
         {/* Mobile Close Button Container - Minimal */}
         <div className="relative flex-shrink-0 flex items-center justify-end px-4 pt-4 pb-2 lg:hidden">
-            <button
-               onClick={onClose}
-               className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
-             >
-               <X className="w-5 h-5" />
-            </button>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Feedback Messages (Pin/Unpin) */}
@@ -249,10 +251,10 @@ export function BusinessPanelSidebar({
               exit={{ height: 0, opacity: 0 }}
               className="px-4 py-1 bg-white/5 border-b border-white/5 overflow-hidden"
             >
-                 <p className="text-[10px] text-accent font-medium flex items-center gap-1.5 justify-center py-1" style={{ color: accentColor }}>
-                  <MapPin className="w-3 h-3" />
-                  {isPinned ? t('sidebar.pinned') : t('sidebar.unpinned')}
-                 </p>
+              <p className="text-[10px] text-accent font-medium flex items-center gap-1.5 justify-center py-1" style={{ color: accentColor }}>
+                <MapPin className="w-3 h-3" />
+                {isPinned ? t('sidebar.pinned') : t('sidebar.unpinned')}
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -272,7 +274,7 @@ export function BusinessPanelSidebar({
                     onClick={() => {
                       if (isMobile) onClose();
                       /* Extract section name for analytics/state tracking, removing the orgSlug prefix */
-                      const sectionName = item.href.split('/').pop() || ''; 
+                      const sectionName = item.href.split('/').pop() || '';
                       onSectionChange(sectionName);
                       if (!isMobile && isCollapsed && !isPinned && isHovered) {
                         setIsHovered(false)
@@ -296,7 +298,7 @@ export function BusinessPanelSidebar({
                     title={(isCollapsed && !shouldExpand && !isMobile) ? item.name : undefined}
                   >
                     <Icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                    
+
                     {(!isCollapsed || shouldExpand || isMobile) && (
                       <motion.span
                         initial={{ opacity: 0, width: 0 }}
@@ -308,13 +310,13 @@ export function BusinessPanelSidebar({
                         {item.name}
                       </motion.span>
                     )}
-                    
+
                     {/* Active Indicator Glow for Collapsed */}
                     {isCollapsed && !shouldExpand && !isMobile && isActive && (
-                       <div 
+                      <div
                         className="absolute inset-0 rounded-xl blur-md -z-10 opacity-60"
                         style={{ background: primaryColor }}
-                       />
+                      />
                     )}
                   </Link>
                 </li>
@@ -325,19 +327,19 @@ export function BusinessPanelSidebar({
 
         {/* Footer Section */}
         <div className="mt-auto px-4 pb-4 pt-2">
-           {/* Collapse Toggle Button - Desktop Only */}
-           {!isMobile && (
-             <div className={`flex ${(!isCollapsed || shouldExpand) ? 'justify-end' : 'justify-center'} mb-4`}>
-                <button
-                  onClick={onToggleCollapse}
-                  className="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-all hover:scale-105 active:scale-95"
-                  style={{ color: panelStyles?.text_color || '#FFFFFF', opacity: 0.7 }}
-                  title={isCollapsed ? t('sidebar.pinMenu') : t('sidebar.collapseMenu')}
-                >
-                  {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-                </button>
-             </div>
-           )}
+          {/* Collapse Toggle Button - Desktop Only */}
+          {!isMobile && (
+            <div className={`flex ${(!isCollapsed || shouldExpand) ? 'justify-end' : 'justify-center'} mb-4`}>
+              <button
+                onClick={onToggleCollapse}
+                className="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-all hover:scale-105 active:scale-95"
+                style={{ color: panelStyles?.text_color || '#FFFFFF', opacity: 0.7 }}
+                title={isCollapsed ? t('sidebar.pinMenu') : t('sidebar.collapseMenu')}
+              >
+                {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
 
 
         </div>

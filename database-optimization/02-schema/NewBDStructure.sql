@@ -402,7 +402,7 @@ CREATE TABLE public.hierarchy_chats (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL,
   chat_type character varying NOT NULL CHECK (chat_type::text = ANY (ARRAY['horizontal'::character varying, 'vertical'::character varying]::text[])),
-  entity_type character varying NOT NULL CHECK (entity_type::text = ANY (ARRAY['region'::character varying, 'zone'::character varying, 'team'::character varying]::text[])),
+  entity_type character varying NOT NULL CHECK (entity_type::text = ANY (ARRAY['region'::character varying, 'zone'::character varying, 'team'::character varying, 'node'::character varying]::text[])),
   entity_id uuid NOT NULL,
   level_role character varying,
   name character varying,

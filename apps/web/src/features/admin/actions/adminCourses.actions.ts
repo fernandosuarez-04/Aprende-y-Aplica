@@ -1,0 +1,179 @@
+'use server'
+
+import { createClient } from '../../../lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+
+export interface AdminCourse {
+    id: string
+    title: string
+    description: string
+    slug: string
+    category: string
+    level: string
+    instructor_id: string
+    duration_total_minutes: number
+    thumbnail_url?: string
+    is_active: boolean
+    created_at: string
+    updated_at: string
+    price?: number
+    average_rating?: number
+    student_count: number
+    review_count: number
+    instructor_name?: string
+    duration_hours?: number
+}
+
+export async function getPendingCourses(): Promise<AdminCourse[]> {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('courses')
+        .select(`
+            id,
+            title,
+            description,
+            slug,
+            category,
+            level,
+            instructor_id,
+            duration_total_minutes,
+            thumbnail_url,
+            is_active,
+            created_at,
+            updated_at,
+            price,
+            average_rating,
+            approval_status,
+            users!fk_courses_instructor (
+                first_name,
+                last_name,
+                email
+            )
+        `)
+        .eq('approval_status', 'pending')
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error('Error fetching pending courses:', error)
+        throw new Error(error.message)
+    }
+
+    const formattedCourses = data?.map(course => ({
+        ...course,
+        instructor_name: course.users
+            ? `${(course.users as any).first_name} ${(course.users as any).last_name}`
+            : 'Desconocido',
+        duration_hours: course.duration_total_minutes ? Math.round((course.duration_total_minutes / 60) * 10) / 10 : 0
+    })) as AdminCourse[]
+
+    return formattedCourses
+}
+
+export async function getCourseFullDetails(courseId: string): Promise<any> {
+    const supabase = await createClient()
+
+    const { data: course, error } = await supabase
+        .from('courses')
+        .select(`
+            *,
+            instructor:users!fk_courses_instructor(
+                id, first_name, last_name, email, profile_picture_url, display_name
+            ),
+            modules:course_modules(
+                module_id, 
+                module_title, 
+                module_order_index,
+                is_published,
+                lessons:course_lessons(
+                    lesson_id, 
+                    lesson_title, 
+                    lesson_order_index,
+                    duration_seconds,
+                    video_provider,
+                    is_free_preview,
+                    materials:lesson_materials(
+                        material_id, 
+                        material_title, 
+                        material_type,
+                        content_url
+                    )
+                )
+            )
+        `)
+        .eq('id', courseId)
+        .single()
+
+    if (error) {
+        console.error('Error fetching course details:', error)
+        throw new Error(error.message)
+    }
+
+    // Ordenamiento manual x seguridad
+    if (course.modules) {
+        course.modules.sort((a: any, b: any) => a.module_order_index - b.module_order_index)
+        course.modules.forEach((mod: any) => {
+            if (mod.lessons) {
+                mod.lessons.sort((a: any, b: any) => a.lesson_order_index - b.lesson_order_index)
+            }
+        })
+    }
+
+    return course
+}
+
+export async function approveCourse(courseId: string, adminId: string): Promise<boolean> {
+    const supabase = await createClient()
+
+    const { error: courseError } = await supabase
+        .from('courses')
+        .update({
+            approval_status: 'approved',
+            is_active: true,
+            approved_by: adminId,
+            approved_at: new Date().toISOString()
+        })
+        .eq('id', courseId)
+
+    if (courseError) {
+        console.error('Error approving course:', courseError)
+        return false
+    }
+
+    await supabase.from('course_modules').update({ is_published: true }).eq('course_id', courseId)
+
+    // Obtener ids de modulos para activar lecciones
+    const { data: modules } = await supabase.from('course_modules').select('module_id').eq('course_id', courseId)
+    if (modules && modules.length > 0) {
+        const moduleIds = modules.map(m => m.module_id)
+        await supabase.from('course_lessons').update({ is_published: true }).in('module_id', moduleIds)
+    }
+
+    revalidatePath('/admin/courses/pending')
+    revalidatePath('/[orgSlug]/business-panel/reviews', 'page') // Intento de revalidación dinámica
+
+    return true
+}
+
+export async function rejectCourse(courseId: string, reason: string): Promise<boolean> {
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('courses')
+        .update({
+            approval_status: 'rejected',
+            rejection_reason: reason,
+            is_active: false
+        })
+        .eq('id', courseId)
+
+    if (error) {
+        console.error('Error rejecting course:', error)
+        return false
+    }
+
+    revalidatePath('/admin/courses/pending')
+    revalidatePath('/[orgSlug]/business-panel/reviews', 'page')
+
+    return true
+}
