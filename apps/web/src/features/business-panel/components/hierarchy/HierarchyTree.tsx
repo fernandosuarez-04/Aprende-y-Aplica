@@ -1,4 +1,4 @@
-'use client';
+import { Plus, Layout, Settings, ChevronRight, ChevronDown, UserPlus } from 'lucide-react';
 
 import React, { useEffect, useState } from 'react';
 import { DynamicHierarchyService } from '../../services/dynamicHierarchy.service';
@@ -6,6 +6,7 @@ import { OrganizationNode, OrganizationStructure } from '../../types/dynamicHier
 import { NodeItem } from './NodeItem';
 import { StructureForm } from './StructureForm';
 import { NodeForm } from './NodeForm';
+import { MemberAssignmentModal } from './MemberAssignmentModal';
 
 interface HierarchyTreeProps {
   initialStructureId?: string;
@@ -42,6 +43,11 @@ export const HierarchyTree: React.FC<HierarchyTreeProps> = ({ initialStructureId
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showStructureModal, setShowStructureModal] = useState(false);
+
+  // Member Assignment Modal State
+  const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
+  const [memberModalNodeId, setMemberModalNodeId] = useState<string | null>(null);
+  const [memberModalNodeName, setMemberModalNodeName] = useState<string>('');
 
   // Node Modal State
   const [showNodeModal, setShowNodeModal] = useState(false);
@@ -218,6 +224,39 @@ export const HierarchyTree: React.FC<HierarchyTreeProps> = ({ initialStructureId
           >
             + Nueva Estructura
           </button>
+          {/* Structure Members Management using Root Node */}
+          <button
+            onClick={async () => {
+              if (!selectedStructureId) return;
+              // Use local nodes state if available, or fetch
+              let rootNode = nodes.find(n => !n.parent_id);
+
+              if (!rootNode && selectedStructureId) {
+                try {
+                  const fetchedNodes = await DynamicHierarchyService.getTree(selectedStructureId);
+                  rootNode = fetchedNodes.find(n => !n.parent_id);
+                } catch (e) {
+                  console.error("Error finding root node", e);
+                }
+              }
+
+              if (rootNode) {
+                setMemberModalNodeId(rootNode.id);
+                setMemberModalNodeName(rootNode.name);
+                setIsMemberModalOpen(true);
+              } else {
+                alert("No se encontró un nodo raíz para gestionar miembros. Cree un nodo 'General' primero.");
+              }
+            }}
+            className="ml-2 text-sm px-3 py-1.5 rounded-md transition-colors shadow-sm font-medium flex items-center gap-2"
+            style={{
+              backgroundColor: 'var(--org-secondary-button-color, #4F46E5)',
+              color: '#FFFFFF'
+            }}
+          >
+            <UserPlus className="w-4 h-4" />
+            Miembros
+          </button>
         </div>
       </div>
 
@@ -285,6 +324,18 @@ export const HierarchyTree: React.FC<HierarchyTreeProps> = ({ initialStructureId
         parentNode={nodeModalMode === 'create' ? targetNode : undefined}
         nodeToEdit={nodeModalMode === 'edit' ? targetNode : undefined}
       />
+
+      {isMemberModalOpen && memberModalNodeId && (
+        <MemberAssignmentModal
+          isOpen={isMemberModalOpen}
+          onClose={() => setIsMemberModalOpen(false)}
+          nodeId={memberModalNodeId}
+          nodeName={memberModalNodeName}
+          onSuccess={() => {
+            // Refresh if needed
+          }}
+        />
+      )}
     </div>
   );
 };

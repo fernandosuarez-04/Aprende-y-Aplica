@@ -124,6 +124,9 @@ export async function POST(request: NextRequest) {
     const missingCourses = course_ids.filter((id: string) => !purchasedCourseIds.includes(id))
 
     if (missingCourses.length > 0) {
+      logger.error(`[Assign] 403 Forbidden: Organization ${organizationId} has not purchased courses: ${missingCourses.join(', ')}`)
+      logger.info(`[Assign] Purchased courses found: ${purchasedCourseIds.join(', ')}`)
+
       return NextResponse.json({
         success: false,
         error: `La organización no ha adquirido los siguientes cursos: ${missingCourses.join(', ')}`

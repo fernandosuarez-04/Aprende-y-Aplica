@@ -124,10 +124,10 @@ function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
 export function StudyPlannerLIA() {
   const router = useRouter();
   const params = useParams();
-  
+
   // Joyride integration protected (commented out due to webpack error)
   // const { joyrideProps, restartTour, isRunning } = useStudyPlannerJoyride();
-  const joyrideProps = {}; const restartTour = () => {}; const isRunning = false;
+  const joyrideProps = {}; const restartTour = () => { }; const isRunning = false;
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
@@ -179,6 +179,33 @@ export function StudyPlannerLIA() {
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [connectedCalendar, setConnectedCalendar] = useState<'google' | 'microsoft' | null>(null);
   const [calendarSkipped, setCalendarSkipped] = useState(false); // Indica si el usuario rechazó explícitamente conectar calendario
+
+  // Manejar conexión de calendario (Google/Microsoft)
+  const handleCalendarConnect = async (provider: 'google' | 'microsoft') => {
+    try {
+      setIsConnectingCalendar(true);
+      // Llamar a la API para obtener URL de autorización
+      const response = await fetch('/api/study-planner/calendar/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al iniciar la conexión');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data?.authUrl) {
+        // Redirigir a URL de autorización
+        window.location.href = data.data.authUrl;
+      }
+    } catch (err) {
+      console.error('Error conectando calendario:', err);
+      setIsConnectingCalendar(false);
+    }
+  };
 
   // Estados para configuración de estudio
   // ✅ NUEVO ENFOQUE: "rapido" = terminar lo antes posible, "normal" = tiempo razonable, "largo" = hasta fecha límite
@@ -284,23 +311,23 @@ export function StudyPlannerLIA() {
       try {
         const key = getStorageKey(currentUserId);
         const savedData = localStorage.getItem(key);
-        
+
         if (savedData) {
           const session = JSON.parse(savedData);
           // Verificar si la sesión tiene contenido relevante y es reciente (menos de 24h)
           const sessionTime = new Date(session.timestamp).getTime();
           const now = Date.now();
           const isRecent = (now - sessionTime) < 24 * 60 * 60 * 1000;
-          
+
           if (isRecent && (session.conversationHistory?.length > 0 || session.savedLessonDistribution?.length > 0)) {
             console.log('📦 Sesión guardada detectada:', new Date(session.timestamp).toLocaleString());
-            setSavedSessionDate(new Date(session.timestamp).toLocaleString('es-ES', { 
-              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
+            setSavedSessionDate(new Date(session.timestamp).toLocaleString('es-ES', {
+              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
             }));
-            
+
             // Si el modal principal ya se mostró (showConversation=true), mostrar el prompt
             if (showConversation) {
-               setShowResumePrompt(true);
+              setShowResumePrompt(true);
             }
           }
         }
@@ -338,7 +365,7 @@ export function StudyPlannerLIA() {
         const savedData = localStorage.getItem(key);
         if (savedData) {
           const session = JSON.parse(savedData);
-          
+
           // Restaurar estados
           if (session.conversationHistory) setConversationHistory(session.conversationHistory);
           if (session.savedLessonDistribution) setSavedLessonDistribution(session.savedLessonDistribution);
@@ -346,13 +373,13 @@ export function StudyPlannerLIA() {
           if (session.studyApproach) setStudyApproach(session.studyApproach);
           if (session.targetDate) setTargetDate(session.targetDate);
           if (session.hasShownFinalSummary) setHasShownFinalSummary(session.hasShownFinalSummary);
-          
+
           // Añadir mensaje de sistema indicando restauración
-          setConversationHistory(prev => [...prev, { 
-            role: 'system', 
-            content: '🔄 [SISTEMA] Sesión anterior restaurada exitosamente. Puedes continuar donde lo dejaste.' 
+          setConversationHistory(prev => [...prev, {
+            role: 'system',
+            content: '🔄 [SISTEMA] Sesión anterior restaurada exitosamente. Puedes continuar donde lo dejaste.'
           }]);
-          
+
           console.log('✅ Sesión restaurada');
         }
       } catch (e) {
@@ -812,7 +839,7 @@ export function StudyPlannerLIA() {
 
     if (calendarConnected === 'true') {
       console.log('🔗 [OAuth Return] Calendario conectado detectado en URL');
-      
+
       // Limpiar URL para no re-ejecutar
       window.history.replaceState({}, '', window.location.pathname);
 
@@ -826,17 +853,17 @@ export function StudyPlannerLIA() {
             if (data.isConnected && data.provider) {
               console.log('✅ [OAuth Return] Estado verificado:', data.provider);
               setConnectedCalendar(data.provider);
-              
+
               // 2. Dar feedback al usuario
               const msg = `¡Excelente! He confirmado que tu calendario de ${data.provider === 'google' ? 'Google' : 'Microsoft'} está conectado. Voy a analizar tu disponibilidad ahora mismo.`;
               setConversationHistory(prev => [...prev, { role: 'assistant', content: msg }]);
-              
+
               // 3. Reanudar análisis (usando valores por defecto seguros ya que el estado se perdió)
               // B2B suele usar 'normal' como default seguro
               setTimeout(() => {
                 analyzeCalendarAndSuggest(
                   data.provider,
-                  undefined, 
+                  undefined,
                   'normal'
                 );
               }, 1000);
@@ -849,13 +876,13 @@ export function StudyPlannerLIA() {
 
       resumeFlow();
     } else if (calendarError) {
-       console.error('❌ [OAuth Return] Error en conexión:', calendarError);
-       // Limpiar URL
-       window.history.replaceState({}, '', window.location.pathname);
-       setConversationHistory(prev => [...prev, { 
-           role: 'assistant', 
-           content: `Hubo un problema al conectar tu calendario: ${decodeURIComponent(calendarError)}. ¿Quieres intentarlo de nuevo o continuar sin calendario?` 
-       }]);
+      console.error('❌ [OAuth Return] Error en conexión:', calendarError);
+      // Limpiar URL
+      window.history.replaceState({}, '', window.location.pathname);
+      setConversationHistory(prev => [...prev, {
+        role: 'assistant',
+        content: `Hubo un problema al conectar tu calendario: ${decodeURIComponent(calendarError)}. ¿Quieres intentarlo de nuevo o continuar sin calendario?`
+      }]);
     }
   }, []); // Solo al montar
 
@@ -888,9 +915,9 @@ export function StudyPlannerLIA() {
       if (pendingLessonsRef.current.length !== formattedLessons.length) {
         pendingLessonsRef.current = formattedLessons;
         setPendingLessonsWithNames(formattedLessons);
-        
+
         console.log(`✅ [Sync] ${formattedLessons.length} lecciones sincronizadas desde useLIAData`);
-        
+
         // Log de verificación
         if (formattedLessons.length > 0) {
           console.log('   📋 Primeras 3 lecciones (nombres exactos de BD):');
@@ -1002,43 +1029,43 @@ INSTRUCCIONES:
         // ✅ FIX 207 + FIX 289: Inyectar calendario Y Festivos
         let calendarContext = '';
         try {
-            const busyList: string[] = [];
+          const busyList: string[] = [];
 
-            // 1. Agregar días festivos de México (Prioridad Alta)
-            const todayForHolidays = new Date();
-            const futureDateForHolidays = new Date();
-            futureDateForHolidays.setMonth(todayForHolidays.getMonth() + 6); // Proyectar 6 meses
-            
-            const holidays = HolidayService.getHolidaysInRange(todayForHolidays, futureDateForHolidays, 'MX');
-            
-            if (holidays.length > 0) {
-                holidays.forEach(h => {
-                     // Formato: "Lunes, 1 de enero de 2024"
-                     const dateStr = h.date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                     busyList.push(`⛔ ${dateStr}: DÍA FESTIVO (${h.name.toUpperCase()}) - PROHIBIDO PROGRAMAR LECCIONES`);
+          // 1. Agregar días festivos de México (Prioridad Alta)
+          const todayForHolidays = new Date();
+          const futureDateForHolidays = new Date();
+          futureDateForHolidays.setMonth(todayForHolidays.getMonth() + 6); // Proyectar 6 meses
+
+          const holidays = HolidayService.getHolidaysInRange(todayForHolidays, futureDateForHolidays, 'MX');
+
+          if (holidays.length > 0) {
+            holidays.forEach(h => {
+              // Formato: "Lunes, 1 de enero de 2024"
+              const dateStr = h.date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+              busyList.push(`⛔ ${dateStr}: DÍA FESTIVO (${h.name.toUpperCase()}) - PROHIBIDO PROGRAMAR LECCIONES`);
+            });
+          }
+
+          // 2. Agregar agenda del usuario
+          if (savedCalendarData && Object.keys(savedCalendarData).length > 0) {
+            Object.entries(savedCalendarData).forEach(([dateKey, dayData]: [string, any]) => {
+              if (dayData?.busySlots?.length > 0) {
+                dayData.busySlots.forEach((slot: any) => {
+                  const start = new Date(slot.start);
+                  const end = new Date(slot.end);
+                  const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+                  busyList.push(`- ${dateKey}: ${timeStr} (Usuario Ocupado)`);
                 });
-            }
+              }
+            });
+          }
 
-            // 2. Agregar agenda del usuario
-            if (savedCalendarData && Object.keys(savedCalendarData).length > 0) {
-               Object.entries(savedCalendarData).forEach(([dateKey, dayData]: [string, any]) => {
-                   if (dayData?.busySlots?.length > 0) {
-                       dayData.busySlots.forEach((slot: any) => {
-                           const start = new Date(slot.start);
-                           const end = new Date(slot.end);
-                           const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
-                           busyList.push(`- ${dateKey}: ${timeStr} (Usuario Ocupado)`);
-                       });
-                   }
-               });
-            }
-            
-            if (busyList.length > 0) {
-                   calendarContext = `\n\n⛔ RESTRICCIONES DE TIEMPO (CALENDARIO Y FESTIVOS):\n${busyList.join('\n')}`;
-            }
+          if (busyList.length > 0) {
+            calendarContext = `\n\n⛔ RESTRICCIONES DE TIEMPO (CALENDARIO Y FESTIVOS):\n${busyList.join('\n')}`;
+          }
 
         } catch (e) {
-            console.warn('Error formateando calendario para prompt:', e);
+          console.warn('Error formateando calendario para prompt:', e);
         }
 
         const liaSystemPrompt = generateStudyPlannerPrompt({
@@ -1107,8 +1134,8 @@ INSTRUCCIONES:
         }
       } catch (error: any) {
         if (externalController?.signal.aborted || error.name === 'AbortError') {
-            console.log('🛑 [Welcome] Generación cancelada por aborto/tour');
-            return;
+          console.log('🛑 [Welcome] Generación cancelada por aborto/tour');
+          return;
         }
 
         console.error('Error generando mensaje de bienvenida:', error);
@@ -1406,13 +1433,13 @@ INSTRUCCIONES:
       }
 
       const audioBlob = await response.blob();
-      
+
       // ✅ FIX: Verificar rigurosamente si se canceló la reproducción
       // Si ttsAbortRef es null (por stopAllAudio) o diferente al controller actual, o si la señal está abortada, DETENER
       if (!ttsAbortRef.current || ttsAbortRef.current !== controller || controller.signal.aborted) {
         console.log('🔇 [speakText] Reproducción abortada antes de iniciar audio (silenciado o cancelado).');
         if (ttsAbortRef.current === controller) {
-            ttsAbortRef.current = null;
+          ttsAbortRef.current = null;
         }
         return;
       }
@@ -2970,7 +2997,7 @@ INSTRUCCIONES:
 
     // Construir el prompt para LIA dependiendo del estado del calendario
     let systemPrompt: string;
-    
+
     if (calendarAlreadyConnected) {
       // Caso 1: Calendario ya conectado
       systemPrompt = `[SELECCION_ENFOQUE_CALENDARIO_CONECTADO]
@@ -3485,7 +3512,7 @@ INSTRUCCIONES:
       // Llamar a analyzeCalendarAndSuggest con skipB2BRedirect=true para evitar bucle
       // Esto permite usar toda la lógica de B2C (slots, distribución, etc.) pero desde B2B
       console.log('🚀 [B2B] Llama a analyzeCalendarAndSuggest (modo B2C forzado)...');
-      
+
       try {
         await analyzeCalendarAndSuggest(
           provider,
@@ -3573,8 +3600,8 @@ INSTRUCCIONES:
     // IMPORTANTE: No usar 'if (isProcessing)' aquí porque el closure captura el valor inicial (false)
     // y nunca ejecutaría la limpieza. Forzar la limpieza es más seguro.
     setTimeout(() => {
-        console.log('⏰ [Safety Timeout] Ejecutando limpieza de seguridad de estado (45s)');
-        setIsProcessing(false);
+      console.log('⏰ [Safety Timeout] Ejecutando limpieza de seguridad de estado (45s)');
+      setIsProcessing(false);
     }, 45000);
 
     // Verificar que se tengan los datos necesarios antes de analizar
@@ -3607,7 +3634,7 @@ INSTRUCCIONES:
         console.log('📅 [analyzeCalendarAndSuggest] Usando fecha límite de curso B2B:', dateToUse);
       }
     }
-    
+
     // ✅ FIX: Si aún no hay fecha, generar una predeterminada basada en el enfoque
     if (!dateToUse) {
       const weeksToAdd = approachToUse === 'rapido' ? 2 : (approachToUse === 'normal' ? 4 : 8);
@@ -3652,17 +3679,17 @@ INSTRUCCIONES:
 
           // ✅ DETECTAR B2B Y REDIRIGIR A LÓGICA ESPECÍFICA
           // Solo redirigir si no se está saltando la redirección (evitar bucle)
-            if (userProfile.userType === 'b2b' && assignedCourses.length > 0 && !skipB2BRedirect) {
-              console.log('✅ [B2B] Detectado usuario B2B, usando lógica específica para análisis de calendario');
-              // Mantener isProcessing en true mientras redirigimos
-              await analyzeCalendarAndSuggestB2B(
-                provider,
-                effectiveApproach!,
-                userProfile,
-                assignedCourses
-              );
-              return; // Salir temprano, no ejecutar lógica B2C
-            }
+          if (userProfile.userType === 'b2b' && assignedCourses.length > 0 && !skipB2BRedirect) {
+            console.log('✅ [B2B] Detectado usuario B2B, usando lógica específica para análisis de calendario');
+            // Mantener isProcessing en true mientras redirigimos
+            await analyzeCalendarAndSuggestB2B(
+              provider,
+              effectiveApproach!,
+              userProfile,
+              assignedCourses
+            );
+            return; // Salir temprano, no ejecutar lógica B2C
+          }
         }
       }
 
@@ -3835,8 +3862,8 @@ INSTRUCCIONES:
         const isoDate = date.toISOString();
         const isJan1Root = isoDate.includes('-01-01T') || (date.getMonth() === 0 && date.getDate() === 1);
         if (HolidayService.isHoliday(date, 'MX') || isJan1Root) {
-             console.log(`⛔ [Analysis] Día festivo saltado en origen: ${date.toLocaleDateString()} (ISO: ${isoDate})`);
-             continue;
+          console.log(`⛔ [Analysis] Día festivo saltado en origen: ${date.toLocaleDateString()} (ISO: ${isoDate})`);
+          continue;
         }
 
         // Si hay fecha objetivo, no analizar días después de ella
@@ -4518,10 +4545,10 @@ INSTRUCCIONES:
         // Esto captura festivos independientemente de la zona horaria UTC/Local
         const iso = slot.date.toISOString();
         const isNuclearHoliday = iso.includes('-01-01T') || iso.includes('-12-25T') || iso.includes('-05-01T') || iso.includes('-09-16T') || iso.includes('-11-20T');
-        
+
         if (isNuclearHoliday) {
-             console.log(`☢️ [NUCLEAR FILTER] Slot eliminado por fecha prohibida en ISO: ${iso}`);
-             return false;
+          console.log(`☢️ [NUCLEAR FILTER] Slot eliminado por fecha prohibida en ISO: ${iso}`);
+          return false;
         }
 
         // ✅ DEBUG: Verificar específicamente fechas problemáticas (Navidad y Año Nuevo)
@@ -5424,26 +5451,26 @@ INSTRUCCIONES:
           // Esto asegura que ni la lógica principal ni los fallbacks B2B usen festivos
           const sortedSlots = [...finalSlots]
             .filter(slot => {
-                 // Protección robusta contra tipos de fecha
-                 const d = new Date(slot.date);
-                 if (isNaN(d.getTime())) return false; // Fecha inválida
-                 // Validación de festivos mediante servicio 
-                 const isHoliday = HolidayService.isHoliday(d, 'MX');
-                 
-                 // Validación redundante manual EXTREMA para 1 de Enero
-                 // Verificar múltiples formas para evitar errores de zona horaria
-                 const isJan1 = d.getMonth() === 0 && d.getDate() === 1; // Local Enero 1
-                 const isoStr = d.toISOString();
-                 const isJan1ISO = isoStr.includes('-01-01T'); // UTC Enero 1
-                 
-                 if (isHoliday || isJan1 || isJan1ISO) {
-                     console.log(`⛔ [Global Filter] Festivo eliminado: ${d.toLocaleDateString()} (ISO: ${isoStr})`);
-                     return false;
-                 }
-                 return true;
+              // Protección robusta contra tipos de fecha
+              const d = new Date(slot.date);
+              if (isNaN(d.getTime())) return false; // Fecha inválida
+              // Validación de festivos mediante servicio 
+              const isHoliday = HolidayService.isHoliday(d, 'MX');
+
+              // Validación redundante manual EXTREMA para 1 de Enero
+              // Verificar múltiples formas para evitar errores de zona horaria
+              const isJan1 = d.getMonth() === 0 && d.getDate() === 1; // Local Enero 1
+              const isoStr = d.toISOString();
+              const isJan1ISO = isoStr.includes('-01-01T'); // UTC Enero 1
+
+              if (isHoliday || isJan1 || isJan1ISO) {
+                console.log(`⛔ [Global Filter] Festivo eliminado: ${d.toLocaleDateString()} (ISO: ${isoStr})`);
+                return false;
+              }
+              return true;
             })
             .sort((a, b) => {
-               return new Date(a.date).getTime() - new Date(b.date).getTime();
+              return new Date(a.date).getTime() - new Date(b.date).getTime();
             });
 
           // ✅ CRÍTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
@@ -5511,13 +5538,13 @@ INSTRUCCIONES:
           slotsUntilTarget = slotsUntilTarget.filter(slot => {
             const isHoliday = HolidayService.isHoliday(slot.date, 'MX');
             if (isHoliday) {
-                console.log(`⛔ [Distribución] Slot filtrado por festivo: ${slot.date.toLocaleDateString('es-ES')}`);
+              console.log(`⛔ [Distribución] Slot filtrado por festivo: ${slot.date.toLocaleDateString('es-ES')}`);
             }
             return !isHoliday;
           });
-          
+
           if (originalSlotsCount > slotsUntilTarget.length) {
-             console.log(`ℹ️ Se filtraron ${originalSlotsCount - slotsUntilTarget.length} slots por ser días festivos.`);
+            console.log(`ℹ️ Se filtraron ${originalSlotsCount - slotsUntilTarget.length} slots por ser días festivos.`);
           }
 
           if (slotsUntilTarget.length > 0) {
@@ -7692,9 +7719,9 @@ Cuéntame:
     // 3. El último mensaje de LIA mencionaba ampliar horarios o fecha límite
     const isAcceptingToExpandSchedule = (
       (lowerMessage === 'sí' || lowerMessage === 'si' || lowerMessage === 'ok' ||
-       lowerMessage === 'acepto' || lowerMessage === 'dale' || lowerMessage === 'va' ||
-       lowerMessage.includes('está bien') || lowerMessage.includes('de acuerdo') ||
-       lowerMessage.includes('adelante') || lowerMessage.includes('claro'))
+        lowerMessage === 'acepto' || lowerMessage === 'dale' || lowerMessage === 'va' ||
+        lowerMessage.includes('está bien') || lowerMessage.includes('de acuerdo') ||
+        lowerMessage.includes('adelante') || lowerMessage.includes('claro'))
     ) && savedLessonDistribution.length === 0;
 
     if (isAcceptingToExpandSchedule) {
@@ -8261,8 +8288,8 @@ Cuéntame:
         // ✅ PROMPT GUARD: Última línea de defensa
         // Eliminar festivos del texto que recibe LIA para que no pueda mostrarlos visualmente
         if (item.dateStr.includes('-01-01') || item.dateStr.includes('-12-25') || item.dateStr.includes('-05-01') || item.dateStr.includes('-09-16') || item.dateStr.includes('-11-20')) {
-             console.warn(`🔥 [Prompt Guard] Eliminando slot festivo del texto para LIA: ${item.dateStr}`);
-             return;
+          console.warn(`🔥 [Prompt Guard] Eliminando slot festivo del texto para LIA: ${item.dateStr}`);
+          return;
         }
 
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
@@ -8584,14 +8611,14 @@ Cuéntame:
       let existingPlanContext = '';
       if (savedLessonDistribution.length > 0) {
         existingPlanContext = `\n\n═══════════════════════════════════════════════════════════════════════════════\n📝 PLAN PROPUESTO ACTUALMENTE (EN MEMORIA)\n═══════════════════════════════════════════════════════════════════════════════\nLIA, ya has propuesto este plan y el usuario lo tiene en pantalla:\n`;
-        
+
         // Resumir el plan para no consumir demasiados tokens
         let totalLessonsInPlan = 0;
         savedLessonDistribution.forEach(slot => {
           existingPlanContext += `* ${slot.dayName} ${slot.startTime}-${slot.endTime}: ${slot.lessons.length} lecciones\n`;
           totalLessonsInPlan += slot.lessons.length;
         });
-        
+
         existingPlanContext += `\nTotal lecciones agendadas: ${totalLessonsInPlan}\n`;
         existingPlanContext += `⚠️ INSTRUCCIÓN CRÍTICA DE CONFIRMACIÓN: Si el usuario dice "sí", "ok", "me gusta" o confirma:\n1. NO recalculas nada.\n2. NO digas que hubo un error.\n3. Confirma que guardas este plan.\n4. Muestra entusiasmo.\n`;
       }
@@ -8611,11 +8638,11 @@ Cuéntame:
 
       // 🕵️ Detección automática de preferencias para Generador Determinista
       let preCalculatedPlanContext = '';
-      
+
       // Regex mejorado para detectar mención de días (incluye abreviaciones y typos comunes)
       const daysMatch = message.match(/lunes|lune|lun|mon|martes|mar|tue|miércoles|miercoles|mier|wed|jueves|jue|thu|viernes|vier|vie|fri|sábado|sabado|sab|sat|domingo|dom|sun/gi);
       const timesMatch = message.match(/mañana|tarde|noche/gi);
-      
+
       // Estado para controlar si bloqueamos la visualización de lecciones
       let blockPlanGeneration = false;
 
@@ -8623,74 +8650,74 @@ Cuéntame:
       if (daysMatch && daysMatch.length > 0 && liaData.lessons.length > 0) {
         try {
           console.log('🤖 [Deterministic] Detectada intención de planificar. Invocando generador...');
-          
+
           const uniqueDays = [...new Set(daysMatch.map(d => d.toLowerCase()))];
           const uniqueTimes = timesMatch ? [...new Set(timesMatch.map(t => t.toLowerCase()))] : ['mañana']; // Default mañana
-          
+
           // Obtener fecha límite si existe
           const coursesWithDueDates = assignedCourses.filter(c => c.dueDate);
           let deadlineDate: string | undefined;
-          
+
           if (coursesWithDueDates.length > 0) {
-              // Ordenar por fecha más próxima y tomar la primera
-              const sorted = [...coursesWithDueDates].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
-              deadlineDate = sorted[0].dueDate;
+            // Ordenar por fecha más próxima y tomar la primera
+            const sorted = [...coursesWithDueDates].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+            deadlineDate = sorted[0].dueDate;
           }
 
           const genRes = await fetch('/api/study-planner/generate-plan', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ 
-                lessons: liaData.lessons, 
-                preferences: { days: uniqueDays, times: uniqueTimes },
-                deadlineDate: deadlineDate,
-                maxSessionMinutes: (studyApproach === 'rapido' ? 30 : studyApproach === 'largo' ? 70 : 50) 
-              })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lessons: liaData.lessons,
+              preferences: { days: uniqueDays, times: uniqueTimes },
+              deadlineDate: deadlineDate,
+              maxSessionMinutes: (studyApproach === 'rapido' ? 30 : studyApproach === 'largo' ? 70 : 50)
+            })
           });
-          
+
           if (genRes.ok) {
-              const genData = await genRes.json();
-              if (genData.exceedsDeadline) {
-                  blockPlanGeneration = true; // ⛔ ACTIVAR BLOQUEO
+            const genData = await genRes.json();
+            if (genData.exceedsDeadline) {
+              blockPlanGeneration = true; // ⛔ ACTIVAR BLOQUEO
 
-                  // ✅ USAR ALTERNATIVAS VALIDADAS POR EL BACKEND
-                  // El backend ya calculó qué opciones REALMENTE permiten completar antes del deadline
-                  const validAlternatives = genData.validAlternatives || [];
+              // ✅ USAR ALTERNATIVAS VALIDADAS POR EL BACKEND
+              // El backend ya calculó qué opciones REALMENTE permiten completar antes del deadline
+              const validAlternatives = genData.validAlternatives || [];
 
-                  let alternativeOptions = '';
-                  if (validAlternatives.length > 0) {
-                    // Mostrar solo opciones que realmente funcionan, con fecha estimada
-                    validAlternatives.forEach((alt: any, index: number) => {
-                      alternativeOptions += `OPCIÓN ${index + 1}: ${alt.description}\n`;
-                      alternativeOptions += `   → Terminarías el: ${alt.estimatedEndDate} (${alt.daysBeforeDeadline} días antes del límite)\n\n`;
-                    });
-                  } else {
-                    // Si no hay alternativas válidas, el deadline es muy ajustado
-                    alternativeOptions = `⚠️ ADVERTENCIA: La fecha límite es muy ajustada.\n`;
-                    alternativeOptions += `Para poder completar el curso a tiempo, necesitarías estudiar TODOS los días con sesiones intensivas.\n`;
-                    alternativeOptions += `Considera solicitar una extensión de la fecha límite a tu instructor.\n`;
-                  }
-
-                  preCalculatedPlanContext = `\n\n⛔ BLOQUEO DE SEGURIDAD: LOS HORARIOS PROPUESTOS NO CUMPLEN LA FECHA LÍMITE.\n` +
-                  `Fecha estimada terminación: ${genData.endDate}\n` +
-                  `Fecha límite del curso: ${genData.deadline}\n` +
-                  `Exceso: ${genData.daysExcess} días.\n\n` +
-                  `⚠️ INSTRUCCIÓN CRÍTICA PARA LIA:\n` +
-                  `1. INFORMA al usuario que con los horarios propuestos ("${uniqueDays.join(', ')} por la ${uniqueTimes.join(' y ')}") terminarías el ${genData.endDate}, que es DESPUÉS de la fecha límite (${genData.deadline}).\n` +
-                  `2. NO muestres, ni inventes, ni menciones ninguna lección.\n` +
-                  `3. PROPÓN DIRECTAMENTE estas alternativas VALIDADAS (cada una incluye la fecha en que terminarías):\n\n` +
-                  `${alternativeOptions}` +
-                  `4. IMPORTANTE: Cada opción ya fue calculada y GARANTIZA terminar antes del ${genData.deadline}.\n` +
-                  `5. Pregunta al usuario: "¿Cuál de estas opciones te funcionaría mejor?"\n` +
-                  `6. Si el usuario elige una opción, GENERA EL PLAN con esos nuevos horarios.\n` +
-                  `7. DATOS DE LAS ALTERNATIVAS (para cuando el usuario elija):\n` +
-                  `${JSON.stringify(validAlternatives)}\n`;
-
-                  console.log('⛔ [Deterministic] Plan excede fecha límite. Alternativas VALIDADAS:', validAlternatives.length);
-              } else if (genData.plan) {
-                  preCalculatedPlanContext = `\n\n═══════════════════════════════════════════════════════════════════════════════\n🚨 PLAN DE ESTUDIO PRE-CALCULADO (PRIORIDAD MÁXIMA - COPIAR LITERALMENTE)\n═══════════════════════════════════════════════════════════════════════════════\n\n${genData.plan}\n\n⚠️ INSTRUCCIÓN OBLIGATORIA: El usuario ha definido sus horarios y CUMPLEN con la fecha límite.\n1. NO LO RECALCULES.\n2. COPIA los horarios y lecciones EXACTAMENTE como aparecen arriba.\n3. Las lecciones secuenciales (1, 1.1) YA ESTÁN AGRUPADAS correctamente.\n4. Solo dale formato bonito (negritas, emojis).\n`;
-                  console.log('✅ [Deterministic] Plan pre-calculado generado e inyectado en contexto.');
+              let alternativeOptions = '';
+              if (validAlternatives.length > 0) {
+                // Mostrar solo opciones que realmente funcionan, con fecha estimada
+                validAlternatives.forEach((alt: any, index: number) => {
+                  alternativeOptions += `OPCIÓN ${index + 1}: ${alt.description}\n`;
+                  alternativeOptions += `   → Terminarías el: ${alt.estimatedEndDate} (${alt.daysBeforeDeadline} días antes del límite)\n\n`;
+                });
+              } else {
+                // Si no hay alternativas válidas, el deadline es muy ajustado
+                alternativeOptions = `⚠️ ADVERTENCIA: La fecha límite es muy ajustada.\n`;
+                alternativeOptions += `Para poder completar el curso a tiempo, necesitarías estudiar TODOS los días con sesiones intensivas.\n`;
+                alternativeOptions += `Considera solicitar una extensión de la fecha límite a tu instructor.\n`;
               }
+
+              preCalculatedPlanContext = `\n\n⛔ BLOQUEO DE SEGURIDAD: LOS HORARIOS PROPUESTOS NO CUMPLEN LA FECHA LÍMITE.\n` +
+                `Fecha estimada terminación: ${genData.endDate}\n` +
+                `Fecha límite del curso: ${genData.deadline}\n` +
+                `Exceso: ${genData.daysExcess} días.\n\n` +
+                `⚠️ INSTRUCCIÓN CRÍTICA PARA LIA:\n` +
+                `1. INFORMA al usuario que con los horarios propuestos ("${uniqueDays.join(', ')} por la ${uniqueTimes.join(' y ')}") terminarías el ${genData.endDate}, que es DESPUÉS de la fecha límite (${genData.deadline}).\n` +
+                `2. NO muestres, ni inventes, ni menciones ninguna lección.\n` +
+                `3. PROPÓN DIRECTAMENTE estas alternativas VALIDADAS (cada una incluye la fecha en que terminarías):\n\n` +
+                `${alternativeOptions}` +
+                `4. IMPORTANTE: Cada opción ya fue calculada y GARANTIZA terminar antes del ${genData.deadline}.\n` +
+                `5. Pregunta al usuario: "¿Cuál de estas opciones te funcionaría mejor?"\n` +
+                `6. Si el usuario elige una opción, GENERA EL PLAN con esos nuevos horarios.\n` +
+                `7. DATOS DE LAS ALTERNATIVAS (para cuando el usuario elija):\n` +
+                `${JSON.stringify(validAlternatives)}\n`;
+
+              console.log('⛔ [Deterministic] Plan excede fecha límite. Alternativas VALIDADAS:', validAlternatives.length);
+            } else if (genData.plan) {
+              preCalculatedPlanContext = `\n\n═══════════════════════════════════════════════════════════════════════════════\n🚨 PLAN DE ESTUDIO PRE-CALCULADO (PRIORIDAD MÁXIMA - COPIAR LITERALMENTE)\n═══════════════════════════════════════════════════════════════════════════════\n\n${genData.plan}\n\n⚠️ INSTRUCCIÓN OBLIGATORIA: El usuario ha definido sus horarios y CUMPLEN con la fecha límite.\n1. NO LO RECALCULES.\n2. COPIA los horarios y lecciones EXACTAMENTE como aparecen arriba.\n3. Las lecciones secuenciales (1, 1.1) YA ESTÁN AGRUPADAS correctamente.\n4. Solo dale formato bonito (negritas, emojis).\n`;
+              console.log('✅ [Deterministic] Plan pre-calculado generado e inyectado en contexto.');
+            }
           }
         } catch (err) {
           console.error('❌ [Deterministic] Error generando plan:', err);
@@ -8703,7 +8730,7 @@ Cuéntame:
         : `LECCIONES PENDIENTES (${liaData.totalPending || pendingLessonsRef.current.length} total):\n${sendMsgLessonsContext}\n\nCALENDARIO: ${connectedCalendar ? `Conectado (${connectedCalendar})` : 'No conectado'}${dueDateContext}${preCalculatedPlanContext}${existingPlanContext}`;
 
       const sendMsgSystemPrompt = generateStudyPlannerPrompt({
-        userName: userContext?.userName || undefined, 
+        userName: userContext?.userName || undefined,
         studyPlannerContextString: finalStudyPlannerContext,
         currentDate: sendMsgDateStr
       });
@@ -8762,8 +8789,8 @@ Cuéntame:
       liaResponse = liaResponse.replace(/^\*?\s*\*?\*?Jueves\s+1\s*:?.*$/gim, '');
       liaResponse = liaResponse.replace(/\*\s*08:00.*Jueves\s+1.*\n/gi, '');
       liaResponse = liaResponse.replace(/1\s+de\s+enero\s*[-–—]\s*\d+\s+de\s+enero/gi, (match) => {
-           // Reemplazar "1 de enero - 6 de enero" por "2 de enero - 6 de enero"
-           return match.replace(/1\s+de\s+enero/i, '2 de enero');
+        // Reemplazar "1 de enero - 6 de enero" por "2 de enero - 6 de enero"
+        return match.replace(/1\s+de\s+enero/i, '2 de enero');
       });
       liaResponse = liaResponse.replace(/Fechas:\s*1\s+de\s+enero/gi, 'Fechas: 2 de enero');
       // Limpiar líneas vacías extras causadas por las eliminaciones
@@ -8783,20 +8810,20 @@ Cuéntame:
       // ✅ FILTRO ANTI-FESTIVOS EN PARSED SCHEDULES
       // Eliminar cualquier horario que haya sido parseado con fecha de festivo
       const extractedSchedules = extractedSchedulesRaw.filter(schedule => {
-           if (!schedule.dateStr) return true;
-           const dStr = schedule.dateStr;
-           // Festivos mexicanos principales (formato YYYY-MM-DD)
-           if (dStr.includes('-01-01') || dStr.includes('-12-25') ||
-               dStr.includes('-05-01') || dStr.includes('-09-16') ||
-               dStr.includes('-11-20')) {
-                console.warn(`🚫 [Parsed Schedule Filter] Eliminando horario festivo parseado: ${dStr} (${schedule.dayName})`);
-                return false;
-           }
-           return true;
+        if (!schedule.dateStr) return true;
+        const dStr = schedule.dateStr;
+        // Festivos mexicanos principales (formato YYYY-MM-DD)
+        if (dStr.includes('-01-01') || dStr.includes('-12-25') ||
+          dStr.includes('-05-01') || dStr.includes('-09-16') ||
+          dStr.includes('-11-20')) {
+          console.warn(`🚫 [Parsed Schedule Filter] Eliminando horario festivo parseado: ${dStr} (${schedule.dayName})`);
+          return false;
+        }
+        return true;
       });
 
       if (extractedSchedulesRaw.length !== extractedSchedules.length) {
-          console.log(`📉 Se filtraron ${extractedSchedulesRaw.length - extractedSchedules.length} horarios de festivos de la respuesta de LIA`);
+        console.log(`📉 Se filtraron ${extractedSchedulesRaw.length - extractedSchedules.length} horarios de festivos de la respuesta de LIA`);
       }
 
       if (extractedSchedules && extractedSchedules.length > 0) {
@@ -9081,11 +9108,11 @@ Cuéntame:
       const liaConfirmsSaving = liaResponse.toLowerCase().match(/(guardad|guardar|xito|comenzar|dashboard|redireccion|creado|alegra|disfrut)/i);
 
       if (isUserConfirmation && liaConfirmsSaving && savedLessonDistribution.length > 0) {
-         console.log('🚀 Detectada confirmación final y cierre de LIA. Iniciando guardado de plan...');
-         // Ejecutar guardado (pequeño delay para que LIA termine de hablar/mostrar mensaje)
-         setTimeout(() => {
-           executeFinalPlanSave();
-         }, 2000); 
+        console.log('🚀 Detectada confirmación final y cierre de LIA. Iniciando guardado de plan...');
+        // Ejecutar guardado (pequeño delay para que LIA termine de hablar/mostrar mensaje)
+        setTimeout(() => {
+          executeFinalPlanSave();
+        }, 2000);
       }
 
       if (isAudioEnabled) {
@@ -9107,19 +9134,19 @@ Cuéntame:
   const executeFinalPlanSave = async () => {
     try {
       console.log('💾 Guardando plan de estudios...');
-      
+
       // FILTRADO PREVIO
-      const cleanDistribution = savedLessonDistribution.filter(slot => 
-          slot && 
-          slot.lessons && 
-          slot.lessons.length > 0
+      const cleanDistribution = savedLessonDistribution.filter(slot =>
+        slot &&
+        slot.lessons &&
+        slot.lessons.length > 0
       );
 
       if (cleanDistribution.length === 0) {
         console.warn('⚠️ No hay lecciones para guardar (cleanDistribution empty)');
         return;
       }
-      
+
       console.log(`ℹ️ Procesando ${cleanDistribution.length} sesiones. Primer slot:`, cleanDistribution[0]);
 
       setIsProcessing(true);
@@ -9128,129 +9155,129 @@ Cuéntame:
       const daysSet = new Set<number>();
       const validTimestamps: number[] = [];
       const now = new Date();
-      
+
       // Transformar sesiones
       const sessions = cleanDistribution.map((slot, idx) => {
-         try {
-             // Normalizar fecha: reemplazar / y . por -
-             let cleanDate = (slot.dateStr || '').trim().replace(/[\/\.]/g, '-');
-             const cleanStart = (slot.startTime || '').trim();
-             const cleanEnd = (slot.endTime || '').trim();
+        try {
+          // Normalizar fecha: reemplazar / y . por -
+          let cleanDate = (slot.dateStr || '').trim().replace(/[\/\.]/g, '-');
+          const cleanStart = (slot.startTime || '').trim();
+          const cleanEnd = (slot.endTime || '').trim();
 
-             if (!cleanDate || !cleanStart || !cleanEnd) {
-                 console.warn(`⚠️ Slot ${idx} ignorado por falta de fecha/hora:`, slot);
-                 return null;
-             }
-             
-             // Intentar arreglar formatos de fecha raros
-             let dateParts = cleanDate.split('-').map(Number);
-             
-             // 1. Caso DD-MM-YYYY (año al final)
-             if (dateParts.length === 3 && dateParts[2] > 2000 && dateParts[0] <= 31) {
-                 // Convertir a YYYY-MM-DD
-                 const [d, m, y] = dateParts;
-                 cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                 dateParts = [y, m, d];
-             }
-             
-             // 2. REPARACIÓN EMERGENCIA: Caso texto "Lunes 5" o similar
-             if (dateParts.length !== 3 || dateParts.some(isNaN)) {
-                 const dayMatch = cleanDate.match(/(\d{1,2})/);
-                 if (dayMatch) {
-                     const day = parseInt(dayMatch[1], 10);
-                     if (day >= 1 && day <= 31) {
-                         // Adivinar mes y año (asumimos mes actual o siguiente)
-                         let year = now.getFullYear();
-                         let month = now.getMonth(); // 0-11
-                         
-                         // Creamos fecha candidata en mes actual
-                         let candidate = new Date(year, month, day);
-                         
-                         // Si el día es hoy o pasado (con margen de 5 días), asumimos mes siguiente
-                         if (day < now.getDate() - 5) {
-                             candidate = new Date(year, month + 1, day);
-                         }
-                         
-                         // Actualizar dateParts
-                         const y = candidate.getFullYear();
-                         const m = candidate.getMonth() + 1;
-                         const d = candidate.getDate();
-                         
-                         dateParts = [y, m, d];
-                         cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                         console.log(`🔧 Slot ${idx}: Fecha recuperada "${dayMatch[0]}" -> ${cleanDate}`);
-                     }
-                 }
-             }
-             
-             const startParts = cleanStart.split(':').map(Number);
-             const endParts = cleanEnd.split(':').map(Number);
-             
-             if (dateParts.length !== 3 || startParts.length < 2 || endParts.length < 2) {
-                 console.error(`❌ Formato inválido en slot ${idx}: Fecha=${cleanDate}, Hora=${cleanStart}-${cleanEnd}`);
-                 return null;
-             }
+          if (!cleanDate || !cleanStart || !cleanEnd) {
+            console.warn(`⚠️ Slot ${idx} ignorado por falta de fecha/hora:`, slot);
+            return null;
+          }
 
-             const [year, month, day] = dateParts;
-             const [startHour, startMin] = startParts;
-             const [endHour, endMin] = endParts;
+          // Intentar arreglar formatos de fecha raros
+          let dateParts = cleanDate.split('-').map(Number);
 
-             if ([year, month, day, startHour, startMin, endHour, endMin].some(n => isNaN(n))) {
-                  console.error(`❌ Datos no numéricos en slot ${idx} tras reparación`);
-                  return null;
-             }
+          // 1. Caso DD-MM-YYYY (año al final)
+          if (dateParts.length === 3 && dateParts[2] > 2000 && dateParts[0] <= 31) {
+            // Convertir a YYYY-MM-DD
+            const [d, m, y] = dateParts;
+            cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+            dateParts = [y, m, d];
+          }
 
-             const start = new Date(year, month - 1, day, startHour, startMin, 0);
-             const end = new Date(year, month - 1, day, endHour, endMin, 0);
-             
-             if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-                  console.error(`❌ Fecha inválida (Date obj) en slot ${idx}`);
-                  return null;
-             }
-             
-             validTimestamps.push(start.getTime());
-             daysSet.add(start.getDay());
+          // 2. REPARACIÓN EMERGENCIA: Caso texto "Lunes 5" o similar
+          if (dateParts.length !== 3 || dateParts.some(isNaN)) {
+            const dayMatch = cleanDate.match(/(\d{1,2})/);
+            if (dayMatch) {
+              const day = parseInt(dayMatch[1], 10);
+              if (day >= 1 && day <= 31) {
+                // Adivinar mes y año (asumimos mes actual o siguiente)
+                let year = now.getFullYear();
+                let month = now.getMonth(); // 0-11
 
-             // Descripción
-             const lessonsTitles = slot.lessons.map(l => l.lessonTitle).join(', ');
-             const description = `Lecciones: ${lessonsTitles}`.substring(0, 500); 
+                // Creamos fecha candidata en mes actual
+                let candidate = new Date(year, month, day);
 
-             // CourseId matchmaking
-             let courseId = null;
-             if (slot.lessons.length > 0 && assignedCourses.length > 0) {
-                const courseTitle = slot.lessons[0].courseTitle;
-                if (courseTitle) {
-                   const matchedCourse = assignedCourses.find(c => 
-                      c.title === courseTitle || 
-                      c.title?.includes(courseTitle) || 
-                      courseTitle.includes(c.title)
-                   );
-                   if (matchedCourse) {
-                      courseId = matchedCourse.courseId || matchedCourse.id;
-                   }
+                // Si el día es hoy o pasado (con margen de 5 días), asumimos mes siguiente
+                if (day < now.getDate() - 5) {
+                  candidate = new Date(year, month + 1, day);
                 }
-             }
 
-             return {
-               title: "Sesión de Estudio",
-               description,
-               startTime: start.toISOString(),
-               endTime: end.toISOString(),
-               courseId,
-               sessionType: 'medium',
-               isAiGenerated: true
-             };
-         } catch (e) {
-             console.error(`❌ Error inesperado procesando sesión ${idx}:`, e);
-             return null;
-         }
-      }).filter(Boolean); 
+                // Actualizar dateParts
+                const y = candidate.getFullYear();
+                const m = candidate.getMonth() + 1;
+                const d = candidate.getDate();
+
+                dateParts = [y, m, d];
+                cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+                console.log(`🔧 Slot ${idx}: Fecha recuperada "${dayMatch[0]}" -> ${cleanDate}`);
+              }
+            }
+          }
+
+          const startParts = cleanStart.split(':').map(Number);
+          const endParts = cleanEnd.split(':').map(Number);
+
+          if (dateParts.length !== 3 || startParts.length < 2 || endParts.length < 2) {
+            console.error(`❌ Formato inválido en slot ${idx}: Fecha=${cleanDate}, Hora=${cleanStart}-${cleanEnd}`);
+            return null;
+          }
+
+          const [year, month, day] = dateParts;
+          const [startHour, startMin] = startParts;
+          const [endHour, endMin] = endParts;
+
+          if ([year, month, day, startHour, startMin, endHour, endMin].some(n => isNaN(n))) {
+            console.error(`❌ Datos no numéricos en slot ${idx} tras reparación`);
+            return null;
+          }
+
+          const start = new Date(year, month - 1, day, startHour, startMin, 0);
+          const end = new Date(year, month - 1, day, endHour, endMin, 0);
+
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            console.error(`❌ Fecha inválida (Date obj) en slot ${idx}`);
+            return null;
+          }
+
+          validTimestamps.push(start.getTime());
+          daysSet.add(start.getDay());
+
+          // Descripción
+          const lessonsTitles = slot.lessons.map(l => l.lessonTitle).join(', ');
+          const description = `Lecciones: ${lessonsTitles}`.substring(0, 500);
+
+          // CourseId matchmaking
+          let courseId = null;
+          if (slot.lessons.length > 0 && assignedCourses.length > 0) {
+            const courseTitle = slot.lessons[0].courseTitle;
+            if (courseTitle) {
+              const matchedCourse = assignedCourses.find(c =>
+                c.title === courseTitle ||
+                c.title?.includes(courseTitle) ||
+                courseTitle.includes(c.title)
+              );
+              if (matchedCourse) {
+                courseId = matchedCourse.courseId || matchedCourse.id;
+              }
+            }
+          }
+
+          return {
+            title: "Sesión de Estudio",
+            description,
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
+            courseId,
+            sessionType: 'medium',
+            isAiGenerated: true
+          };
+        } catch (e) {
+          console.error(`❌ Error inesperado procesando sesión ${idx}:`, e);
+          return null;
+        }
+      }).filter(Boolean);
 
       if (sessions.length === 0) {
-          console.error("❌ FATAL: Todas las sesiones fueron descartadas. Revise los logs anteriores.");
-          // Fallback de emergencia: Crear una sesión dummy para no bloquear warning
-          // O lanzar error explícito
-          throw new Error("No se pudieron generar sesiones válidas. Revisa el formato de fecha.");
+        console.error("❌ FATAL: Todas las sesiones fueron descartadas. Revise los logs anteriores.");
+        // Fallback de emergencia: Crear una sesión dummy para no bloquear warning
+        // O lanzar error explícito
+        throw new Error("No se pudieron generar sesiones válidas. Revisa el formato de fecha.");
       }
 
       const minTime = validTimestamps.length > 0 ? Math.min(...validTimestamps) : Date.now();
@@ -9260,29 +9287,29 @@ Cuéntame:
       const preferredDays = Array.from(daysSet).sort();
 
       const config = {
-           name: `Plan Personalizado - ${new Date().toLocaleDateString('es-ES')}`,
-           description: `Plan generado por LIA el ${new Date().toLocaleString('es-ES')}`,
-           userType: userContext?.userType || 'b2b', 
-           timezone,
-           preferredDays: preferredDays.length > 0 ? preferredDays : [1, 2, 3, 4, 5], 
-           startDate,
-           endDate,
-           goalHoursPerWeek: 5, 
-           generationMode: 'ai_generated',
-           preferredTimeBlocks: [], 
-           courseIds: assignedCourses.map(c => c.courseId || c.id).filter(Boolean),
-           minSessionMinutes: 30,
-           maxSessionMinutes: 120,
-           breakDurationMinutes: 10,
-           preferredSessionType: 'medium',
-           calendarAnalyzed: !!connectedCalendar,
-           calendarProvider: connectedCalendar ? (connectedCalendar.toLowerCase().includes('google') ? 'google' : 'microsoft') : undefined
+        name: `Plan Personalizado - ${new Date().toLocaleDateString('es-ES')}`,
+        description: `Plan generado por LIA el ${new Date().toLocaleString('es-ES')}`,
+        userType: userContext?.userType || 'b2b',
+        timezone,
+        preferredDays: preferredDays.length > 0 ? preferredDays : [1, 2, 3, 4, 5],
+        startDate,
+        endDate,
+        goalHoursPerWeek: 5,
+        generationMode: 'ai_generated',
+        preferredTimeBlocks: [],
+        courseIds: assignedCourses.map(c => c.courseId || c.id).filter(Boolean),
+        minSessionMinutes: 30,
+        maxSessionMinutes: 120,
+        breakDurationMinutes: 10,
+        preferredSessionType: 'medium',
+        calendarAnalyzed: !!connectedCalendar,
+        calendarProvider: connectedCalendar ? (connectedCalendar.toLowerCase().includes('google') ? 'google' : 'microsoft') : undefined
       };
 
       const payload = { config, sessions };
 
-      console.log('📦 Enviando payload:', { 
-        sesiones: sessions.length, 
+      console.log('📦 Enviando payload:', {
+        sesiones: sessions.length,
         sample: sessions[0]
       });
 
@@ -9291,14 +9318,14 @@ Cuéntame:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
+
       const responseData = await response.json();
 
       if (response.ok && responseData.success) {
         console.log('✅ Plan guardado exitosamente:', responseData);
         if (currentUserId) {
-           const key = getStorageKey(currentUserId);
-           localStorage.removeItem(key);
+          const key = getStorageKey(currentUserId);
+          localStorage.removeItem(key);
         }
         router.push('/study-planner/dashboard');
       } else {
@@ -9353,36 +9380,36 @@ Cuéntame:
                 className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
               >
                 <div className="bg-white dark:bg-[#0f172a] border border-gray-200 dark:border-purple-500/30 p-6 md:p-8 rounded-2xl shadow-2xl max-w-md w-full relative overflow-hidden">
-                   {/* Glow effect */}
-                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-                   <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 blur-[50px] rounded-full pointing-events-none" />
-                   
-                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-3">
-                     <span className="text-2xl animate-pulse">💾</span> 
-                     <span>Recuperar conversación</span>
-                   </h3>
-                   
-                   <p className="text-gray-600 dark:text-slate-300 mb-6 text-[15px] leading-relaxed">
-                     Hemos detectado una sesión anterior guardada el <span className="text-purple-600 dark:text-purple-300 font-semibold">{savedSessionDate}</span>.
-                     <br/><br/>
-                     ¿Te gustaría restaurar el contexto y continuar donde lo dejaste, o prefieres empezar un nuevo plan desde cero?
-                   </p>
-                   
-                   <div className="flex gap-3 justify-end items-center">
-                     <button
-                       onClick={handleDiscardSession}
-                       className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 rounded-lg transition-all"
-                     >
-                       Empezar de nuevo
-                     </button>
-                     <button
-                       onClick={handleResumeSession}
-                       className="px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg shadow-lg shadow-purple-900/40 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
-                     >
-                       <Zap size={16} className="fill-current" />
-                       Continuar sesión
-                     </button>
-                   </div>
+                  {/* Glow effect */}
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 blur-[50px] rounded-full pointing-events-none" />
+
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-3">
+                    <span className="text-2xl animate-pulse">💾</span>
+                    <span>Recuperar conversación</span>
+                  </h3>
+
+                  <p className="text-gray-600 dark:text-slate-300 mb-6 text-[15px] leading-relaxed">
+                    Hemos detectado una sesión anterior guardada el <span className="text-purple-600 dark:text-purple-300 font-semibold">{savedSessionDate}</span>.
+                    <br /><br />
+                    ¿Te gustaría restaurar el contexto y continuar donde lo dejaste, o prefieres empezar un nuevo plan desde cero?
+                  </p>
+
+                  <div className="flex gap-3 justify-end items-center">
+                    <button
+                      onClick={handleDiscardSession}
+                      className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 rounded-lg transition-all"
+                    >
+                      Empezar de nuevo
+                    </button>
+                    <button
+                      onClick={handleResumeSession}
+                      className="px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg shadow-lg shadow-purple-900/40 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+                    >
+                      <Zap size={16} className="fill-current" />
+                      Continuar sesión
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -10048,7 +10075,7 @@ Cuéntame:
             <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-6 min-h-0 bg-[#F8F9FA] dark:bg-[#0F1419]/50">
               <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
                 {/* Welcome message removed as per user request */}
-                
+
                 {conversationHistory.map((msg, idx) => (
                   <motion.div
                     key={idx}
@@ -10083,7 +10110,7 @@ Cuéntame:
                           />
                         </motion.div>
                       )}
-                      
+
                       {/* Avatar pequeño para móvil */}
                       {msg.role === 'assistant' && (
                         <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 sm:hidden self-start mt-1">
@@ -10114,7 +10141,7 @@ Cuéntame:
                             : 'shadow-sm rounded-bl-[6px]'
                           } overflow-hidden max-w-full`}
                       >
-                       
+
 
                         {/* Contenido del mensaje */}
                         <div className="relative z-10 break-words">
@@ -10141,7 +10168,7 @@ Cuéntame:
                   >
                     <div className="flex items-end gap-2 sm:gap-2.5">
                       <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 shadow-lg flex-shrink-0">
-                         <Image src="/lia-avatar.png" alt="LIA" fill sizes="40px" className="object-cover" />
+                        <Image src="/lia-avatar.png" alt="LIA" fill sizes="40px" className="object-cover" />
                       </div>
                       <motion.div
                         className="relative bg-[#FFFFFF] dark:bg-[#1E2329] px-4 py-3 sm:px-5 sm:py-3.5 rounded-[20px] shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-bl-[6px] overflow-hidden"
@@ -10170,7 +10197,7 @@ Cuéntame:
                     </div>
                   </motion.div>
                 )}
-                
+
                 {/* Spacer invisible para asegurar que el último mensaje no quede tapado por el input */}
                 <div className="h-2 sm:h-4"></div>
 
@@ -10489,17 +10516,22 @@ Cuéntame:
 
                       {/* Opciones de calendario */}
                       <div className="space-y-4 mb-6">
-                        <div className="relative group grayscale">
+                        <div className="relative group">
                           <motion.button
-                            disabled={true}
-                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 opacity-60 cursor-not-allowed"
+                            onClick={() => handleCalendarConnect('google')}
+                            disabled={isConnectingCalendar}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-white dark:bg-[#0A2540]/20 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-blue-500 dark:hover:border-blue-500 shadow-sm hover:shadow-md"
                           >
-                            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Próximamente
-                            </div>
+                            {isConnectingCalendar && (
+                              <div className="absolute inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center z-10">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#0A2540] dark:text-white" />
+                              </div>
+                            )}
 
                             {/* Icono de Google */}
-                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white opacity-50">
+                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white">
                               <GoogleIcon />
                             </div>
 
@@ -10514,17 +10546,23 @@ Cuéntame:
                         </div>
 
                         {/* Microsoft Calendar - TEMPORALMENTE DESHABILITADO */}
-                        <div className="relative group grayscale">
+                        {/* Microsoft Calendar */}
+                        <div className="relative group">
                           <motion.button
-                            disabled={true}
-                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 opacity-60 cursor-not-allowed"
+                            onClick={() => handleCalendarConnect('microsoft')}
+                            disabled={isConnectingCalendar}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-white dark:bg-[#0A2540]/20 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-blue-500 dark:hover:border-blue-500 shadow-sm hover:shadow-md"
                           >
-                            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Próximamente
-                            </div>
+                            {isConnectingCalendar && (
+                              <div className="absolute inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center z-10">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#0A2540] dark:text-white" />
+                              </div>
+                            )}
 
                             {/* Icono de Microsoft */}
-                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white opacity-50">
+                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white">
                               <svg viewBox="0 0 23 23" className="w-8 h-8">
                                 <path fill="#f25022" d="M1 1h10v10H1z" />
                                 <path fill="#00a4ef" d="M12 1h10v10H12z" />
@@ -10564,9 +10602,9 @@ Cuéntame:
                             setShowCalendarModal(false);
                             // Continuar con el calendario conectado - disparar flujo de éxito
                             const calendarType = connectedCalendar === 'google' ? 'Google Calendar' : 'Microsoft Outlook';
-                            setConversationHistory(prev => [...prev, { 
-                              role: 'assistant', 
-                              content: `¡Perfecto! Tu calendario de ${calendarType} está conectado. Continuemos con tu planificación.` 
+                            setConversationHistory(prev => [...prev, {
+                              role: 'assistant',
+                              content: `¡Perfecto! Tu calendario de ${calendarType} está conectado. Continuemos con tu planificación.`
                             }]);
                           } else {
                             // Si no hay calendario conectado, solo cerrar el modal

@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
         // Configurar el modelo con safety settings relajados para el planificador
         const model = genAI.getGenerativeModel({
-            model: 'gemini-2.0-flash-exp',
+            model: 'gemini-1.5-flash',
             safetySettings: [
                 {
                     category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             response: responseText,
-            model: 'gemini-2.0-flash-exp',
+            model: 'gemini-1.5-flash',
             timestamp: new Date().toISOString()
         });
 

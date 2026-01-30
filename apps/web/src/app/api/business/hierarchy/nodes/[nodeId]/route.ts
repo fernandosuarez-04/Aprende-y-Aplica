@@ -161,6 +161,34 @@ export async function PUT(
             .single();
 
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+        // Sync: If manager_id changed, ensure they are a leader member
+        if (body.manager_id && body.manager_id !== null) {
+            // Check if user is already a member
+            const { data: existingMember } = await supabase
+                .from('organization_node_users')
+                .select('id, role')
+                .eq('node_id', nodeId)
+                .eq('user_id', body.manager_id)
+                .single();
+
+            if (existingMember) {
+                if (existingMember.role !== 'leader') {
+                    await supabase
+                        .from('organization_node_users')
+                        .update({ role: 'leader' })
+                        .eq('id', existingMember.id);
+                }
+            } else {
+                await supabase
+                    .from('organization_node_users')
+                    .insert({
+                        node_id: nodeId,
+                        user_id: body.manager_id,
+                        role: 'leader'
+                    });
+            }
+        }
         return NextResponse.json({ data });
     } catch (error) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
