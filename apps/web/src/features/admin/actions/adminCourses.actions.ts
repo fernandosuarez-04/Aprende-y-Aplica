@@ -59,7 +59,7 @@ export async function getPendingCourses(): Promise<AdminCourse[]> {
         throw new Error(error.message)
     }
 
-    const formattedCourses = data?.map(course => ({
+    const formattedCourses = data?.map((course: any) => ({
         ...course,
         instructor_name: course.users
             ? `${(course.users as any).first_name} ${(course.users as any).last_name}`
@@ -91,12 +91,21 @@ export async function getCourseFullDetails(courseId: string): Promise<any> {
                     lesson_order_index,
                     duration_seconds,
                     video_provider,
-                    is_free_preview,
+                    transcript_content,
+                    summary_content,
                     materials:lesson_materials(
                         material_id, 
                         material_title, 
                         material_type,
-                        content_url
+                        file_url,
+                        external_url
+                    ),
+                    activities:lesson_activities(
+                        activity_id,
+                        activity_title,
+                        activity_type,
+                        activity_content,
+                        activity_order_index
                     )
                 )
             )
@@ -145,7 +154,7 @@ export async function approveCourse(courseId: string, adminId: string): Promise<
     // Obtener ids de modulos para activar lecciones
     const { data: modules } = await supabase.from('course_modules').select('module_id').eq('course_id', courseId)
     if (modules && modules.length > 0) {
-        const moduleIds = modules.map(m => m.module_id)
+        const moduleIds = modules.map((m: any) => m.module_id)
         await supabase.from('course_lessons').update({ is_published: true }).in('module_id', moduleIds)
     }
 
