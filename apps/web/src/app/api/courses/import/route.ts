@@ -51,6 +51,7 @@ const NewLessonSchema = z.object({
     summary: z.string().optional(),
     transcription: z.string().optional(),
     video_url: z.string().optional(),
+    duration: z.number().optional(),
     materials: z.array(NewMaterialSchema).optional().default([]),
     activities: z.array(ActivitySchema).optional().default([]),
     content_blocks: z.array(ContentBlockSchema).optional().default([])
@@ -210,6 +211,10 @@ export async function POST(request: Request) {
                 for (const lesson of mod.lessons) {
                     const videoInfo = extractVideoInfo(lesson.video_url || '')
 
+                    // DEBUG: Log the duration value before insert
+                    const durationToInsert = lesson.duration || 1
+                    console.log(`[IMPORT DEBUG] Lesson: "${lesson.title}" | lesson.duration: ${lesson.duration} | Using: ${durationToInsert}`)
+
                     // Crear Lección
                     const { data: newLesson, error: lessonError } = await supabase
                         .from('course_lessons')
@@ -220,7 +225,7 @@ export async function POST(request: Request) {
                             lesson_order_index: lesson.order_index,
                             video_provider: videoInfo.provider,
                             video_provider_id: videoInfo.id,
-                            duration_seconds: 0, // No viene en el JSON nuevo, 0 por defecto
+                            duration_seconds: durationToInsert,
                             transcript_content: lesson.transcription,
                             summary_content: lesson.summary,
                             is_published: false,
