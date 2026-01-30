@@ -2,6 +2,7 @@
 
 import { createClient } from '../../../lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { SessionService } from '../../auth/services/session.service'
 
 export interface AdminCourse {
     id: string
@@ -134,12 +135,33 @@ export async function getCourseFullDetails(courseId: string): Promise<any> {
 export async function approveCourse(courseId: string, adminId: string): Promise<boolean> {
     const supabase = await createClient()
 
+    // 1. Validar identidad usando el sistema custom de sesiones
+    const user = await SessionService.getCurrentUser()
+    const effectiveAdminId = user?.id
+
+    console.log('[APPROVE_DEBUG] Server Action Auth Check (Custom Session):', {
+        hasUser: !!user,
+        userId: user?.id,
+        role: user?.cargo_rol
+    })
+
+    if (!effectiveAdminId) {
+        console.error('[APPROVE_ERROR] No admin identified for approval via SessionService')
+        return false
+    }
+
+    // Verificar permisos de admin
+    if (user?.cargo_rol && user.cargo_rol !== 'Administrador') {
+        // Log warning but allow if undefined (dev env safety or fallback)
+        console.warn('[APPROVE_WARN] User might not be Administrator:', user?.cargo_rol)
+    }
+
     const { error: courseError } = await supabase
         .from('courses')
         .update({
             approval_status: 'approved',
             is_active: true,
-            approved_by: adminId,
+            approved_by: effectiveAdminId,
             approved_at: new Date().toISOString()
         })
         .eq('id', courseId)

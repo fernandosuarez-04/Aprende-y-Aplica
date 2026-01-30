@@ -63,16 +63,10 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
     const handleApprove = async () => {
         if (!courseToApprove) return
 
-        // Obtener ID del usuario actual (admin)
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        // La validación de usuario se hace ahora en el server action para mayor robustez
+        // Pasamos '' como fallback
+        const success = await approveCourse(courseToApprove, '')
 
-        if (!user) {
-            alert('No se pudo identificar al administrador')
-            return
-        }
-
-        const success = await approveCourse(courseToApprove, user.id)
         if (success) {
             // Success handled by UI refresh
         } else {
