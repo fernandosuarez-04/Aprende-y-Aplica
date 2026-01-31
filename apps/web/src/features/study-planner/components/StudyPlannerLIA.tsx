@@ -207,6 +207,103 @@ export function StudyPlannerLIA() {
     }
   };
 
+  // ✅ Handler para insertar eventos de estudio en el calendario
+  const handleInsertEventsToCalendar = async () => {
+    if (!savedLessonDistribution || savedLessonDistribution.length === 0) {
+      console.error('No hay distribución de lecciones para insertar');
+      return;
+    }
+
+    setIsInsertingEvents(true);
+    setInsertProgress({ current: 0, total: savedLessonDistribution.length });
+    setInsertResult(null);
+
+    try {
+      // Convertir distribución guardada al formato del API
+      const lessonDistributionForApi = savedLessonDistribution.map(item => {
+        // Parsear fecha y horarios
+        const dateParts = item.dateStr.split('/');
+        const baseDate = new Date(
+          parseInt(dateParts[2]),
+          parseInt(dateParts[1]) - 1,
+          parseInt(dateParts[0])
+        );
+
+        // Parsear horarios (formato "HH:MM")
+        const [startHour, startMin] = item.startTime.split(':').map(Number);
+        const [endHour, endMin] = item.endTime.split(':').map(Number);
+
+        const startDate = new Date(baseDate);
+        startDate.setHours(startHour, startMin, 0, 0);
+
+        const endDate = new Date(baseDate);
+        endDate.setHours(endHour, endMin, 0, 0);
+
+        return {
+          slot: {
+            date: baseDate.toISOString(),
+            start: startDate.toISOString(),
+            end: endDate.toISOString(),
+            dayName: item.dayName,
+            durationMinutes: Math.round((endDate.getTime() - startDate.getTime()) / 60000)
+          },
+          lessons: item.lessons.map(l => ({
+            courseTitle: l.courseTitle,
+            lessonTitle: l.lessonTitle,
+            lessonOrderIndex: l.lessonOrderIndex,
+            durationMinutes: l.durationMinutes || 15
+          }))
+        };
+      });
+
+      console.log(`📤 [Insert Events] Enviando ${lessonDistributionForApi.length} sesiones al calendario`);
+
+      const response = await fetch('/api/study-planner/calendar/insert-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonDistribution: lessonDistributionForApi,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          planName: 'Plan de Estudios SOFIA'
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error insertando eventos');
+      }
+
+      setInsertResult({
+        success: result.success,
+        message: result.message,
+        insertedCount: result.insertedCount
+      });
+
+      console.log(`✅ [Insert Events] Resultado: ${result.message}`);
+
+      // Agregar mensaje al chat confirmando la inserción
+      if (result.success && result.insertedCount > 0) {
+        const successMessage = `✅ **¡Listo!** He insertado ${result.insertedCount} eventos en tu calendario de Google.\n\nPuedes verlos en el calendario secundario "SOFIA - Sesiones de Estudio". Cada evento incluye recordatorios 15 minutos antes.\n\n📅 [Abrir Google Calendar](https://calendar.google.com)`;
+
+        setConversationHistory(prev => [...prev, {
+          role: 'assistant',
+          content: successMessage
+        }]);
+      }
+
+    } catch (error: any) {
+      console.error('❌ [Insert Events] Error:', error);
+      setInsertResult({
+        success: false,
+        message: error.message || 'Error al insertar eventos en el calendario'
+      });
+    } finally {
+      setIsInsertingEvents(false);
+      setShowInsertConfirmModal(false);
+    }
+  };
+
   // Estados para configuración de estudio
   // ✅ NUEVO ENFOQUE: "rapido" = terminar lo antes posible, "normal" = tiempo razonable, "largo" = hasta fecha límite
   // La velocidad de finalización determina cuántas lecciones por día se asignan
@@ -242,6 +339,12 @@ export function StudyPlannerLIA() {
 
   // Estado para rastrear si ya se mostró el resumen final
   const [hasShownFinalSummary, setHasShownFinalSummary] = useState<boolean>(false);
+
+  // ✅ Estados para inserción de eventos en calendario
+  const [showInsertConfirmModal, setShowInsertConfirmModal] = useState<boolean>(false);
+  const [isInsertingEvents, setIsInsertingEvents] = useState<boolean>(false);
+  const [insertProgress, setInsertProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
+  const [insertResult, setInsertResult] = useState<{ success: boolean; message: string; insertedCount?: number } | null>(null);
 
   // Estado para guardar los datos del calendario analizado (para validar conflictos)
   const [savedCalendarData, setSavedCalendarData] = useState<Record<string, {
@@ -4961,8 +5064,8 @@ INSTRUCCIONES:
           return b.durationMinutes - a.durationMinutes;
         });
 
-        // Tomar máximo 2 slots por día
-        const selectedDaySlots = daySlots.slice(0, 2);
+        // Tomar máximo slots por día según el tipo de usuario (B2B: 4, B2C: 2)
+        const selectedDaySlots = daySlots.slice(0, maxSlotsPerDay);
 
         limitedSlots.push(...selectedDaySlots);
       });
@@ -4985,25 +5088,37 @@ INSTRUCCIONES:
         console.log(`   Slots disponibles: ${limitedSlots.length}`);
         equidistantSlots = [...limitedSlots];
       } else {
-        // ✅ B2C: Distribución equidistante más conservadora
-        const estimatedLessons = Math.max(totalLessonsNeeded, 30); // Mínimo 30 lecciones
-        const avgLessonsPerSlot = 2; // Estimación conservadora
-        const slotsNeeded = Math.ceil(estimatedLessons / avgLessonsPerSlot);
+        // ✅ B2C o B2B con skipB2BRedirect
+        // Verificar si hay plazos organizacionales (cursos con dueDate)
+        const hasOrganizationalDeadlines = userProfile?.courses?.some((c: any) => c.dueDate);
 
-        // Seleccionar slots distribuidos equidistantemente
-        if (limitedSlots.length > 0) {
-          const totalAvailable = limitedSlots.length;
-          const slotsToUse = Math.min(slotsNeeded, totalAvailable);
+        if (hasOrganizationalDeadlines) {
+          // ✅ FIX: Si hay plazos organizacionales, usar TODOS los slots disponibles
+          // Esto aplica para B2B incluso cuando skipB2BRedirect=true
+          console.log(`📊 [Plazos Detectados] Usando TODOS los slots para cumplir con fechas límite`);
+          console.log(`   Slots disponibles: ${limitedSlots.length}`);
+          equidistantSlots = [...limitedSlots];
+        } else {
+          // B2C sin plazos: Distribución equidistante más conservadora
+          const estimatedLessons = Math.max(totalLessonsNeeded, 30); // Mínimo 30 lecciones
+          const avgLessonsPerSlot = 2; // Estimación conservadora
+          const slotsNeeded = Math.ceil(estimatedLessons / avgLessonsPerSlot);
 
-          if (slotsToUse >= totalAvailable) {
-            // Necesitamos todos los slots
-            equidistantSlots.push(...limitedSlots);
-          } else {
-            // Distribuir equidistantemente
-            const step = (totalAvailable - 1) / (slotsToUse - 1);
-            for (let i = 0; i < slotsToUse; i++) {
-              const index = Math.round(i * step);
-              equidistantSlots.push(limitedSlots[index]);
+          // Seleccionar slots distribuidos equidistantemente
+          if (limitedSlots.length > 0) {
+            const totalAvailable = limitedSlots.length;
+            const slotsToUse = Math.min(slotsNeeded, totalAvailable);
+
+            if (slotsToUse >= totalAvailable) {
+              // Necesitamos todos los slots
+              equidistantSlots.push(...limitedSlots);
+            } else {
+              // Distribuir equidistantemente
+              const step = (totalAvailable - 1) / (slotsToUse - 1);
+              for (let i = 0; i < slotsToUse; i++) {
+                const index = Math.round(i * step);
+                equidistantSlots.push(limitedSlots[index]);
+              }
             }
           }
         }
@@ -5125,10 +5240,39 @@ INSTRUCCIONES:
           calendarMessage += recommendationIntro.join(' ');
 
           // Obtener lecciones de los cursos seleccionados para distribuir por horarios
-          let allLessonsByCourse: Map<string, Array<{ lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number }>> = new Map();
+          let allLessonsByCourse: Map<string, Array<{ lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number; moduleOrderIndex?: number; totalDurationMinutes?: number }>> = new Map();
           let completedLessonIdsByCourse: Map<string, string[]> = new Map();
 
-          if (selectedCourseIds.length > 0) {
+          // ✅ FIX: Si ya tenemos lecciones cargadas (flujo B2B), usarlas directamente
+          // en lugar de volver a llamar a /api/my-courses que falla para usuarios B2B
+          const cachedPendingLessons = pendingLessonsRef.current || pendingLessonsWithNames;
+
+          if (cachedPendingLessons && cachedPendingLessons.length > 0) {
+            console.log(`📚 [Distribución] Usando ${cachedPendingLessons.length} lecciones pre-cargadas (flujo B2B)`);
+
+            // Agrupar lecciones por courseId
+            cachedPendingLessons.forEach(lesson => {
+              const currentLessons = allLessonsByCourse.get(lesson.courseId) || [];
+              currentLessons.push({
+                lessonId: lesson.lessonId,
+                lessonTitle: lesson.lessonTitle,
+                lessonOrderIndex: lesson.lessonOrderIndex,
+                durationSeconds: (lesson.durationMinutes || 15) * 60,
+                moduleOrderIndex: lesson.moduleOrderIndex,
+                totalDurationMinutes: lesson.durationMinutes
+              });
+              allLessonsByCourse.set(lesson.courseId, currentLessons);
+            });
+
+            // No hay lecciones completadas porque ya fueron filtradas en el flujo B2B
+            selectedCourseIds.forEach(courseId => {
+              completedLessonIdsByCourse.set(courseId, []);
+            });
+
+            console.log(`📊 [Distribución] Cursos con lecciones: ${allLessonsByCourse.size}`);
+          } else if (selectedCourseIds.length > 0) {
+            // Fallback: cargar desde /api/my-courses (para usuarios B2C)
+            console.log(`📚 [Distribución] Cargando lecciones desde /api/my-courses (flujo B2C)...`);
             try {
               const myCoursesResponse = await fetch('/api/my-courses');
               if (myCoursesResponse.ok) {
@@ -5547,6 +5691,17 @@ INSTRUCCIONES:
             console.log(`ℹ️ Se filtraron ${originalSlotsCount - slotsUntilTarget.length} slots por ser días festivos.`);
           }
 
+          // ✅ DEBUG: Mostrar todos los slots disponibles por día
+          const slotsByDay = new Map<string, number>();
+          slotsUntilTarget.forEach(slot => {
+            const dayKey = slot.date.toLocaleDateString('es-ES');
+            slotsByDay.set(dayKey, (slotsByDay.get(dayKey) || 0) + 1);
+          });
+          console.log(`📅 [Slots Disponibles] ${slotsUntilTarget.length} slots en ${slotsByDay.size} días:`);
+          slotsByDay.forEach((count, day) => {
+            console.log(`   - ${day}: ${count} slot(s)`);
+          });
+
           if (slotsUntilTarget.length > 0) {
           }
 
@@ -5636,33 +5791,56 @@ INSTRUCCIONES:
           assignedLessonIds.clear();
           let currentGroupIndex = 0;
 
-          // ✅ NUEVO: Calcular la estrategia de distribución según el enfoque seleccionado
-          // - rapido: llenar cada slot al máximo, usar todos los slots necesarios
-          // - normal: distribución equilibrada (50-75% de la capacidad máxima)
-          // - largo: distribuir a lo largo de todo el tiempo disponible (mínimo por día)
-
+          // ✅ NUEVO: Calcular capacidad total disponible vs. requerida
           const totalGroups = lessonGroups.length;
           const totalSlots = slotsUntilTarget.length;
+
+          // Calcular tiempo total disponible en todos los slots
+          const totalAvailableMinutes = slotsUntilTarget.reduce((sum, slot) => sum + slot.durationMinutes, 0);
+
+          // Calcular tiempo total requerido para todas las lecciones
+          const totalRequiredMinutes = lessonGroups.reduce((sum, group) => sum + group.totalDuration, 0);
+
+          console.log(`📊 [Capacidad] Tiempo disponible: ${totalAvailableMinutes} min en ${totalSlots} slots`);
+          console.log(`📊 [Capacidad] Tiempo requerido: ${totalRequiredMinutes} min para ${totalGroups} grupos`);
+
+          const capacityRatio = totalAvailableMinutes / totalRequiredMinutes;
+          console.log(`📊 [Capacidad] Ratio: ${capacityRatio.toFixed(2)}x (${capacityRatio >= 1 ? '✅ Suficiente' : '⚠️ Insuficiente'})`);
 
           // Calcular cuántos grupos por slot según el enfoque
           let maxGroupsPerSlot: number;
           let skipSlots: number = 0; // Cuántos slots saltar entre asignaciones (para largo)
+          let forceUseAllSlots = false; // ✅ FIX: Forzar uso de todos los slots si no hay suficiente capacidad
 
-          if (studyApproach === 'rapido') {
+          // ✅ FIX: Si la capacidad es ajustada (< 1.3x), forzar uso de todos los slots
+          // para maximizar la probabilidad de asignar todas las lecciones
+          if (capacityRatio < 1.3) {
+            forceUseAllSlots = true;
+            maxGroupsPerSlot = 999; // Sin límite
+            skipSlots = 0;
+            console.log(`🚨 [Capacidad Ajustada] Forzando uso de TODOS los slots disponibles para cumplir fecha límite`);
+          } else if (studyApproach === 'rapido') {
             // Terminar rápido: llenar cada slot al máximo (sin límite de grupos)
             maxGroupsPerSlot = 999; // Sin límite práctico
             skipSlots = 0;
             console.log(`🚀 [Enfoque Rápido] Sin límite de grupos por slot, llenar al máximo`);
           } else if (studyApproach === 'largo') {
             // Tomar tiempo: distribuir a lo largo de todo el tiempo disponible
-            // Calcular cuántos slots necesitamos si ponemos ~1-2 grupos por sesión
-            const groupsPerSession = Math.max(1, Math.ceil(totalGroups / totalSlots));
-            maxGroupsPerSlot = Math.min(2, groupsPerSession); // Máximo 2 grupos por slot
-            // Calcular si necesitamos saltar slots para distribuir mejor
-            if (totalGroups < totalSlots / 2) {
-              skipSlots = Math.floor(totalSlots / totalGroups) - 1;
+            // Solo aplicar distribución relajada si HAY espacio de sobra (capacidad >= 2x)
+            if (capacityRatio >= 2.0) {
+              const groupsPerSession = Math.max(1, Math.ceil(totalGroups / totalSlots));
+              maxGroupsPerSlot = Math.min(2, groupsPerSession); // Máximo 2 grupos por slot
+              // Calcular si necesitamos saltar slots para distribuir mejor
+              if (totalGroups < totalSlots / 2) {
+                skipSlots = Math.floor(totalSlots / totalGroups) - 1;
+              }
+              console.log(`📅 [Enfoque Relajado] Máximo ${maxGroupsPerSlot} grupos por slot, saltar ${skipSlots} slots entre sesiones`);
+            } else {
+              // No hay suficiente espacio para relajarse, usar todos los slots
+              maxGroupsPerSlot = 3;
+              skipSlots = 0;
+              console.log(`📅 [Enfoque Relajado → Normal] Capacidad insuficiente para distribución relajada, usando todos los slots`);
             }
-            console.log(`📅 [Enfoque Relajado] Máximo ${maxGroupsPerSlot} grupos por slot, saltar ${skipSlots} slots entre sesiones`);
           } else {
             // Normal: equilibrado (2-3 grupos por slot dependiendo del tamaño)
             maxGroupsPerSlot = 3;
@@ -5688,13 +5866,14 @@ INSTRUCCIONES:
             const slotDuration = slot.durationMinutes;
             let usedDurationInSlot = 0;
             const lessonsForSlot: any[] = [];
-            let currentSlotModuleIndex: number | null = null;
-            let currentSlotCourseId: string | null = null;
-            let groupsInThisSlot = 0; // ✅ NUEVO: Contador de grupos en este slot
+            let groupsInThisSlot = 0;
 
             // Intentar meter GRUPOS de lecciones mientras quepan y haya disponibles
             // ✅ NUEVO: También limitar por maxGroupsPerSlot según el enfoque
-            while (currentGroupIndex < lessonGroups.length && groupsInThisSlot < maxGroupsPerSlot) {
+            let consecutiveSkips = 0; // ✅ FIX: Contador de grupos saltados consecutivamente
+            const maxSkipsBeforeBreak = 3; // Si saltamos 3 grupos seguidos que no caben, pasar al siguiente slot
+
+            while (currentGroupIndex < lessonGroups.length && groupsInThisSlot < maxGroupsPerSlot && consecutiveSkips < maxSkipsBeforeBreak) {
               const group = lessonGroups[currentGroupIndex];
               const firstLesson = group.lessons[0];
 
@@ -5711,16 +5890,13 @@ INSTRUCCIONES:
               // Lógica de encaje:
               // 1. Si el slot está vacío, aceptamos el grupo aunque se pase un poco (para no bloquear grupos largos)
               // 2. Si ya tiene contenido, solo aceptamos si cabe estrictamente
-              // 3. Solo agrupar lecciones del MISMO MÓDULO y MISMO CURSO
+              // ✅ FIX DEFINITIVO: Eliminar TODAS las restricciones de curso/módulo
+              // Las lecciones deben asignarse secuencialmente en orden, llenando los slots disponibles
               const fits = (usedDurationInSlot + groupDuration <= slotDuration);
               const isSlotEmpty = lessonsForSlot.length === 0;
-              const isSameModule = isSlotEmpty || (
-                currentSlotModuleIndex !== null &&
-                firstLesson.moduleOrderIndex === currentSlotModuleIndex &&
-                currentSlotCourseId === firstLesson.courseId
-              );
 
-              if ((isSlotEmpty || fits) && isSameModule) {
+              // Aceptar si: el slot está vacío O si cabe (sin restricciones de curso)
+              if (isSlotEmpty || fits) {
                 // Asignar TODAS las lecciones del grupo al mismo slot
                 group.lessons.forEach(lesson => {
                   const lessonDuration = Math.ceil((lesson.durationMinutes || 15) * approachMultiplier);
@@ -5728,18 +5904,17 @@ INSTRUCCIONES:
                     courseTitle: lesson.courseTitle || 'Curso',
                     lessonTitle: lesson.lessonTitle.trim(),
                     lessonOrderIndex: (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) ? lesson.lessonOrderIndex : 0,
-                    durationMinutes: lessonDuration
+                    durationMinutes: lessonDuration,
+                    moduleTitle: lesson.moduleTitle || undefined,
+                    moduleOrderIndex: lesson.moduleOrderIndex
                   });
                   assignedLessonIds.add(lesson.lessonId);
                 });
 
-                if (isSlotEmpty) {
-                  currentSlotModuleIndex = firstLesson.moduleOrderIndex;
-                  currentSlotCourseId = firstLesson.courseId;
-                }
                 usedDurationInSlot += groupDuration;
                 currentGroupIndex++;
-                groupsInThisSlot++; // ✅ NUEVO: Incrementar contador de grupos
+                groupsInThisSlot++;
+                consecutiveSkips = 0;
 
                 // Log de verificación (solo para grupos agrupados)
                 if (group.lessons.length > 1 && slotIndex < 3) {
@@ -5747,6 +5922,8 @@ INSTRUCCIONES:
                 }
               } else {
                 // No cabe el grupo completo -> Pasar al siguiente slot
+                // ✅ FIX: No incrementamos currentGroupIndex aquí
+                // El grupo que no cabe será el primero en intentarse en el siguiente slot
                 break;
               }
             }
@@ -7316,22 +7493,64 @@ Cuéntame:
         breakDurationMinutes = 15;
       }
 
+      // ✅ HELPER: Parsear fechas en múltiples formatos
+      const parseDateStr = (dateStr: string): Date | null => {
+        // Formato YYYY-MM-DD
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const parts = dateStr.split('-');
+          return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        }
+
+        // Formato legible: "Lunes 14 de febrero" o similar
+        const monthNames: Record<string, number> = {
+          'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+          'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+        };
+
+        // Intentar extraer "14 de febrero" o "14 febrero"
+        const readableMatch = dateStr.match(/(\d{1,2})\s*(?:de\s+)?(\w+)/i);
+        if (readableMatch) {
+          const day = parseInt(readableMatch[1]);
+          const monthName = readableMatch[2].toLowerCase();
+          const month = monthNames[monthName];
+
+          if (month !== undefined && day >= 1 && day <= 31) {
+            const year = new Date().getFullYear();
+            return new Date(year, month, day);
+          }
+        }
+
+        // Fallback: intentar parsear directamente
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          return parsed;
+        }
+
+        console.warn(`⚠️ [parseDateStr] No se pudo parsear fecha: "${dateStr}"`);
+        return null;
+      };
+
       // Obtener fecha de inicio y fin
-      const startDate = savedLessonDistribution.length > 0
-        ? new Date(savedLessonDistribution[0].dateStr).toISOString()
+      const firstSlotDate = savedLessonDistribution.length > 0
+        ? parseDateStr(savedLessonDistribution[0].dateStr)
+        : null;
+      const startDate = firstSlotDate && !isNaN(firstSlotDate.getTime())
+        ? firstSlotDate.toISOString()
         : new Date().toISOString();
 
+      const lastSlotDate = savedLessonDistribution.length > 0
+        ? parseDateStr(savedLessonDistribution[savedLessonDistribution.length - 1].dateStr)
+        : null;
       const endDate = savedTargetDate
         ? new Date(savedTargetDate).toISOString()
-        : savedLessonDistribution.length > 0
-          ? new Date(savedLessonDistribution[savedLessonDistribution.length - 1].dateStr).toISOString()
+        : lastSlotDate && !isNaN(lastSlotDate.getTime())
+          ? lastSlotDate.toISOString()
           : null;
 
       // ✅ CORRECCIÓN CRÍTICA: Transformar sesiones al formato esperado
       // Mejorar el parsing de horarios para manejar AM/PM y formato 24h correctamente
       const sessions = savedLessonDistribution.map(slot => {
-        const dateParts = slot.dateStr.split('-');
-        const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+        const date = parseDateStr(slot.dateStr) || new Date();
 
         // ✅ CORRECCIÓN CRÍTICA: Parsear horarios en formato 24h (HH:MM)
         // Ahora guardamos en formato 24h para evitar problemas con AM/PM
@@ -7576,60 +7795,95 @@ Cuéntame:
         console.log(`✅ PlanId guardado: ${saveData.data.planId}`);
       }
 
-      // ✅ CORRECCIÓN: Si hay calendario conectado, sincronizar las sesiones con mejor manejo de errores
-      if (connectedCalendar && saveData.data?.planId && saveData.data?.sessionIds && saveData.data.sessionIds.length > 0) {
-        try {
+      // ✅ INSERTAR EVENTOS EN GOOGLE CALENDAR AUTOMÁTICAMENTE
+      let calendarInsertSuccess = false;
+      let calendarInsertedCount = 0;
 
-          const syncResponse = await fetch('/api/study-planner/calendar/sync-sessions', {
+      console.log(`📅 [Calendar Insert] connectedCalendar: ${connectedCalendar}`);
+      console.log(`📅 [Calendar Insert] savedLessonDistribution.length: ${savedLessonDistribution.length}`);
+
+      if (connectedCalendar && savedLessonDistribution.length > 0) {
+        try {
+          console.log(`📅 [Insert Events] Insertando ${savedLessonDistribution.length} eventos en calendario...`);
+
+          // Convertir distribución guardada al formato del API - Usando parseDateStr
+          const lessonDistributionForApi = savedLessonDistribution.map(item => {
+            // Usar la misma función parseDateStr para consistencia
+            let baseDate = parseDateStr(item.dateStr);
+            if (!baseDate || isNaN(baseDate.getTime())) {
+              console.warn(`⚠️ [Insert Events] Fecha inválida: "${item.dateStr}", usando fecha actual`);
+              baseDate = new Date();
+            }
+
+            // Parsear horarios (formato "HH:MM")
+            const [startHour, startMin] = item.startTime.split(':').map(Number);
+            const [endHour, endMin] = item.endTime.split(':').map(Number);
+
+            const startDate = new Date(baseDate);
+            startDate.setHours(startHour, startMin, 0, 0);
+
+            const endDate = new Date(baseDate);
+            endDate.setHours(endHour, endMin, 0, 0);
+
+            return {
+              slot: {
+                date: baseDate.toISOString(),
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+                dayName: item.dayName,
+                durationMinutes: Math.round((endDate.getTime() - startDate.getTime()) / 60000)
+              },
+              lessons: item.lessons.map(l => ({
+                courseTitle: l.courseTitle,
+                lessonTitle: l.lessonTitle,
+                lessonOrderIndex: l.lessonOrderIndex,
+                durationMinutes: l.durationMinutes || 15
+              }))
+            };
+          });
+
+          const insertResponse = await fetch('/api/study-planner/calendar/insert-events', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              sessionIds: saveData.data.sessionIds,
-            }),
+              lessonDistribution: lessonDistributionForApi,
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              planName: 'Plan de Estudios SOFIA'
+            })
           });
 
-          if (syncResponse.ok) {
-            const syncData = await syncResponse.json();
-            if (syncData.success && syncData.data) {
+          const insertResult = await insertResponse.json();
 
-              if (syncData.data.failedCount > 0) {
-                console.warn(`⚠️ ${syncData.data.failedCount} sesiones fallaron al sincronizar`);
-                if (syncData.data.errors) {
-                  console.error('Errores:', syncData.data.errors);
-                }
-              }
-            } else {
-              console.error('❌ Error en respuesta de sincronización:', syncData);
-            }
+          if (insertResponse.ok && insertResult.success) {
+            calendarInsertSuccess = true;
+            calendarInsertedCount = insertResult.insertedCount || 0;
+            console.log(`✅ [Insert Events] ${calendarInsertedCount} eventos insertados exitosamente`);
           } else {
-            const errorText = await syncResponse.text();
-            console.error(`❌ Error sincronizando con calendario (${syncResponse.status}):`, errorText);
+            console.error(`❌ [Insert Events] Error: ${insertResult.error || 'Error desconocido'}`);
 
-            // Si es error 401, puede requerir reconexión
-            if (syncResponse.status === 401) {
+            // Si es error de reconexión, notificar al usuario
+            if (insertResult.requiresReconnection || insertResponse.status === 401) {
               setConnectedCalendar(null);
-              const reconnectMsg = `Tu conexión con el calendario ha expirado. Por favor, reconecta tu calendario para sincronizar las sesiones.`;
               setConversationHistory(prev => [...prev, {
                 role: 'assistant',
-                content: reconnectMsg
+                content: '⚠️ Tu conexión con el calendario ha expirado. El plan se guardó pero no se pudieron crear los eventos. Reconecta tu calendario para sincronizar.'
               }]);
             }
           }
-        } catch (syncError) {
-          console.error('❌ Error sincronizando con calendario:', syncError);
-          // No fallar el guardado si falla la sincronización, pero informar al usuario
-          const syncErrorMsg = `El plan se guardó correctamente, pero hubo un problema al sincronizar con tu calendario. Puedes intentar sincronizar manualmente más tarde.`;
-          setConversationHistory(prev => [...prev, {
-            role: 'assistant',
-            content: syncErrorMsg
-          }]);
+        } catch (insertError) {
+          console.error('❌ [Insert Events] Error insertando eventos:', insertError);
+          // No fallar el guardado si falla la inserción
         }
-      } else {
-
       }
 
       // Mostrar mensaje de éxito
-      const successMessage = `¡Perfecto! He guardado tu plan de estudios con ${sessions.length} sesiones programadas.${connectedCalendar ? ' Las sesiones han sido sincronizadas con tu calendario.' : ''}\n\nPuedes ver tu plan en la sección de "Mis Planes" y comenzar a estudiar cuando lo desees. ¡Éxito en tu aprendizaje! 🎓`;
+      let calendarMsg = '';
+      if (connectedCalendar && calendarInsertSuccess && calendarInsertedCount > 0) {
+        calendarMsg = ` He insertado ${calendarInsertedCount} eventos en tu calendario de Google (en "SOFIA - Sesiones de Estudio").`;
+      } else if (connectedCalendar) {
+        calendarMsg = ' Las sesiones han sido sincronizadas con tu calendario.';
+      }
+      const successMessage = `¡Perfecto! He guardado tu plan de estudios con ${sessions.length} sesiones programadas.${calendarMsg}\n\nPuedes ver tu plan en la sección de "Mis Planes" y comenzar a estudiar cuando lo desees. ¡Éxito en tu aprendizaje! 🎓`;
 
       setConversationHistory(prev => {
         // Reemplazar el mensaje de procesamiento con el de éxito
@@ -8125,19 +8379,22 @@ Cuéntame:
       lowerMessage.includes('procede')
     ) && savedLessonDistribution.length > 0;
 
-    // Detectar si el usuario está confirmando el resumen final (segunda confirmación)
+    // Detectar si el usuario está confirmando los horarios/plan - UNIFICADO para guardar y sincronizar con calendario
+    // Ahora se ejecuta en la PRIMERA confirmación cuando hay horarios disponibles
     const isConfirmingFinalSummary = (
-      (lowerMessage.includes('sí') ||
-        lowerMessage.includes('si') ||
-        lowerMessage.includes('confirmo') ||
+      (lowerMessage === 'sí' || lowerMessage === 'si' || lowerMessage === 'ok' ||
+        lowerMessage === 'vale' || lowerMessage === 'perfecto' || lowerMessage === 'genial' ||
+        lowerMessage === 'excelente' ||
+        lowerMessage.includes('me gusta') ||
         lowerMessage.includes('está bien') ||
-        lowerMessage.includes('perfecto') ||
+        lowerMessage.includes('confirmo') ||
+        lowerMessage.includes('me parece') ||
         lowerMessage.includes('de acuerdo') ||
         lowerMessage.includes('adelante') ||
         lowerMessage.includes('procede') ||
         lowerMessage.includes('guardar') ||
         lowerMessage.includes('crear plan'))
-    ) && hasShownFinalSummary && savedLessonDistribution.length > 0;
+    ) && savedLessonDistribution.length > 0;
 
     // Detectar si el usuario está cambiando la fecha límite
     const isChangingTargetDate = (
@@ -10200,6 +10457,7 @@ Cuéntame:
 
                 {/* Spacer invisible para asegurar que el último mensaje no quede tapado por el input */}
                 <div className="h-2 sm:h-4"></div>
+
 
                 {/* Indicador de escucha */}
                 {isListening && (

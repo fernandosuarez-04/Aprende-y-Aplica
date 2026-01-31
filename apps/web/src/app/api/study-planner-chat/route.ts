@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
         // Configurar el modelo con safety settings relajados para el planificador
         const model = genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.0-flash',
             safetySettings: [
                 {
                     category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -162,7 +162,21 @@ export async function POST(request: NextRequest) {
         // Enviar el mensaje y obtener la respuesta
         const result = await chat.sendMessage(message);
         const response = await result.response;
-        const responseText = response.text();
+
+        // Manejar posible bug de Node.js con TransformStreams
+        let responseText: string;
+        try {
+            responseText = response.text();
+        } catch (textError) {
+            logger.warn('⚠️ Error obteniendo texto con .text(), intentando alternativa:', textError);
+            // Fallback: acceder directamente a los candidates
+            const candidates = response.candidates;
+            if (candidates && candidates.length > 0 && candidates[0].content?.parts?.[0]?.text) {
+                responseText = candidates[0].content.parts[0].text;
+            } else {
+                throw new Error('No se pudo extraer el texto de la respuesta de Gemini');
+            }
+        }
 
         logger.info('✅ Respuesta recibida de Gemini');
         logger.info('📄 Longitud de respuesta:', responseText.length, 'caracteres');
@@ -173,7 +187,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             response: responseText,
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.0-flash',
             timestamp: new Date().toISOString()
         });
 

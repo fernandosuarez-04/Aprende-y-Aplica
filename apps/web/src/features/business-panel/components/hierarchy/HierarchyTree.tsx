@@ -213,7 +213,7 @@ export const HierarchyTree: React.FC<HierarchyTreeProps> = ({ initialStructureId
             ))}
           </select>
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <button
             onClick={handleNewStructure}
             className="text-sm px-3 py-1.5 rounded-md transition-colors shadow-sm font-medium"
@@ -248,7 +248,7 @@ export const HierarchyTree: React.FC<HierarchyTreeProps> = ({ initialStructureId
                 alert("No se encontró un nodo raíz para gestionar miembros. Cree un nodo 'General' primero.");
               }
             }}
-            className="ml-2 text-sm px-3 py-1.5 rounded-md transition-colors shadow-sm font-medium flex items-center gap-2"
+            className="text-sm px-3 py-1.5 rounded-md transition-colors shadow-sm font-medium flex items-center gap-2"
             style={{
               backgroundColor: 'var(--org-secondary-button-color, #4F46E5)',
               color: '#FFFFFF'
