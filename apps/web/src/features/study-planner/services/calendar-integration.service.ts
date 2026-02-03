@@ -1326,6 +1326,67 @@ export class CalendarIntegrationService {
   }
 
   /**
+   * Crea un evento en Microsoft Calendar
+   * @param accessToken - Token de acceso de Microsoft
+   * @param event - Datos del evento
+   * @returns ID del evento creado o null si falla
+   */
+  static async createMicrosoftEvent(
+    accessToken: string,
+    event: {
+      title: string;
+      description?: string;
+      startTime: string;
+      endTime: string;
+      timezone: string;
+      location?: string;
+    }
+  ): Promise<{ id: string } | null> {
+    try {
+      console.log('[Calendar] Creando evento en Microsoft Calendar:', event.title);
+
+      const response = await fetch('https://graph.microsoft.com/v1.0/me/events', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject: event.title,
+          body: {
+            contentType: 'HTML',
+            content: event.description || '',
+          },
+          start: {
+            dateTime: event.startTime,
+            timeZone: event.timezone,
+          },
+          end: {
+            dateTime: event.endTime,
+            timeZone: event.timezone,
+          },
+          location: event.location ? { displayName: event.location } : undefined,
+          reminderMinutesBeforeStart: 15,
+          isReminderOn: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Calendar] Error creando evento en Microsoft:', errorText);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log('[Calendar] Evento de Microsoft creado exitosamente:', data.id);
+      return { id: data.id };
+    } catch (error) {
+      console.error('[Calendar] Error creando evento en Microsoft:', error);
+      return null;
+    }
+  }
+
+  /**
    * Obtiene el calendario secundario del usuario, creándolo si no existe
    * Esta función es una conveniencia para obtener todo lo necesario para operaciones de calendario
    */

@@ -8926,7 +8926,13 @@ Cuéntame:
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               lessons: liaData.lessons,
-              preferences: { days: uniqueDays, times: uniqueTimes },
+              preferences: {
+                days: uniqueDays,
+                times: uniqueTimes,
+                // Mapear studyApproach a studyMode para estrategias de descanso
+                studyMode: studyApproach === 'rapido' ? 'pomodoro' : studyApproach === 'largo' ? 'intensive' : 'balanced',
+                maxConsecutiveHours: studyApproach === 'largo' ? 3 : 2 // Más horas para sesiones largas
+              },
               deadlineDate: deadlineDate,
               maxSessionMinutes: (studyApproach === 'rapido' ? 30 : studyApproach === 'largo' ? 70 : 50)
             })

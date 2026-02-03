@@ -160,6 +160,12 @@ export class LiaLogger {
       .single();
 
     if (error) {
+      // Si es error de FK (23503), la conversación fue eliminada - limpiar estado
+      if (error.code === '23503') {
+        this.conversationId = null;
+        this.messageSequence = 0;
+        return ''; // Retornar vacío sin loggear error
+      }
       console.error('[LiaLogger] Error logging message:', error);
       throw error;
     }
@@ -177,7 +183,7 @@ export class LiaLogger {
         const updates: any = {
           total_messages: (convData.total_messages || 0) + 1
         };
-        
+
         if (role === 'assistant') {
           updates.total_lia_messages = (convData.total_lia_messages || 0) + 1;
         }
@@ -234,7 +240,7 @@ export class LiaLogger {
 
     const supabase = await createClient();
 
-    const { data, error} = await supabase
+    const { data, error } = await supabase
       .from('lia_activity_completions' as any)
       .insert({
         conversation_id: this.conversationId,
@@ -282,7 +288,7 @@ export class LiaLogger {
     }
     if (progress.status !== undefined) {
       updateData.status = progress.status;
-      
+
       if (progress.status === 'completed') {
         updateData.completed_at = new Date().toISOString();
       }
@@ -443,7 +449,7 @@ export class LiaLogger {
    */
   async recoverMessageSequence(): Promise<void> {
     if (!this.conversationId) return;
-    
+
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('lia_messages' as any)
@@ -452,11 +458,11 @@ export class LiaLogger {
       .order('message_sequence', { ascending: false })
       .limit(1)
       .single();
-    
+
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
       console.error('[LiaLogger] Error recovering message sequence:', error);
     }
-    
+
     this.messageSequence = data?.message_sequence || 0;
 
   }

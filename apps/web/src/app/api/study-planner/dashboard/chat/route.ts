@@ -46,7 +46,7 @@ function createAdminClient() {
 
 
 // Tipos de acciones disponibles
-type ActionType = 
+type ActionType =
   | 'move_session'
   | 'delete_session'
   | 'resize_session'
@@ -135,7 +135,7 @@ interface SyncResult {
  *    - Si no se encuentra en el calendario → eliminar de BD (fue eliminada externamente)
  */
 async function syncSessionsWithCalendar(
-  userId: string, 
+  userId: string,
   planId: string,
   accessToken: string,
   calendarEvents: CalendarEvent[] // Eventos del calendario ya obtenidos
@@ -146,31 +146,31 @@ async function syncSessionsWithCalendar(
     orphanedSessions: [],
     message: ''
   };
-  
+
   logger.info('🔄 Iniciando sincronización bidireccional con calendario...');
-  
+
   // Obtener TODAS las sesiones de estudio del plan (últimos 7 días + próximos 30 días)
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  
+
   const { data: allSessions, error } = await supabase
     .from('study_sessions')
     .select('id, title, external_event_id, start_time, end_time')
     .eq('plan_id', planId)
     .gte('start_time', oneWeekAgo.toISOString())
     .lte('start_time', thirtyDaysLater.toISOString());
-  
+
   if (error || !allSessions || allSessions.length === 0) {
     logger.info('ℹ️ No hay sesiones de estudio para sincronizar');
     return result;
   }
-  
+
   logger.info(`📋 Verificando ${allSessions.length} sesiones contra ${calendarEvents.length} eventos del calendario...`);
-  
+
   // Crear un mapa de eventos del calendario para búsqueda rápida
   const calendarEventIds = new Set(calendarEvents.map(e => e.id));
-  
+
   // Función para normalizar texto para comparación
   const normalizeText = (text: string): string => {
     return text
@@ -181,7 +181,7 @@ async function syncSessionsWithCalendar(
       .replace(/\s+/g, ' ')
       .trim();
   };
-  
+
   // Función para verificar si un evento del calendario coincide con una sesión
   const findMatchingCalendarEvent = (session: typeof allSessions[0]): CalendarEvent | undefined => {
     // 1. Primero buscar por external_event_id (match exacto)
@@ -189,53 +189,53 @@ async function syncSessionsWithCalendar(
       logger.info(`✅ Match por external_event_id: "${session.title}"`);
       return calendarEvents.find(e => e.id === session.external_event_id);
     }
-    
+
     // 2. Si no tiene external_event_id, buscar por coincidencia de título y tiempo
     const sessionStart = new Date(session.start_time).getTime();
     const sessionEnd = new Date(session.end_time).getTime();
     const normalizedSessionTitle = normalizeText(session.title);
-    
+
     // Extraer palabras clave del título de la sesión (primeras palabras significativas)
     const sessionKeywords = normalizedSessionTitle.split(' ').filter(w => w.length > 3).slice(0, 3);
-    
+
     return calendarEvents.find(event => {
       const normalizedEventTitle = normalizeText(event.title);
-      
+
       // Verificar coincidencia de título (más flexible)
       // Opción 1: El título de la sesión contiene parte del evento o viceversa
       const directMatch = normalizedEventTitle.includes(normalizedSessionTitle.substring(0, 15)) ||
-                         normalizedSessionTitle.includes(normalizedEventTitle.substring(0, 15));
-      
+        normalizedSessionTitle.includes(normalizedEventTitle.substring(0, 15));
+
       // Opción 2: Comparten palabras clave
-      const keywordMatch = sessionKeywords.length > 0 && 
-                          sessionKeywords.some(kw => normalizedEventTitle.includes(kw));
-      
+      const keywordMatch = sessionKeywords.length > 0 &&
+        sessionKeywords.some(kw => normalizedEventTitle.includes(kw));
+
       // Opción 3: Ambos son sesiones de estudio/lección
-      const bothStudySessions = event.isStudySession && 
-                               (session.title.toLowerCase().includes('lección') || 
-                                session.title.toLowerCase().includes('leccion'));
-      
+      const bothStudySessions = event.isStudySession &&
+        (session.title.toLowerCase().includes('lección') ||
+          session.title.toLowerCase().includes('leccion'));
+
       const titleMatch = directMatch || keywordMatch || bothStudySessions;
-      
+
       // Verificar coincidencia de tiempo (más flexible: dentro de 15 minutos)
       const eventStart = new Date(event.start).getTime();
       const eventEnd = new Date(event.end).getTime();
-      const timeMatch = Math.abs(sessionStart - eventStart) < 15 * 60 * 1000 && 
-                       Math.abs(sessionEnd - eventEnd) < 15 * 60 * 1000;
-      
+      const timeMatch = Math.abs(sessionStart - eventStart) < 15 * 60 * 1000 &&
+        Math.abs(sessionEnd - eventEnd) < 15 * 60 * 1000;
+
       // Alternativa: mismo día y hora de inicio similar (dentro de 30 min)
       const sameDayMatch = new Date(session.start_time).toDateString() === new Date(event.start).toDateString() &&
-                          Math.abs(sessionStart - eventStart) < 30 * 60 * 1000;
-      
+        Math.abs(sessionStart - eventStart) < 30 * 60 * 1000;
+
       if ((titleMatch && timeMatch) || (titleMatch && sameDayMatch)) {
         logger.info(`✅ Match encontrado para "${session.title}" con evento "${event.title}"`);
         return true;
       }
-      
+
       return false;
     });
   };
-  
+
   // IMPORTANTE: Solo eliminar sesiones que tienen external_event_id y ese evento ya no existe
   // Las sesiones sin external_event_id las dejamos intactas (pueden no haberse sincronizado aún)
   // NOTA: Verificar que la sesión esté dentro del rango de eventos consultados antes de eliminar
@@ -243,46 +243,42 @@ async function syncSessionsWithCalendar(
     const sessionTime = new Date(session.start_time).getTime();
     const now = new Date().getTime();
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-    
+
     // Solo procesar sesiones que están dentro del rango de eventos que consultamos
-    const sessionInCalendarRange = sessionTime >= (now - 7 * 24 * 60 * 60 * 1000) && 
-                                    sessionTime <= (now + thirtyDaysMs);
-    
+    const sessionInCalendarRange = sessionTime >= (now - 7 * 24 * 60 * 60 * 1000) &&
+      sessionTime <= (now + thirtyDaysMs);
+
     // Si tiene external_event_id, verificar que el evento exista
     if (session.external_event_id) {
 
-      
+
       if (!calendarEventIds.has(session.external_event_id)) {
         if (!sessionInCalendarRange) {
           // La sesión está fuera del rango de calendario consultado, NO eliminar
 
           continue;
         }
-        
-        // DESHABILITADO TEMPORALMENTE para diagnóstico
+
         // El evento fue eliminado del calendario - eliminar de la BD
-        console.warn(`⚠️ [SYNC] Evento "${session.title}" (ID: ${session.external_event_id}) no existe en calendario`);
-        console.warn(`⚠️ [SYNC] ELIMINACIÓN DESHABILITADA - la sesión se mantiene para diagnóstico`);
-        
-        /*
+        logger.info(`🗑️ [SYNC] Evento "${session.title}" (ID: ${session.external_event_id}) eliminado externamente del calendario`);
+
         const { error: deleteError } = await supabase
           .from('study_sessions')
           .delete()
           .eq('id', session.id);
-        
+
         if (!deleteError) {
           result.deletedFromDb.push(session.title);
-          logger.info(`✅ Sesión "${session.title}" eliminada de la BD`);
+          logger.info(`✅ Sesión "${session.title}" eliminada de la BD (sincronizado con calendario)`);
         } else {
           logger.error(`❌ Error eliminando sesión: ${deleteError.message}`);
         }
-        */
       } else {
       }
     } else {
       // No tiene external_event_id - intentar encontrar un match y vincularlo
       const matchingEvent = findMatchingCalendarEvent(session);
-      
+
       if (matchingEvent) {
         // Vincular el external_event_id
         await supabase
@@ -296,14 +292,14 @@ async function syncSessionsWithCalendar(
       }
     }
   }
-  
+
   if (result.deletedFromDb.length > 0) {
     result.message = `Se detectó que eliminaste ${result.deletedFromDb.length} sesión(es) de tu calendario: ${result.deletedFromDb.join(', ')}. Las he eliminado también del sistema.`;
     logger.info(`🔄 Sincronización completada: ${result.deletedFromDb.length} sesiones eliminadas`);
   } else {
     logger.info('🔄 Sincronización completada: todas las sesiones están sincronizadas');
   }
-  
+
   return result;
 }
 
@@ -420,37 +416,37 @@ async function analyzeProactively(
   for (const session of sessions) {
     const sessionStart = new Date(session.start_time).getTime();
     const sessionEnd = new Date(session.end_time).getTime();
-    
+
     // Logging para debug de horas
     logger.info(`🔍 Sesión "${session.title}": start_time raw = ${session.start_time}`);
     logger.info(`   -> Parsed Date: ${new Date(session.start_time).toISOString()}`);
     logger.info(`   -> formatTime: ${formatTime(new Date(session.start_time))}`);
-    
+
     // Solo analizar sesiones futuras
     if (sessionStart < now.getTime()) continue;
 
     for (const event of calendarEvents) {
       // Ignorar si es la misma sesión de estudio
       if (event.isStudySession) continue;
-      
+
       const eventStart = new Date(event.start).getTime();
       const eventEnd = new Date(event.end).getTime();
-      
+
       // Verificar si hay solapamiento
       const hasOverlap = (sessionStart < eventEnd) && (sessionEnd > eventStart);
-      
+
       if (hasOverlap) {
         // Encontrar horarios alternativos (buscar huecos en el mismo día)
         const sessionDate = new Date(session.start_time);
         sessionDate.setHours(0, 0, 0, 0);
-        
+
         const alternatives = findAlternativeSlots(
           sessionDate,
           session.duration_minutes || 60,
           calendarEvents,
           sessions
         );
-        
+
         analysis.conflicts.push({
           sessionTitle: session.title,
           sessionId: session.id,
@@ -467,37 +463,37 @@ async function analyzeProactively(
 
   // 2. DETECTAR DÍAS SOBRECARGADOS
   const dayLoadMap = new Map<string, { totalMinutes: number; events: string[] }>();
-  
+
   // Contar eventos externos
   for (const event of calendarEvents) {
     if (event.isAllDay) continue;
-    
+
     const eventDate = new Date(event.start);
     eventDate.setHours(0, 0, 0, 0);
     const dateKey = eventDate.toISOString().split('T')[0];
-    
+
     const duration = (new Date(event.end).getTime() - new Date(event.start).getTime()) / (1000 * 60);
-    
+
     const existing = dayLoadMap.get(dateKey) || { totalMinutes: 0, events: [] };
     existing.totalMinutes += duration;
     existing.events.push(event.title);
     dayLoadMap.set(dateKey, existing);
   }
-  
+
   // Contar sesiones de estudio
   for (const session of sessions) {
     const sessionDate = new Date(session.start_time);
     sessionDate.setHours(0, 0, 0, 0);
     const dateKey = sessionDate.toISOString().split('T')[0];
-    
+
     const duration = session.duration_minutes || 60;
-    
+
     const existing = dayLoadMap.get(dateKey) || { totalMinutes: 0, events: [] };
     existing.totalMinutes += duration;
     existing.events.push(`📚 ${session.title}`);
     dayLoadMap.set(dateKey, existing);
   }
-  
+
   // Identificar días con más de 8 horas de actividad
   let consecutiveHeavyDays = 0;
   for (const [dateKey, load] of dayLoadMap) {
@@ -507,7 +503,7 @@ async function analyzeProactively(
         date: dateKey,
         totalHours: Math.round(hours * 10) / 10,
         events: load.events,
-        suggestion: hours > 10 
+        suggestion: hours > 10
           ? 'Día muy saturado. Considera mover alguna sesión de estudio o reducir su duración.'
           : 'Día cargado. Asegúrate de tener descansos entre actividades.'
       });
@@ -516,7 +512,7 @@ async function analyzeProactively(
       consecutiveHeavyDays = 0;
     }
   }
-  
+
   // Alerta de burnout
   if (consecutiveHeavyDays >= 3) {
     analysis.burnoutRisk = {
@@ -536,7 +532,7 @@ async function analyzeProactively(
         calendarEvents,
         sessions
       );
-      
+
       analysis.missedSessions.push({
         sessionTitle: session.title,
         sessionId: session.id,
@@ -580,16 +576,16 @@ async function analyzeProactively(
     date.setDate(date.getDate() + i);
     next7Days.push(date);
   }
-  
+
   for (const day of next7Days) {
     const dayStart = new Date(day);
     dayStart.setHours(8, 0, 0, 0); // Empezar a las 8am
-    
+
     const dayEnd = new Date(day);
     dayEnd.setHours(22, 0, 0, 0); // Terminar a las 10pm
-    
+
     const dateKey = day.toISOString().split('T')[0];
-    
+
     // Obtener eventos de ese día ordenados
     const dayEvents = [...calendarEvents, ...sessions.map(s => ({
       start: s.start_time,
@@ -598,25 +594,25 @@ async function analyzeProactively(
     }))]
       .filter(e => new Date(e.start).toISOString().split('T')[0] === dateKey)
       .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-    
+
     // Buscar huecos de al menos 15 minutos
     let lastEnd = dayStart.getTime();
     for (const event of dayEvents) {
       const eventStart = new Date(event.start).getTime();
       const gap = (eventStart - lastEnd) / (1000 * 60); // minutos
-      
+
       if (gap >= 15 && gap <= 45) { // Huecos pequeños ideales para micro-sesiones
         analysis.freeSlots.push({
           date: dateKey,
           startTime: formatTime(new Date(lastEnd)),
           endTime: formatTime(new Date(eventStart)),
           duration: Math.round(gap),
-          suggestion: gap < 20 
+          suggestion: gap < 20
             ? 'Ideal para repasar flashcards o hacer una lectura rápida.'
             : 'Puedes hacer una micro-sesión de estudio enfocado.'
         });
       }
-      
+
       lastEnd = Math.max(lastEnd, new Date(event.end).getTime());
     }
   }
@@ -624,10 +620,10 @@ async function analyzeProactively(
   // 5. CALCULAR PROGRESO SEMANAL
   const weekStart = new Date(todayStart);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Inicio de semana (domingo)
-  
+
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
-  
+
   for (const session of sessions) {
     const sessionDate = new Date(session.start_time);
     if (sessionDate >= weekStart && sessionDate < weekEnd) {
@@ -640,32 +636,32 @@ async function analyzeProactively(
       }
     }
   }
-  
-  const completionRate = analysis.weeklyProgress.plannedMinutes > 0 
-    ? analysis.weeklyProgress.completedMinutes / analysis.weeklyProgress.plannedMinutes 
+
+  const completionRate = analysis.weeklyProgress.plannedMinutes > 0
+    ? analysis.weeklyProgress.completedMinutes / analysis.weeklyProgress.plannedMinutes
     : 0;
-  
+
   analysis.weeklyProgress.onTrack = completionRate >= 0.7;
-  
+
   if (!analysis.weeklyProgress.onTrack && analysis.weeklyProgress.remainingMinutes > 0) {
     analysis.weeklyProgress.suggestion = `Vas atrasado esta semana. Te faltan ${Math.round(analysis.weeklyProgress.remainingMinutes / 60)} horas de estudio. ¿Quieres que redistribuya las sesiones restantes?`;
   }
 
   // 6. ALERTA DE CONSISTENCIA (días sin estudiar)
-  const sortedSessions = [...sessions].sort((a, b) => 
+  const sortedSessions = [...sessions].sort((a, b) =>
     new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
   );
-  
+
   const lastCompletedSession = sortedSessions.find(s => s.status === 'completed');
   if (lastCompletedSession) {
     const lastStudyDate = new Date(lastCompletedSession.start_time);
     const daysSinceStudy = Math.floor((now.getTime() - lastStudyDate.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (daysSinceStudy >= 3) {
       analysis.consistencyAlert = {
         daysWithoutStudy: daysSinceStudy,
         lastStudyDate: formatDate(lastStudyDate),
-        suggestion: daysSinceStudy >= 7 
+        suggestion: daysSinceStudy >= 7
           ? `Llevas ${daysSinceStudy} días sin estudiar. ¿Te gustaría retomar con una sesión corta de 15-20 minutos?`
           : `Han pasado ${daysSinceStudy} días desde tu última sesión. ¡Es buen momento para retomar!`
       };
@@ -795,7 +791,7 @@ function formatDateTime(date: Date): string {
 
 async function getPlanContext(userId: string, planId?: string): Promise<{ context: string; syncResult?: SyncResult; timezone: string }> {
   const supabase = createAdminClient();
-  
+
   logger.info(`🔍 getPlanContext - userId: ${userId}, planId: ${planId || 'no especificado'}`);
 
   // Obtener plan más reciente (la tabla no tiene columna status)
@@ -827,40 +823,40 @@ async function getPlanContext(userId: string, planId?: string): Promise<{ contex
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
-  
+
   const todayEnd = new Date(todayStart);
   todayEnd.setHours(23, 59, 59, 999);
-  
+
   // Ampliar rango: 7 días atrás y 30 días adelante para capturar más sesiones
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  
+
 
   // Obtener eventos del calendario
   let calendarEventsToday: CalendarEvent[] = [];
   let calendarEventsWeek: CalendarEvent[] = [];
   let calendarEventsTwoWeeks: CalendarEvent[] = [];
   let syncResult: SyncResult | undefined;
-  
+
   const { accessToken, provider } = await getCalendarAccessToken(userId);
-  
+
   logger.info(`🔑 Calendar token: ${accessToken ? 'SÍ' : 'NO'}, provider: ${provider}`);
-  
+
   if (accessToken && provider === 'google') {
     // PRIMERO: Obtener eventos del calendario para las próximas 2 semanas
     logger.info(`📅 Consultando eventos de hoy: ${todayStart.toISOString()} - ${todayEnd.toISOString()}`);
     calendarEventsToday = await listGoogleCalendarEvents(accessToken, todayStart, todayEnd, timezone);
     logger.info(`📅 Eventos de hoy encontrados: ${calendarEventsToday.length}`);
-    
+
     // Eventos de la semana (7 días)
     const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     calendarEventsWeek = await listGoogleCalendarEvents(accessToken, todayStart, weekEnd, timezone);
     logger.info(`📅 Eventos de la semana encontrados: ${calendarEventsWeek.length}`);
-    
+
     // Eventos de 30 días (para sincronización)
     calendarEventsTwoWeeks = await listGoogleCalendarEvents(accessToken, todayStart, thirtyDaysLater, timezone);
     logger.info(`📅 Eventos de 30 días encontrados: ${calendarEventsTwoWeeks.length}`);
-    
+
     // AHORA: Sincronizar sesiones con el calendario (detectar eliminaciones)
     if (plan) {
       syncResult = await syncSessionsWithCalendar(userId, plan.id, accessToken, calendarEventsTwoWeeks);
@@ -870,7 +866,7 @@ async function getPlanContext(userId: string, planId?: string): Promise<{ contex
   }
 
   let context = '';
-  
+
   // Si se detectaron eliminaciones, agregar alerta al contexto
   if (syncResult && syncResult.deletedFromDb.length > 0) {
     context += `## ⚠️ CAMBIOS DETECTADOS EN EL CALENDARIO
@@ -889,7 +885,7 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
   // Sección de calendario
   context += `## 📅 EVENTOS DEL CALENDARIO EXTERNO - HOY (Google Calendar)
 `;
-  
+
   if (calendarEventsToday.length > 0) {
     for (const event of calendarEventsToday) {
       const typeLabel = event.isStudySession ? '📚' : '📌';
@@ -907,13 +903,13 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
   }
 
   // Obtener sesiones del plan - CONSULTA DIRECTA A LA BD (sin caché)
-  
+
   // Primero: Consultar TODAS las sesiones del plan para diagnóstico
   const { data: allSessions, error: allSessionsError } = await supabase
     .from('study_sessions')
     .select('id, title, start_time, status, external_event_id')
     .eq('plan_id', plan.id);
-  
+
   if (allSessions && allSessions.length > 0) {
 
     allSessions.forEach(s => {
@@ -922,7 +918,7 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
   } else {
     console.warn(`⚠️ [CHAT DEBUG] No hay NINGUNA sesión en el plan ${plan.id}`);
   }
-  
+
   const { data: sessions, error: sessionsError } = await supabase
     .from('study_sessions')
     .select(`
@@ -960,25 +956,25 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
   if (sessions && sessions.length > 0) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     for (const session of sessions) {
       const sessionIdx = sessions.indexOf(session);
       const startDate = new Date(session.start_time);
       const endDate = new Date(session.end_time);
-      
+
       const sessionDay = new Date(startDate);
       sessionDay.setHours(0, 0, 0, 0);
-      
+
       let dayLabel = '';
       if (sessionDay.getTime() === today.getTime()) {
         dayLabel = ' 📍 **[HOY]**';
       } else if (sessionDay.getTime() === tomorrow.getTime()) {
         dayLabel = ' 📅 **[MAÑANA]**';
       }
-      
+
       context += `
 ${sessionIdx + 1}. **${session.title}**${dayLabel}
    - ID: ${session.id}
@@ -988,7 +984,7 @@ ${sessionIdx + 1}. **${session.title}**${dayLabel}
    - Estado: ${translateStatus(session.status)}
 `;
     }
-    
+
     context += `
 **TOTAL: ${sessions.length} sesiones de estudio programadas.**
 `;
@@ -1195,10 +1191,10 @@ function formatPreferredDays(days: number[]): string {
 
 function formatDate(date: Date, timezone?: string): string {
   const tz = timezone || currentTimezone;
-  const options: Intl.DateTimeFormatOptions = { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
     day: 'numeric',
     timeZone: tz
   };
@@ -1207,8 +1203,8 @@ function formatDate(date: Date, timezone?: string): string {
 
 function formatTime(date: Date, timezone?: string): string {
   const tz = timezone || currentTimezone;
-  return date.toLocaleTimeString('es-MX', { 
-    hour: '2-digit', 
+  return date.toLocaleTimeString('es-MX', {
+    hour: '2-digit',
     minute: '2-digit',
     timeZone: tz
   });
@@ -1229,27 +1225,27 @@ function translateStatus(status: string): string {
 function extractAction(response: string): { action: ActionResult | null; actions: ActionResult[]; cleanResponse: string } {
   logger.info(`🔍 Buscando tag(s) <action> en respuesta...`);
   logger.info(`📝 Respuesta recibida (primeros 500 chars): ${response.substring(0, 500)}`);
-  
+
   // Buscar todas las acciones (soporte para múltiples)
   const actionMatches = response.matchAll(/<action>([\s\S]*?)<\/action>/g);
   const actions: ActionResult[] = [];
-  
+
   for (const actionMatch of actionMatches) {
     try {
       const rawJson = actionMatch[1].trim();
       logger.info(`📋 JSON raw encontrado: ${rawJson.substring(0, 200)}`);
-      
+
       const actionData = JSON.parse(rawJson);
-      
+
       // VALIDAR que type existe y no es undefined
       if (!actionData.type) {
         logger.warn(`⚠️ Action sin type válido, ignorando: ${JSON.stringify(actionData).substring(0, 200)}`);
         continue; // Saltar esta acción inválida
       }
-      
+
       const normalizedType = actionData.type.toLowerCase();
       logger.info(`✅ Acción encontrada: type=${normalizedType}, data=${JSON.stringify(actionData.data || {}).substring(0, 200)}`);
-      
+
       actions.push({
         type: normalizedType as ActionType,
         data: actionData.data || {},
@@ -1261,7 +1257,7 @@ function extractAction(response: string): { action: ActionResult | null; actions
       logger.error(`JSON que falló: ${actionMatch[1]?.substring(0, 200)}`);
     }
   }
-  
+
   if (actions.length === 0) {
     logger.info(`ℹ️ No se encontraron acciones válidas con \<action\> tags`);
     // Limpiar cualquier tag <action> mal formado de la respuesta
@@ -1271,7 +1267,7 @@ function extractAction(response: string): { action: ActionResult | null; actions
 
   logger.info(`✅ ${actions.length} acción(es) válida(s) encontrada(s)`);
   const cleanResponse = response.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
-  
+
   // Para compatibilidad con código existente, retornar la primera acción como 'action'
   // pero también retornar todas en 'actions'
   return {
@@ -1360,10 +1356,10 @@ async function getCalendarAccessToken(userId: string): Promise<{
 async function refreshAccessToken(integration: any): Promise<{ success: boolean; accessToken?: string }> {
   try {
     if (integration.provider === 'google') {
-      const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || 
-                               process.env.GOOGLE_CLIENT_ID || '';
+      const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID ||
+        process.env.GOOGLE_CLIENT_ID || '';
       const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET ||
-                                   process.env.GOOGLE_CLIENT_SECRET || '';
+        process.env.GOOGLE_CLIENT_SECRET || '';
 
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -1382,7 +1378,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
       }
 
       const tokens = await response.json();
-      
+
       const supabase = createAdminClient();
       await supabase
         .from('calendar_integrations')
@@ -1394,7 +1390,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 
       return { success: true, accessToken: tokens.access_token };
     }
-    
+
     // Agregar soporte para Microsoft si es necesario
     return { success: false };
   } catch (error) {
@@ -1683,9 +1679,9 @@ async function syncSessionWithCalendar(
   newData?: { start_time: string; end_time: string }
 ): Promise<{ success: boolean; message?: string }> {
   const supabase = createAdminClient();
-  
+
   logger.info(`🔄 syncSessionWithCalendar iniciado - sessionId: ${sessionId}, action: ${action}`);
-  
+
   // Obtener la sesión con su external_event_id
   const { data: session, error: sessionError } = await supabase
     .from('study_sessions')
@@ -1693,11 +1689,11 @@ async function syncSessionWithCalendar(
     .eq('id', sessionId)
     .single();
 
-  logger.info(`📋 Sesión obtenida: ${JSON.stringify({ 
-    found: !!session, 
+  logger.info(`📋 Sesión obtenida: ${JSON.stringify({
+    found: !!session,
     title: session?.title,
     external_event_id: session?.external_event_id,
-    error: sessionError?.message 
+    error: sessionError?.message
   })}`);
 
   if (!session) {
@@ -1770,7 +1766,7 @@ async function syncSessionWithCalendar(
         timezone,
         calendarId
       );
-      
+
       if (eventId) {
         // Guardar el external_event_id en la sesión
         const { error: updateError } = await supabase
@@ -1780,13 +1776,13 @@ async function syncSessionWithCalendar(
             calendar_provider: 'google',
           })
           .eq('id', sessionId);
-        
+
         if (updateError) {
           logger.error('❌ Error guardando external_event_id:', updateError);
         } else {
           logger.info(`✅ external_event_id guardado en sesión: ${eventId}`);
         }
-        
+
         return { success: true, message: 'Evento creado en calendario' };
       } else {
         return { success: false, message: 'Error creando evento en calendario' };
@@ -1806,8 +1802,8 @@ async function syncSessionWithCalendar(
 // ============================================================================
 
 async function executeAction(
-  userId: string, 
-  planId: string, 
+  userId: string,
+  planId: string,
   action: ActionResult
 ): Promise<ActionResult> {
   const supabase = createAdminClient();
@@ -1815,38 +1811,38 @@ async function executeAction(
   switch (action.type) {
     case 'move_session': {
       const { sessionId, newStartTime, newEndTime } = action.data;
-      
+
       logger.info(`📅 Moviendo sesión ${sessionId} a ${newStartTime} - ${newEndTime}`);
-      
+
       // Función para verificar si un timestamp ya tiene offset de timezone
       const hasTimezoneOffset = (timestamp: string): boolean => {
         // Patrones válidos de offset: +HH:MM, -HH:MM, Z
         return /[+-]\d{2}:\d{2}$/.test(timestamp) || timestamp.endsWith('Z');
       };
-      
+
       // Solo añadir offset si no tiene uno
       let startTimeISO = newStartTime;
       let endTimeISO = newEndTime;
-      
+
       const tzOffset = getTimezoneOffset(currentTimezone);
-      
+
       if (!hasTimezoneOffset(newStartTime)) {
         startTimeISO = newStartTime + tzOffset;
       }
       if (!hasTimezoneOffset(newEndTime)) {
         endTimeISO = newEndTime + tzOffset;
       }
-      
+
       logger.info(`📅 Timestamps ajustados: ${startTimeISO} -> ${endTimeISO}`);
-      
+
       // Primero sincronizar con el calendario externo (antes de actualizar BD)
       const calendarSync = await syncSessionWithCalendar(userId, sessionId, 'update', {
         start_time: startTimeISO,
         end_time: endTimeISO,
       });
-      
+
       logger.info(`📅 Resultado sincronización calendario: ${JSON.stringify(calendarSync)}`);
-      
+
       const { error } = await supabase
         .from('study_sessions')
         .update({
@@ -1862,17 +1858,17 @@ async function executeAction(
       if (error) {
         return { ...action, status: 'error', message: `Error al mover la sesión: ${error.message}` };
       }
-      
+
       const calendarMsg = calendarSync.success ? ' y actualizada en tu calendario' : '';
       return { ...action, status: 'success', message: `✅ Sesión movida correctamente${calendarMsg}` };
     }
 
     case 'delete_session': {
       const { sessionId } = action.data;
-      
+
       // Primero sincronizar con el calendario externo (antes de eliminar de BD)
       const calendarSync = await syncSessionWithCalendar(userId, sessionId, 'delete');
-      
+
       const { error } = await supabase
         .from('study_sessions')
         .delete()
@@ -1882,14 +1878,14 @@ async function executeAction(
       if (error) {
         return { ...action, status: 'error', message: `Error al eliminar la sesión: ${error.message}` };
       }
-      
+
       const calendarMsg = calendarSync.success ? ' y eliminada de tu calendario' : '';
       return { ...action, status: 'success', message: `✅ Sesión eliminada correctamente${calendarMsg}` };
     }
 
     case 'resize_session': {
       const { sessionId, newDurationMinutes } = action.data;
-      
+
       // Obtener sesión actual
       const { data: session } = await supabase
         .from('study_sessions')
@@ -1905,7 +1901,7 @@ async function executeAction(
       // Calcular nuevo end_time
       const startTime = new Date(session.start_time);
       const newEndTime = new Date(startTime.getTime() + newDurationMinutes * 60 * 1000);
-      
+
       // Sincronizar con calendario
       const calendarSync = await syncSessionWithCalendar(userId, sessionId, 'update', {
         start_time: session.start_time,
@@ -1924,14 +1920,14 @@ async function executeAction(
       if (error) {
         return { ...action, status: 'error', message: `Error al ajustar duración: ${error.message}` };
       }
-      
+
       const calendarMsg = calendarSync.success ? ' y actualizada en tu calendario' : '';
       return { ...action, status: 'success', message: `✅ Duración ajustada a ${newDurationMinutes} minutos${calendarMsg}` };
     }
 
     case 'create_session': {
       const { title, startTime, endTime, courseId, lessonId, description } = action.data;
-      
+
       const { error } = await supabase
         .from('study_sessions')
         .insert({
@@ -1955,7 +1951,7 @@ async function executeAction(
 
     case 'update_session': {
       const { sessionId, ...updates } = action.data;
-      
+
       const { error } = await supabase
         .from('study_sessions')
         .update({
@@ -1974,51 +1970,51 @@ async function executeAction(
     // =========================================================================
     // ACCIONES DE CALENDARIO EXTERNO
     // =========================================================================
-    
+
     case 'list_calendar_events': {
       const { startDate, endDate } = action.data || {};
-      
+
       const { accessToken, provider } = await getCalendarAccessToken(userId);
-      
+
       if (!accessToken || provider !== 'google') {
-        return { 
-          ...action, 
-          status: 'error', 
-          message: '❌ No tienes un calendario conectado. Ve a configuración para conectar tu Google Calendar.' 
+        return {
+          ...action,
+          status: 'error',
+          message: '❌ No tienes un calendario conectado. Ve a configuración para conectar tu Google Calendar.'
         };
       }
-      
+
       // Por defecto, mostrar eventos de hoy
       const start = startDate ? new Date(startDate) : new Date();
       start.setHours(0, 0, 0, 0);
-      
+
       const end = endDate ? new Date(endDate) : new Date(start);
       end.setHours(23, 59, 59, 999);
-      
+
       const events = await listGoogleCalendarEvents(accessToken, start, end, currentTimezone || 'America/Mexico_City');
-      
+
       if (events.length === 0) {
-        return { 
-          ...action, 
-          status: 'success', 
+        return {
+          ...action,
+          status: 'success',
           message: '📅 No tienes eventos programados para ese período.',
           data: { events: [] }
         };
       }
-      
+
       // Formatear eventos para mostrar
       let eventsList = '📅 **Tus eventos:**\n\n';
       for (const event of events) {
         const typeIcon = event.isStudySession ? '📚' : '📌';
-        const timeStr = event.isAllDay 
-          ? 'Todo el día' 
+        const timeStr = event.isAllDay
+          ? 'Todo el día'
           : `${formatTime(new Date(event.start))} - ${formatTime(new Date(event.end))}`;
         eventsList += `${typeIcon} **${event.title}** (${timeStr})\n`;
       }
-      
-      return { 
-        ...action, 
-        status: 'success', 
+
+      return {
+        ...action,
+        status: 'success',
         message: eventsList,
         data: { events }
       };
@@ -2105,22 +2101,22 @@ async function executeAction(
 
     case 'create_micro_session': {
       const { title, startTime, endTime, type } = action.data;
-      
+
       // Calcular duración para verificar que es una micro-sesión (máx 30 min)
       const start = new Date(startTime);
       const end = new Date(endTime);
       const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
-      
+
       if (durationMinutes > 45) {
-        return { 
-          ...action, 
-          status: 'error', 
-          message: '❌ Las micro-sesiones deben ser de máximo 45 minutos.' 
+        return {
+          ...action,
+          status: 'error',
+          message: '❌ Las micro-sesiones deben ser de máximo 45 minutos.'
         };
       }
-      
+
       const sessionTitle = title || `📝 ${type || 'Micro-sesión de repaso'}`;
-      
+
       // Crear la sesión en la BD
       const { data: session, error } = await supabase
         .from('study_sessions')
@@ -2136,12 +2132,12 @@ async function executeAction(
         })
         .select()
         .single();
-      
+
       if (error) {
         logger.error('Error creando micro-sesión:', error);
         return { ...action, status: 'error', message: '❌ Error al crear la micro-sesión.' };
       }
-      
+
       // Crear evento en el calendario secundario de la plataforma
       const { accessToken, provider, calendarId } = await getCalendarAccessToken(userId);
       if (accessToken && provider === 'google') {
@@ -2165,7 +2161,7 @@ async function executeAction(
             .eq('id', session.id);
         }
       }
-      
+
       return {
         ...action,
         status: 'success',
@@ -2176,23 +2172,23 @@ async function executeAction(
 
     case 'recover_missed_session': {
       const { sessionId, newStartTime, newEndTime } = action.data;
-      
+
       // Obtener la sesión original
       const { data: originalSession, error: getError } = await supabase
         .from('study_sessions')
         .select('*')
         .eq('id', sessionId)
         .single();
-      
+
       if (getError || !originalSession) {
         return { ...action, status: 'error', message: '❌ Sesión no encontrada.' };
       }
-      
+
       // Calcular nueva duración
       const start = new Date(newStartTime);
       const end = new Date(newEndTime);
       const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
-      
+
       // Actualizar la sesión (cambiar fecha y estado)
       const { error: updateError } = await supabase
         .from('study_sessions')
@@ -2203,18 +2199,18 @@ async function executeAction(
           status: 'planned', // Cambiar de 'missed' a 'planned'
         })
         .eq('id', sessionId);
-      
+
       if (updateError) {
         logger.error('Error recuperando sesión:', updateError);
         return { ...action, status: 'error', message: '❌ Error al reprogramar la sesión.' };
       }
-      
+
       // Sincronizar con calendario
       if (originalSession.external_event_id) {
         // Actualizar evento existente
-        await syncSessionWithCalendar(userId, sessionId, 'update', { 
-          start_time: newStartTime, 
-          end_time: newEndTime 
+        await syncSessionWithCalendar(userId, sessionId, 'update', {
+          start_time: newStartTime,
+          end_time: newEndTime
         });
       } else {
         // Crear nuevo evento en el calendario secundario de la plataforma
@@ -2231,7 +2227,7 @@ async function executeAction(
             currentTimezone || 'America/Mexico_City',
             calendarId
           );
-          
+
           if (eventId) {
             await supabase
               .from('study_sessions')
@@ -2240,7 +2236,7 @@ async function executeAction(
           }
         }
       }
-      
+
       return {
         ...action,
         status: 'success',
@@ -2251,14 +2247,14 @@ async function executeAction(
 
     case 'rebalance_plan': {
       let { sessionsToMove } = action.data || {};
-      
+
       // Timezone offset para México (America/Mexico_City)
       const TZ_OFFSET = '-06:00';
-      
+
       // Si no se proporcionaron sesiones específicas, calcular automáticamente
       if (!sessionsToMove || !Array.isArray(sessionsToMove) || sessionsToMove.length === 0) {
         logger.info('📋 REBALANCE_PLAN - Calculando sesiones automáticamente...');
-        
+
         // Obtener sesiones que necesitan ser reprogramadas (overdue o planned en el pasado)
         const now = new Date();
         const { data: overdueSessions, error: fetchError } = await supabase
@@ -2268,25 +2264,25 @@ async function executeAction(
           .eq('status', 'planned')
           .lt('end_time', now.toISOString())
           .order('start_time', { ascending: true });
-        
+
         if (fetchError || !overdueSessions || overdueSessions.length === 0) {
-          return { 
-            ...action, 
-            status: 'error', 
-            message: '❌ No se encontraron sesiones pendientes para redistribuir.' 
+          return {
+            ...action,
+            status: 'error',
+            message: '❌ No se encontraron sesiones pendientes para redistribuir.'
           };
         }
-        
+
         logger.info(`📋 Encontradas ${overdueSessions.length} sesiones overdue para redistribuir`);
-        
+
         // Calcular slots disponibles en los próximos 7 días
         // Usar los horarios preferidos de las sesiones existentes
         const preferredHours = [8, 9, 10, 17, 18, 19, 20]; // Horas comunes de estudio
-        
+
         sessionsToMove = [];
         let dayOffset = 0;
         let hourIndex = 0;
-        
+
         for (const session of overdueSessions) {
           // Buscar el próximo slot disponible
           let foundSlot = false;
@@ -2294,12 +2290,12 @@ async function executeAction(
             const targetDate = new Date(now);
             targetDate.setDate(targetDate.getDate() + dayOffset);
             targetDate.setHours(preferredHours[hourIndex], 0, 0, 0);
-            
+
             // Verificar que la fecha/hora esté en el futuro
             if (targetDate > now) {
               const duration = session.duration_minutes || 30;
               const endDate = new Date(targetDate.getTime() + duration * 60 * 1000);
-              
+
               // Formatear como ISO sin milisegundos + timezone
               const formatWithTZ = (date: Date) => {
                 const year = date.getFullYear();
@@ -2309,16 +2305,16 @@ async function executeAction(
                 const mins = String(date.getMinutes()).padStart(2, '0');
                 return `${year}-${month}-${day}T${hours}:${mins}:00${TZ_OFFSET}`;
               };
-              
+
               sessionsToMove.push({
                 sessionId: session.id,
                 newStartTime: formatWithTZ(targetDate),
                 newEndTime: formatWithTZ(endDate)
               });
-              
+
               foundSlot = true;
             }
-            
+
             // Avanzar al siguiente slot
             hourIndex++;
             if (hourIndex >= preferredHours.length) {
@@ -2327,29 +2323,29 @@ async function executeAction(
             }
           }
         }
-        
+
         if (sessionsToMove.length === 0) {
-          return { 
-            ...action, 
-            status: 'error', 
-            message: '❌ No se pudieron calcular nuevos horarios para las sesiones.' 
+          return {
+            ...action,
+            status: 'error',
+            message: '❌ No se pudieron calcular nuevos horarios para las sesiones.'
           };
         }
       }
-      
+
       logger.info(`📋 REBALANCE_PLAN - Sesiones a mover: ${JSON.stringify(sessionsToMove)}`);
-      
+
       const results: Array<{ sessionId: string; success: boolean }> = [];
-      
+
       for (const sessionMove of sessionsToMove) {
         const { sessionId: moveSessionId, newStartTime, newEndTime } = sessionMove;
-        
+
         logger.info(`🔄 Moviendo sesión ${moveSessionId}: ${newStartTime} -> ${newEndTime}`);
-        
+
         // Asegurar que los timestamps tengan zona horaria
         let startTimeISO = newStartTime;
         let endTimeISO = newEndTime;
-        
+
         // Si el timestamp no tiene zona horaria, agregar la de México
         if (!newStartTime.includes('+') && !newStartTime.includes('Z') && !newStartTime.match(/-\d{2}:\d{2}$/)) {
           startTimeISO = newStartTime + TZ_OFFSET;
@@ -2357,13 +2353,13 @@ async function executeAction(
         if (!newEndTime.includes('+') && !newEndTime.includes('Z') && !newEndTime.match(/-\d{2}:\d{2}$/)) {
           endTimeISO = newEndTime + TZ_OFFSET;
         }
-        
+
         logger.info(`📅 Timestamps ajustados: ${startTimeISO} -> ${endTimeISO}`);
-        
+
         const start = new Date(startTimeISO);
         const end = new Date(endTimeISO);
         const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
-        
+
         const { error } = await supabase
           .from('study_sessions')
           .update({
@@ -2372,10 +2368,10 @@ async function executeAction(
             duration_minutes: durationMinutes,
           })
           .eq('id', moveSessionId);
-        
+
         if (!error) {
           results.push({ sessionId: moveSessionId, success: true });
-          
+
           // Sincronizar con calendario
           await syncSessionWithCalendar(userId, moveSessionId, 'update', {
             start_time: startTimeISO,
@@ -2386,13 +2382,13 @@ async function executeAction(
           results.push({ sessionId: moveSessionId, success: false });
         }
       }
-      
+
       const successCount = results.filter(r => r.success).length;
-      
+
       return {
         ...action,
         status: successCount > 0 ? 'success' : 'error',
-        message: successCount > 0 
+        message: successCount > 0
           ? `✅ Plan rebalanceado: ${successCount}/${sessionsToMove.length} sesiones reprogramadas.`
           : '❌ No se pudieron reprogramar las sesiones.',
         data: { results, sessionsRebalanced: successCount }
@@ -2401,11 +2397,11 @@ async function executeAction(
 
     case 'reduce_session_load': {
       const { date, sessionsToReduce } = action.data;
-      
+
       if (!sessionsToReduce || !Array.isArray(sessionsToReduce) || sessionsToReduce.length === 0) {
         return { ...action, status: 'error', message: '❌ No se especificaron sesiones para reducir.' };
       }
-      
+
       const reduceResults: Array<{ sessionId: string; action: string; success: boolean }> = [];
       const { accessToken, provider, calendarId } = await getCalendarAccessToken(userId);
 
@@ -2441,11 +2437,11 @@ async function executeAction(
             .select('*')
             .eq('id', reduceSessionId)
             .single();
-          
+
           if (session) {
             const startTime = new Date(session.start_time);
             const newEndTime = new Date(startTime.getTime() + newData.durationMinutes * 60 * 1000);
-            
+
             const { error } = await supabase
               .from('study_sessions')
               .update({
@@ -2453,10 +2449,10 @@ async function executeAction(
                 duration_minutes: newData.durationMinutes,
               })
               .eq('id', reduceSessionId);
-            
+
             if (!error) {
               reduceResults.push({ sessionId: reduceSessionId, action: 'resized', success: true });
-              
+
               await syncSessionWithCalendar(userId, reduceSessionId, 'update', {
                 start_time: session.start_time,
                 end_time: newEndTime.toISOString()
@@ -2469,7 +2465,7 @@ async function executeAction(
           const start = new Date(newData.startTime);
           const end = new Date(newData.endTime);
           const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
-          
+
           const { error } = await supabase
             .from('study_sessions')
             .update({
@@ -2478,10 +2474,10 @@ async function executeAction(
               duration_minutes: durationMinutes,
             })
             .eq('id', reduceSessionId);
-          
+
           if (!error) {
             reduceResults.push({ sessionId: reduceSessionId, action: 'moved', success: true });
-            
+
             await syncSessionWithCalendar(userId, reduceSessionId, 'update', {
               start_time: newData.startTime,
               end_time: newData.endTime
@@ -2491,9 +2487,9 @@ async function executeAction(
           }
         }
       }
-      
+
       const reduceSuccessCount = reduceResults.filter(r => r.success).length;
-      
+
       return {
         ...action,
         status: reduceSuccessCount > 0 ? 'success' : 'error',
@@ -2522,14 +2518,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
   try {
     // 1. Verificar autenticación
     const user = await SessionService.getCurrentUser();
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'Usuario no autenticado' },
         { status: 401 }
       );
     }
-    
+
     // Inicializar LiaLogger para analytics
     const liaLogger = new LiaLogger(user.id);
     let conversationId: string | undefined = undefined; // Será asignado más adelante
@@ -2546,17 +2542,17 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
         { status: 400 }
       );
     }
-    
+
     // Iniciar conversación en logger
     try {
       const existingId = conversationHistory && conversationHistory.length > 0 ? undefined : undefined; // TODO: Manejar ID existente del frontend si se envía
-      
+
       conversationId = await liaLogger.startConversation({
         contextType: 'study-planner' as any, // Forzamos el tipo aunque no esté en enum para que el logger lo maneje
         deviceType: request.headers.get('sec-ch-ua-platform') || undefined,
         ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0].trim()
       });
-      
+
       // Si hay mensaje del usuario, registrarlo
       if (message) {
         await liaLogger.logMessage('user', message);
@@ -2574,22 +2570,22 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
     }
 
     const genAI = new GoogleGenerativeAI(googleApiKey);
-    
+
     // Configuración desde variables de entorno
     // IMPORTANTE: Solo usar modelos válidos de Gemini
     let modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
-    
+
     // Validar que el modelo sea uno conocido, sino usar el default
     const validModels = ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
     if (!validModels.some(m => modelName.includes(m.split('-')[0]))) {
       logger.warn(`⚠️ Modelo "${modelName}" no reconocido, usando gemini-2.0-flash-exp`);
       modelName = 'gemini-2.0-flash-exp';
     }
-    
+
     const temperature = parseFloat(process.env.GEMINI_TEMPERATURE || '0.7');
     const maxOutputTokens = parseInt(process.env.GEMINI_MAX_TOKENS || '8192');
 
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: modelName,
       safetySettings: [
         {
@@ -2617,7 +2613,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ChatRespo
 
     // 4. Obtener contexto del plan
     const { context: planContext, syncResult, timezone } = await getPlanContext(user.id, activePlanId);
-    
+
     setCurrentTimezone(timezone);
 
     // 5. Preparar historial
@@ -2653,9 +2649,9 @@ ESTADO DEL PLAN Y CALENDARIO (CONTEXTO):
 ${planContext}
 
 INSTRUCCIÓN ESPECIAL PARA ESTA INTERACCIÓN:
-${isProactiveInit 
-  ? 'CONTEXTO: El usuario acaba de abrir el dashboard. NO ha enviado ningún mensaje aún. TÚ DEBES INICIAR LA CONVERSACIÓN.\nTAREA: Analiza el contexto de arriba (conflictos, atrasos, sesiones perdidas).\n- SI HAY PROBLEMAS: Pregunta DIRECTAMENTE al usuario si quiere resolverlos (ej: "Veo que perdiste la sesión X, ¿la reprogramamos?"). NO esperes a que él pregunte.\n- SI TODO ESTÁ BIEN: Saluda brevemente y menciona la próxima sesión.\n- IMPORTANTE: No digas "Hola" genérico. Ve genial contexto.' 
-  : 'El usuario ha respondido. Continúa la conversación ayudándole a gestionar su plan.'}
+${isProactiveInit
+        ? 'CONTEXTO: El usuario acaba de abrir el dashboard. NO ha enviado ningún mensaje aún. TÚ DEBES INICIAR LA CONVERSACIÓN.\nTAREA: Analiza el contexto de arriba (conflictos, atrasos, sesiones perdidas).\n- SI HAY PROBLEMAS: Pregunta DIRECTAMENTE al usuario si quiere resolverlos (ej: "Veo que perdiste la sesión X, ¿la reprogramamos?"). NO esperes a que él pregunte.\n- SI TODO ESTÁ BIEN: Saluda brevemente y menciona la próxima sesión.\n- IMPORTANTE: No digas "Hola" genérico. Ve genial contexto.'
+        : 'El usuario ha respondido. Continúa la conversación ayudándole a gestionar su plan.'}
 `;
 
     // 7. Iniciar Chat - systemInstruction debe ser un objeto con parts para versiones recientes del SDK
@@ -2668,95 +2664,96 @@ ${isProactiveInit
     });
 
     logger.info(`🤖 LIA (${trigger}): Analizando contexto con Gemini...`);
-    
+
     try {
       // Si es proactivo, enviamos un input interno para detonar el análisis
-      const userMessage = isProactiveInit 
-        ? 'Hola LIA, acabo de entrar. ¿Hay algo de mi plan que deba atender hoy?' 
+      const userMessage = isProactiveInit
+        ? 'Hola LIA, acabo de entrar. ¿Hay algo de mi plan que deba atender hoy?'
         : message!;
 
       const result = await chatSession.sendMessage(userMessage);
-    // 7. Enviar respuesta
-    const responseText = result.response.text();
-    const usage = result.response.usageMetadata;
-    
-    // Registrar respuesta en logger
-    if (conversationId) {
-      liaLogger.setConversationId(conversationId);
-      
-      // Calcular costos si hay metadata
-      let usageMetadata = undefined;
-      if (usage) {
-         const promptTokens = usage.promptTokenCount || 0;
-         const completionTokens = usage.candidatesTokenCount || 0;
-         const totalTokens = usage.totalTokenCount || 0;
-         
-         const estimatedCost = calculateCost(promptTokens, completionTokens, modelName);
-         
-         // Registrar usage globalmente también
-         if (user) {
-           logOpenAIUsage({
-             userId: user.id,
-             timestamp: new Date(),
-             model: modelName,
-             promptTokens,
-             completionTokens,
-             totalTokens,
-             estimatedCost
-           });
-         }
+      // 7. Enviar respuesta
+      const responseText = result.response.text();
+      const usage = result.response.usageMetadata;
 
-         usageMetadata = {
-           tokensUsed: totalTokens,
-           costUsd: estimatedCost,
-           modelUsed: modelName
-         };
-      }
-      
-      try {
-        await liaLogger.logMessage(
-          'assistant', 
-          responseText, 
-          false,
-          usageMetadata
-        );
-      } catch (logError) {
-        logger.warn('[StudyPlanner] Falló log de respuesta:', logError);
-      }
-    }
+      // Registrar respuesta en logger (solo si la conversación se creó exitosamente)
+      if (conversationId && liaLogger.getCurrentConversationId()) {
+        // Calcular costos si hay metadata
+        let usageMetadata = undefined;
+        if (usage) {
+          const promptTokens = usage.promptTokenCount || 0;
+          const completionTokens = usage.candidatesTokenCount || 0;
+          const totalTokens = usage.totalTokenCount || 0;
 
-    // 8. Procesar respuesta
-    const { action, actions, cleanResponse } = extractAction(responseText);
-    
-    let executedAction: ActionResult | undefined;
-    
+          const estimatedCost = calculateCost(promptTokens, completionTokens, modelName);
+
+          // Registrar usage globalmente también
+          if (user) {
+            logOpenAIUsage({
+              userId: user.id,
+              timestamp: new Date(),
+              model: modelName,
+              promptTokens,
+              completionTokens,
+              totalTokens,
+              estimatedCost
+            });
+          }
+
+          usageMetadata = {
+            tokensUsed: totalTokens,
+            costUsd: estimatedCost,
+            modelUsed: modelName
+          };
+        }
+
+        try {
+          await liaLogger.logMessage(
+            'assistant',
+            responseText,
+            false,
+            usageMetadata
+          );
+        } catch (logError: any) {
+          // Solo loggear errores distintos a FK violation (23503) para evitar spam
+          if (logError?.code !== '23503') {
+            logger.warn('[StudyPlanner] Falló log de respuesta:', logError);
+          }
+        }
+      }
+
+      // 8. Procesar respuesta
+      const { action, actions, cleanResponse } = extractAction(responseText);
+
+      let executedAction: ActionResult | undefined;
+
       // Ejecutar acciones que no requieren confirmación (pending)
       if (actions.length > 0 && activePlanId) {
         const pendingActions = actions.filter(a => a.status === 'pending');
         const confirmationNeededActions = actions.filter(a => a.status === 'confirmation_needed');
-        
+
         // Ejecutar secuencialmente las acciones pendientes
         if (pendingActions.length > 0) {
           logger.info(`⚡ Ejecutando ${pendingActions.length} acciones automáticas...`);
           const executionResults = await Promise.all(
             pendingActions.map(a => executeAction(user.id, activePlanId, a))
           );
-          
+
           // Tomar la última ejecutada (o la primera fallida) para el retorno al frontend
           // (El frontend actual parece manejar solo una acción principal en el callback, 
           // aunque el chat muestre múltiples resultados textuales 'cleanResponse')
           const failedAction = executionResults.find(r => r.status === 'error');
           executedAction = failedAction || executionResults[executionResults.length - 1];
         }
-        
+
         // Si hay una acción que requiere confirmación y no ejecutamos nada aún (o además),
         // la devolvemos para que el frontend pida confirmación.
         if (confirmationNeededActions.length > 0 && !executedAction) {
-           executedAction = confirmationNeededActions[0];
+          executedAction = confirmationNeededActions[0];
         }
       } else if (action) {
-         // Fallback legacy (si extractAction devolvió algo en single 'action' pero no en array, improbable con el código actual)
-         executedAction = action;
+        // Fallback legacy (si extractAction devolvió algo en single 'action' pero no en array, improbable con el código actual)
+        executedAction = action;
       }
 
       return NextResponse.json({
@@ -2767,7 +2764,7 @@ ${isProactiveInit
 
     } catch (apiError: any) {
       logger.error('❌ Error llamando a Gemini API:', apiError);
-      
+
       // Fallback elegante en caso de sobrecarga o error de API
       return NextResponse.json({
         success: false,
@@ -2779,10 +2776,10 @@ ${isProactiveInit
   } catch (error) {
     logger.error('Error crítico en chat del dashboard:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        response: 'Ocurrió un error inesperado en el servidor.', 
-        error: error instanceof Error ? error.message : 'Error interno' 
+      {
+        success: false,
+        response: 'Ocurrió un error inesperado en el servidor.',
+        error: error instanceof Error ? error.message : 'Error interno'
       },
       { status: 500 }
     );

@@ -178,8 +178,18 @@ export async function POST(request: NextRequest) {
                         console.error(`❌ [Insert Events] Error en evento ${i + 1}/${eventsToInsert.length}`);
                     }
                 } else if (integration.provider === 'microsoft') {
-                    // TODO: Implementar para Microsoft Calendar
-                    results.push({ success: false, error: 'Microsoft Calendar no soportado aún', index: i });
+                    const result = await CalendarIntegrationService.createMicrosoftEvent(
+                        accessToken,
+                        event
+                    );
+
+                    if (result) {
+                        results.push({ success: true, eventId: result.id, index: i });
+                        console.log(`✅ [Insert Events] Evento Microsoft ${i + 1}/${eventsToInsert.length} insertado: ${result.id}`);
+                    } else {
+                        results.push({ success: false, error: 'No se pudo crear el evento en Microsoft Calendar', index: i });
+                        console.error(`❌ [Insert Events] Error en evento Microsoft ${i + 1}/${eventsToInsert.length}`);
+                    }
                 }
 
                 // Throttling para evitar rate limiting
